@@ -54,6 +54,8 @@ import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
+import com.palantir.atlasdb.contiguous.ArbitraryContiguityCheckers;
+import com.palantir.atlasdb.contiguous.ContiguityChecker;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.futures.AtlasFutures;
@@ -296,7 +298,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
-     *                           lock for it because we know that no writers exist.
+     * lock for it because we know that no writers exist.
      * @param preCommitCondition This check must pass for this transaction to commit.
      */
     /* package */ SnapshotTransaction(
@@ -601,7 +603,7 @@ public class SnapshotTransaction extends AbstractTransaction
     /**
      * Provides comparator to sort cells by columns (sorted lexicographically on byte ordering) and then in the order
      * of input rows.
-     * */
+     */
     @VisibleForTesting
     static Comparator<Cell> columnOrderThenPreserveInputRowOrder(Iterable<byte[]> rows) {
         return Cell.COLUMN_COMPARATOR.thenComparing(
@@ -622,7 +624,7 @@ public class SnapshotTransaction extends AbstractTransaction
      * possibility of needing a second batch of fetching.
      * If the batch hint is large, split batch size across rows to avoid loading too much data, while accepting that
      * second fetches may be needed to get everyone their data.
-     * */
+     */
     private static int getPerRowBatchSize(BatchColumnRangeSelection columnRangeSelection, int distinctRowCount) {
         return Math.max(
                 Math.min(MIN_BATCH_SIZE_FOR_DISTRIBUTED_LOAD, columnRangeSelection.getBatchHint()),
@@ -712,7 +714,10 @@ public class SnapshotTransaction extends AbstractTransaction
             TableReference tableRef,
             byte[] row,
             BatchColumnRangeSelection columnRangeSelection,
-            RowColumnRangeIterator rawIterator) {
+            RowColumnRangeIterator rawIterator
+            //        Supplier<ContiguityChecker> contiguityChecker
+            // TODO (jkong): AAAAAA
+            ) {
         ColumnRangeBatchProvider batchProvider =
                 new ColumnRangeBatchProvider(keyValueService, tableRef, row, columnRangeSelection, getStartTimestamp());
         return GetRowsColumnRangeIterator.iterator(
@@ -1234,13 +1239,19 @@ public class SnapshotTransaction extends AbstractTransaction
 
     @Override
     public BatchingVisitable<RowResult<byte[]>> getRange(final TableReference tableRef, final RangeRequest range) {
+        return getRange(tableRef, range, ArbitraryContiguityCheckers.CellChecker.INSTANCE);
+    }
+
+    @Override
+    public BatchingVisitable<RowResult<byte[]>> getRange(
+            final TableReference tableRef, final RangeRequest range, ContiguityChecker<Cell> contiguityChecker) {
         checkGetPreconditions(tableRef);
         if (range.isEmptyRange()) {
             return BatchingVisitables.emptyBatchingVisitable();
         }
         hasReads = true;
 
-        return new AbstractBatchingVisitable<RowResult<byte[]>>() {
+        return new AbstractBatchingVisitable<>() {
             @Override
             public <K extends Exception> void batchAcceptSizeHint(
                     int userRequestedSize, ConsistentVisitor<RowResult<byte[]>, K> visitor) throws K {
@@ -1250,7 +1261,8 @@ public class SnapshotTransaction extends AbstractTransaction
                 int preFilterBatchSize = getRequestHintToKvStore(requestSize);
 
                 Preconditions.checkArgument(!range.isReverse(), "we currently do not support reverse ranges");
-                getBatchingVisitableFromIterator(tableRef, range, requestSize, visitor, preFilterBatchSize);
+                getBatchingVisitableFromIterator(
+                        tableRef, range, requestSize, visitor, preFilterBatchSize, contiguityChecker);
             }
         };
     }
@@ -1260,10 +1272,11 @@ public class SnapshotTransaction extends AbstractTransaction
             RangeRequest range,
             int userRequestedSize,
             AbortingVisitor<List<RowResult<byte[]>>, K> visitor,
-            int preFilterBatchSize)
+            int preFilterBatchSize,
+            ContiguityChecker<Cell> contiguityChecker)
             throws K {
         try (ClosableIterator<RowResult<byte[]>> postFilterIterator =
-                postFilterIterator(tableRef, range, preFilterBatchSize, Value.GET_VALUE)) {
+                postFilterIterator(tableRef, range, preFilterBatchSize, Value.GET_VALUE, contiguityChecker)) {
             Iterator<RowResult<byte[]>> localWritesInRange = Cells.createRowView(getLocalWritesForRange(
                             tableRef, range.getStartInclusive(), range.getEndExclusive(), range.getColumnNames())
                     .entrySet());
@@ -1351,7 +1364,11 @@ public class SnapshotTransaction extends AbstractTransaction
 
     @MustBeClosed
     protected <T> ClosableIterator<RowResult<T>> postFilterIterator(
-            TableReference tableRef, RangeRequest range, int preFilterBatchSize, Function<Value, T> transformer) {
+            TableReference tableRef,
+            RangeRequest range,
+            int preFilterBatchSize,
+            Function<Value, T> transformer,
+            ContiguityChecker<Cell> contiguityChecker) {
         RowRangeBatchProvider batchProvider =
                 new RowRangeBatchProvider(keyValueService, tableRef, range, getStartTimestamp());
         BatchSizeIncreasingIterator<RowResult<Value>> results =
@@ -1365,8 +1382,8 @@ public class SnapshotTransaction extends AbstractTransaction
                 }
                 SortedMap<Cell, T> postFilter = postFilterRows(tableRef, batch, transformer);
 
-                // can't skip lock checks for range scans
-                validatePreCommitRequirementsOnNonExhaustiveReadIfNecessary(tableRef, getStartTimestamp());
+                boolean contiguous = contiguityChecker.checkContiguityAndUpdateLastSeen(postFilter);
+                validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp(), contiguous);
                 results.markNumResultsNotDeleted(
                         Cells.getRows(postFilter.keySet()).size());
                 return Cells.createRowView(postFilter.entrySet());
@@ -1384,7 +1401,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * This includes deleted writes as zero length byte arrays, be sure to strip them out.
-     *
+     * <p>
      * For the selectedColumns parameter, empty set means all columns. This is unfortunate, but follows the semantics of
      * {@link RangeRequest}.
      */
@@ -1903,7 +1920,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * Returns true iff the transaction is known to have successfully committed.
-     *
+     * <p>
      * Be careful when using this method! A transaction that the client thinks has failed could actually have
      * committed as far as the key-value service is concerned.
      */
@@ -2578,7 +2595,7 @@ public class SnapshotTransaction extends AbstractTransaction
     /**
      * This will attempt to put the commitTimestamp into the DB.
      *
-     * @throws TransactionLockTimeoutException  If our locks timed out while trying to commit.
+     * @throws TransactionLockTimeoutException If our locks timed out while trying to commit.
      * @throws TransactionCommitFailedException failed when committing in a way that isn't retriable
      */
     private void putCommitTimestamp(long commitTimestamp, LockToken locksToken, TransactionService transactionService)

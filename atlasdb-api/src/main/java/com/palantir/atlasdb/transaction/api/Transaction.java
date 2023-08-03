@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.api;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.contiguous.ContiguityChecker;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -36,11 +37,11 @@ import java.util.stream.Stream;
 
 /**
  * Provides the methods for a transaction with the key-value store.
- *
+ * <p>
  * In general: users may assume that if maps (including sorted maps) keyed on byte[] are returned to the user,
  * they may be accessed via any byte array that is equivalent in terms of
  * {@link java.util.Arrays#equals(byte[], byte[])}.
- *
+ * <p>
  * Throughout this class, methods that return structures that may not perform all of their loading upfront (batching
  * visitables, iterables, streams and futures, for instance) _must_ be used strictly within the scope of the
  * transaction. Concretely, this means that results must be retrieved before exiting the transaction - in the case of
@@ -55,10 +56,10 @@ public interface Transaction {
      * Returns a mapping of rows to {@link RowResult}s within {@code tableRef} for the specified {@code rows}, loading
      * columns according to the provided {@link ColumnSelection}. Duplicate rows are permitted (but there will be just
      * one key-value pair for that row in the returned {@link NavigableMap}).
-     *
+     * <p>
      * The returned {@link NavigableMap} is sorted on the byte order of row keys; the ordering of the input parameter
      * {@code rows} is irrelevant.
-     *
+     * <p>
      * If there are rows with no cells matching the provided {@link ColumnSelection}, they will not be present in the
      * {@link Map#keySet()} of the output map at all. This accounts for writes and deletes done in this transaction:
      * a row written to in this transaction will be present, and a row which is deleted in this transaction will be
@@ -77,13 +78,13 @@ public interface Transaction {
      * Returns a mapping of requested {@code rows} to corresponding columns from the queried table.
      * Only columns matching the provided predicate will be returned, and the single predicate provided applies across
      * all of the rows. Users should provide unique rows: behaviour is undefined if this is not the case.
-     *
+     * <p>
      * The returned {@link BatchingVisitable}s are guaranteed to return cells matching the predicate. These are sorted
      * by column on byte ordering.
-     *
+     * <p>
      * It is guaranteed that the {@link Map#keySet()} of the returned map has a corresponding element for each of the
      * input {@code rows}, even if there are rows where no columns match the predicate.
-     *
+     * <p>
      * Batching visitables must be used strictly within the scope of the transaction.
      *
      * @param tableRef table to load values from
@@ -99,13 +100,13 @@ public interface Transaction {
      * Returns a single iterator over the cell-value pairs in {@code tableRef} for the specified {@code rows}, where the
      * columns fall within the provided {@link ColumnRangeSelection}. The single provided {@link ColumnRangeSelection}
      * applies to all of the rows.
-     *
+     * <p>
      * The returned iterator is guaranteed to return cell-value pairs in a lexicographic ordering over rows and columns
      * where rows are sorted according to the provided {@code rows} {@link Iterable} and then columns on byte ordering.
      * If the {@link Iterable} does not have a stable ordering (i.e. iteration order can change across iterators
      * returned) then the returned iterator is sorted lexicographically with columns sorted on byte ordering, but
      * the ordering of rows is undefined.
-     *
+     * <p>
      * Iterators must be used strictly within the scope of the transaction.
      *
      * @param tableRef table to load values from
@@ -123,13 +124,13 @@ public interface Transaction {
      * Returns a mapping of rows to {@link Iterator}s over cell-value pairs within {@code tableRef} for the specified
      * {@code rows}, where the columns fall within the provided {@link BatchColumnRangeSelection}. The single provided
      * {@link BatchColumnRangeSelection} applies to all of the rows.
-     *
+     * <p>
      * The returned iterators are guaranteed to return cells matching the predicate. These are sorted by column on
      * byte ordering.
-     *
+     * <p>
      * It is guaranteed that the {@link Map#keySet()} of the returned map has a corresponding element for each of the
      * input {@code rows}, even if there are rows where no columns match the predicate.
-     *
+     * <p>
      * Iterators must be used strictly within the scope of the transaction.
      *
      * @param tableRef table to load values from
@@ -147,14 +148,14 @@ public interface Transaction {
      * columns fall within the provided  {@link BatchColumnRangeSelection}.The single provided
      * {@link BatchColumnRangeSelection} applies to all of the rows. The cells for a row appear exactly once even if
      * the same row is included multiple times in {@code rows}.
-     *
+     * <p>
      * The returned iterator is guaranteed to contain cells sorted first in lexicographical order of column on byte
      * ordering, then in order of row, where rows are sorted according to the provided {@code rows} {@link Iterable}.
      * If the {@link Iterable} does not have a stable ordering (i.e. iteration order can change across iterators
      * returned) then the returned iterator is sorted lexicographically with columns sorted on byte ordering, but the
      * ordering of rows is undefined. In case of duplicate rows, the ordering is based on the first occurrence of
      * the row.
-     *
+     * <p>
      * Iterators must be used strictly within the scope of the transaction.
      *
      * @param tableRef table to load values from
@@ -165,6 +166,7 @@ public interface Transaction {
     @Idempotent
     Iterator<Map.Entry<Cell, byte[]>> getSortedColumns(
             TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection);
+
     /**
      * Gets the values associated for each cell in {@code cells} from table specified by {@code tableRef}.
      *
@@ -178,7 +180,7 @@ public interface Transaction {
     /**
      * Gets the values associated for each cell in {@code cells} from table specified by {@code tableRef}. It is not
      * guaranteed that the actual implementations are in fact asynchronous.
-     *
+     * <p>
      * The future must be used strictly within the scope of the transaction.
      *
      * @param tableRef the table from which to get the values
@@ -190,7 +192,7 @@ public interface Transaction {
 
     /**
      * Creates a visitable that scans the provided range.
-     *
+     * <p>
      * Batching visitables must be used strictly within the scope of the transaction.
      *
      * @param tableRef the table to scan
@@ -201,13 +203,21 @@ public interface Transaction {
     BatchingVisitable<RowResult<byte[]>> getRange(TableReference tableRef, RangeRequest rangeRequest);
 
     /**
+     * See {@link #getRange(TableReference, RangeRequest)}.
+     * Additionally takes in a domain, that may allow for optimisations
+     */
+    @Idempotent
+    BatchingVisitable<RowResult<byte[]>> getRange(
+            TableReference tableRef, RangeRequest rangeRequest, ContiguityChecker<Cell> contiguityChecker);
+
+    /**
      * Creates a visitable that scans the provided range.
      * <p>
      * To get good performance out of this method, it is important to specify
      * the batch hint in each RangeRequest. If this isn't done then this method may do more work
      * than you need and will be slower than it needs to be.  If the batchHint isn't specified it
      * will default to 1 for the first page in each range.
-     *
+     * <p>
      * Batching visitables must be used strictly within the scope of the transaction.
      *
      * @deprecated Should use either {@link #getRanges(TableReference, Iterable, int, BiFunction)} or
@@ -222,10 +232,10 @@ public interface Transaction {
     /**
      * Creates unvisited visitables that scan the provided ranges and then applies the provided visitableProcessor
      * function with concurrency specified by the concurrencyLevel parameter.
-     *
+     * <p>
      * It is guaranteed that the range requests seen by the provided visitable processor are equal to the provided
      * iterable of range requests, though no guarantees are made on the order they are encountered in.
-     *
+     * <p>
      * Streams must be read within the scope of the transaction.
      */
     @Idempotent
@@ -255,7 +265,7 @@ public interface Transaction {
     /**
      * Returns visitibles that scan the provided ranges. This does no pre-fetching so visiting the resulting
      * visitibles will incur database reads on first access.
-     *
+     * <p>
      * Streams and visitables must be read within the scope of this transaction.
      */
     @Idempotent
@@ -265,6 +275,7 @@ public interface Transaction {
     /**
      * Puts values into the key-value store. If you put a null or the empty byte array, then
      * this is treated like a delete to the store.
+     *
      * @param tableRef the table into which to put the values
      * @param values the values to append to the table
      */
@@ -273,6 +284,7 @@ public interface Transaction {
 
     /**
      * Deletes values from the key-value store.
+     *
      * @param tableRef the table from which to delete the values
      * @param keys the set of cells to delete from the store
      */
@@ -298,7 +310,7 @@ public interface Transaction {
         /**
          * In addition to queuing cells for "scrubbing", we also:
          * - (a) Scrub earlier than we would have otherwise, even at the cost of possibly
-         *       causing open transactions to abort, and
+         * causing open transactions to abort, and
          * - (b) Block until the scrub is complete.
          */
         AGGRESSIVE_HARD_DELETE
@@ -322,6 +334,7 @@ public interface Transaction {
      * <p>
      * NOTE: only cell-level conflicts are detected.  If another transaction writes to the same row
      * but a different cell, then no conflict occurs.
+     *
      * @throws TransactionConflictException if this transaction had a conflict with another running transaction
      * @throws TransactionCommitFailedException if this transaction failed at commit time.  If this exception
      * is thrown, then this transaction may have been committed, but most likely not.
@@ -344,7 +357,7 @@ public interface Transaction {
      * Gets whether the transaction has not been committed.
      *
      * @return <code>true</code> if neither <code>commit()</code> or <code>abort()</code> have been called,
-     *         otherwise <code>false</code>
+     * otherwise <code>false</code>
      */
     @Idempotent
     boolean isUncommitted();
@@ -368,10 +381,10 @@ public interface Transaction {
 
     /**
      * Registers a callback that will be called after the AtlasDB client perceives a successful commit of a transaction.
-     *
+     * <p>
      * We guarantee that if the provided callback runs, the transaction has definitely committed successfully.
      * The converse is NOT true: it is possible that the callback is NOT called even if the transaction was successful.
-     *
+     * <p>
      * The semantics of callbacks are as follows:
      * <ul>
      *     <li>Callbacks must be registered before a transaction commits or aborts; registration of a callback once
@@ -387,7 +400,7 @@ public interface Transaction {
 
     /**
      * Disables read-write conflict checking for this table for the duration of this transaction only.
-     *
+     * <p>
      * This method should be called before any reads are done on this table.
      */
     @Idempotent
