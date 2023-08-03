@@ -100,6 +100,8 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
+import com.palantir.atlasdb.transaction.api.purity.PurityDeclaration;
+import com.palantir.atlasdb.transaction.api.purity.TransactionPurity;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceImpl;
@@ -281,6 +283,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private final ExpectationsMetrics expectationsDataCollectionMetrics;
     private volatile long cellCommitLocksRequested = 0L;
     private volatile long rowCommitLocksRequested = 0L;
+    private volatile TransactionPurity transactionPurity = TransactionPurity.impure();
 
     protected volatile boolean hasReads;
 
@@ -296,7 +299,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
-     *                           lock for it because we know that no writers exist.
+     * lock for it because we know that no writers exist.
      * @param preCommitCondition This check must pass for this transaction to commit.
      */
     /* package */ SnapshotTransaction(
@@ -372,6 +375,19 @@ public class SnapshotTransaction extends AbstractTransaction
 
     protected TransactionScopedCache getCache() {
         return lockWatchManager.getTransactionScopedCache(getTimestamp());
+    }
+
+    // Note: The purity declaration is intended as documentation, and possibly for static analysis (eventually, this
+    // makes more sense as an annotation on the transaction task.
+    public void declareTransactionAsPure(PurityDeclaration unused) {
+        transactionPurity = TransactionPurity.pure();
+        // TODO (jkong): How can we validate this? Can we do some kind of static analysis?
+    }
+
+    // Note: Transactions for which true is returned will not commit. False transactions can still fail.
+    public boolean isTransactionKnownToBeDoomed() {
+        Set<LockToken> expiredLocks = refreshCommitAndImmutableTsLocks(null); // During transaction
+        return expiredLocks.isEmpty();
     }
 
     @Override
@@ -601,7 +617,7 @@ public class SnapshotTransaction extends AbstractTransaction
     /**
      * Provides comparator to sort cells by columns (sorted lexicographically on byte ordering) and then in the order
      * of input rows.
-     * */
+     */
     @VisibleForTesting
     static Comparator<Cell> columnOrderThenPreserveInputRowOrder(Iterable<byte[]> rows) {
         return Cell.COLUMN_COMPARATOR.thenComparing(
@@ -622,7 +638,7 @@ public class SnapshotTransaction extends AbstractTransaction
      * possibility of needing a second batch of fetching.
      * If the batch hint is large, split batch size across rows to avoid loading too much data, while accepting that
      * second fetches may be needed to get everyone their data.
-     * */
+     */
     private static int getPerRowBatchSize(BatchColumnRangeSelection columnRangeSelection, int distinctRowCount) {
         return Math.max(
                 Math.min(MIN_BATCH_SIZE_FOR_DISTRIBUTED_LOAD, columnRangeSelection.getBatchHint()),
@@ -1207,7 +1223,9 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private boolean isValidationNecessaryOnReads(TableReference tableRef, boolean allPossibleCellsReadAndPresent) {
-        return validateLocksOnReads && requiresImmutableTimestampLocking(tableRef, allPossibleCellsReadAndPresent);
+        return !transactionPurity.canSkipIntermediateImmutableLockChecksOnThoroughTables()
+                && validateLocksOnReads
+                && requiresImmutableTimestampLocking(tableRef, allPossibleCellsReadAndPresent);
     }
 
     private boolean requiresImmutableTimestampLocking(TableReference tableRef, boolean allPossibleCellsReadAndPresent) {
@@ -1384,7 +1402,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * This includes deleted writes as zero length byte arrays, be sure to strip them out.
-     *
+     * <p>
      * For the selectedColumns parameter, empty set means all columns. This is unfortunate, but follows the semantics of
      * {@link RangeRequest}.
      */
@@ -1903,7 +1921,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * Returns true iff the transaction is known to have successfully committed.
-     *
+     * <p>
      * Be careful when using this method! A transaction that the client thinks has failed could actually have
      * committed as far as the key-value service is concerned.
      */
@@ -2578,7 +2596,7 @@ public class SnapshotTransaction extends AbstractTransaction
     /**
      * This will attempt to put the commitTimestamp into the DB.
      *
-     * @throws TransactionLockTimeoutException  If our locks timed out while trying to commit.
+     * @throws TransactionLockTimeoutException If our locks timed out while trying to commit.
      * @throws TransactionCommitFailedException failed when committing in a way that isn't retriable
      */
     private void putCommitTimestamp(long commitTimestamp, LockToken locksToken, TransactionService transactionService)
