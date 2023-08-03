@@ -28,7 +28,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
-import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.leader.MaybeNotCurrentLeaderException;
 import com.palantir.leader.proxy.LeadershipStateManager.LeadershipState;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -159,18 +159,27 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     private RuntimeException handleDelegateThrewException(
             LeadershipToken leadershipToken, InvocationTargetException exception) throws Exception {
-        if (exception.getCause() instanceof ServiceNotAvailableException
-                || exception.getCause() instanceof NotCurrentLeaderException) {
-            leadershipStateManager.handleNotLeading(leadershipToken, exception.getCause());
+
+        Throwable cause = exception.getCause();
+
+        if (cause instanceof ServiceNotAvailableException) {
+            boolean stillLeading = false;
+            if (cause instanceof MaybeNotCurrentLeaderException) {
+                stillLeading =
+                        leadershipCoordinator.isStillLeading(leadershipToken).get() == StillLeadingStatus.LEADING;
+            }
+
+            if (!stillLeading) {
+                leadershipStateManager.handleNotLeading(leadershipToken, exception.getCause());
+            }
         }
         // Prevent blocked lock requests from receiving a non-retryable 500 on interrupts
         // in case of a leader election.
-        if (exception.getCause() instanceof InterruptedException
-                && !leadershipCoordinator.isStillCurrentToken(leadershipToken)) {
+        if (cause instanceof InterruptedException && !leadershipCoordinator.isStillCurrentToken(leadershipToken)) {
             throw leadershipCoordinator.notCurrentLeaderException(
                     "received an interrupt due to leader election.", exception.getCause());
         }
-        Throwables.propagateIfPossible(exception.getCause(), Exception.class);
-        throw new RuntimeException(exception.getCause());
+        Throwables.propagateIfPossible(cause, Exception.class);
+        throw new RuntimeException(cause);
     }
 }

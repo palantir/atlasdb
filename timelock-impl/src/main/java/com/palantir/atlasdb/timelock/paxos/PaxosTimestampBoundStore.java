@@ -21,6 +21,7 @@ import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
 import com.palantir.common.remoting.ServiceNotAvailableException;
+import com.palantir.leader.MaybeNotCurrentLeaderException;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -252,7 +253,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                                     + " lost and regained leadership. For safety, we are now stopping this service.",
                             SafeArg.of("newLimit", newLimit),
                             SafeArg.of("target", limit));
-                    throw new NotCurrentLeaderException(String.format(
+                    throw new MaybeNotCurrentLeaderException(String.format(
                             "We updated the timestamp limit to %s, which was less than our target %s.",
                             newLimit, limit));
                 }
@@ -280,7 +281,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                             + " The offending bound was '%s'; we tried to propose"
                             + " a bound of '%s'. (The offending Paxos value was '%s'.)",
                     newSeq, value.getLeaderUUID(), proposer.getUuid(), PtBytes.toLong(value.getData()), limit, value);
-            throw new NotCurrentLeaderException(errorMsg);
+            throw new MaybeNotCurrentLeaderException(errorMsg);
         }
         DebugLogger.logger.info(
                 "Trying to store limit '{}' for sequence '{}' yielded consensus on the value '{}'.",
