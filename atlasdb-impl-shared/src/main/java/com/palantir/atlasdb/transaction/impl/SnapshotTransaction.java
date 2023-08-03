@@ -379,12 +379,14 @@ public class SnapshotTransaction extends AbstractTransaction
 
     // Note: The purity declaration is intended as documentation, and possibly for static analysis (eventually, this
     // makes more sense as an annotation on the transaction task.
+    @Override
     public void declareTransactionAsPure(PurityDeclaration unused) {
         transactionPurity = TransactionPurity.pure();
         // TODO (jkong): How can we validate this? Can we do some kind of static analysis?
     }
 
     // Note: Transactions for which true is returned will not commit. False transactions can still fail.
+    @Override
     public boolean isTransactionKnownToBeDoomed() {
         Set<LockToken> expiredLocks = refreshCommitAndImmutableTsLocks(null); // During transaction
         return expiredLocks.isEmpty();
@@ -819,7 +821,7 @@ public class SnapshotTransaction extends AbstractTransaction
                     protected Map.Entry<Cell, Value> computeNext() {
                         if (!peekableRawResults.hasNext()
                                 || !Arrays.equals(
-                                        peekableRawResults.peek().getKey().getRowName(), nextRowName)) {
+                                peekableRawResults.peek().getKey().getRowName(), nextRowName)) {
                             return endOfData();
                         }
                         return peekableRawResults.next();
@@ -1244,7 +1246,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 postFiltered.entrySet(),
                 Predicates.compose(Predicates.in(prePostFilterCells.keySet()), MapEntries.getKeyFunction()));
         Collection<Map.Entry<Cell, byte[]>> localWritesInRange = getLocalWritesForRange(
-                        tableRef, rangeRequest.getStartInclusive(), endRowExclusive, rangeRequest.getColumnNames())
+                tableRef, rangeRequest.getStartInclusive(), endRowExclusive, rangeRequest.getColumnNames())
                 .entrySet();
         return mergeInLocalWrites(
                 tableRef, postFilteredCells.iterator(), localWritesInRange.iterator(), rangeRequest.isReverse());
@@ -1281,9 +1283,9 @@ public class SnapshotTransaction extends AbstractTransaction
             int preFilterBatchSize)
             throws K {
         try (ClosableIterator<RowResult<byte[]>> postFilterIterator =
-                postFilterIterator(tableRef, range, preFilterBatchSize, Value.GET_VALUE)) {
+                     postFilterIterator(tableRef, range, preFilterBatchSize, Value.GET_VALUE)) {
             Iterator<RowResult<byte[]>> localWritesInRange = Cells.createRowView(getLocalWritesForRange(
-                            tableRef, range.getStartInclusive(), range.getEndExclusive(), range.getColumnNames())
+                    tableRef, range.getStartInclusive(), range.getEndExclusive(), range.getColumnNames())
                     .entrySet());
             Iterator<RowResult<byte[]>> mergeIterators =
                     mergeInLocalWritesRows(postFilterIterator, localWritesInRange, range.isReverse(), tableRef);
@@ -2148,7 +2150,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private <T> T timedAndTraced(String timerName, Supplier<T> supplier) {
         try (Timer.Context timer = getTimer(timerName).time();
-                CloseableTracer tracer = CloseableTracer.startSpan(timerName)) {
+             CloseableTracer tracer = CloseableTracer.startSpan(timerName)) {
             return supplier.get();
         }
     }
