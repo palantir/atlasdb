@@ -94,6 +94,24 @@ dependencies {
     testCompileOnly 'org.immutables:value::annotations'
 }
 
+// ETE Test Wiring
+//
+// For each non-trivially sized ETE test and all ETE test suites:
+// - define a custom gradle task for just that test [suite]
+// - remove that test [suite] from :atlasdb-ete-tests:test
+// - add that custom task as a dependency of :customEteTasks, which :atlasdb-ete-tests:test then depends on
+// - use task exclusion in our circleci commands to ensure only specific things get run in certain containers at CI time
+//
+// This does a few things:
+// - for test suites, makes it easier to reason about which suite class executions belong to what test suites in the
+//   generated junit reports and test suite cost in gradle build scans
+// - allows us to run certain tests in their own containers for CI speed reasons
+// - on the off chance someone adds or re-names a test in the future, but forgets to give it its own task and wiring
+//   described above, that test will still get run via :atlasdb-ete-tests:test to avoid a situation where the new test
+//   isn't run in CI without us realizing
+
+// Tasks required before ETE tests can be run
+
 task prepareForEteTests(type: Copy, dependsOn: 'distTar') {
     from distTar.outputs
     into 'build/docker/'
@@ -101,55 +119,85 @@ task prepareForEteTests(type: Copy, dependsOn: 'distTar') {
     rename { filename -> 'atlasdb-ete-snapshot.tgz' }
 }
 
-// standalone test with its own task
-// is very expensive and so separate task is used to control when/where it is executed
-task timeLockMigrationTest(type: Test) {
-    dependsOn prepareForEteTests, ':timelock-server-distribution:dockerTag'
+task prepareForTimelockEteTests() {
+    dependsOn 'prepareForEteTests', ':timelock-server-distribution:dockerTag'
+}
+
+// Individual ETE Test Tasks
+
+task timeLockMigrationTest(type: Test, dependsOn: 'prepareForTimelockEteTests') {
     filter {
         includeTestsMatching 'com.palantir.atlasdb.ete.standalone.TimeLockMigrationEteTest'
     }
 }
 
-// test suites with their own test tasks
-// not sure why some have it and others do not
-
-task singleClientWithEmbeddedAndThreeNodeCassandraTest(type: Test) {
-    dependsOn prepareForEteTests
+task multiClientWithPostgresTimelockAndPostgresTest(type: Test, dependsOn: 'prepareForTimelockEteTests') {
     filter {
-        includeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite'
+        includeTestsMatching 'com.palantir.atlasdb.ete.suites.MultiClientWithPostgresTimelockAndPostgresTestSuite'
     }
 }
 
-task singleClientWithEmbeddedAndPostgresTest(type: Test) {
-    dependsOn prepareForEteTests
+task multiClientWithTimelockAndCassandraTest(type: Test, dependsOn: 'prepareForTimelockEteTests') {
     filter {
-        includeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndPostgresTestSuite'
+        includeTestsMatching 'com.palantir.atlasdb.ete.suites.MultiClientWithTimelockAndCassandraTestSuite'
     }
 }
 
-task singleClientWithEmbeddedAndOracleTest(type: Test) {
-    dependsOn prepareForEteTests
+task singleClientWithEmbeddedAndCassandraTest(type: Test, dependsOn: 'prepareForEteTests') {
+    filter {
+        includeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndCassandraTestSuite'
+    }
+}
+
+task singleClientWithEmbeddedAndOracleTest(type: Test, dependsOn: 'prepareForEteTests') {
     filter {
         includeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndOracleTestSuite'
     }
 }
 
+task singleClientWithEmbeddedAndPostgresTest(type: Test, dependsOn: 'prepareForEteTests') {
+    filter {
+        includeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndPostgresTestSuite'
+    }
+}
+
+task singleClientWithEmbeddedAndThreeNodeCassandraTest(type: Test, dependsOn: 'prepareForEteTests') {
+    filter {
+        includeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite'
+    }
+}
+
+// Re-wire 'test' to include custom tasks as dependencies via a single task instead of directly running them
+
+task customEteTasks() {
+    dependsOn multiClientWithPostgresTimelockAndPostgresTest,
+        multiClientWithTimelockAndCassandraTest,
+        singleClientWithEmbeddedAndCassandraTest,
+        singleClientWithEmbeddedAndOracleTest,
+        singleClientWithEmbeddedAndPostgresTest,
+        singleClientWithEmbeddedAndThreeNodeCassandraTest
+        // timeLockMigrationTest // intentionally not run on every commit/PR due to length
+}
+
 test {
-    // this list explicitly doesn't include timelockMigration because it's too expensive to run on every PR
-    // this list explicitly doesn't include singleClientWithEmbeddedAndOracleTest; not sure why
-    // :timelock-server-distribution:dockerTag needed by any ETE test that spins up a timelock-server
-    dependsOn prepareForEteTests, ':timelock-server-distribution:dockerTag', singleClientWithEmbeddedAndThreeNodeCassandraTest, singleClientWithEmbeddedAndPostgresTest
+    dependsOn customEteTasks
 
     filter {
-        // include standalone and suite tests
-        includeTestsMatching 'com.palantir.atlasdb.ete.standalone.*'
-        includeTestsMatching 'com.palantir.atlasdb.ete.suites.*'
+        // in the expected case "test" doesn't actually have any tests to run because they're all in custom tasks
+        // gradle would normally fail a task of type Test that doesn't actually have any tests to run
+        setFailOnNoMatchingTests(false)
 
-        // exclude any tests with their own 1-off tasks
+        // suite classes that should not be run outside of suites
+        excludeTestsMatching 'com.palantir.atlasdb.ete.suiteclasses.*'
+
+        // tests with 1-off tasks
         excludeTestsMatching 'com.palantir.atlasdb.ete.standalone.TimeLockMigrationEteTest'
-        excludeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite'
-        excludeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndPostgresTestSuite'
+        excludeTestsMatching 'com.palantir.atlasdb.ete.suites.MultiClientWithPostgresTimelockAndPostgresTestSuite'
+        excludeTestsMatching 'com.palantir.atlasdb.ete.suites.MultiClientWithTimelockAndCassandraTestSuite'
+        excludeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndCassandraTestSuite'
         excludeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndOracleTestSuite'
+        excludeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndPostgresTestSuite'
+        excludeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite'
     }
 }
 
