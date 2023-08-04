@@ -41,6 +41,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 
 @SuppressWarnings("ProxyNonConstantType")
@@ -157,20 +158,10 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     private RuntimeException handleDelegateThrewException(
             LeadershipToken leadershipToken, InvocationTargetException exception) throws Exception {
-
         Throwable cause = exception.getCause();
 
-        if (cause instanceof ServiceNotAvailableException) {
-            boolean notLeading = true;
-            if (cause instanceof MaybeNotCurrentLeaderException) {
-                notLeading = isNotLeading(
-                        leadershipCoordinator.isStillLeading(leadershipToken).get());
-            }
+        maybeHandleLeadershipChangeException(leadershipToken, cause);
 
-            if (notLeading) {
-                leadershipStateManager.handleNotLeading(leadershipToken, exception.getCause());
-            }
-        }
         // Prevent blocked lock requests from receiving a non-retryable 500 on interrupts
         // in case of a leader election.
         if (cause instanceof InterruptedException && !leadershipCoordinator.isStillCurrentToken(leadershipToken)) {
@@ -179,6 +170,27 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         }
         Throwables.propagateIfPossible(cause, Exception.class);
         throw new RuntimeException(cause);
+    }
+
+    /**
+     * Check and see if the provided throwable thew a {@link ServiceNotAvailableException} and if so, check and see
+     * if it is a {@link MaybeNotCurrentLeaderException}. If it is, check and see if we are still leading, as we may
+     * still be, but contending with ourselves. Otherwise, assume we are not, and invalidate our leadership state.
+     */
+    private void maybeHandleLeadershipChangeException(LeadershipToken leadershipToken, Throwable throwable)
+            throws ExecutionException, InterruptedException {
+        if (throwable instanceof ServiceNotAvailableException) {
+            boolean notLeading = true;
+
+            if (throwable instanceof MaybeNotCurrentLeaderException) {
+                notLeading = isNotLeading(
+                        leadershipCoordinator.isStillLeading(leadershipToken).get());
+            }
+
+            if (notLeading) {
+                leadershipStateManager.handleNotLeading(leadershipToken, throwable);
+            }
+        }
     }
 
     private static boolean isNotLeading(StillLeadingStatus leading) {
