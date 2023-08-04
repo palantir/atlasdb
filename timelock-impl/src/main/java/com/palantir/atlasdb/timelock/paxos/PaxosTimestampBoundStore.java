@@ -23,6 +23,7 @@ import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.MaybeNotCurrentLeaderException;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -48,6 +49,11 @@ import org.immutables.value.Value;
 
 public class PaxosTimestampBoundStore implements TimestampBoundStore {
     private static final SafeLogger log = SafeLoggerFactory.get(PaxosTimestampBoundStore.class);
+
+    private static final String TOO_SMALL_LIMIT_INCREASE_MESSAGE =
+            "It appears we updated the timestamp limit to {}, which was less than our target {}."
+                    + " This suggests we have another timestamp service running; possibly because we"
+                    + " lost and regained leadership. For safety, we are now stopping this service.";
 
     private final PaxosProposer proposer;
     private final PaxosLearner knowledge;
@@ -247,15 +253,9 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                     // This is dangerous; proposing at the next sequence number is unsafe, as timestamp services
                     // generally assume they have the ALLOCATION_BUFFER_SIZE timestamps up to this.
                     // TODO (jkong): Devise a method that better preserves availability of the cluster.
-                    log.warn(
-                            "It appears we updated the timestamp limit to {}, which was less than our target {}."
-                                    + " This suggests we have another timestamp service running; possibly because we"
-                                    + " lost and regained leadership. For safety, we are now stopping this service.",
-                            SafeArg.of("newLimit", newLimit),
-                            SafeArg.of("target", limit));
-                    throw new MaybeNotCurrentLeaderException(String.format(
-                            "We updated the timestamp limit to %s, which was less than our target %s.",
-                            newLimit, limit));
+                    List<Arg<?>> args = List.of(SafeArg.of("newLimit", newLimit), SafeArg.of("target", limit));
+                    log.warn(TOO_SMALL_LIMIT_INCREASE_MESSAGE, args);
+                    throw new MaybeNotCurrentLeaderException(TOO_SMALL_LIMIT_INCREASE_MESSAGE, args);
                 }
                 return;
             } catch (PaxosRoundFailureException e) {
@@ -274,14 +274,17 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      */
     private void checkAgreedBoundIsOurs(long limit, long newSeq, PaxosValue value) throws NotCurrentLeaderException {
         if (!proposer.getUuid().equals(value.getLeaderUUID())) {
-            String errorMsg = String.format(
-                    "Timestamp limit changed from under us for sequence '%s' (proposer with UUID '%s' changed"
-                            + " it, our UUID is '%s'). This suggests that we have lost leadership, and another timelock"
+            throw new MaybeNotCurrentLeaderException(
+                    "Timestamp limit changed from under us for sequence '{}' (proposer with UUID '{}' changed"
+                            + " it, our UUID is '{}'). This suggests that we have lost leadership, and another timelock"
                             + " server has gained leadership and updated the timestamp bound."
-                            + " The offending bound was '%s'; we tried to propose"
-                            + " a bound of '%s'. (The offending Paxos value was '%s'.)",
-                    newSeq, value.getLeaderUUID(), proposer.getUuid(), PtBytes.toLong(value.getData()), limit, value);
-            throw new MaybeNotCurrentLeaderException(errorMsg);
+                            + " The offending bound was '{}'; we tried to propose"
+                            + " a bound of '{}'. (The offending Paxos value was '{}'.)",
+                    SafeArg.of("newSeq", newSeq),
+                    SafeArg.of("leaderUuid", value.getLeaderUUID()),
+                    SafeArg.of("ourUuid", proposer.getUuid()),
+                    SafeArg.of("limit", limit),
+                    SafeArg.of("value", value));
         }
         DebugLogger.logger.info(
                 "Trying to store limit '{}' for sequence '{}' yielded consensus on the value '{}'.",

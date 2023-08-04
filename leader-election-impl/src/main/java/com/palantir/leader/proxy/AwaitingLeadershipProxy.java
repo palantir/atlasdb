@@ -107,9 +107,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         ListenableFuture<T> delegateFuture = Futures.transformAsync(
                 leadingFuture,
                 leading -> {
-                    // treat a repeated NO_QUORUM as NOT_LEADING; likely we've been cut off from the other nodes
-                    // and should assume we're not the leader
-                    if (leading == StillLeadingStatus.NOT_LEADING || leading == StillLeadingStatus.NO_QUORUM) {
+                    if (isNotLeading(leading)) {
                         return Futures.submitAsync(
                                 () -> {
                                     leadershipStateManager.handleNotLeading(leadershipToken, null /* cause */);
@@ -163,13 +161,13 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         Throwable cause = exception.getCause();
 
         if (cause instanceof ServiceNotAvailableException) {
-            boolean stillLeading = false;
+            boolean notLeading = true;
             if (cause instanceof MaybeNotCurrentLeaderException) {
-                stillLeading =
-                        leadershipCoordinator.isStillLeading(leadershipToken).get() == StillLeadingStatus.LEADING;
+                notLeading = isNotLeading(
+                        leadershipCoordinator.isStillLeading(leadershipToken).get());
             }
 
-            if (!stillLeading) {
+            if (notLeading) {
                 leadershipStateManager.handleNotLeading(leadershipToken, exception.getCause());
             }
         }
@@ -181,5 +179,11 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         }
         Throwables.propagateIfPossible(cause, Exception.class);
         throw new RuntimeException(cause);
+    }
+
+    private static boolean isNotLeading(StillLeadingStatus leading) {
+        // treat a repeated NO_QUORUM as NOT_LEADING; likely we've been cut off from the other nodes
+        // and should assume we're not the leader
+        return leading == StillLeadingStatus.NOT_LEADING || leading == StillLeadingStatus.NO_QUORUM;
     }
 }

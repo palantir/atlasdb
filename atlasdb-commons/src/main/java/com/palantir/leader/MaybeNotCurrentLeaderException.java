@@ -16,8 +16,41 @@
 
 package com.palantir.leader;
 
-public class MaybeNotCurrentLeaderException extends NotCurrentLeaderException {
-    public MaybeNotCurrentLeaderException(String message) {
+import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.CompileTimeConstant;
+import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.Safe;
+import com.palantir.logsafe.SafeLoggable;
+import java.util.List;
+
+/**
+ * Some operations may fail due to contention, which means we may have lost leadership.
+ * In these cases, we should then validate that we have lost leadership, before taking any action.
+ */
+public final class MaybeNotCurrentLeaderException extends NotCurrentLeaderException implements SafeLoggable {
+
+    private final String message;
+    private final List<Arg<?>> args;
+
+    public MaybeNotCurrentLeaderException(@CompileTimeConstant String message, List<Arg<?>> args) {
         super(message);
+        this.message = message;
+        this.args = args;
+    }
+
+    public MaybeNotCurrentLeaderException(@CompileTimeConstant String message, Arg<?>... args) {
+        super(message);
+        this.message = message;
+        this.args = ImmutableList.copyOf(args);
+    }
+
+    @Override
+    public @Safe String getLogMessage() {
+        return message;
+    }
+
+    @Override
+    public List<Arg<?>> getArgs() {
+        return args;
     }
 }
