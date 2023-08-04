@@ -16,23 +16,27 @@
 
 package com.palantir.util.result;
 
-public interface Result<T, E> {
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 
-    static <T, E> Result<T, E> ok(T value) {
-        return new Ok<>(value);
+final class Ok<T, E> implements Result<T, E> {
+    private final T value;
+
+    Ok(T value) {
+        this.value = value;
     }
 
-    static <T, E> Result<T, E> err(E error) {
-        return new Err<>(error);
+    @Override
+    public boolean isOk() {
+        return true;
     }
 
-    boolean isOk();
-
-    default boolean isErr() {
-        return !isOk();
+    @Override
+    public T unwrap() {
+        return value;
     }
 
-    T unwrap();
-
-    E unwrapErr();
+    @Override
+    public E unwrapErr() {
+        throw new SafeRuntimeException("Called unwrapErr on an Ok value");
+    }
 }

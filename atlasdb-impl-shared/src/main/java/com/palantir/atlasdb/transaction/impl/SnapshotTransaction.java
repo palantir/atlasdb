@@ -925,7 +925,7 @@ public class SnapshotTransaction extends AbstractTransaction
     public Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> getWithExpectedNumberOfCells(
             TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells) {
         try {
-            return new Result.Ok<>(getCache().getWithCachedRef(tableRef, cells, cacheLookupResult -> {
+            return Result.ok(getCache().getWithCachedRef(tableRef, cells, cacheLookupResult -> {
                 long cachedCellsWithNonEmptyValue = CellCountValidator.validateCacheAndGetNonEmptyValuesCount(
                         expectedNumberOfPresentCells, cacheLookupResult.cacheHits());
                 long numberOfCellsExpectingValuePostCache = expectedNumberOfPresentCells - cachedCellsWithNonEmptyValue;
@@ -939,7 +939,7 @@ public class SnapshotTransaction extends AbstractTransaction
                         immediateTransactionService);
             }));
         } catch (MoreCellsPresentThanExpectedException e) {
-            return new Result.Err<>(e);
+            return Result.err(e);
         }
     }
 
