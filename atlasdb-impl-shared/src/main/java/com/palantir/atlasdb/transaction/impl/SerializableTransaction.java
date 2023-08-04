@@ -64,6 +64,7 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
+import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
@@ -84,6 +85,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.Pair;
+import com.palantir.util.result.Result;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -327,10 +329,10 @@ public class SerializableTransaction extends SnapshotTransaction {
     @ReviewedRestrictedApiUsage
     @Override
     @Idempotent
-    public Map<Cell, byte[]> getWithExpectedNumberOfCells(
+    public Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> getWithExpectedNumberOfCells(
             TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells) {
         try {
-            return getWithLoader(
+            return getWithResultLoader(
                             tableRef,
                             cells,
                             (tableReference, toRead) -> Futures.immediateFuture(super.getWithExpectedNumberOfCells(
@@ -356,10 +358,25 @@ public class SerializableTransaction extends SnapshotTransaction {
      */
     @VisibleForTesting
     ListenableFuture<Map<Cell, byte[]>> getWithLoader(TableReference tableRef, Set<Cell> cells, CellLoader cellLoader) {
+        CellResultLoader resultLoader = (table, toRead) -> {
+            ListenableFuture<Map<Cell, byte[]>> future = cellLoader.load(table, toRead);
+            return Futures.transform(future, Result::ok, MoreExecutors.directExecutor());
+        };
+
+        return Futures.transform(
+                getWithResultLoader(tableRef, cells, resultLoader), Result::unwrap, MoreExecutors.directExecutor());
+    }
+
+    private ListenableFuture<Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException>> getWithResultLoader(
+            TableReference tableRef, Set<Cell> cells, CellResultLoader cellLoader) {
         return Futures.transform(
                 cellLoader.load(tableRef, cells),
                 loadedCells -> {
-                    markCellsRead(tableRef, cells, loadedCells);
+                    if (loadedCells.isErr()) {
+                        return loadedCells;
+                    }
+
+                    markCellsRead(tableRef, cells, loadedCells.unwrap());
                     return loadedCells;
                 },
                 MoreExecutors.directExecutor());
@@ -369,6 +386,12 @@ public class SerializableTransaction extends SnapshotTransaction {
     @FunctionalInterface
     interface CellLoader {
         ListenableFuture<Map<Cell, byte[]>> load(TableReference tableReference, Set<Cell> toRead);
+    }
+
+    @FunctionalInterface
+    private interface CellResultLoader {
+        ListenableFuture<Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException>> load(
+                TableReference tableReference, Set<Cell> toRead);
     }
 
     @Override

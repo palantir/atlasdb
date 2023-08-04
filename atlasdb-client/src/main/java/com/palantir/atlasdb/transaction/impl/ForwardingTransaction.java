@@ -30,8 +30,10 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
+import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.BatchingVisitable;
+import com.palantir.util.result.Result;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -86,7 +88,7 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
 
     @ReviewedRestrictedApiUsage
     @Override
-    public Map<Cell, byte[]> getWithExpectedNumberOfCells(
+    public Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> getWithExpectedNumberOfCells(
             TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells) {
         return delegate().getWithExpectedNumberOfCells(tableRef, cells, expectedNumberOfPresentCells);
     }
