@@ -160,7 +160,9 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             LeadershipToken leadershipToken, InvocationTargetException exception) throws Exception {
         Throwable cause = exception.getCause();
 
-        maybeHandleLeadershipChangeException(leadershipToken, cause);
+        if (cause instanceof ServiceNotAvailableException) {
+            handleLeadershipChangeException(leadershipToken, (ServiceNotAvailableException) cause);
+        }
 
         // Prevent blocked lock requests from receiving a non-retryable 500 on interrupts
         // in case of a leader election.
@@ -173,23 +175,22 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     }
 
     /**
-     * Check and see if the provided throwable thew a {@link ServiceNotAvailableException} and if so, check and see
-     * if it is a {@link MaybeNotCurrentLeaderException}. If it is, check and see if we are still leading, as we may
-     * still be, but contending with ourselves. Otherwise, assume we are not, and invalidate our leadership state.
+     * Check and see if the provided {@link ServiceNotAvailableException} is a {@link MaybeNotCurrentLeaderException}.
+     * If it is, check and see if we are still leading, as we may still be, but contending with ourselves. Otherwise,
+     * assume we are not, and invalidate our leadership state.
      */
-    private void maybeHandleLeadershipChangeException(LeadershipToken leadershipToken, Throwable throwable)
+    private void handleLeadershipChangeException(
+            LeadershipToken leadershipToken, ServiceNotAvailableException exception)
             throws ExecutionException, InterruptedException {
-        if (throwable instanceof ServiceNotAvailableException) {
-            boolean notLeading = true;
+        boolean notLeading = true;
 
-            if (throwable instanceof MaybeNotCurrentLeaderException) {
-                notLeading = isNotLeading(
-                        leadershipCoordinator.isStillLeading(leadershipToken).get());
-            }
+        if (exception instanceof MaybeNotCurrentLeaderException) {
+            notLeading = isNotLeading(
+                    leadershipCoordinator.isStillLeading(leadershipToken).get());
+        }
 
-            if (notLeading) {
-                leadershipStateManager.handleNotLeading(leadershipToken, throwable);
-            }
+        if (notLeading) {
+            leadershipStateManager.handleNotLeading(leadershipToken, exception);
         }
     }
 
