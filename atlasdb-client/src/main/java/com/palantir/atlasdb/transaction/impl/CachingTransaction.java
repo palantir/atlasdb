@@ -203,7 +203,7 @@ public class CachingTransaction extends ForwardingTransaction {
             TableReference tableRef, Set<Cell> cells, CellLoader cellLoader) {
         CellResultLoader resultLoader = (table, cacheCells, cellsToLoad) -> {
             ListenableFuture<Map<Cell, byte[]>> future = cellLoader.load(table, cacheCells, cellsToLoad);
-            return Futures.transform(future, response -> Result.ok(response), MoreExecutors.directExecutor());
+            return Futures.transform(future, Result::ok, MoreExecutors.directExecutor());
         };
 
         return Futures.transform(
