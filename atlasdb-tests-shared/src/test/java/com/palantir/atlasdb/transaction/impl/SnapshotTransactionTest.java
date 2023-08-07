@@ -2618,27 +2618,24 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         TABLE2,
                         Optional.of(ConflictHandler.SERIALIZABLE)));
 
+        txn.put(
+                TABLE, ImmutableMap.of(Cell.create(ROW_FOO, COL_A), TEST_VALUE));
         txn.putWithMetadata(
-                TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, UPDATE_CHANGE_METADATA)));
-        txn.putWithMetadata(
-                TABLE, ImmutableMap.of(TEST_CELL_2, ValueAndChangeMetadata.of(TEST_VALUE, DELETE_CHANGE_METADATA)));
+                TABLE, ImmutableMap.of(Cell.create(ROW_FOO, COL_B), ValueAndChangeMetadata.of(TEST_VALUE, UPDATE_CHANGE_METADATA)));
         txn.putWithMetadata(
                 TABLE2, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, UNCHANGED_CHANGE_METADATA)));
 
-        LockDescriptor rowLock = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), TEST_CELL.getRowName());
-        LockDescriptor rowLock2 = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), TEST_CELL_2.getRowName());
-        LockDescriptor rowLock3 = AtlasRowLockDescriptor.of(TABLE2.getQualifiedName(), TEST_CELL.getRowName());
+        LockDescriptor rowLock = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), ROW_FOO);
+        LockDescriptor rowLock2 = AtlasRowLockDescriptor.of(TABLE2.getQualifiedName(), TEST_CELL.getRowName());
         verifyLockWasCalledWithLocksAndMetadataWhenCommitting(
                 txn,
                 timelockService,
                 LocksAndMetadata.of(
-                        ImmutableSet.of(rowLock, rowLock2, rowLock3),
+                        ImmutableSet.of(rowLock, rowLock2),
                         Optional.of(LockRequestMetadata.of(ImmutableMap.of(
                                 rowLock,
                                 UPDATE_CHANGE_METADATA,
                                 rowLock2,
-                                DELETE_CHANGE_METADATA,
-                                rowLock3,
                                 UNCHANGED_CHANGE_METADATA)))));
     }
 
@@ -2680,7 +2677,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void lockCollectionWithoutMetadataIsCorrect() {
+    public void lockCollectionWithoutMetadataIsCorrectForRandomWrites() {
         long randomSeed = System.currentTimeMillis();
         int numTables = 10;
         int numCellsPerTable = 100;
