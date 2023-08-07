@@ -183,7 +183,7 @@ acceptedBreaks:
         \ com.palantir.atlasdb.spi.KeyValueServiceConfig, com.palantir.refreshable.Refreshable<java.util.Optional<com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig>>,\
         \ java.util.Optional<java.lang.String>, java.util.function.LongSupplier, boolean)"
       justification: "will only be a compile break at worst for users and consumers"
-  "0.904.0":
+  "0.908.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.method.addedToInterface"
       new: "method void com.palantir.atlasdb.transaction.api.Transaction::deleteWithMetadata(com.palantir.atlasdb.keyvalue.api.TableReference,\
