@@ -130,6 +130,26 @@ acceptedBreaks:
         \ ===java.util.function.ToLongFunction<T>===)"
       justification: "Avoid autoboxing long to Long"
   "0.899.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.addedToInterface"
+      new: "method com.google.common.util.concurrent.ListenableFuture<java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell,\
+        \ byte[]>> com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache::getAsyncWithCachedRef(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.util.Set<com.palantir.atlasdb.keyvalue.api.Cell>, java.util.function.Function<com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache.CacheLookupResult,\
+        \ com.google.common.util.concurrent.ListenableFuture<java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell,\
+        \ byte[]>>>)"
+      justification: "new Get API for Atlas to specify number of expected cells"
+    - code: "java.method.addedToInterface"
+      new: "method com.palantir.util.result.Result<java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell,\
+        \ byte[]>, com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException>\
+        \ com.palantir.atlasdb.transaction.api.Transaction::getWithExpectedNumberOfCells(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.util.Set<com.palantir.atlasdb.keyvalue.api.Cell>, long)"
+      justification: "new Get API for Atlas to specify number of expected cells"
+    - code: "java.method.addedToInterface"
+      new: "method java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, byte[]> com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache::getWithCachedRef(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.util.Set<com.palantir.atlasdb.keyvalue.api.Cell>, java.util.function.Function<com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache.CacheLookupResult,\
+        \ com.google.common.util.concurrent.ListenableFuture<java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell,\
+        \ byte[]>>>)"
+      justification: "new Get API for Atlas to specify number of expected cells"
     com.palantir.atlasdb:atlasdb-cassandra:
     - code: "java.method.parameterTypeChanged"
       old: "parameter void com.palantir.atlasdb.keyvalue.cassandra.RangeLoader::<init>(com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool,\
