@@ -112,6 +112,13 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import org.eclipse.collections.api.LongIterable;
+import org.eclipse.collections.api.factory.primitive.LongLongMaps;
+import org.eclipse.collections.api.factory.primitive.LongSets;
+import org.eclipse.collections.api.map.primitive.LongLongMap;
+import org.eclipse.collections.api.map.primitive.MutableLongLongMap;
+import org.eclipse.collections.api.set.primitive.LongSet;
+import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.immutables.value.Value;
 import org.jetbrains.annotations.VisibleForTesting;
 
@@ -933,21 +940,21 @@ public class SerializableTransaction extends SnapshotTransaction {
             }
 
             @Override
-            protected ListenableFuture<Map<Long, Long>> getCommitTimestamps(
+            protected ListenableFuture<LongLongMap> getCommitTimestamps(
                     TableReference tableRef,
-                    Iterable<Long> startTimestamps,
+                    LongIterable startTimestamps,
                     boolean shouldWaitForCommitterToComplete,
                     AsyncTransactionService asyncTransactionService) {
                 long myStart = SerializableTransaction.this.getTimestamp();
                 PartitionedTimestamps partitionedTimestamps = splitTransactionBeforeAndAfter(myStart, startTimestamps);
 
-                ListenableFuture<Map<Long, Long>> postStartCommitTimestamps =
+                ListenableFuture<LongLongMap> postStartCommitTimestamps =
                         getCommitTimestampsForTransactionsStartedAfterMe(
                                 tableRef, asyncTransactionService, partitionedTimestamps.afterStart());
 
                 // We are ok to block here because if there is a cycle of transactions that could result in a deadlock,
                 // then at least one of them will be in the ab
-                ListenableFuture<Map<Long, Long>> preStartCommitTimestamps = super.getCommitTimestamps(
+                ListenableFuture<LongLongMap> preStartCommitTimestamps = super.getCommitTimestamps(
                         tableRef,
                         partitionedTimestamps.beforeStart(),
                         shouldWaitForCommitterToComplete,
@@ -955,20 +962,20 @@ public class SerializableTransaction extends SnapshotTransaction {
 
                 return Futures.whenAllComplete(postStartCommitTimestamps, preStartCommitTimestamps)
                         .call(
-                                () -> ImmutableMap.<Long, Long>builder()
-                                        .putAll(AtlasFutures.getDone(preStartCommitTimestamps))
-                                        .putAll(AtlasFutures.getDone(postStartCommitTimestamps))
-                                        .putAll(partitionedTimestamps.myCommittedTransaction())
-                                        .buildOrThrow(),
+                                () -> {
+                                    MutableLongLongMap map = LongLongMaps.mutable.withAll(
+                                            AtlasFutures.getDone(preStartCommitTimestamps));
+                                    map.putAll(AtlasFutures.getDone(postStartCommitTimestamps));
+                                    map.putAll(partitionedTimestamps.myCommittedTransaction());
+                                    return map.toImmutable();
+                                },
                                 MoreExecutors.directExecutor());
             }
 
-            private ListenableFuture<Map<Long, Long>> getCommitTimestampsForTransactionsStartedAfterMe(
-                    TableReference tableRef,
-                    AsyncTransactionService asyncTransactionService,
-                    Set<Long> startTimestamps) {
+            private ListenableFuture<LongLongMap> getCommitTimestampsForTransactionsStartedAfterMe(
+                    TableReference tableRef, AsyncTransactionService asyncTransactionService, LongSet startTimestamps) {
                 if (startTimestamps.isEmpty()) {
-                    return Futures.immediateFuture(ImmutableMap.of());
+                    return Futures.immediateFuture(LongLongMaps.immutable.empty());
                 }
 
                 return Futures.transform(
@@ -1002,19 +1009,22 @@ public class SerializableTransaction extends SnapshotTransaction {
              * @param startTimestamps of transactions we are interested in
              * @return a {@link PartitionedTimestamps} object containing split timestamps
              */
-            private PartitionedTimestamps splitTransactionBeforeAndAfter(long myStart, Iterable<Long> startTimestamps) {
+            private PartitionedTimestamps splitTransactionBeforeAndAfter(long myStart, LongIterable startTimestamps) {
                 ImmutablePartitionedTimestamps.Builder builder =
                         ImmutablePartitionedTimestamps.builder().myCommitTimestamp(commitTs);
+                MutableLongSet beforeStart = LongSets.mutable.empty();
+                MutableLongSet afterStart = LongSets.mutable.empty();
                 startTimestamps.forEach(startTimestamp -> {
                     if (startTimestamp == myStart) {
                         builder.splittingStartTimestamp(myStart);
                     } else if (startTimestamp < myStart) {
-                        builder.addBeforeStart(startTimestamp);
+                        beforeStart.add(startTimestamp);
                     } else {
-                        builder.addAfterStart(startTimestamp);
+                        afterStart.add(startTimestamp);
                     }
                 });
-
+                builder.beforeStart(beforeStart.asUnmodifiable());
+                builder.afterStart(afterStart.asUnmodifiable());
                 return builder.build();
             }
         };
@@ -1091,17 +1101,17 @@ public class SerializableTransaction extends SnapshotTransaction {
     interface PartitionedTimestamps {
         long myCommitTimestamp();
 
-        Set<Long> afterStart();
+        LongSet afterStart();
 
-        Set<Long> beforeStart();
+        LongSet beforeStart();
 
         OptionalLong splittingStartTimestamp();
 
         @Value.Derived
-        default Map<Long, Long> myCommittedTransaction() {
+        default LongLongMap myCommittedTransaction() {
             return splittingStartTimestamp().isPresent()
-                    ? ImmutableMap.of(splittingStartTimestamp().getAsLong(), myCommitTimestamp())
-                    : ImmutableMap.of();
+                    ? LongLongMaps.immutable.of(splittingStartTimestamp().getAsLong(), myCommitTimestamp())
+                    : LongLongMaps.immutable.empty();
         }
     }
 

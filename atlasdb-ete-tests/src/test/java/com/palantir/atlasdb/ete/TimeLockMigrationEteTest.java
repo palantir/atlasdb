@@ -100,6 +100,7 @@ public class TimeLockMigrationEteTest {
             SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
     public static final TrustContext TRUST_CONTEXT = SslSocketFactories.createTrustContext(SSL_CONFIGURATION);
 
+    private static final long ID = 1L;
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
     private static final Todo TODO_2 = ImmutableTodo.of("more stuff to do");
     private static final Todo TODO_3 = ImmutableTodo.of("even more stuff to do");
@@ -126,17 +127,14 @@ public class TimeLockMigrationEteTest {
     }
 
     @Test
-    public void automaticallyMigratesTimestampsAndFailsOnRestart() throws Exception {
-        TimestampService timestampClient = createEteClientFor(TimestampService.class);
+    public void automaticallyMigratesTimestampsAndFailsOnRestart() {
         TodoResource todoClient = createEteClientFor(TodoResource.class);
 
-        todoClient.addTodo(TODO);
+        long embeddedTimestamp = todoClient.addTodoWithIdAndReturnTimestamp(ID, TODO);
         softAssertions
                 .assertThat(todoClient.getTodoList())
                 .as("contains one todo pre-migration")
                 .contains(TODO);
-
-        long embeddedTimestamp = timestampClient.getFreshTimestamp();
         softAssertions
                 .assertThat(embeddedTimestamp)
                 .as("can get a timestamp before migration")

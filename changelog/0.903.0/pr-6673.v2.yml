@@ -1,0 +1,6 @@
+type: feature
+feature:
+  description: AtlasDB no longer register timelock endpoints when using single-node
+    embedded timelock.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6673

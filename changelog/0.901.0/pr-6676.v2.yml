@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |-
+    Optimize sweep write partitioning
+
+    Reduce allocations when processing large volumes of writes in sweep by avoiding intermediate collections and performing single passes on partitioning.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6676

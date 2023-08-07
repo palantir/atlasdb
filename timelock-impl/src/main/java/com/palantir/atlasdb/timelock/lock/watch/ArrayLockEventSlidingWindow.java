@@ -16,9 +16,15 @@
 
 package com.palantir.atlasdb.timelock.lock.watch;
 
+import com.codahale.metrics.Counter;
 import com.google.common.math.LongMath;
 import com.google.common.primitives.Ints;
+import com.palantir.atlasdb.timelock.lockwatches.BufferMetrics;
+import com.palantir.lock.watch.LockEvent;
+import com.palantir.lock.watch.LockRequestMetadata;
+import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
+import com.palantir.lock.watch.UnlockEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -29,10 +35,14 @@ public class ArrayLockEventSlidingWindow {
     private final LockWatchEvent[] buffer;
     private final int maxSize;
     private long nextSequence = 0;
+    private final Counter changeMetadataCounter;
+    private final Counter eventsWithMetadataCounter;
 
-    ArrayLockEventSlidingWindow(int maxSize) {
+    ArrayLockEventSlidingWindow(int maxSize, BufferMetrics bufferMetrics) {
         this.buffer = new LockWatchEvent[maxSize];
         this.maxSize = maxSize;
+        this.changeMetadataCounter = bufferMetrics.changeMetadata();
+        this.eventsWithMetadataCounter = bufferMetrics.eventsWithMetadata();
     }
 
     long lastVersion() {
@@ -41,8 +51,25 @@ public class ArrayLockEventSlidingWindow {
 
     void add(LockWatchEvent.Builder eventBuilder) {
         LockWatchEvent event = eventBuilder.build(nextSequence);
-        buffer[LongMath.mod(nextSequence, maxSize)] = event;
+        int index = LongMath.mod(nextSequence, maxSize);
+
+        Optional.ofNullable(buffer[index])
+                .flatMap(replacedEvent -> replacedEvent.accept(LockWatchEventMetadataVisitor.INSTANCE))
+                .ifPresent(this::decrementMetadataCounters);
+        event.accept(LockWatchEventMetadataVisitor.INSTANCE).ifPresent(this::incrementMetadataCounters);
+
+        buffer[index] = event;
         nextSequence++;
+    }
+
+    private void incrementMetadataCounters(LockRequestMetadata metadata) {
+        changeMetadataCounter.inc(metadata.lockDescriptorToChangeMetadata().size());
+        eventsWithMetadataCounter.inc();
+    }
+
+    private void decrementMetadataCounters(LockRequestMetadata metadata) {
+        changeMetadataCounter.dec(metadata.lockDescriptorToChangeMetadata().size());
+        eventsWithMetadataCounter.dec();
     }
 
     public Optional<List<LockWatchEvent>> getNextEvents(long version) {
@@ -71,5 +98,24 @@ public class ArrayLockEventSlidingWindow {
 
     private boolean versionTooOld(long version) {
         return lastVersion() - version > maxSize;
+    }
+
+    private enum LockWatchEventMetadataVisitor implements LockWatchEvent.Visitor<Optional<LockRequestMetadata>> {
+        INSTANCE;
+
+        @Override
+        public Optional<LockRequestMetadata> visit(LockEvent lockEvent) {
+            return lockEvent.metadata();
+        }
+
+        @Override
+        public Optional<LockRequestMetadata> visit(UnlockEvent unlockEvent) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<LockRequestMetadata> visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
+            return Optional.empty();
+        }
     }
 }

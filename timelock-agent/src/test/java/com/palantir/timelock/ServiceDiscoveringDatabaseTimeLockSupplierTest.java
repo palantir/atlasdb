@@ -19,11 +19,8 @@ package com.palantir.timelock;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
-import com.palantir.atlasdb.config.ImmutableLeaderConfig;
-import com.palantir.atlasdb.config.LeaderConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeriesProvider;
@@ -43,15 +40,10 @@ public class ServiceDiscoveringDatabaseTimeLockSupplierTest {
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final KeyValueServiceConfig keyValueServiceConfig = new InMemoryAtlasDbConfig();
-    private final LeaderConfig leaderConfig = ImmutableLeaderConfig.builder()
-            .localServer("me")
-            .leaders(ImmutableList.of("me"))
-            .quorumSize(1)
-            .build();
 
     private final ServiceDiscoveringDatabaseTimeLockSupplier timeLockSupplier =
             new ServiceDiscoveringDatabaseTimeLockSupplier(
-                    metricsManager, keyValueServiceConfig, Refreshable.only(Optional.empty()), leaderConfig, false);
+                    metricsManager, keyValueServiceConfig, Refreshable.only(Optional.empty()), false);
 
     @Test
     public void canGetTimestampServiceForDifferentSeries() {

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.debug;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import java.util.Map;
+import org.eclipse.collections.api.map.primitive.LongLongMap;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.
@@ -31,5 +32,5 @@ public interface ConflictTracer {
             long startTimestamp,
             Map<Cell, Long> keysToLoad,
             Map<Cell, Long> latestTimestamps,
-            Map<Long, Long> commitTimestamps);
+            LongLongMap commitTimestamps);
 }
