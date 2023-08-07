@@ -2608,7 +2608,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 if (lastRowWithMetadata.isPresent() && isSameRow(lastRowWithMetadata.get(), cell.getRowName())) {
                     throw new SafeIllegalStateException(
                             "Two different cells in the same row have metadata and we create locks on row level.",
-                            UnsafeArg.of("tableRef", tableRef),
+                            LoggingArgs.tableRef(tableRef),
                             UnsafeArg.of("rowName", cell.getRowName()),
                             UnsafeArg.of("newMetadata", changeMetadataForWrites.get(cell)));
                 }

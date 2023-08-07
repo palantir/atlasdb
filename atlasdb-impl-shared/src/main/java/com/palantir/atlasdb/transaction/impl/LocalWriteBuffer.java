@@ -22,6 +22,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -86,7 +87,7 @@ class LocalWriteBuffer {
             Set<Cell> cellsWithOnlyMetadata = Sets.difference(metadata.keySet(), values.keySet());
             throw new SafeIllegalStateException(
                     "Every metadata we put must be associated with a write",
-                    UnsafeArg.of("tableRef", tableRef),
+                    LoggingArgs.tableRef(tableRef),
                     UnsafeArg.of("cellsWithOnlyMetadata", cellsWithOnlyMetadata));
         }
     }
