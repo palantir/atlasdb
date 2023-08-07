@@ -2683,7 +2683,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void lockCollectionWithoutMetadataIsCorrect() {
         long randomSeed = System.currentTimeMillis();
         int numTables = 10;
-        int numCellsPerTable = 10;
+        int numCellsPerTable = 100;
         int totalWrites = 200;
 
         Random random = new Random(randomSeed);
@@ -2709,8 +2709,16 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Transaction txn = getSnapshotTransactionWith(timelockService, tableToConflictHandler);
 
         Map<TableReference, Set<Cell>> cellsWithWrites = new HashMap<>();
-        IntStream.range(0, totalWrites)
-                .forEach(_unused -> applyRandomWrite(random, txn, tables, cells, cellsWithWrites));
+        IntStream.range(0, totalWrites).forEach(_unused -> {
+            TableReference table = tables.get(random.nextInt(tables.size()));
+            Cell cell = cells.get(random.nextInt(cells.size()));
+            if (random.nextBoolean()) {
+                txn.put(table, ImmutableMap.of(cell, TEST_VALUE));
+            } else {
+                txn.delete(table, ImmutableSet.of(cell));
+            }
+            cellsWithWrites.computeIfAbsent(table, _ignored -> new HashSet<>()).add(cell);
+        });
 
         Set<LockDescriptor> expectedLocks = getExpectedLocks(tableToConflictHandler, cellsWithWrites);
         verifyLockWasCalledWithLocksAndMetadataWhenCommitting(
@@ -3046,7 +3054,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             Map<TableReference, Optional<ConflictHandler>> tableToConflictHandler,
             Map<TableReference, Set<Cell>> cellsWithWrites) {
         ImmutableSet.Builder<LockDescriptor> locksBuilder = ImmutableSet.builder();
-
         cellsWithWrites.forEach((table, writes) -> {
             ConflictHandler conflictHandler = tableToConflictHandler.get(table).orElseThrow();
             writes.forEach(cell -> {
@@ -3060,22 +3067,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             });
         });
         return locksBuilder.build();
-    }
-
-    private static void applyRandomWrite(
-            Random random,
-            Transaction txn,
-            List<TableReference> tables,
-            List<Cell> cells,
-            Map<TableReference, Set<Cell>> cellsWithWrites) {
-        TableReference table = tables.get(random.nextInt(tables.size()));
-        Cell cell = cells.get(random.nextInt(cells.size()));
-        if (random.nextBoolean()) {
-            txn.put(table, ImmutableMap.of(cell, TEST_VALUE));
-        } else {
-            txn.delete(table, ImmutableSet.of(cell));
-        }
-        cellsWithWrites.computeIfAbsent(table, ignored -> new HashSet<>()).add(cell);
     }
 
     private static class VerifyingKeyValueServiceDelegate extends ForwardingKeyValueService {
