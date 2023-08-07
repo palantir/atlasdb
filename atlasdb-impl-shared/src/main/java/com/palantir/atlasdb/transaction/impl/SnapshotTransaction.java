@@ -1789,7 +1789,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     @Override
     public void putWithMetadata(TableReference tableRef, Map<Cell, ValueAndChangeMetadata> valuesAndMetadata) {
-        writeToLocalBuffer(
+        putWithMetadataInternal(
                 tableRef,
                 Maps.transformValues(valuesAndMetadata, ValueAndChangeMetadata::value),
                 Maps.transformValues(valuesAndMetadata, ValueAndChangeMetadata::metadata));
@@ -2530,7 +2530,7 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     protected LocksAndMetadata getLocksAndMetadataForWrites() {
-        ImmutableSet.Builder<LockDescriptor> lockDescriptorBuilder = ImmutableSet.builder();
+        ImmutableSet.Builder<LockDescriptor> lockDescriptorSetBuilder = ImmutableSet.builder();
         ImmutableMap.Builder<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadataBuilder =
                 ImmutableMap.builder();
         long cellLockCount = 0L;
@@ -2539,13 +2539,14 @@ public class SnapshotTransaction extends AbstractTransaction
             ConflictHandler conflictHandler = getConflictHandlerForTable(tableRef);
             if (conflictHandler.lockCellsForConflicts()) {
                 cellLockCount +=
-                        collectCellLocks(lockDescriptorBuilder, lockDescriptorToChangeMetadataBuilder, tableRef);
+                        collectCellLocks(lockDescriptorSetBuilder, lockDescriptorToChangeMetadataBuilder, tableRef);
             }
             if (conflictHandler.lockRowsForConflicts()) {
-                rowLockCount += collectRowLocks(lockDescriptorBuilder, lockDescriptorToChangeMetadataBuilder, tableRef);
+                rowLockCount +=
+                        collectRowLocks(lockDescriptorSetBuilder, lockDescriptorToChangeMetadataBuilder, tableRef);
             }
         }
-        lockDescriptorBuilder.add(AtlasRowLockDescriptor.of(
+        lockDescriptorSetBuilder.add(AtlasRowLockDescriptor.of(
                 TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
                 TransactionConstants.getValueForTimestamp(getStartTimestamp())));
         cellCommitLocksRequested = cellLockCount;
@@ -2553,7 +2554,7 @@ public class SnapshotTransaction extends AbstractTransaction
         Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata =
                 lockDescriptorToChangeMetadataBuilder.buildOrThrow();
         return LocksAndMetadata.of(
-                lockDescriptorBuilder.build(),
+                lockDescriptorSetBuilder.build(),
                 // For now, lock request metadata only consists of change metadata. If it is absent, we can save
                 // computation by not doing an index encoding
                 lockDescriptorToChangeMetadata.isEmpty()
@@ -2565,7 +2566,7 @@ public class SnapshotTransaction extends AbstractTransaction
      * Returns the number of lock descriptors that were added.
      */
     private Long collectCellLocks(
-            ImmutableSet.Builder<LockDescriptor> lockDescriptorBuilder,
+            ImmutableSet.Builder<LockDescriptor> lockDescriptorSetBuilder,
             ImmutableMap.Builder<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadataBuilder,
             TableReference tableRef) {
         long lockCount = 0;
@@ -2573,7 +2574,7 @@ public class SnapshotTransaction extends AbstractTransaction
         for (Cell cell : localWriteBuffer.getLocalWritesForTable(tableRef).keySet()) {
             LockDescriptor lockDescriptor =
                     AtlasCellLockDescriptor.of(tableRef.getQualifiedName(), cell.getRowName(), cell.getColumnName());
-            lockDescriptorBuilder.add(lockDescriptor);
+            lockDescriptorSetBuilder.add(lockDescriptor);
             lockCount++;
             if (changeMetadataForWrites.containsKey(cell)) {
                 lockDescriptorToChangeMetadataBuilder.put(lockDescriptor, changeMetadataForWrites.get(cell));
@@ -2586,7 +2587,7 @@ public class SnapshotTransaction extends AbstractTransaction
      * Returns the number of lock descriptors that were added.
      */
     private Long collectRowLocks(
-            ImmutableSet.Builder<LockDescriptor> lockDescriptorBuilder,
+            ImmutableSet.Builder<LockDescriptor> lockDescriptorSetBuilder,
             ImmutableMap.Builder<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadataBuilder,
             TableReference tableRef) {
         long lockCount = 0;
@@ -2598,7 +2599,7 @@ public class SnapshotTransaction extends AbstractTransaction
             if (lastRow.isEmpty() || !isSameRow(lastRow.get(), cell.getRowName())) {
                 // We are looking at the first cell of a new row
                 LockDescriptor rowLock = AtlasRowLockDescriptor.of(tableRef.getQualifiedName(), cell.getRowName());
-                lockDescriptorBuilder.add(rowLock);
+                lockDescriptorSetBuilder.add(rowLock);
                 currentRowDescriptor = Optional.of(rowLock);
                 lastRow = Optional.of(cell.getRowName());
                 lockCount++;

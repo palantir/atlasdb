@@ -273,7 +273,7 @@ public interface Transaction {
     void put(TableReference tableRef, Map<Cell, byte[]> values);
 
     /**
-     * Behaves like {@link Transaction#put}, but additionally store {@link ChangeMetadata} for cells. This metadata is
+     * Behaves like {@link Transaction#put}, but additionally stores {@link ChangeMetadata} for cells. This metadata is
      * forwarded to TimeLock when acquiring locks at the beginning of the commit protocol.
      * If two cells in the same row have metadata and the {@link ConflictHandler} for the table acquires row locks,
      * {@link Transaction#commit} will fail.

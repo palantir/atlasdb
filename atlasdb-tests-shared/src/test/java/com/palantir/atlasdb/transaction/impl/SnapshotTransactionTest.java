@@ -2649,9 +2649,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void commitFailsIfMultipleCellsInSameRowHaveMetadataAndUsingRowLocks() {
         overrideConflictHandlerForTable(TABLE, ConflictHandler.SERIALIZABLE);
-        byte[] row = PtBytes.toBytes("same-row");
-        Cell cell1 = Cell.create(row, PtBytes.toBytes("col1"));
-        Cell cell2 = Cell.create(row, PtBytes.toBytes("col2"));
+        Cell cell1 = Cell.create(ROW_BAR, COL_A);
+        Cell cell2 = Cell.create(ROW_BAR, COL_B);
         Transaction txn = txManager.createNewTransaction();
 
         txn.putWithMetadata(
