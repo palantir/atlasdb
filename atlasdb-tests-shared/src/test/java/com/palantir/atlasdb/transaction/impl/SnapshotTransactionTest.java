@@ -2678,47 +2678,44 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void lockCollectionWithoutMetadataIsCorrectForRandomWrites() {
         long randomSeed = System.currentTimeMillis();
-        int numTables = 10;
-        int numCellsPerTable = 100;
-        int totalWrites = 200;
+        int numberOfTables = ConflictHandler.values().length;
+        int numberOfRowsPerTable = 10;
+        int numberOfCellsPerRow = 10;
+        int maxWritesPerCell = 200;
 
         Random random = new Random(randomSeed);
-
-        List<ConflictHandler> availableConflictHandlers = Arrays.asList(ConflictHandler.values());
-        List<TableReference> tables = IntStream.range(0, numTables)
-                .mapToObj(i -> {
-                    TableReference tableRef = TableReference.create(Namespace.create("random_test"), "table" + i);
-                    keyValueService.createTable(tableRef, AtlasDbConstants.GENERIC_TABLE_METADATA);
-                    return tableRef;
+        Namespace namespace = Namespace.create("random_test");
+        Map<TableReference, Optional<ConflictHandler>> tableToConflictHandler = KeyedStream.of(
+                        IntStream.range(0, numberOfTables).boxed())
+                .mapKeys(i -> {
+                    TableReference tableReference = TableReference.create(
+                            namespace, String.format("table_%d_%s", i, ConflictHandler.values()[i].name()));
+                    keyValueService.createTable(tableReference, AtlasDbConstants.GENERIC_TABLE_METADATA);
+                    return tableReference;
                 })
-                .collect(Collectors.toUnmodifiableList());
-        Map<TableReference, Optional<ConflictHandler>> tableToConflictHandler = KeyedStream.of(tables.stream())
-                .map(tableRef ->
-                        Optional.of(availableConflictHandlers.get(random.nextInt(availableConflictHandlers.size()))))
+                .map(i -> Optional.of(ConflictHandler.values()[i]))
                 .collectToMap();
-        // Ensure that some rows have more than one cell
-        List<Cell> cells = IntStream.range(0, numCellsPerTable)
-                .mapToObj(i -> Cell.create(PtBytes.toBytes("row" + (i % 3)), PtBytes.toBytes("column" + i)))
+        List<TableReference> tables = ImmutableList.copyOf(tableToConflictHandler.keySet());
+        TimelockService timelockService = spy(txManager.getTimelockService());
+        List<Cell> cells = IntStream.range(0, numberOfRowsPerTable * numberOfCellsPerRow)
+                .mapToObj(i ->
+                        Cell.create(PtBytes.toBytes("row" + (i % numberOfCellsPerRow)), PtBytes.toBytes("column" + i)))
                 .collect(Collectors.toUnmodifiableList());
 
-        TimelockService timelockService = spy(txManager.getTimelockService());
         Transaction txn = getSnapshotTransactionWith(timelockService, tableToConflictHandler);
 
         Map<TableReference, Set<Cell>> cellsWithWrites = new HashMap<>();
-        IntStream.range(0, totalWrites).forEach(_unused -> {
-            TableReference table = tables.get(random.nextInt(tables.size()));
-            Cell cell = cells.get(random.nextInt(cells.size()));
-            if (random.nextBoolean()) {
-                txn.put(table, ImmutableMap.of(cell, TEST_VALUE));
-            } else {
-                txn.delete(table, ImmutableSet.of(cell));
-            }
-            cellsWithWrites.computeIfAbsent(table, _ignored -> new HashSet<>()).add(cell);
-        });
+        Map<TableReference, Map<Cell, ChangeMetadata>> cellsWithMetadata = new HashMap<>();
 
-        Set<LockDescriptor> expectedLocks = getExpectedLocks(tableToConflictHandler, cellsWithWrites);
+        IntStream.range(0, maxWritesPerCell)
+                .forEach(_unused -> applyRandomWriteMaybeWithMetadata(
+                        random, txn, tables, tableToConflictHandler, cells, cellsWithWrites, cellsWithMetadata));
+
         verifyLockWasCalledWithLocksAndMetadataWhenCommitting(
-                txn, timelockService, LocksAndMetadata.of(expectedLocks, Optional.empty()));
+                txn,
+                timelockService,
+                getExpectedLocksAndMetadata(tableToConflictHandler, cellsWithWrites, cellsWithMetadata),
+                "Expect locks and metadata to be passed to TimeLock. Random seed: " + randomSeed);
     }
 
     @Test
@@ -3025,30 +3022,45 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     private static void verifyLockWasCalledWithLocksAndMetadataWhenCommitting(
             Transaction txn, TimelockService spiedTimelockService, LocksAndMetadata locksAndMetadata) {
+        verifyLockWasCalledWithLocksAndMetadataWhenCommitting(
+                txn, spiedTimelockService, locksAndMetadata, "Expect locks and metadata to be passed to TimeLock");
+    }
+
+    private static void verifyLockWasCalledWithLocksAndMetadataWhenCommitting(
+            Transaction txn,
+            TimelockService spiedTimelockService,
+            LocksAndMetadata locksAndMetadata,
+            String assertionMessage) {
         txn.commit();
+
         verify(spiedTimelockService)
                 .lock(
                         argThat(lockRequest -> {
                             // We always acquire a lock on the transaction table, whose suffix depends on the start
                             // timestamp
                             assertThat(lockRequest.getLockDescriptors())
+                                    .as(assertionMessage)
                                     .containsAll(locksAndMetadata.lockDescriptors());
                             assertThat(lockRequest.getLockDescriptors()).allSatisfy(lock -> {
                                 if (!lock.getLockIdAsString()
                                         .startsWith(TransactionConstants.TRANSACTION_TABLE.getQualifiedName())) {
                                     assertThat(locksAndMetadata.lockDescriptors())
+                                            .as(assertionMessage)
                                             .contains(lock);
                                 }
                             });
-                            assertThat(lockRequest.getMetadata()).isEqualTo(locksAndMetadata.metadata());
+                            assertThat(lockRequest.getMetadata())
+                                    .as(assertionMessage)
+                                    .isEqualTo(locksAndMetadata.metadata());
                             return true;
                         }),
                         any());
     }
 
-    private static Set<LockDescriptor> getExpectedLocks(
+    private static LocksAndMetadata getExpectedLocksAndMetadata(
             Map<TableReference, Optional<ConflictHandler>> tableToConflictHandler,
-            Map<TableReference, Set<Cell>> cellsWithWrites) {
+            Map<TableReference, Set<Cell>> cellsWithWrites,
+            Map<TableReference, Map<Cell, ChangeMetadata>> cellsWithMetadata) {
         ImmutableSet.Builder<LockDescriptor> locksBuilder = ImmutableSet.builder();
         cellsWithWrites.forEach((table, writes) -> {
             ConflictHandler conflictHandler = tableToConflictHandler.get(table).orElseThrow();
@@ -3062,7 +3074,81 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 }
             });
         });
-        return locksBuilder.build();
+        ImmutableMap.Builder<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadataBuilder =
+                ImmutableMap.builder();
+        cellsWithMetadata.forEach((table, metadataMap) -> {
+            ConflictHandler conflictHandler = tableToConflictHandler.get(table).orElseThrow();
+            metadataMap.forEach((cell, metadata) -> {
+                if (conflictHandler.lockCellsForConflicts()) {
+                    lockDescriptorToChangeMetadataBuilder.put(
+                            AtlasCellLockDescriptor.of(
+                                    table.getQualifiedName(), cell.getRowName(), cell.getColumnName()),
+                            metadata);
+                }
+                if (conflictHandler.lockRowsForConflicts()) {
+                    lockDescriptorToChangeMetadataBuilder.put(
+                            AtlasRowLockDescriptor.of(table.getQualifiedName(), cell.getRowName()), metadata);
+                }
+            });
+        });
+        Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata =
+                lockDescriptorToChangeMetadataBuilder.buildOrThrow();
+        return LocksAndMetadata.of(
+                locksBuilder.build(),
+                lockDescriptorToChangeMetadata.isEmpty()
+                        ? Optional.empty()
+                        : Optional.of(LockRequestMetadata.of(lockDescriptorToChangeMetadata)));
+    }
+
+    private static void applyRandomWriteMaybeWithMetadata(
+            Random random,
+            Transaction txn,
+            List<TableReference> tables,
+            Map<TableReference, Optional<ConflictHandler>> tableToConflictHandler,
+            List<Cell> cells,
+            Map<TableReference, Set<Cell>> cellsWithWrites,
+            Map<TableReference, Map<Cell, ChangeMetadata>> cellsWithMetadata) {
+        TableReference table = tables.get(random.nextInt(tables.size()));
+        Cell cell = cells.get(random.nextInt(cells.size()));
+
+        boolean canWriteMetadata =
+                !(tableToConflictHandler.get(table).orElseThrow().lockRowsForConflicts()
+                        && cellsWithMetadata.getOrDefault(table, ImmutableMap.of()).keySet().stream()
+                        .anyMatch(c -> Arrays.equals(c.getRowName(), cell.getRowName())));
+        // With metadata or not?
+        if (canWriteMetadata && random.nextBoolean()) {
+            ChangeMetadata metadata = createRandomMetadata(random);
+            if (random.nextBoolean()) {
+                txn.putWithMetadata(table, ImmutableMap.of(cell, ValueAndChangeMetadata.of(TEST_VALUE, metadata)));
+            } else {
+                txn.deleteWithMetadata(table, ImmutableMap.of(cell, metadata));
+            }
+            cellsWithWrites.computeIfAbsent(table, ignored -> new HashSet<>()).add(cell);
+            cellsWithMetadata.computeIfAbsent(table, ignored -> new HashMap<>()).put(cell, metadata);
+        } else {
+            if (random.nextBoolean()) {
+                txn.put(table, ImmutableMap.of(cell, TEST_VALUE));
+            } else {
+                txn.delete(table, ImmutableSet.of(cell));
+            }
+            cellsWithWrites.computeIfAbsent(table, ignored -> new HashSet<>()).add(cell);
+            // no metadata
+            cellsWithMetadata.computeIfAbsent(table, ignored -> new HashMap<>()).remove(cell);
+        }
+    }
+
+    private static ChangeMetadata createRandomMetadata(Random random) {
+        switch (random.nextInt(4)) {
+            case 0:
+                return ChangeMetadata.unchanged();
+            case 1:
+                return ChangeMetadata.updated(PtBytes.toBytes(random.nextLong()), PtBytes.toBytes(random.nextLong()));
+            case 2:
+                return ChangeMetadata.created(PtBytes.toBytes(random.nextLong()));
+            case 3:
+                return ChangeMetadata.deleted(PtBytes.toBytes(random.nextLong()));
+        }
+        throw new RuntimeException("unreachable");
     }
 
     private static class VerifyingKeyValueServiceDelegate extends ForwardingKeyValueService {

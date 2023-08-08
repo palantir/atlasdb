@@ -30,6 +30,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.watch.ChangeMetadata;
@@ -51,7 +52,7 @@ import org.junit.Test;
 
 public class LocalWriteBufferTest {
     private static final TableReference TABLE = TableReference.create(Namespace.DEFAULT_NAMESPACE, "test-table");
-    private static final TableReference TABLE2 = TableReference.create(Namespace.DEFAULT_NAMESPACE, "test-table2");
+    private static final TableReference TABLE_2 = TableReference.create(Namespace.DEFAULT_NAMESPACE, "test-table2");
     private static final Cell CELL_1 = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("col1"));
     private static final Cell CELL_2 = Cell.create(PtBytes.toBytes("row2"), PtBytes.toBytes("col2"));
     private static final byte[] VALUE_1 = PtBytes.toBytes(1L);
@@ -118,23 +119,35 @@ public class LocalWriteBufferTest {
     public void canStoreValuesAndMetadataForMultipleCellsAndTables() {
         buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_1, VALUE_1), ImmutableMap.of(CELL_1, METADATA_1));
         buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_2, VALUE_2), ImmutableMap.of(CELL_2, METADATA_2));
-        buffer.putLocalWritesAndMetadata(TABLE2, ImmutableMap.of(CELL_1, VALUE_1), ImmutableMap.of(CELL_1, METADATA_1));
-        buffer.putLocalWritesAndMetadata(TABLE2, ImmutableMap.of(CELL_2, VALUE_2), ImmutableMap.of(CELL_2, METADATA_2));
+        buffer.putLocalWritesAndMetadata(
+                TABLE_2, ImmutableMap.of(CELL_1, VALUE_1), ImmutableMap.of(CELL_1, METADATA_1));
+        buffer.putLocalWritesAndMetadata(
+                TABLE_2, ImmutableMap.of(CELL_2, VALUE_2), ImmutableMap.of(CELL_2, METADATA_2));
 
         assertThat(buffer.getLocalWritesForTable(TABLE))
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, VALUE_1, CELL_2, VALUE_2));
-        assertThat(buffer.getLocalWritesForTable(TABLE2))
+        assertThat(buffer.getLocalWritesForTable(TABLE_2))
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, VALUE_1, CELL_2, VALUE_2));
         assertThat(buffer.getChangeMetadataForTable(TABLE))
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, METADATA_1, CELL_2, METADATA_2));
-        assertThat(buffer.getChangeMetadataForTable(TABLE2))
+        assertThat(buffer.getChangeMetadataForTable(TABLE_2))
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, METADATA_1, CELL_2, METADATA_2));
     }
 
     @Test
-    public void cannotPutMetadataWithoutAssociatedWrite() {
+    public void cannotPutMetadataWithoutAnyWrite() {
         assertThatLoggableExceptionThrownBy(() ->
                         buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(), ImmutableMap.of(CELL_1, METADATA_1)))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasLogMessage("Every metadata we put must be associated with a write")
+                .hasExactlyArgs(
+                        LoggingArgs.tableRef(TABLE), UnsafeArg.of("cellsWithOnlyMetadata", ImmutableSet.of(CELL_1)));
+    }
+
+    @Test
+    public void cannotPutMetadataWithoutAssociatedWrite() {
+        assertThatLoggableExceptionThrownBy(() -> buffer.putLocalWritesAndMetadata(
+                        TABLE, ImmutableMap.of(CELL_2, VALUE_1), ImmutableMap.of(CELL_1, METADATA_1)))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasLogMessage("Every metadata we put must be associated with a write")
                 .hasExactlyArgs(
@@ -215,5 +228,35 @@ public class LocalWriteBufferTest {
                     .as("Atomicity guarantee violated on iteration %d with seed %d", i, randomSeed)
                     .isTrue();
         }
+    }
+
+    @Test
+    public void valueByteCountIsUpdatedCorrectlyWhenOverWritingValue() {
+        buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_1, VALUE_1), ImmutableMap.of());
+        assertThat(buffer.getByteCount()).isEqualTo(Cells.getApproxSizeOfCell(CELL_1) + VALUE_1.length);
+
+        byte[] otherValue = PtBytes.toBytes("some long string");
+        buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_1, otherValue), ImmutableMap.of());
+        assertThat(buffer.getByteCount()).isEqualTo(Cells.getApproxSizeOfCell(CELL_1) + otherValue.length);
+    }
+
+    @Test
+    public void valueByteCountIsUpdatedCorrectlyWhenDeletingValue() {
+        buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_1, VALUE_1), ImmutableMap.of());
+        assertThat(buffer.getByteCount()).isEqualTo(Cells.getApproxSizeOfCell(CELL_1) + VALUE_1.length);
+
+        buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_1, new byte[0]), ImmutableMap.of());
+        assertThat(buffer.getByteCount()).isEqualTo(Cells.getApproxSizeOfCell(CELL_1));
+    }
+
+    @Test
+    public void valueByteCountIsMaintainedAcrossMultipleTables() {
+        buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_1, VALUE_1), ImmutableMap.of());
+        buffer.putLocalWritesAndMetadata(TABLE_2, ImmutableMap.of(CELL_2, VALUE_2), ImmutableMap.of());
+        assertThat(buffer.getByteCount())
+                .isEqualTo(Cells.getApproxSizeOfCell(CELL_1)
+                        + VALUE_1.length
+                        + Cells.getApproxSizeOfCell(CELL_2)
+                        + VALUE_2.length);
     }
 }
