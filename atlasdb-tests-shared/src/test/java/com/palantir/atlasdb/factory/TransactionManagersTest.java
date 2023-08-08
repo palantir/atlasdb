@@ -19,7 +19,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.containing;
 import static com.github.tomakehurst.wiremock.client.WireMock.findAll;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
@@ -37,7 +36,6 @@ import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -92,14 +90,12 @@ import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
-import com.palantir.tritium.metrics.registry.MetricName;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -236,31 +232,6 @@ public class TransactionManagersTest {
         setUpRemoteTimestampAndLockBlocksInConfig();
 
         verifyUserAgentOnRawTimestampAndLockRequests();
-    }
-
-    @Test
-    public void userAgentsPresentOnRequestsWithLeaderBlockConfigured() throws IOException {
-        setUpLeaderBlockInConfig();
-
-        verifyUserAgentOnRawTimestampAndLockRequests();
-    }
-
-    @Test
-    public void remoteCallsStillMadeIfPingableLeader404s() throws IOException {
-        setUpForRemoteServices();
-        setUpLeaderBlockInConfig();
-
-        LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
-        availableServer.verify(getRequestedFor(urlMatching(LEADER_UUID_PATH)));
-
-        lockAndTimestamp.timelock().getFreshTimestamp();
-        lockAndTimestamp.lock().currentTimeMillis();
-
-        // TODO (jkong): Assert v2 once we move Leader Block to v2 as well
-        availableServer.verify(postRequestedFor(urlMatching(TIMESTAMP_PATH))
-                .withHeader(USER_AGENT_HEADER, containing(EXPECTED_USER_AGENT_STRING)));
-        availableServer.verify(postRequestedFor(urlMatching(LOCK_PATH))
-                .withHeader(USER_AGENT_HEADER, containing(EXPECTED_USER_AGENT_STRING)));
     }
 
     @Test
@@ -527,22 +498,11 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void metricsAreNotDirectlyReportedFromLocalService() throws IOException {
+    public void metricsAreReportedWhenUsingEmbeddedService() throws IOException {
         setUpLeaderBlockInConfig();
 
-        assertThatTimeAndLockMetricsAreNotRecorded(
+        assertThatTimeAndLockMetricsAreRecorded(
                 TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC, LOCK_SERVICE_CURRENT_TIME_METRIC);
-    }
-
-    @Test
-    public void metricsAreReportedExactlyOnceWhenUsingRemoteService() throws IOException {
-        setUpForRemoteServices();
-        setUpLeaderBlockInConfig();
-
-        assertThatTimeAndLockMetricsWithTagsAreRecorded(
-                TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC,
-                NAMESPACE_AGNOSTIC_LOCK_RPC_CLIENT_CURRENT_TIME_METRIC,
-                ImmutableMap.of());
     }
 
     @Test
@@ -641,7 +601,7 @@ public class TransactionManagersTest {
         return services.stream().anyMatch(TransactionManagersTest::isSweepStatsKvsPresentInDelegatingChain);
     }
 
-    private void assertThatTimeAndLockMetricsAreNotRecorded(String timestampMetric, String lockMetric) {
+    private void assertThatTimeAndLockMetricsAreRecorded(String timestampMetric, String lockMetric) {
         assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount())
                 .isEqualTo(0L);
         assertThat(metricsManager.getRegistry().timer(lockMetric).getCount()).isEqualTo(0L);
@@ -651,37 +611,8 @@ public class TransactionManagersTest {
         lockAndTimestamp.timelock().currentTimeMillis();
 
         assertThat(metricsManager.getRegistry().timer(timestampMetric).getCount())
-                .isEqualTo(0L);
-        assertThat(metricsManager.getRegistry().timer(lockMetric).getCount()).isEqualTo(0L);
-    }
-
-    private void assertThatTimeAndLockMetricsWithTagsAreRecorded(
-            String timestampMetric, String lockMetric, Map<String, String> tags) {
-        MetricName timestampMetricName = MetricName.builder()
-                .safeName(timestampMetric)
-                .putAllSafeTags(tags)
-                .build();
-        MetricName lockMetricName =
-                MetricName.builder().safeName(lockMetric).putAllSafeTags(tags).build();
-
-        assertThat(metricsManager.getTaggedRegistry().timer(timestampMetricName).getCount())
-                .isEqualTo(0L);
-        assertThat(metricsManager.getTaggedRegistry().timer(lockMetricName).getCount())
-                .isEqualTo(0L);
-
-        LockAndTimestampServices lockAndTimestamp = getLockAndTimestampServices();
-        lockAndTimestamp.timelock().getFreshTimestamp();
-        lockAndTimestamp.timelock().currentTimeMillis();
-
-        assertThat(metricsManager.getTaggedRegistry().timer(timestampMetricName).getCount())
                 .isEqualTo(1L);
-        assertThat(metricsManager.getTaggedRegistry().timer(lockMetricName).getCount())
-                .isEqualTo(1L);
-    }
-
-    private void setUpForRemoteServices() throws IOException {
-        availableServer.stubFor(LEADER_UUID_MAPPING.willReturn(aResponse().withStatus(404)));
-        setUpLeaderBlockInConfig();
+        assertThat(metricsManager.getRegistry().timer(lockMetric).getCount()).isEqualTo(1L);
     }
 
     private void setUpTimeLockBlockInRuntimeConfig() {
