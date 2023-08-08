@@ -421,13 +421,29 @@ public final class LockWatchEventIntegrationTest {
                 .flatMap(Function.identity())
                 .collect(Collectors.toList());
 
-        return cells.stream()
-                .collect(Collectors.toMap(
-                        cell -> (random.nextBoolean()) ? TABLE_REF : TABLE_2_REF,
-                        cell -> ImmutableMap.of(
-                                cell,
-                                ValueAndChangeMetadata.of(
-                                        PtBytes.toBytes(random.nextInt()), generateRandomChangeMetadata(random)))));
+        List<Cell> tableOneCells =
+                cells.stream().filter(cell -> random.nextBoolean()).collect(Collectors.toList());
+        List<Cell> tableTwoCells =
+                cells.stream().filter(cell -> !tableOneCells.contains(cell)).collect(Collectors.toList());
+
+        return ImmutableMap.<TableReference, Map<Cell, ValueAndChangeMetadata>>builder()
+                .put(
+                        TABLE_REF,
+                        tableOneCells.stream()
+                                .collect(Collectors.toMap(
+                                        Function.identity(),
+                                        _cell -> ValueAndChangeMetadata.of(
+                                                PtBytes.toBytes(random.nextInt()),
+                                                generateRandomChangeMetadata(random)))))
+                .put(
+                        TABLE_2_REF,
+                        tableTwoCells.stream()
+                                .collect(Collectors.toMap(
+                                        Function.identity(),
+                                        _cell -> ValueAndChangeMetadata.of(
+                                                PtBytes.toBytes(random.nextInt()),
+                                                generateRandomChangeMetadata(random)))))
+                .buildOrThrow();
     }
 
     private static LockRequestMetadata getLockRequestForValues(
@@ -443,7 +459,7 @@ public final class LockWatchEventIntegrationTest {
                 }
             }
         }
-        return LockRequestMetadata.of(locks.build());
+        return LockRequestMetadata.of(locks.buildOrThrow());
     }
 
     @Test
