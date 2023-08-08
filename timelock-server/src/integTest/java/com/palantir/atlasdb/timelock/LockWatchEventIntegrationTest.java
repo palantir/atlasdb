@@ -81,10 +81,10 @@ public final class LockWatchEventIntegrationTest {
     private static final byte[] DATA_2 = "as".getBytes(StandardCharsets.UTF_8);
     private static final byte[] DATA_3 = "usual".getBytes(StandardCharsets.UTF_8);
     private static final byte[] DATA_4 = "I see".getBytes(StandardCharsets.UTF_8);
-    private static final ChangeMetadata CHANGE_METADATA_1 = ChangeMetadata.created(DATA_1);
-    private static final ChangeMetadata CHANGE_METADATA_2 = ChangeMetadata.deleted(DATA_2);
-    private static final ChangeMetadata CHANGE_METADATA_3 = ChangeMetadata.unchanged();
-    private static final ChangeMetadata CHANGE_METADATA_4 = ChangeMetadata.updated(DATA_3, DATA_4);
+    private static final ChangeMetadata CREATE_CHANGE_METADATA = ChangeMetadata.created(DATA_1);
+    private static final ChangeMetadata DELETE_CHANGE_METADATA = ChangeMetadata.deleted(DATA_2);
+    private static final ChangeMetadata UNCHANGED_CHANGE_METADATA = ChangeMetadata.unchanged();
+    private static final ChangeMetadata UPDATE_CHANGE_METADATA = ChangeMetadata.updated(DATA_3, DATA_4);
     private static final Cell CELL_1 =
             Cell.create("never".getBytes(StandardCharsets.UTF_8), "gonna".getBytes(StandardCharsets.UTF_8));
     private static final Cell CELL_2 =
@@ -236,7 +236,7 @@ public final class LockWatchEventIntegrationTest {
 
         Cell cell = Cell.create(ROW, "down".getBytes(StandardCharsets.UTF_8));
         performWriteMetadataTransactionLockingAndUnlockingCells(
-                TABLE_2_REF, ImmutableMap.of(cell, ValueAndChangeMetadata.of(DATA_1, CHANGE_METADATA_1)));
+                TABLE_2_REF, ImmutableMap.of(cell, ValueAndChangeMetadata.of(DATA_1, CREATE_CHANGE_METADATA)));
 
         OpenTransaction thirdTxn = startSingleTransaction();
 
@@ -249,8 +249,8 @@ public final class LockWatchEventIntegrationTest {
         assertThat(getAllDescriptorsFromLockWatchEvent(update.events(), WatchEventVisitor.INSTANCE))
                 .isEmpty();
         assertThat(LockWatchIntegrationTestUtilities.extractMetadata(update.events()))
-                .containsExactly(Optional.of(
-                        LockRequestMetadata.of(ImmutableMap.of(getDescriptor(TABLE_2_REF, cell), CHANGE_METADATA_1))));
+                .containsExactly(Optional.of(LockRequestMetadata.of(
+                        ImmutableMap.of(getDescriptor(TABLE_2_REF, cell), CREATE_CHANGE_METADATA))));
     }
 
     @Test
@@ -287,10 +287,10 @@ public final class LockWatchEventIntegrationTest {
         LockDescriptor lock4 =
                 AtlasCellLockDescriptor.of(TABLE_REF.getQualifiedName(), CELL_4.getRowName(), CELL_4.getColumnName());
         LockRequestMetadata metadata = LockRequestMetadata.of(ImmutableMap.of(
-                lock1, CHANGE_METADATA_1,
-                lock2, CHANGE_METADATA_2,
-                lock3, CHANGE_METADATA_3,
-                lock4, CHANGE_METADATA_4));
+                lock1, CREATE_CHANGE_METADATA,
+                lock2, DELETE_CHANGE_METADATA,
+                lock3, UNCHANGED_CHANGE_METADATA,
+                lock4, UPDATE_CHANGE_METADATA));
         LockRequest requestWithMetadata =
                 createTestLockRequest(ImmutableSet.of(lock1, lock2, lock3, lock4), Optional.of(metadata));
         assertThat(lockAndGetEventMetadataFromLockWatchLog(requestWithMetadata)).contains(metadata);
@@ -304,13 +304,13 @@ public final class LockWatchEventIntegrationTest {
                 TABLE_REF,
                 ImmutableMap.of(
                         CELL_1,
-                        ValueAndChangeMetadata.of(DATA_1, CHANGE_METADATA_1),
+                        ValueAndChangeMetadata.of(DATA_1, CREATE_CHANGE_METADATA),
                         CELL_2,
-                        ValueAndChangeMetadata.of(DATA_2, CHANGE_METADATA_2),
+                        ValueAndChangeMetadata.of(DATA_2, DELETE_CHANGE_METADATA),
                         CELL_3,
-                        ValueAndChangeMetadata.of(DATA_3, CHANGE_METADATA_3),
+                        ValueAndChangeMetadata.of(DATA_3, UNCHANGED_CHANGE_METADATA),
                         CELL_4,
-                        ValueAndChangeMetadata.of(DATA_4, CHANGE_METADATA_4)));
+                        ValueAndChangeMetadata.of(DATA_4, UPDATE_CHANGE_METADATA)));
         performWriteTransactionLockingAndUnlockingCells(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1));
 
         OpenTransaction thirdTxn = startSingleTransaction();
@@ -321,13 +321,13 @@ public final class LockWatchEventIntegrationTest {
                         // From the first txn
                         Optional.of(LockRequestMetadata.of(ImmutableMap.of(
                                 getDescriptor(TABLE_REF, CELL_1),
-                                CHANGE_METADATA_1,
+                                CREATE_CHANGE_METADATA,
                                 getDescriptor(TABLE_REF, CELL_2),
-                                CHANGE_METADATA_2,
+                                DELETE_CHANGE_METADATA,
                                 getDescriptor(TABLE_REF, CELL_3),
-                                CHANGE_METADATA_3,
+                                UNCHANGED_CHANGE_METADATA,
                                 getDescriptor(TABLE_REF, CELL_4),
-                                CHANGE_METADATA_4))),
+                                UPDATE_CHANGE_METADATA))),
                         // From the second txn
                         Optional.empty());
     }
@@ -337,7 +337,7 @@ public final class LockWatchEventIntegrationTest {
         LockWatchVersion currentVersion = getCurrentVersion();
 
         performTransactionTaskLockingAndUnlockingCells(txn -> {
-            txn.deleteWithMetadata(TABLE_REF, ImmutableMap.of(CELL_1, CHANGE_METADATA_1));
+            txn.deleteWithMetadata(TABLE_REF, ImmutableMap.of(CELL_1, CREATE_CHANGE_METADATA));
             return null;
         });
         performTransactionTaskLockingAndUnlockingCells(txn -> {
@@ -352,7 +352,7 @@ public final class LockWatchEventIntegrationTest {
                 .containsExactly(
                         // From the first txn
                         Optional.of(LockRequestMetadata.of(
-                                ImmutableMap.of(getDescriptor(TABLE_REF, CELL_1), CHANGE_METADATA_1))),
+                                ImmutableMap.of(getDescriptor(TABLE_REF, CELL_1), CREATE_CHANGE_METADATA))),
                         // From the second txn
                         Optional.empty());
     }
@@ -363,19 +363,19 @@ public final class LockWatchEventIntegrationTest {
 
         performTransactionTaskLockingAndUnlockingCells(txn -> {
             txn.putWithMetadata(
-                    TABLE_REF, ImmutableMap.of(CELL_1, ValueAndChangeMetadata.of(DATA_1, CHANGE_METADATA_1)));
+                    TABLE_REF, ImmutableMap.of(CELL_1, ValueAndChangeMetadata.of(DATA_1, CREATE_CHANGE_METADATA)));
             txn.putWithMetadata(
-                    TABLE_2_REF, ImmutableMap.of(CELL_2, ValueAndChangeMetadata.of(DATA_2, CHANGE_METADATA_2)));
+                    TABLE_2_REF, ImmutableMap.of(CELL_2, ValueAndChangeMetadata.of(DATA_2, DELETE_CHANGE_METADATA)));
             return null;
         });
         performTransactionTaskLockingAndUnlockingCells(txn -> {
             txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1));
             txn.putWithMetadata(
-                    TABLE_2_REF, ImmutableMap.of(CELL_2, ValueAndChangeMetadata.of(DATA_2, CHANGE_METADATA_2)));
+                    TABLE_2_REF, ImmutableMap.of(CELL_2, ValueAndChangeMetadata.of(DATA_2, DELETE_CHANGE_METADATA)));
             return null;
         });
         performWriteMetadataTransactionLockingAndUnlockingCells(
-                TABLE_2_REF, ImmutableMap.of(CELL_3, ValueAndChangeMetadata.of(DATA_3, CHANGE_METADATA_3)));
+                TABLE_2_REF, ImmutableMap.of(CELL_3, ValueAndChangeMetadata.of(DATA_3, UNCHANGED_CHANGE_METADATA)));
 
         OpenTransaction fourthTxn = startSingleTransaction();
         TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.of(currentVersion), fourthTxn);
@@ -384,7 +384,7 @@ public final class LockWatchEventIntegrationTest {
                 .containsExactly(
                         // From the first txn
                         Optional.of(LockRequestMetadata.of(
-                                ImmutableMap.of(getDescriptor(TABLE_REF, CELL_1), CHANGE_METADATA_1))),
+                                ImmutableMap.of(getDescriptor(TABLE_REF, CELL_1), CREATE_CHANGE_METADATA))),
                         // From the second txn
                         Optional.empty()
                         // No lock event for the third txn since no locks were watched

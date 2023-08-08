@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -38,6 +37,7 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -136,22 +136,13 @@ public class LocalWriteBufferTest {
 
     @Test
     public void cannotPutMetadataWithoutAnyWrite() {
-        assertThatLoggableExceptionThrownBy(() ->
-                        buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(), ImmutableMap.of(CELL_1, METADATA_1)))
-                .isInstanceOf(SafeIllegalStateException.class)
-                .hasLogMessage("Every metadata we put must be associated with a write")
-                .hasExactlyArgs(
-                        LoggingArgs.tableRef(TABLE), UnsafeArg.of("cellsWithOnlyMetadata", ImmutableSet.of(CELL_1)));
+        assertThatPutThrowsForAllMetadataDueToMissingWrite(ImmutableMap.of(), ImmutableMap.of(CELL_1, METADATA_1));
     }
 
     @Test
     public void cannotPutMetadataWithoutAssociatedWrite() {
-        assertThatLoggableExceptionThrownBy(() -> buffer.putLocalWritesAndMetadata(
-                        TABLE, ImmutableMap.of(CELL_2, VALUE_1), ImmutableMap.of(CELL_1, METADATA_1)))
-                .isInstanceOf(SafeIllegalStateException.class)
-                .hasLogMessage("Every metadata we put must be associated with a write")
-                .hasExactlyArgs(
-                        LoggingArgs.tableRef(TABLE), UnsafeArg.of("cellsWithOnlyMetadata", ImmutableSet.of(CELL_1)));
+        assertThatPutThrowsForAllMetadataDueToMissingWrite(
+                ImmutableMap.of(CELL_2, VALUE_2), ImmutableMap.of(CELL_1, METADATA_1));
     }
 
     /**
@@ -243,9 +234,8 @@ public class LocalWriteBufferTest {
     @Test
     public void valueByteCountIsUpdatedCorrectlyWhenDeletingValue() {
         buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_1, VALUE_1), ImmutableMap.of());
-        assertThat(buffer.getByteCount()).isEqualTo(Cells.getApproxSizeOfCell(CELL_1) + VALUE_1.length);
-
         buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_1, new byte[0]), ImmutableMap.of());
+
         assertThat(buffer.getByteCount()).isEqualTo(Cells.getApproxSizeOfCell(CELL_1));
     }
 
@@ -253,10 +243,19 @@ public class LocalWriteBufferTest {
     public void valueByteCountIsMaintainedAcrossMultipleTables() {
         buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_1, VALUE_1), ImmutableMap.of());
         buffer.putLocalWritesAndMetadata(TABLE_2, ImmutableMap.of(CELL_2, VALUE_2), ImmutableMap.of());
+
         assertThat(buffer.getByteCount())
                 .isEqualTo(Cells.getApproxSizeOfCell(CELL_1)
                         + VALUE_1.length
                         + Cells.getApproxSizeOfCell(CELL_2)
                         + VALUE_2.length);
+    }
+
+    private void assertThatPutThrowsForAllMetadataDueToMissingWrite(
+            Map<Cell, byte[]> values, Map<Cell, ChangeMetadata> metadata) {
+        assertThatLoggableExceptionThrownBy(() -> buffer.putLocalWritesAndMetadata(TABLE, values, metadata))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasLogMessage("Every metadata we put must be associated with a write")
+                .hasExactlyArgs(LoggingArgs.tableRef(TABLE), UnsafeArg.of("cellsWithOnlyMetadata", metadata.keySet()));
     }
 }
