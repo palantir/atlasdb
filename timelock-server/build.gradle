@@ -195,6 +195,7 @@ dependencies {
     integTestImplementation 'com.palantir.tritium:tritium-registry'
     integTestImplementation 'io.dropwizard.metrics:metrics-core'
     integTestImplementation 'org.awaitility:awaitility'
+    integTestImplementation 'one.util:streamex'
     integTestImplementation project(':atlasdb-api')
     integTestImplementation project(':atlasdb-client')
     integTestImplementation project(':atlasdb-commons')
