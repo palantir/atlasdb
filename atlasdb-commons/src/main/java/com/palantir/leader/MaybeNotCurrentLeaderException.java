@@ -30,7 +30,7 @@ import java.util.List;
 public final class MaybeNotCurrentLeaderException extends NotCurrentLeaderException implements SafeLoggable {
 
     private final String message;
-    private final List<Arg<?>> args;
+    private final ImmutableList<Arg<?>> args;
 
     public MaybeNotCurrentLeaderException(@CompileTimeConstant String message, List<Arg<?>> args) {
         super(message);
