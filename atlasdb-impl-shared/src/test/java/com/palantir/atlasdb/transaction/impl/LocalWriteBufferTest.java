@@ -253,6 +253,17 @@ public class LocalWriteBufferTest {
                         + VALUE_2.length);
     }
 
+    @Test
+    public void changeMetadataCountIsCorrect() {
+        buffer.putLocalWritesAndMetadata(
+                TABLE,
+                ImmutableMap.of(CELL_1, VALUE_1, CELL_2, VALUE_2),
+                ImmutableMap.of(CELL_1, METADATA_1, CELL_2, METADATA_2));
+        buffer.putLocalWritesAndMetadata(TABLE_2, ImmutableMap.of(CELL_1, VALUE_1), ImmutableMap.of());
+
+        assertThat(buffer.changeMetadataCount()).isEqualTo(2);
+    }
+
     private void assertThatPutThrowsForAllMetadataDueToMissingWrite(
             Map<Cell, byte[]> values, Map<Cell, ChangeMetadata> metadata) {
         assertThatLoggableExceptionThrownBy(() -> buffer.putLocalWritesAndMetadata(TABLE, values, metadata))
