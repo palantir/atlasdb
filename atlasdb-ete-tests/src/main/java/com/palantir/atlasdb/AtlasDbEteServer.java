@@ -203,7 +203,6 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
                 .userAgent(UserAgent.of(UserAgent.Agent.of("atlasdb-ete-test", "0.0.0")))
                 .globalMetricsRegistry(environment.metrics())
                 .globalTaggedMetricRegistry(taggedMetricRegistry)
-                .registrar(environment.jersey()::register)
                 .addAllSchemas(ETE_SCHEMAS)
                 .runtimeConfigSupplier(() -> atlasDbRuntimeConfigOptional)
                 .build()

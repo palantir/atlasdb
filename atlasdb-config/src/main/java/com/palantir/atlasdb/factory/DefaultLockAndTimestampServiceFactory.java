@@ -17,23 +17,15 @@
 package com.palantir.atlasdb.factory;
 
 import com.google.common.base.Suppliers;
-import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
-import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
-import com.palantir.atlasdb.config.ImmutableServerListConfig;
-import com.palantir.atlasdb.config.LeaderConfig;
-import com.palantir.atlasdb.config.RemotingClientConfigs;
 import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.config.ServerListConfigs;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.config.TimeLockRequestBatcherProviders;
 import com.palantir.atlasdb.debug.LockDiagnosticComponents;
 import com.palantir.atlasdb.debug.LockDiagnosticConjureTimelockService;
-import com.palantir.atlasdb.factory.Leaders.LocalPaxosServices;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
-import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.table.description.Schema;
@@ -43,11 +35,7 @@ import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.api.config.service.UserAgent;
-import com.palantir.conjure.java.api.errors.UnknownRemoteException;
 import com.palantir.dialogue.clients.DialogueClients.ReloadingFactory;
-import com.palantir.leader.PingableLeader;
-import com.palantir.leader.proxy.AwaitingLeadershipProxy;
-import com.palantir.leader.proxy.LeadershipCoordinator;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.NamespaceAgnosticLockRpcClient;
@@ -81,34 +69,22 @@ import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.RemoteTimestampManagementAdapter;
 import com.palantir.timestamp.TimestampManagementService;
-import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.OptionalResolver;
-import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import javax.ws.rs.ClientErrorException;
 
 public final class DefaultLockAndTimestampServiceFactory implements LockAndTimestampServiceFactory {
-    private static final SafeLogger log = SafeLoggerFactory.get(DefaultLockAndTimestampServiceFactory.class);
-
-    private static final int ATTEMPTS_BEFORE_LOGGING_FAILURE_TO_READ_REMOTE_TIMESTAMP_SERVER_ID = 60;
-
     private final MetricsManager metricsManager;
     private final AtlasDbConfig config;
     private final Refreshable<AtlasDbRuntimeConfig> runtimeConfig;
-    private final Consumer<Object> registrar;
     private final Supplier<LockService> lock;
     private final Supplier<ManagedTimestampService> time;
     private final TimestampStoreInvalidator invalidator;
@@ -125,7 +101,6 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
             MetricsManager metricsManager,
             AtlasDbConfig config,
             Refreshable<AtlasDbRuntimeConfig> runtimeConfig,
-            Consumer<Object> registrar,
             Supplier<LockService> lock,
             Supplier<ManagedTimestampService> time,
             TimestampStoreInvalidator invalidator,
@@ -139,7 +114,6 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 metricsManager,
                 config,
                 runtimeConfig,
-                registrar,
                 lock,
                 time,
                 invalidator,
@@ -156,7 +130,6 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
             MetricsManager metricsManager,
             AtlasDbConfig config,
             Refreshable<AtlasDbRuntimeConfig> runtimeConfig,
-            Consumer<Object> registrar,
             Supplier<LockService> lock,
             Supplier<ManagedTimestampService> time,
             TimestampStoreInvalidator invalidator,
@@ -170,7 +143,6 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
         this.metricsManager = metricsManager;
         this.config = config;
         this.runtimeConfig = runtimeConfig;
-        this.registrar = registrar;
         this.lock = lock;
         this.time = time;
         this.invalidator = invalidator;
@@ -189,7 +161,6 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 metricsManager,
                 config,
                 runtimeConfig,
-                registrar,
                 lock,
                 time,
                 invalidator,
@@ -233,7 +204,6 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
             MetricsManager metricsManager,
             AtlasDbConfig config,
             Refreshable<AtlasDbRuntimeConfig> runtimeConfig,
-            Consumer<Object> registrar,
             Supplier<LockService> lock,
             Supplier<ManagedTimestampService> time,
             TimestampStoreInvalidator invalidator,
@@ -245,8 +215,9 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
             Set<Schema> knownSchemas) {
         AtlasDbRuntimeConfig initialRuntimeConfig = runtimeConfig.get();
         assertNoSpuriousTimeLockBlockInRuntimeConfig(config, initialRuntimeConfig);
-        if (config.leader().isPresent()) {
-            return createRawLeaderServices(metricsManager, config.leader().get(), registrar, lock, time, userAgent);
+        if (config.leader().isPresent()) { // 1-node leader config
+            // equivalent to raw embedded; multi-node leader is not supported
+            return createRawEmbeddedServices(metricsManager, lock, time);
         } else if (config.timestamp().isPresent() && config.lock().isPresent()) {
             return createRawRemoteServices(metricsManager, config, runtimeConfig, userAgent);
         } else if (TransactionManagers.isUsingTimeLock(config, initialRuntimeConfig)) {
@@ -261,7 +232,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                     timeLockFeedbackBackgroundTask,
                     timelockRequestBatcherProviders,
                     knownSchemas);
-        } else {
+        } else { // raw embedded, i.e. embedded with no leader config
             return createRawEmbeddedServices(metricsManager, lock, time);
         }
     }
@@ -442,157 +413,6 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
             AtlasDbDialogueServiceProvider serviceProvider) {
         return Suppliers.memoize(() -> new AuthenticatedInternalMultiClientConjureTimelockService(
                 serviceProvider.getMultiClientConjureTimelockService()));
-    }
-
-    private static LockAndTimestampServices createRawLeaderServices(
-            MetricsManager metricsManager,
-            LeaderConfig leaderConfig,
-            Consumer<Object> registrar,
-            Supplier<LockService> lock,
-            Supplier<ManagedTimestampService> time,
-            UserAgent userAgent) {
-        // Create local services, that may or may not end up being registered in an Consumer<Object>.
-        LocalPaxosServices localPaxosServices =
-                Leaders.createAndRegisterLocalServices(metricsManager, registrar, leaderConfig, userAgent);
-
-        LeadershipCoordinator leadershipCoordinator = localPaxosServices.leadershipCoordinator();
-        LockService localLock =
-                AwaitingLeadershipProxy.newProxyInstance(LockService.class, lock, leadershipCoordinator);
-
-        ManagedTimestampService managedTimestampProxy =
-                AwaitingLeadershipProxy.newProxyInstance(ManagedTimestampService.class, time, leadershipCoordinator);
-
-        // These facades are necessary because of the semantics of the JAX-RS algorithm (in particular, accepting
-        // just the managed timestamp service will *not* work).
-        TimestampService localTime = getTimestampFacade(managedTimestampProxy);
-        TimestampManagementService localManagement = getTimestampManagementFacade(managedTimestampProxy);
-
-        registrar.accept(localLock);
-        registrar.accept(localTime);
-        registrar.accept(localManagement);
-
-        // Create remote services, that may end up calling our own local services.
-        ImmutableServerListConfig serverListConfig = ImmutableServerListConfig.builder()
-                .servers(leaderConfig.leaders())
-                .sslConfiguration(leaderConfig.sslConfiguration())
-                .build();
-        ServiceCreator creator = ServiceCreator.noPayloadLimiter(
-                metricsManager, Refreshable.only(serverListConfig), userAgent, () -> RemotingClientConfigs.DEFAULT);
-        LockService remoteLock =
-                new RemoteLockServiceAdapter(creator.createService(NamespaceAgnosticLockRpcClient.class));
-        TimestampService remoteTime = creator.createService(TimestampService.class);
-        TimestampManagementService remoteManagement = creator.createService(TimestampManagementService.class);
-
-        if (leaderConfig.leaders().size() == 1) {
-            // Attempting to connect to ourself while processing a request can lead to deadlock if incoming request
-            // volume is high, as all Jetty threads end up waiting for the timestamp server, and no threads remain to
-            // actually handle the timestamp server requests. If we are the only single leader, we can avoid the
-            // deadlock entirely; so use PingableLeader's getUUID() to detect this situation and eliminate the redundant
-            // call.
-
-            PingableLeader localPingableLeader = localPaxosServices.localPingableLeader();
-            String localServerId = localPingableLeader.getUUID();
-            PingableLeader remotePingableLeader = AtlasDbHttpClients.createProxy(
-                    ServiceCreator.createTrustContext(leaderConfig.sslConfiguration()),
-                    Iterables.getOnlyElement(leaderConfig.leaders()),
-                    PingableLeader.class,
-                    AuxiliaryRemotingParameters.builder()
-                            .userAgent(userAgent)
-                            .shouldRetry(true)
-                            .shouldLimitPayload(true)
-                            .shouldUseExtendedTimeout(false)
-                            .build());
-
-            // Determine asynchronously whether the remote services are talking to our local services.
-            CompletableFuture<Boolean> useLocalServicesFuture = new CompletableFuture<>();
-            TransactionManagers.runAsync.accept(() -> {
-                int attemptsLeftBeforeLog = ATTEMPTS_BEFORE_LOGGING_FAILURE_TO_READ_REMOTE_TIMESTAMP_SERVER_ID;
-                while (true) {
-                    try {
-                        String remoteServerId = remotePingableLeader.getUUID();
-                        useLocalServicesFuture.complete(localServerId.equals(remoteServerId));
-                        return;
-                    } catch (ClientErrorException e) {
-                        useLocalServicesFuture.complete(false);
-                        return;
-                    } catch (UnknownRemoteException e) {
-                        // This is done to replicate previous behaviour, where 4xxs returned to a JaxRsClient would
-                        // manifest as ClientErrorExceptions.
-                        if (400 <= e.getStatus() && e.getStatus() <= 499) {
-                            useLocalServicesFuture.complete(false);
-                            return;
-                        }
-                        attemptsLeftBeforeLog = logFailureToReadRemoteTimestampServerId(attemptsLeftBeforeLog, e);
-                    } catch (Throwable e) {
-                        attemptsLeftBeforeLog = logFailureToReadRemoteTimestampServerId(attemptsLeftBeforeLog, e);
-                    }
-                    Uninterruptibles.sleepUninterruptibly(Duration.ofSeconds(1));
-                }
-            });
-
-            // Create dynamic service proxies, that switch to talking directly to our local services if it turns out our
-            // remote services are pointed at them anyway.
-            LockService dynamicLockService = LocalOrRemoteProxy.newProxyInstance(
-                    LockService.class, localLock, remoteLock, useLocalServicesFuture);
-
-            // Use managedTimestampProxy here to avoid local calls going through indirection.
-            TimestampService dynamicTimeService = LocalOrRemoteProxy.newProxyInstance(
-                    TimestampService.class, managedTimestampProxy, remoteTime, useLocalServicesFuture);
-            TimestampManagementService dynamicManagementService = LocalOrRemoteProxy.newProxyInstance(
-                    TimestampManagementService.class, managedTimestampProxy, remoteManagement, useLocalServicesFuture);
-            return ImmutableLockAndTimestampServices.builder()
-                    .lock(dynamicLockService)
-                    .timestamp(dynamicTimeService)
-                    .timestampManagement(dynamicManagementService)
-                    .timelock(new LegacyTimelockService(
-                            dynamicTimeService, dynamicLockService, TransactionManagers.LOCK_CLIENT))
-                    .build();
-
-        } else {
-            return ImmutableLockAndTimestampServices.builder()
-                    .lock(remoteLock)
-                    .timestamp(remoteTime)
-                    .timestampManagement(remoteManagement)
-                    .timelock(new LegacyTimelockService(remoteTime, remoteLock, TransactionManagers.LOCK_CLIENT))
-                    .build();
-        }
-    }
-
-    private static TimestampService getTimestampFacade(ManagedTimestampService managedTimestampService) {
-        return new TimestampService() {
-            @Override
-            public long getFreshTimestamp() {
-                return managedTimestampService.getFreshTimestamp();
-            }
-
-            @Override
-            public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-                return managedTimestampService.getFreshTimestamps(numTimestampsRequested);
-            }
-        };
-    }
-
-    private static TimestampManagementService getTimestampManagementFacade(
-            ManagedTimestampService managedTimestampService) {
-        return new TimestampManagementService() {
-            @Override
-            public void fastForwardTimestamp(long currentTimestamp) {
-                managedTimestampService.fastForwardTimestamp(currentTimestamp);
-            }
-
-            @Override
-            public String ping() {
-                return managedTimestampService.ping();
-            }
-        };
-    }
-
-    private static int logFailureToReadRemoteTimestampServerId(int attemptsLeftBeforeLog, Throwable th) {
-        if (attemptsLeftBeforeLog == 0) {
-            log.warn("Failed to read remote timestamp server ID", th);
-            return ATTEMPTS_BEFORE_LOGGING_FAILURE_TO_READ_REMOTE_TIMESTAMP_SERVER_ID;
-        }
-        return attemptsLeftBeforeLog - 1;
     }
 
     private static LockAndTimestampServices createRawRemoteServices(

@@ -6,7 +6,6 @@ dependencies {
     api project(':timestamp-client')
     api project(':atlasdb-conjure')
     implementation project(':atlasdb-impl-shared')
-    implementation project(':leader-election-impl')
     implementation project(':lock-impl')
 
     implementation 'jakarta.validation:jakarta.validation-api'
@@ -47,10 +46,8 @@ dependencies {
     implementation project(':atlasdb-client')
     implementation project(':atlasdb-commons')
     implementation project(':atlasdb-coordination-impl')
-    implementation project(':atlasdb-remoting-api')
     implementation project(':commons-annotations')
     implementation project(':commons-executors')
-    implementation project(':leader-election-api')
     implementation project(':lock-api')
     implementation project(':lock-api-objects')
     implementation project(':lock-conjure-api:lock-conjure-api-dialogue')

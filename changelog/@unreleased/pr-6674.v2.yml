@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Multi-node embedded time and lock services are no longer supported.
+    Leader configs with a single node and quorum of 1 will function the same as embedded
+    time and lock, and all other leader configurations will fail.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6674
