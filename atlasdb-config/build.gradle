@@ -1,4 +1,5 @@
 apply from: "../gradle/shared.gradle"
+apply plugin: 'com.palantir.revapi'
 
 dependencies {
     api project(':atlasdb-api')
@@ -85,4 +86,8 @@ dependencies {
     testImplementation 'com.github.stefanbirkner:system-rules'
     // Needed for Jersey Response-based tests
     testImplementation 'org.glassfish.jersey.core:jersey-common'
+}
+
+revapi {
+    oldVersion = '0.909.0'
 }
