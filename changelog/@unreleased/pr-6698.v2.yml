@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: fix TransactionManagers ABI break
+  links:
+  - https://github.com/palantir/atlasdb/pull/6698
