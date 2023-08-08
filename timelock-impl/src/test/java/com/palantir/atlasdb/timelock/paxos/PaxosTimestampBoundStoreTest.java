@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -32,8 +33,9 @@ import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.leader.MaybeNotCurrentLeaderException;
 import com.palantir.leader.proxy.ToggleableExceptionProxy;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
@@ -244,7 +246,12 @@ public class PaxosTimestampBoundStoreTest {
     public void throwsIfBoundUnexpectedlyChangedUnderUs() {
         PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(1);
         additionalStore.storeUpperLimit(TIMESTAMP_1);
-        assertThatThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2)).isInstanceOf(NotCurrentLeaderException.class);
+        assertThatLoggableExceptionThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2))
+                .isInstanceOf(MaybeNotCurrentLeaderException.class)
+                .hasMessageContaining("Timestamp limit changed from under us for sequence")
+                .args()
+                // We don't know the leader ids in advance, so we can't assert on them.
+                .contains(SafeArg.of("newSeq", PaxosAcceptor.NO_LOG_ENTRY + 1), SafeArg.of("target", TIMESTAMP_2));
     }
 
     @Test
