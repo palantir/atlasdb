@@ -74,6 +74,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.api.watch.LocksAndMetadata;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -2618,10 +2619,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         TABLE2,
                         Optional.of(ConflictHandler.SERIALIZABLE)));
 
-        txn.put(
-                TABLE, ImmutableMap.of(Cell.create(ROW_FOO, COL_A), TEST_VALUE));
+        txn.put(TABLE, ImmutableMap.of(Cell.create(ROW_FOO, COL_A), TEST_VALUE));
         txn.putWithMetadata(
-                TABLE, ImmutableMap.of(Cell.create(ROW_FOO, COL_B), ValueAndChangeMetadata.of(TEST_VALUE, UPDATE_CHANGE_METADATA)));
+                TABLE,
+                ImmutableMap.of(
+                        Cell.create(ROW_FOO, COL_B), ValueAndChangeMetadata.of(TEST_VALUE, UPDATE_CHANGE_METADATA)));
         txn.putWithMetadata(
                 TABLE2, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, UNCHANGED_CHANGE_METADATA)));
 
@@ -2633,10 +2635,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 LocksAndMetadata.of(
                         ImmutableSet.of(rowLock, rowLock2),
                         Optional.of(LockRequestMetadata.of(ImmutableMap.of(
-                                rowLock,
-                                UPDATE_CHANGE_METADATA,
-                                rowLock2,
-                                UNCHANGED_CHANGE_METADATA)))));
+                                rowLock, UPDATE_CHANGE_METADATA, rowLock2, UNCHANGED_CHANGE_METADATA)))));
     }
 
     @Test
@@ -2741,7 +2740,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasLogMessage("Two different cells in the same row have metadata and we create locks on row level.")
                 .hasExactlyArgs(
-                        UnsafeArg.of("tableRef", TABLE),
+                        LoggingArgs.tableRef(TABLE),
                         UnsafeArg.of("rowName", cell1.getRowName()),
                         UnsafeArg.of("newMetadata", UPDATE_CHANGE_METADATA));
     }

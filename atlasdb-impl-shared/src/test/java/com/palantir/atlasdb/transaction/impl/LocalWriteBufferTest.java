@@ -30,6 +30,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.logsafe.UnsafeArg;
@@ -137,8 +138,7 @@ public class LocalWriteBufferTest {
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasLogMessage("Every metadata we put must be associated with a write")
                 .hasExactlyArgs(
-                        UnsafeArg.of("tableRef", TABLE),
-                        UnsafeArg.of("cellsWithOnlyMetadata", ImmutableSet.of(CELL_1)));
+                        LoggingArgs.tableRef(TABLE), UnsafeArg.of("cellsWithOnlyMetadata", ImmutableSet.of(CELL_1)));
     }
 
     /**
@@ -205,9 +205,7 @@ public class LocalWriteBufferTest {
                             ? ImmutableList.of(task1, task2)
                             : ImmutableList.of(task2, task1))
                     .stream().map(concurrentExecutor::submit).collect(Collectors.toUnmodifiableList());
-            Futures.whenAllSucceed(futures)
-                    .call(() -> null, MoreExecutors.directExecutor())
-                    .get(20, TimeUnit.SECONDS);
+            Futures.whenAllSucceed(futures).call(() -> null, DIRECT_EXECUTOR).get(20, TimeUnit.SECONDS);
 
             byte[] currentValue = buffer.getLocalWritesForTable(TABLE).get(CELL_1);
             ChangeMetadata currentMetadata =
