@@ -16,6 +16,8 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -29,6 +31,8 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
+import com.palantir.lock.watch.ChangeMetadata;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collection;
@@ -49,6 +53,11 @@ public class CachingTransactionTest {
     private static final byte[] ROW_BYTES = "row".getBytes(StandardCharsets.UTF_8);
     private static final byte[] COL_BYTES = "col".getBytes(StandardCharsets.UTF_8);
     private static final byte[] VALUE_BYTES = "value".getBytes(StandardCharsets.UTF_8);
+    private static final Cell CELL_1 = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("col1"));
+    private static final Cell CELL_2 = Cell.create(PtBytes.toBytes("row2"), PtBytes.toBytes("col2"));
+    private static final ChangeMetadata CHANGE_METADATA_1 = ChangeMetadata.unchanged();
+    private static final ChangeMetadata CHANGE_METADATA_2 = ChangeMetadata.created(PtBytes.toBytes("new"));
+
     private static final String SYNC = "sync";
     private static final String ASYNC = "async";
 
@@ -161,6 +170,36 @@ public class CachingTransactionTest {
 
         // empty result is cached in this case (second call requests no cells)
         testGetCellResults(cell, emptyCellValueMap);
+    }
+
+    @Test
+    public void metadataIsForwardedForPutWithMetadata() {
+        Transaction txn = mock(Transaction.class);
+        CachingTransaction cachingTransaction = new CachingTransaction(txn);
+        cachingTransaction.putWithMetadata(
+                table,
+                ImmutableMap.of(
+                        CELL_1,
+                        ValueAndChangeMetadata.of(VALUE_BYTES, CHANGE_METADATA_1),
+                        CELL_2,
+                        ValueAndChangeMetadata.of(VALUE_BYTES, CHANGE_METADATA_2)));
+        verify(txn)
+                .putWithMetadata(
+                        table,
+                        ImmutableMap.of(
+                                CELL_1,
+                                ValueAndChangeMetadata.of(VALUE_BYTES, CHANGE_METADATA_1),
+                                CELL_2,
+                                ValueAndChangeMetadata.of(VALUE_BYTES, CHANGE_METADATA_2)));
+    }
+
+    @Test
+    public void metadataIsForwardedForDeleteWithMetadata() {
+        Transaction txn = mock(Transaction.class);
+        CachingTransaction cachingTransaction = new CachingTransaction(txn);
+        cachingTransaction.deleteWithMetadata(
+                table, ImmutableMap.of(CELL_1, CHANGE_METADATA_1, CELL_2, CHANGE_METADATA_2));
+        verify(txn).deleteWithMetadata(table, ImmutableMap.of(CELL_1, CHANGE_METADATA_1, CELL_2, CHANGE_METADATA_2));
     }
 
     private void testGetCellResults(Cell cell, Map<Cell, byte[]> cellValueMap) {
