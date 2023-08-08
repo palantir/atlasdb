@@ -251,7 +251,7 @@ public class PaxosTimestampBoundStoreTest {
                 .hasMessageContaining("Timestamp limit changed from under us for sequence")
                 .args()
                 // We don't know the leader ids in advance, so we can't assert on them.
-                .contains(SafeArg.of("newSeq", PaxosAcceptor.NO_LOG_ENTRY + 1), SafeArg.of("limit", TIMESTAMP_2));
+                .contains(SafeArg.of("newSeq", PaxosAcceptor.NO_LOG_ENTRY + 1), SafeArg.of("target", TIMESTAMP_2));
     }
 
     @Test
