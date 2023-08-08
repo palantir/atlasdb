@@ -346,7 +346,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             ChangeMetadata.updated(PtBytes.toBytes("abc"), PtBytes.toBytes("def"));
     private static final ChangeMetadata DELETE_CHANGE_METADATA = ChangeMetadata.deleted(PtBytes.toBytes("old"));
     private static final ChangeMetadata UNCHANGED_CHANGE_METADATA = ChangeMetadata.unchanged();
-    private static final ChangeMetadata CREATE_CHANGE_METADATA = ChangeMetadata.created(PtBytes.toBytes("new"));
 
     @Override
     @Before
@@ -3019,19 +3018,17 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         verify(spiedTimelockService)
                 .lock(
                         argThat(lockRequest -> {
-                            // We always acquire a lock on the transaction table, whose suffix depends on the start
-                            // timestamp
+                            // We always acquire a lock on the transaction table
+                            Set<LockDescriptor> locksWithTransactionTableLock = new ImmutableSet.Builder<
+                                    LockDescriptor>()
+                                    .addAll(locksAndMetadata.lockDescriptors())
+                                    .add(AtlasRowLockDescriptor.of(
+                                            TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
+                                            TransactionConstants.getValueForTimestamp(txn.getTimestamp())))
+                                    .build();
                             assertThat(lockRequest.getLockDescriptors())
                                     .as(assertionMessage)
-                                    .containsAll(locksAndMetadata.lockDescriptors());
-                            assertThat(lockRequest.getLockDescriptors()).allSatisfy(lock -> {
-                                if (!lock.getLockIdAsString()
-                                        .startsWith(TransactionConstants.TRANSACTION_TABLE.getQualifiedName())) {
-                                    assertThat(locksAndMetadata.lockDescriptors())
-                                            .as(assertionMessage)
-                                            .contains(lock);
-                                }
-                            });
+                                    .containsExactlyInAnyOrderElementsOf(locksWithTransactionTableLock);
                             assertThat(lockRequest.getMetadata())
                                     .as(assertionMessage)
                                     .isEqualTo(locksAndMetadata.metadata());
