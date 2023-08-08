@@ -1,5 +1,6 @@
 type: feature
 feature:
-  description: '[LWMeta] Pass Metadata through SnapshotTransaction'
+  description: Transactions now support putting/deleting values with metadata to be
+    associated with their respective commit lock requests
   links:
   - https://github.com/palantir/atlasdb/pull/6671
