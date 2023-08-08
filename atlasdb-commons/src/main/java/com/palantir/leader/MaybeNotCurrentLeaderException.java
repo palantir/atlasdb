@@ -35,7 +35,7 @@ public final class MaybeNotCurrentLeaderException extends NotCurrentLeaderExcept
     public MaybeNotCurrentLeaderException(@CompileTimeConstant String message, List<Arg<?>> args) {
         super(message);
         this.message = message;
-        this.args = args;
+        this.args = ImmutableList.copyOf(args);
     }
 
     public MaybeNotCurrentLeaderException(@CompileTimeConstant String message, Arg<?>... args) {
