@@ -169,6 +169,16 @@ public abstract class TransactionManagers {
 
     abstract Set<Schema> schemas();
 
+    /**
+     * @deprecated This method is not used and should not be overriden from the default. It only exists because deleting
+     * it would be an ABI break.
+     */
+    @Value.Default
+    @Deprecated
+    Consumer<Object> registrar() {
+        return resource -> {};
+    }
+
     @Value.Default
     LockServerOptions lockServerOptions() {
         return LockServerConfigs.DEFAULT;
