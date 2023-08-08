@@ -2576,9 +2576,12 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 ImmutableMap.of(TABLE, ConflictHandler.SERIALIZABLE_CELL, TABLE2, ConflictHandler.SERIALIZABLE_CELL));
 
         txn.putWithMetadata(
-                TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, UPDATE_CHANGE_METADATA)));
-        txn.putWithMetadata(
-                TABLE, ImmutableMap.of(TEST_CELL_2, ValueAndChangeMetadata.of(TEST_VALUE, DELETE_CHANGE_METADATA)));
+                TABLE,
+                ImmutableMap.of(
+                        TEST_CELL,
+                        ValueAndChangeMetadata.of(TEST_VALUE, UPDATE_CHANGE_METADATA),
+                        TEST_CELL_2,
+                        ValueAndChangeMetadata.of(TEST_VALUE, DELETE_CHANGE_METADATA)));
         txn.putWithMetadata(
                 TABLE2, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, UNCHANGED_CHANGE_METADATA)));
 
@@ -2610,23 +2613,29 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 timelockService,
                 ImmutableMap.of(TABLE, ConflictHandler.SERIALIZABLE, TABLE2, ConflictHandler.SERIALIZABLE));
 
-        txn.put(TABLE, ImmutableMap.of(Cell.create(ROW_FOO, COL_A), TEST_VALUE));
-        txn.putWithMetadata(
+        txn.delete(TABLE, ImmutableSet.of(Cell.create(ROW_FOO, COL_A)));
+        txn.deleteWithMetadata(
                 TABLE,
                 ImmutableMap.of(
-                        Cell.create(ROW_FOO, COL_B), ValueAndChangeMetadata.of(TEST_VALUE, UPDATE_CHANGE_METADATA)));
-        txn.putWithMetadata(
-                TABLE2, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, UNCHANGED_CHANGE_METADATA)));
+                        Cell.create(ROW_FOO, COL_B), UPDATE_CHANGE_METADATA,
+                        Cell.create(ROW_BAR, COL_A), DELETE_CHANGE_METADATA));
+        txn.deleteWithMetadata(TABLE2, ImmutableMap.of(TEST_CELL, UNCHANGED_CHANGE_METADATA));
 
         LockDescriptor rowLock = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), ROW_FOO);
-        LockDescriptor rowLock2 = AtlasRowLockDescriptor.of(TABLE2.getQualifiedName(), TEST_CELL.getRowName());
+        LockDescriptor rowLock2 = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), ROW_BAR);
+        LockDescriptor rowLock3 = AtlasRowLockDescriptor.of(TABLE2.getQualifiedName(), TEST_CELL.getRowName());
         verifyLockWasCalledWithLocksAndMetadataWhenCommitting(
                 txn,
                 timelockService,
                 LocksAndMetadata.of(
-                        ImmutableSet.of(rowLock, rowLock2),
+                        ImmutableSet.of(rowLock, rowLock2, rowLock3),
                         Optional.of(LockRequestMetadata.of(ImmutableMap.of(
-                                rowLock, UPDATE_CHANGE_METADATA, rowLock2, UNCHANGED_CHANGE_METADATA)))));
+                                rowLock,
+                                UPDATE_CHANGE_METADATA,
+                                rowLock2,
+                                DELETE_CHANGE_METADATA,
+                                rowLock3,
+                                UNCHANGED_CHANGE_METADATA)))));
     }
 
     @Test
@@ -3020,7 +3029,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         argThat(lockRequest -> {
                             // We always acquire a lock on the transaction table
                             Set<LockDescriptor> locksWithTransactionTableLock = new ImmutableSet.Builder<
-                                    LockDescriptor>()
+                                            LockDescriptor>()
                                     .addAll(locksAndMetadata.lockDescriptors())
                                     .add(AtlasRowLockDescriptor.of(
                                             TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),

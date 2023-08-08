@@ -117,12 +117,14 @@ public class LocalWriteBufferTest {
 
     @Test
     public void canStoreValuesAndMetadataForMultipleCellsAndTables() {
-        buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_1, VALUE_1), ImmutableMap.of(CELL_1, METADATA_1));
-        buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_2, VALUE_2), ImmutableMap.of(CELL_2, METADATA_2));
         buffer.putLocalWritesAndMetadata(
-                TABLE_2, ImmutableMap.of(CELL_1, VALUE_1), ImmutableMap.of(CELL_1, METADATA_1));
+                TABLE,
+                ImmutableMap.of(CELL_1, VALUE_1, CELL_2, VALUE_2),
+                ImmutableMap.of(CELL_1, METADATA_1, CELL_2, METADATA_2));
         buffer.putLocalWritesAndMetadata(
-                TABLE_2, ImmutableMap.of(CELL_2, VALUE_2), ImmutableMap.of(CELL_2, METADATA_2));
+                TABLE_2,
+                ImmutableMap.of(CELL_1, VALUE_1, CELL_2, VALUE_2),
+                ImmutableMap.of(CELL_1, METADATA_1, CELL_2, METADATA_2));
 
         assertThat(buffer.getLocalWritesForTable(TABLE))
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(CELL_1, VALUE_1, CELL_2, VALUE_2));
