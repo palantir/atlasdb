@@ -270,12 +270,14 @@ public class AwaitingLeadershipProxyTest {
     @Test
     public void whenMaybeNotCurrentLeaderAndLeadershipNotLostShouldNotClearDelegate() throws Exception {
         MyCloseable mockA = mock(MyCloseable.class);
+        // Cannot spy lambdas
+        Supplier<MyCloseable> delegateSupplier = mock(Supplier.class);
+        when(delegateSupplier.get()).thenReturn(mockA);
         LeadershipCoordinator leadershipCoordinator = LeadershipCoordinator.create(leaderElectionService);
         MyCloseable proxyA =
-                AwaitingLeadershipProxy.newProxyInstance(MyCloseable.class, () -> mockA, leadershipCoordinator);
+                AwaitingLeadershipProxy.newProxyInstance(MyCloseable.class, delegateSupplier, leadershipCoordinator);
 
-        // Wait to gain leadership
-        Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
+        waitForLeadershipToBeGained();
 
         doThrow(new MaybeNotCurrentLeaderException(TEST_MESSAGE)).when(mockA).val();
 
@@ -283,6 +285,7 @@ public class AwaitingLeadershipProxyTest {
                 .isInstanceOf(MaybeNotCurrentLeaderException.class)
                 .hasMessage(TEST_MESSAGE);
         verify(mockA, times(0)).close();
+        verify(delegateSupplier, times(1)).get();
     }
 
     @Test
@@ -295,8 +298,7 @@ public class AwaitingLeadershipProxyTest {
         MyCloseable proxyB = AwaitingLeadershipProxy.newProxyInstance(
                 MyCloseable.class, () -> mock(MyCloseable.class), leadershipCoordinator);
 
-        // Wait to gain leadership
-        Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
+        waitForLeadershipToBeGained();
 
         proxyA.val();
         proxyB.val();
@@ -324,8 +326,7 @@ public class AwaitingLeadershipProxyTest {
         MyCloseable proxyB = AwaitingLeadershipProxy.newProxyInstance(
                 MyCloseable.class, () -> mock(MyCloseable.class), leadershipCoordinator);
 
-        // Wait to gain leadership
-        Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
+        waitForLeadershipToBeGained();
 
         proxyA.val();
         proxyB.val();
@@ -365,8 +366,7 @@ public class AwaitingLeadershipProxyTest {
         MyCloseable proxyB = AwaitingLeadershipProxy.newProxyInstance(
                 MyCloseable.class, () -> mock(MyCloseable.class), leadershipCoordinator);
 
-        // Wait to gain leadership
-        Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
+        waitForLeadershipToBeGained();
 
         proxyA.val();
         proxyB.val();
