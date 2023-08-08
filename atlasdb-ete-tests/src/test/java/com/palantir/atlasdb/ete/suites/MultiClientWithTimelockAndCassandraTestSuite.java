@@ -16,6 +16,12 @@
 package com.palantir.atlasdb.ete.suites;
 
 import com.palantir.atlasdb.containers.CassandraEnvironment;
+import com.palantir.atlasdb.ete.suiteclasses.CassandraTimestampsEteTest;
+import com.palantir.atlasdb.ete.suiteclasses.CoordinationEteTest;
+import com.palantir.atlasdb.ete.suiteclasses.LockWithTimelockEteTest;
+import com.palantir.atlasdb.ete.suiteclasses.MultipleSchemaVersionsCoordinationEteTest;
+import com.palantir.atlasdb.ete.suiteclasses.TargetedSweepEteTest;
+import com.palantir.atlasdb.ete.suiteclasses.TimestampManagementEteTest;
 import com.palantir.atlasdb.ete.suiteclasses.TodoEteTest;
 import com.palantir.atlasdb.ete.utilities.EteSetup;
 import org.junit.ClassRule;
@@ -24,13 +30,14 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
-@Suite.SuiteClasses({TodoEteTest.class
-    //    TargetedSweepEteTest.class,
-    //    CassandraTimestampsEteTest.class,
-    //    TimestampManagementEteTest.class,
-    //    CoordinationEteTest.class,
-    //    MultipleSchemaVersionsCoordinationEteTest.class,
-    //    LockWithTimelockEteTest.class
+@Suite.SuiteClasses({
+    TodoEteTest.class,
+    TargetedSweepEteTest.class,
+    CassandraTimestampsEteTest.class,
+    TimestampManagementEteTest.class,
+    CoordinationEteTest.class,
+    MultipleSchemaVersionsCoordinationEteTest.class,
+    LockWithTimelockEteTest.class
 })
 public class MultiClientWithTimelockAndCassandraTestSuite extends EteSetup {
     @ClassRule
