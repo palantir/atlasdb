@@ -1,5 +1,5 @@
-type: improvement
-improvement:
+type: feature
+feature:
   description: '[LWMeta] Pass Metadata through SnapshotTransaction'
   links:
   - https://github.com/palantir/atlasdb/pull/6671
