@@ -161,7 +161,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         Throwable cause = exception.getCause();
 
         if (cause instanceof ServiceNotAvailableException) {
-            handleLeadershipChangeException(leadershipToken, (ServiceNotAvailableException) cause);
+            handlePossibleLeadershipChangeException(leadershipToken, (ServiceNotAvailableException) cause);
         }
 
         // Prevent blocked lock requests from receiving a non-retryable 500 on interrupts
@@ -179,7 +179,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
      * If it is, check and see if we are still leading, as we may still be, but contending with ourselves. Otherwise,
      * assume we are not, and invalidate our leadership state.
      */
-    private void handleLeadershipChangeException(
+    private void handlePossibleLeadershipChangeException(
             LeadershipToken leadershipToken, ServiceNotAvailableException exception)
             throws ExecutionException, InterruptedException {
         boolean notLeading = true;

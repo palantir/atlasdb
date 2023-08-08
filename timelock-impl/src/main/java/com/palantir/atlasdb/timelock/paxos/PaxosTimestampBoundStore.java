@@ -283,7 +283,8 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                     SafeArg.of("newSeq", newSeq),
                     SafeArg.of("leaderUuid", value.getLeaderUUID()),
                     SafeArg.of("ourUuid", proposer.getUuid()),
-                    SafeArg.of("limit", limit),
+                    SafeArg.of("newLimit", PtBytes.toLong(value.getData())),
+                    SafeArg.of("target", limit),
                     SafeArg.of("value", value));
         }
         DebugLogger.logger.info(
