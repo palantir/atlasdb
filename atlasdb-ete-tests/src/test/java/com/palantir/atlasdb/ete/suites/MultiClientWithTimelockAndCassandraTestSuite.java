@@ -31,13 +31,13 @@ import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
-        TodoEteTest.class,
-        TargetedSweepEteTest.class,
-        CassandraTimestampsEteTest.class,
-        TimestampManagementEteTest.class,
-        CoordinationEteTest.class,
-        MultipleSchemaVersionsCoordinationEteTest.class,
-        LockWithTimelockEteTest.class
+    TodoEteTest.class,
+    TargetedSweepEteTest.class,
+    CassandraTimestampsEteTest.class,
+    TimestampManagementEteTest.class,
+    CoordinationEteTest.class,
+    MultipleSchemaVersionsCoordinationEteTest.class,
+    LockWithTimelockEteTest.class
 })
 public class MultiClientWithTimelockAndCassandraTestSuite extends EteSetup {
     @ClassRule
