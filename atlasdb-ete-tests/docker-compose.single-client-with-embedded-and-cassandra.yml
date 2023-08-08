@@ -1,0 +1,23 @@
+version: '2'
+
+services:
+  cassandra:
+    image: palantirtechnologies/docker-cassandra-atlasdb:$CASSANDRA_VERSION
+    ports:
+      - "9160"
+      - "9042"
+      - "7199"
+    environment:
+      - MAX_HEAP_SIZE=$CASSANDRA_MAX_HEAP_SIZE
+      - HEAP_NEWSIZE=$CASSANDRA_HEAP_NEWSIZE
+      - LOCAL_JMX=no
+
+  ete1:
+    build: .
+    command: bash -c 'cp var/conf/atlasdb-ete.embedded-and-cassandra.yml var/conf/atlasdb-ete.yml && dockerize -timeout 120s -wait tcp://cassandra:9160 && service/bin/init.sh console'
+    depends_on:
+      - cassandra
+    environment:
+      - ME=ete1
+    ports:
+      - "3828"

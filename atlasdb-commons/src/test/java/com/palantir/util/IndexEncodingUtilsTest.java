@@ -78,7 +78,8 @@ public class IndexEncodingUtilsTest {
 
     @Test
     public void canEncodeSimpleData() {
-        assertThat(createIndexEncoding().indexToValue()).isEqualTo(ImmutableMap.of(1, 1337L, 2, -10L, 0, 42L));
+        assertThat(createIndexEncoding().indexToValue())
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(1, 1337L, 2, -10L, 0, 42L));
     }
 
     @Test

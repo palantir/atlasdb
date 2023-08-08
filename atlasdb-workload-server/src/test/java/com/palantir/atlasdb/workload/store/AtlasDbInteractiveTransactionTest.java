@@ -130,7 +130,7 @@ public final class AtlasDbInteractiveTransactionTest {
                         .isInstanceOfSatisfying(
                                 WitnessedRowColumnRangeReadTransactionAction.class,
                                 witness -> assertThat(witness.columnsAndValues())
-                                        .isEqualTo(IntStream.range(0, iterationCount)
+                                        .containsExactlyElementsOf(IntStream.range(0, iterationCount)
                                                 .mapToObj(column -> ColumnAndValue.of(column, VALUE_ONE))
                                                 .collect(Collectors.toList()))));
     }
@@ -158,7 +158,7 @@ public final class AtlasDbInteractiveTransactionTest {
                         .isInstanceOfSatisfying(
                                 WitnessedRowColumnRangeReadTransactionAction.class,
                                 witness -> assertThat(witness.columnsAndValues())
-                                        .isEqualTo(IntStream.range(startInclusive, endExclusive)
+                                        .containsExactlyElementsOf(IntStream.range(startInclusive, endExclusive)
                                                 .mapToObj(column -> ColumnAndValue.of(column, VALUE_ONE))
                                                 .collect(Collectors.toList()))));
     }

@@ -101,7 +101,7 @@ public class WriteOnceDeleteOnceWorkflowTest {
 
         List<WitnessedTransaction> transactions = workflow.run().history();
 
-        assertThat(transactions.size()).isEqualTo(4);
+        assertThat(transactions).hasSize(4);
         assertWriteTransaction(transactions.get(0), 0);
         assertDeleteTransaction(transactions.get(1), 0);
         assertWriteTransaction(transactions.get(2), 1);

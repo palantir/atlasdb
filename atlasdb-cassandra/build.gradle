@@ -58,6 +58,10 @@ dependencies {
   implementation project(':commons-executors')
   implementation project(':timestamp-api')
 
+  // transitive from cassandra-driver-core
+  // need to specify as a direct dep so downstream projects get the correct version
+  runtimeOnly 'io.netty:netty-handler'
+
   testImplementation 'commons-codec:commons-codec'
   testImplementation 'com.fasterxml.jackson.core:jackson-databind'
   testImplementation 'com.google.protobuf:protobuf-java'
