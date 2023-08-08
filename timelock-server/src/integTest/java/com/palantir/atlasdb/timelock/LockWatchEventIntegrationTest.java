@@ -25,7 +25,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -41,6 +46,7 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
 import com.palantir.atlasdb.transaction.impl.PreCommitConditions;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
@@ -65,11 +71,17 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -108,6 +120,7 @@ public final class LockWatchEventIntegrationTest {
                     builder -> builder.clientPaxosBuilder(
                                     builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
                             .leaderMode(PaxosInstallConfiguration.PaxosLeaderMode.SINGLE_LEADER)));
+    private static final ExecutorService DIRECT_EXECUTOR = MoreExecutors.newDirectExecutorService();
 
     @ClassRule
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
@@ -391,6 +404,45 @@ public final class LockWatchEventIntegrationTest {
                         );
     }
 
+    @Test
+    public void randomMetadataPassedAndFilteredCorrectlyForConcurrentTransactions()
+            throws ExecutionException, InterruptedException, TimeoutException {
+        long randomSeed = System.currentTimeMillis();
+        int numberOfThreads = 3;
+        int numberOfIterations = 3;
+        int numberOfRowsPerTransaction = 10;
+        int numberOfCellsPerRow = 100;
+
+        Random random = new Random(randomSeed);
+        LockWatchVersion currentVersion = getCurrentVersion();
+        ImmutableList.Builder<LockRequestMetadata> expectedMetadataBuilder = ImmutableList.builder();
+        ListeningExecutorService executor =
+                MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(numberOfThreads));
+        ImmutableList.Builder<ListenableFuture<?>> futures = ImmutableList.builder();
+        for (int i = 0; i < numberOfIterations; i++) {
+            Map<TableReference, Map<Cell, ValueAndChangeMetadata>> values =
+                    generatedRandomValuesAndChangeMetadata(numberOfRowsPerTransaction, numberOfCellsPerRow, random);
+            expectedMetadataBuilder.add(getLockRequestForValues(values, TABLE_REF::equals));
+            futures.add(executor.submit(() -> performTransactionTaskLockingAndUnlockingCells(txn -> {
+                values.forEach(txn::putWithMetadata);
+                return null;
+            })));
+        }
+
+        TransactionsLockWatchUpdate update = Futures.whenAllComplete(futures.build())
+                .call(
+                        () -> getUpdateForTransactions(Optional.of(currentVersion), startSingleTransaction()),
+                        DIRECT_EXECUTOR)
+                .get(20, TimeUnit.SECONDS);
+        List<Optional<LockRequestMetadata>> expectedMetadata =
+                expectedMetadataBuilder.build().stream().map(Optional::of).collect(Collectors.toList());
+        assertThat(LockWatchIntegrationTestUtilities.extractMetadata(update.events()))
+                .as("Expect to receive back the metadata we specified on previous transactions. Random seed: "
+                        + randomSeed)
+                // Order does NOT matter as this test is multithreaded
+                .containsExactlyInAnyOrderElementsOf(expectedMetadata);
+    }
+
     private Runnable performWriteTransactionThatBlocksAfterLockingCells() {
         CountDownLatch endOfTest = new CountDownLatch(1);
         CountDownLatch inCommitBlock = new CountDownLatch(1);
@@ -512,10 +564,6 @@ public final class LockWatchEventIntegrationTest {
         return Stream.of(cells).map(cell -> getDescriptor(tableRef, cell)).collect(Collectors.toSet());
     }
 
-    private LockDescriptor getDescriptor(TableReference tableRef, Cell cell) {
-        return AtlasCellLockDescriptor.of(tableRef.getQualifiedName(), cell.getRowName(), cell.getColumnName());
-    }
-
     private Optional<LockRequestMetadata> lockAndGetEventMetadataFromLockWatchLog(LockRequest lockRequest) {
         LockWatchVersion currentVersion = getCurrentVersion();
         LockResponse response = txnManager.getTimelockService().lock(lockRequest);
@@ -553,6 +601,66 @@ public final class LockWatchEventIntegrationTest {
                 return invalidatedLocks;
             }
         }));
+    }
+
+    private static Map<TableReference, Map<Cell, ValueAndChangeMetadata>> generatedRandomValuesAndChangeMetadata(
+            int numberOfRowsPerTransaction, int numberOfCellsPerRow, Random random) {
+
+        List<Cell> cells = IntStream.range(0, numberOfRowsPerTransaction)
+                .boxed()
+                .flatMap(rowIndex -> IntStream.range(0, numberOfCellsPerRow)
+                        .boxed()
+                        .map(cellIndex ->
+                                Cell.create(PtBytes.toBytes("row" + rowIndex), PtBytes.toBytes("col" + cellIndex))))
+                .collect(Collectors.toList());
+
+        // 50/50 split of cells between the watched and unwatched table
+        List<Cell> tableOneCells =
+                cells.stream().filter(_cell -> random.nextBoolean()).collect(Collectors.toList());
+        List<Cell> tableTwoCells =
+                cells.stream().filter(cell -> !tableOneCells.contains(cell)).collect(Collectors.toList());
+        return ImmutableMap.of(
+                TABLE_REF,
+                KeyedStream.of(tableOneCells.stream())
+                        .map(_cell -> ValueAndChangeMetadata.of(
+                                PtBytes.toBytes(random.nextInt()), generateRandomChangeMetadata(random)))
+                        .collectToMap(),
+                TABLE_2_REF,
+                KeyedStream.of(tableTwoCells.stream())
+                        .map(_cell -> ValueAndChangeMetadata.of(
+                                PtBytes.toBytes(random.nextInt()), generateRandomChangeMetadata(random)))
+                        .collectToMap());
+    }
+
+    private static ChangeMetadata generateRandomChangeMetadata(Random random) {
+        int index = random.nextInt(4);
+        switch (index) {
+            case 0:
+                return ChangeMetadata.created(PtBytes.toBytes(random.nextLong()));
+            case 1:
+                return ChangeMetadata.unchanged();
+            case 2:
+                return ChangeMetadata.updated(PtBytes.toBytes(random.nextLong()), PtBytes.toBytes(random.nextLong()));
+            case 3:
+                return ChangeMetadata.deleted(PtBytes.toBytes(random.nextLong()));
+        }
+        throw new RuntimeException("unreachable");
+    }
+
+    private static LockRequestMetadata getLockRequestForValues(
+            Map<TableReference, Map<Cell, ValueAndChangeMetadata>> values, Predicate<TableReference> isWatched) {
+        Map<LockDescriptor, ChangeMetadata> locks = KeyedStream.ofEntries(values.entrySet().stream())
+                .filterKeys(isWatched)
+                .flatMapEntries((table, cellToMetadata) -> KeyedStream.ofEntries(cellToMetadata.entrySet().stream())
+                        .mapKeys(cell -> getDescriptor(table, cell))
+                        .map(ValueAndChangeMetadata::metadata)
+                        .entries())
+                .collectToMap();
+        return LockRequestMetadata.of(locks);
+    }
+
+    private static LockDescriptor getDescriptor(TableReference tableRef, Cell cell) {
+        return AtlasCellLockDescriptor.of(tableRef.getQualifiedName(), cell.getRowName(), cell.getColumnName());
     }
 
     private static final class LockEventVisitor implements LockWatchEvent.Visitor<Set<LockDescriptor>> {
