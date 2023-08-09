@@ -19,7 +19,7 @@ package com.palantir.atlasdb.transaction.api.expectations;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface TransactionMetadataInfo {
+public interface TransactionWriteMetadataInfo {
 
     /**
      * The number of {@link com.palantir.lock.watch.ChangeMetadata} objects stored internally in a transaction.

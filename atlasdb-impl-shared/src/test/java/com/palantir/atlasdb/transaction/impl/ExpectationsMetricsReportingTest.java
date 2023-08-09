@@ -23,8 +23,8 @@ import com.palantir.atlasdb.transaction.api.expectations.ExpectationsData;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableExpectationsData;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableKvsCallReadInfo;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionCommitLockInfo;
-import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionMetadataInfo;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionReadInfo;
+import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionWriteMetadataInfo;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
 import com.palantir.atlasdb.util.MetricsManagers;
 import org.junit.Before;
@@ -43,8 +43,8 @@ public final class ExpectationsMetricsReportingTest {
                     .cellCommitLocksRequested(0L)
                     .rowCommitLocksRequested(0L)
                     .build();
-    private static final ImmutableTransactionMetadataInfo BLANK_METADATA_INFO =
-            ImmutableTransactionMetadataInfo.builder()
+    private static final ImmutableTransactionWriteMetadataInfo BLANK_METADATA_INFO =
+            ImmutableTransactionWriteMetadataInfo.builder()
                     .changeMetadataBuffered(0L)
                     .cellChangeMetadataSent(0L)
                     .rowChangeMetadataSent(0L)
@@ -53,7 +53,7 @@ public final class ExpectationsMetricsReportingTest {
             .ageMillis(0L)
             .readInfo(BLANK_READ_INFO)
             .commitLockInfo(BLANK_COMMIT_LOCK_INFO)
-            .metadataInfo(BLANK_METADATA_INFO)
+            .writeMetadataInfo(BLANK_METADATA_INFO)
             .build();
 
     private ExpectationsMetrics metrics;
@@ -110,8 +110,8 @@ public final class ExpectationsMetricsReportingTest {
     }
 
     @Test
-    public void metadataInfoReported() {
-        reportMetrics(BLANK_EXPECTATIONS_DATA.withMetadataInfo(ImmutableTransactionMetadataInfo.builder()
+    public void writeMetadataInfoReported() {
+        reportMetrics(BLANK_EXPECTATIONS_DATA.withWriteMetadataInfo(ImmutableTransactionWriteMetadataInfo.builder()
                 .changeMetadataBuffered(1)
                 .cellChangeMetadataSent(2)
                 .rowChangeMetadataSent(3)

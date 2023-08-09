@@ -14,17 +14,15 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api.expectations;
+package com.palantir.atlasdb.transaction.impl;
 
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface ExpectationsData {
-    long ageMillis();
+interface LockAndChangeMetadataCount {
+    @Value.Parameter
+    long lockCount();
 
-    TransactionReadInfo readInfo();
-
-    TransactionCommitLockInfo commitLockInfo();
-
-    TransactionWriteMetadataInfo writeMetadataInfo();
+    @Value.Parameter
+    long changeMetadataCount();
 }

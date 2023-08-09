@@ -101,10 +101,10 @@ import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsData;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableExpectationsData;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionCommitLockInfo;
-import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionMetadataInfo;
+import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionWriteMetadataInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
-import com.palantir.atlasdb.transaction.api.expectations.TransactionMetadataInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionWriteMetadataInfo;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceImpl;
@@ -2781,8 +2781,8 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     @Override
-    public TransactionMetadataInfo getMetadataInfo() {
-        return ImmutableTransactionMetadataInfo.builder()
+    public TransactionWriteMetadataInfo getWriteMetadataInfo() {
+        return ImmutableTransactionWriteMetadataInfo.builder()
                 .changeMetadataBuffered(localWriteBuffer.changeMetadataCount())
                 .cellChangeMetadataSent(cellChangeMetadataSent)
                 .rowChangeMetadataSent(rowChangeMetadataSent)
@@ -2802,7 +2802,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 .ageMillis(getAgeMillis())
                 .readInfo(getReadInfo())
                 .commitLockInfo(getCommitLockInfo())
-                .metadataInfo(getMetadataInfo())
+                .writeMetadataInfo(getWriteMetadataInfo())
                 .build();
         reportExpectationsCollectedData(expectationsData, expectationsDataCollectionMetrics);
     }
@@ -2823,9 +2823,12 @@ public class SnapshotTransaction extends AbstractTransaction
                 .update(expectationsData.commitLockInfo().cellCommitLocksRequested());
         metrics.rowCommitLocksRequested()
                 .update(expectationsData.commitLockInfo().rowCommitLocksRequested());
-        metrics.changeMetadataBuffered().update(expectationsData.metadataInfo().changeMetadataBuffered());
-        metrics.cellChangeMetadataSent().update(expectationsData.metadataInfo().cellChangeMetadataSent());
-        metrics.rowChangeMetadataSent().update(expectationsData.metadataInfo().rowChangeMetadataSent());
+        metrics.changeMetadataBuffered()
+                .update(expectationsData.writeMetadataInfo().changeMetadataBuffered());
+        metrics.cellChangeMetadataSent()
+                .update(expectationsData.writeMetadataInfo().cellChangeMetadataSent());
+        metrics.rowChangeMetadataSent()
+                .update(expectationsData.writeMetadataInfo().rowChangeMetadataSent());
     }
 
     private long getStartTimestamp() {
@@ -2953,14 +2956,5 @@ public class SnapshotTransaction extends AbstractTransaction
                     return txnTaskResult;
                 },
                 MoreExecutors.directExecutor());
-    }
-
-    @org.immutables.value.Value.Immutable
-    public interface LockAndChangeMetadataCount {
-        @org.immutables.value.Value.Parameter
-        long lockCount();
-
-        @org.immutables.value.Value.Parameter
-        long changeMetadataCount();
     }
 }

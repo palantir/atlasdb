@@ -17,8 +17,8 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
-import com.palantir.atlasdb.transaction.api.expectations.TransactionMetadataInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionWriteMetadataInfo;
 
 public abstract class ForwardingExpectationsAwareTransaction extends ForwardingTransaction
         implements ExpectationsAwareTransaction {
@@ -42,8 +42,8 @@ public abstract class ForwardingExpectationsAwareTransaction extends ForwardingT
     }
 
     @Override
-    public TransactionMetadataInfo getMetadataInfo() {
-        return delegate().getMetadataInfo();
+    public TransactionWriteMetadataInfo getWriteMetadataInfo() {
+        return delegate().getWriteMetadataInfo();
     }
 
     @Override

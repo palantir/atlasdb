@@ -101,7 +101,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableEx
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
-import com.palantir.atlasdb.transaction.api.expectations.TransactionMetadataInfo;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionWriteMetadataInfo;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.ToplistDeltaFilteringTableLevelMetricsController;
@@ -2782,10 +2782,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         ValueAndChangeMetadata.of(TEST_VALUE, ChangeMetadata.unchanged())));
         txn.commit();
 
-        TransactionMetadataInfo metadataInfo = txn.getMetadataInfo();
-        assertThat(metadataInfo.changeMetadataBuffered()).isEqualTo(3);
-        assertThat(metadataInfo.cellChangeMetadataSent()).isEqualTo(2);
-        assertThat(metadataInfo.rowChangeMetadataSent()).isEqualTo(3);
+        TransactionWriteMetadataInfo writeMetadataInfo = txn.getWriteMetadataInfo();
+        assertThat(writeMetadataInfo.changeMetadataBuffered()).isEqualTo(3);
+        assertThat(writeMetadataInfo.cellChangeMetadataSent()).isEqualTo(2);
+        assertThat(writeMetadataInfo.rowChangeMetadataSent()).isEqualTo(3);
     }
 
     private void verifyPrefetchValidations(
