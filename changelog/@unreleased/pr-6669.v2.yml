@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[LWMeta] Add metadata to expectations metrics'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6669
