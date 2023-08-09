@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.watch.TimestampStateStore.CommitInfo;
@@ -38,6 +39,7 @@ import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -49,7 +51,7 @@ import org.immutables.value.Value;
 /**
  * Encapsulates a response from the event log, containing both a list of events relevant to those requested, as well
  * information around whether it is necessary to clear cache upstream.
- *
+ * <p>
  * It is important to note that the additional logic in this class does *not* change any of the state here, and instead
  * just performs additional verification (mainly around confirming that the events contained here span a sufficient
  * version range). Events are never filtered here - while those passed in should be minimal, it is the responsibility
@@ -121,32 +123,25 @@ interface ClientLogEvents {
          * - Otherwise, the metadata objects associated with L are listed in the order of the lock events they appear
          *   in.
          */
-        Map<LockDescriptor, ImmutableList.Builder<ChangeMetadata>> locksWithAggregatedMetadataBuilder = KeyedStream.of(
-                        Sets.difference(locksFromLockEvents, locksFromLockWatchCreatedEvents).stream())
-                .map(_unused -> new ImmutableList.Builder<ChangeMetadata>())
-                .collectToMap();
-        for (LockEvent lockEvent : lockEvents) {
-            for (LockDescriptor lock : lockEvent.lockDescriptors()) {
-                if (!locksWithAggregatedMetadataBuilder.containsKey(lock)) {
-                    continue;
-                }
-                Optional<ChangeMetadata> changeMetadata = lockEvent
+        Map<LockDescriptor, ImmutableList.Builder<ChangeMetadata>> locksWithAggregatedMetadataBuilder =
+                new HashMap<>(KeyedStream.of(Sets.difference(locksFromLockEvents, locksFromLockWatchCreatedEvents))
+                        .map(_unused -> ImmutableList.<ChangeMetadata>builder())
+                        .collectToMap());
+        lockEvents.forEach(lockEvent -> lockEvent.lockDescriptors().stream()
+                .filter(locksWithAggregatedMetadataBuilder::containsKey)
+                .forEach(lock -> lockEvent
                         .metadata()
                         .map(metadata ->
-                                metadata.lockDescriptorToChangeMetadata().get(lock));
-                if (lockEvent.metadata().isEmpty() || changeMetadata.isEmpty()) {
-                    locksWithAggregatedMetadataBuilder.remove(lock);
-                } else {
-                    locksWithAggregatedMetadataBuilder.get(lock).add(changeMetadata.get());
-                }
-            }
-        }
+                                metadata.lockDescriptorToChangeMetadata().get(lock))
+                        .ifPresentOrElse(
+                                changeMetadataValue -> locksWithAggregatedMetadataBuilder
+                                        .get(lock)
+                                        .add(changeMetadataValue),
+                                () -> locksWithAggregatedMetadataBuilder.remove(lock))));
 
         Set<LockDescriptor> locksTakenOut = Sets.union(locksFromLockEvents, locksFromLockWatchCreatedEvents);
-        Map<LockDescriptor, List<ChangeMetadata>> locksWithAggregatedMetadata = KeyedStream.ofEntries(
-                        locksWithAggregatedMetadataBuilder.entrySet().stream())
-                .<List<ChangeMetadata>>map(ImmutableList.Builder::build)
-                .collectToMap();
+        Map<LockDescriptor, List<ChangeMetadata>> locksWithAggregatedMetadata =
+                Maps.transformValues(locksWithAggregatedMetadataBuilder, ImmutableList.Builder::build);
         return CommitUpdate.invalidateSome(locksTakenOut, locksWithAggregatedMetadata);
     }
 
