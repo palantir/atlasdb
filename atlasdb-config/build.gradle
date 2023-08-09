@@ -87,7 +87,3 @@ dependencies {
     // Needed for Jersey Response-based tests
     testImplementation 'org.glassfish.jersey.core:jersey-common'
 }
-
-revapi {
-    oldVersion = '0.909.0'
-}
