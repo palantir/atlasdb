@@ -25,10 +25,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
@@ -47,6 +43,7 @@ import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
 import com.palantir.atlasdb.transaction.impl.PreCommitConditions;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.conjure.java.lib.Bytes;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
@@ -68,18 +65,15 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -110,6 +104,8 @@ public final class LockWatchEventIntegrationTest {
     private static final TableReference TABLE_REF = TableReference.create(Namespace.DEFAULT_NAMESPACE, TABLE);
     private static final TableReference TABLE_2_REF =
             TableReference.create(Namespace.DEFAULT_NAMESPACE, LockWatchIntegrationTestUtilities.TABLE_2);
+    private static final TableReference SERIALIZABLE_WATCHED_TABLE_REF =
+            TableReference.create(Namespace.DEFAULT_NAMESPACE, LockWatchIntegrationTestUtilities.SERIALIZABLE_TABLE);
     private static final String NAMESPACE =
             String.valueOf(ThreadLocalRandom.current().nextLong());
     private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
@@ -120,7 +116,6 @@ public final class LockWatchEventIntegrationTest {
                     builder -> builder.clientPaxosBuilder(
                                     builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
                             .leaderMode(PaxosInstallConfiguration.PaxosLeaderMode.SINGLE_LEADER)));
-    private static final ExecutorService DIRECT_EXECUTOR = MoreExecutors.newDirectExecutorService();
 
     @ClassRule
     public static final RuleChain ruleChain = CLUSTER.getRuleChain();
@@ -131,6 +126,13 @@ public final class LockWatchEventIntegrationTest {
     public void setUpAndAwaitTableWatched() {
         txnManager = LockWatchIntegrationTestUtilities.createTransactionManager(0.0, CLUSTER, NAMESPACE);
         LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager, TABLE_REF);
+
+        // Register watch for TABLE_3 manually since we cannot enable caching for it as it uses the SERIALIZABLE
+        // conflict handler
+        LockWatchReference entireTableReference =
+                LockWatchReferences.entireTable(SERIALIZABLE_WATCHED_TABLE_REF.getQualifiedName());
+        txnManager.getLockWatchManager().registerPreciselyWatches(ImmutableSet.of(entireTableReference));
+        LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager, SERIALIZABLE_WATCHED_TABLE_REF);
     }
 
     @Test
@@ -291,14 +293,10 @@ public final class LockWatchEventIntegrationTest {
 
     @Test
     public void nonEmptyMetadataIsVisibleToTransactionForWatchedTable() {
-        LockDescriptor lock1 =
-                AtlasCellLockDescriptor.of(TABLE_REF.getQualifiedName(), CELL_1.getRowName(), CELL_1.getColumnName());
-        LockDescriptor lock2 =
-                AtlasCellLockDescriptor.of(TABLE_REF.getQualifiedName(), CELL_2.getRowName(), CELL_2.getColumnName());
-        LockDescriptor lock3 =
-                AtlasCellLockDescriptor.of(TABLE_REF.getQualifiedName(), CELL_3.getRowName(), CELL_3.getColumnName());
-        LockDescriptor lock4 =
-                AtlasCellLockDescriptor.of(TABLE_REF.getQualifiedName(), CELL_4.getRowName(), CELL_4.getColumnName());
+        LockDescriptor lock1 = getDescriptor(TABLE_REF, CELL_1);
+        LockDescriptor lock2 = getDescriptor(TABLE_REF, CELL_2);
+        LockDescriptor lock3 = getDescriptor(TABLE_REF, CELL_3);
+        LockDescriptor lock4 = getDescriptor(TABLE_REF, CELL_4);
         LockRequestMetadata metadata = LockRequestMetadata.of(ImmutableMap.of(
                 lock1, CREATE_CHANGE_METADATA,
                 lock2, DELETE_CHANGE_METADATA,
@@ -319,12 +317,19 @@ public final class LockWatchEventIntegrationTest {
                         CELL_1,
                         ValueAndChangeMetadata.of(DATA_1, CREATE_CHANGE_METADATA),
                         CELL_2,
-                        ValueAndChangeMetadata.of(DATA_2, DELETE_CHANGE_METADATA),
-                        CELL_3,
-                        ValueAndChangeMetadata.of(DATA_3, UNCHANGED_CHANGE_METADATA),
-                        CELL_4,
-                        ValueAndChangeMetadata.of(DATA_4, UPDATE_CHANGE_METADATA)));
+                        ValueAndChangeMetadata.of(DATA_2, DELETE_CHANGE_METADATA)));
         performWriteTransactionLockingAndUnlockingCells(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1));
+
+        // Would throw if cells were in the same row due to SERIALIZABLE conflict handler
+        Cell cell = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col"));
+        Cell cellInOtherRow = Cell.create(PtBytes.toBytes("otherRow"), PtBytes.toBytes("col"));
+        performWriteMetadataTransactionLockingAndUnlockingCells(
+                SERIALIZABLE_WATCHED_TABLE_REF,
+                ImmutableMap.of(
+                        cell,
+                        ValueAndChangeMetadata.of(DATA_3, UNCHANGED_CHANGE_METADATA),
+                        cellInOtherRow,
+                        ValueAndChangeMetadata.of(DATA_4, UPDATE_CHANGE_METADATA)));
 
         OpenTransaction thirdTxn = startSingleTransaction();
         TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.of(currentVersion), thirdTxn);
@@ -336,13 +341,15 @@ public final class LockWatchEventIntegrationTest {
                                 getDescriptor(TABLE_REF, CELL_1),
                                 CREATE_CHANGE_METADATA,
                                 getDescriptor(TABLE_REF, CELL_2),
-                                DELETE_CHANGE_METADATA,
-                                getDescriptor(TABLE_REF, CELL_3),
-                                UNCHANGED_CHANGE_METADATA,
-                                getDescriptor(TABLE_REF, CELL_4),
-                                UPDATE_CHANGE_METADATA))),
+                                DELETE_CHANGE_METADATA))),
                         // From the second txn
-                        Optional.empty());
+                        Optional.empty(),
+                        // From the third txn
+                        Optional.of(LockRequestMetadata.of(ImmutableMap.of(
+                                getDescriptor(SERIALIZABLE_WATCHED_TABLE_REF, cell),
+                                UNCHANGED_CHANGE_METADATA,
+                                getDescriptor(SERIALIZABLE_WATCHED_TABLE_REF, cellInOtherRow),
+                                UPDATE_CHANGE_METADATA))));
     }
 
     @Test
@@ -358,8 +365,8 @@ public final class LockWatchEventIntegrationTest {
             return null;
         });
 
-        OpenTransaction secondTxn = startSingleTransaction();
-        TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.of(currentVersion), secondTxn);
+        TransactionsLockWatchUpdate update =
+                getUpdateForTransactions(Optional.of(currentVersion), startSingleTransaction());
 
         assertThat(LockWatchIntegrationTestUtilities.extractMetadata(update.events()))
                 .containsExactly(
@@ -389,9 +396,12 @@ public final class LockWatchEventIntegrationTest {
         });
         performWriteMetadataTransactionLockingAndUnlockingCells(
                 TABLE_2_REF, ImmutableMap.of(CELL_3, ValueAndChangeMetadata.of(DATA_3, UNCHANGED_CHANGE_METADATA)));
+        performWriteMetadataTransactionLockingAndUnlockingCells(
+                SERIALIZABLE_WATCHED_TABLE_REF,
+                ImmutableMap.of(CELL_4, ValueAndChangeMetadata.of(DATA_3, UPDATE_CHANGE_METADATA)));
 
-        OpenTransaction fourthTxn = startSingleTransaction();
-        TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.of(currentVersion), fourthTxn);
+        TransactionsLockWatchUpdate update =
+                getUpdateForTransactions(Optional.of(currentVersion), startSingleTransaction());
 
         assertThat(LockWatchIntegrationTestUtilities.extractMetadata(update.events()))
                 .containsExactly(
@@ -399,48 +409,39 @@ public final class LockWatchEventIntegrationTest {
                         Optional.of(LockRequestMetadata.of(
                                 ImmutableMap.of(getDescriptor(TABLE_REF, CELL_1), CREATE_CHANGE_METADATA))),
                         // From the second txn
-                        Optional.empty()
+                        Optional.empty(),
                         // No lock event for the third txn since no locks were watched
-                        );
+                        // ...
+                        // From the fourth txn
+                        Optional.of(LockRequestMetadata.of(ImmutableMap.of(
+                                getDescriptor(SERIALIZABLE_WATCHED_TABLE_REF, CELL_4), UPDATE_CHANGE_METADATA))));
     }
 
     @Test
-    public void randomMetadataPassedAndFilteredCorrectlyForConcurrentTransactions()
-            throws ExecutionException, InterruptedException, TimeoutException {
+    public void randomMetadataPassedAndFilteredCorrectly() {
         long randomSeed = System.currentTimeMillis();
-        int numberOfThreads = 3;
         int numberOfIterations = 3;
         int numberOfRowsPerTransaction = 10;
         int numberOfCellsPerRow = 100;
+        int maxWritesPerTransaction = 200;
 
         Random random = new Random(randomSeed);
         LockWatchVersion currentVersion = getCurrentVersion();
-        ImmutableList.Builder<LockRequestMetadata> expectedMetadataBuilder = ImmutableList.builder();
-        ListeningExecutorService executor =
-                MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(numberOfThreads));
-        ImmutableList.Builder<ListenableFuture<?>> futures = ImmutableList.builder();
+        ImmutableList.Builder<Optional<LockRequestMetadata>> expectedMetadataBuilder = ImmutableList.builder();
         for (int i = 0; i < numberOfIterations; i++) {
-            Map<TableReference, Map<Cell, ValueAndChangeMetadata>> values =
-                    generatedRandomValuesAndChangeMetadata(numberOfRowsPerTransaction, numberOfCellsPerRow, random);
-            expectedMetadataBuilder.add(getLockRequestForValues(values, TABLE_REF::equals));
-            futures.add(executor.submit(() -> performTransactionTaskLockingAndUnlockingCells(txn -> {
-                values.forEach(txn::putWithMetadata);
-                return null;
-            })));
+            Map<TableReference, Map<Cell, Optional<ChangeMetadata>>> values = generatedRandomCellsAndChangeMetadata(
+                    numberOfRowsPerTransaction, numberOfCellsPerRow, maxWritesPerTransaction, random);
+            expectedMetadataBuilder.add(getLockRequestMetadataForValues(values));
+            putOrDeleteValuesMaybeWithMetadata(values, random);
         }
 
-        TransactionsLockWatchUpdate update = Futures.whenAllComplete(futures.build())
-                .call(
-                        () -> getUpdateForTransactions(Optional.of(currentVersion), startSingleTransaction()),
-                        DIRECT_EXECUTOR)
-                .get(20, TimeUnit.SECONDS);
-        List<Optional<LockRequestMetadata>> expectedMetadata =
-                expectedMetadataBuilder.build().stream().map(Optional::of).collect(Collectors.toList());
+        TransactionsLockWatchUpdate update =
+                getUpdateForTransactions(Optional.of(currentVersion), startSingleTransaction());
         assertThat(LockWatchIntegrationTestUtilities.extractMetadata(update.events()))
                 .as("Expect to receive back the metadata we specified on previous transactions. Random seed: "
                         + randomSeed)
                 // Order does NOT matter as this test is multithreaded
-                .containsExactlyInAnyOrderElementsOf(expectedMetadata);
+                .containsExactlyInAnyOrderElementsOf(expectedMetadataBuilder.build());
     }
 
     private Runnable performWriteTransactionThatBlocksAfterLockingCells() {
@@ -603,33 +604,82 @@ public final class LockWatchEventIntegrationTest {
         }));
     }
 
-    private static Map<TableReference, Map<Cell, ValueAndChangeMetadata>> generatedRandomValuesAndChangeMetadata(
-            int numberOfRowsPerTransaction, int numberOfCellsPerRow, Random random) {
+    private void putOrDeleteValuesMaybeWithMetadata(
+            Map<TableReference, Map<Cell, Optional<ChangeMetadata>>> values, Random random) {
+        performTransactionTaskLockingAndUnlockingCells(txn -> {
+            values.forEach((tableRef, tableValues) ->
+                    tableValues.forEach((cell, optChangeMetadata) -> optChangeMetadata.ifPresentOrElse(
+                            changeMetadata -> {
+                                if (random.nextBoolean()) {
+                                    txn.putWithMetadata(
+                                            tableRef,
+                                            ImmutableMap.of(
+                                                    cell,
+                                                    ValueAndChangeMetadata.of(
+                                                            PtBytes.toBytes(random.nextLong()), changeMetadata)));
+                                } else {
+                                    txn.deleteWithMetadata(tableRef, ImmutableMap.of(cell, changeMetadata));
+                                }
+                            },
+                            () -> {
+                                if (random.nextBoolean()) {
+                                    txn.put(tableRef, ImmutableMap.of(cell, PtBytes.toBytes(random.nextLong())));
+                                } else {
+                                    txn.delete(tableRef, ImmutableSet.of(cell));
+                                }
+                            })));
+            return null;
+        });
+    }
 
-        List<Cell> cells = IntStream.range(0, numberOfRowsPerTransaction)
+    private static boolean isWatchedTable(TableReference tableRef) {
+        return ImmutableSet.of(TABLE_REF, SERIALIZABLE_WATCHED_TABLE_REF).contains(tableRef);
+    }
+
+    private static Map<TableReference, Map<Cell, Optional<ChangeMetadata>>> generatedRandomCellsAndChangeMetadata(
+            int numberOfRowsPerTransaction, int numberOfCellsPerRow, int maxWritesPerTransaction, Random random) {
+        List<Cell> availableCells = IntStream.range(0, numberOfRowsPerTransaction)
                 .boxed()
                 .flatMap(rowIndex -> IntStream.range(0, numberOfCellsPerRow)
                         .boxed()
                         .map(cellIndex ->
                                 Cell.create(PtBytes.toBytes("row" + rowIndex), PtBytes.toBytes("col" + cellIndex))))
                 .collect(Collectors.toList());
+        Set<Cell> chosenCells = IntStream.range(0, maxWritesPerTransaction)
+                .mapToObj(_unused -> availableCells.get(random.nextInt(availableCells.size())))
+                .collect(Collectors.toUnmodifiableSet());
 
-        // 50/50 split of cells between the watched and unwatched table
-        List<Cell> tableOneCells =
-                cells.stream().filter(_cell -> random.nextBoolean()).collect(Collectors.toList());
-        List<Cell> tableTwoCells =
-                cells.stream().filter(cell -> !tableOneCells.contains(cell)).collect(Collectors.toList());
+        // 50/25/25 split of cells between the watched, unwatched, and serializable watched table
+        Set<Cell> tableOneCells =
+                chosenCells.stream().filter(_cell -> random.nextBoolean()).collect(Collectors.toUnmodifiableSet());
+        Set<Cell> tableTwoCells = chosenCells.stream()
+                .filter(cell -> random.nextBoolean() && !tableOneCells.contains(cell))
+                .collect(Collectors.toUnmodifiableSet());
+
+        // Ensure unique rows to prevent commit from failing due to SERIALIZABLE conflict handler
+        Set<Cell> serializableTableCells = chosenCells.stream()
+                .filter(cell -> !tableOneCells.contains(cell) && !tableTwoCells.contains(cell))
+                .collect(Collectors.toUnmodifiableSet());
+        Set<Bytes> seenRows = new HashSet<>();
+        Map<Cell, Optional<ChangeMetadata>> serializableTableCellsUniqueRows = KeyedStream.ofEntries(
+                        maybeAssociateMetadata(ImmutableSet.copyOf(serializableTableCells), random).entrySet().stream())
+                .filterKeys(cell -> seenRows.add(Bytes.from(cell.getRowName())))
+                .collectToMap();
+        // For each cell, 50/50 split on whether it should have metadata
         return ImmutableMap.of(
                 TABLE_REF,
-                KeyedStream.of(tableOneCells.stream())
-                        .map(_cell -> ValueAndChangeMetadata.of(
-                                PtBytes.toBytes(random.nextInt()), generateRandomChangeMetadata(random)))
-                        .collectToMap(),
+                maybeAssociateMetadata(tableOneCells, random),
                 TABLE_2_REF,
-                KeyedStream.of(tableTwoCells.stream())
-                        .map(_cell -> ValueAndChangeMetadata.of(
-                                PtBytes.toBytes(random.nextInt()), generateRandomChangeMetadata(random)))
-                        .collectToMap());
+                maybeAssociateMetadata(tableTwoCells, random),
+                SERIALIZABLE_WATCHED_TABLE_REF,
+                serializableTableCellsUniqueRows);
+    }
+
+    private static Map<Cell, Optional<ChangeMetadata>> maybeAssociateMetadata(Set<Cell> cells, Random random) {
+        return KeyedStream.of(cells.stream())
+                .<Optional<ChangeMetadata>>map(_cell ->
+                        random.nextBoolean() ? Optional.of(generateRandomChangeMetadata(random)) : Optional.empty())
+                .collectToMap();
     }
 
     private static ChangeMetadata generateRandomChangeMetadata(Random random) {
@@ -647,19 +697,23 @@ public final class LockWatchEventIntegrationTest {
         throw new RuntimeException("unreachable");
     }
 
-    private static LockRequestMetadata getLockRequestForValues(
-            Map<TableReference, Map<Cell, ValueAndChangeMetadata>> values, Predicate<TableReference> isWatched) {
+    private static Optional<LockRequestMetadata> getLockRequestMetadataForValues(
+            Map<TableReference, Map<Cell, Optional<ChangeMetadata>>> values) {
         Map<LockDescriptor, ChangeMetadata> locks = KeyedStream.ofEntries(values.entrySet().stream())
-                .filterKeys(isWatched)
+                .filterKeys(LockWatchEventIntegrationTest::isWatchedTable)
                 .flatMapEntries((table, cellToMetadata) -> KeyedStream.ofEntries(cellToMetadata.entrySet().stream())
+                        .flatMap(Optional::stream)
                         .mapKeys(cell -> getDescriptor(table, cell))
-                        .map(ValueAndChangeMetadata::metadata)
                         .entries())
                 .collectToMap();
-        return LockRequestMetadata.of(locks);
+        return locks.isEmpty() ? Optional.empty() : Optional.of(LockRequestMetadata.of(locks));
     }
 
     private static LockDescriptor getDescriptor(TableReference tableRef, Cell cell) {
+        // SERIALIZABLE conflict handler uses row-level locks only
+        if (tableRef.equals(SERIALIZABLE_WATCHED_TABLE_REF)) {
+            return AtlasRowLockDescriptor.of(tableRef.getQualifiedName(), cell.getRowName());
+        }
         return AtlasCellLockDescriptor.of(tableRef.getQualifiedName(), cell.getRowName(), cell.getColumnName());
     }
 
