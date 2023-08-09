@@ -226,11 +226,11 @@ public class LocalWriteBufferTest {
     @Test
     public void valueByteCountIsUpdatedCorrectlyWhenOverWritingValue() {
         buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_1, VALUE_1), ImmutableMap.of());
-        assertThat(buffer.getByteCount()).isEqualTo(Cells.getApproxSizeOfCell(CELL_1) + VALUE_1.length);
+        assertThat(buffer.getValuesByteCount()).isEqualTo(Cells.getApproxSizeOfCell(CELL_1) + VALUE_1.length);
 
         byte[] otherValue = PtBytes.toBytes("some long string");
         buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_1, otherValue), ImmutableMap.of());
-        assertThat(buffer.getByteCount()).isEqualTo(Cells.getApproxSizeOfCell(CELL_1) + otherValue.length);
+        assertThat(buffer.getValuesByteCount()).isEqualTo(Cells.getApproxSizeOfCell(CELL_1) + otherValue.length);
     }
 
     @Test
@@ -238,7 +238,7 @@ public class LocalWriteBufferTest {
         buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_1, VALUE_1), ImmutableMap.of());
         buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_1, new byte[0]), ImmutableMap.of());
 
-        assertThat(buffer.getByteCount()).isEqualTo(Cells.getApproxSizeOfCell(CELL_1));
+        assertThat(buffer.getValuesByteCount()).isEqualTo(Cells.getApproxSizeOfCell(CELL_1));
     }
 
     @Test
@@ -246,11 +246,22 @@ public class LocalWriteBufferTest {
         buffer.putLocalWritesAndMetadata(TABLE, ImmutableMap.of(CELL_1, VALUE_1), ImmutableMap.of());
         buffer.putLocalWritesAndMetadata(TABLE_2, ImmutableMap.of(CELL_2, VALUE_2), ImmutableMap.of());
 
-        assertThat(buffer.getByteCount())
+        assertThat(buffer.getValuesByteCount())
                 .isEqualTo(Cells.getApproxSizeOfCell(CELL_1)
                         + VALUE_1.length
                         + Cells.getApproxSizeOfCell(CELL_2)
                         + VALUE_2.length);
+    }
+
+    @Test
+    public void changeMetadataCountIsCorrect() {
+        buffer.putLocalWritesAndMetadata(
+                TABLE,
+                ImmutableMap.of(CELL_1, VALUE_1, CELL_2, VALUE_2),
+                ImmutableMap.of(CELL_1, METADATA_1, CELL_2, METADATA_2));
+        buffer.putLocalWritesAndMetadata(TABLE_2, ImmutableMap.of(CELL_1, VALUE_1), ImmutableMap.of());
+
+        assertThat(buffer.changeMetadataCount()).isEqualTo(2);
     }
 
     private void assertThatPutThrowsForAllMetadataDueToMissingWrite(

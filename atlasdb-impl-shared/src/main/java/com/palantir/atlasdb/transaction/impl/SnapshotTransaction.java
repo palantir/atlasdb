@@ -98,9 +98,13 @@ import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutExc
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsData;
+import com.palantir.atlasdb.transaction.api.expectations.ImmutableExpectationsData;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionCommitLockInfo;
+import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionWriteMetadataInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionWriteMetadataInfo;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceImpl;
@@ -281,6 +285,8 @@ public class SnapshotTransaction extends AbstractTransaction
     private final ExpectationsMetrics expectationsDataCollectionMetrics;
     private volatile long cellCommitLocksRequested = 0L;
     private volatile long rowCommitLocksRequested = 0L;
+    private volatile long cellChangeMetadataSent = 0L;
+    private volatile long rowChangeMetadataSent = 0L;
 
     protected volatile boolean hasReads;
 
@@ -2107,7 +2113,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
                 getTimer("commitTotalTimeSinceTxCreation").update(Duration.of(microsSinceCreation, ChronoUnit.MICROS));
                 getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN)
-                        .update(localWriteBuffer.getByteCount());
+                        .update(localWriteBuffer.getValuesByteCount());
             } finally {
                 // Not timed because tryUnlock() is an asynchronous operation.
                 traced("postCommitUnlock", () -> timelockService.tryUnlock(ImmutableSet.of(commitLocksToken)));
@@ -2535,22 +2541,32 @@ public class SnapshotTransaction extends AbstractTransaction
                 ImmutableMap.builder();
         long cellLockCount = 0L;
         long rowLockCount = 0L;
+        long cellChangeMetadataCount = 0L;
+        long rowChangeMetadataCount = 0L;
         for (TableReference tableRef : localWriteBuffer.getLocalWrites().keySet()) {
             ConflictHandler conflictHandler = getConflictHandlerForTable(tableRef);
             if (conflictHandler.lockCellsForConflicts()) {
-                cellLockCount +=
+                LockAndChangeMetadataCount counts =
                         collectCellLocks(lockDescriptorSetBuilder, lockDescriptorToChangeMetadataBuilder, tableRef);
+                cellLockCount += counts.lockCount();
+                cellChangeMetadataCount += counts.changeMetadataCount();
             }
             if (conflictHandler.lockRowsForConflicts()) {
-                rowLockCount +=
+                LockAndChangeMetadataCount counts =
                         collectRowLocks(lockDescriptorSetBuilder, lockDescriptorToChangeMetadataBuilder, tableRef);
+                rowLockCount += counts.lockCount();
+                rowChangeMetadataCount += counts.changeMetadataCount();
             }
         }
         lockDescriptorSetBuilder.add(AtlasRowLockDescriptor.of(
                 TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
                 TransactionConstants.getValueForTimestamp(getStartTimestamp())));
+
         cellCommitLocksRequested = cellLockCount;
         rowCommitLocksRequested = rowLockCount + 1;
+        cellChangeMetadataSent = cellChangeMetadataCount;
+        rowChangeMetadataSent = rowChangeMetadataCount;
+
         Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata =
                 lockDescriptorToChangeMetadataBuilder.buildOrThrow();
         return LocksAndMetadata.of(
@@ -2562,14 +2578,12 @@ public class SnapshotTransaction extends AbstractTransaction
                         : Optional.of(LockRequestMetadata.of(lockDescriptorToChangeMetadata)));
     }
 
-    /**
-     * Returns the number of lock descriptors that were added.
-     */
-    private Long collectCellLocks(
+    private LockAndChangeMetadataCount collectCellLocks(
             ImmutableSet.Builder<LockDescriptor> lockDescriptorSetBuilder,
             ImmutableMap.Builder<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadataBuilder,
             TableReference tableRef) {
         long lockCount = 0;
+        long changeMetadataCount = 0;
         Map<Cell, ChangeMetadata> changeMetadataForWrites = localWriteBuffer.getChangeMetadataForTable(tableRef);
         for (Cell cell : localWriteBuffer.getLocalWritesForTable(tableRef).keySet()) {
             LockDescriptor lockDescriptor =
@@ -2578,19 +2592,18 @@ public class SnapshotTransaction extends AbstractTransaction
             lockCount++;
             if (changeMetadataForWrites.containsKey(cell)) {
                 lockDescriptorToChangeMetadataBuilder.put(lockDescriptor, changeMetadataForWrites.get(cell));
+                changeMetadataCount++;
             }
         }
-        return lockCount;
+        return ImmutableLockAndChangeMetadataCount.of(lockCount, changeMetadataCount);
     }
 
-    /**
-     * Returns the number of lock descriptors that were added.
-     */
-    private Long collectRowLocks(
+    private LockAndChangeMetadataCount collectRowLocks(
             ImmutableSet.Builder<LockDescriptor> lockDescriptorSetBuilder,
             ImmutableMap.Builder<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadataBuilder,
             TableReference tableRef) {
         long lockCount = 0;
+        long changeMetadataCount = 0;
         Map<Cell, ChangeMetadata> changeMetadataForWrites = localWriteBuffer.getChangeMetadataForTable(tableRef);
         Optional<byte[]> lastRow = Optional.empty();
         Optional<byte[]> lastRowWithMetadata = Optional.empty();
@@ -2616,9 +2629,10 @@ public class SnapshotTransaction extends AbstractTransaction
                 lockDescriptorToChangeMetadataBuilder.put(
                         currentRowDescriptor.orElseThrow(), changeMetadataForWrites.get(cell));
                 lastRowWithMetadata = Optional.of(cell.getRowName());
+                changeMetadataCount++;
             }
         }
-        return lockCount;
+        return ImmutableLockAndChangeMetadataCount.of(lockCount, changeMetadataCount);
     }
 
     private boolean isSameRow(byte[] rowA, byte[] rowB) {
@@ -2767,6 +2781,15 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     @Override
+    public TransactionWriteMetadataInfo getWriteMetadataInfo() {
+        return ImmutableTransactionWriteMetadataInfo.builder()
+                .changeMetadataBuffered(localWriteBuffer.changeMetadataCount())
+                .cellChangeMetadataSent(cellChangeMetadataSent)
+                .rowChangeMetadataSent(rowChangeMetadataSent)
+                .build();
+    }
+
+    @Override
     public void reportExpectationsCollectedData() {
         if (isStillRunning()) {
             log.error(
@@ -2775,25 +2798,37 @@ public class SnapshotTransaction extends AbstractTransaction
             return;
         }
 
-        reportExpectationsCollectedData(
-                getAgeMillis(), getReadInfo(), getCommitLockInfo(), expectationsDataCollectionMetrics);
+        ExpectationsData expectationsData = ImmutableExpectationsData.builder()
+                .ageMillis(getAgeMillis())
+                .readInfo(getReadInfo())
+                .commitLockInfo(getCommitLockInfo())
+                .writeMetadataInfo(getWriteMetadataInfo())
+                .build();
+        reportExpectationsCollectedData(expectationsData, expectationsDataCollectionMetrics);
     }
 
     @VisibleForTesting
-    static void reportExpectationsCollectedData(
-            long ageMillis,
-            TransactionReadInfo readInfo,
-            TransactionCommitLockInfo commitLockInfo,
-            ExpectationsMetrics metrics) {
-        metrics.ageMillis().update(ageMillis);
-        metrics.bytesRead().update(readInfo.bytesRead());
-        metrics.kvsReads().update(readInfo.kvsCalls());
+    static void reportExpectationsCollectedData(ExpectationsData expectationsData, ExpectationsMetrics metrics) {
+        metrics.ageMillis().update(expectationsData.ageMillis());
+        metrics.bytesRead().update(expectationsData.readInfo().bytesRead());
+        metrics.kvsReads().update(expectationsData.readInfo().kvsCalls());
 
-        readInfo.maximumBytesKvsCallInfo().ifPresent(kvsCallReadInfo -> metrics.mostKvsBytesReadInSingleCall()
-                .update(kvsCallReadInfo.bytesRead()));
+        expectationsData
+                .readInfo()
+                .maximumBytesKvsCallInfo()
+                .ifPresent(kvsCallReadInfo ->
+                        metrics.mostKvsBytesReadInSingleCall().update(kvsCallReadInfo.bytesRead()));
 
-        metrics.cellCommitLocksRequested().update(commitLockInfo.cellCommitLocksRequested());
-        metrics.rowCommitLocksRequested().update(commitLockInfo.rowCommitLocksRequested());
+        metrics.cellCommitLocksRequested()
+                .update(expectationsData.commitLockInfo().cellCommitLocksRequested());
+        metrics.rowCommitLocksRequested()
+                .update(expectationsData.commitLockInfo().rowCommitLocksRequested());
+        metrics.changeMetadataBuffered()
+                .update(expectationsData.writeMetadataInfo().changeMetadataBuffered());
+        metrics.cellChangeMetadataSent()
+                .update(expectationsData.writeMetadataInfo().cellChangeMetadataSent());
+        metrics.rowChangeMetadataSent()
+                .update(expectationsData.writeMetadataInfo().rowChangeMetadataSent());
     }
 
     private long getStartTimestamp() {
