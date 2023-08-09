@@ -547,6 +547,7 @@ public final class LockWatchValueIntegrationTest {
     }
 
     @Ignore
+    // TODO(#6699): make this test less flakey before re-enabling
     @Test
     // The test fails when trying to cache a value that is currently locked.
     // The open question is whether this _should_ fail when there is a locked value being cached on top of, or if
