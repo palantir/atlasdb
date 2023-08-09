@@ -35,16 +35,22 @@ public final class MoreCellsPresentThanExpectedException extends IllegalStateExc
                     + "using such method.";
     private final List<Arg<?>> arguments;
     private final Map<Cell, byte[]> fetchedCells;
+    private final long expectedNumberOfCells;
 
     public MoreCellsPresentThanExpectedException(Map<Cell, byte[]> fetchedCells, long expectedNumberOfCells) {
         super(SafeExceptions.renderMessage(
                 MESSAGE, argsFrom(fetchedCells, expectedNumberOfCells).toArray(Arg<?>[]::new)));
         this.fetchedCells = fetchedCells;
+        this.expectedNumberOfCells = expectedNumberOfCells;
         this.arguments = argsFrom(fetchedCells, expectedNumberOfCells);
     }
 
     public Map<Cell, byte[]> getFetchedCells() {
         return fetchedCells;
+    }
+
+    public long getExpectedNumberOfCells() {
+        return expectedNumberOfCells;
     }
 
     @Override
