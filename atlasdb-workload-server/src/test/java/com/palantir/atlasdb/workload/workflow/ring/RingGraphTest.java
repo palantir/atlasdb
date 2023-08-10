@@ -52,7 +52,7 @@ public final class RingGraphTest {
         assertThatLoggableExceptionThrownBy(() -> RingGraph.from(missingNodesRing))
                 .isInstanceOf(RingValidationException.class)
                 .hasExactlyArgs(
-                        SafeArg.of("type", RingValidationException.Type.MISSING_ENTRIES),
+                        SafeArg.of("type", RingValidationException.Type.MISSING_REFERENCE),
                         SafeArg.of("ring", missingNodesRing));
     }
 

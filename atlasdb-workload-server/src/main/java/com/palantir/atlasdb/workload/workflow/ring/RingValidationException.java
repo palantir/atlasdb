@@ -22,13 +22,15 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.SafeLoggable;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 public final class RingValidationException extends IllegalArgumentException implements SafeLoggable {
 
-    private final Map<Integer, Integer> ring;
+    private final Map<Integer, Optional<Integer>> ring;
     private final Type type;
 
-    private RingValidationException(Map<Integer, Integer> ring, Type type) {
+    private RingValidationException(Map<Integer, Optional<Integer>> ring, Type type) {
         this.ring = ring;
         this.type = type;
     }
@@ -43,12 +45,24 @@ public final class RingValidationException extends IllegalArgumentException impl
         return List.of(SafeArg.of("ring", ring), SafeArg.of("type", type));
     }
 
-    public static void throwEarlyCycle(Map<Integer, Integer> ring) throws RingValidationException {
-        throw new RingValidationException(ring, Type.EARLY_CYCLE);
+    public Map<Integer, Optional<Integer>> getRing() {
+        return ring;
     }
 
-    public static void throwMissingEntries(Map<Integer, Integer> ring) throws RingValidationException {
-        throw new RingValidationException(ring, Type.MISSING_ENTRIES);
+    public static void throwEarlyCycle(Map<Integer, Integer> ring) throws RingValidationException {
+        throw new RingValidationException(wrapMap(ring), Type.EARLY_CYCLE);
+    }
+
+    public static void throwMissingReference(Map<Integer, Integer> ring) throws RingValidationException {
+        throw new RingValidationException(wrapMap(ring), Type.MISSING_REFERENCE);
+    }
+
+    public static void throwIncompleteRing(Map<Integer, Optional<Integer>> ring) throws RingValidationException {
+        throw new RingValidationException(ring, Type.INCOMPLETE_RING);
+    }
+
+    private static Map<Integer, Optional<Integer>> wrapMap(Map<Integer, Integer> map) {
+        return map.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> Optional.of(e.getValue())));
     }
 
     enum Type {
@@ -58,6 +72,9 @@ public final class RingValidationException extends IllegalArgumentException impl
 
         // Detected a reference to a node that does not exist,
         // indicating the integrity of our ring has been compromised.
-        MISSING_ENTRIES;
+        MISSING_REFERENCE,
+
+        // Missing entries that are expected to exist.
+        INCOMPLETE_RING;
     }
 }
