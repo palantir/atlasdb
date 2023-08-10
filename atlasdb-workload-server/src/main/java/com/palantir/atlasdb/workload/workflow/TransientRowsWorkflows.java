@@ -40,6 +40,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -64,44 +66,67 @@ public final class TransientRowsWorkflows {
             InteractiveTransactionStore store,
             TransientRowsWorkflowConfiguration workflowConfiguration,
             ListeningExecutorService executionExecutor) {
-        return DefaultWorkflow.create(
-                store,
-                (txn, taskIndex) -> run(store, workflowConfiguration, taskIndex),
-                workflowConfiguration,
-                executionExecutor);
+        TransientRowsTask transientRowsTask =
+                new TransientRowsTask(workflowConfiguration, TransientRowsWorkflows::logViolations);
+        return DefaultWorkflow.create(store, transientRowsTask, workflowConfiguration, executionExecutor);
     }
 
-    private static Optional<WitnessedTransaction> run(
-            InteractiveTransactionStore store, TransientRowsWorkflowConfiguration configuration, int taskIndex) {
-        return store.readWrite(txn -> {
-            String tableName = configuration.tableConfiguration().tableName();
-            txn.write(tableName, ImmutableWorkloadCell.of(SUMMARY_ROW, taskIndex), VALUE);
-            txn.write(tableName, ImmutableWorkloadCell.of(taskIndex, COLUMN), VALUE);
-            if (taskIndex > 0) {
-                int indexToRead = SECURE_RANDOM.nextInt(taskIndex);
-                txn.read(tableName, ImmutableWorkloadCell.of(SUMMARY_ROW, indexToRead));
-                txn.read(tableName, ImmutableWorkloadCell.of(indexToRead, COLUMN));
+    public static Workflow create(
+            InteractiveTransactionStore store,
+            TransientRowsWorkflowConfiguration workflowConfiguration,
+            ListeningExecutorService executionExecutor,
+            Consumer<List<CrossCellInconsistency>> onFailure) {
+        TransientRowsTask transientRowsTask = new TransientRowsTask(workflowConfiguration, onFailure);
+        return DefaultWorkflow.create(store, transientRowsTask, workflowConfiguration, executionExecutor);
+    }
 
-                if (txn.read(tableName, ImmutableWorkloadCell.of(taskIndex - 1, COLUMN))
-                        .isPresent()) {
-                    txn.delete(tableName, ImmutableWorkloadCell.of(SUMMARY_ROW, taskIndex - 1));
-                    txn.delete(tableName, ImmutableWorkloadCell.of(taskIndex - 1, COLUMN));
+    private static final class TransientRowsTask
+            extends StoppableKeyedTransactionTask<InteractiveTransactionStore, List<CrossCellInconsistency>> {
+
+        private final TransientRowsWorkflowConfiguration configuration;
+
+        private TransientRowsTask(
+                TransientRowsWorkflowConfiguration configuration, Consumer<List<CrossCellInconsistency>> onFailure) {
+            super(new AtomicBoolean(), onFailure);
+            this.configuration = configuration;
+        }
+
+        @Override
+        protected Optional<WitnessedTransaction> run(InteractiveTransactionStore store, Integer taskIndex) {
+            if (taskIndex % configuration.validateEveryNIterations() == 0) {
+                // This is cheeky, as we are not including our reads in our transaction history!
+                List<CrossCellInconsistency> violations = findInconsistencyInFinalIndexState(configuration, store);
+
+                if (!violations.isEmpty()) {
+                    recordFailure(violations);
+                    return Optional.empty();
                 }
             }
-        });
+
+            return store.readWrite(txn -> {
+                String tableName = configuration.tableConfiguration().tableName();
+                txn.write(tableName, ImmutableWorkloadCell.of(SUMMARY_ROW, taskIndex), VALUE);
+                txn.write(tableName, ImmutableWorkloadCell.of(taskIndex, COLUMN), VALUE);
+                if (taskIndex > 0) {
+                    int indexToRead = SECURE_RANDOM.nextInt(taskIndex);
+                    txn.read(tableName, ImmutableWorkloadCell.of(SUMMARY_ROW, indexToRead));
+                    txn.read(tableName, ImmutableWorkloadCell.of(indexToRead, COLUMN));
+
+                    if (txn.read(tableName, ImmutableWorkloadCell.of(taskIndex - 1, COLUMN))
+                            .isPresent()) {
+                        txn.delete(tableName, ImmutableWorkloadCell.of(SUMMARY_ROW, taskIndex - 1));
+                        txn.delete(tableName, ImmutableWorkloadCell.of(taskIndex - 1, COLUMN));
+                    }
+                }
+            });
+        }
     }
 
     public static InvariantReporter<List<CrossCellInconsistency>> getSummaryLogInvariantReporter(
             TransientRowsWorkflowConfiguration configuration) {
         return ImmutableInvariantReporter.<List<CrossCellInconsistency>>builder()
                 .invariant(createSummaryRowInvariant(configuration))
-                .consumer(violations -> {
-                    if (!violations.isEmpty()) {
-                        log.error(
-                                "Detected rows which did not agree with state in a summary index: {}",
-                                SafeArg.of("violations", violations));
-                    }
-                })
+                .consumer(TransientRowsWorkflows::logViolations)
                 .build();
     }
 
@@ -179,6 +204,14 @@ public final class TransientRowsWorkflows {
                     .putInconsistentValues(TableAndWorkloadCell.of(tableName, primaryCell), valueFromPrimaryRow)
                     .putInconsistentValues(TableAndWorkloadCell.of(tableName, summaryCell), valueFromSummaryRow)
                     .build());
+        }
+    }
+
+    private static void logViolations(List<CrossCellInconsistency> violations) {
+        if (!violations.isEmpty()) {
+            log.error(
+                    "Detected rows which did not agree with state in a summary index: {}",
+                    SafeArg.of("violations", violations));
         }
     }
 }

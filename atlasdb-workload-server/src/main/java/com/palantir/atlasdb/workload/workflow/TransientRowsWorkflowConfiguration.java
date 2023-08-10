@@ -28,5 +28,10 @@ import org.immutables.value.Value;
 public interface TransientRowsWorkflowConfiguration extends WorkflowConfiguration {
     String TYPE = "transient-rows";
 
+    @Value.Default
+    default Integer validateEveryNIterations() {
+        return 100;
+    }
+
     TableConfiguration tableConfiguration();
 }
