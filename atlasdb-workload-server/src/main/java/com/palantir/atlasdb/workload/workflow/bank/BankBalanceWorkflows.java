@@ -26,6 +26,7 @@ import com.palantir.atlasdb.workload.transaction.ColumnRangeSelection;
 import com.palantir.atlasdb.workload.transaction.InteractiveTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.workflow.DefaultWorkflow;
+import com.palantir.atlasdb.workload.workflow.StoppableKeyedTransactionTask;
 import com.palantir.atlasdb.workload.workflow.Workflow;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -60,11 +61,7 @@ public final class BankBalanceWorkflows {
             BankBalanceWorkflowConfiguration bankBalanceWorkflowConfiguration,
             ListeningExecutorService executionExecutor) {
         BankBalanceRunTask runTask = new BankBalanceRunTask(bankBalanceWorkflowConfiguration);
-        return DefaultWorkflow.create(
-                store,
-                (txnStore, _index) -> runTask.run(txnStore),
-                bankBalanceWorkflowConfiguration,
-                executionExecutor);
+        return DefaultWorkflow.create(store, runTask, bankBalanceWorkflowConfiguration, executionExecutor);
     }
 
     @VisibleForTesting
@@ -75,21 +72,14 @@ public final class BankBalanceWorkflows {
             AtomicBoolean skipRunning,
             Consumer<Map<Integer, Optional<Integer>>> onFailure) {
         BankBalanceRunTask runTask = new BankBalanceRunTask(skipRunning, bankBalanceWorkflowConfiguration, onFailure);
-        return DefaultWorkflow.create(
-                store,
-                (txnStore, _index) -> runTask.run(txnStore),
-                bankBalanceWorkflowConfiguration,
-                executionExecutor);
+        return DefaultWorkflow.create(store, runTask, bankBalanceWorkflowConfiguration, executionExecutor);
     }
 
-    private static class BankBalanceRunTask {
-
-        private final Consumer<Map<Integer, Optional<Integer>>> onFailure;
-        private final AtomicBoolean skipRunning;
-
+    private static final class BankBalanceRunTask
+            extends StoppableKeyedTransactionTask<InteractiveTransactionStore, Map<Integer, Optional<Integer>>> {
         private final BankBalanceWorkflowConfiguration workflowConfiguration;
 
-        public BankBalanceRunTask(BankBalanceWorkflowConfiguration workflowConfiguration) {
+        private BankBalanceRunTask(BankBalanceWorkflowConfiguration workflowConfiguration) {
             this(
                     new AtomicBoolean(),
                     workflowConfiguration,
@@ -98,19 +88,16 @@ public final class BankBalanceWorkflows {
                             SafeArg.of("maybeBalances", maybeBalances)));
         }
 
-        public BankBalanceRunTask(
+        private BankBalanceRunTask(
                 AtomicBoolean skipRunning,
                 BankBalanceWorkflowConfiguration workflowConfiguration,
                 Consumer<Map<Integer, Optional<Integer>>> onFailure) {
-            this.skipRunning = skipRunning;
+            super(skipRunning, onFailure);
             this.workflowConfiguration = workflowConfiguration;
-            this.onFailure = onFailure;
         }
 
-        public Optional<WitnessedTransaction> run(InteractiveTransactionStore store) {
-            if (skipRunning.get()) {
-                return Optional.empty();
-            }
+        @Override
+        public Optional<WitnessedTransaction> run(InteractiveTransactionStore store, Integer _index) {
             workflowConfiguration.transactionRateLimiter().acquire();
             return store.readWrite(txn -> {
                 Map<Integer, Optional<Integer>> maybeBalances = getAccountBalances(txn);
@@ -119,9 +106,7 @@ public final class BankBalanceWorkflows {
                                 workflowConfiguration.numberOfAccounts(),
                                 workflowConfiguration.initialBalancePerAccount())
                         .ifPresentOrElse(balances -> performTransfers(txn, balances), () -> {
-                            if (skipRunning.compareAndSet(false, true)) {
-                                onFailure.accept(maybeBalances);
-                            }
+                            recordFailure(maybeBalances);
                         });
             });
         }
