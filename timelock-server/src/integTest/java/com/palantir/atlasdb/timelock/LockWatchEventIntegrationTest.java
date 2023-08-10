@@ -655,15 +655,19 @@ public final class LockWatchEventIntegrationTest {
         Set<Cell> tableTwoCells = chosenCells.stream()
                 .filter(cell -> random.nextBoolean() && !tableOneCells.contains(cell))
                 .collect(Collectors.toUnmodifiableSet());
-
-        // Ensure unique rows to prevent commit from failing due to SERIALIZABLE conflict handler
-        Set<Cell> serializableTableCells = chosenCells.stream()
-                .filter(cell -> !tableOneCells.contains(cell) && !tableTwoCells.contains(cell))
-                .collect(Collectors.toUnmodifiableSet());
-        Set<Bytes> seenRows = new HashSet<>();
+        Set<Bytes> seenRowsForMetadata = new HashSet<>();
         Map<Cell, Optional<ChangeMetadata>> serializableTableCellsUniqueRows = KeyedStream.ofEntries(
-                        maybeAssociateMetadata(ImmutableSet.copyOf(serializableTableCells), random).entrySet().stream())
-                .filterKeys(cell -> seenRows.add(Bytes.from(cell.getRowName())))
+                        maybeAssociateMetadata(
+                                chosenCells.stream()
+                                        .filter(cell -> !tableOneCells.contains(cell) && !tableTwoCells.contains(cell))
+                                        .collect(Collectors.toUnmodifiableSet()),
+                                random)
+                                .entrySet()
+                                .stream())
+                // Ensure unique rows if metadata is present to prevent commit from failing due to SERIALIZABLE conflict
+                // handler
+                .filterEntries((cell, optMetadata) ->
+                        optMetadata.isEmpty() || seenRowsForMetadata.add(Bytes.from(cell.getRowName())))
                 .collectToMap();
         // For each cell, 50/50 split on whether it should have metadata
         return ImmutableMap.of(
