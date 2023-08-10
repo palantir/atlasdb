@@ -106,7 +106,7 @@ public final class RingWorkflows {
 
             workflowConfiguration.transactionRateLimiter().acquire();
             String table = workflowConfiguration.tableConfiguration().tableName();
-            Integer ringSize = workflowConfiguration.ringSize();
+            int ringSize = workflowConfiguration.ringSize();
             return store.readWrite(txn -> {
                 Map<Integer, Optional<Integer>> data = fetchData(ringSize, txn);
                 try {
