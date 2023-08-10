@@ -75,7 +75,7 @@ public final class BankBalanceWorkflows {
         return DefaultWorkflow.create(store, runTask, bankBalanceWorkflowConfiguration, executionExecutor);
     }
 
-    private static class BankBalanceRunTask
+    private static final class BankBalanceRunTask
             extends StoppableKeyedTransactionTask<InteractiveTransactionStore, Map<Integer, Optional<Integer>>> {
         private final BankBalanceWorkflowConfiguration workflowConfiguration;
 
