@@ -34,6 +34,7 @@ import java.security.SecureRandom;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -71,8 +72,9 @@ public final class BankBalanceWorkflows {
             InteractiveTransactionStore store,
             BankBalanceWorkflowConfiguration bankBalanceWorkflowConfiguration,
             ListeningExecutorService executionExecutor,
-            AtomicBoolean skipRunning) {
-        BankBalanceRunTask runTask = new BankBalanceRunTask(skipRunning, bankBalanceWorkflowConfiguration);
+            AtomicBoolean skipRunning,
+            Consumer<Map<Integer, Optional<Integer>>> onFailure) {
+        BankBalanceRunTask runTask = new BankBalanceRunTask(skipRunning, bankBalanceWorkflowConfiguration, onFailure);
         return DefaultWorkflow.create(
                 store,
                 (txnStore, _index) -> runTask.run(txnStore),
@@ -81,18 +83,28 @@ public final class BankBalanceWorkflows {
     }
 
     private static class BankBalanceRunTask {
+
+        private final Consumer<Map<Integer, Optional<Integer>>> onFailure;
         private final AtomicBoolean skipRunning;
 
         private final BankBalanceWorkflowConfiguration workflowConfiguration;
 
         public BankBalanceRunTask(BankBalanceWorkflowConfiguration workflowConfiguration) {
-            this(new AtomicBoolean(), workflowConfiguration);
+            this(
+                    new AtomicBoolean(),
+                    workflowConfiguration,
+                    maybeBalances -> log.error(
+                            "Balance validation failed, indicating we have violated snapshot isolation.",
+                            SafeArg.of("maybeBalances", maybeBalances)));
         }
 
-        @VisibleForTesting
-        BankBalanceRunTask(AtomicBoolean skipRunning, BankBalanceWorkflowConfiguration workflowConfiguration) {
+        public BankBalanceRunTask(
+                AtomicBoolean skipRunning,
+                BankBalanceWorkflowConfiguration workflowConfiguration,
+                Consumer<Map<Integer, Optional<Integer>>> onFailure) {
             this.skipRunning = skipRunning;
             this.workflowConfiguration = workflowConfiguration;
+            this.onFailure = onFailure;
         }
 
         public Optional<WitnessedTransaction> run(InteractiveTransactionStore store) {
@@ -108,9 +120,7 @@ public final class BankBalanceWorkflows {
                                 workflowConfiguration.initialBalancePerAccount())
                         .ifPresentOrElse(balances -> performTransfers(txn, balances), () -> {
                             if (skipRunning.compareAndSet(false, true)) {
-                                log.error(
-                                        "Balance validation failed, indicating we have violated snapshot isolation.",
-                                        SafeArg.of("maybeBalances", maybeBalances));
+                                onFailure.accept(maybeBalances);
                             }
                         });
             });
