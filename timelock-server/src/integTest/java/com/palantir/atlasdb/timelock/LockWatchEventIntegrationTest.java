@@ -127,7 +127,7 @@ public final class LockWatchEventIntegrationTest {
         txnManager = LockWatchIntegrationTestUtilities.createTransactionManager(0.0, CLUSTER, NAMESPACE);
         LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager, TABLE_REF);
 
-        // Register watch for TABLE_3 manually since we cannot enable caching for it as it uses the SERIALIZABLE
+        // Register watch for table manually since we cannot enable caching for it as it uses the SERIALIZABLE
         // conflict handler
         LockWatchReference entireTableReference =
                 LockWatchReferences.entireTable(SERIALIZABLE_WATCHED_TABLE_REF.getQualifiedName());
@@ -331,8 +331,8 @@ public final class LockWatchEventIntegrationTest {
                         cellInOtherRow,
                         ValueAndChangeMetadata.of(DATA_4, UPDATE_CHANGE_METADATA)));
 
-        OpenTransaction thirdTxn = startSingleTransaction();
-        TransactionsLockWatchUpdate update = getUpdateForTransactions(Optional.of(currentVersion), thirdTxn);
+        TransactionsLockWatchUpdate update =
+                getUpdateForTransactions(Optional.of(currentVersion), startSingleTransaction());
 
         assertThat(LockWatchIntegrationTestUtilities.extractMetadata(update.events()))
                 .containsExactly(
@@ -440,8 +440,7 @@ public final class LockWatchEventIntegrationTest {
         assertThat(LockWatchIntegrationTestUtilities.extractMetadata(update.events()))
                 .as("Expect to receive back the metadata we specified on previous transactions. Random seed: "
                         + randomSeed)
-                // Order does NOT matter as this test is multithreaded
-                .containsExactlyInAnyOrderElementsOf(expectedMetadataBuilder.build());
+                .containsExactlyElementsOf(expectedMetadataBuilder.build());
     }
 
     private Runnable performWriteTransactionThatBlocksAfterLockingCells() {
