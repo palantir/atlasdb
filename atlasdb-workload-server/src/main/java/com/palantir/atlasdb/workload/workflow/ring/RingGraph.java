@@ -18,8 +18,6 @@ package com.palantir.atlasdb.workload.workflow.ring;
 
 import com.google.common.collect.Iterators;
 import com.palantir.atlasdb.buggify.impl.DefaultNativeSamplingSecureRandomFactory;
-import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -52,10 +50,9 @@ public final class RingGraph {
             return RingGraph.generateNewRing(ring.keySet());
         }
 
-        Preconditions.checkArgument(
-                !anyEmpty(ring),
-                "Graph contains missing entries, thus cannot be made into a ring.",
-                SafeArg.of("ring", ring));
+        if (anyEmpty(ring)) {
+            RingValidationException.throwIncompleteRing(ring);
+        }
 
         return from(EntryStream.of(ring).mapValues(Optional::get).toMap());
     }
@@ -82,7 +79,7 @@ public final class RingGraph {
         for (int iterations = 0; iterations < maxIterations; iterations++) {
             // If we reference a node that does not exist in our ring, it means we are missing data
             if (!ring.containsKey(nextNode)) {
-                RingValidationException.throwMissingEntries(ring);
+                RingValidationException.throwMissingReference(ring);
             }
 
             // If the node already has been visited, it means we're in a cycle within our ring

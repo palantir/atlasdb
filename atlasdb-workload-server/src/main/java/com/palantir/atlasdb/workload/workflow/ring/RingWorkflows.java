@@ -23,12 +23,14 @@ import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
 import com.palantir.atlasdb.workload.transaction.InteractiveTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.workflow.DefaultWorkflow;
+import com.palantir.atlasdb.workload.workflow.KeyedTransactionTask;
 import com.palantir.atlasdb.workload.workflow.Workflow;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -53,13 +55,21 @@ public final class RingWorkflows {
     public static Workflow create(
             InteractiveTransactionStore store,
             RingWorkflowConfiguration ringWorkflowConfiguration,
+            ListeningExecutorService executionExecutor,
+            Consumer<RingValidationException> onFailure) {
+        return create(store, ringWorkflowConfiguration, executionExecutor, new AtomicBoolean(false), onFailure);
+    }
+
+    public static Workflow create(
+            InteractiveTransactionStore store,
+            RingWorkflowConfiguration ringWorkflowConfiguration,
             ListeningExecutorService executionExecutor) {
-        AtomicBoolean skipRunning = new AtomicBoolean(false);
-        return DefaultWorkflow.create(
+        return create(
                 store,
-                (txnStore, _index) -> run(txnStore, ringWorkflowConfiguration, skipRunning),
                 ringWorkflowConfiguration,
-                executionExecutor);
+                executionExecutor,
+                new AtomicBoolean(false),
+                error -> log.error("Detected violation with our ring.", error));
     }
 
     @VisibleForTesting
@@ -67,46 +77,60 @@ public final class RingWorkflows {
             InteractiveTransactionStore store,
             RingWorkflowConfiguration ringWorkflowConfiguration,
             ListeningExecutorService executionExecutor,
-            AtomicBoolean skipRunning) {
-        return DefaultWorkflow.create(
-                store,
-                (txnStore, _index) -> run(txnStore, ringWorkflowConfiguration, skipRunning),
-                ringWorkflowConfiguration,
-                executionExecutor);
+            AtomicBoolean skipRunning,
+            Consumer<RingValidationException> onFailure) {
+        RingWorkflowTask task = new RingWorkflowTask(skipRunning, onFailure, ringWorkflowConfiguration);
+        return DefaultWorkflow.create(store, task, ringWorkflowConfiguration, executionExecutor);
     }
 
-    private static Optional<WitnessedTransaction> run(
-            InteractiveTransactionStore store,
-            RingWorkflowConfiguration workflowConfiguration,
-            AtomicBoolean skipRunning) {
-        if (skipRunning.get()) {
-            return Optional.empty();
+    private static final class RingWorkflowTask implements KeyedTransactionTask<InteractiveTransactionStore> {
+
+        private final AtomicBoolean skipRunning;
+        private final Consumer<RingValidationException> onFailure;
+        private final RingWorkflowConfiguration workflowConfiguration;
+
+        public RingWorkflowTask(
+                AtomicBoolean skipRunning,
+                Consumer<RingValidationException> onFailure,
+                RingWorkflowConfiguration workflowConfiguration) {
+            this.skipRunning = skipRunning;
+            this.onFailure = onFailure;
+            this.workflowConfiguration = workflowConfiguration;
         }
 
-        workflowConfiguration.transactionRateLimiter().acquire();
-        String table = workflowConfiguration.tableConfiguration().tableName();
-        Integer ringSize = workflowConfiguration.ringSize();
-        return store.readWrite(txn -> {
-            Map<Integer, Optional<Integer>> data = fetchData(table, ringSize, txn);
-            try {
-                RingGraph ringGraph = RingGraph.fromPartial(data);
-                ringGraph
-                        .generateNewRing()
-                        .asMap()
-                        .forEach((rootNode, nextNode) -> txn.write(table, cell(rootNode), nextNode));
-            } catch (IllegalArgumentException e) {
-                if (skipRunning.compareAndSet(false, true)) {
-                    log.error("Detected violation with our ring.", e);
-                }
+        @Override
+        public Optional<WitnessedTransaction> apply(InteractiveTransactionStore store, Integer integer) {
+            if (skipRunning.get()) {
+                return Optional.empty();
             }
-        });
-    }
 
-    private static Map<Integer, Optional<Integer>> fetchData(
-            String table, int ringSize, InteractiveTransaction transaction) {
-        return IntStream.range(0, ringSize)
-                .boxed()
-                .collect(Collectors.toMap(Function.identity(), index -> transaction.read(table, cell(index))));
+            workflowConfiguration.transactionRateLimiter().acquire();
+            String table = workflowConfiguration.tableConfiguration().tableName();
+            int ringSize = workflowConfiguration.ringSize();
+            return store.readWrite(txn -> {
+                Map<Integer, Optional<Integer>> data = fetchData(ringSize, txn);
+                try {
+                    RingGraph ringGraph = RingGraph.fromPartial(data);
+                    ringGraph
+                            .generateNewRing()
+                            .asMap()
+                            .forEach((rootNode, nextNode) -> txn.write(table, cell(rootNode), nextNode));
+                } catch (RingValidationException e) {
+                    if (skipRunning.compareAndSet(false, true)) {
+                        onFailure.accept(e);
+                    }
+                }
+            });
+        }
+
+        private Map<Integer, Optional<Integer>> fetchData(int ringSize, InteractiveTransaction transaction) {
+            return IntStream.range(0, ringSize)
+                    .boxed()
+                    .collect(Collectors.toMap(
+                            Function.identity(),
+                            index -> transaction.read(
+                                    workflowConfiguration.tableConfiguration().tableName(), cell(index))));
+        }
     }
 
     @VisibleForTesting

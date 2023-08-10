@@ -22,7 +22,6 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.Test;
@@ -41,25 +40,27 @@ public final class RingGraphTest {
     public void fromPartialThrowsWhenSomeEntriesAreEmpty() {
         Map<Integer, Optional<Integer>> partiallyEmptyRing = ImmutableMap.of(0, Optional.of(1), 1, Optional.empty());
         assertThatLoggableExceptionThrownBy(() -> RingGraph.fromPartial(partiallyEmptyRing))
-                .isInstanceOf(SafeIllegalArgumentException.class)
-                .hasMessageContaining("Graph contains missing entries, thus cannot be made into a ring.")
-                .hasExactlyArgs(SafeArg.of("ring", partiallyEmptyRing));
+                .isInstanceOf(RingValidationException.class)
+                .hasExactlyArgs(
+                        SafeArg.of("type", RingValidationException.Type.INCOMPLETE_RING),
+                        SafeArg.of("ring", partiallyEmptyRing));
     }
 
     @Test
     public void fromThrowsMissingEntriesWhenNodeReferencedDoesNotExist() {
-        Map<Integer, Integer> missingNodesRing = ImmutableMap.of(0, 2, 1, 0);
-        assertThatLoggableExceptionThrownBy(() -> RingGraph.from(missingNodesRing))
+        Map<Integer, Optional<Integer>> missingNodesRing = ImmutableMap.of(0, Optional.of(2), 1, Optional.of(0));
+        assertThatLoggableExceptionThrownBy(() -> RingGraph.fromPartial(missingNodesRing))
                 .isInstanceOf(RingValidationException.class)
                 .hasExactlyArgs(
-                        SafeArg.of("type", RingValidationException.Type.MISSING_ENTRIES),
+                        SafeArg.of("type", RingValidationException.Type.MISSING_REFERENCE),
                         SafeArg.of("ring", missingNodesRing));
     }
 
     @Test
     public void fromThrowsCycleExceptionWhenUnableToReachEveryNode() {
-        Map<Integer, Integer> incompleteRing = ImmutableMap.of(0, 1, 1, 1, 2, 0);
-        assertThatLoggableExceptionThrownBy(() -> RingGraph.from(incompleteRing))
+        Map<Integer, Optional<Integer>> incompleteRing =
+                ImmutableMap.of(0, Optional.of(1), 1, Optional.of(1), 2, Optional.of(0));
+        assertThatLoggableExceptionThrownBy(() -> RingGraph.fromPartial(incompleteRing))
                 .isInstanceOf(RingValidationException.class)
                 .hasExactlyArgs(
                         SafeArg.of("type", RingValidationException.Type.EARLY_CYCLE),
@@ -68,8 +69,8 @@ public final class RingGraphTest {
 
     @Test
     public void fromThrowsCycleExceptionWhenEntryNodeNotRevisited() {
-        Map<Integer, Integer> incompleteRing = ImmutableMap.of(0, 1, 1, 1);
-        assertThatLoggableExceptionThrownBy(() -> RingGraph.from(incompleteRing))
+        Map<Integer, Optional<Integer>> incompleteRing = ImmutableMap.of(0, Optional.of(1), 1, Optional.of(1));
+        assertThatLoggableExceptionThrownBy(() -> RingGraph.fromPartial(incompleteRing))
                 .isInstanceOf(RingValidationException.class)
                 .hasExactlyArgs(
                         SafeArg.of("type", RingValidationException.Type.EARLY_CYCLE),

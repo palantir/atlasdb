@@ -40,6 +40,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.Test;
@@ -62,12 +63,14 @@ public class RingWorkflowsTest {
                     AtlasDbUtils.tableMetadata(IsolationLevel.SNAPSHOT)));
 
     private final AtomicBoolean skipRunning = new AtomicBoolean(false);
+    private final AtomicReference<RingValidationException> failure = new AtomicReference<>();
 
     private final Workflow workflow = RingWorkflows.create(
             memoryStore,
             CONFIGURATION,
             MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(1)),
-            skipRunning);
+            skipRunning,
+            failure::set);
 
     @Test
     public void workflowHistoryTransactionStoreShouldBeReadOnly() {
@@ -125,5 +128,13 @@ public class RingWorkflowsTest {
     public void ringWorkflowDoesNotWitnessTransactionWhenSkipRunningSetToTrue() {
         skipRunning.set(true);
         assertThat(workflow.run().history()).isEmpty();
+    }
+
+    @Test
+    public void ringWorkflowAllowsCustomConsumersOfFailures() {
+        assertThat(failure.get()).isNull();
+        memoryStore.readWrite(txn -> txn.write(TABLE_NAME, RingWorkflows.cell(0), 99));
+        workflow.run();
+        assertThat(failure.get()).isNotNull();
     }
 }
