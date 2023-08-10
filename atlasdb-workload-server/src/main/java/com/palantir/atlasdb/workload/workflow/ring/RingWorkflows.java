@@ -23,7 +23,7 @@ import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
 import com.palantir.atlasdb.workload.transaction.InteractiveTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.workflow.DefaultWorkflow;
-import com.palantir.atlasdb.workload.workflow.KeyedTransactionTask;
+import com.palantir.atlasdb.workload.workflow.StoppableKeyedTransactionTask;
 import com.palantir.atlasdb.workload.workflow.Workflow;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -83,27 +83,20 @@ public final class RingWorkflows {
         return DefaultWorkflow.create(store, task, ringWorkflowConfiguration, executionExecutor);
     }
 
-    private static final class RingWorkflowTask implements KeyedTransactionTask<InteractiveTransactionStore> {
-
-        private final AtomicBoolean skipRunning;
-        private final Consumer<RingValidationException> onFailure;
+    private static final class RingWorkflowTask
+            extends StoppableKeyedTransactionTask<InteractiveTransactionStore, RingValidationException> {
         private final RingWorkflowConfiguration workflowConfiguration;
 
         public RingWorkflowTask(
                 AtomicBoolean skipRunning,
                 Consumer<RingValidationException> onFailure,
                 RingWorkflowConfiguration workflowConfiguration) {
-            this.skipRunning = skipRunning;
-            this.onFailure = onFailure;
+            super(skipRunning, onFailure);
             this.workflowConfiguration = workflowConfiguration;
         }
 
         @Override
-        public Optional<WitnessedTransaction> apply(InteractiveTransactionStore store, Integer integer) {
-            if (skipRunning.get()) {
-                return Optional.empty();
-            }
-
+        public Optional<WitnessedTransaction> run(InteractiveTransactionStore store, Integer integer) {
             workflowConfiguration.transactionRateLimiter().acquire();
             String table = workflowConfiguration.tableConfiguration().tableName();
             int ringSize = workflowConfiguration.ringSize();
@@ -116,9 +109,7 @@ public final class RingWorkflows {
                             .asMap()
                             .forEach((rootNode, nextNode) -> txn.write(table, cell(rootNode), nextNode));
                 } catch (RingValidationException e) {
-                    if (skipRunning.compareAndSet(false, true)) {
-                        onFailure.accept(e);
-                    }
+                    recordFailure(e);
                 }
             });
         }
