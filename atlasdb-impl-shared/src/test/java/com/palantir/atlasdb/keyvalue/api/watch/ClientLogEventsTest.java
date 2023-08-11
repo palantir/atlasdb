@@ -356,7 +356,9 @@ public final class ClientLogEventsTest {
             }
 
             @Override
-            public Set<LockDescriptor> invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+            public Set<LockDescriptor> invalidateSome(
+                    Set<LockDescriptor> invalidatedLocks,
+                    Map<LockDescriptor, List<ChangeMetadata>> _aggregatedMetadata) {
                 return invalidatedLocks;
             }
         });
@@ -370,7 +372,9 @@ public final class ClientLogEventsTest {
             }
 
             @Override
-            public Boolean invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+            public Boolean invalidateSome(
+                    Set<LockDescriptor> invalidatedLocks,
+                    Map<LockDescriptor, List<ChangeMetadata>> _aggregatedMetadata) {
                 return false;
             }
         });
@@ -413,11 +417,6 @@ public final class ClientLogEventsTest {
         @Override
         public Map<LockDescriptor, List<ChangeMetadata>> invalidateAll() {
             throw new SafeIllegalStateException("commit update was invalidate all");
-        }
-
-        @Override
-        public Map<LockDescriptor, List<ChangeMetadata>> invalidateSome(Set<LockDescriptor> invalidatedLocks) {
-            throw new SafeIllegalStateException("invalidate some without metadata");
         }
 
         @Override

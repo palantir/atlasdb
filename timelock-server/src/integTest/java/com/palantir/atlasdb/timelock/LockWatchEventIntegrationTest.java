@@ -571,7 +571,9 @@ public final class LockWatchEventIntegrationTest {
             }
 
             @Override
-            public Set<LockDescriptor> invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+            public Set<LockDescriptor> invalidateSome(
+                    Set<LockDescriptor> invalidatedLocks,
+                    Map<LockDescriptor, List<ChangeMetadata>> _aggregatedMetadata) {
                 return invalidatedLocks;
             }
         }));
@@ -656,11 +658,6 @@ public final class LockWatchEventIntegrationTest {
         @Override
         public Map<LockDescriptor, List<ChangeMetadata>> invalidateAll() {
             throw new SafeIllegalStateException("Should not be visiting invalidateAll update");
-        }
-
-        @Override
-        public Map<LockDescriptor, List<ChangeMetadata>> invalidateSome(Set<LockDescriptor> invalidatedLocks) {
-            throw new SafeIllegalStateException("Should not be visiting invalidateSome update without metadata");
         }
 
         @Override

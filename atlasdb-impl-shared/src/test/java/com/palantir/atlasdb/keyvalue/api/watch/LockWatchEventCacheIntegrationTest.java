@@ -41,6 +41,7 @@ import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
@@ -59,6 +60,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -633,7 +636,8 @@ public class LockWatchEventCacheIntegrationTest {
         }
 
         @Override
-        public Set<LockDescriptor> invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+        public Set<LockDescriptor> invalidateSome(
+                Set<LockDescriptor> invalidatedLocks, Map<LockDescriptor, List<ChangeMetadata>> _aggregatedMetadata) {
             return invalidatedLocks;
         }
     }

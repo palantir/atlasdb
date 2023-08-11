@@ -20,9 +20,11 @@ import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.CommitUpdate.Visitor;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -73,7 +75,9 @@ final class FilteringValueCacheSnapshot implements ValueCacheSnapshot {
             }
 
             @Override
-            public LockedCells invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+            public LockedCells invalidateSome(
+                    Set<LockDescriptor> invalidatedLocks,
+                    Map<LockDescriptor, List<ChangeMetadata>> _aggregatedMetadata) {
                 return LockedCells.invalidateSome(invalidatedLocks);
             }
         });

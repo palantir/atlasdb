@@ -91,11 +91,7 @@ public interface CommitUpdate {
     interface Visitor<T> {
         T invalidateAll();
 
-        T invalidateSome(Set<LockDescriptor> invalidatedLocks);
-
-        default T invalidateSome(
-                Set<LockDescriptor> invalidatedLocks, Map<LockDescriptor, List<ChangeMetadata>> aggregatedMetadata) {
-            return invalidateSome(invalidatedLocks);
-        }
+        T invalidateSome(
+                Set<LockDescriptor> invalidatedLocks, Map<LockDescriptor, List<ChangeMetadata>> aggregatedMetadata);
     }
 }
