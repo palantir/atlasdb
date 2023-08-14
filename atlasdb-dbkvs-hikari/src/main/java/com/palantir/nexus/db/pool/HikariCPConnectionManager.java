@@ -35,6 +35,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Optional;
 import java.util.TimeZone;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -354,9 +355,15 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                 }
             }
         } catch (PoolInitializationException e) {
+            Optional<Integer> maybeSqlErrorCode = Optional.ofNullable(e.getCause())
+                    .filter(cause -> cause instanceof SQLException)
+                    .map(cause -> (SQLException) cause)
+                    .map(SQLException::getErrorCode);
+
             log.error(
                     "Failed to initialize hikari data source",
                     SafeArg.of("connectionPoolName", connConfig.getConnectionPoolName()),
+                    SafeArg.of("causeSqlVendorErrorCode", maybeSqlErrorCode),
                     UnsafeArg.of("url", connConfig.getUrl()),
                     e);
 
