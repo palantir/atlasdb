@@ -32,6 +32,7 @@ import com.palantir.atlasdb.workload.invariant.DurableWritesInvariantMetricRepor
 import com.palantir.atlasdb.workload.invariant.SerializableInvariantLogReporter;
 import com.palantir.atlasdb.workload.resource.AntithesisCassandraSidecarResource;
 import com.palantir.atlasdb.workload.runner.AntithesisWorkflowValidatorRunner;
+import com.palantir.atlasdb.workload.runner.DefaultWorkflowRunner;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStoreFactory;
 import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
 import com.palantir.atlasdb.workload.store.TransactionStore;
@@ -157,7 +158,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
 
         waitForTransactionStoreFactoryToBeInitialized(transactionStoreFactory);
 
-        new AntithesisWorkflowValidatorRunner(MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService))
+        new AntithesisWorkflowValidatorRunner(new DefaultWorkflowRunner(
+                        MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService)))
                 .run(
                         createSingleRowTwoCellsWorkflowValidator(
                                 transactionStoreFactory, singleRowTwoCellsConfig, environment.lifecycle()),

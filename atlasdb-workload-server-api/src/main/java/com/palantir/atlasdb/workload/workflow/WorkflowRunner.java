@@ -16,16 +16,15 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
-/**
- * Run the provided workflow and validate that it is correct with the provided invariants.
- */
-public interface WorkflowValidatorRunner<WorkflowTypeT extends Workflow> {
-    void run(List<WorkflowAndInvariants<WorkflowTypeT>> workflowAndInvariants);
+public interface WorkflowRunner<WorkflowTypeT extends Workflow> {
+    Map<WorkflowTypeT, ListenableFuture<WorkflowHistory>> run(List<WorkflowTypeT> workflows);
 
-    default void run(WorkflowAndInvariants<WorkflowTypeT>... workflowAndInvariants) {
-        run(Arrays.asList(workflowAndInvariants));
+    default Map<WorkflowTypeT, ListenableFuture<WorkflowHistory>> run(WorkflowTypeT... workflows) {
+        return run(Arrays.asList(workflows));
     }
 }
