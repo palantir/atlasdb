@@ -28,7 +28,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
-import com.palantir.leader.MaybeNotCurrentLeaderException;
+import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.LeadershipStateManager.LeadershipState;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -41,7 +41,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 
 @SuppressWarnings("ProxyNonConstantType")
@@ -108,7 +107,9 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         ListenableFuture<T> delegateFuture = Futures.transformAsync(
                 leadingFuture,
                 leading -> {
-                    if (isNotLeading(leading)) {
+                    // treat a repeated NO_QUORUM as NOT_LEADING; likely we've been cut off from the other nodes
+                    // and should assume we're not the leader
+                    if (leading == StillLeadingStatus.NOT_LEADING || leading == StillLeadingStatus.NO_QUORUM) {
                         return Futures.submitAsync(
                                 () -> {
                                     leadershipStateManager.handleNotLeading(leadershipToken, null /* cause */);
@@ -158,48 +159,18 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     private RuntimeException handleDelegateThrewException(
             LeadershipToken leadershipToken, InvocationTargetException exception) throws Exception {
-        Throwable cause = exception.getCause();
-
-        if (cause instanceof ServiceNotAvailableException) {
-            handlePossibleLeadershipChangeException(leadershipToken, (ServiceNotAvailableException) cause);
+        if (exception.getCause() instanceof ServiceNotAvailableException
+                || exception.getCause() instanceof NotCurrentLeaderException) {
+            leadershipStateManager.handleNotLeading(leadershipToken, exception.getCause());
         }
-
         // Prevent blocked lock requests from receiving a non-retryable 500 on interrupts
         // in case of a leader election.
-        if (cause instanceof InterruptedException) {
-            if (!leadershipCoordinator.isStillCurrentToken(leadershipToken)) {
-                throw leadershipCoordinator.notCurrentLeaderException(
-                        "received an interrupt due to leader election.", exception.getCause());
-            }
-            Thread.currentThread().interrupt();
+        if (exception.getCause() instanceof InterruptedException
+                && !leadershipCoordinator.isStillCurrentToken(leadershipToken)) {
+            throw leadershipCoordinator.notCurrentLeaderException(
+                    "received an interrupt due to leader election.", exception.getCause());
         }
-        Throwables.propagateIfPossible(cause, Exception.class);
-        throw new RuntimeException(cause);
-    }
-
-    /**
-     * Check and see if the provided {@link ServiceNotAvailableException} is a {@link MaybeNotCurrentLeaderException}.
-     * If it is, check and see if we are still leading, as we may still be, but contending with ourselves. Otherwise,
-     * assume we are not, and invalidate our leadership state.
-     */
-    private void handlePossibleLeadershipChangeException(
-            LeadershipToken leadershipToken, ServiceNotAvailableException exception)
-            throws ExecutionException, InterruptedException {
-        boolean notLeading = true;
-
-        if (exception instanceof MaybeNotCurrentLeaderException) {
-            notLeading = isNotLeading(
-                    leadershipCoordinator.isStillLeading(leadershipToken).get());
-        }
-
-        if (notLeading) {
-            leadershipStateManager.handleNotLeading(leadershipToken, exception);
-        }
-    }
-
-    private static boolean isNotLeading(StillLeadingStatus leading) {
-        // treat a repeated NO_QUORUM as NOT_LEADING; likely we've been cut off from the other nodes
-        // and should assume we're not the leader
-        return leading == StillLeadingStatus.NOT_LEADING || leading == StillLeadingStatus.NO_QUORUM;
+        Throwables.propagateIfPossible(exception.getCause(), Exception.class);
+        throw new RuntimeException(exception.getCause());
     }
 }
