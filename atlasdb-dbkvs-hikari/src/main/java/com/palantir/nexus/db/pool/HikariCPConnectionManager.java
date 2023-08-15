@@ -16,6 +16,9 @@
 package com.palantir.nexus.db.pool;
 
 import com.google.common.base.Stopwatch;
+import com.google.common.base.Throwables;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Streams;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -35,13 +38,14 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Optional;
+import java.util.List;
 import java.util.TimeZone;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import javax.management.JMX;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
@@ -355,15 +359,17 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                 }
             }
         } catch (PoolInitializationException e) {
-            Optional<Integer> maybeSqlErrorCode = Optional.ofNullable(e.getCause())
-                    .filter(cause -> cause instanceof SQLException)
-                    .map(cause -> (SQLException) cause)
-                    .map(SQLException::getErrorCode);
+            // Intentionally ignoring suppressed exceptions
+            // Keep duplicates to safeguard the full causality chain
+            List<Integer> vendorSqlErrorCodes = Streams.stream(
+                            Iterables.filter(Throwables.getCausalChain(e), SQLException.class))
+                    .map(SQLException::getErrorCode)
+                    .collect(Collectors.toList());
 
             log.error(
                     "Failed to initialize hikari data source",
                     SafeArg.of("connectionPoolName", connConfig.getConnectionPoolName()),
-                    SafeArg.of("causeSqlVendorErrorCode", maybeSqlErrorCode),
+                    SafeArg.of("vendorSqlErrorCodes", vendorSqlErrorCodes),
                     UnsafeArg.of("url", connConfig.getUrl()),
                     e);
 
