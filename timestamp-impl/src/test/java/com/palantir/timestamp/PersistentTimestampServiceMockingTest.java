@@ -37,6 +37,8 @@ public class PersistentTimestampServiceMockingTest {
 
     private static final TimestampRange RANGE = TimestampRange.createInclusiveRange(100, 200);
 
+    private final Object clientLock = new Object();
+
     private PersistentTimestamp timestamp = mock(PersistentTimestamp.class);
     private PersistentTimestampServiceImpl timestampService = new PersistentTimestampServiceImpl(timestamp);
 
@@ -86,7 +88,7 @@ public class PersistentTimestampServiceMockingTest {
         when(timestampBoundStore.getUpperLimit()).thenReturn(INITIAL_TIMESTAMP);
 
         PersistentTimestampService persistentTimestampService =
-                PersistentTimestampServiceImpl.create(timestampBoundStore);
+                PersistentTimestampServiceImpl.create(timestampBoundStore, () -> clientLock);
         long freshTimestamp = persistentTimestampService.getFreshTimestamp();
 
         assertThat(freshTimestamp).isGreaterThan(INITIAL_TIMESTAMP);

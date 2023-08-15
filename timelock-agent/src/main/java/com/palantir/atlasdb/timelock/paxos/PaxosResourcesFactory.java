@@ -24,6 +24,7 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.leader.PingableLeader;
+import com.palantir.paxos.Client;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
@@ -51,8 +52,10 @@ import com.palantir.timestamp.TimestampBoundStore;
 import com.zaxxer.hikari.HikariDataSource;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.sql.DataSource;
@@ -223,6 +226,9 @@ public final class PaxosResourcesFactory {
         NetworkClientFactories.Factory<PaxosProposer> proposerFactory =
                 getPaxosProposerFactory(timelockMetrics, combinedNetworkClientFactories);
 
+        // Manage client locks outside the context of creation, to allow re-use of the locks for a given client
+        // across multiple class instances.
+        Map<Client, Object> clientLocks = new ConcurrentHashMap<>();
         NetworkClientFactories.Factory<ManagedTimestampService> timestampFactory = client -> {
             // TODO (jkong): live reload ping
             TimestampBoundStore boundStore = timelockMetrics.instrument(
@@ -234,7 +240,8 @@ public final class PaxosResourcesFactory {
                             combinedNetworkClientFactories.learner().create(client),
                             paxosRuntime.get().maximumWaitBeforeProposalMs()),
                     client);
-            return PersistentTimestampServiceImpl.create(boundStore);
+            Object clientLock = clientLocks.computeIfAbsent(client, ignored -> new Object());
+            return PersistentTimestampServiceImpl.create(boundStore, () -> clientLock);
         };
 
         return ImmutablePaxosResources.builder()

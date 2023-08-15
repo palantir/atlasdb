@@ -16,6 +16,7 @@
 package com.palantir.timestamp;
 
 import com.google.common.annotations.VisibleForTesting;
+import java.util.function.Supplier;
 
 public class PersistentUpperLimit {
 
@@ -29,9 +30,20 @@ public class PersistentUpperLimit {
     private volatile long currentLimit;
     private final TimestampBoundStore store;
 
-    public PersistentUpperLimit(TimestampBoundStore boundStore) {
+    private final Supplier<Object> lock;
+
+    /**
+     * Create a new {@link PersistentUpperLimit} that will use the provided {@link TimestampBoundStore} to increase
+     * limits as needed for timestamps. The lock supplier will be used to synchronize on when updating the upper
+     * limit. It's ideal to use an external lock rather than the class instance itself, as there could be multiple
+     * versions of this class.
+     * @param boundStore The store to use for persisting the upper limit.
+     * @param lock A supplier of a lock object that will be used to synchronize on when updating the upper limit.
+     */
+    public PersistentUpperLimit(TimestampBoundStore boundStore, Supplier<Object> lock) {
         this.store = boundStore;
         this.currentLimit = boundStore.getUpperLimit();
+        this.lock = lock;
     }
 
     public long get() {
@@ -44,14 +56,16 @@ public class PersistentUpperLimit {
         }
     }
 
-    private synchronized void updateLimit(long newLimit) {
-        if (currentLimit >= newLimit) {
-            return;
-        }
+    private void updateLimit(long newLimit) {
+        synchronized (lock.get()) {
+            if (currentLimit >= newLimit) {
+                return;
+            }
 
-        long newLimitWithBuffer = Math.addExact(newLimit, BUFFER);
-        storeUpperLimit(newLimitWithBuffer);
-        currentLimit = newLimitWithBuffer;
+            long newLimitWithBuffer = Math.addExact(newLimit, BUFFER);
+            storeUpperLimit(newLimitWithBuffer);
+            currentLimit = newLimitWithBuffer;
+        }
     }
 
     private void storeUpperLimit(long upperLimit) {

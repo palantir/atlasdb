@@ -22,6 +22,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.function.Supplier;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
@@ -50,22 +51,32 @@ public class PersistentTimestampServiceImpl implements PersistentTimestampServic
 
     private ErrorCheckingTimestampBoundStore store;
     private PersistentTimestamp timestamp;
+    private Supplier<Object> clientLock;
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
-    public static PersistentTimestampService create(TimestampBoundStore store) {
-        return create(new ErrorCheckingTimestampBoundStore(store), AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    public static PersistentTimestampService create(TimestampBoundStore store, Supplier<Object> clientLock) {
+        return create(
+                new ErrorCheckingTimestampBoundStore(store), AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC, clientLock);
     }
 
     public static PersistentTimestampService create(TimestampBoundStore store, boolean initializeAsync) {
-        return create(new ErrorCheckingTimestampBoundStore(store), initializeAsync);
+        Object clientLock = new Object();
+        return create(new ErrorCheckingTimestampBoundStore(store), initializeAsync, () -> clientLock);
     }
 
-    public static PersistentTimestampService create(ErrorCheckingTimestampBoundStore store) {
-        return create(store, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+    public static PersistentTimestampService create(
+            TimestampBoundStore store, boolean initializeAsync, Supplier<Object> clientLock) {
+        return create(new ErrorCheckingTimestampBoundStore(store), initializeAsync, clientLock);
     }
 
-    public static PersistentTimestampService create(ErrorCheckingTimestampBoundStore store, boolean initializeAsync) {
-        PersistentTimestampServiceImpl service = new PersistentTimestampServiceImpl(store);
+    public static PersistentTimestampService create(
+            ErrorCheckingTimestampBoundStore store, Supplier<Object> clientLock) {
+        return create(store, AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC, clientLock);
+    }
+
+    public static PersistentTimestampService create(
+            ErrorCheckingTimestampBoundStore store, boolean initializeAsync, Supplier<Object> clientLock) {
+        PersistentTimestampServiceImpl service = new PersistentTimestampServiceImpl(store, clientLock);
         service.wrapper.initialize(initializeAsync);
         return service.wrapper.isInitialized() ? service : service.wrapper;
     }
@@ -75,12 +86,13 @@ public class PersistentTimestampServiceImpl implements PersistentTimestampServic
         this.timestamp = timestamp;
     }
 
-    private PersistentTimestampServiceImpl(ErrorCheckingTimestampBoundStore store) {
+    private PersistentTimestampServiceImpl(ErrorCheckingTimestampBoundStore store, Supplier<Object> clientLock) {
         this.store = store;
+        this.clientLock = clientLock;
     }
 
     private void tryInitialize() {
-        PersistentUpperLimit upperLimit = new PersistentUpperLimit(store);
+        PersistentUpperLimit upperLimit = new PersistentUpperLimit(store, clientLock);
         long latestTimestamp = upperLimit.get();
         timestamp = new PersistentTimestamp(upperLimit, latestTimestamp);
     }
