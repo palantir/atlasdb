@@ -165,13 +165,15 @@ public class SQLString extends BasicSQLString {
      * @param dbType Look for queries registered with this override first
      * @return a SQLString object representing the stored query
      */
-    @SuppressWarnings("GuardedByChecker")
     static FinalSQLString getByKey(final String key, DBType dbType) {
         assert isValidKey(key) : "Keys only consist of word characters"; // $NON-NLS-1$
         assert registeredValues.containsKey(key) || registeredValuesOverride.containsKey(key)
                 : "Couldn't find SQLString key: " + key + ", dbtype " + dbType; // $NON-NLS-1$ //$NON-NLS-2$
 
-        FinalSQLString cached = cachedKeyed.get(key);
+        FinalSQLString cached;
+        synchronized (cacheLock) {
+            cached = cachedKeyed.get(key);
+        }
         if (null != cached) {
             callbackOnUse.noteUse((SQLString) cached.delegate);
             return cached;
@@ -209,7 +211,6 @@ public class SQLString extends BasicSQLString {
      * @param sql The string to be used in a query
      * @return a SQLString object representing the given SQL
      */
-    @SuppressWarnings("GuardedByChecker")
     static FinalSQLString getUnregisteredQuery(String sql) {
         assert !isValidKey(sql) : "Unregistered Queries should not look like keys"; // $NON-NLS-1$
         return new FinalSQLString(new SQLString(sql));
@@ -423,9 +424,10 @@ public class SQLString extends BasicSQLString {
     @Deprecated
     protected static void setCachedUnregistered(ImmutableMap<String, FinalSQLString> _cachedUnregistered) {}
 
-    @SuppressWarnings("GuardedByChecker")
     protected static ImmutableMap<String, FinalSQLString> getCachedKeyed() {
-        return cachedKeyed;
+        synchronized (cacheLock) {
+            return cachedKeyed;
+        }
     }
 
     protected static void setCachedKeyed(ImmutableMap<String, FinalSQLString> cachedKeyed) {
