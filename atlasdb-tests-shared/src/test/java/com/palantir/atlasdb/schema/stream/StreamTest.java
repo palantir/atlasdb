@@ -657,13 +657,15 @@ public class StreamTest extends AtlasDbTestCase {
             @Override
             public void startSecondAndFinish(Transaction tx, long streamId) {
                 StreamTestStreamStore ss = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
-                ss.storeStreams(tx, ImmutableMap.of(streamId, new ByteArrayInputStream(new byte[1])));
+                ss.storeStreams(tx, ImmutableMap.of(streamId, new ByteArrayInputStream(new byte[] {0x42})));
             }
         });
 
         Optional<InputStream> stream = getStream(streamId);
         assertThat(stream).isPresent();
-        assertThat(stream.get()).isNotNull();
+        try (InputStream inputStream = stream.get()) {
+            assertThat(inputStream).isNotNull().hasBinaryContent(new byte[] {0x42});
+        }
     }
 
     @Test
