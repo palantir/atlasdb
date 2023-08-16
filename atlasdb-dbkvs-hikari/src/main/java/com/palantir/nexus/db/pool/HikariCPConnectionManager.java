@@ -17,8 +17,6 @@ package com.palantir.nexus.db.pool;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Streams;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -361,8 +359,9 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
         } catch (PoolInitializationException e) {
             // Intentionally ignoring suppressed exceptions
             // Keep duplicates to safeguard the full causality chain
-            List<Integer> vendorSqlErrorCodes = Streams.stream(
-                            Iterables.filter(Throwables.getCausalChain(e), SQLException.class))
+            List<Integer> vendorSqlErrorCodes = Throwables.getCausalChain(e).stream()
+                    .filter(SQLException.class::isInstance)
+                    .map(SQLException.class::cast)
                     .map(SQLException::getErrorCode)
                     .collect(Collectors.toList());
 
