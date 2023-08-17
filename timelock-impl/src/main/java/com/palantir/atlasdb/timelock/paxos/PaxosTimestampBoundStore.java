@@ -224,7 +224,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      */
     @Override
     public synchronized void storeUpperLimit(long limit) throws MultipleRunningTimestampServiceError {
-        Preconditions.checkState(hasLostLeadership, "Cannot store upper limit as leadership has been lost.");
+        Preconditions.checkState(!hasLostLeadership, "Cannot store upper limit as leadership has been lost.");
         long newSeq = PaxosAcceptor.NO_LOG_ENTRY + 1;
         if (agreedState != null) {
             Preconditions.checkArgument(
