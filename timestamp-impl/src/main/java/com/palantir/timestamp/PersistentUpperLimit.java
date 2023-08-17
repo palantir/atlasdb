@@ -16,9 +16,6 @@
 package com.palantir.timestamp;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.palantir.leader.NotCurrentLeaderException;
-import com.palantir.logsafe.Preconditions;
-import java.util.Optional;
 import javax.annotation.concurrent.GuardedBy;
 
 public class PersistentUpperLimit {
@@ -32,9 +29,6 @@ public class PersistentUpperLimit {
 
     @GuardedBy("this")
     private volatile long currentLimit;
-
-    @GuardedBy("this")
-    private volatile Optional<NotCurrentLeaderException> leadershipLostException = Optional.empty();
 
     private final TimestampBoundStore store;
 
@@ -64,17 +58,8 @@ public class PersistentUpperLimit {
     }
 
     private void storeUpperLimit(long upperLimit) {
-        Preconditions.checkState(
-                leadershipLostException.isEmpty(),
-                "Cannot store upper limit when not the leader",
-                leadershipLostException.get());
-        try {
-            DebugLogger.willStoreNewUpperLimit(upperLimit);
-            store.storeUpperLimit(upperLimit);
-            DebugLogger.didStoreNewUpperLimit(upperLimit);
-        } catch (NotCurrentLeaderException e) {
-            leadershipLostException = Optional.of(e);
-            throw e;
-        }
+        DebugLogger.willStoreNewUpperLimit(upperLimit);
+        store.storeUpperLimit(upperLimit);
+        DebugLogger.didStoreNewUpperLimit(upperLimit);
     }
 }
