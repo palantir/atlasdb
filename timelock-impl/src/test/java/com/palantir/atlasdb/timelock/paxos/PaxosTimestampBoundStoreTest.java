@@ -241,10 +241,19 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @Test
-    public void throwsIfBoundUnexpectedlyChangedUnderUs() {
+    public void throwsNotCurrentLeaderExceptionIfBoundUnexpectedlyChangedUnderUs() {
         PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(1);
         additionalStore.storeUpperLimit(TIMESTAMP_1);
         assertThatThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2)).isInstanceOf(NotCurrentLeaderException.class);
+    }
+
+    @Test
+    public void throwsSafeIllegalStateExceptionIfCalledAfterNotCurrentLeaderException() {
+        PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(1);
+        additionalStore.storeUpperLimit(TIMESTAMP_1);
+        assertThatThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2)).isInstanceOf(NotCurrentLeaderException.class);
+        assertThatLoggableExceptionThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2))
+                .isInstanceOf(SafeIllegalStateException.class);
     }
 
     @Test

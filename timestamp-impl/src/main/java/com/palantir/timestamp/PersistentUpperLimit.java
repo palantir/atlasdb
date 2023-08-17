@@ -16,7 +16,6 @@
 package com.palantir.timestamp;
 
 import com.google.common.annotations.VisibleForTesting;
-import javax.annotation.concurrent.GuardedBy;
 
 public class PersistentUpperLimit {
 
@@ -27,9 +26,7 @@ public class PersistentUpperLimit {
     @VisibleForTesting
     static final long BUFFER = 1_000_000;
 
-    @GuardedBy("this")
     private volatile long currentLimit;
-
     private final TimestampBoundStore store;
 
     public PersistentUpperLimit(TimestampBoundStore boundStore) {
