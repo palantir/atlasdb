@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -34,6 +35,7 @@ import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.ToggleableExceptionProxy;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
@@ -253,7 +255,8 @@ public class PaxosTimestampBoundStoreTest {
         additionalStore.storeUpperLimit(TIMESTAMP_1);
         assertThatThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2)).isInstanceOf(NotCurrentLeaderException.class);
         assertThatLoggableExceptionThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2))
-                .isInstanceOf(SafeIllegalStateException.class);
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("Cannot store upper limit as leadership has been lost.");
     }
 
     @Test

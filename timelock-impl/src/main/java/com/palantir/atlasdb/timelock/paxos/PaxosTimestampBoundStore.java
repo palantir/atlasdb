@@ -16,12 +16,12 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -39,10 +39,12 @@ import com.palantir.paxos.PaxosValue;
 import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
+
 import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
+
 import org.immutables.value.Value;
 
 public class PaxosTimestampBoundStore implements TimestampBoundStore {
@@ -113,14 +115,14 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     /**
      * Obtains agreement for a given sequence number, pulling in values from previous sequence numbers
      * if needed.
-     *
+     * <p>
      * The semantics of this method are as follows:
-     *  - If any learner knows that a value has already been agreed for this sequence number, return said value.
-     *  - Otherwise, poll learners for the state of the previous sequence number.
-     *     - If this is unavailable, the cluster must have agreed on (seq - 2), so read it and then force (seq - 1)
-     *       to that value.
-     *  - Finally, force agreement for seq to be the same value as that agreed for (seq - 1).
-     *
+     * - If any learner knows that a value has already been agreed for this sequence number, return said value.
+     * - Otherwise, poll learners for the state of the previous sequence number.
+     * - If this is unavailable, the cluster must have agreed on (seq - 2), so read it and then force (seq - 1)
+     * to that value.
+     * - Finally, force agreement for seq to be the same value as that agreed for (seq - 1).
+     * <p>
      * This method has a precondition that (seq - 2) must be agreed upon; note that numbers up to and including
      * PaxosAcceptor.NO_LOG_ENTRY are always considered agreed upon.
      *
@@ -149,16 +151,16 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      * Forces agreement to be reached for a given sequence number; if the cluster hasn't reached agreement yet,
      * attempts to propose a given value. This method only returns when a value has been agreed upon for the provided
      * sequence number (though there are no guarantees as to whether said value is proposed by this node).
-     *
+     * <p>
      * The semantics of this method are as follows:
-     *  - If any learner knows that a value has already been agreed for this sequence number, return said value.
-     *  - Otherwise, propose the value oldState to the cluster. This call returns the value accepted by a
-     *    quorum of nodes; return that value.
-     *
+     * - If any learner knows that a value has already been agreed for this sequence number, return said value.
+     * - Otherwise, propose the value oldState to the cluster. This call returns the value accepted by a
+     * quorum of nodes; return that value.
+     * <p>
      * Callers of this method that supply a null oldState are responsible for ensuring that the cluster has already
      * agreed on a value with the provided sequence number.
      *
-     * @param seq Sequence number to obtain agreement on
+     * @param seq      Sequence number to obtain agreement on
      * @param oldState Value to propose, provided no learner has learned a value for this sequence number
      * @return Sequence and bound for the given sequence number; guaranteed nonnull
      * @throws NullPointerException if oldState is null and the cluster hasn't agreed on a value for seq yet
@@ -178,7 +180,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
             try {
                 byte[] acceptedValue = proposer.propose(seq, oldState == null ? null : PtBytes.toBytes(oldState));
                 // propose must never return null.  We only pass in null for things we know are agreed upon already.
-                Preconditions.checkNotNull(acceptedValue, "Proposed value can't be null, but was in sequence %s", seq);
+                Preconditions.checkNotNull(acceptedValue, "Proposed value can't be null, but was in sequence", SafeArg.of("seq", seq));
                 return ImmutableSequenceAndBound.of(seq, PtBytes.toLong(acceptedValue));
             } catch (PaxosRoundFailureException e) {
                 waitForRandomBackoff(e, Thread::sleep);
@@ -219,7 +221,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      * PaxosAcceptor.NO_LOG_ENTRY + 1 if nothing has been proposed or accepted yet.
      *
      * @param limit the new upper limit to be stored
-     * @throws IllegalArgumentException if trying to persist a limit smaller than the agreed limit
+     * @throws IllegalArgumentException  if trying to persist a limit smaller than the agreed limit
      * @throws NotCurrentLeaderException if the timestamp limit has changed out from under us
      */
     @Override
@@ -229,9 +231,9 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         if (agreedState != null) {
             Preconditions.checkArgument(
                     limit >= agreedState.getBound(),
-                    "Tried to store an upper limit %s less than the current limit %s",
-                    limit,
-                    agreedState.getBound());
+                    "Tried to store an upper limit less than the current limit",
+                    SafeArg.of("proposedLimit", limit),
+                    SafeArg.of("currentLimit", agreedState.getBound()));
             newSeq = agreedState.getSeqId() + 1;
         }
         while (true) {
@@ -271,9 +273,9 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     /**
      * Checks that the PaxosValue agreed upon by a quorum of nodes in our cluster was proposed by us.
      *
-     * @param limit the limit our node has proposed
+     * @param limit  the limit our node has proposed
      * @param newSeq the sequence number for which our node has proposed the limit
-     * @param value PaxosValue agreed upon by a quorum of nodes, for sequence number newSeq
+     * @param value  PaxosValue agreed upon by a quorum of nodes, for sequence number newSeq
      * @throws NotCurrentLeaderException if the agreed timestamp bound (PaxosValue) changed under us
      */
     private void checkAgreedBoundIsOurs(long limit, long newSeq, PaxosValue value) throws NotCurrentLeaderException {
@@ -294,7 +296,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                 SafeArg.of("paxosValue", value));
     }
 
-    private void throwNotCurrentLeaderException(String message) {
+    private synchronized void throwNotCurrentLeaderException(String message) {
         hasLostLeadership = true;
         throw new NotCurrentLeaderException(message);
     }
@@ -305,7 +307,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      * to handle cases where users hold or do not hold monitor locks, for instance.
      *
      * @param paxosException the PaxosRoundFailureException that caused us to wait
-     * @param backoffAction the action to take (which consumes the time, in milliseconds, to wait for)
+     * @param backoffAction  the action to take (which consumes the time, in milliseconds, to wait for)
      */
     private void waitForRandomBackoff(PaxosRoundFailureException paxosException, BackoffAction backoffAction) {
         long backoffTime = getRandomBackoffTime();
