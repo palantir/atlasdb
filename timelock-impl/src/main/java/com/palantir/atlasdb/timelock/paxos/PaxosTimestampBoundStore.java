@@ -39,12 +39,10 @@ import com.palantir.paxos.PaxosValue;
 import com.palantir.timestamp.DebugLogger;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
-
 import java.util.List;
 import java.util.Optional;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
-
 import org.immutables.value.Value;
 
 public class PaxosTimestampBoundStore implements TimestampBoundStore {
@@ -115,14 +113,14 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     /**
      * Obtains agreement for a given sequence number, pulling in values from previous sequence numbers
      * if needed.
-     * <p>
+     *
      * The semantics of this method are as follows:
-     * - If any learner knows that a value has already been agreed for this sequence number, return said value.
-     * - Otherwise, poll learners for the state of the previous sequence number.
-     * - If this is unavailable, the cluster must have agreed on (seq - 2), so read it and then force (seq - 1)
-     * to that value.
-     * - Finally, force agreement for seq to be the same value as that agreed for (seq - 1).
-     * <p>
+     *  - If any learner knows that a value has already been agreed for this sequence number, return said value.
+     *  - Otherwise, poll learners for the state of the previous sequence number.
+     *     - If this is unavailable, the cluster must have agreed on (seq - 2), so read it and then force (seq - 1)
+     *       to that value.
+     *  - Finally, force agreement for seq to be the same value as that agreed for (seq - 1).
+     *
      * This method has a precondition that (seq - 2) must be agreed upon; note that numbers up to and including
      * PaxosAcceptor.NO_LOG_ENTRY are always considered agreed upon.
      *
@@ -151,16 +149,16 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      * Forces agreement to be reached for a given sequence number; if the cluster hasn't reached agreement yet,
      * attempts to propose a given value. This method only returns when a value has been agreed upon for the provided
      * sequence number (though there are no guarantees as to whether said value is proposed by this node).
-     * <p>
+     *
      * The semantics of this method are as follows:
-     * - If any learner knows that a value has already been agreed for this sequence number, return said value.
-     * - Otherwise, propose the value oldState to the cluster. This call returns the value accepted by a
-     * quorum of nodes; return that value.
-     * <p>
+     *  - If any learner knows that a value has already been agreed for this sequence number, return said value.
+     *  - Otherwise, propose the value oldState to the cluster. This call returns the value accepted by a
+     *    quorum of nodes; return that value.
+     *
      * Callers of this method that supply a null oldState are responsible for ensuring that the cluster has already
      * agreed on a value with the provided sequence number.
      *
-     * @param seq      Sequence number to obtain agreement on
+     * @param seq Sequence number to obtain agreement on
      * @param oldState Value to propose, provided no learner has learned a value for this sequence number
      * @return Sequence and bound for the given sequence number; guaranteed nonnull
      * @throws NullPointerException if oldState is null and the cluster hasn't agreed on a value for seq yet
@@ -180,7 +178,8 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
             try {
                 byte[] acceptedValue = proposer.propose(seq, oldState == null ? null : PtBytes.toBytes(oldState));
                 // propose must never return null.  We only pass in null for things we know are agreed upon already.
-                Preconditions.checkNotNull(acceptedValue, "Proposed value can't be null, but was in sequence", SafeArg.of("seq", seq));
+                Preconditions.checkNotNull(
+                        acceptedValue, "Proposed value can't be null, but was in sequence", SafeArg.of("seq", seq));
                 return ImmutableSequenceAndBound.of(seq, PtBytes.toLong(acceptedValue));
             } catch (PaxosRoundFailureException e) {
                 waitForRandomBackoff(e, Thread::sleep);
