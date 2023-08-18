@@ -220,7 +220,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      * PaxosAcceptor.NO_LOG_ENTRY + 1 if nothing has been proposed or accepted yet.
      *
      * @param limit the new upper limit to be stored
-     * @throws IllegalArgumentException  if trying to persist a limit smaller than the agreed limit
+     * @throws IllegalArgumentException if trying to persist a limit smaller than the agreed limit
      * @throws NotCurrentLeaderException if the timestamp limit has changed out from under us
      */
     @Override
@@ -272,9 +272,9 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     /**
      * Checks that the PaxosValue agreed upon by a quorum of nodes in our cluster was proposed by us.
      *
-     * @param limit  the limit our node has proposed
+     * @param limit the limit our node has proposed
      * @param newSeq the sequence number for which our node has proposed the limit
-     * @param value  PaxosValue agreed upon by a quorum of nodes, for sequence number newSeq
+     * @param value PaxosValue agreed upon by a quorum of nodes, for sequence number newSeq
      * @throws NotCurrentLeaderException if the agreed timestamp bound (PaxosValue) changed under us
      */
     private void checkAgreedBoundIsOurs(long limit, long newSeq, PaxosValue value) throws NotCurrentLeaderException {
@@ -306,7 +306,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      * to handle cases where users hold or do not hold monitor locks, for instance.
      *
      * @param paxosException the PaxosRoundFailureException that caused us to wait
-     * @param backoffAction  the action to take (which consumes the time, in milliseconds, to wait for)
+     * @param backoffAction the action to take (which consumes the time, in milliseconds, to wait for)
      */
     private void waitForRandomBackoff(PaxosRoundFailureException paxosException, BackoffAction backoffAction) {
         long backoffTime = getRandomBackoffTime();
