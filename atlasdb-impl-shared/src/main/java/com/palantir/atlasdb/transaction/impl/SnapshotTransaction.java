@@ -938,9 +938,27 @@ public class SnapshotTransaction extends AbstractTransaction
             TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells) {
         try {
             return Result.ok(getCache().getWithCachedRef(tableRef, cells, cacheLookupResult -> {
+                log.info(
+                        "Fetching cells from cache and delegating",
+                        SafeArg.of("expectedNumberOfPresentCells", expectedNumberOfPresentCells),
+                        SafeArg.of(
+                                "cachedCellsCount",
+                                cacheLookupResult.cacheHits().size()),
+                        SafeArg.of(
+                                "uncachedCellsCount",
+                                cacheLookupResult.missedCells().size()),
+                        UnsafeArg.of("cells", cells),
+                        UnsafeArg.of("cacheLookupResult", cacheLookupResult));
+
                 long cachedCellsWithNonEmptyValue = CellCountValidator.validateCacheAndGetNonEmptyValuesCount(
                         expectedNumberOfPresentCells, cacheLookupResult.cacheHits());
                 long numberOfCellsExpectingValuePostCache = expectedNumberOfPresentCells - cachedCellsWithNonEmptyValue;
+
+                log.info(
+                        "Number of expected cells after cached reference",
+                        SafeArg.of("originalExpectedNumberOfPresentCells", expectedNumberOfPresentCells),
+                        SafeArg.of("cachedCellsWithNonEmptyValues", cachedCellsWithNonEmptyValue),
+                        SafeArg.of("expectedAfterCache", numberOfCellsExpectingValuePostCache));
 
                 return getInternal(
                         "getWithExpectedNumberOfCells",
@@ -999,6 +1017,12 @@ public class SnapshotTransaction extends AbstractTransaction
 
         // We don't need to read any cells that were written locally.
         long expectedNumberOfPresentCellsToFetch = numberOfExpectedPresentCells - result.size();
+        log.info(
+                "Number of expected cells after local writes",
+                SafeArg.of("originalExpectedNumberOfPresentCells", numberOfExpectedPresentCells),
+                SafeArg.of("numberOfCellsWrittenLocally", result.size()),
+                SafeArg.of("expectedNumberOfPresentCells", expectedNumberOfPresentCellsToFetch),
+                UnsafeArg.of("localWrites", writes));
         return Futures.transform(
                 getFromKeyValueService(
                         tableRef,
