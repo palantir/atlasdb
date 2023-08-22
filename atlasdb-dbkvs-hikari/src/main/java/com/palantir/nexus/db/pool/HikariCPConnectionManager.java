@@ -366,7 +366,8 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                     .collect(Collectors.toList());
 
             log.error(
-                    "Failed to initialize hikari data source",
+                    "Failed to initialize hikari data source. Please be aware that vendor SQL error codes,"
+                            + " particularly for Postgres, can be unreliable.",
                     SafeArg.of("connectionPoolName", connConfig.getConnectionPoolName()),
                     SafeArg.of("vendorSqlErrorCodes", vendorSqlErrorCodes),
                     UnsafeArg.of("url", connConfig.getUrl()),
