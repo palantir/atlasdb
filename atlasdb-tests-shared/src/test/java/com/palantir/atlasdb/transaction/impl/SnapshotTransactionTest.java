@@ -145,8 +145,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.util.result.Result;
-import io.vavr.collection.HashMap;
-import io.vavr.collection.HashSet;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -1742,7 +1740,9 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         CacheMetrics metrics = mock(CacheMetrics.class);
         TransactionScopedCache emptyCache = TransactionScopedCacheImpl.create(
                 ValueCacheSnapshotImpl.of(
-                        HashMap.empty(), HashSet.of(TABLE_SWEPT_THOROUGH), ImmutableSet.of(TABLE_SWEPT_THOROUGH)),
+                        io.vavr.collection.HashMap.empty(),
+                        io.vavr.collection.HashSet.of(TABLE_SWEPT_THOROUGH),
+                        ImmutableSet.of(TABLE_SWEPT_THOROUGH)),
                 metrics);
         LockWatchManagerInternal mockLockWatchManager = mock(LockWatchManagerInternal.class);
         when(mockLockWatchManager.getTransactionScopedCache(anyLong())).thenReturn(emptyCache);
@@ -1939,11 +1939,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         CacheMetrics metrics = mock(CacheMetrics.class);
         return TransactionScopedCacheImpl.create(
                 ValueCacheSnapshotImpl.of(
-                        HashMap.ofAll(EntryStream.of(values)
+                        io.vavr.collection.HashMap.ofAll(EntryStream.of(values)
                                 .mapKeys(cell -> CellReference.of(table, cell))
                                 .mapValues(value -> CacheEntry.unlocked(CacheValue.of(value)))
                                 .toMap()),
-                        HashSet.of(table),
+                        io.vavr.collection.HashSet.of(table),
                         ImmutableSet.of(table)),
                 metrics);
     }
