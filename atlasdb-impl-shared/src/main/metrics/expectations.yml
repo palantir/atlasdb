@@ -23,3 +23,12 @@ namespaces:
       rowCommitLocksRequested:
         docs: Number of row-level commit locks requested as part of the commit protocol
         type: histogram
+      changeMetadataBuffered:
+        docs: Number of change metadata objects stored locally in the transaction
+        type: histogram
+      cellChangeMetadataSent:
+        docs: Number of change metadata objects attached to cell-level lock descriptors when requesting commit locks
+        type: histogram
+      rowChangeMetadataSent:
+        docs: Number of change metadata objects attached to row-level lock descriptors when requesting commit locks
+        type: histogram

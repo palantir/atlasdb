@@ -169,6 +169,10 @@ public abstract class TransactionManagers {
 
     abstract Set<Schema> schemas();
 
+    /**
+     * This method is not used and should not be overriden from the default. It only exists because deleting
+     * it would be an ABI break.
+     */
     @Value.Default
     Consumer<Object> registrar() {
         return resource -> {};
@@ -381,7 +385,6 @@ public abstract class TransactionManagers {
                         metricsManager,
                         config(),
                         runtime,
-                        registrar(),
                         () -> LockServiceImpl.create(lockServerOptions()),
                         atlasFactory::getManagedTimestampService,
                         atlasFactory.getTimestampStoreInvalidator(),
@@ -929,7 +932,6 @@ public abstract class TransactionManagers {
                         metricsManager,
                         config,
                         runtimeConfigSupplier,
-                        registrar,
                         lock,
                         time,
                         invalidator,

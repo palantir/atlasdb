@@ -98,13 +98,8 @@ public abstract class LeaderConfig {
     @Value.Check
     protected final void check() {
         Preconditions.checkState(
-                quorumSize() > leaders().size() / 2,
-                "The quorumSize must be over half the amount of leader entries.",
-                SafeArg.of("quorumSize", quorumSize()),
-                SafeArg.of("leaders", leaders()));
-        Preconditions.checkState(
-                leaders().size() >= quorumSize(),
-                "The quorumSize must be less than or equal to the amount of leader entries.",
+                quorumSize() == 1 && leaders().size() == 1,
+                "AtlasDb no longer supports multi-node embedded services",
                 SafeArg.of("quorumSize", quorumSize()),
                 SafeArg.of("leaders", leaders()));
         Preconditions.checkArgument(

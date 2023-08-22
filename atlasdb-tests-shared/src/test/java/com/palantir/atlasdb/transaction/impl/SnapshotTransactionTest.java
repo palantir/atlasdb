@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
@@ -65,6 +66,7 @@ import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -77,8 +79,10 @@ import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCacheImpl;
 import com.palantir.atlasdb.keyvalue.api.cache.ValueCacheSnapshotImpl;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
+import com.palantir.atlasdb.keyvalue.api.watch.LocksAndMetadata;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -103,8 +107,10 @@ import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutExc
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
 import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionWriteMetadataInfo;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.ToplistDeltaFilteringTableLevelMetricsController;
@@ -119,6 +125,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.proxy.MultiDelegateProxy;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.HeldLocksToken;
 import com.palantir.lock.LockClient;
@@ -132,6 +139,8 @@ import com.palantir.lock.TimeDuration;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.ChangeMetadata;
+import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -147,6 +156,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -345,6 +356,11 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     private static final Cell TEST_CELL_4 = Cell.create(PtBytes.toBytes("row4"), PtBytes.toBytes("column4"));
 
     private static final byte[] TEST_VALUE = PtBytes.toBytes("value");
+
+    private static final ChangeMetadata UPDATE_CHANGE_METADATA =
+            ChangeMetadata.updated(PtBytes.toBytes("abc"), PtBytes.toBytes("def"));
+    private static final ChangeMetadata DELETE_CHANGE_METADATA = ChangeMetadata.deleted(PtBytes.toBytes("old"));
+    private static final ChangeMetadata UNCHANGED_CHANGE_METADATA = ChangeMetadata.unchanged();
 
     @Override
     @Before
@@ -1515,7 +1531,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void commitThrowsIfCommitLockAcquisitionFails() {
         TimelockService timelockService = mock(TimelockService.class);
         when(timelockService.lock(any(), any())).thenReturn(LockResponse.timedOut());
-        Transaction txn = getSnapshotTransactionWith(timelockService);
+        Transaction txn = getSnapshotTransactionWith(timelockService, ImmutableMap.of());
 
         // We only request commit locks for transactions that write at least one value
         txn.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
@@ -2846,6 +2862,226 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         SafeArg.of("maxIterations", SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS));
     }
 
+    @Test
+    public void metadataIsTransferredToCellLocksForPutWithMetadata() {
+        TimelockService timelockService = spy(txManager.getTimelockService());
+        // Only locks cells
+        Transaction txn = getSnapshotTransactionWith(
+                timelockService,
+                ImmutableMap.of(TABLE, ConflictHandler.SERIALIZABLE_CELL, TABLE2, ConflictHandler.SERIALIZABLE_CELL));
+
+        txn.putWithMetadata(
+                TABLE,
+                ImmutableMap.of(
+                        TEST_CELL,
+                        ValueAndChangeMetadata.of(TEST_VALUE, UPDATE_CHANGE_METADATA),
+                        TEST_CELL_2,
+                        ValueAndChangeMetadata.of(TEST_VALUE, DELETE_CHANGE_METADATA)));
+        txn.putWithMetadata(
+                TABLE2, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, UNCHANGED_CHANGE_METADATA)));
+
+        LockDescriptor cellLock =
+                AtlasCellLockDescriptor.of(TABLE.getQualifiedName(), TEST_CELL.getRowName(), TEST_CELL.getColumnName());
+        LockDescriptor cellLock2 = AtlasCellLockDescriptor.of(
+                TABLE.getQualifiedName(), TEST_CELL_2.getRowName(), TEST_CELL_2.getColumnName());
+        LockDescriptor cellLock3 = AtlasCellLockDescriptor.of(
+                TABLE2.getQualifiedName(), TEST_CELL.getRowName(), TEST_CELL.getColumnName());
+        verifyLockWasCalledWithLocksAndMetadataWhenCommitting(
+                txn,
+                timelockService,
+                LocksAndMetadata.of(
+                        ImmutableSet.of(cellLock, cellLock2, cellLock3),
+                        Optional.of(LockRequestMetadata.of(ImmutableMap.of(
+                                cellLock,
+                                UPDATE_CHANGE_METADATA,
+                                cellLock2,
+                                DELETE_CHANGE_METADATA,
+                                cellLock3,
+                                UNCHANGED_CHANGE_METADATA)))));
+    }
+
+    @Test
+    public void metadataIsTransferredToCellLocksForDeleteWithMetadata() {
+        TimelockService timelockService = spy(txManager.getTimelockService());
+        // Only locks cells
+        Transaction txn = getSnapshotTransactionWith(
+                timelockService,
+                ImmutableMap.of(TABLE, ConflictHandler.SERIALIZABLE_CELL, TABLE2, ConflictHandler.SERIALIZABLE_CELL));
+
+        txn.deleteWithMetadata(
+                TABLE, ImmutableMap.of(TEST_CELL, UPDATE_CHANGE_METADATA, TEST_CELL_2, DELETE_CHANGE_METADATA));
+        txn.deleteWithMetadata(TABLE2, ImmutableMap.of(TEST_CELL, UNCHANGED_CHANGE_METADATA));
+
+        LockDescriptor cellLock =
+                AtlasCellLockDescriptor.of(TABLE.getQualifiedName(), TEST_CELL.getRowName(), TEST_CELL.getColumnName());
+        LockDescriptor cellLock2 = AtlasCellLockDescriptor.of(
+                TABLE.getQualifiedName(), TEST_CELL_2.getRowName(), TEST_CELL_2.getColumnName());
+        LockDescriptor cellLock3 = AtlasCellLockDescriptor.of(
+                TABLE2.getQualifiedName(), TEST_CELL.getRowName(), TEST_CELL.getColumnName());
+        verifyLockWasCalledWithLocksAndMetadataWhenCommitting(
+                txn,
+                timelockService,
+                LocksAndMetadata.of(
+                        ImmutableSet.of(cellLock, cellLock2, cellLock3),
+                        Optional.of(LockRequestMetadata.of(ImmutableMap.of(
+                                cellLock,
+                                UPDATE_CHANGE_METADATA,
+                                cellLock2,
+                                DELETE_CHANGE_METADATA,
+                                cellLock3,
+                                UNCHANGED_CHANGE_METADATA)))));
+    }
+
+    @Test
+    public void metadataIsTransferredToRowLocks() {
+        TimelockService timelockService = spy(txManager.getTimelockService());
+        // Only locks rows
+        Transaction txn = getSnapshotTransactionWith(
+                timelockService,
+                ImmutableMap.of(TABLE, ConflictHandler.SERIALIZABLE, TABLE2, ConflictHandler.SERIALIZABLE));
+
+        txn.put(TABLE, ImmutableMap.of(Cell.create(ROW_FOO, COL_A), TEST_VALUE));
+        txn.putWithMetadata(
+                TABLE,
+                ImmutableMap.of(
+                        Cell.create(ROW_FOO, COL_B), ValueAndChangeMetadata.of(TEST_VALUE, UPDATE_CHANGE_METADATA),
+                        Cell.create(ROW_BAR, COL_A), ValueAndChangeMetadata.of(TEST_VALUE, DELETE_CHANGE_METADATA)));
+        txn.putWithMetadata(
+                TABLE2, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, UNCHANGED_CHANGE_METADATA)));
+
+        LockDescriptor rowLock = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), ROW_FOO);
+        LockDescriptor rowLock2 = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), ROW_BAR);
+        LockDescriptor rowLock3 = AtlasRowLockDescriptor.of(TABLE2.getQualifiedName(), TEST_CELL.getRowName());
+        verifyLockWasCalledWithLocksAndMetadataWhenCommitting(
+                txn,
+                timelockService,
+                LocksAndMetadata.of(
+                        ImmutableSet.of(rowLock, rowLock2, rowLock3),
+                        Optional.of(LockRequestMetadata.of(ImmutableMap.of(
+                                rowLock,
+                                UPDATE_CHANGE_METADATA,
+                                rowLock2,
+                                DELETE_CHANGE_METADATA,
+                                rowLock3,
+                                UNCHANGED_CHANGE_METADATA)))));
+    }
+
+    @Test
+    public void metadataCanBeTransferredToCellAndRowLocksSimultaneously() {
+        TimelockService timelockService = spy(txManager.getTimelockService());
+        // locks both rows and cells
+        Transaction txn = getSnapshotTransactionWith(
+                timelockService, ImmutableMap.of(TABLE, ConflictHandler.SERIALIZABLE_LOCK_LEVEL_MIGRATION));
+
+        txn.putWithMetadata(
+                TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, UPDATE_CHANGE_METADATA)));
+
+        LockDescriptor rowLock = AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), TEST_CELL.getRowName());
+        LockDescriptor cellLock =
+                AtlasCellLockDescriptor.of(TABLE.getQualifiedName(), TEST_CELL.getRowName(), TEST_CELL.getColumnName());
+        verifyLockWasCalledWithLocksAndMetadataWhenCommitting(
+                txn,
+                timelockService,
+                LocksAndMetadata.of(
+                        ImmutableSet.of(rowLock, cellLock),
+                        Optional.of(LockRequestMetadata.of(
+                                ImmutableMap.of(rowLock, UPDATE_CHANGE_METADATA, cellLock, UPDATE_CHANGE_METADATA)))));
+    }
+
+    @Test
+    public void noMetadataResultsInEmptyOptional() {
+        TimelockService timelockService = spy(txManager.getTimelockService());
+        Transaction txn =
+                getSnapshotTransactionWith(timelockService, ImmutableMap.of(TABLE, ConflictHandler.SERIALIZABLE));
+        txn.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
+        verifyLockWasCalledWithLocksAndMetadataWhenCommitting(
+                txn,
+                timelockService,
+                LocksAndMetadata.of(
+                        ImmutableSet.of(AtlasRowLockDescriptor.of(TABLE.getQualifiedName(), TEST_CELL.getRowName())),
+                        Optional.empty()));
+    }
+
+    @Test
+    public void lockCollectionWithoutMetadataIsCorrectForRandomWrites() {
+        long randomSeed = System.currentTimeMillis();
+        int numberOfRowsPerTable = 10;
+        int numberOfCellsPerRow = 10;
+        int maxWritesPerCell = 200;
+
+        Random random = new Random(randomSeed);
+        Map<TableReference, ConflictHandler> tableToConflictHandler = getTablesForAllConflictHandlers();
+        List<TableReference> tables = ImmutableList.copyOf(tableToConflictHandler.keySet());
+        TimelockService timelockService = spy(txManager.getTimelockService());
+        List<Cell> cells = generateCells(numberOfRowsPerTable, numberOfCellsPerRow);
+
+        Transaction txn = getSnapshotTransactionWith(timelockService, tableToConflictHandler);
+        Map<TableReference, Set<Cell>> cellsWithWrites = new HashMap<>();
+        for (int i = 0; i < maxWritesPerCell; i++) {
+            TableReference table = tables.get(random.nextInt(tables.size()));
+            Cell cell = cells.get(random.nextInt(cells.size()));
+            if (random.nextBoolean()) {
+                txn.put(table, ImmutableMap.of(cell, TEST_VALUE));
+            } else {
+                txn.delete(table, ImmutableSet.of(cell));
+            }
+            cellsWithWrites.computeIfAbsent(table, _unused -> new HashSet<>()).add(cell);
+        }
+
+        verifyLockWasCalledWithLocksAndMetadataWhenCommitting(
+                txn,
+                timelockService,
+                LocksAndMetadata.of(getExpectedLocks(tableToConflictHandler, cellsWithWrites), Optional.empty()),
+                "Expect locks to be passed to TimeLock. Random seed: " + randomSeed);
+    }
+
+    @Test
+    public void commitFailsIfMultipleCellsInSameRowHaveMetadataAndUsingRowLocks() {
+        overrideConflictHandlerForTable(TABLE, ConflictHandler.SERIALIZABLE);
+        Cell cell1 = Cell.create(ROW_BAR, COL_A);
+        Cell cell2 = Cell.create(ROW_BAR, COL_B);
+        Transaction txn = txManager.createNewTransaction();
+
+        txn.putWithMetadata(
+                TABLE,
+                ImmutableMap.of(
+                        cell1,
+                        ValueAndChangeMetadata.of(TEST_VALUE, UPDATE_CHANGE_METADATA),
+                        cell2,
+                        ValueAndChangeMetadata.of(TEST_VALUE, UPDATE_CHANGE_METADATA)));
+
+        assertThatLoggableExceptionThrownBy(txn::commit)
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasLogMessage("Two different cells in the same row have metadata and we create locks on row level.")
+                .hasExactlyArgs(
+                        LoggingArgs.tableRef(TABLE),
+                        UnsafeArg.of("rowName", cell1.getRowName()),
+                        UnsafeArg.of("newMetadata", UPDATE_CHANGE_METADATA));
+    }
+
+    @Test
+    public void reportsMetadataInfoCorrectly() {
+        overrideConflictHandlerForTable(TABLE, ConflictHandler.SERIALIZABLE);
+        overrideConflictHandlerForTable(TABLE2, ConflictHandler.SERIALIZABLE_LOCK_LEVEL_MIGRATION);
+        SnapshotTransaction txn = unwrapSnapshotTransaction(txManager.createNewTransaction());
+
+        txn.putWithMetadata(
+                TABLE, ImmutableMap.of(TEST_CELL, ValueAndChangeMetadata.of(TEST_VALUE, UPDATE_CHANGE_METADATA)));
+        txn.putWithMetadata(
+                TABLE2,
+                ImmutableMap.of(
+                        TEST_CELL,
+                        ValueAndChangeMetadata.of(TEST_VALUE, ChangeMetadata.unchanged()),
+                        TEST_CELL_2,
+                        ValueAndChangeMetadata.of(TEST_VALUE, ChangeMetadata.unchanged())));
+        txn.commit();
+
+        TransactionWriteMetadataInfo writeMetadataInfo = txn.getWriteMetadataInfo();
+        assertThat(writeMetadataInfo.changeMetadataBuffered()).isEqualTo(3);
+        assertThat(writeMetadataInfo.cellChangeMetadataSent()).isEqualTo(2);
+        assertThat(writeMetadataInfo.rowChangeMetadataSent()).isEqualTo(3);
+    }
+
     private void verifyPrefetchValidations(
             List<byte[]> rows,
             List<Cell> cells,
@@ -2955,12 +3191,18 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         transactionConfig = config;
     }
 
-    private Transaction getSnapshotTransactionWith(TimelockService timelockService) {
+    private Transaction getSnapshotTransactionWith(
+            TimelockService timelockService, Map<TableReference, ConflictHandler> tableConflictHandlers) {
         ConjureStartTransactionsResponse conjureResponse = startTransactionWithWatches();
         LockImmutableTimestampResponse lockImmutableTimestampResponse = conjureResponse.getImmutableTimestamp();
         long transactionTs = conjureResponse.getTimestamps().start();
         return getSnapshotTransactionWith(
-                timelockService, () -> transactionTs, lockImmutableTimestampResponse, unused -> {});
+                timelockService,
+                () -> transactionTs,
+                lockImmutableTimestampResponse,
+                unused -> {},
+                true,
+                tableConflictHandlers);
     }
 
     private Transaction getSnapshotTransactionWith(
@@ -3013,7 +3255,25 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             LockImmutableTimestampResponse lockImmutableTimestampResponse,
             PreCommitCondition preCommitCondition,
             boolean validateLocksOnReads) {
+        return getSnapshotTransactionWith(
+                timelockService,
+                startTs,
+                lockImmutableTimestampResponse,
+                preCommitCondition,
+                validateLocksOnReads,
+                ImmutableMap.of(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE));
+    }
+
+    private Transaction getSnapshotTransactionWith(
+            TimelockService timelockService,
+            Supplier<Long> startTs,
+            LockImmutableTimestampResponse lockImmutableTimestampResponse,
+            PreCommitCondition preCommitCondition,
+            boolean validateLocksOnReads,
+            Map<TableReference, ConflictHandler> tableConflictHandlers) {
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        Map<TableReference, Optional<ConflictHandler>> optTableConflictHandlers =
+                Maps.transformValues(tableConflictHandlers, Optional::of);
         SnapshotTransaction transaction = new SnapshotTransaction(
                 metricsManager,
                 keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
@@ -3022,8 +3282,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 startTs,
-                TestConflictDetectionManagers.createWithStaticConflictDetection(
-                        ImmutableMap.of(TABLE, Optional.of(ConflictHandler.RETRY_ON_WRITE_WRITE))),
+                TestConflictDetectionManagers.createWithStaticConflictDetection(optTableConflictHandlers),
                 SweepStrategyManagers.createDefault(keyValueService),
                 lockImmutableTimestampResponse.getImmutableTimestamp(),
                 Optional.of(lockImmutableTimestampResponse.getLock()),
@@ -3136,6 +3395,81 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 cleanup.run();
             }
         };
+    }
+
+    private static void verifyLockWasCalledWithLocksAndMetadataWhenCommitting(
+            Transaction txn, TimelockService spiedTimelockService, LocksAndMetadata locksAndMetadata) {
+        verifyLockWasCalledWithLocksAndMetadataWhenCommitting(
+                txn, spiedTimelockService, locksAndMetadata, "Expect locks and metadata to be passed to TimeLock");
+    }
+
+    private static void verifyLockWasCalledWithLocksAndMetadataWhenCommitting(
+            Transaction txn,
+            TimelockService spiedTimelockService,
+            LocksAndMetadata locksAndMetadata,
+            String assertionMessage) {
+        txn.commit();
+
+        verify(spiedTimelockService)
+                .lock(
+                        argThat(lockRequest -> {
+                            // We always acquire a lock on the transaction table
+                            Set<LockDescriptor> locksWithTransactionTableLock = new ImmutableSet.Builder<
+                                            LockDescriptor>()
+                                    .addAll(locksAndMetadata.lockDescriptors())
+                                    .add(AtlasRowLockDescriptor.of(
+                                            TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
+                                            TransactionConstants.getValueForTimestamp(txn.getTimestamp())))
+                                    .build();
+                            assertThat(lockRequest.getLockDescriptors())
+                                    .as(assertionMessage)
+                                    .containsExactlyInAnyOrderElementsOf(locksWithTransactionTableLock);
+                            assertThat(lockRequest.getMetadata())
+                                    .as(assertionMessage)
+                                    .isEqualTo(locksAndMetadata.metadata());
+                            return true;
+                        }),
+                        any());
+    }
+
+    private Map<TableReference, ConflictHandler> getTablesForAllConflictHandlers() {
+        int numberOfTables = ConflictHandler.values().length;
+        Namespace namespace = Namespace.create("all_conflict_handlers");
+        return KeyedStream.of(IntStream.range(0, numberOfTables).boxed())
+                .mapKeys(i -> {
+                    TableReference tableReference = TableReference.create(
+                            namespace, String.format("table_%d_%s", i, ConflictHandler.values()[i].name()));
+                    keyValueService.createTable(tableReference, AtlasDbConstants.GENERIC_TABLE_METADATA);
+                    return tableReference;
+                })
+                .map(i -> ConflictHandler.values()[i])
+                .collectToMap();
+    }
+
+    private static Set<LockDescriptor> getExpectedLocks(
+            Map<TableReference, ConflictHandler> tableToConflictHandler,
+            Map<TableReference, Set<Cell>> cellsWithWrites) {
+        ImmutableSet.Builder<LockDescriptor> locksBuilder = ImmutableSet.builder();
+        cellsWithWrites.forEach((table, writes) -> {
+            ConflictHandler conflictHandler = tableToConflictHandler.get(table);
+            writes.forEach(cell -> {
+                if (conflictHandler.lockCellsForConflicts()) {
+                    locksBuilder.add(AtlasCellLockDescriptor.of(
+                            table.getQualifiedName(), cell.getRowName(), cell.getColumnName()));
+                }
+                if (conflictHandler.lockRowsForConflicts()) {
+                    locksBuilder.add(AtlasRowLockDescriptor.of(table.getQualifiedName(), cell.getRowName()));
+                }
+            });
+        });
+        return locksBuilder.build();
+    }
+
+    private static List<Cell> generateCells(int numberOfRowsPerTable, int numberOfCellsPerRow) {
+        return IntStream.range(0, numberOfRowsPerTable * numberOfCellsPerRow)
+                .mapToObj(i ->
+                        Cell.create(PtBytes.toBytes("row" + (i % numberOfCellsPerRow)), PtBytes.toBytes("column" + i)))
+                .collect(Collectors.toUnmodifiableList());
     }
 
     private static class VerifyingKeyValueServiceDelegate extends ForwardingKeyValueService {

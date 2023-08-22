@@ -30,6 +30,7 @@ import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpec
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.BatchingVisitable;
+import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.util.result.Result;
 import java.util.Iterator;
 import java.util.Map;
@@ -311,12 +312,37 @@ public interface Transaction {
     void put(TableReference tableRef, Map<Cell, byte[]> values);
 
     /**
+     * Behaves like {@link Transaction#put}, but additionally stores {@link ChangeMetadata} for cells. This metadata is
+     * forwarded to TimeLock when acquiring locks at the beginning of the commit protocol.
+     * If two cells in the same row have metadata and the {@link ConflictHandler} for the table acquires row locks,
+     * {@link Transaction#commit} will fail.
+     *
+     * @param tableRef the table into which to put the values and metadata
+     * @param valuesAndMetadata the metadata-enriched values to append to the table
+     */
+    @Idempotent
+    void putWithMetadata(TableReference tableRef, Map<Cell, ValueAndChangeMetadata> valuesAndMetadata);
+
+    /**
      * Deletes values from the key-value store.
      * @param tableRef the table from which to delete the values
      * @param keys the set of cells to delete from the store
      */
     @Idempotent
     void delete(TableReference tableRef, Set<Cell> keys);
+
+    /**
+     * Behaves like {@link Transaction#delete}, but additionally stores {@link ChangeMetadata} for the deleted cells.
+     * This metadata is forwarded to TimeLock when acquiring locks at the beginning of the commit protocol.
+     * If two cells in the same row have metadata and the {@link ConflictHandler} for the table acquires row locks,
+     * {@link Transaction#commit} will fail.
+     *
+     * @param tableRef the table from which to delete the values and for which to store metadata
+     * @param keysWithMetadata the cells to delete associated with the metadata that should be stored for
+     * them
+     */
+    @Idempotent
+    void deleteWithMetadata(TableReference tableRef, Map<Cell, ChangeMetadata> keysWithMetadata);
 
     @Idempotent
     TransactionType getTransactionType();

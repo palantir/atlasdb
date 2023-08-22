@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Fixes bug where timelock would contend with itself.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6693

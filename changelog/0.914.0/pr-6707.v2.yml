@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Reverts fix for paxos contending with itself.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6707

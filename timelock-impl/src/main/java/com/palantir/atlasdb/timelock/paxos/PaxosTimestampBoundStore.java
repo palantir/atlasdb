@@ -16,12 +16,12 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Ordering;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -57,6 +57,9 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
 
     @GuardedBy("this")
     private SequenceAndBound agreedState;
+
+    @GuardedBy("this")
+    private boolean hasLostLeadership = false;
 
     public PaxosTimestampBoundStore(
             PaxosProposer proposer,
@@ -175,7 +178,8 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
             try {
                 byte[] acceptedValue = proposer.propose(seq, oldState == null ? null : PtBytes.toBytes(oldState));
                 // propose must never return null.  We only pass in null for things we know are agreed upon already.
-                Preconditions.checkNotNull(acceptedValue, "Proposed value can't be null, but was in sequence %s", seq);
+                Preconditions.checkNotNull(
+                        acceptedValue, "Proposed value can't be null, but was in sequence", SafeArg.of("seq", seq));
                 return ImmutableSequenceAndBound.of(seq, PtBytes.toLong(acceptedValue));
             } catch (PaxosRoundFailureException e) {
                 waitForRandomBackoff(e, Thread::sleep);
@@ -221,13 +225,14 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      */
     @Override
     public synchronized void storeUpperLimit(long limit) throws MultipleRunningTimestampServiceError {
+        Preconditions.checkState(!hasLostLeadership, "Cannot store upper limit as leadership has been lost.");
         long newSeq = PaxosAcceptor.NO_LOG_ENTRY + 1;
         if (agreedState != null) {
             Preconditions.checkArgument(
                     limit >= agreedState.getBound(),
-                    "Tried to store an upper limit %s less than the current limit %s",
-                    limit,
-                    agreedState.getBound());
+                    "Tried to store an upper limit less than the current limit",
+                    SafeArg.of("proposedLimit", limit),
+                    SafeArg.of("currentLimit", agreedState.getBound()));
             newSeq = agreedState.getSeqId() + 1;
         }
         while (true) {
@@ -252,7 +257,8 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                                     + " lost and regained leadership. For safety, we are now stopping this service.",
                             SafeArg.of("newLimit", newLimit),
                             SafeArg.of("target", limit));
-                    throw new NotCurrentLeaderException(String.format(
+
+                    throwNotCurrentLeaderException(String.format(
                             "We updated the timestamp limit to %s, which was less than our target %s.",
                             newLimit, limit));
                 }
@@ -280,13 +286,18 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                             + " The offending bound was '%s'; we tried to propose"
                             + " a bound of '%s'. (The offending Paxos value was '%s'.)",
                     newSeq, value.getLeaderUUID(), proposer.getUuid(), PtBytes.toLong(value.getData()), limit, value);
-            throw new NotCurrentLeaderException(errorMsg);
+            throwNotCurrentLeaderException(errorMsg);
         }
         DebugLogger.logger.info(
                 "Trying to store limit '{}' for sequence '{}' yielded consensus on the value '{}'.",
                 SafeArg.of("limit", limit),
                 SafeArg.of("paxosSequenceNumber", newSeq),
                 SafeArg.of("paxosValue", value));
+    }
+
+    private synchronized void throwNotCurrentLeaderException(String message) {
+        hasLostLeadership = true;
+        throw new NotCurrentLeaderException(message);
     }
 
     /**

@@ -22,7 +22,6 @@ import com.codahale.metrics.Histogram;
 import com.codahale.metrics.Timer;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Functions;
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.AbstractIterator;
@@ -72,6 +71,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
+import com.palantir.atlasdb.keyvalue.api.watch.LocksAndMetadata;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
@@ -97,10 +97,15 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
 import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
+import com.palantir.atlasdb.transaction.api.expectations.ExpectationsData;
+import com.palantir.atlasdb.transaction.api.expectations.ImmutableExpectationsData;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionCommitLockInfo;
+import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionWriteMetadataInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionWriteMetadataInfo;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
 import com.palantir.atlasdb.transaction.impl.expectations.CellCountValidator;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
@@ -133,6 +138,8 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.watch.ChangeMetadata;
+import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -161,7 +168,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.NavigableSet;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
@@ -172,7 +178,6 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
@@ -254,10 +259,9 @@ public class SnapshotTransaction extends AbstractTransaction
     private final PreCommitCondition preCommitCondition;
     protected final long timeCreated = System.currentTimeMillis();
 
-    protected final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> writesByTable =
-            new ConcurrentHashMap<>();
+    protected final LocalWriteBuffer localWriteBuffer = new LocalWriteBuffer();
+
     protected final TransactionConflictDetectionManager conflictDetectionManager;
-    private final AtomicLong byteCount = new AtomicLong();
 
     private final AtlasDbConstraintCheckingMode constraintCheckingMode;
 
@@ -284,6 +288,8 @@ public class SnapshotTransaction extends AbstractTransaction
     private final ExpectationsMetrics expectationsDataCollectionMetrics;
     private volatile long cellCommitLocksRequested = 0L;
     private volatile long rowCommitLocksRequested = 0L;
+    private volatile long cellChangeMetadataSent = 0L;
+    private volatile long rowChangeMetadataSent = 0L;
 
     protected volatile boolean hasReads;
 
@@ -445,7 +451,7 @@ public class SnapshotTransaction extends AbstractTransaction
         ImmutableSortedMap.Builder<Cell, byte[]> result = ImmutableSortedMap.naturalOrder();
         Map<Cell, Value> rawResults =
                 new HashMap<>(keyValueService.getRows(tableRef, rows, columnSelection, getStartTimestamp()));
-        NavigableMap<Cell, byte[]> writes = writesByTable.get(tableRef);
+        NavigableMap<Cell, byte[]> writes = localWriteBuffer.getLocalWrites().get(tableRef);
         if (writes != null && !writes.isEmpty()) {
             for (byte[] row : rows) {
                 extractLocalWritesForRow(result, writes, row, columnSelection);
@@ -981,7 +987,7 @@ public class SnapshotTransaction extends AbstractTransaction
         hasReads = true;
 
         Map<Cell, byte[]> result = new HashMap<>();
-        Map<Cell, byte[]> writes = writesByTable.get(tableRef);
+        Map<Cell, byte[]> writes = localWriteBuffer.getLocalWrites().get(tableRef);
         if (writes != null && !writes.isEmpty()) {
             for (Cell cell : cells) {
                 byte[] value = writes.get(cell);
@@ -1424,10 +1430,6 @@ public class SnapshotTransaction extends AbstractTransaction
         return ClosableIterators.wrap(rows, results);
     }
 
-    private ConcurrentNavigableMap<Cell, byte[]> getLocalWrites(TableReference tableRef) {
-        return writesByTable.computeIfAbsent(tableRef, unused -> new ConcurrentSkipListMap<>());
-    }
-
     /**
      * This includes deleted writes as zero length byte arrays, be sure to strip them out.
      *
@@ -1436,7 +1438,7 @@ public class SnapshotTransaction extends AbstractTransaction
      */
     private SortedMap<Cell, byte[]> getLocalWritesForRange(
             TableReference tableRef, byte[] startRow, byte[] endRow, SortedSet<byte[]> selectedColumns) {
-        SortedMap<Cell, byte[]> writes = getLocalWrites(tableRef);
+        SortedMap<Cell, byte[]> writes = localWriteBuffer.getLocalWritesForTable(tableRef);
         if (startRow.length != 0) {
             writes = writes.tailMap(Cells.createSmallestCellForRow(startRow));
         }
@@ -1451,7 +1453,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private SortedMap<Cell, byte[]> getLocalWritesForColumnRange(
             TableReference tableRef, BatchColumnRangeSelection columnRangeSelection, byte[] row) {
-        SortedMap<Cell, byte[]> writes = getLocalWrites(tableRef);
+        SortedMap<Cell, byte[]> writes = localWriteBuffer.getLocalWritesForTable(tableRef);
         Cell startCell;
         if (columnRangeSelection.getStartCol().length != 0) {
             startCell = Cell.create(row, columnRangeSelection.getStartCol());
@@ -1818,18 +1820,42 @@ public class SnapshotTransaction extends AbstractTransaction
 
     @Override
     public final void delete(TableReference tableRef, Set<Cell> cells) {
+        deleteWithMetadataInternal(tableRef, cells, ImmutableMap.of());
+    }
+
+    @Override
+    public void deleteWithMetadata(TableReference tableRef, Map<Cell, ChangeMetadata> cellsWithMetadata) {
+        deleteWithMetadataInternal(tableRef, cellsWithMetadata.keySet(), cellsWithMetadata);
+    }
+
+    private void deleteWithMetadataInternal(
+            TableReference tableRef, Set<Cell> cells, Map<Cell, ChangeMetadata> metadata) {
         getCache().delete(tableRef, cells);
-        putInternal(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY));
+        writeToLocalBuffer(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY), metadata);
     }
 
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values) {
-        ensureNoEmptyValues(values);
-        getCache().write(tableRef, values);
-        putInternal(tableRef, values);
+        putWithMetadataInternal(tableRef, values, ImmutableMap.of());
     }
 
-    public void putInternal(TableReference tableRef, Map<Cell, byte[]> values) {
+    @Override
+    public void putWithMetadata(TableReference tableRef, Map<Cell, ValueAndChangeMetadata> valuesAndMetadata) {
+        putWithMetadataInternal(
+                tableRef,
+                Maps.transformValues(valuesAndMetadata, ValueAndChangeMetadata::value),
+                Maps.transformValues(valuesAndMetadata, ValueAndChangeMetadata::metadata));
+    }
+
+    private void putWithMetadataInternal(
+            TableReference tableRef, Map<Cell, byte[]> values, Map<Cell, ChangeMetadata> metadata) {
+        ensureNoEmptyValues(values);
+        getCache().write(tableRef, values);
+        writeToLocalBuffer(tableRef, values, metadata);
+    }
+
+    private void writeToLocalBuffer(
+            TableReference tableRef, Map<Cell, byte[]> values, Map<Cell, ChangeMetadata> metadata) {
         Preconditions.checkArgument(!AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
         markTableAsInvolvedInThisTransaction(tableRef);
 
@@ -1842,9 +1868,7 @@ public class SnapshotTransaction extends AbstractTransaction
             // We need to check the status after incrementing writers to ensure that we fail if we are committing.
             ensureUncommitted();
 
-            ConcurrentNavigableMap<Cell, byte[]> writes = getLocalWrites(tableRef);
-
-            putWritesAndLogIfTooLarge(values, writes);
+            localWriteBuffer.putLocalWritesAndMetadata(tableRef, values, metadata);
         } finally {
             numWriters.decrementAndGet();
         }
@@ -1855,29 +1879,6 @@ public class SnapshotTransaction extends AbstractTransaction
             if ((cellEntry.getValue() == null) || (cellEntry.getValue().length == 0)) {
                 throw new SafeIllegalArgumentException(
                         "AtlasDB does not currently support inserting null or empty (zero-byte) values.");
-            }
-        }
-    }
-
-    private void putWritesAndLogIfTooLarge(Map<Cell, byte[]> values, SortedMap<Cell, byte[]> writes) {
-        for (Map.Entry<Cell, byte[]> e : values.entrySet()) {
-            byte[] val = MoreObjects.firstNonNull(e.getValue(), PtBytes.EMPTY_BYTE_ARRAY);
-            Cell cell = e.getKey();
-            if (writes.put(cell, val) == null) {
-                long toAdd = val.length + Cells.getApproxSizeOfCell(cell);
-                long newVal = byteCount.addAndGet(toAdd);
-                if (newVal >= TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES
-                        && newVal - toAdd < TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES) {
-                    log.warn(
-                            "A single transaction has put quite a few bytes: {}. "
-                                    + "Enable debug logging for more information",
-                            SafeArg.of("numBytes", newVal));
-                    if (log.isDebugEnabled()) {
-                        log.debug(
-                                "This exception and stack trace are provided for debugging purposes.",
-                                new RuntimeException());
-                    }
-                }
             }
         }
     }
@@ -2038,14 +2039,14 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private void checkConstraints() {
-        if (writesByTable.isEmpty()) {
+        if (localWriteBuffer.getLocalWrites().isEmpty()) {
             // avoid work in cases where constraints do not apply (e.g. read only transactions)
             return;
         }
 
         List<String> violations = new ArrayList<>();
         for (Map.Entry<TableReference, ConstraintCheckable> entry : constraintsByTableName.entrySet()) {
-            Map<Cell, byte[]> writes = writesByTable.get(entry.getKey());
+            Map<Cell, byte[]> writes = localWriteBuffer.getLocalWrites().get(entry.getKey());
             if (writes != null && !writes.isEmpty()) {
                 List<String> failures = entry.getValue().findConstraintFailures(writes, this, constraintCheckingMode);
                 if (!failures.isEmpty()) {
@@ -2101,7 +2102,9 @@ public class SnapshotTransaction extends AbstractTransaction
 
                 // Write to the targeted sweep queue. We must do this before writing to the key value service -
                 // otherwise we may have hanging values that targeted sweep won't know about.
-                timedAndTraced("writingToSweepQueue", () -> sweepQueue.enqueue(writesByTable, getStartTimestamp()));
+                timedAndTraced(
+                        "writingToSweepQueue",
+                        () -> sweepQueue.enqueue(localWriteBuffer.getLocalWrites(), getStartTimestamp()));
 
                 // Introduced for txn4 - Prevents sweep from making progress beyond immutableTs before entries were
                 // put into the sweep queue. This ensures that sweep must process writes to the sweep queue done by
@@ -2110,7 +2113,9 @@ public class SnapshotTransaction extends AbstractTransaction
 
                 // Write to the key value service. We must do this before getting the commit timestamp - otherwise
                 // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
-                timedAndTraced("commitWrite", () -> keyValueService.multiPut(writesByTable, getStartTimestamp()));
+                timedAndTraced(
+                        "commitWrite",
+                        () -> keyValueService.multiPut(localWriteBuffer.getLocalWrites(), getStartTimestamp()));
 
                 // Now that all writes are done, get the commit timestamp
                 // We must do this before we check that our locks are still valid to ensure that other transactions that
@@ -2154,7 +2159,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
                 getTimer("commitTotalTimeSinceTxCreation").update(Duration.of(microsSinceCreation, ChronoUnit.MICROS));
                 getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN)
-                        .update(byteCount.get());
+                        .update(localWriteBuffer.getValuesByteCount());
             } finally {
                 // Not timed because tryUnlock() is an asynchronous operation.
                 traced("postCommitUnlock", () -> timelockService.tryUnlock(ImmutableSet.of(commitLocksToken)));
@@ -2186,8 +2191,9 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private boolean hasWrites() {
-        return !writesByTable.isEmpty()
-                && writesByTable.values().stream().anyMatch(writesForTable -> !writesForTable.isEmpty());
+        return !localWriteBuffer.getLocalWrites().isEmpty()
+                && localWriteBuffer.getLocalWrites().values().stream()
+                        .anyMatch(writesForTable -> !writesForTable.isEmpty());
     }
 
     protected boolean hasReads() {
@@ -2260,7 +2266,8 @@ public class SnapshotTransaction extends AbstractTransaction
      */
     protected void throwIfConflictOnCommit(LockToken commitLocksToken, TransactionService transactionService)
             throws TransactionConflictException {
-        for (Map.Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> write : writesByTable.entrySet()) {
+        for (Map.Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> write :
+                localWriteBuffer.getLocalWrites().entrySet()) {
             ConflictHandler conflictHandler = getConflictHandlerForTable(write.getKey());
             throwIfWriteAlreadyCommitted(
                     write.getKey(), write.getValue(), conflictHandler, commitLocksToken, transactionService);
@@ -2522,12 +2529,13 @@ public class SnapshotTransaction extends AbstractTransaction
      * This method should acquire any locks needed to do proper concurrency control at commit time.
      */
     protected LockToken acquireLocksForCommit() {
-        Set<LockDescriptor> lockDescriptors = getLocksForWrites();
+        LocksAndMetadata locksAndMetadata = getLocksAndMetadataForWrites();
+        Set<LockDescriptor> lockDescriptors = locksAndMetadata.lockDescriptors();
         TransactionConfig currentTransactionConfig = transactionConfig.get();
 
         // TODO(fdesouza): Revert this once PDS-95791 is resolved.
         long lockAcquireTimeoutMillis = currentTransactionConfig.getLockAcquireTimeoutMillis();
-        LockRequest request = LockRequest.of(lockDescriptors, lockAcquireTimeoutMillis);
+        LockRequest request = LockRequest.of(lockDescriptors, lockAcquireTimeoutMillis, locksAndMetadata.metadata());
 
         RuntimeException stackTraceSnapshot = new SafeRuntimeException("I exist to show you the stack trace");
         LockResponse lockResponse = timelockService.lock(
@@ -2573,38 +2581,108 @@ public class SnapshotTransaction extends AbstractTransaction
                 stackTraceSnapshot);
     }
 
-    protected Set<LockDescriptor> getLocksForWrites() {
-        Set<LockDescriptor> result = new HashSet<>();
+    protected LocksAndMetadata getLocksAndMetadataForWrites() {
+        ImmutableSet.Builder<LockDescriptor> lockDescriptorSetBuilder = ImmutableSet.builder();
+        ImmutableMap.Builder<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadataBuilder =
+                ImmutableMap.builder();
         long cellLockCount = 0L;
         long rowLockCount = 0L;
-        for (TableReference tableRef : writesByTable.keySet()) {
+        long cellChangeMetadataCount = 0L;
+        long rowChangeMetadataCount = 0L;
+        for (TableReference tableRef : localWriteBuffer.getLocalWrites().keySet()) {
             ConflictHandler conflictHandler = getConflictHandlerForTable(tableRef);
             if (conflictHandler.lockCellsForConflicts()) {
-                NavigableSet<Cell> cellsToLock = getLocalWrites(tableRef).keySet();
-                for (Cell cell : cellsToLock) {
-                    result.add(AtlasCellLockDescriptor.of(
-                            tableRef.getQualifiedName(), cell.getRowName(), cell.getColumnName()));
-                }
-                cellLockCount += cellsToLock.size();
+                LockAndChangeMetadataCount counts =
+                        collectCellLocks(lockDescriptorSetBuilder, lockDescriptorToChangeMetadataBuilder, tableRef);
+                cellLockCount += counts.lockCount();
+                cellChangeMetadataCount += counts.changeMetadataCount();
             }
-
             if (conflictHandler.lockRowsForConflicts()) {
-                Cell lastCell = null;
-                for (Cell cell : getLocalWrites(tableRef).keySet()) {
-                    if (lastCell == null || !Arrays.equals(lastCell.getRowName(), cell.getRowName())) {
-                        result.add(AtlasRowLockDescriptor.of(tableRef.getQualifiedName(), cell.getRowName()));
-                        rowLockCount++;
-                    }
-                    lastCell = cell;
-                }
+                LockAndChangeMetadataCount counts =
+                        collectRowLocks(lockDescriptorSetBuilder, lockDescriptorToChangeMetadataBuilder, tableRef);
+                rowLockCount += counts.lockCount();
+                rowChangeMetadataCount += counts.changeMetadataCount();
             }
         }
-        result.add(AtlasRowLockDescriptor.of(
+        lockDescriptorSetBuilder.add(AtlasRowLockDescriptor.of(
                 TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),
                 TransactionConstants.getValueForTimestamp(getStartTimestamp())));
+
         cellCommitLocksRequested = cellLockCount;
         rowCommitLocksRequested = rowLockCount + 1;
-        return result;
+        cellChangeMetadataSent = cellChangeMetadataCount;
+        rowChangeMetadataSent = rowChangeMetadataCount;
+
+        Map<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadata =
+                lockDescriptorToChangeMetadataBuilder.buildOrThrow();
+        return LocksAndMetadata.of(
+                lockDescriptorSetBuilder.build(),
+                // For now, lock request metadata only consists of change metadata. If it is absent, we can save
+                // computation by not doing an index encoding
+                lockDescriptorToChangeMetadata.isEmpty()
+                        ? Optional.empty()
+                        : Optional.of(LockRequestMetadata.of(lockDescriptorToChangeMetadata)));
+    }
+
+    private LockAndChangeMetadataCount collectCellLocks(
+            ImmutableSet.Builder<LockDescriptor> lockDescriptorSetBuilder,
+            ImmutableMap.Builder<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadataBuilder,
+            TableReference tableRef) {
+        long lockCount = 0;
+        long changeMetadataCount = 0;
+        Map<Cell, ChangeMetadata> changeMetadataForWrites = localWriteBuffer.getChangeMetadataForTable(tableRef);
+        for (Cell cell : localWriteBuffer.getLocalWritesForTable(tableRef).keySet()) {
+            LockDescriptor lockDescriptor =
+                    AtlasCellLockDescriptor.of(tableRef.getQualifiedName(), cell.getRowName(), cell.getColumnName());
+            lockDescriptorSetBuilder.add(lockDescriptor);
+            lockCount++;
+            if (changeMetadataForWrites.containsKey(cell)) {
+                lockDescriptorToChangeMetadataBuilder.put(lockDescriptor, changeMetadataForWrites.get(cell));
+                changeMetadataCount++;
+            }
+        }
+        return ImmutableLockAndChangeMetadataCount.of(lockCount, changeMetadataCount);
+    }
+
+    private LockAndChangeMetadataCount collectRowLocks(
+            ImmutableSet.Builder<LockDescriptor> lockDescriptorSetBuilder,
+            ImmutableMap.Builder<LockDescriptor, ChangeMetadata> lockDescriptorToChangeMetadataBuilder,
+            TableReference tableRef) {
+        long lockCount = 0;
+        long changeMetadataCount = 0;
+        Map<Cell, ChangeMetadata> changeMetadataForWrites = localWriteBuffer.getChangeMetadataForTable(tableRef);
+        Optional<byte[]> lastRow = Optional.empty();
+        Optional<byte[]> lastRowWithMetadata = Optional.empty();
+        Optional<LockDescriptor> currentRowDescriptor = Optional.empty();
+        for (Cell cell : localWriteBuffer.getLocalWritesForTable(tableRef).keySet()) {
+            if (lastRow.isEmpty() || !isSameRow(lastRow.get(), cell.getRowName())) {
+                // We are looking at the first cell of a new row
+                LockDescriptor rowLock = AtlasRowLockDescriptor.of(tableRef.getQualifiedName(), cell.getRowName());
+                lockDescriptorSetBuilder.add(rowLock);
+                currentRowDescriptor = Optional.of(rowLock);
+                lastRow = Optional.of(cell.getRowName());
+                lockCount++;
+            }
+            if (changeMetadataForWrites.containsKey(cell)) {
+                if (lastRowWithMetadata.isPresent() && isSameRow(lastRowWithMetadata.get(), cell.getRowName())) {
+                    throw new SafeIllegalStateException(
+                            "Two different cells in the same row have metadata and we create locks on row level.",
+                            LoggingArgs.tableRef(tableRef),
+                            UnsafeArg.of("rowName", cell.getRowName()),
+                            UnsafeArg.of("newMetadata", changeMetadataForWrites.get(cell)));
+                }
+                // At this point, currentRowDescriptor will always contain the row of the current cell
+                lockDescriptorToChangeMetadataBuilder.put(
+                        currentRowDescriptor.orElseThrow(), changeMetadataForWrites.get(cell));
+                lastRowWithMetadata = Optional.of(cell.getRowName());
+                changeMetadataCount++;
+            }
+        }
+        return ImmutableLockAndChangeMetadataCount.of(lockCount, changeMetadataCount);
+    }
+
+    private boolean isSameRow(byte[] rowA, byte[] rowB) {
+        return rowA != null && rowB != null && Arrays.equals(rowA, rowB);
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -2749,6 +2827,15 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     @Override
+    public TransactionWriteMetadataInfo getWriteMetadataInfo() {
+        return ImmutableTransactionWriteMetadataInfo.builder()
+                .changeMetadataBuffered(localWriteBuffer.changeMetadataCount())
+                .cellChangeMetadataSent(cellChangeMetadataSent)
+                .rowChangeMetadataSent(rowChangeMetadataSent)
+                .build();
+    }
+
+    @Override
     public void reportExpectationsCollectedData() {
         if (isStillRunning()) {
             log.error(
@@ -2757,25 +2844,37 @@ public class SnapshotTransaction extends AbstractTransaction
             return;
         }
 
-        reportExpectationsCollectedData(
-                getAgeMillis(), getReadInfo(), getCommitLockInfo(), expectationsDataCollectionMetrics);
+        ExpectationsData expectationsData = ImmutableExpectationsData.builder()
+                .ageMillis(getAgeMillis())
+                .readInfo(getReadInfo())
+                .commitLockInfo(getCommitLockInfo())
+                .writeMetadataInfo(getWriteMetadataInfo())
+                .build();
+        reportExpectationsCollectedData(expectationsData, expectationsDataCollectionMetrics);
     }
 
     @VisibleForTesting
-    static void reportExpectationsCollectedData(
-            long ageMillis,
-            TransactionReadInfo readInfo,
-            TransactionCommitLockInfo commitLockInfo,
-            ExpectationsMetrics metrics) {
-        metrics.ageMillis().update(ageMillis);
-        metrics.bytesRead().update(readInfo.bytesRead());
-        metrics.kvsReads().update(readInfo.kvsCalls());
+    static void reportExpectationsCollectedData(ExpectationsData expectationsData, ExpectationsMetrics metrics) {
+        metrics.ageMillis().update(expectationsData.ageMillis());
+        metrics.bytesRead().update(expectationsData.readInfo().bytesRead());
+        metrics.kvsReads().update(expectationsData.readInfo().kvsCalls());
 
-        readInfo.maximumBytesKvsCallInfo().ifPresent(kvsCallReadInfo -> metrics.mostKvsBytesReadInSingleCall()
-                .update(kvsCallReadInfo.bytesRead()));
+        expectationsData
+                .readInfo()
+                .maximumBytesKvsCallInfo()
+                .ifPresent(kvsCallReadInfo ->
+                        metrics.mostKvsBytesReadInSingleCall().update(kvsCallReadInfo.bytesRead()));
 
-        metrics.cellCommitLocksRequested().update(commitLockInfo.cellCommitLocksRequested());
-        metrics.rowCommitLocksRequested().update(commitLockInfo.rowCommitLocksRequested());
+        metrics.cellCommitLocksRequested()
+                .update(expectationsData.commitLockInfo().cellCommitLocksRequested());
+        metrics.rowCommitLocksRequested()
+                .update(expectationsData.commitLockInfo().rowCommitLocksRequested());
+        metrics.changeMetadataBuffered()
+                .update(expectationsData.writeMetadataInfo().changeMetadataBuffered());
+        metrics.cellChangeMetadataSent()
+                .update(expectationsData.writeMetadataInfo().cellChangeMetadataSent());
+        metrics.rowChangeMetadataSent()
+                .update(expectationsData.writeMetadataInfo().rowChangeMetadataSent());
     }
 
     private long getStartTimestamp() {
@@ -2799,7 +2898,8 @@ public class SnapshotTransaction extends AbstractTransaction
         Multimap<Cell, TableReference> cellToTableName = HashMultimap.create();
         State actualState = state.get();
         if (expectedState == actualState) {
-            for (Map.Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> entry : writesByTable.entrySet()) {
+            for (Map.Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> entry :
+                    localWriteBuffer.getLocalWrites().entrySet()) {
                 TableReference table = entry.getKey();
                 Set<Cell> cells = entry.getValue().keySet();
                 for (Cell c : cells) {
@@ -2816,7 +2916,8 @@ public class SnapshotTransaction extends AbstractTransaction
         Multimap<TableReference, Cell> tableRefToCells = HashMultimap.create();
         State actualState = state.get();
         if (expectedState == actualState) {
-            for (Map.Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> entry : writesByTable.entrySet()) {
+            for (Map.Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> entry :
+                    localWriteBuffer.getLocalWrites().entrySet()) {
                 TableReference table = entry.getKey();
                 Set<Cell> cells = entry.getValue().keySet();
                 tableRefToCells.putAll(table, cells);
