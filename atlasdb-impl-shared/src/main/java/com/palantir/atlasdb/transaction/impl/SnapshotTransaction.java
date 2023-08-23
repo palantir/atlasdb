@@ -988,17 +988,21 @@ public class SnapshotTransaction extends AbstractTransaction
 
         Map<Cell, byte[]> result = new HashMap<>();
         Map<Cell, byte[]> writes = localWriteBuffer.getLocalWrites().get(tableRef);
+        long numberOfNonDeleteLocalWrites = 0;
         if (writes != null && !writes.isEmpty()) {
             for (Cell cell : cells) {
                 byte[] value = writes.get(cell);
                 if (value != null) {
                     result.put(cell, value);
+                    if (value != PtBytes.EMPTY_BYTE_ARRAY) {
+                        numberOfNonDeleteLocalWrites++;
+                    }
                 }
             }
         }
 
         // We don't need to read any cells that were written locally.
-        long expectedNumberOfPresentCellsToFetch = numberOfExpectedPresentCells - result.size();
+        long expectedNumberOfPresentCellsToFetch = numberOfExpectedPresentCells - numberOfNonDeleteLocalWrites;
         return Futures.transform(
                 getFromKeyValueService(
                         tableRef,

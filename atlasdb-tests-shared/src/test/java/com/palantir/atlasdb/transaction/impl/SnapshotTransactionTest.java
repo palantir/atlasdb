@@ -1931,6 +1931,47 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                         eq("getWithExpectedNumberOfCells"), eq(TABLE_SWEPT_THOROUGH), any(), anyLong(), any(), any());
     }
 
+    @Test
+    public void canReadWithExpectedSizeOneAfterDeletingPresentCellAndWritingToAnother() {
+        putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
+
+        TimelockService spiedTimeLockService = spy(timelockService);
+        long transactionTs = spiedTimeLockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
+
+        Map<Cell, byte[]> cacheContent = Map.of(TEST_CELL, "someValue".getBytes(StandardCharsets.UTF_8));
+        TransactionScopedCache txnCache = createCacheWithEntries(TABLE_SWEPT_THOROUGH, cacheContent);
+
+        LockWatchManagerInternal mockLockWatchManager = mock(LockWatchManagerInternal.class);
+        when(mockLockWatchManager.getTransactionScopedCache(anyLong())).thenReturn(txnCache);
+
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        SnapshotTransaction spiedSnapshotTransaction =
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+        Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
+
+        // Deleting existing cell and writing to a new one to simulate change from LOCAL -> REMOTE or vice versa.
+        Map<Cell, byte[]> newCellValue = ImmutableMap.of(TEST_CELL_2, "someNewValue".getBytes(StandardCharsets.UTF_8));
+        transaction.put(TABLE_SWEPT_THOROUGH, newCellValue);
+        transaction.delete(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
+
+        Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> result =
+                transaction.getWithExpectedNumberOfCells(TABLE_SWEPT_THOROUGH, Set.of(TEST_CELL, TEST_CELL_2), 1);
+        assertThat(result.isOk()).isTrue();
+        assertThat(result.unwrap()).isEqualTo(newCellValue);
+
+        verify(spiedTimeLockService, never()).refreshLockLeases(any());
+        // No values cached after write and deletion, so expecting to try to fetch both.
+        verify(spiedSnapshotTransaction)
+                .getInternal(
+                        eq("getWithExpectedNumberOfCells"),
+                        eq(TABLE_SWEPT_THOROUGH),
+                        eq(Set.of(TEST_CELL, TEST_CELL_2)),
+                        eq(1L),
+                        any(),
+                        any());
+    }
+
     private TransactionScopedCache createCacheWithEntry(TableReference table, Cell cell, byte[] value) {
         return createCacheWithEntries(table, ImmutableMap.of(cell, value));
     }
