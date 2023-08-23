@@ -61,6 +61,7 @@ public class TransientRowsWorkflowsTest {
                             .isolationLevel(IsolationLevel.SERIALIZABLE)
                             .build())
                     .iterationCount(ITERATION_COUNT)
+                    .validateEveryNIterations(1)
                     .build();
 
     private final InteractiveTransactionStore transactionStore = AtlasDbTransactionStore.create(
@@ -68,8 +69,14 @@ public class TransientRowsWorkflowsTest {
             ImmutableMap.of(
                     TableReference.createWithEmptyNamespace(TABLE_NAME),
                     AtlasDbUtils.tableMetadata(IsolationLevel.SERIALIZABLE)));
+
+    private final AtomicReference<List<CrossCellInconsistency>> inconsistencies = new AtomicReference<>();
+
     private final Workflow transientRowsWorkflow = TransientRowsWorkflows.create(
-            transactionStore, CONFIGURATION, MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(1)));
+            transactionStore,
+            CONFIGURATION,
+            MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(1)),
+            inconsistencies::set);
     private final Invariant<List<CrossCellInconsistency>> invariant =
             TransientRowsWorkflows.getSummaryLogInvariantReporter(CONFIGURATION).invariant();
 
@@ -148,26 +155,26 @@ public class TransientRowsWorkflowsTest {
     @Test
     public void invariantReportsViolationsFromFinalStateWhenExtraCellsArePresent() {
         OnceSettableAtomicReference<List<CrossCellInconsistency>> reference = new OnceSettableAtomicReference<>();
-        WorkflowHistory history = transientRowsWorkflow.run();
         transactionStore.readWrite(txn -> txn.write(
                 TABLE_NAME,
                 ImmutableWorkloadCell.of(ITERATION_COUNT - 2, TransientRowsWorkflows.COLUMN),
                 TransientRowsWorkflows.VALUE));
+        WorkflowHistory history = transientRowsWorkflow.run();
         invariant.accept(history, reference::set);
-        assertThat(reference.get())
-                .containsExactly(CrossCellInconsistency.builder()
-                        .putInconsistentValues(
-                                TableAndWorkloadCell.of(
-                                        TABLE_NAME,
-                                        ImmutableWorkloadCell.of(ITERATION_COUNT - 2, TransientRowsWorkflows.COLUMN)),
-                                Optional.of(0))
-                        .putInconsistentValues(
-                                TableAndWorkloadCell.of(
-                                        TABLE_NAME,
-                                        ImmutableWorkloadCell.of(
-                                                TransientRowsWorkflows.SUMMARY_ROW, ITERATION_COUNT - 2)),
-                                Optional.empty())
-                        .build());
+        CrossCellInconsistency inconsistency = CrossCellInconsistency.builder()
+                .putInconsistentValues(
+                        TableAndWorkloadCell.of(
+                                TABLE_NAME,
+                                ImmutableWorkloadCell.of(ITERATION_COUNT - 2, TransientRowsWorkflows.COLUMN)),
+                        Optional.of(0))
+                .putInconsistentValues(
+                        TableAndWorkloadCell.of(
+                                TABLE_NAME,
+                                ImmutableWorkloadCell.of(TransientRowsWorkflows.SUMMARY_ROW, ITERATION_COUNT - 2)),
+                        Optional.empty())
+                .build();
+        assertThat(reference.get()).containsExactly(inconsistency);
+        assertThat(inconsistencies.get()).containsExactly(inconsistency);
     }
 
     @Test
