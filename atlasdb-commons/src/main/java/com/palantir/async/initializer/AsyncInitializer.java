@@ -43,6 +43,7 @@ public abstract class AsyncInitializer {
 
     /**
      * Initialization method that must be called to initialize the object before it is used.
+     *
      * @param initializeAsync If true, the object will be initialized asynchronously when synchronous initialization
      * fails.
      */
@@ -54,6 +55,7 @@ public abstract class AsyncInitializer {
         if (initializeAsync) {
             scheduleInitialization(Duration.ZERO);
         } else {
+            // TODO (jkong): Not enough.
             tryInitializeInternal();
         }
     }
@@ -133,7 +135,7 @@ public abstract class AsyncInitializer {
     /**
      * Cancels future initializations and registers a callback to be called if the initialization is happening and
      * succeeds. If the initialization has already successfully completed, runs the cleanup task synchronously.
-     *
+     * <p>
      * If the instance is closeable, it's recommended that the this method is invoked in a close call, and the callback
      * contains a call to the instance's close method.
      */

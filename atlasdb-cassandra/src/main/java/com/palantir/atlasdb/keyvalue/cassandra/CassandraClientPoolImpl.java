@@ -52,19 +52,19 @@ import one.util.streamex.EntryStream;
 
 /**
  * Feature breakdown:
- *   - Pooling
- *   - Token Aware Mapping / Query Routing / Data partitioning
- *   - Retriable Queries
- *   - Pool member error tracking / blacklisting*
- *   - Pool refreshing
- *   - Pool node autodiscovery
- *   - Pool member health checking*
- *
- *   *entirely new features
- *
- *   By our old system, this would be a
- *   RefreshingRetriableTokenAwareHealthCheckingManyHostCassandraClientPoolingContainerManager;
- *   ... this is one of the reasons why there is a new system.
+ * - Pooling
+ * - Token Aware Mapping / Query Routing / Data partitioning
+ * - Retriable Queries
+ * - Pool member error tracking / blacklisting*
+ * - Pool refreshing
+ * - Pool node autodiscovery
+ * - Pool member health checking*
+ * <p>
+ * *entirely new features
+ * <p>
+ * By our old system, this would be a
+ * RefreshingRetriableTokenAwareHealthCheckingManyHostCassandraClientPoolingContainerManager;
+ * ... this is one of the reasons why there is a new system.
  **/
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class CassandraClientPoolImpl implements CassandraClientPool {
@@ -290,6 +290,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         if (refreshPoolFuture != null) {
             refreshPoolFuture.cancel(true);
         }
+        // TODO (jkong): why not consistent with cleanUpOnInitFailure?
+        // TODO (jkong): This not being synchronized means race conditions with adding -> resource leaks
         cassandra.close();
         cassandra
                 .getPools()
@@ -365,9 +367,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Preconditions.checkState(
                 !getCurrentPools().isEmpty() || serversToAdd.isEmpty(),
                 "No servers were successfully added to the pool. This means we could not come to a consensus on"
-                    + " cluster topology, and the client cannot connect as there are no valid hosts. This state should"
-                    + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
-                    + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
+                        + " cluster topology, and the client cannot connect as there are no valid hosts. This state should"
+                        + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
+                        + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
                 SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())));
 
         logRefreshedHosts(validatedServersToAdd, serversToShutdown, absentServers);
@@ -391,6 +393,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Set<CassandraServer> serversToAddWithoutOrigin = serversToAdd.keySet();
         Map<CassandraServer, CassandraClientPoolingContainer> serversToAddContainers =
                 getContainerForNewServers(serversToAddWithoutOrigin);
+        // TODO (jkong): If we fail here, these CCPCs are not tracked anywhere, and are leaked.
 
         Preconditions.checkArgument(
                 Sets.intersection(currentContainers.keySet(), serversToAddContainers.keySet())
@@ -414,6 +417,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         Set<CassandraServer> validatedServersToAdd =
                 Sets.difference(serversToAddWithoutOrigin, newHostsWithDifferingTopology);
+        // TODO (jkong): As the for loop completes, these are now tracked by Cassandra
         validatedServersToAdd.forEach(server -> cassandra.addPool(server, serversToAddContainers.get(server)));
         newHostsWithDifferingTopology.forEach(
                 server -> absentHostTracker.trackAbsentCassandraServer(server, serversToAddContainers.get(server)));
