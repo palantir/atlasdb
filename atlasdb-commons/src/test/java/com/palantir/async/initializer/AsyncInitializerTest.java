@@ -17,14 +17,17 @@ package com.palantir.async.initializer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatCode;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.time.Duration;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -64,6 +67,23 @@ public class AsyncInitializerTest {
         }
     }
 
+    private static final class AlwaysSucceedingInitializer extends AsyncInitializer {
+        @Override
+        protected void tryInitialize() {
+            // do nothing
+        }
+
+        @Override
+        protected String getInitializingClassName() {
+            return AlwaysSucceedingInitializer.class.getName();
+        }
+
+        @Override
+        public void cleanUpOnInitFailure() {
+            throw new SafeIllegalStateException("Should never be called, since initialization does not fail.");
+        }
+    }
+
     private static final class DeterministicSchedulerShutdownAware extends DeterministicScheduler {
         private final AtomicInteger numberOfTimesShutdownCalled = new AtomicInteger(0);
 
@@ -74,13 +94,39 @@ public class AsyncInitializerTest {
     }
 
     @Test
-    public void synchronousInitializationPropagatesExceptionsAndDoesNotRetry() throws InterruptedException {
+    public void synchronousInitializationDoesNotRunCleanupTasksOnSuccess() {
+        // This is a bit crappy. However, the abstract class AsyncInitializer contains some internal state and it's
+        // not easy to mock that internal state, hence we use a stub subclass that works.
+        AsyncInitializer initializer = spy(new AlwaysSucceedingInitializer());
+        assertThatCode(() -> initializer.initialize(false)).doesNotThrowAnyException();
+        verify(initializer, never()).cleanUpOnInitFailure();
+        verify(initializer, never()).scheduleInitialization(any());
+    }
+
+    @Test
+    public void synchronousInitializationPropagatesExceptionsCleansUpAndDoesNotRetry() {
         AsyncInitializer initializer = getMockedInitializer();
 
         assertThatThrownBy(() -> initializer.initialize(false))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("Failed initializing");
         verify(initializer).tryInitialize();
+        verify(initializer).cleanUpOnInitFailure();
+        verify(initializer, never()).scheduleInitialization(any());
+    }
+
+    @Test
+    public void synchronousInitializationPropagatesCleanupFailuresAsSuppressedExceptions() {
+        AsyncInitializer initializer = getMockedInitializer();
+        RuntimeException cleanupFailure = new RuntimeException("cleanup");
+        doThrow(cleanupFailure).when(initializer).cleanUpOnInitFailure();
+
+        assertThatThrownBy(() -> initializer.initialize(false))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessage("Failed initializing")
+                .hasSuppressedException(cleanupFailure);
+        verify(initializer).tryInitialize();
+        verify(initializer).cleanUpOnInitFailure();
         verify(initializer, never()).scheduleInitialization(any());
     }
 
