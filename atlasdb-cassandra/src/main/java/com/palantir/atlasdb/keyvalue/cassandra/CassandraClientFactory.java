@@ -46,6 +46,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import org.apache.cassandra.thrift.AuthenticationRequest;
@@ -114,22 +115,30 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     }
 
     private Cassandra.Client getRawClientWithKeyspaceSet() throws TException {
-        Client ret = getRawClientWithTimedCreation();
+        UUID creationTrace = UUID.randomUUID();
+        log.info("Now creating client", SafeArg.of("creationTrace", creationTrace));
         try {
-            ret.set_keyspace(clientConfig.keyspace());
-            if (log.isDebugEnabled()) {
-                log.debug(
-                        "Created new client for {}/{}{}{}",
+            Client ret = getRawClientWithTimedCreation(creationTrace);
+            try {
+                ret.set_keyspace(clientConfig.keyspace());
+                log.info(
+                        "Created new client for {}/{}{}{} (creation trace: {})",
                         SafeArg.of("address", CassandraLogHelper.host(cassandraServer.proxy())),
                         UnsafeArg.of("keyspace", clientConfig.keyspace()),
                         SafeArg.of("usingSsl", clientConfig.usingSsl() ? " over SSL" : ""),
                         UnsafeArg.of(
                                 "usernameConfig",
-                                " as user " + clientConfig.credentials().username()));
+                                " as user " + clientConfig.credentials().username()),
+                        SafeArg.of("creationTrace", creationTrace),
+                        new SafeRuntimeException("I exist to show you the stack trace"));
+                return ret;
+            } catch (TException e) {
+                ret.getOutputProtocol().getTransport().close();
+                log.info("Failed to set keyspace on client", SafeArg.of("creationTrace", creationTrace), e);
+                throw e;
             }
-            return ret;
         } catch (TException e) {
-            ret.getOutputProtocol().getTransport().close();
+            log.info("Failed to create client", SafeArg.of("creationTrace", creationTrace), e);
             throw e;
         }
     }
@@ -150,10 +159,10 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                 .orElseGet(() -> (SSLSocketFactory) SSLSocketFactory.getDefault());
     }
 
-    private Cassandra.Client getRawClientWithTimedCreation() throws TException {
+    private Cassandra.Client getRawClientWithTimedCreation(UUID creationTrace) throws TException {
         Timer clientCreation = metricsManager.registerOrGetTimer(CassandraClientFactory.class, "clientCreation");
         try (Timer.Context timer = clientCreation.time()) {
-            return getRawClient(cassandraServer, clientConfig, sslSocketFactory, tSocketFactory);
+            return getRawClient(cassandraServer, clientConfig, sslSocketFactory, tSocketFactory, creationTrace);
         }
     }
 
@@ -161,12 +170,15 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
             CassandraServer cassandraServer,
             CassandraClientConfig clientConfig,
             SSLSocketFactory sslSocketFactory,
-            TSocketFactory tSocketFactory)
+            TSocketFactory tSocketFactory,
+            UUID creationTrace)
             throws TException {
         InetSocketAddress addr = cassandraServer.proxy();
+        log.info("Thinking about opening a thrift socket", SafeArg.of("creationTrace", creationTrace));
         TSocket thriftSocket =
                 tSocketFactory.create(addr.getHostString(), addr.getPort(), clientConfig.socketTimeoutMillis());
         thriftSocket.open();
+        log.info("Opened a thrift socket", SafeArg.of("creationTrace", creationTrace));
         setSocketOptions(
                 thriftSocket,
                 socket -> {
@@ -174,19 +186,25 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                     socket.getSocket().setSoTimeout(clientConfig.initialSocketQueryTimeoutMillis());
                 },
                 addr);
+        log.info("Set the socket options", SafeArg.of("creationTrace", creationTrace));
 
         if (clientConfig.usingSsl()) {
             boolean success = false;
             try {
                 SSLSocket socket = (SSLSocket) sslSocketFactory.createSocket(
                         thriftSocket.getSocket(), addr.getHostString(), addr.getPort(), true);
+                log.info("Created an ssl socket", SafeArg.of("creationTrace", creationTrace));
                 thriftSocket = tSocketFactory.create(socket);
+                log.info("Wrapped the ssl socket in a thrift socket", SafeArg.of("creationTrace", creationTrace));
                 verifyEndpoint(cassandraServer, socket, clientConfig.enableEndpointVerification());
+                log.info("Verified the endpoint", SafeArg.of("creationTrace", creationTrace));
                 success = true;
             } catch (IOException e) {
+                log.info("Caught an io exception somehow", SafeArg.of("creationTrace", creationTrace), e);
                 throw new TTransportException(e);
             } finally {
                 if (!success) {
+                    log.info("Closing the thrift socket because we didn't succeed", SafeArg.of("creationTrace", creationTrace));
                     thriftSocket.close();
                 }
             }
@@ -195,13 +213,16 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                 new TFramedTransport(thriftSocket, CassandraConstants.CLIENT_MAX_THRIFT_FRAME_SIZE_BYTES);
         TProtocol protocol = new TBinaryProtocol(thriftFramedTransport);
         Cassandra.Client client = new Cassandra.Client(protocol);
+        log.info("Created a cassandra client", SafeArg.of("creationTrace", creationTrace));
 
         try {
             login(client, clientConfig.credentials());
+            log.info("Logged in as our cassandra client", SafeArg.of("creationTrace", creationTrace));
             setSocketOptions(
                     thriftSocket,
                     socket -> socket.getSocket().setSoTimeout(clientConfig.socketQueryTimeoutMillis()),
                     addr);
+            log.info("Set our socket options on the cassandra client", SafeArg.of("creationTrace", creationTrace));
         } catch (TException e) {
             client.getOutputProtocol().getTransport().close();
             log.error("Exception thrown attempting to authenticate with config provided credentials", e);
@@ -223,7 +244,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
      * This will check both ip address/hostname, and uses the IP address associated with the socket, rather
      * that what has been provided. Hostname/ip address are both need to be checked, as historically we've
      * connected to Cassandra directly using IP addresses, and therefore need to support such cases.
-     *
+     * <p>
      * Will only throw when throwOnFailure is true, even if the socket is closed during verification.
      */
     @VisibleForTesting
@@ -283,7 +304,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         }
         try {
             TaskContext<Void> taskContext =
-                    TaskContext.createRunnable(() -> client.getObject().close(), () -> {});
+                    TaskContext.createRunnable(() -> client.getObject().close(), () -> {
+                    });
             timedRunner.run(taskContext);
         } catch (Throwable t) {
             if (log.isDebugEnabled()) {
