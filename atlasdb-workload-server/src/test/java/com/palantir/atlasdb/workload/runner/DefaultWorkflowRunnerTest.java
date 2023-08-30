@@ -16,21 +16,20 @@
 
 package com.palantir.atlasdb.workload.runner;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
+
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.workload.workflow.Workflow;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
-import one.util.streamex.EntryStream;
-import org.junit.Test;
-
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import one.util.streamex.EntryStream;
+import org.junit.Test;
 
 public class DefaultWorkflowRunnerTest {
 
