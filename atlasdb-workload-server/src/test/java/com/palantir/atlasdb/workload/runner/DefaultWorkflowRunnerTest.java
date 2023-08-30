@@ -16,10 +16,13 @@
 
 package com.palantir.atlasdb.workload.runner;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.workload.workflow.Workflow;
@@ -27,6 +30,7 @@ import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
+import one.util.streamex.EntryStream;
 import org.junit.Test;
 
 public class DefaultWorkflowRunnerTest {
@@ -48,7 +52,11 @@ public class DefaultWorkflowRunnerTest {
                 mock(Workflow.class), mock(WorkflowHistory.class), mock(Workflow.class), mock(WorkflowHistory.class));
         workflows.entrySet().forEach(entry -> when(entry.getKey().run()).thenReturn(entry.getValue()));
         DefaultWorkflowRunner runner = new DefaultWorkflowRunner(EXECUTOR_SERVICE);
-        Map<> runner.run(List.copyOf(workflows.keySet()));
-        workflows.forEach(workflow -> verify(workflow).run());
+        Map<Workflow, ListenableFuture<WorkflowHistory>> histories = runner.run(List.copyOf(workflows.keySet()));
+        workflows.keySet().forEach(workflow -> verify(workflow).run());
+        assertThat(EntryStream.of(histories)
+                        .mapValues(future -> Futures.getUnchecked(future))
+                        .toMap())
+                .containsExactlyEntriesOf(workflows);
     }
 }
