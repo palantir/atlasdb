@@ -117,8 +117,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     private Cassandra.Client getRawClientWithKeyspaceSet() throws TException {
         UUID creationTrace = UUID.randomUUID();
         SafeRuntimeException stackShower = new SafeRuntimeException("I exist to show you the stack trace");
-        log.info("Now creating client", SafeArg.of("creationTrace", creationTrace),
-                stackShower);
+        log.info("Now creating client", SafeArg.of("creationTrace", creationTrace), stackShower);
         try {
             Client ret = getRawClientWithTimedCreation(creationTrace);
             try {
@@ -151,7 +150,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                 cassandraServer,
                 clientConfig,
                 createSslSocketFactory(clientConfig.sslConfiguration()),
-                TSocketFactory.Default.INSTANCE));
+                TSocketFactory.Default.INSTANCE,
+                UUID.randomUUID()));
     }
 
     private static SSLSocketFactory createSslSocketFactory(Optional<SslConfiguration> sslConfiguration) {
@@ -206,7 +206,9 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                 throw new TTransportException(e);
             } finally {
                 if (!success) {
-                    log.info("Closing the thrift socket because we didn't succeed", SafeArg.of("creationTrace", creationTrace));
+                    log.info(
+                            "Closing the thrift socket because we didn't succeed",
+                            SafeArg.of("creationTrace", creationTrace));
                     thriftSocket.close();
                 }
             }
@@ -306,8 +308,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         }
         try {
             TaskContext<Void> taskContext =
-                    TaskContext.createRunnable(() -> client.getObject().close(), () -> {
-                    });
+                    TaskContext.createRunnable(() -> client.getObject().close(), () -> {});
             timedRunner.run(taskContext);
         } catch (Throwable t) {
             if (log.isDebugEnabled()) {
