@@ -30,7 +30,7 @@ import java.util.Map;
 public final class MoreCellsPresentThanExpectedException extends IllegalStateException implements SafeLoggable {
 
     private static final String MESSAGE =
-            "KeyValueService returned more results than Get expected. This means there is a bug"
+            "KeyValueService returned more results than Get expected. This means there is a bug "
                     + "either in the SnapshotTransaction implementation or in how the client is "
                     + "using such method.";
     private final List<Arg<?>> arguments;
