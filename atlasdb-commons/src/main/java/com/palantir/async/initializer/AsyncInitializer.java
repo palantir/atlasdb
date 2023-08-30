@@ -71,7 +71,6 @@ public abstract class AsyncInitializer {
             log.info(
                     "Failed to initialize {} after {} milliseconds",
                     SafeArg.of("className", getInitializingClassName()),
-                    SafeArg.of("numberOfAttempts", numberOfInitializationAttempts++),
                     SafeArg.of("initializationDuration", getMillisecondsSinceInitialization()),
                     throwable);
             try {
@@ -80,7 +79,6 @@ public abstract class AsyncInitializer {
                 log.error(
                         "Failed to cleanup when initialization of {} failed after {} milliseconds",
                         SafeArg.of("className", getInitializingClassName()),
-                        SafeArg.of("numberOfAttempts", numberOfInitializationAttempts),
                         SafeArg.of("initializationDuration", getMillisecondsSinceInitialization()),
                         cleanupThrowable);
                 throwable.addSuppressed(cleanupThrowable);
