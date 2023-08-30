@@ -18,24 +18,28 @@ package com.palantir.atlasdb.workload.runner;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.workload.invariant.InvariantReporter;
 import com.palantir.atlasdb.workload.workflow.Workflow;
 import com.palantir.atlasdb.workload.workflow.WorkflowAndInvariants;
+import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistoryValidator;
+import com.palantir.atlasdb.workload.workflow.WorkflowRunner;
 import com.palantir.atlasdb.workload.workflow.WorkflowValidatorRunner;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 public final class AntithesisWorkflowValidatorRunner implements WorkflowValidatorRunner<Workflow> {
     private static final SafeLogger log = SafeLoggerFactory.get(AntithesisWorkflowValidatorRunner.class);
-    private final ListeningExecutorService listeningExecutorService;
+    private final WorkflowRunner<Workflow> workflowRunner;
 
-    public AntithesisWorkflowValidatorRunner(ListeningExecutorService listeningExecutorService) {
-        this.listeningExecutorService = listeningExecutorService;
+    public AntithesisWorkflowValidatorRunner(WorkflowRunner<Workflow> workflowRunner) {
+        this.workflowRunner = workflowRunner;
     }
 
     @Override
@@ -70,9 +74,17 @@ public final class AntithesisWorkflowValidatorRunner implements WorkflowValidato
 
     private List<ListenableFuture<WorkflowHistoryValidator>> submitWorkflowValidators(
             List<WorkflowAndInvariants<Workflow>> workflowAndInvariants) {
-        return workflowAndInvariants.stream()
-                .map(workflowValidator -> listeningExecutorService.submit(() -> WorkflowHistoryValidator.of(
-                        workflowValidator.workflow().run(), workflowValidator.invariantReporters())))
+        Map<Workflow, List<InvariantReporter<?>>> reporters = workflowAndInvariants.stream()
+                .collect(Collectors.toMap(WorkflowAndInvariants::workflow, WorkflowAndInvariants::invariantReporters));
+        Map<Workflow, ListenableFuture<WorkflowHistory>> workflowToHistory =
+                workflowRunner.run(workflowAndInvariants.stream()
+                        .map(WorkflowAndInvariants::workflow)
+                        .collect(Collectors.toList()));
+        return workflowToHistory.entrySet().stream()
+                .map(entry -> Futures.transform(
+                        entry.getValue(),
+                        history -> WorkflowHistoryValidator.of(history, reporters.get(entry.getKey())),
+                        MoreExecutors.directExecutor()))
                 .collect(Collectors.toList());
     }
 }
