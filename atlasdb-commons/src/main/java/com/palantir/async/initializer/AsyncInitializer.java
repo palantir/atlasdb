@@ -67,7 +67,7 @@ public abstract class AsyncInitializer {
                     "Successfully initialized {} after {} milliseconds",
                     SafeArg.of("className", getInitializingClassName()),
                     SafeArg.of("initializationDuration", getMillisecondsSinceInitialization()));
-        } catch (Throwable throwable) {
+        } catch (RuntimeException | Error throwable) {
             log.info(
                     "Failed to initialize {} after {} milliseconds",
                     SafeArg.of("className", getInitializingClassName()),
