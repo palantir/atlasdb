@@ -76,7 +76,7 @@ public abstract class AsyncInitializer {
                     throwable);
             try {
                 cleanUpOnInitFailure();
-            } catch (Throwable cleanupThrowable) {
+            } catch (RuntimeException | Error cleanupThrowable) {
                 log.error(
                         "Failed to cleanup when initialization of {} failed after {} milliseconds",
                         SafeArg.of("className", getInitializingClassName()),
@@ -113,7 +113,7 @@ public abstract class AsyncInitializer {
                     SafeArg.of("className", getInitializingClassName()),
                     SafeArg.of("numberOfAttempts", numberOfInitializationAttempts),
                     SafeArg.of("initializationDuration", getMillisecondsSinceInitialization()));
-        } catch (Throwable throwable) {
+        } catch (RuntimeException | Error throwable) {
             log.info(
                     "Failed to initialize {} on the attempt {}",
                     SafeArg.of("className", getInitializingClassName()),
@@ -121,7 +121,7 @@ public abstract class AsyncInitializer {
                     throwable);
             try {
                 cleanUpOnInitFailure();
-            } catch (Throwable cleanupThrowable) {
+            } catch (RuntimeException | Error cleanupThrowable) {
                 log.error(
                         "Failed to cleanup when initialization of {} failed on attempt {} with {} milliseconds",
                         SafeArg.of("className", getInitializingClassName()),
