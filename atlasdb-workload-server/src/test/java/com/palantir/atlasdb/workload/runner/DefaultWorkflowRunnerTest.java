@@ -16,22 +16,21 @@
 
 package com.palantir.atlasdb.workload.runner;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.workload.workflow.Workflow;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
+import one.util.streamex.EntryStream;
+import org.junit.Test;
+
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
-import one.util.streamex.EntryStream;
-import org.junit.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.*;
 
 public class DefaultWorkflowRunnerTest {
 
@@ -42,7 +41,7 @@ public class DefaultWorkflowRunnerTest {
     public void runExecutesAllWorkflows() {
         List<Workflow> workflows = List.of(mock(Workflow.class), mock(Workflow.class));
         DefaultWorkflowRunner runner = new DefaultWorkflowRunner(EXECUTOR_SERVICE);
-        runner.run(workflows);
+        runner.run(workflows).values().forEach(Futures::getUnchecked);
         workflows.forEach(workflow -> verify(workflow).run());
     }
 
@@ -53,10 +52,7 @@ public class DefaultWorkflowRunnerTest {
         workflows.entrySet().forEach(entry -> when(entry.getKey().run()).thenReturn(entry.getValue()));
         DefaultWorkflowRunner runner = new DefaultWorkflowRunner(EXECUTOR_SERVICE);
         Map<Workflow, ListenableFuture<WorkflowHistory>> histories = runner.run(List.copyOf(workflows.keySet()));
-        workflows.keySet().forEach(workflow -> verify(workflow).run());
-        assertThat(EntryStream.of(histories)
-                        .mapValues(future -> Futures.getUnchecked(future))
-                        .toMap())
+        assertThat(EntryStream.of(histories).mapValues(Futures::getUnchecked).toMap())
                 .containsExactlyEntriesOf(workflows);
     }
 }
