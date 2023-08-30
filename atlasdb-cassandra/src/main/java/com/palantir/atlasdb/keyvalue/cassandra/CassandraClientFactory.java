@@ -116,7 +116,9 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
     private Cassandra.Client getRawClientWithKeyspaceSet() throws TException {
         UUID creationTrace = UUID.randomUUID();
-        log.info("Now creating client", SafeArg.of("creationTrace", creationTrace));
+        SafeRuntimeException stackShower = new SafeRuntimeException("I exist to show you the stack trace");
+        log.info("Now creating client", SafeArg.of("creationTrace", creationTrace),
+                stackShower);
         try {
             Client ret = getRawClientWithTimedCreation(creationTrace);
             try {
@@ -130,7 +132,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                                 "usernameConfig",
                                 " as user " + clientConfig.credentials().username()),
                         SafeArg.of("creationTrace", creationTrace),
-                        new SafeRuntimeException("I exist to show you the stack trace"));
+                        stackShower);
                 return ret;
             } catch (TException e) {
                 ret.getOutputProtocol().getTransport().close();
