@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.function.Function;
+import org.immutables.value.Value;
 
 /**
  * The {@link LockWatchValueScopingCache} will provide one of these to every (relevant) transaction, and this will
@@ -60,10 +61,20 @@ public interface TransactionScopedCache {
             Set<Cell> cells,
             Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader);
 
+    Map<Cell, byte[]> getWithCachedRef(
+            TableReference tableReference,
+            Set<Cell> cells,
+            Function<CacheLookupResult, ListenableFuture<Map<Cell, byte[]>>> valueLoader);
+
     ListenableFuture<Map<Cell, byte[]>> getAsync(
             TableReference tableReference,
             Set<Cell> cells,
             Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader);
+
+    ListenableFuture<Map<Cell, byte[]>> getAsyncWithCachedRef(
+            TableReference tableReference,
+            Set<Cell> cells,
+            Function<CacheLookupResult, ListenableFuture<Map<Cell, byte[]>>> valueLoader);
 
     /**
      * The cache will try to fulfil as much of the request as possible with cached values. In the case where some of the
@@ -93,4 +104,18 @@ public interface TransactionScopedCache {
     HitDigest getHitDigest();
 
     TransactionScopedCache createReadOnlyCache(CommitUpdate commitUpdate);
+
+    @Value.Immutable
+    interface CacheLookupResult {
+        Map<Cell, CacheValue> cacheHits();
+
+        Set<Cell> missedCells();
+
+        static CacheLookupResult of(Map<Cell, CacheValue> cachedValues, Set<Cell> missedCells) {
+            return ImmutableCacheLookupResult.builder()
+                    .cacheHits(cachedValues)
+                    .missedCells(missedCells)
+                    .build();
+        }
+    }
 }

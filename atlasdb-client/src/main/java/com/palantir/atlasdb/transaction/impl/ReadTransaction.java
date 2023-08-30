@@ -26,9 +26,12 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
+import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
+import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.util.result.Result;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -62,6 +65,14 @@ public class ReadTransaction extends ForwardingCallbackAwareTransaction {
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
         checkTableName(tableRef);
         return delegate().get(tableRef, cells);
+    }
+
+    @ReviewedRestrictedApiUsage
+    @Override
+    public Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> getWithExpectedNumberOfCells(
+            TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells) {
+        checkTableName(tableRef);
+        return delegate.getWithExpectedNumberOfCells(tableRef, cells, expectedNumberOfPresentCells);
     }
 
     @Override

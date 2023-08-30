@@ -62,6 +62,7 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.AutoDelegate_KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -71,6 +72,13 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.api.cache.CacheEntry;
+import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
+import com.palantir.atlasdb.keyvalue.api.cache.CacheValue;
+import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
+import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCacheImpl;
+import com.palantir.atlasdb.keyvalue.api.cache.ValueCacheSnapshotImpl;
+import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.api.watch.LocksAndMetadata;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
@@ -100,6 +108,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
+import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionWriteMetadataInfo;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
@@ -135,6 +144,7 @@ import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.util.result.Result;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -340,6 +350,8 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     private static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
     private static final Cell TEST_CELL_2 = Cell.create(PtBytes.toBytes("row2"), PtBytes.toBytes("column2"));
+    private static final Cell TEST_CELL_3 = Cell.create(PtBytes.toBytes("row3"), PtBytes.toBytes("column3"));
+    private static final Cell TEST_CELL_4 = Cell.create(PtBytes.toBytes("row4"), PtBytes.toBytes("column4"));
 
     private static final byte[] TEST_VALUE = PtBytes.toBytes("value");
 
@@ -1655,6 +1667,329 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
+    public void skipImmutableTimestampLockCheckIfReadingEqualsExpectedNumberOfValuesEvenWhenRequestedMore() {
+        putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
+
+        TimelockService spiedTimeLockService = spy(timelockService);
+        long transactionTs = spiedTimeLockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
+
+        Transaction transaction = getSnapshotTransactionWith(
+                spiedTimeLockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+
+        Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> result =
+                transaction.getWithExpectedNumberOfCells(
+                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2), 1);
+        assertThat(result.isOk()).isTrue();
+
+        transaction.commit();
+        spiedTimeLockService.unlock(ImmutableSet.of(res.getLock()));
+
+        verify(spiedTimeLockService, never()).refreshLockLeases(any());
+    }
+
+    @Test
+    public void performImmutableTimestampLocksIfReadingLessThanExpectedNumberOfValues() {
+        putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
+
+        TimelockService spiedTimeLockService = spy(timelockService);
+        long transactionTs = spiedTimeLockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
+
+        Transaction transaction = getSnapshotTransactionWith(
+                spiedTimeLockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+
+        Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> result =
+                transaction.getWithExpectedNumberOfCells(
+                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3), 2);
+        assertThat(result.isOk()).isTrue();
+        transaction.commit();
+        spiedTimeLockService.unlock(ImmutableSet.of(res.getLock()));
+
+        verify(spiedTimeLockService, times(1)).refreshLockLeases(ImmutableSet.of(res.getLock()));
+    }
+
+    @Test
+    public void throwsIfReadingMoreThanExpectedNumberOfValues() {
+        putCellsInTable(List.of(TEST_CELL, TEST_CELL_2), TABLE_SWEPT_THOROUGH);
+
+        TimelockService spiedTimeLockService = spy(timelockService);
+        long transactionTs = spiedTimeLockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
+
+        Transaction transaction = getSnapshotTransactionWith(
+                spiedTimeLockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+
+        Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> result =
+                transaction.getWithExpectedNumberOfCells(
+                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2), 1);
+        assertThat(result.isErr()).isTrue();
+        assertThat(result.unwrapErr().getFetchedCells()).containsKeys(TEST_CELL, TEST_CELL_2);
+
+        verify(spiedTimeLockService, never()).refreshLockLeases(any());
+    }
+
+    @Test
+    public void keepNumberOfExpectedCellsTheSameIfNoneCached() {
+        putCellsInTable(List.of(TEST_CELL, TEST_CELL_2, TEST_CELL_4), TABLE_SWEPT_THOROUGH);
+
+        TimelockService spiedTimeLockService = spy(timelockService);
+        long transactionTs = spiedTimeLockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
+
+        CacheMetrics metrics = mock(CacheMetrics.class);
+        TransactionScopedCache emptyCache = TransactionScopedCacheImpl.create(
+                ValueCacheSnapshotImpl.of(
+                        io.vavr.collection.HashMap.empty(),
+                        io.vavr.collection.HashSet.of(TABLE_SWEPT_THOROUGH),
+                        ImmutableSet.of(TABLE_SWEPT_THOROUGH)),
+                metrics);
+        LockWatchManagerInternal mockLockWatchManager = mock(LockWatchManagerInternal.class);
+        when(mockLockWatchManager.getTransactionScopedCache(anyLong())).thenReturn(emptyCache);
+
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        SnapshotTransaction spiedSnapshotTransaction =
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+        Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
+
+        // Fetching 3 cells, but expect only 2 to be present, for example
+        Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> result =
+                transaction.getWithExpectedNumberOfCells(
+                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3), 2);
+        assertThat(result.isOk()).isTrue();
+
+        // We shouldn't check for locks even though we haven't fetched all 3 cells, because we fetched 2 and passed
+        // that as the expected value
+        verify(spiedTimeLockService, never()).refreshLockLeases(any());
+
+        // Since no cells were cached, we continue to expect 2 from the underlying kvs.
+        verify(spiedSnapshotTransaction)
+                .getInternal(
+                        eq("getWithExpectedNumberOfCells"),
+                        eq(TABLE_SWEPT_THOROUGH),
+                        eq(Set.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3)),
+                        eq(2L),
+                        any(),
+                        any());
+    }
+
+    @Test
+    public void reduceCachedCellsFromNumberOfExpectedCells() {
+        putCellsInTable(List.of(TEST_CELL, TEST_CELL_2, TEST_CELL_4), TABLE_SWEPT_THOROUGH);
+
+        TimelockService spiedTimeLockService = spy(timelockService);
+        long transactionTs = spiedTimeLockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
+
+        TransactionScopedCache txnCache =
+                createCacheWithEntry(TABLE_SWEPT_THOROUGH, TEST_CELL, "value".getBytes(StandardCharsets.UTF_8));
+        LockWatchManagerInternal mockLockWatchManager = mock(LockWatchManagerInternal.class);
+        when(mockLockWatchManager.getTransactionScopedCache(anyLong())).thenReturn(txnCache);
+
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        SnapshotTransaction spiedSnapshotTransaction =
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+        Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
+
+        // Fetching 3 cells, but expect only 2 to be present, for example
+        Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> result =
+                transaction.getWithExpectedNumberOfCells(
+                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3), 2);
+        assertThat(result.isOk()).isTrue();
+
+        // We shouldn't check for locks even though we haven't fetched all 3 cells, because we fetched 2 and passed
+        // that as the expected value
+        verify(spiedTimeLockService, never()).refreshLockLeases(any());
+
+        // Since one cell is cached, should only expect 1 to be present on internal call
+        verify(spiedSnapshotTransaction)
+                .getInternal(
+                        eq("getWithExpectedNumberOfCells"),
+                        eq(TABLE_SWEPT_THOROUGH),
+                        eq(Set.of(TEST_CELL_2, TEST_CELL_3)), // Don't expect to ask for cell1 because it's cached
+                        eq(1L),
+                        any(),
+                        any());
+    }
+
+    @Test
+    public void keepNumberOfExpectedCellsIfCachedWithEmptyValue() {
+        putCellsInTable(List.of(TEST_CELL, TEST_CELL_2, TEST_CELL_4), TABLE_SWEPT_THOROUGH);
+
+        TimelockService spiedTimeLockService = spy(timelockService);
+        long transactionTs = spiedTimeLockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
+
+        TransactionScopedCache txnCache =
+                createCacheWithEntry(TABLE_SWEPT_THOROUGH, TEST_CELL, PtBytes.EMPTY_BYTE_ARRAY);
+        LockWatchManagerInternal mockLockWatchManager = mock(LockWatchManagerInternal.class);
+        when(mockLockWatchManager.getTransactionScopedCache(anyLong())).thenReturn(txnCache);
+
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        SnapshotTransaction spiedSnapshotTransaction =
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+        Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
+
+        // Fetching 3 cells, but expect only 2 to be present, for example
+        Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> result =
+                transaction.getWithExpectedNumberOfCells(
+                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3), 2);
+        assertThat(result.isOk()).isTrue();
+
+        // We shouldn't check for locks even though we haven't fetched all 3 cells, because we fetched 2 and passed
+        // that as the expected value
+        verify(spiedTimeLockService, never()).refreshLockLeases(any());
+
+        // Even though Cell One is cached, it has empty value, so we still expect 2 values to be present
+        verify(spiedSnapshotTransaction)
+                .getInternal(
+                        eq("getWithExpectedNumberOfCells"),
+                        eq(TABLE_SWEPT_THOROUGH),
+                        eq(Set.of(TEST_CELL_2, TEST_CELL_3)), // Don't expect to ask for cell1 because it's cached
+                        eq(2L),
+                        any(),
+                        any());
+    }
+
+    @Test
+    public void dontFetchCellsIfAllCachedButPropagateWithEmptyRequest() {
+        putCellsInTable(List.of(TEST_CELL, TEST_CELL_2), TABLE_SWEPT_THOROUGH);
+
+        TimelockService spiedTimeLockService = spy(timelockService);
+        long transactionTs = spiedTimeLockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
+
+        TransactionScopedCache txnCache = createCacheWithEntries(
+                TABLE_SWEPT_THOROUGH,
+                Map.of(
+                        TEST_CELL,
+                        "someValue".getBytes(StandardCharsets.UTF_8),
+                        TEST_CELL_2,
+                        "someOtherValue".getBytes(StandardCharsets.UTF_8)));
+
+        LockWatchManagerInternal mockLockWatchManager = mock(LockWatchManagerInternal.class);
+        when(mockLockWatchManager.getTransactionScopedCache(anyLong())).thenReturn(txnCache);
+
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        SnapshotTransaction spiedSnapshotTransaction =
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+        Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
+
+        Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> result =
+                transaction.getWithExpectedNumberOfCells(
+                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2), 2);
+        assertThat(result.isOk()).isTrue();
+
+        verify(spiedTimeLockService, never()).refreshLockLeases(any());
+        verify(spiedSnapshotTransaction)
+                .getInternal(
+                        eq("getWithExpectedNumberOfCells"),
+                        eq(TABLE_SWEPT_THOROUGH),
+                        eq(ImmutableSet.of()),
+                        anyLong(),
+                        any(),
+                        any());
+    }
+
+    @Test
+    public void throwsIfAllValuesCachedButMoreThanExpectedPresent() {
+        putCellsInTable(List.of(TEST_CELL, TEST_CELL_2), TABLE_SWEPT_THOROUGH);
+
+        TimelockService spiedTimeLockService = spy(timelockService);
+        long transactionTs = spiedTimeLockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
+
+        Map<Cell, byte[]> cacheContent = Map.of(
+                TEST_CELL,
+                "someValue".getBytes(StandardCharsets.UTF_8),
+                TEST_CELL_2,
+                "someOtherValue".getBytes(StandardCharsets.UTF_8));
+        TransactionScopedCache txnCache = createCacheWithEntries(TABLE_SWEPT_THOROUGH, cacheContent);
+
+        LockWatchManagerInternal mockLockWatchManager = mock(LockWatchManagerInternal.class);
+        when(mockLockWatchManager.getTransactionScopedCache(anyLong())).thenReturn(txnCache);
+
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        SnapshotTransaction spiedSnapshotTransaction =
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+        Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
+
+        Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> result =
+                transaction.getWithExpectedNumberOfCells(
+                        TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2), 1);
+        assertThat(result.isErr()).isTrue();
+        assertThat(result.unwrapErr().getFetchedCells()).isEqualTo(cacheContent);
+        assertThat(result.unwrapErr().getArgs())
+                .containsExactlyInAnyOrder(
+                        SafeArg.of("expectedNumberOfCells", 1L),
+                        SafeArg.of("numberOfCellsRetrieved", 2),
+                        UnsafeArg.of("retrievedCells", cacheContent));
+
+        verify(spiedTimeLockService, never()).refreshLockLeases(any());
+        verify(spiedSnapshotTransaction, never())
+                .getInternal(
+                        eq("getWithExpectedNumberOfCells"), eq(TABLE_SWEPT_THOROUGH), any(), anyLong(), any(), any());
+    }
+
+    @Test
+    public void canReadWithExpectedSizeOneAfterDeletingPresentCellAndWritingToAnother() {
+        putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
+
+        TimelockService spiedTimeLockService = spy(timelockService);
+        long transactionTs = spiedTimeLockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = spiedTimeLockService.lockImmutableTimestamp();
+
+        Map<Cell, byte[]> cacheContent = Map.of(TEST_CELL, "someValue".getBytes(StandardCharsets.UTF_8));
+        TransactionScopedCache txnCache = createCacheWithEntries(TABLE_SWEPT_THOROUGH, cacheContent);
+
+        LockWatchManagerInternal mockLockWatchManager = mock(LockWatchManagerInternal.class);
+        when(mockLockWatchManager.getTransactionScopedCache(anyLong())).thenReturn(txnCache);
+
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        SnapshotTransaction spiedSnapshotTransaction =
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+        Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
+
+        // Deleting existing cell and writing to a new one to simulate change from LOCAL -> REMOTE or vice versa.
+        Map<Cell, byte[]> newCellValue = ImmutableMap.of(TEST_CELL_2, "someNewValue".getBytes(StandardCharsets.UTF_8));
+        transaction.put(TABLE_SWEPT_THOROUGH, newCellValue);
+        transaction.delete(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
+
+        Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> result =
+                transaction.getWithExpectedNumberOfCells(TABLE_SWEPT_THOROUGH, Set.of(TEST_CELL, TEST_CELL_2), 1);
+        assertThat(result.isOk()).isTrue();
+        assertThat(result.unwrap()).isEqualTo(newCellValue);
+
+        verify(spiedTimeLockService, never()).refreshLockLeases(any());
+        // No values cached after write and deletion, so expecting to try to fetch both.
+        verify(spiedSnapshotTransaction)
+                .getInternal(
+                        eq("getWithExpectedNumberOfCells"),
+                        eq(TABLE_SWEPT_THOROUGH),
+                        eq(Set.of(TEST_CELL, TEST_CELL_2)),
+                        eq(1L),
+                        any(),
+                        any());
+    }
+
+    private TransactionScopedCache createCacheWithEntry(TableReference table, Cell cell, byte[] value) {
+        return createCacheWithEntries(table, ImmutableMap.of(cell, value));
+    }
+
+    private TransactionScopedCache createCacheWithEntries(TableReference table, Map<Cell, byte[]> values) {
+        CacheMetrics metrics = mock(CacheMetrics.class);
+        return TransactionScopedCacheImpl.create(
+                ValueCacheSnapshotImpl.of(
+                        io.vavr.collection.HashMap.ofAll(EntryStream.of(values)
+                                .mapKeys(cell -> CellReference.of(table, cell))
+                                .mapValues(value -> CacheEntry.unlocked(CacheValue.of(value)))
+                                .toMap()),
+                        io.vavr.collection.HashSet.of(table),
+                        ImmutableSet.of(table)),
+                metrics);
+    }
+
+    @Test
     public void doesNotCheckImmutableTsLockIfNonEmptyReadOnThoroughlySwept_WithValidationOnReads() {
         putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
 
@@ -1669,7 +2004,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         transaction.commit();
         spiedTimeLockService.unlock(ImmutableSet.of(res.getLock()));
 
-        verify(spiedTimeLockService, never()).refreshLockLeases(ImmutableSet.of(res.getLock()));
+        verify(spiedTimeLockService, never()).refreshLockLeases(any());
     }
 
     @Test
@@ -1703,7 +2038,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         transaction.commit();
         spiedTimeLockService.unlock(ImmutableSet.of(res.getLock()));
 
-        verify(spiedTimeLockService, never()).refreshLockLeases(ImmutableSet.of(res.getLock()));
+        verify(spiedTimeLockService, never()).refreshLockLeases(any());
     }
 
     @Test
@@ -2918,6 +3253,41 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             PreCommitCondition preCommitCondition) {
         return getSnapshotTransactionWith(
                 timelockService, startTs, lockImmutableTimestampResponse, preCommitCondition, true);
+    }
+
+    private SnapshotTransaction getSnapshotTransactionWith(
+            long transactionTs,
+            LockImmutableTimestampResponse res,
+            LockWatchManagerInternal mockLockWatchManager,
+            PathTypeTracker pathTypeTracker) {
+        return new SnapshotTransaction(
+                metricsManager,
+                keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
+                timelockService,
+                mockLockWatchManager,
+                transactionService,
+                NoOpCleaner.INSTANCE,
+                () -> transactionTs,
+                TestConflictDetectionManagers.createWithStaticConflictDetection(
+                        ImmutableMap.of(TABLE, Optional.of(ConflictHandler.RETRY_ON_WRITE_WRITE))),
+                SweepStrategyManagers.createDefault(keyValueService),
+                res.getImmutableTimestamp(),
+                Optional.of(res.getLock()),
+                PreCommitConditions.NO_OP,
+                AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
+                null,
+                TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                false,
+                timestampCache,
+                getRangesExecutor,
+                defaultGetRangesConcurrency,
+                MultiTableSweepQueueWriter.NO_OP,
+                MoreExecutors.newDirectExecutorService(),
+                true,
+                () -> transactionConfig,
+                ConflictTracer.NO_OP,
+                tableLevelMetricsController,
+                knowledge);
     }
 
     private Transaction getSnapshotTransactionWith(

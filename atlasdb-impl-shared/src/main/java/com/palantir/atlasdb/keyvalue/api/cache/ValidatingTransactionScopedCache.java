@@ -90,12 +90,29 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
     }
 
     @Override
+    public Map<Cell, byte[]> getWithCachedRef(
+            TableReference tableReference,
+            Set<Cell> cells,
+            Function<CacheLookupResult, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
+        return AtlasFutures.getUnchecked(getAsyncWithCachedRef(tableReference, cells, valueLoader));
+    }
+
+    @Override
     public ListenableFuture<Map<Cell, byte[]>> getAsync(
             TableReference tableReference,
             Set<Cell> cells,
             Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
+        return getAsyncWithCachedRef(
+                tableReference, cells, cacheLookupResult -> valueLoader.apply(cacheLookupResult.missedCells()));
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, byte[]>> getAsyncWithCachedRef(
+            TableReference tableReference,
+            Set<Cell> cells,
+            Function<CacheLookupResult, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
         if (shouldValidate()) {
-            ListenableFuture<Map<Cell, byte[]>> remoteReads = valueLoader.apply(cells);
+            ListenableFuture<Map<Cell, byte[]>> remoteReads = valueLoader.apply(CacheLookupResult.of(Map.of(), cells));
             ListenableFuture<Map<Cell, byte[]>> cacheReads = delegate.getAsync(
                     tableReference,
                     cells,
@@ -110,7 +127,7 @@ final class ValidatingTransactionScopedCache implements TransactionScopedCache {
                     },
                     MoreExecutors.directExecutor());
         } else {
-            return delegate.getAsync(tableReference, cells, valueLoader);
+            return delegate.getAsyncWithCachedRef(tableReference, cells, valueLoader);
         }
     }
 
