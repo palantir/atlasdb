@@ -71,8 +71,6 @@ import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
@@ -215,11 +213,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
             LifecycleEnvironment lifecycle) {
         ExecutorService executorService =
                 createExecutorService(workflowConfig, lifecycle, TransientRowsWorkflows.class);
-        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
-                Map.of(
-                        workflowConfig.tableConfiguration().tableName(),
-                        workflowConfig.tableConfiguration().isolationLevel()),
-                Set.of());
+        InteractiveTransactionStore transactionStore =
+                transactionStoreFactory.create(workflowConfig.tableConfiguration());
         return WorkflowAndInvariants.builder()
                 .workflow(TransientRowsWorkflows.create(
                         transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)))
@@ -244,11 +239,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 .minThreads(workflowConfig.maxThreadCount() / 2)
                 .maxThreads(workflowConfig.maxThreadCount() / 2)
                 .build();
-        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
-                Map.of(
-                        workflowConfig.tableConfiguration().tableName(),
-                        workflowConfig.tableConfiguration().isolationLevel()),
-                Set.of());
+        InteractiveTransactionStore transactionStore =
+                transactionStoreFactory.create(workflowConfig.tableConfiguration());
         return WorkflowAndInvariants.of(
                 SingleBusyCellWorkflows.create(
                         transactionStore,
@@ -274,11 +266,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 .minThreads(workflowConfig.maxThreadCount() / 2)
                 .maxThreads(workflowConfig.maxThreadCount() / 2)
                 .build();
-        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
-                Map.of(
-                        workflowConfig.tableConfiguration().tableName(),
-                        workflowConfig.tableConfiguration().isolationLevel()),
-                Set.of());
+        InteractiveTransactionStore transactionStore =
+                transactionStoreFactory.create(workflowConfig.tableConfiguration());
         return WorkflowAndInvariants.of(
                 SingleBusyCellReadNoTouchWorkflows.create(
                         transactionStore,
@@ -296,11 +285,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
             RingWorkflowConfiguration workflowConfig,
             LifecycleEnvironment lifecycle) {
         ExecutorService executorService = createExecutorService(workflowConfig, lifecycle, RingWorkflows.class);
-        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
-                Map.of(
-                        workflowConfig.tableConfiguration().tableName(),
-                        workflowConfig.tableConfiguration().isolationLevel()),
-                Set.of());
+        InteractiveTransactionStore transactionStore =
+                transactionStoreFactory.create(workflowConfig.tableConfiguration());
         return WorkflowAndInvariants.of(RingWorkflows.create(
                 transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)));
     }
@@ -311,14 +297,11 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
             LifecycleEnvironment lifecycle) {
         ExecutorService executorService =
                 createExecutorService(workflowConfig, lifecycle, SingleRowTwoCellsWorkflows.class);
-        TransactionStore transactionStore = transactionStoreFactory.create(
-                Map.of(
-                        workflowConfig.tableConfiguration().tableName(),
-                        workflowConfig.tableConfiguration().isolationLevel()),
-                Set.of());
         return WorkflowAndInvariants.builder()
                 .workflow(SingleRowTwoCellsWorkflows.createSingleRowTwoCell(
-                        transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)))
+                        transactionStoreFactory.create(workflowConfig.tableConfiguration()),
+                        workflowConfig,
+                        MoreExecutors.listeningDecorator(executorService)))
                 .addInvariantReporters(new DurableWritesInvariantMetricReporter(
                         SingleRowTwoCellsWorkflows.class.getSimpleName(),
                         DurableWritesMetrics.of(taggedMetricRegistry)))
@@ -331,11 +314,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
             BankBalanceWorkflowConfiguration workflowConfig,
             LifecycleEnvironment lifecycle) {
         ExecutorService executorService = createExecutorService(workflowConfig, lifecycle, BankBalanceWorkflows.class);
-        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
-                Map.of(
-                        workflowConfig.tableConfiguration().tableName(),
-                        workflowConfig.tableConfiguration().isolationLevel()),
-                Set.of());
+        InteractiveTransactionStore transactionStore =
+                transactionStoreFactory.create(workflowConfig.tableConfiguration());
         return WorkflowAndInvariants.builder()
                 .workflow(BankBalanceWorkflows.create(
                         transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)))
@@ -349,11 +329,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
             RandomWorkflowConfiguration workflowConfig,
             LifecycleEnvironment lifecycle) {
         ExecutorService executorService = createExecutorService(workflowConfig, lifecycle, RandomWorkflows.class);
-        TransactionStore transactionStore = transactionStoreFactory.create(
-                Map.of(
-                        workflowConfig.tableConfiguration().tableName(),
-                        workflowConfig.tableConfiguration().isolationLevel()),
-                Set.of());
+        TransactionStore transactionStore = transactionStoreFactory.create(workflowConfig.tableConfiguration());
         return WorkflowAndInvariants.builder()
                 .workflow(RandomWorkflows.create(
                         transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)))
@@ -369,11 +345,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
             LifecycleEnvironment lifecycle) {
         ExecutorService executorService =
                 createExecutorService(workflowConfig, lifecycle, WriteOnceDeleteOnceWorkflows.class);
-        InteractiveTransactionStore transactionStore = transactionStoreFactory.create(
-                Map.of(
-                        workflowConfig.tableConfiguration().tableName(),
-                        workflowConfig.tableConfiguration().isolationLevel()),
-                Set.of());
+        InteractiveTransactionStore transactionStore =
+                transactionStoreFactory.create(workflowConfig.tableConfiguration());
         return WorkflowAndInvariants.builder()
                 .workflow(WriteOnceDeleteOnceWorkflows.create(
                         transactionStore, workflowConfig, MoreExecutors.listeningDecorator(executorService)))
