@@ -52,19 +52,19 @@ import one.util.streamex.EntryStream;
 
 /**
  * Feature breakdown:
- *   - Pooling
- *   - Token Aware Mapping / Query Routing / Data partitioning
- *   - Retriable Queries
- *   - Pool member error tracking / blacklisting*
- *   - Pool refreshing
- *   - Pool node autodiscovery
- *   - Pool member health checking*
- *
- *   *entirely new features
- *
- *   By our old system, this would be a
- *   RefreshingRetriableTokenAwareHealthCheckingManyHostCassandraClientPoolingContainerManager;
- *   ... this is one of the reasons why there is a new system.
+ * - Pooling
+ * - Token Aware Mapping / Query Routing / Data partitioning
+ * - Retriable Queries
+ * - Pool member error tracking / blacklisting*
+ * - Pool refreshing
+ * - Pool node autodiscovery
+ * - Pool member health checking*
+ * <p>
+ * *entirely new features
+ * <p>
+ * By our old system, this would be a
+ * RefreshingRetriableTokenAwareHealthCheckingManyHostCassandraClientPoolingContainerManager;
+ * ... this is one of the reasons why there is a new system.
  **/
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class CassandraClientPoolImpl implements CassandraClientPool {
@@ -269,13 +269,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private void cleanUpOnInitFailure() {
-        if (refreshPoolFuture != null) {
-            refreshPoolFuture.cancel(true);
-        }
-        cassandra
-                .getPools()
-                .forEach((address, cassandraClientPoolingContainer) ->
-                        cassandraClientPoolingContainer.shutdownPooling());
+        cancelRefreshPoolTaskIfRunning();
+        closeCassandraClientPools();
         cassandra.getPools().clear();
         cassandra.clearInitialCassandraHosts();
     }
@@ -287,15 +282,28 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @Override
     public void shutdown() {
+        cancelRefreshPoolTaskIfRunning();
+        cassandra.close();
+        closeCassandraClientPools();
+    }
+
+    private void cancelRefreshPoolTaskIfRunning() {
         if (refreshPoolFuture != null) {
             refreshPoolFuture.cancel(true);
         }
-        cassandra.close();
-        cassandra
-                .getPools()
-                .forEach((address, cassandraClientPoolingContainer) ->
-                        cassandraClientPoolingContainer.shutdownPooling());
-        absentHostTracker.shutDown();
+    }
+
+    private void closeCassandraClientPools() {
+        try {
+            cassandra
+                    .getPools()
+                    .forEach((address, cassandraClientPoolingContainer) ->
+                            cassandraClientPoolingContainer.shutdownPooling());
+            absentHostTracker.shutDown();
+        } catch (RuntimeException e) {
+            log.warn("Failed to close Cassandra client pools. Some pools may be leaked.", e);
+            throw e;
+        }
     }
 
     /**
