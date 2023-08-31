@@ -212,7 +212,16 @@ public final class CassandraTopologyValidator {
                 // between refreshes for legitimate reasons (but they should still refer to the same underlying
                 // cluster).
                 if (pastConsistentTopology.get() == null) {
-                    // We don't have a record of what worked in the past, so just reject.
+                    ClusterTopologyResult result =
+                            maybeGetConsistentClusterTopology(serversToConsiderWhenNoQuorumPresent);
+                    if (result.agreedTopology().isPresent()) {
+                        pastConsistentTopology.set(result.agreedTopology().get());
+                        return Sets.difference(
+                                newServersWithoutSoftFailures.keySet(),
+                                result.agreedTopology().get().serversInConsensus());
+                    }
+
+                    // We don't have quorum with servers from config nor previous topology.
                     return newServersWithoutSoftFailures.keySet();
                 }
                 Optional<ConsistentClusterTopology> maybeTopology = maybeGetConsistentClusterTopology(
