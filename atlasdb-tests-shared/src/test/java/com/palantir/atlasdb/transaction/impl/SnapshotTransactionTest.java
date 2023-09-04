@@ -1918,7 +1918,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 transaction.getWithExpectedNumberOfCells(
                         TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2), 1);
         assertThat(result.isErr()).isTrue();
-        assertThat(result.unwrapErr().getFetchedCells()).isEqualTo(cacheContent);
+        assertThat(result.unwrapErr().getFetchedCells()).containsExactlyInAnyOrderEntriesOf(cacheContent);
         assertThat(result.unwrapErr().getArgs())
                 .containsExactlyInAnyOrder(
                         SafeArg.of("expectedNumberOfCells", 1L),
@@ -1958,7 +1958,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> result =
                 transaction.getWithExpectedNumberOfCells(TABLE_SWEPT_THOROUGH, Set.of(TEST_CELL, TEST_CELL_2), 1);
         assertThat(result.isOk()).isTrue();
-        assertThat(result.unwrap()).isEqualTo(newCellValue);
+        assertThat(result.unwrap()).containsExactlyInAnyOrderEntriesOf(newCellValue);
 
         verify(spiedTimeLockService, never()).refreshLockLeases(any());
         // No values cached after write and deletion, so expecting to try to fetch both.
