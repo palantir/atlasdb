@@ -23,6 +23,7 @@ dependencies {
     implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.uuid:java-uuid-generator'
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.refreshable:refreshable'

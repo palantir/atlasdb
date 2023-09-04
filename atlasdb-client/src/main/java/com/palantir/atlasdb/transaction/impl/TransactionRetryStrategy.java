@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.uuid.Generators;
+import com.fasterxml.uuid.NoArgGenerator;
 import com.github.rholder.retry.Attempt;
 import com.github.rholder.retry.BlockStrategies;
 import com.github.rholder.retry.BlockStrategy;
@@ -41,10 +43,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.IntPredicate;
 
 public final class TransactionRetryStrategy {
+
+    // The run ID is for diagnostic purposes only and does not need to be cryptographically secure
+    private static final NoArgGenerator idGenerator = Generators.randomBasedGenerator(new Random());
+
     @SuppressWarnings("ImmutableEnumChecker") // TransactionRetryStrategy is immutable, despite what error-prone thinks
     public enum Strategies {
-        LEGACY(createLegacy(BlockStrategies.threadSleepStrategy())),
-        EXPONENTIAL(createExponential(BlockStrategies.threadSleepStrategy(), new Random()));
+        LEGACY(createLegacy(BlockStrategies.threadSleepStrategy(), idGenerator)),
+        EXPONENTIAL(createExponential(BlockStrategies.threadSleepStrategy(), new Random(), idGenerator)),
+        ;
 
         private final TransactionRetryStrategy strategy;
 
@@ -60,15 +67,18 @@ public final class TransactionRetryStrategy {
     private static final SafeLogger log = SafeLoggerFactory.get(TransactionRetryStrategy.class);
     private final WaitStrategy waitStrategy;
     private final BlockStrategy blockStrategy;
+    private final NoArgGenerator runIdGenerator;
 
-    private TransactionRetryStrategy(WaitStrategy waitStrategy, BlockStrategy blockStrategy) {
+    private TransactionRetryStrategy(
+            WaitStrategy waitStrategy, BlockStrategy blockStrategy, NoArgGenerator runIdGenerator) {
         this.waitStrategy = waitStrategy;
         this.blockStrategy = blockStrategy;
+        this.runIdGenerator = runIdGenerator;
     }
 
     @SuppressWarnings("rawtypes") // StopStrategy uses raw Attempt
     public <T, E extends Exception> T runWithRetry(IntPredicate shouldStopRetrying, Retryable<T, E> task) throws E {
-        UUID runId = UUID.randomUUID();
+        UUID runId = runIdGenerator.generate();
         Retryer<T> retryer = RetryerBuilder.<T>newBuilder()
                 .retryIfException(TransactionRetryStrategy::shouldRetry)
                 .withBlockStrategy(blockStrategy)
@@ -166,13 +176,16 @@ public final class TransactionRetryStrategy {
     }
 
     @VisibleForTesting
-    static TransactionRetryStrategy createLegacy(BlockStrategy blockStrategy) {
-        return new TransactionRetryStrategy(WaitStrategies.noWait(), blockStrategy);
+    static TransactionRetryStrategy createLegacy(BlockStrategy blockStrategy, NoArgGenerator uuidGenerator) {
+        return new TransactionRetryStrategy(WaitStrategies.noWait(), blockStrategy, uuidGenerator);
     }
 
     @VisibleForTesting
-    static TransactionRetryStrategy createExponential(BlockStrategy blockStrategy, Random random) {
+    static TransactionRetryStrategy createExponential(
+            BlockStrategy blockStrategy, Random random, NoArgGenerator uuidGenerator) {
         return new TransactionRetryStrategy(
-                randomize(random, WaitStrategies.exponentialWait(100, 1, TimeUnit.MINUTES)), blockStrategy);
+                randomize(random, WaitStrategies.exponentialWait(100, 1, TimeUnit.MINUTES)),
+                blockStrategy,
+                uuidGenerator);
     }
 }

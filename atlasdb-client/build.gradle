@@ -47,6 +47,7 @@ dependencies {
   implementation 'com.fasterxml.jackson.core:jackson-core'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'com.fasterxml.jackson.datatype:jackson-datatype-guava'
+  implementation 'com.fasterxml.uuid:java-uuid-generator'
   implementation 'com.github.ben-manes.caffeine:caffeine'
   implementation 'com.github.rholder:guava-retrying'
   implementation 'com.google.errorprone:error_prone_annotations'

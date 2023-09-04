@@ -22,6 +22,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.uuid.Generators;
+import com.fasterxml.uuid.impl.RandomBasedGenerator;
 import com.github.rholder.retry.BlockStrategy;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -68,8 +70,9 @@ public class TransactionRetryStrategyTest {
     public void before() {
         when(random.nextInt(anyInt())).thenAnswer(inv -> (int) inv.getArgument(0) - 1);
         mockRetries(1);
-        legacy = TransactionRetryStrategy.createLegacy(blockStrategy);
-        exponential = TransactionRetryStrategy.createExponential(blockStrategy, random);
+        RandomBasedGenerator idGenerator = Generators.randomBasedGenerator();
+        legacy = TransactionRetryStrategy.createLegacy(blockStrategy, idGenerator);
+        exponential = TransactionRetryStrategy.createExponential(blockStrategy, random, idGenerator);
     }
 
     private String runExponential() throws Exception {

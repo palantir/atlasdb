@@ -16,16 +16,22 @@
 
 package com.palantir.lock.client;
 
+import com.fasterxml.uuid.Generators;
+import com.fasterxml.uuid.NoArgGenerator;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.util.Random;
 import java.util.UUID;
 import javax.annotation.concurrent.GuardedBy;
 
 public final class LeasedLockToken implements LockToken {
+    // The request ID is for diagnostic purposes only and does not need to be cryptographically secure
+    private static final NoArgGenerator idGenerator = Generators.randomBasedGenerator(new Random());
+
     private final ConjureLockToken serverToken;
     private final UUID requestId;
 
@@ -36,7 +42,7 @@ public final class LeasedLockToken implements LockToken {
     private boolean invalidated = false;
 
     static LeasedLockToken of(ConjureLockToken serverToken, Lease lease) {
-        return new LeasedLockToken(serverToken, UUID.randomUUID(), lease);
+        return new LeasedLockToken(serverToken, idGenerator.generate(), lease);
     }
 
     private LeasedLockToken(ConjureLockToken serverToken, UUID requestId, Lease lease) {
