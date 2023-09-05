@@ -21,6 +21,7 @@ dependencies {
     testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
     testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
     testImplementation 'com.palantir.common:streams'
+    testImplementation 'com.palantir.safe-logging:preconditions-assertj'
     testImplementation project(':atlasdb-api')
     testAnnotationProcessor 'org.immutables:value'
     testCompileOnly 'org.immutables:value::annotations'
