@@ -34,7 +34,7 @@ public interface StartTransactionRequestV4 {
 
     static StartTransactionRequestV4 createForRequestor(UUID requestorUuid, int numTransactions) {
         return ImmutableStartTransactionRequestV4.builder()
-                .requestId(UniqueIds.randomUuidV4())
+                .requestId(UniqueIds.pseudoRandomUuidV4())
                 .requestorId(requestorUuid)
                 .numTransactions(numTransactions)
                 .build();
