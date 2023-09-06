@@ -22,7 +22,7 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.logsafe.Unsafe;
-import com.palantir.util.UniqueIds;
+import com.palantir.tritium.ids.UniqueIds;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -52,13 +52,17 @@ public interface IdentifiedLockRequest {
 
     static IdentifiedLockRequest of(Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs) {
         return ImmutableIdentifiedLockRequest.of(
-                UniqueIds.uuid(), lockDescriptors, acquireTimeoutMs, Optional.empty(), Optional.empty());
+                UniqueIds.pseudoRandomUuidV4(), lockDescriptors, acquireTimeoutMs, Optional.empty(), Optional.empty());
     }
 
     static IdentifiedLockRequest of(
             Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs, String clientDescription) {
         return ImmutableIdentifiedLockRequest.of(
-                UniqueIds.uuid(), lockDescriptors, acquireTimeoutMs, Optional.of(clientDescription), Optional.empty());
+                UniqueIds.pseudoRandomUuidV4(),
+                lockDescriptors,
+                acquireTimeoutMs,
+                Optional.of(clientDescription),
+                Optional.empty());
     }
 
     static IdentifiedLockRequest of(
@@ -67,7 +71,7 @@ public interface IdentifiedLockRequest {
             String clientDescription,
             LockRequestMetadata metadata) {
         return ImmutableIdentifiedLockRequest.of(
-                UniqueIds.uuid(),
+                UniqueIds.pseudoRandomUuidV4(),
                 lockDescriptors,
                 acquireTimeoutMs,
                 Optional.of(clientDescription),

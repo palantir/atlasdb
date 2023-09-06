@@ -31,7 +31,7 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.ConjureLockRequestMetadataUtils;
 import com.palantir.lock.watch.ConjureLockRequestMetadataUtils.ConjureMetadataConversionResult;
 import com.palantir.lock.watch.LockWatchVersion;
-import com.palantir.util.UniqueIds;
+import com.palantir.tritium.ids.UniqueIds;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -50,7 +50,7 @@ public final class ConjureLockRequests {
         return ConjureLockRequest.builder()
                 .lockDescriptors(toConjure(orderedLocks))
                 .clientDescription(request.getClientDescription())
-                .requestId(UniqueIds.uuid())
+                .requestId(UniqueIds.pseudoRandomUuidV4())
                 .acquireTimeoutMs(Ints.checkedCast(request.getAcquireTimeoutMs()))
                 .metadata(optConversionResult.map(ConjureMetadataConversionResult::conjureMetadata))
                 .build();

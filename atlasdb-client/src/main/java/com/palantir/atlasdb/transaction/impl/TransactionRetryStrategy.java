@@ -34,7 +34,7 @@ import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import com.palantir.util.UniqueIds;
+import com.palantir.tritium.ids.UniqueIds;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -69,7 +69,7 @@ public final class TransactionRetryStrategy {
 
     @SuppressWarnings("rawtypes") // StopStrategy uses raw Attempt
     public <T, E extends Exception> T runWithRetry(IntPredicate shouldStopRetrying, Retryable<T, E> task) throws E {
-        UUID runId = UniqueIds.uuid();
+        UUID runId = UniqueIds.pseudoRandomUuidV4(); // runId is just diagnostic so do not need CSPRNG
         Retryer<T> retryer = RetryerBuilder.<T>newBuilder()
                 .retryIfException(TransactionRetryStrategy::shouldRetry)
                 .withBlockStrategy(blockStrategy)

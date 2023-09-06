@@ -18,7 +18,7 @@ package com.palantir.lock.v2;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.util.UniqueIds;
+import com.palantir.tritium.ids.UniqueIds;
 import java.util.UUID;
 import org.immutables.value.Value;
 
@@ -34,7 +34,7 @@ public interface StartTransactionRequestV4 {
 
     static StartTransactionRequestV4 createForRequestor(UUID requestorUuid, int numTransactions) {
         return ImmutableStartTransactionRequestV4.builder()
-                .requestId(UniqueIds.uuid())
+                .requestId(UniqueIds.randomUuidV4())
                 .requestorId(requestorUuid)
                 .numTransactions(numTransactions)
                 .build();

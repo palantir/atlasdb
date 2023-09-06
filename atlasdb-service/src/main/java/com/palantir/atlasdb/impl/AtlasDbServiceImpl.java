@@ -46,7 +46,7 @@ import com.palantir.atlasdb.transaction.impl.TxTask;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.util.UniqueIds;
+import com.palantir.tritium.ids.UniqueIds;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
@@ -181,7 +181,7 @@ public class AtlasDbServiceImpl implements AtlasDbService {
 
     @Override
     public TransactionToken startTransaction() {
-        TransactionToken token = new TransactionToken(UniqueIds.uuid().toString());
+        TransactionToken token = new TransactionToken(UniqueIds.randomUuidV4().toString());
         OpenTransaction openTxn =
                 Iterables.getOnlyElement(txManager.startTransactions(ImmutableList.of(PreCommitConditions.NO_OP)));
         transactions.put(token, openTxn);
