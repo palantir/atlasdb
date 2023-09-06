@@ -113,14 +113,10 @@ public abstract class InterruptibleFuture<V> implements RunnableFuture<V> {
         return futureTask.cancel(mayInterruptIfRunning);
     }
 
+    @GuardedBy("lock")
     protected void noteFinished() {
-        lock.lock();
-        try {
-            state = State.COMPLETED;
-            condition.signalAll();
-        } finally {
-            lock.unlock();
-        }
+        state = State.COMPLETED;
+        condition.signalAll();
     }
 
     /**
@@ -161,20 +157,16 @@ public abstract class InterruptibleFuture<V> implements RunnableFuture<V> {
         }
     }
 
+    @GuardedBy("lock")
     private V getReturnValue() throws ExecutionException, CancellationException {
-        lock.lock();
-        try {
-            if (cancellationException != null) {
-                throw Throwables.chain(
-                        new CancellationException("This task was canceled before it ever ran."), cancellationException);
-            }
-            if (executionException != null) {
-                throw new ExecutionException(executionException);
-            }
-            return returnValue;
-        } finally {
-            lock.unlock();
+        if (cancellationException != null) {
+            throw Throwables.chain(
+                    new CancellationException("This task was canceled before it ever ran."), cancellationException);
         }
+        if (executionException != null) {
+            throw new ExecutionException(executionException);
+        }
+        return returnValue;
     }
 
     /**
