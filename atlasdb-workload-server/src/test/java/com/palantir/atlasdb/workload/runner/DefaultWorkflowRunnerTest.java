@@ -64,7 +64,7 @@ public class DefaultWorkflowRunnerTest {
             executor.shutdown();
             Map<Workflow, WorkflowHistory> results =
                     EntryStream.of(histories).mapValues(Futures::getUnchecked).toMap();
-            assertThat(results).hasSize(workflows.size()).containsExactlyInAnyOrderEntriesOf(workflows);
+            assertThat(results).hasSameSizeAs(workflows).containsExactlyInAnyOrderEntriesOf(workflows);
         } finally {
             executor.shutdownNow();
         }
