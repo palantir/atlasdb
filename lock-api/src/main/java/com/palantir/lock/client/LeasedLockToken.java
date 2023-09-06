@@ -22,6 +22,7 @@ import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.tritium.ids.UniqueIds;
 import java.util.UUID;
 import javax.annotation.concurrent.GuardedBy;
 
@@ -36,7 +37,7 @@ public final class LeasedLockToken implements LockToken {
     private boolean invalidated = false;
 
     static LeasedLockToken of(ConjureLockToken serverToken, Lease lease) {
-        return new LeasedLockToken(serverToken, UUID.randomUUID(), lease);
+        return new LeasedLockToken(serverToken, UniqueIds.pseudoRandomUuidV4(), lease);
     }
 
     private LeasedLockToken(ConjureLockToken serverToken, UUID requestId, Lease lease) {

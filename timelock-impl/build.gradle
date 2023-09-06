@@ -35,6 +35,7 @@ dependencies {
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.sls.versions:sls-versions'
     implementation 'com.palantir.tokens:auth-tokens'
+    implementation 'com.palantir.tritium:tritium-ids'
     implementation 'com.palantir.tritium:tritium-registry'
     implementation 'io.dropwizard.metrics:metrics-core'
     implementation 'jakarta.ws.rs:jakarta.ws.rs-api'

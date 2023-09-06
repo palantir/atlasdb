@@ -26,6 +26,7 @@ dependencies {
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.refreshable:refreshable'
+    implementation 'com.palantir.tritium:tritium-ids'
     implementation 'one.util:streamex'
 
     implementation 'com.google.guava:guava'
