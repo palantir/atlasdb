@@ -17,7 +17,9 @@
 package com.palantir.atlasdb.workload.runner;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -33,25 +35,38 @@ import org.junit.Test;
 
 public class DefaultWorkflowRunnerTest {
 
-    private static final ListeningExecutorService EXECUTOR_SERVICE =
-            MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(8));
-
     @Test
     public void runExecutesAllWorkflows() {
-        List<Workflow> workflows = List.of(mock(Workflow.class), mock(Workflow.class));
-        DefaultWorkflowRunner runner = new DefaultWorkflowRunner(EXECUTOR_SERVICE);
-        runner.run(workflows).values().forEach(Futures::getUnchecked);
-        workflows.forEach(workflow -> verify(workflow).run());
+        ListeningExecutorService executor = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(8));
+        try {
+            List<Workflow> workflows = List.of(mock(Workflow.class), mock(Workflow.class));
+            DefaultWorkflowRunner runner = new DefaultWorkflowRunner(executor);
+            runner.run(workflows).values().forEach(Futures::getUnchecked);
+            executor.shutdown();
+            workflows.forEach(workflow -> verify(workflow).run());
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     @Test
     public void runMapsHistoryToTheCorrectWorkflow() {
-        Map<Workflow, WorkflowHistory> workflows = Map.of(
-                mock(Workflow.class), mock(WorkflowHistory.class), mock(Workflow.class), mock(WorkflowHistory.class));
-        workflows.entrySet().forEach(entry -> when(entry.getKey().run()).thenReturn(entry.getValue()));
-        DefaultWorkflowRunner runner = new DefaultWorkflowRunner(EXECUTOR_SERVICE);
-        Map<Workflow, ListenableFuture<WorkflowHistory>> histories = runner.run(List.copyOf(workflows.keySet()));
-        assertThat(EntryStream.of(histories).mapValues(Futures::getUnchecked).toMap())
-                .containsExactlyEntriesOf(workflows);
+        ListeningExecutorService executor = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(8));
+        try {
+            Map<Workflow, WorkflowHistory> workflows = Map.of(
+                    mock(Workflow.class),
+                    mock(WorkflowHistory.class, "history-1"),
+                    mock(Workflow.class),
+                    mock(WorkflowHistory.class, "history-2"));
+            workflows.forEach((key, value) -> when(key.run()).thenReturn(value));
+            DefaultWorkflowRunner runner = new DefaultWorkflowRunner(executor);
+            Map<Workflow, ListenableFuture<WorkflowHistory>> histories = runner.run(List.copyOf(workflows.keySet()));
+            executor.shutdown();
+            Map<Workflow, WorkflowHistory> results =
+                    EntryStream.of(histories).mapValues(Futures::getUnchecked).toMap();
+            assertThat(results).hasSize(workflows.size()).containsExactlyInAnyOrderEntriesOf(workflows);
+        } finally {
+            executor.shutdownNow();
+        }
     }
 }
