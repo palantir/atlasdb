@@ -17,7 +17,9 @@
 package com.palantir.atlasdb.workload.runner;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -25,16 +27,22 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.workload.workflow.Workflow;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
+import com.palantir.common.collect.MapEntries;
+import java.time.Duration;
+import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.Executors;
-import one.util.streamex.EntryStream;
+import java.util.stream.Collectors;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.Test;
 
 public class DefaultWorkflowRunnerTest {
-
     private static final ListeningExecutorService EXECUTOR_SERVICE =
             MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(8));
+
+    private static final Duration TIMEOUT = Duration.ofSeconds(30);
 
     @Test
     public void runExecutesAllWorkflows() {
@@ -48,10 +56,25 @@ public class DefaultWorkflowRunnerTest {
     public void runMapsHistoryToTheCorrectWorkflow() {
         Map<Workflow, WorkflowHistory> workflows = Map.of(
                 mock(Workflow.class), mock(WorkflowHistory.class), mock(Workflow.class), mock(WorkflowHistory.class));
-        workflows.entrySet().forEach(entry -> when(entry.getKey().run()).thenReturn(entry.getValue()));
+        workflows.forEach((key, value) -> when(key.run()).thenReturn(value));
         DefaultWorkflowRunner runner = new DefaultWorkflowRunner(EXECUTOR_SERVICE);
         Map<Workflow, ListenableFuture<WorkflowHistory>> histories = runner.run(List.copyOf(workflows.keySet()));
-        assertThat(EntryStream.of(histories).mapValues(Futures::getUnchecked).toMap())
-                .containsExactlyEntriesOf(workflows);
+
+        ListenableFuture<Map<Workflow, WorkflowHistory>> actualWorkflowsFuture = allAsMap(histories);
+        assertThat(actualWorkflowsFuture)
+                .succeedsWithin(TIMEOUT)
+                .asInstanceOf(InstanceOfAssertFactories.MAP)
+                .containsExactlyInAnyOrderEntriesOf(workflows);
+    }
+
+    private static <K, V> ListenableFuture<Map<K, V>> allAsMap(Map<K, ListenableFuture<V>> keyToFuture) {
+        List<ListenableFuture<? extends Entry<K, V>>> entryFutures = keyToFuture.entrySet().stream()
+                .map(entry -> Futures.transform(
+                        entry.getValue(),
+                        value -> new SimpleImmutableEntry<>(entry.getKey(), value),
+                        MoreExecutors.directExecutor()))
+                .collect(Collectors.toList());
+
+        return Futures.transform(Futures.allAsList(entryFutures), MapEntries::toMap, MoreExecutors.directExecutor());
     }
 }
