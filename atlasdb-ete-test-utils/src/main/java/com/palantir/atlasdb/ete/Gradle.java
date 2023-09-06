@@ -56,7 +56,7 @@ public final class Gradle extends ExternalResource {
                     .redirectErrorStream(true)
                     .start();
             try (InputStream processInputStream = process.getInputStream()) {
-                IOUtils.copy(processInputStream, System.out);
+                processInputStream.transferTo(System.out);
             }
             assertThat(process.waitFor()).isEqualTo(0);
         } catch (IOException e) {

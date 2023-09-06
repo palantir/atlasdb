@@ -216,7 +216,7 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
     private void tryWriteStreamToFile(Transaction transaction, T id, StreamMetadata metadata, FileOutputStream fos)
             throws IOException {
         try (InputStream in = loadStream(transaction, id)) {
-            ByteStreams.copy(in, fos);
+            in.transferTo(fos);
         }
         fos.close();
     }

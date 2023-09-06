@@ -59,7 +59,7 @@ public final class DockerizedDatabase implements Closeable {
         URL resource = clazz.getResource("/" + resourcePath);
         File file = File.createTempFile(
                 FilenameUtils.getBaseName(resource.getFile()), FilenameUtils.getExtension(resource.getFile()));
-        IOUtils.copy(resource.openStream(), FileUtils.openOutputStream(file));
+        resource.openStream().transferTo(FileUtils.openOutputStream(file));
         file.deleteOnExit();
         return file;
     }

@@ -75,7 +75,7 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
         try {
             MessageDigest digest = getMessageDigest();
             DigestInputStream digestInputStream = new DigestInputStream(is, digest);
-            ByteStreams.copy(digestInputStream, ByteStreams.nullOutputStream());
+            digestInputStream.transferTo(ByteStreams.nullOutputStream());
             digestInputStream.close();
             return createFrom(digest);
         } finally {

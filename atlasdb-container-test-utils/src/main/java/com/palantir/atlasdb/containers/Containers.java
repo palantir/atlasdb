@@ -187,7 +187,7 @@ public class Containers extends ExternalResource {
     private static String getDockerComposeFile(String configResource) {
         try {
             File configFile = File.createTempFile("config", ".yml");
-            IOUtils.copy(Containers.class.getResourceAsStream(configResource), new FileOutputStream(configFile));
+            Containers.class.getResourceAsStream(configResource).transferTo(new FileOutputStream(configFile));
             return configFile.getPath();
         } catch (IOException e) {
             throw Throwables.propagate(e);
