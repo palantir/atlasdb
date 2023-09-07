@@ -244,10 +244,9 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 .orElse(true);
     }
 
-    @SuppressWarnings("GuardedBy") // The stream operation is terminal within this synchronized method.
     private synchronized void assertNoSnapshotsMissing(Multimap<Sequence, StartTimestamp> reversedMap) {
         Set<Sequence> sequences = reversedMap.keySet();
-        if (sequences.stream().map(snapshotStore::getSnapshotForSequence).anyMatch(Optional::isEmpty)) {
+        if (sequences.stream().map(this::getSnapshotForSequence).anyMatch(Optional::isEmpty)) {
             log.warn(
                     "snapshots were not taken for all sequences; logging additional information",
                     SafeArg.of("numSequences", sequences),
@@ -259,6 +258,10 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             throw new TransactionLockWatchFailedException("snapshots were not taken for all sequences; this update "
                     + "must have been lost and is now too old to process. Transactions should be retried.");
         }
+    }
+
+    private synchronized Optional<ValueCacheSnapshot> getSnapshotForSequence(Sequence sequence) {
+        return snapshotStore.getSnapshotForSequence(sequence);
     }
 
     private synchronized void updateCurrentVersion(Optional<LockWatchVersion> maybeUpdateVersion) {
