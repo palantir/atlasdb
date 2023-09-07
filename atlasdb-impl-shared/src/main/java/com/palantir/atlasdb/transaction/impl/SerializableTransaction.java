@@ -63,6 +63,8 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
+import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
+import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
@@ -83,6 +85,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.Pair;
+import com.palantir.util.result.Result;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -117,6 +120,7 @@ import org.eclipse.collections.api.map.primitive.MutableLongLongMap;
 import org.eclipse.collections.api.set.primitive.LongSet;
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.immutables.value.Value;
+import org.jetbrains.annotations.VisibleForTesting;
 
 /**
  * This class will track all reads to verify that there are no read-write conflicts at commit time.
@@ -322,7 +326,28 @@ public class SerializableTransaction extends SnapshotTransaction {
                             cells,
                             (tableReference, toRead) -> Futures.immediateFuture(super.get(tableRef, toRead)))
                     .get();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        } catch (ExecutionException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+        }
+    }
+
+    @ReviewedRestrictedApiUsage
+    @Override
+    @Idempotent
+    public Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> getWithExpectedNumberOfCells(
+            TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells) {
+        try {
+            return getWithResultLoader(
+                            tableRef,
+                            cells,
+                            (tableReference, toRead) -> Futures.immediateFuture(super.getWithExpectedNumberOfCells(
+                                    tableReference, toRead, expectedNumberOfPresentCells)))
+                    .get();
+        } catch (InterruptedException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        } catch (ExecutionException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
         }
     }
@@ -333,20 +358,47 @@ public class SerializableTransaction extends SnapshotTransaction {
         return getWithLoader(tableRef, cells, super::getAsync);
     }
 
-    private ListenableFuture<Map<Cell, byte[]>> getWithLoader(
-            TableReference tableRef, Set<Cell> cells, CellLoader cellLoader) {
+    /**
+     * If we ever update getWithLoader to filter down the cells before calling the cellLoader, we'll need to update the
+     * {@link Transaction#getWithExpectedNumberOfCells(TableReference, Set, long)} implementation to take intro account the
+     * filtering and change the number of expect cells it sends to the super class.
+     */
+    @VisibleForTesting
+    ListenableFuture<Map<Cell, byte[]>> getWithLoader(TableReference tableRef, Set<Cell> cells, CellLoader cellLoader) {
+        CellResultLoader resultLoader = (table, toRead) -> {
+            ListenableFuture<Map<Cell, byte[]>> future = cellLoader.load(table, toRead);
+            return Futures.transform(future, Result::ok, MoreExecutors.directExecutor());
+        };
+
+        return Futures.transform(
+                getWithResultLoader(tableRef, cells, resultLoader), Result::unwrap, MoreExecutors.directExecutor());
+    }
+
+    private ListenableFuture<Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException>> getWithResultLoader(
+            TableReference tableRef, Set<Cell> cells, CellResultLoader cellLoader) {
         return Futures.transform(
                 cellLoader.load(tableRef, cells),
                 loadedCells -> {
-                    markCellsRead(tableRef, cells, loadedCells);
+                    if (loadedCells.isErr()) {
+                        return loadedCells;
+                    }
+
+                    markCellsRead(tableRef, cells, loadedCells.unwrap());
                     return loadedCells;
                 },
                 MoreExecutors.directExecutor());
     }
 
+    @VisibleForTesting
     @FunctionalInterface
-    private interface CellLoader {
+    interface CellLoader {
         ListenableFuture<Map<Cell, byte[]>> load(TableReference tableReference, Set<Cell> toRead);
+    }
+
+    @FunctionalInterface
+    private interface CellResultLoader {
+        ListenableFuture<Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException>> load(
+                TableReference tableReference, Set<Cell> toRead);
     }
 
     @Override
@@ -575,15 +627,15 @@ public class SerializableTransaction extends SnapshotTransaction {
                 // We want to filter out all our reads to just the set that matches our column selection.
                 originalReads = Maps.filterKeys(originalReads, input -> columns.contains(input.getColumnName()));
 
-                if (writesByTable.get(table) != null) {
+                if (localWriteBuffer.getLocalWrites().get(table) != null) {
                     // We don't want to verify any reads that we wrote to cause
                     // we will just read our own values.
                     // NB: We filter our write set out here because our normal SI
                     // checking handles this case to ensure the value hasn't changed.
                     originalReads = Maps.filterKeys(
                             originalReads,
-                            Predicates.not(
-                                    Predicates.in(writesByTable.get(table).keySet())));
+                            Predicates.not(Predicates.in(
+                                    localWriteBuffer.getLocalWrites().get(table).keySet())));
                 }
 
                 if (currentRow == null && originalReads.isEmpty()) {
@@ -595,15 +647,15 @@ public class SerializableTransaction extends SnapshotTransaction {
                 }
 
                 Map<Cell, byte[]> currentCells = Maps2.fromEntries(currentRow.getCells());
-                if (writesByTable.get(table) != null) {
+                if (localWriteBuffer.getLocalWrites().get(table) != null) {
                     // We don't want to verify any reads that we wrote to cause
                     // we will just read our own values.
                     // NB: We filter our write set out here because our normal SI
                     // checking handles this case to ensure the value hasn't changed.
                     currentCells = Maps.filterKeys(
                             currentCells,
-                            Predicates.not(
-                                    Predicates.in(writesByTable.get(table).keySet())));
+                            Predicates.not(Predicates.in(
+                                    localWriteBuffer.getLocalWrites().get(table).keySet())));
                 }
                 if (!ByteArrayUtilities.areMapsEqual(originalReads, currentCells)) {
                     handleTransactionConflict(table);
@@ -621,12 +673,15 @@ public class SerializableTransaction extends SnapshotTransaction {
             for (Iterable<Cell> batch : Iterables.partition(cells, BATCH_SIZE)) {
                 // We don't want to verify any reads that we wrote to cause we will just read our own values.
                 // NB: If the value has changed between read and write, our normal SI checking handles this case
-                Iterable<Cell> batchWithoutWrites = writesByTable.get(table) != null
-                        ? Iterables.filter(
-                                batch,
-                                Predicates.not(
-                                        Predicates.in(writesByTable.get(table).keySet())))
-                        : batch;
+                Iterable<Cell> batchWithoutWrites =
+                        localWriteBuffer.getLocalWrites().get(table) != null
+                                ? Iterables.filter(
+                                        batch,
+                                        Predicates.not(Predicates.in(localWriteBuffer
+                                                .getLocalWrites()
+                                                .get(table)
+                                                .keySet())))
+                                : batch;
                 ImmutableSet<Cell> batchWithoutWritesSet = ImmutableSet.copyOf(batchWithoutWrites);
                 Map<Cell, byte[]> currentBatch = readOnlyTransaction.get(table, batchWithoutWritesSet);
                 ImmutableMap<Cell, byte[]> originalReads = Maps.toMap(
@@ -656,7 +711,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                             .build();
                 }
 
-                ConcurrentNavigableMap<Cell, byte[]> writes = writesByTable.get(table);
+                ConcurrentNavigableMap<Cell, byte[]> writes =
+                        localWriteBuffer.getLocalWrites().get(table);
                 BatchingVisitableView<RowResult<byte[]>> bv =
                         BatchingVisitableView.of(readOnlyTransaction.getRange(table, range));
                 NavigableMap<Cell, ByteBuffer> readsInRange =
@@ -684,7 +740,8 @@ public class SerializableTransaction extends SnapshotTransaction {
             Cell endCell = Cells.createSmallestCellForRow(RangeRequests.nextLexicographicName(row));
             reads = reads.headMap(endCell, false);
         }
-        ConcurrentNavigableMap<Cell, byte[]> writes = writesByTable.get(table);
+        ConcurrentNavigableMap<Cell, byte[]> writes =
+                localWriteBuffer.getLocalWrites().get(table);
         if (writes != null) {
             reads = Maps.filterKeys(reads, Predicates.not(Predicates.in(writes.keySet())));
         }
@@ -809,7 +866,7 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     private List<Map.Entry<Cell, ByteBuffer>> filterWritesFromCells(
             Iterable<Map.Entry<Cell, byte[]>> cells, TableReference table) {
-        return filterWritesFromCells(cells, writesByTable.get(table));
+        return filterWritesFromCells(cells, localWriteBuffer.getLocalWrites().get(table));
     }
 
     private static List<Map.Entry<Cell, ByteBuffer>> filterWritesFromCells(
@@ -842,7 +899,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         if (range.getEndExclusive().length != 0) {
             reads = reads.headMap(Cells.createSmallestCellForRow(range.getEndExclusive()), false);
         }
-        Map<Cell, byte[]> writes = writesByTable.get(table);
+        Map<Cell, byte[]> writes = localWriteBuffer.getLocalWrites().get(table);
         if (writes != null) {
             reads = Maps.filterKeys(reads, Predicates.not(Predicates.in(writes.keySet())));
         }

@@ -20,10 +20,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -36,6 +40,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Streams;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
@@ -64,6 +69,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
+import com.palantir.atlasdb.transaction.impl.SerializableTransaction.CellLoader;
 import com.palantir.atlasdb.transaction.impl.metrics.SimpleTableLevelMetricsController;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.BatchingVisitable;
@@ -78,6 +84,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.Callable;
@@ -89,6 +96,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 @SuppressWarnings("CheckReturnValue")
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
@@ -1483,6 +1491,27 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
             assertThat(serializable.isSerializableTable(
                             TableReference.createFromFullyQualifiedName("i.amrandom" + UUID.randomUUID())))
                     .isFalse();
+            return null;
+        });
+    }
+
+    // This test exists as a best effort approach to catch any change to the getWithLoader method that would filter
+    // down cells and potentially break getWithExpectedNumberOfCells if it was not changed accordingly.
+    @Test
+    public void getWithLoaderDoesntFilterDownCells() {
+        CellLoader cellLoader = mock(CellLoader.class);
+        when(cellLoader.load(any(), anySet()))
+                .thenReturn(Futures.immediateFuture(ImmutableMap.of(CELL_ONE, BYTES_ONE, CELL_TWO, BYTES_TWO)));
+
+        createManager().runTaskThrowOnConflict(tx -> {
+            SerializableTransaction serializable = (SerializableTransaction) tx;
+
+            serializable.getWithLoader(TEST_TABLE_SERIALIZABLE, ImmutableSet.of(CELL_ONE, CELL_TWO), cellLoader);
+
+            ArgumentCaptor<Set<Cell>> captor = ArgumentCaptor.forClass(Set.class);
+            verify(cellLoader).load(eq(TEST_TABLE_SERIALIZABLE), captor.capture());
+
+            assertThat(captor.getValue()).containsExactlyInAnyOrder(CELL_ONE, CELL_TWO);
             return null;
         });
     }

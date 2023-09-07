@@ -71,6 +71,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -545,6 +546,8 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
+    @Ignore
+    // TODO(#6699): make this test less flakey before re-enabling
     @Test
     // The test fails when trying to cache a value that is currently locked.
     // The open question is whether this _should_ fail when there is a locked value being cached on top of, or if

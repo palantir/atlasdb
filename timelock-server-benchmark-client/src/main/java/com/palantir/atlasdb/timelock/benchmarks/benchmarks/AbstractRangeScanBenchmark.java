@@ -28,11 +28,11 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.tritium.ids.UniqueIds;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -75,7 +75,7 @@ public abstract class AbstractRangeScanBenchmark extends AbstractBenchmark {
             return;
         }
 
-        this.bucket = UUID.randomUUID().toString();
+        this.bucket = UniqueIds.pseudoRandomUuidV4().toString();
         log.info("creating new test data under bucket {}", UnsafeArg.of("bucket", bucket));
 
         writeData();

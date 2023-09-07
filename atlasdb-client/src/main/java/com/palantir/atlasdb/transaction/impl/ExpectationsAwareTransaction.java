@@ -19,6 +19,7 @@ package com.palantir.atlasdb.transaction.impl;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
+import com.palantir.atlasdb.transaction.api.expectations.TransactionWriteMetadataInfo;
 
 /**
  * Implementors of this interface provide methods useful for tracking transactional expectations and whether
@@ -37,6 +38,8 @@ public interface ExpectationsAwareTransaction extends Transaction {
      * Returns transaction commit lock information.
      */
     TransactionCommitLockInfo getCommitLockInfo();
+
+    TransactionWriteMetadataInfo getWriteMetadataInfo();
 
     /**
      * Update TEX data collection metrics for (post-mortem) transactions.

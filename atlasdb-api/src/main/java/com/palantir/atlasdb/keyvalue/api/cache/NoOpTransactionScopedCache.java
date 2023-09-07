@@ -52,11 +52,27 @@ public final class NoOpTransactionScopedCache implements TransactionScopedCache 
     }
 
     @Override
+    public Map<Cell, byte[]> getWithCachedRef(
+            TableReference tableReference,
+            Set<Cell> cells,
+            Function<CacheLookupResult, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
+        return AtlasFutures.getUnchecked(getAsyncWithCachedRef(tableReference, cells, valueLoader));
+    }
+
+    @Override
     public ListenableFuture<Map<Cell, byte[]>> getAsync(
             TableReference tableReference,
             Set<Cell> cells,
             Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
         return valueLoader.apply(cells);
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, byte[]>> getAsyncWithCachedRef(
+            TableReference tableReference,
+            Set<Cell> cells,
+            Function<CacheLookupResult, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
+        return valueLoader.apply(CacheLookupResult.of(Map.of(), cells));
     }
 
     @Override

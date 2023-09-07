@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Throw not current leader exception only once per instance. This should
+    prevent multiple class creations, thus preventing resource contention and resource
+    leakage.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6711

@@ -41,9 +41,14 @@ import com.palantir.atlasdb.workload.workflow.Workflow;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
 import com.palantir.common.concurrent.PTExecutors;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import one.util.streamex.EntryStream;
+import one.util.streamex.IntStreamEx;
 import org.junit.Test;
 
 public final class BankBalanceWorkflowsTest {
@@ -59,6 +64,8 @@ public final class BankBalanceWorkflowsTest {
 
     private final AtomicBoolean skipRunning = new AtomicBoolean();
 
+    private final AtomicReference<Map<Integer, Optional<Integer>>> invalidBalances = new AtomicReference<>();
+
     private final InteractiveTransactionStore memoryStore = AtlasDbTransactionStore.create(
             TransactionManagers.createInMemory(ImmutableSet.of()),
             ImmutableMap.of(
@@ -69,7 +76,8 @@ public final class BankBalanceWorkflowsTest {
             memoryStore,
             CONFIGURATION,
             MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(1)),
-            skipRunning);
+            skipRunning,
+            invalidBalances::set);
 
     @Test
     public void workflowHistoryTransactionStoreShouldBeReadOnly() {
@@ -132,5 +140,18 @@ public final class BankBalanceWorkflowsTest {
     public void bankWorkflowDoesNotWitnessTransactionWhenSkipRunningSetToTrue() {
         skipRunning.set(true);
         assertThat(workflow.run().history()).isEmpty();
+    }
+
+    @Test
+    public void bankWorkflowCallsConsumerWhenInvalidBalanceSet() {
+        assertThat(invalidBalances.get()).isNull();
+        memoryStore.readWrite(txn -> txn.write(TABLE_NAME, BankBalanceWorkflows.getCellForAccount(0), 1));
+        workflow.run();
+        Map<Integer, Optional<Integer>> balances = EntryStream.of(Map.of(0, Optional.of(1)))
+                .append(IntStreamEx.range(1, CONFIGURATION.numberOfAccounts())
+                        .boxed()
+                        .collect(Collectors.toMap(i -> i, _i -> Optional.empty())))
+                .toMap();
+        assertThat(invalidBalances).hasValue(balances);
     }
 }

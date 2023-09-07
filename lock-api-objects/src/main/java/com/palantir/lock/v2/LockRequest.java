@@ -52,6 +52,11 @@ public interface LockRequest {
                 lockDescriptors, acquireTimeoutMs, Optional.of(clientDescription), Optional.empty());
     }
 
+    static LockRequest of(
+            Set<LockDescriptor> lockDescriptors, long acquireTimeoutMs, Optional<LockRequestMetadata> metadata) {
+        return ImmutableLockRequest.of(lockDescriptors, acquireTimeoutMs, Optional.empty(), metadata);
+    }
+
     @Value.Check
     default void check() {
         Preconditions.checkState(getAcquireTimeoutMs() >= 0, "Acquire timeout cannot be negative.");

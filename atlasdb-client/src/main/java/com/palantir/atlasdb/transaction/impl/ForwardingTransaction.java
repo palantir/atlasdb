@@ -29,8 +29,13 @@ import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
+import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
+import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.BatchingVisitable;
+import com.palantir.lock.watch.ChangeMetadata;
+import com.palantir.util.result.Result;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -83,6 +88,13 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
         return delegate().get(tableRef, cells);
     }
 
+    @ReviewedRestrictedApiUsage
+    @Override
+    public Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> getWithExpectedNumberOfCells(
+            TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells) {
+        return delegate().getWithExpectedNumberOfCells(tableRef, cells, expectedNumberOfPresentCells);
+    }
+
     @Override
     public BatchingVisitable<RowResult<byte[]>> getRange(TableReference tableRef, RangeRequest rangeRequest) {
         return delegate().getRange(tableRef, rangeRequest);
@@ -128,8 +140,18 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     }
 
     @Override
+    public void putWithMetadata(TableReference tableRef, Map<Cell, ValueAndChangeMetadata> valuesAndMetadata) {
+        delegate().putWithMetadata(tableRef, valuesAndMetadata);
+    }
+
+    @Override
     public void delete(TableReference tableRef, Set<Cell> keys) {
         delegate().delete(tableRef, keys);
+    }
+
+    @Override
+    public void deleteWithMetadata(TableReference tableRef, Map<Cell, ChangeMetadata> keys) {
+        delegate().deleteWithMetadata(tableRef, keys);
     }
 
     @Override

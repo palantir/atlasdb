@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.api;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.errorprone.annotations.RestrictedApi;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -24,9 +25,13 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
+import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.BatchingVisitable;
+import com.palantir.lock.watch.ChangeMetadata;
+import com.palantir.util.result.Result;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -176,6 +181,41 @@ public interface Transaction {
     Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells);
 
     /**
+     * Similar to {@link #get(TableReference, Set)}, but allows the caller to specify the number of expected present
+     * cells. This is important to allow clients that might have schemas that guarantees only a subset of the columns
+     * are present to still benefit from being able to skip the immutable timestamp lock check on non-empty reads of
+     * thoroughly swept tables.
+     *
+     * If we find values for the exact number of expected present cells, we'll skip the immutable timestamp lock check.
+     * If we find less values, we'll perform the immutable timestamp lock check.
+     * If we find more values, we'll throw an exception, as it means that either:
+     *  1 - There is a bug in the implementation of this method.
+     *  2 - The client is making an incorrect assumption about the maximum number of values that will be present, and
+     *      we could have returned empty values in the past when we should have not.
+     *
+     * WARNING: This method should only be used if you REALLY know what you're doing. Otherwise, you could have
+     * correctness issues by reading empty values when one is actually present if you don't use this method correctly.
+     *
+     * @param tableRef the table from which to get the values
+     * @param cells the cells for which we want to get the values
+     * @param expectedNumberOfPresentCells the maximum number of cells that are expected to be present.
+     * @return a {@link Map} from {@link Cell} to {@code byte[]} representing cell/value pairs
+     */
+    @RestrictedApi(
+            explanation = "This API is only meant to be used by AtlasDb proxies that want to make usage of the "
+                    + "performance improvement of skipping the immutable timestamp lock check on non-empty reads of "
+                    + "thoroughly swept tables, but their schema won't allow them to have non empty reads due to "
+                    + "columns being mutually exclusive, for example. So this API gives them a good way to specifying "
+                    + "the max number of values they'd ever expect in a get, which when met would allow them to skip "
+                    + "the lock check. Wrong usage of this API can cause correctness issues, so it's restricted.",
+            link = "https://github.com/palantir/atlasdb/pull/6655",
+            allowedOnPath = ".*/src/test/.*", // Unsafe behavior in tests is ok.
+            allowlistAnnotations = {ReviewedRestrictedApiUsage.class})
+    @Idempotent
+    Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> getWithExpectedNumberOfCells(
+            TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells);
+
+    /**
      * Gets the values associated for each cell in {@code cells} from table specified by {@code tableRef}. It is not
      * guaranteed that the actual implementations are in fact asynchronous.
      *
@@ -272,12 +312,37 @@ public interface Transaction {
     void put(TableReference tableRef, Map<Cell, byte[]> values);
 
     /**
+     * Behaves like {@link Transaction#put}, but additionally stores {@link ChangeMetadata} for cells. This metadata is
+     * forwarded to TimeLock when acquiring locks at the beginning of the commit protocol.
+     * If two cells in the same row have metadata and the {@link ConflictHandler} for the table acquires row locks,
+     * {@link Transaction#commit} will fail.
+     *
+     * @param tableRef the table into which to put the values and metadata
+     * @param valuesAndMetadata the metadata-enriched values to append to the table
+     */
+    @Idempotent
+    void putWithMetadata(TableReference tableRef, Map<Cell, ValueAndChangeMetadata> valuesAndMetadata);
+
+    /**
      * Deletes values from the key-value store.
      * @param tableRef the table from which to delete the values
      * @param keys the set of cells to delete from the store
      */
     @Idempotent
     void delete(TableReference tableRef, Set<Cell> keys);
+
+    /**
+     * Behaves like {@link Transaction#delete}, but additionally stores {@link ChangeMetadata} for the deleted cells.
+     * This metadata is forwarded to TimeLock when acquiring locks at the beginning of the commit protocol.
+     * If two cells in the same row have metadata and the {@link ConflictHandler} for the table acquires row locks,
+     * {@link Transaction#commit} will fail.
+     *
+     * @param tableRef the table from which to delete the values and for which to store metadata
+     * @param keysWithMetadata the cells to delete associated with the metadata that should be stored for
+     * them
+     */
+    @Idempotent
+    void deleteWithMetadata(TableReference tableRef, Map<Cell, ChangeMetadata> keysWithMetadata);
 
     @Idempotent
     TransactionType getTransactionType();

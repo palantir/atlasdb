@@ -15,13 +15,13 @@ function checkDocsBuild {
 
 CONTAINER_1=(':atlasdb-cassandra-integration-tests:testSubset1')
 
-CONTAINER_2=(':atlasdb-ete-tests:check')
+CONTAINER_2=(':atlasdb-ete-tests:check' ':atlasdb-ete-tests:multiClientWithPostgresTimelockAndPostgresTest' ':atlasdb-ete-tests:multiClientWithTimelockAndCassandraTest')
 
 CONTAINER_3=(':timelock-server:integTest')
 
-CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check' ':atlasdb-ete-tests:dbkvsTest')
+CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-tests-shared:check' ':atlasdb-perf:check' ':atlasdb-ete-tests:singleClientWithEmbeddedAndPostgresTest')
 
-CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:postgresTest' ':atlasdb-ete-test-utils:check' ':atlasdb-ete-tests:longTest')
+CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:postgresTest' ':atlasdb-ete-test-utils:check' ':atlasdb-ete-tests:singleClientWithEmbeddedAndThreeNodeCassandraTest' ':atlasdb-ete-tests:singleClientWithEmbeddedAndCassandraTest')
 
 CONTAINER_6=(':timelock-server:suiteTest')
 
@@ -29,7 +29,7 @@ CONTAINER_7=(':timelock-server:stressTest')
 
 CONTAINER_8=(':atlasdb-cassandra-integration-tests:testSubset2')
 
-CONTAINER_9=(':atlasdb-ete-tests:oracleTest')
+CONTAINER_9=(':atlasdb-ete-tests:singleClientWithEmbeddedAndOracleTest')
 
 CONTAINER_10=('atlasdb-dbkvs-tests:oracleTest')
 
@@ -92,7 +92,7 @@ export CASSANDRA_HEAP_NEWSIZE=64m
 case "$test_suite_index" in
     0) ./gradlew $BASE_GRADLE_ARGS check $CONTAINER_0_EXCLUDE_ARGS -x :atlasdb-jepsen-tests:check;;
     1) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_1[@]} ;;
-    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:longTest -x atlasdb-ete-tests:dbkvsTest -x :atlasdb-ete-tests:timeLockMigrationTest ;;
+    2) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_2[@]} -x :atlasdb-ete-tests:customEteTasks ;;
     3) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_3[@]} ;;
     4) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_4[@]} ;;
     5) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_5[@]} ;;

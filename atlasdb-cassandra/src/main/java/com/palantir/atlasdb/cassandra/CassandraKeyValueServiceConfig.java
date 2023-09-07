@@ -92,7 +92,7 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
     /**
      * The proportion of {@link #poolSize()} connections that are checked approximately every {@link
      * #timeBetweenConnectionEvictionRunsSeconds()} seconds to see if has been idle at least {@link
-     * #idleConnectionTimeoutSeconds()} seconds and evicts it from the pool if so. For example, given the the default
+     * #idleConnectionTimeoutSeconds()} seconds and evicts it from the pool if so. For example, given the default
      * values, 0.1 * 30 = 3 connections will be checked approximately every 20 seconds and will be evicted from the pool
      * if it has been idle for at least 10 minutes.
      */

@@ -28,8 +28,4 @@ public interface WorkflowValidatorRunner<WorkflowTypeT extends Workflow> {
     default void run(WorkflowAndInvariants<WorkflowTypeT>... workflowAndInvariants) {
         run(Arrays.asList(workflowAndInvariants));
     }
-
-    default void run(WorkflowAndInvariants<WorkflowTypeT> workflowAndInvariants) {
-        run(List.of(workflowAndInvariants));
-    }
 }
