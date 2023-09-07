@@ -53,16 +53,16 @@ public abstract class InterruptibleFuture<V> implements RunnableFuture<V> {
     private final Lock lock = new ReentrantLock(false);
     private final Condition condition = lock.newCondition();
 
-    @GuardedBy(value = "lock")
+    @GuardedBy("lock")
     private V returnValue;
 
-    @GuardedBy(value = "lock")
+    @GuardedBy("lock")
     private Throwable executionException;
 
-    @GuardedBy(value = "lock")
+    @GuardedBy("lock")
     private volatile CancellationException cancellationException;
 
-    @GuardedBy(value = "lock")
+    @GuardedBy("lock")
     private volatile State state = State.WAITING_TO_RUN;
 
     private final FutureTask<?> futureTask = new FutureTask<Void>(
@@ -113,7 +113,7 @@ public abstract class InterruptibleFuture<V> implements RunnableFuture<V> {
         return futureTask.cancel(mayInterruptIfRunning);
     }
 
-    @SuppressWarnings("GuardedByChecker")
+    @GuardedBy("lock")
     protected void noteFinished() {
         state = State.COMPLETED;
         condition.signalAll();
@@ -157,7 +157,7 @@ public abstract class InterruptibleFuture<V> implements RunnableFuture<V> {
         }
     }
 
-    @SuppressWarnings("GuardedByChecker")
+    @GuardedBy("lock")
     private V getReturnValue() throws ExecutionException, CancellationException {
         if (cancellationException != null) {
             throw Throwables.chain(
@@ -173,15 +173,23 @@ public abstract class InterruptibleFuture<V> implements RunnableFuture<V> {
      * @return true if and only if the task was canceled before it ever executed
      */
     @Override
-    @SuppressWarnings("GuardedByChecker")
     public final boolean isCancelled() {
-        return cancellationException != null;
+        lock.lock();
+        try {
+            return cancellationException != null;
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
-    @SuppressWarnings("GuardedByChecker")
     public final boolean isDone() {
-        return state == State.COMPLETED;
+        lock.lock();
+        try {
+            return state == State.COMPLETED;
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override

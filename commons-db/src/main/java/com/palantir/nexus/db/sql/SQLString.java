@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 import org.apache.commons.lang3.Validate;
 
@@ -86,6 +87,7 @@ public class SQLString extends BasicSQLString {
      * Runs the provided callable while holding the lock for the override caches.
      * Callers replacing the caches should hold this lock.
      */
+    @Deprecated
     protected static <T, E extends Exception> T runWithCacheLock(CallableCheckedException<T, E> callable) throws E {
         synchronized (cacheLock) {
             return callable.call();
@@ -165,13 +167,12 @@ public class SQLString extends BasicSQLString {
      * @param dbType Look for queries registered with this override first
      * @return a SQLString object representing the stored query
      */
-    @SuppressWarnings("GuardedByChecker")
     static FinalSQLString getByKey(final String key, DBType dbType) {
         assert isValidKey(key) : "Keys only consist of word characters"; // $NON-NLS-1$
         assert registeredValues.containsKey(key) || registeredValuesOverride.containsKey(key)
                 : "Couldn't find SQLString key: " + key + ", dbtype " + dbType; // $NON-NLS-1$ //$NON-NLS-2$
 
-        FinalSQLString cached = cachedKeyed.get(key);
+        FinalSQLString cached = getCachedSql(key);
         if (null != cached) {
             callbackOnUse.noteUse((SQLString) cached.delegate);
             return cached;
@@ -192,6 +193,13 @@ public class SQLString extends BasicSQLString {
         return valueForKey;
     }
 
+    @Nullable
+    @SuppressWarnings("GuardedBy") // we're only doing a volatile read of current cache
+    private static FinalSQLString getCachedSql(String key) {
+        ImmutableMap<String, FinalSQLString> cache = cachedKeyed; // volatile read
+        return cache == null ? null : cache.get(key);
+    }
+
     static FinalSQLString getByKey(String key, Connection connection) throws PalantirSqlException {
         DBType type = DBType.getTypeFromConnection(connection);
         return getByKey(key, type);
@@ -209,7 +217,6 @@ public class SQLString extends BasicSQLString {
      * @param sql The string to be used in a query
      * @return a SQLString object representing the given SQL
      */
-    @SuppressWarnings("GuardedByChecker")
     static FinalSQLString getUnregisteredQuery(String sql) {
         assert !isValidKey(sql) : "Unregistered Queries should not look like keys"; // $NON-NLS-1$
         return new FinalSQLString(new SQLString(sql));
@@ -423,9 +430,10 @@ public class SQLString extends BasicSQLString {
     @Deprecated
     protected static void setCachedUnregistered(ImmutableMap<String, FinalSQLString> _cachedUnregistered) {}
 
-    @SuppressWarnings("GuardedByChecker")
     protected static ImmutableMap<String, FinalSQLString> getCachedKeyed() {
-        return cachedKeyed;
+        synchronized (cacheLock) {
+            return cachedKeyed;
+        }
     }
 
     protected static void setCachedKeyed(ImmutableMap<String, FinalSQLString> cachedKeyed) {
