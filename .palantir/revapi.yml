@@ -249,3 +249,11 @@ acceptedBreaks:
         \ com.palantir.lock.client.TimeLockClient>)"
       justification: "None of the impacted classes are used or inherited from any\
         \ other library or product"
+  "0.920.0-rc1":
+    com.palantir.atlasdb:atlasdb-cassandra:
+    - code: "java.method.returnTypeChanged"
+      old: "method void com.palantir.atlasdb.keyvalue.cassandra.CassandraAbsentHostTracker::trackAbsentCassandraServer(com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer)"
+      new: "method boolean com.palantir.atlasdb.keyvalue.cassandra.CassandraAbsentHostTracker::trackAbsentCassandraServer(com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer)"
+      justification: "RC break"
