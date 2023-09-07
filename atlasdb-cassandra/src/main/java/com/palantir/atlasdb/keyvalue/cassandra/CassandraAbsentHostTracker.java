@@ -43,13 +43,30 @@ public final class CassandraAbsentHostTracker {
     }
 
     public synchronized Optional<CassandraClientPoolingContainer> returnPool(CassandraServer cassandraServer) {
-        return Optional.ofNullable(absentCassandraServers.remove(cassandraServer))
+        log.info(
+                "Was going to return an absent Cassandra server. The current state is as follows:",
+                SafeArg.of("cassandraServer", cassandraServer),
+                SafeArg.of("absentCassandraServers", absentCassandraServers));
+        Optional<CassandraClientPoolingContainer> cassandraClientPoolingContainer = Optional.ofNullable(
+                        absentCassandraServers.remove(cassandraServer))
                 .map(PoolAndCount::container);
+        log.info(
+                "Returned an absent Cassandra server. The current state is as follows:",
+                SafeArg.of("cassandraServer", cassandraServer),
+                SafeArg.of("container", cassandraClientPoolingContainer),
+                SafeArg.of("absentCassandraServers", absentCassandraServers));
+        return cassandraClientPoolingContainer;
     }
 
-    public synchronized void trackAbsentCassandraServer(
+    public synchronized boolean trackAbsentCassandraServer(
             CassandraServer absentServer, CassandraClientPoolingContainer pool) {
-        absentCassandraServers.putIfAbsent(absentServer, PoolAndCount.of(pool));
+        PoolAndCount poolAndCount = absentCassandraServers.putIfAbsent(absentServer, PoolAndCount.of(pool));
+        log.info(
+                "Tracked an absent Cassandra server. The current state is as follows:",
+                SafeArg.of("absentServer", absentServer),
+                SafeArg.of("poolAndCount", poolAndCount),
+                SafeArg.of("absentCassandraServers", absentCassandraServers));
+        return poolAndCount != null;
     }
 
     public synchronized Set<CassandraServer> incrementAbsenceAndRemove() {

@@ -29,6 +29,7 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.PoolingContainer;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nylon.threads.ThreadNames;
@@ -61,7 +62,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
     /**
      * We use this proxy to actually talk to the Cassandra host.
-     * */
+     */
     private final InetSocketAddress proxy;
 
     private final CassandraKeyValueServiceConfig config;
@@ -272,23 +273,23 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
 
     /**
      * Pool size:
-     *    Always keep {@link CassandraKeyValueServiceConfig#poolSize()} connections around, per host. Allow bursting
-     *    up to {@link CassandraKeyValueServiceConfig#maxConnectionBurstSize()} connections per host under load.
-     *
+     * Always keep {@link CassandraKeyValueServiceConfig#poolSize()} connections around, per host. Allow bursting
+     * up to {@link CassandraKeyValueServiceConfig#maxConnectionBurstSize()} connections per host under load.
+     * <p>
      * Borrowing from pool:
-     *    On borrow, check if the connection is actually open. If it is not,
-     *       immediately discard this connection from the pool, and try to take another.
-     *    Borrow attempts against a fully in-use pool immediately throw a NoSuchElementException.
-     *       {@code CassandraClientPool} when it sees this will:
-     *          Follow an exponential backoff as a method of back pressure.
-     *          Try 3 times against this host, and then give up and try against different hosts 3 additional times.
-     *
-     *
+     * On borrow, check if the connection is actually open. If it is not,
+     * immediately discard this connection from the pool, and try to take another.
+     * Borrow attempts against a fully in-use pool immediately throw a NoSuchElementException.
+     * {@code CassandraClientPool} when it sees this will:
+     * Follow an exponential backoff as a method of back pressure.
+     * Try 3 times against this host, and then give up and try against different hosts 3 additional times.
+     * <p>
+     * <p>
      * In an asynchronous thread (using default values):
-     *    Every 20-30 seconds, examine approximately a tenth of the connections in pool.
-     *    Discard any connections in this tenth of the pool whose TCP connections are closed.
-     *    Discard any connections in this tenth of the pool that have been idle for more than 10 minutes,
-     *       while still keeping a minimum number of idle connections around for fast borrows.
+     * Every 20-30 seconds, examine approximately a tenth of the connections in pool.
+     * Discard any connections in this tenth of the pool whose TCP connections are closed.
+     * Discard any connections in this tenth of the pool that have been idle for more than 10 minutes,
+     * while still keeping a minimum number of idle connections around for fast borrows.
      */
     private GenericObjectPool<CassandraClient> createClientPool() {
         CassandraClientConfig clientConfig = CassandraClientConfig.of(config);
@@ -328,7 +329,9 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
                 "Creating a Cassandra client pool for {} with the configuration {}",
                 SafeArg.of("cassandraHost", cassandraServer.cassandraHostName()),
                 SafeArg.of("proxy", proxy),
-                SafeArg.of("poolConfig", poolConfig));
+                SafeArg.of("poolConfig", poolConfig),
+                new SafeRuntimeException(
+                        "Hallo. Ich heisse SafeRuntimeException. Ich existiere, um einen Stacktrace zu haben."));
         return pool;
     }
 

@@ -52,19 +52,19 @@ import one.util.streamex.EntryStream;
 
 /**
  * Feature breakdown:
- *   - Pooling
- *   - Token Aware Mapping / Query Routing / Data partitioning
- *   - Retriable Queries
- *   - Pool member error tracking / blacklisting*
- *   - Pool refreshing
- *   - Pool node autodiscovery
- *   - Pool member health checking*
- *
- *   *entirely new features
- *
- *   By our old system, this would be a
- *   RefreshingRetriableTokenAwareHealthCheckingManyHostCassandraClientPoolingContainerManager;
- *   ... this is one of the reasons why there is a new system.
+ * - Pooling
+ * - Token Aware Mapping / Query Routing / Data partitioning
+ * - Retriable Queries
+ * - Pool member error tracking / blacklisting*
+ * - Pool refreshing
+ * - Pool node autodiscovery
+ * - Pool member health checking*
+ * <p>
+ * *entirely new features
+ * <p>
+ * By our old system, this would be a
+ * RefreshingRetriableTokenAwareHealthCheckingManyHostCassandraClientPoolingContainerManager;
+ * ... this is one of the reasons why there is a new system.
  **/
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class CassandraClientPoolImpl implements CassandraClientPool {
@@ -354,8 +354,15 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         Set<CassandraServer> serversToShutdown = absentHostTracker.incrementAbsenceAndRemove();
 
+        log.info(
+                "We think the desired change is as follows...",
+                SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())),
+                SafeArg.of("serversToShutdown", CassandraLogHelper.collectionOfHosts(serversToShutdown)));
         Set<CassandraServer> validatedServersToAdd =
                 validateNewHostsTopologiesAndMaybeAddToPool(getCurrentPools(), serversToAdd);
+        log.info(
+                "We validated these servers and added them to the pool...",
+                SafeArg.of("validatedServersToAdd", CassandraLogHelper.collectionOfHosts(validatedServersToAdd)));
 
         if (!(validatedServersToAdd.isEmpty() && absentServers.isEmpty())) { // if we made any changes
             cassandra.refreshTokenRangesAndGetServers();
@@ -365,9 +372,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Preconditions.checkState(
                 !getCurrentPools().isEmpty() || serversToAdd.isEmpty(),
                 "No servers were successfully added to the pool. This means we could not come to a consensus on"
-                    + " cluster topology, and the client cannot connect as there are no valid hosts. This state should"
-                    + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
-                    + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
+                        + " cluster topology, and the client cannot connect as there are no valid hosts. This state should"
+                        + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
+                        + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
                 SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())));
 
         logRefreshedHosts(validatedServersToAdd, serversToShutdown, absentServers);
@@ -414,9 +421,32 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         Set<CassandraServer> validatedServersToAdd =
                 Sets.difference(serversToAddWithoutOrigin, newHostsWithDifferingTopology);
+        log.info(
+                "Results of topology validation follow.",
+                SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())),
+                SafeArg.of(
+                        "serversToAddContainers",
+                        CassandraLogHelper.collectionOfHosts(serversToAddContainers.keySet())),
+                SafeArg.of("currentContainers", CassandraLogHelper.collectionOfHosts(currentContainers.keySet())),
+                SafeArg.of(
+                        "newHostsWithDifferingTopology",
+                        CassandraLogHelper.collectionOfHosts(newHostsWithDifferingTopology)),
+                SafeArg.of("validatedServersToAdd", CassandraLogHelper.collectionOfHosts(validatedServersToAdd)));
+
         validatedServersToAdd.forEach(server -> cassandra.addPool(server, serversToAddContainers.get(server)));
-        newHostsWithDifferingTopology.forEach(
-                server -> absentHostTracker.trackAbsentCassandraServer(server, serversToAddContainers.get(server)));
+        // The old Cassandra node we're unhappy about fails validation.
+        newHostsWithDifferingTopology.forEach(server -> {
+            boolean trackedPool =
+                    absentHostTracker.trackAbsentCassandraServer(server, serversToAddContainers.get(server));
+            if (!trackedPool) {
+                log.warn("Detected suspected cassandra client pool leak. Closing.", SafeArg.of("server", server));
+                try {
+                    serversToAddContainers.get(server).shutdownPooling();
+                } catch (RuntimeException e) {
+                    log.warn("Failed to close suspected cassandra client pool.", SafeArg.of("server", server), e);
+                }
+            }
+        });
         if (!newHostsWithDifferingTopology.isEmpty()) {
             log.warn(
                     "Some hosts are potentially unreachable or have topologies that are not in consensus with the"

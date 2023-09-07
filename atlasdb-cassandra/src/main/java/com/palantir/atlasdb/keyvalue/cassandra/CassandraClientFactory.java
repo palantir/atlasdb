@@ -22,6 +22,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraLogHelper.HostAndIpAddress;
 import com.palantir.atlasdb.keyvalue.cassandra.ImmutableCassandraClientConfig.SocketTimeoutMillisBuildStage;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -175,12 +176,23 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
             TSocketFactory tSocketFactory,
             UUID creationTrace)
             throws TException {
+        HostAndIpAddress cassandraHostAndIp = CassandraLogHelper.host(cassandraServer.proxy());
         InetSocketAddress addr = cassandraServer.proxy();
-        log.info("Thinking about opening a thrift socket", SafeArg.of("creationTrace", creationTrace));
+        log.info(
+                "Thinking about opening a thrift socket",
+                SafeArg.of("creationTrace", creationTrace),
+                SafeArg.of("server", cassandraHostAndIp));
         TSocket thriftSocket =
                 tSocketFactory.create(addr.getHostString(), addr.getPort(), clientConfig.socketTimeoutMillis());
+        log.info(
+                "Created a thrift socket",
+                SafeArg.of("creationTrace", creationTrace),
+                SafeArg.of("server", cassandraHostAndIp));
         thriftSocket.open();
-        log.info("Opened a thrift socket", SafeArg.of("creationTrace", creationTrace));
+        log.info(
+                "Opened a thrift socket",
+                SafeArg.of("creationTrace", creationTrace),
+                SafeArg.of("server", cassandraHostAndIp));
         setSocketOptions(
                 thriftSocket,
                 socket -> {
@@ -188,27 +200,44 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                     socket.getSocket().setSoTimeout(clientConfig.initialSocketQueryTimeoutMillis());
                 },
                 addr);
-        log.info("Set the socket options", SafeArg.of("creationTrace", creationTrace));
+        log.info(
+                "Set the socket options",
+                SafeArg.of("creationTrace", creationTrace),
+                SafeArg.of("server", cassandraHostAndIp));
 
         if (clientConfig.usingSsl()) {
             boolean success = false;
             try {
                 SSLSocket socket = (SSLSocket) sslSocketFactory.createSocket(
                         thriftSocket.getSocket(), addr.getHostString(), addr.getPort(), true);
-                log.info("Created an ssl socket", SafeArg.of("creationTrace", creationTrace));
+                log.info(
+                        "Created an ssl socket",
+                        SafeArg.of("creationTrace", creationTrace),
+                        SafeArg.of("server", cassandraHostAndIp));
                 thriftSocket = tSocketFactory.create(socket);
-                log.info("Wrapped the ssl socket in a thrift socket", SafeArg.of("creationTrace", creationTrace));
+                log.info(
+                        "Wrapped the ssl socket in a thrift socket",
+                        SafeArg.of("creationTrace", creationTrace),
+                        SafeArg.of("server", cassandraHostAndIp));
                 verifyEndpoint(cassandraServer, socket, clientConfig.enableEndpointVerification());
-                log.info("Verified the endpoint", SafeArg.of("creationTrace", creationTrace));
+                log.info(
+                        "Verified the endpoint",
+                        SafeArg.of("creationTrace", creationTrace),
+                        SafeArg.of("server", cassandraHostAndIp));
                 success = true;
             } catch (IOException e) {
-                log.info("Caught an io exception somehow", SafeArg.of("creationTrace", creationTrace), e);
+                log.info(
+                        "Caught an io exception somehow",
+                        SafeArg.of("creationTrace", creationTrace),
+                        SafeArg.of("server", cassandraHostAndIp),
+                        e);
                 throw new TTransportException(e);
             } finally {
                 if (!success) {
                     log.info(
                             "Closing the thrift socket because we didn't succeed",
-                            SafeArg.of("creationTrace", creationTrace));
+                            SafeArg.of("creationTrace", creationTrace),
+                            SafeArg.of("server", cassandraHostAndIp));
                     thriftSocket.close();
                 }
             }
@@ -217,19 +246,32 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                 new TFramedTransport(thriftSocket, CassandraConstants.CLIENT_MAX_THRIFT_FRAME_SIZE_BYTES);
         TProtocol protocol = new TBinaryProtocol(thriftFramedTransport);
         Cassandra.Client client = new Cassandra.Client(protocol);
-        log.info("Created a cassandra client", SafeArg.of("creationTrace", creationTrace));
+        log.info(
+                "Created a cassandra client",
+                SafeArg.of("creationTrace", creationTrace),
+                SafeArg.of("server", cassandraHostAndIp));
 
         try {
             login(client, clientConfig.credentials());
-            log.info("Logged in as our cassandra client", SafeArg.of("creationTrace", creationTrace));
+            log.info(
+                    "Logged in as our cassandra client",
+                    SafeArg.of("creationTrace", creationTrace),
+                    SafeArg.of("server", cassandraHostAndIp));
             setSocketOptions(
                     thriftSocket,
                     socket -> socket.getSocket().setSoTimeout(clientConfig.socketQueryTimeoutMillis()),
                     addr);
-            log.info("Set our socket options on the cassandra client", SafeArg.of("creationTrace", creationTrace));
+            log.info(
+                    "Set our socket options on the cassandra client",
+                    SafeArg.of("creationTrace", creationTrace),
+                    SafeArg.of("server", cassandraHostAndIp));
         } catch (TException e) {
             client.getOutputProtocol().getTransport().close();
-            log.error("Exception thrown attempting to authenticate with config provided credentials", e);
+            log.error(
+                    "Exception thrown attempting to authenticate with config provided credentials",
+                    SafeArg.of("creationTrace", creationTrace),
+                    SafeArg.of("server", cassandraHostAndIp),
+                    e);
             throw e;
         }
 
@@ -300,16 +342,18 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
     @Override
     public void destroyObject(PooledObject<CassandraClient> client) {
-        if (log.isDebugEnabled()) {
-            log.debug(
-                    "Attempting to close transport for client {} of host {}",
-                    UnsafeArg.of("client", client),
-                    SafeArg.of("cassandraClient", CassandraLogHelper.host(cassandraServer.proxy())));
-        }
+        log.info(
+                "Attempting to close transport for client {} of host {}",
+                UnsafeArg.of("client", client),
+                SafeArg.of("cassandraClient", CassandraLogHelper.host(cassandraServer.proxy())));
         try {
             TaskContext<Void> taskContext =
                     TaskContext.createRunnable(() -> client.getObject().close(), () -> {});
             timedRunner.run(taskContext);
+            log.info(
+                    "Closed transport for client {} of host {}",
+                    UnsafeArg.of("client", client),
+                    SafeArg.of("cassandraClient", CassandraLogHelper.host(cassandraServer.proxy())));
         } catch (Throwable t) {
             if (log.isDebugEnabled()) {
                 log.debug(
