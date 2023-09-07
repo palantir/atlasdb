@@ -347,6 +347,11 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 .toImmutableMap();
         SetView<CassandraServer> absentServers = Sets.difference(currentServers, desiredServers.keySet());
 
+        log.info(
+                "We're trying to mark some servers in the pool as absent",
+                SafeArg.of("serversToAdd", serversToAdd.keySet()),
+                SafeArg.of("absentServers", absentServers));
+
         absentServers.forEach(cassandraServer -> {
             CassandraClientPoolingContainer container = cassandra.removePool(cassandraServer);
             absentHostTracker.trackAbsentCassandraServer(cassandraServer, container);
@@ -356,13 +361,13 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         log.info(
                 "We think the desired change is as follows...",
-                SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())),
-                SafeArg.of("serversToShutdown", CassandraLogHelper.collectionOfHosts(serversToShutdown)));
+                SafeArg.of("serversToAdd", serversToAdd.keySet()),
+                SafeArg.of("serversToShutdown", serversToShutdown));
         Set<CassandraServer> validatedServersToAdd =
                 validateNewHostsTopologiesAndMaybeAddToPool(getCurrentPools(), serversToAdd);
         log.info(
                 "We validated these servers and added them to the pool...",
-                SafeArg.of("validatedServersToAdd", CassandraLogHelper.collectionOfHosts(validatedServersToAdd)));
+                SafeArg.of("validatedServersToAdd", validatedServersToAdd));
 
         if (!(validatedServersToAdd.isEmpty() && absentServers.isEmpty())) { // if we made any changes
             cassandra.refreshTokenRangesAndGetServers();
@@ -372,9 +377,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Preconditions.checkState(
                 !getCurrentPools().isEmpty() || serversToAdd.isEmpty(),
                 "No servers were successfully added to the pool. This means we could not come to a consensus on"
-                        + " cluster topology, and the client cannot connect as there are no valid hosts. This state should"
-                        + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
-                        + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
+                    + " cluster topology, and the client cannot connect as there are no valid hosts. This state should"
+                    + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
+                    + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
                 SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())));
 
         logRefreshedHosts(validatedServersToAdd, serversToShutdown, absentServers);

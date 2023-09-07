@@ -51,7 +51,7 @@ public final class CassandraAbsentHostTracker {
                         absentCassandraServers.remove(cassandraServer))
                 .map(PoolAndCount::container);
         log.info(
-                "Returned an absent Cassandra server. The current state is as follows:",
+                "Returning maybe a Cassandra server. The current state is as follows:",
                 SafeArg.of("cassandraServer", cassandraServer),
                 SafeArg.of("container", cassandraClientPoolingContainer),
                 SafeArg.of("absentCassandraServers", absentCassandraServers));
