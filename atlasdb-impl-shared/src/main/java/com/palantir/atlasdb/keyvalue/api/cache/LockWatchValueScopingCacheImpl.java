@@ -260,10 +260,8 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         }
     }
 
-    private Optional<ValueCacheSnapshot> getSnapshotForSequence(Sequence sequence) {
-        synchronized (this) {
-            return snapshotStore.getSnapshotForSequence(sequence);
-        }
+    private synchronized Optional<ValueCacheSnapshot> getSnapshotForSequence(Sequence sequence) {
+        return snapshotStore.getSnapshotForSequence(sequence);
     }
 
     private synchronized void updateCurrentVersion(Optional<LockWatchVersion> maybeUpdateVersion) {
