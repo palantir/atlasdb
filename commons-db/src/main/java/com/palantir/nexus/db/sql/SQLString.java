@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 import org.apache.commons.lang3.Validate;
 
@@ -86,6 +87,7 @@ public class SQLString extends BasicSQLString {
      * Runs the provided callable while holding the lock for the override caches.
      * Callers replacing the caches should hold this lock.
      */
+    @Deprecated
     protected static <T, E extends Exception> T runWithCacheLock(CallableCheckedException<T, E> callable) throws E {
         synchronized (cacheLock) {
             return callable.call();
@@ -170,10 +172,7 @@ public class SQLString extends BasicSQLString {
         assert registeredValues.containsKey(key) || registeredValuesOverride.containsKey(key)
                 : "Couldn't find SQLString key: " + key + ", dbtype " + dbType; // $NON-NLS-1$ //$NON-NLS-2$
 
-        FinalSQLString cached;
-        synchronized (cacheLock) {
-            cached = cachedKeyed.get(key);
-        }
+        FinalSQLString cached = getCachedSql(key);
         if (null != cached) {
             callbackOnUse.noteUse((SQLString) cached.delegate);
             return cached;
@@ -192,6 +191,13 @@ public class SQLString extends BasicSQLString {
             return new FinalSQLString(new NullSQLString(key));
         }
         return valueForKey;
+    }
+
+    @Nullable
+    @SuppressWarnings("GuardedBy") // we're only doing a volatile read of current cache
+    private static FinalSQLString getCachedSql(String key) {
+        ImmutableMap<String, FinalSQLString> cache = cachedKeyed; // volatile read
+        return cache == null ? null : cache.get(key);
     }
 
     static FinalSQLString getByKey(String key, Connection connection) throws PalantirSqlException {
