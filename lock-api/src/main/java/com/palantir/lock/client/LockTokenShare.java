@@ -19,6 +19,7 @@ package com.palantir.lock.client;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.tritium.ids.UniqueIds;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.IntStream;
@@ -33,7 +34,7 @@ final class LockTokenShare implements LockToken {
 
     private LockTokenShare(ReferenceCounter referenceCounter, LockToken token) {
         this.referenceCounter = referenceCounter;
-        this.requestId = UUID.randomUUID();
+        this.requestId = UniqueIds.pseudoRandomUuidV4();
         this.sharedLockToken = token;
         this.unlocked = false;
     }

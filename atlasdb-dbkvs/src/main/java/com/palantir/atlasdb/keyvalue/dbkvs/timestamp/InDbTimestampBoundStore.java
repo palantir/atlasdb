@@ -62,8 +62,7 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
     private final PhysicalBoundStoreStrategy physicalBoundStoreStrategy;
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
-    @GuardedBy("this") // lazy init to avoid db connections in constructors
-    private DBType dbType;
+    private volatile DBType dbType;
 
     @GuardedBy("this")
     private Long currentLimit = null;
@@ -221,11 +220,17 @@ public class InDbTimestampBoundStore implements TimestampBoundStore {
         });
     }
 
-    @GuardedBy("this")
     private DBType getDbType(Connection connection) {
-        if (dbType == null) {
-            dbType = ConnectionDbTypes.getDbType(connection);
+        DBType type = this.dbType; // volatile read
+        if (type == null) {
+            synchronized (this) {
+                type = this.dbType;
+                if (type == null) {
+                    type = ConnectionDbTypes.getDbType(connection);
+                    this.dbType = type;
+                }
+            }
         }
-        return dbType;
+        return type;
     }
 }

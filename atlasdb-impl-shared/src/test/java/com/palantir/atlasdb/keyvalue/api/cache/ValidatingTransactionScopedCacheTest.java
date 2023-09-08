@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -85,12 +84,13 @@ public final class ValidatingTransactionScopedCacheTest {
     }
 
     @Test
-    public void validationDoesNotReadFromRemoteWhenItShouldNotValidate() {
+    public void validationDoesNotReadFromRemoteWhenItShouldNotValidateButStillPropagateValueLoaderCallWithEmptySet() {
         TransactionScopedCache delegate = TransactionScopedCacheImpl.create(snapshotWithSingleValue(), metrics);
         TransactionScopedCache validatingCache = new ValidatingTransactionScopedCache(delegate, 0.0, () -> {});
 
+        when(valueLoader.apply(any())).thenReturn(Futures.immediateFuture(ImmutableMap.of()));
         validatingCache.get(TABLE, ImmutableSet.of(CELL_1), valueLoader);
-        verify(valueLoader, never()).apply(any());
+        verify(valueLoader).apply(eq(ImmutableSet.of()));
     }
 
     @Test

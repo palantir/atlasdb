@@ -57,11 +57,27 @@ public final class ReadOnlyTransactionScopedCache implements TransactionScopedCa
     }
 
     @Override
+    public Map<Cell, byte[]> getWithCachedRef(
+            TableReference tableReference,
+            Set<Cell> cells,
+            Function<CacheLookupResult, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
+        return delegate.getWithCachedRef(tableReference, cells, valueLoader);
+    }
+
+    @Override
     public ListenableFuture<Map<Cell, byte[]>> getAsync(
             TableReference tableReference,
             Set<Cell> cells,
             Function<Set<Cell>, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
         return delegate.getAsync(tableReference, cells, valueLoader);
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, byte[]>> getAsyncWithCachedRef(
+            TableReference tableReference,
+            Set<Cell> cells,
+            Function<CacheLookupResult, ListenableFuture<Map<Cell, byte[]>>> valueLoader) {
+        return delegate.getAsyncWithCachedRef(tableReference, cells, valueLoader);
     }
 
     @Override

@@ -164,7 +164,8 @@ public final class LockRefreshingLockService extends SimplifyingLockService {
     }
 
     @Override
-    @SuppressWarnings("checkstyle:NoFinalizer") // TODO (jkong): Can we safely remove this without breaking things?
+    @SuppressWarnings({"checkstyle:NoFinalizer", "Finalize"}) // TODO (jkong): Can we safely remove this without
+    // breaking things?
     protected void finalize() throws Throwable {
         super.finalize();
         if (!isClosed) {

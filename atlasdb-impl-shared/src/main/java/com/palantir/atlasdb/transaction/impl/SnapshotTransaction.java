@@ -98,6 +98,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutExc
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
+import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsData;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableExpectationsData;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionCommitLockInfo;
@@ -106,6 +107,7 @@ import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockIn
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionWriteMetadataInfo;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
+import com.palantir.atlasdb.transaction.impl.expectations.CellCountValidator;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceImpl;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -151,6 +153,7 @@ import com.palantir.tracing.CloseableTracer;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.RateLimitedLogger;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
+import com.palantir.util.result.Result;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -428,7 +431,12 @@ public class SnapshotTransaction extends AbstractTransaction
                         rows,
                         columnSelection,
                         cells -> AtlasFutures.getUnchecked(getInternal(
-                                "getRows", tableRef, cells, immediateKeyValueService, immediateTransactionService)),
+                                "getRows",
+                                tableRef,
+                                cells,
+                                cells.size(),
+                                immediateKeyValueService,
+                                immediateTransactionService)),
                         unCachedRows -> getRowsInternal(tableRef, unCachedRows, columnSelection));
     }
 
@@ -917,7 +925,34 @@ public class SnapshotTransaction extends AbstractTransaction
                         tableRef,
                         cells,
                         uncached -> getInternal(
-                                "get", tableRef, uncached, immediateKeyValueService, immediateTransactionService));
+                                "get",
+                                tableRef,
+                                uncached,
+                                uncached.size(),
+                                immediateKeyValueService,
+                                immediateTransactionService));
+    }
+
+    @Override
+    public Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> getWithExpectedNumberOfCells(
+            TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells) {
+        try {
+            return Result.ok(getCache().getWithCachedRef(tableRef, cells, cacheLookupResult -> {
+                long cachedCellsWithNonEmptyValue = CellCountValidator.validateCacheAndGetNonEmptyValuesCount(
+                        expectedNumberOfPresentCells, cacheLookupResult.cacheHits());
+                long numberOfCellsExpectingValuePostCache = expectedNumberOfPresentCells - cachedCellsWithNonEmptyValue;
+
+                return getInternal(
+                        "getWithExpectedNumberOfCells",
+                        tableRef,
+                        cacheLookupResult.missedCells(),
+                        numberOfCellsExpectingValuePostCache,
+                        immediateKeyValueService,
+                        immediateTransactionService);
+            }));
+        } catch (MoreCellsPresentThanExpectedException e) {
+            return Result.err(e);
+        }
     }
 
     @Override
@@ -928,13 +963,20 @@ public class SnapshotTransaction extends AbstractTransaction
                         tableRef,
                         cells,
                         uncached -> getInternal(
-                                "getAsync", tableRef, uncached, keyValueService, defaultTransactionService)));
+                                "getAsync",
+                                tableRef,
+                                uncached,
+                                uncached.size(),
+                                keyValueService,
+                                defaultTransactionService)));
     }
 
-    private ListenableFuture<Map<Cell, byte[]>> getInternal(
+    @VisibleForTesting
+    ListenableFuture<Map<Cell, byte[]>> getInternal(
             String operationName,
             TableReference tableRef,
             Set<Cell> cells,
+            long numberOfExpectedPresentCells,
             AsyncKeyValueService asyncKeyValueService,
             AsyncTransactionService asyncTransactionService) {
         Timer.Context timer = getTimer(operationName).time();
@@ -946,21 +988,27 @@ public class SnapshotTransaction extends AbstractTransaction
 
         Map<Cell, byte[]> result = new HashMap<>();
         Map<Cell, byte[]> writes = localWriteBuffer.getLocalWrites().get(tableRef);
+        long numberOfNonDeleteLocalWrites = 0;
         if (writes != null && !writes.isEmpty()) {
             for (Cell cell : cells) {
                 byte[] value = writes.get(cell);
                 if (value != null) {
                     result.put(cell, value);
+                    if (value != PtBytes.EMPTY_BYTE_ARRAY) {
+                        numberOfNonDeleteLocalWrites++;
+                    }
                 }
             }
         }
 
-        // We don't need to read any cells that were written locally. Making an immutable copy because otherwise adding
-        // values to the result map would prevent us from calculating the correct size for
-        // allPossibleCellsReadAndPresent, since Sets.difference gives us a live view.
-        Set<Cell> cellsWithNoLocalWrites = ImmutableSet.copyOf(Sets.difference(cells, result.keySet()));
+        // We don't need to read any cells that were written locally.
+        long expectedNumberOfPresentCellsToFetch = numberOfExpectedPresentCells - numberOfNonDeleteLocalWrites;
         return Futures.transform(
-                getFromKeyValueService(tableRef, cellsWithNoLocalWrites, asyncKeyValueService, asyncTransactionService),
+                getFromKeyValueService(
+                        tableRef,
+                        Sets.difference(cells, result.keySet()),
+                        asyncKeyValueService,
+                        asyncTransactionService),
                 fromKeyValueService -> {
                     result.putAll(fromKeyValueService);
 
@@ -975,8 +1023,10 @@ public class SnapshotTransaction extends AbstractTransaction
                                 SafeArg.of("durationMillis", getMillis));
                     }
 
+                    CellCountValidator.validateFetchedLessOrEqualToExpected(
+                            expectedNumberOfPresentCellsToFetch, fromKeyValueService);
                     boolean allPossibleCellsReadAndPresent =
-                            fromKeyValueService.size() == cellsWithNoLocalWrites.size();
+                            fromKeyValueService.size() == expectedNumberOfPresentCellsToFetch;
                     validatePreCommitRequirementsOnReadIfNecessary(
                             tableRef, getStartTimestamp(), allPossibleCellsReadAndPresent);
                     return removeEmptyColumns(result, tableRef);

@@ -40,8 +40,7 @@ class LockDescriptorMapper {
     }
 
     /**
-     *
-     * @return map from mapping to real descriptor.
+     * Return a map from mapping to real descriptor.
      */
     Map<ObfuscatedLockDescriptor, LockDescriptor> getReversedMapper() {
         return mapper.entrySet().stream().collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));

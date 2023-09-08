@@ -17,6 +17,7 @@ package com.palantir.lock.v2;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.tritium.ids.UniqueIds;
 import java.util.UUID;
 import org.immutables.value.Value;
 
@@ -29,6 +30,6 @@ public interface IdentifiedTimeLockRequest {
     UUID getRequestId();
 
     static IdentifiedTimeLockRequest create() {
-        return ImmutableIdentifiedTimeLockRequest.of(UUID.randomUUID());
+        return ImmutableIdentifiedTimeLockRequest.of(UniqueIds.pseudoRandomUuidV4());
     }
 }

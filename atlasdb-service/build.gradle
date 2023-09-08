@@ -16,6 +16,7 @@ dependencies {
     implementation 'com.google.protobuf:protobuf-java'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'com.palantir.tritium:tritium-ids'
     implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
     implementation project(':atlasdb-api')
     implementation project(':atlasdb-client')
