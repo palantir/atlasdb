@@ -233,14 +233,15 @@ public final class CassandraTopologyValidator {
                     return newServersWithoutSoftFailures.keySet();
                 }
                 Optional<ConsistentClusterTopology> maybeTopology = maybeGetConsistentClusterTopology(
-                                serversToConsiderWhenNoQuorumPresent)
+                        serversToConsiderWhenNoQuorumPresent)
                         .agreedTopology();
                 if (maybeTopology.isEmpty()) {
                     log.info(
                             "No quorum was detected in original set of servers, and the filtered set of servers were"
                                     + " also not in agreement. Not adding new servers in this case.",
                             SafeArg.of("newServers", CassandraLogHelper.collectionOfHosts(newlyAddedHosts)),
-                            SafeArg.of("allServers", CassandraLogHelper.collectionOfHosts(allHosts)));
+                            SafeArg.of("allServers", CassandraLogHelper.collectionOfHosts(allHosts)),
+                            SafeArg.of("filteredServers", serversToConsiderWhenNoQuorumPresent.keySet()));
                     return newServersWithoutSoftFailures.keySet();
                 }
                 ConsistentClusterTopology newNodesAgreedTopology = maybeTopology.get();
