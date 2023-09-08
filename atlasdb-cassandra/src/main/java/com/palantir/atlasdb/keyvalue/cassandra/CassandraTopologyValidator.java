@@ -233,7 +233,7 @@ public final class CassandraTopologyValidator {
                     return newServersWithoutSoftFailures.keySet();
                 }
                 Optional<ConsistentClusterTopology> maybeTopology = maybeGetConsistentClusterTopology(
-                        serversToConsiderWhenNoQuorumPresent)
+                                serversToConsiderWhenNoQuorumPresent)
                         .agreedTopology();
                 if (maybeTopology.isEmpty()) {
                     log.info(
