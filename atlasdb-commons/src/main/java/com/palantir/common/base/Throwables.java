@@ -275,9 +275,9 @@ public final class Throwables {
         PrintWriter printWriter = new PrintWriter(stringWriter);
         for (Map.Entry<Thread, StackTraceElement[]> entry : map.entrySet()) {
             Thread t = entry.getKey();
-            StackTraceElement elements[] = entry.getValue();
+            StackTraceElement[] elements = entry.getValue();
 
-            printWriter.println(new StringBuilder().append(t));
+            printWriter.println(t);
             printStackTrace(printWriter, elements);
             printWriter.println();
         }
