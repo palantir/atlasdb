@@ -25,10 +25,14 @@ import com.palantir.atlasdb.cassandra.ImmutableCqlCapableConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.UnknownHostException;
 import java.util.Map;
 
 public class ThreeNodeCassandraCluster extends Container {
@@ -65,18 +69,18 @@ public class ThreeNodeCassandraCluster extends Container {
         return Refreshable.only(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
                 .servers(ImmutableCqlCapableConfig.builder()
                         .addThriftHosts(
-                                new InetSocketAddress(
+                                getInetSocketAddress(
                                         FIRST_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT),
-                                new InetSocketAddress(
+                                getInetSocketAddress(
                                         SECOND_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT),
-                                new InetSocketAddress(
+                                getInetSocketAddress(
                                         THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT))
                         .addCqlHosts(
-                                new InetSocketAddress(
+                                getInetSocketAddress(
                                         FIRST_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_CQL_PORT),
-                                new InetSocketAddress(
+                                getInetSocketAddress(
                                         SECOND_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_CQL_PORT),
-                                new InetSocketAddress(
+                                getInetSocketAddress(
                                         THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_CQL_PORT))
                         .build())
                 .mutationBatchCount(10000)
@@ -84,6 +88,18 @@ public class ThreeNodeCassandraCluster extends Container {
                 .fetchBatchCount(1000)
                 .replicationFactor(replicationFactor)
                 .build());
+    }
+
+    private static InetSocketAddress getInetSocketAddress(String hostname, int port) throws IllegalArgumentException {
+        try {
+            for (InetAddress address : InetAddress.getAllByName(hostname)) {
+                return new InetSocketAddress(address, port);
+            }
+        } catch (UnknownHostException e) {
+            throw new SafeIllegalArgumentException(
+                    "No address found for host: ", e, UnsafeArg.of("hostname", hostname));
+        }
+        throw new SafeIllegalArgumentException("No address found for host: ", UnsafeArg.of("hostname", hostname));
     }
 
     @Override
