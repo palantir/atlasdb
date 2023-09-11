@@ -29,7 +29,6 @@ import java.net.InetSocketAddress;
 import java.net.URL;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.io.IOUtils;
 
 public final class DockerizedDatabase implements Closeable {
 

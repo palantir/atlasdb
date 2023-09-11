@@ -41,7 +41,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.commons.io.IOUtils;
 import org.awaitility.Awaitility;
 import org.junit.rules.ExternalResource;
 
