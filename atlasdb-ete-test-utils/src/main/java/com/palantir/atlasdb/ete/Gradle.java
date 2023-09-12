@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.apache.commons.io.IOUtils;
 import org.junit.rules.ExternalResource;
 
 public final class Gradle extends ExternalResource {
@@ -56,7 +55,7 @@ public final class Gradle extends ExternalResource {
                     .redirectErrorStream(true)
                     .start();
             try (InputStream processInputStream = process.getInputStream()) {
-                IOUtils.copy(processInputStream, System.out);
+                processInputStream.transferTo(System.out);
             }
             assertThat(process.waitFor()).isEqualTo(0);
         } catch (IOException e) {

@@ -18,7 +18,6 @@ package com.palantir.atlasdb.stream;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
-import com.google.common.io.ByteStreams;
 import com.google.common.primitives.Ints;
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.Status;
@@ -216,7 +215,7 @@ public abstract class AbstractGenericStreamStore<T> implements GenericStreamStor
     private void tryWriteStreamToFile(Transaction transaction, T id, StreamMetadata metadata, FileOutputStream fos)
             throws IOException {
         try (InputStream in = loadStream(transaction, id)) {
-            ByteStreams.copy(in, fos);
+            in.transferTo(fos);
         }
         fos.close();
     }

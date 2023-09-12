@@ -26,7 +26,6 @@ import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.sqlobject.SqlObjectPlugin;
 
 final class SqliteNamespaceLoader implements PersistentNamespaceLoader {
-    private static final String EMPTY_STRING = "";
 
     private final Jdbi jdbi;
 
@@ -46,7 +45,7 @@ final class SqliteNamespaceLoader implements PersistentNamespaceLoader {
 
         // Namespaces contain at least one character implying the empty string is lexicographically strictly smaller
         // than any namespace.
-        Optional<String> currentNamespace = getNextLexicographicallySmallestNamespace(EMPTY_STRING);
+        Optional<String> currentNamespace = getNextLexicographicallySmallestNamespace("");
         while (currentNamespace.isPresent()) {
             String namespaceString = currentNamespace.get();
             clients.add(Client.of(namespaceString));

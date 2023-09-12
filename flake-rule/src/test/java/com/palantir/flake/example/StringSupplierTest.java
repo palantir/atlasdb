@@ -26,10 +26,9 @@ import org.junit.Test;
 
 public class StringSupplierTest {
     private static final String TEST_STRING = "123";
-    private static final String EMPTY_STRING = "";
 
     private static final Supplier<String> FLAKY_STRING_SUPPLIER =
-            () -> ThreadLocalRandom.current().nextBoolean() ? TEST_STRING : EMPTY_STRING;
+            () -> ThreadLocalRandom.current().nextBoolean() ? TEST_STRING : "";
 
     @Rule
     public FlakeRetryingRule flakeRetryingRule = new FlakeRetryingRule();

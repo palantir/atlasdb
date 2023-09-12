@@ -27,7 +27,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
-import javax.annotation.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,7 +49,6 @@ public final class TransactionConflictDetectionManagerTest {
     public void before() {
         conflictDetectionManager = new TransactionConflictDetectionManager(new ConflictDetectionManager(delegate) {
             @Override
-            @Nullable
             public Optional<ConflictHandler> get(TableReference tableReference) {
                 try {
                     return delegate.load(tableReference);

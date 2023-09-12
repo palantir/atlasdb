@@ -60,7 +60,7 @@ public class ThreeNodeCassandraCluster extends Container {
                 .build();
     }
 
-    @SuppressWarnings("DnsLookup")
+    @SuppressWarnings({"AddressSelection", "DnsLookup"})
     public static Refreshable<CassandraKeyValueServiceRuntimeConfig> getRuntimeConfig(int replicationFactor) {
         return Refreshable.only(ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
                 .servers(ImmutableCqlCapableConfig.builder()
