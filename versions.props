@@ -44,7 +44,6 @@ commons-codec:* = 1.16.0
 commons-dbutils:* = 1.8.0
 commons-io:* = 2.13.0
 io.airlift:airline = 0.9
-io.dropwizard:* = 4.0.1
 io.netty:* = 4.1.97.Final
 io.undertow:* = 2.2.24.Final
 io.vavr:* = 0.10.4
@@ -87,6 +86,7 @@ uk.org.lidalia:slf4j-test = 1.1.0
 # Manually upgraded versions
 # dependency-upgrader:OFF
 
+io.dropwizard:* = 2.1.7
 # Dropwizard 2.1.x has hard dependency on jakarta servlet 4.x.x
 # Whereas logback has a hard dependency on jakarta servlet >= 5.x.x
 # Thus we cannot upgrade logback until dropwizard supports jakarta servlet 5.x.x
