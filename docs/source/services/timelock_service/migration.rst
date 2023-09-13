@@ -21,7 +21,7 @@ Automated Migration
 
 .. danger::
     If your service is highly available, you MUST shut down ALL nodes of your service after step 2 before bringing up any
-    nodes in step 4. Otherwise, there is a risk of **SEVERE DATA CORRUPTION** as timestamps may be given out of order.
+    nodes in step 5. Otherwise, there is a risk of **SEVERE DATA CORRUPTION** as timestamps may be given out of order.
 
 .. warning::
     Automated migrations are only implemented for Cassandra, and from AtlasDB 0.253.2 onwards DbKVS.
@@ -31,8 +31,11 @@ Automated Migration
    is at least 0.253.2.
 2. (Optional) Take a fresh timestamp from your AtlasDB services, using the fresh timestamp CLI or the
    ``/timestamp/fresh-timestamp`` endpoint. This step is not strictly required, but may be useful for verification.
-3. Add the :ref:`Timelock client configuration <timelock-client-configuration>` to your service.
-4. Starting/re-starting the service will automatically migrate the service.
+3. Shut down all nodes of your service (in addition to any services hitting your embedded timelock endpoints). These must
+   remain shut until after step 4 is performed. Failure to do so incurs risks of **SEVERE DATA CORRUPTION** as
+   timestamps may be given out of order.
+4. Add the :ref:`Timelock client configuration <timelock-client-configuration>` to your service.
+5. Starting/re-starting the service will automatically migrate the service.
    Note that the service may not elect a leader until a timestamp or lock request for some client is actually made.
 
 Verification
