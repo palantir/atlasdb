@@ -46,6 +46,7 @@ final class RowColumnRangeExtractor {
         private final Set<byte[]> emptyRows;
         private final Map<byte[], Integer> rowsToRawColumnCount;
 
+        @SuppressWarnings("NonApiType") // explicitly require LinkedHashMap to maintain ordering
         private RowColumnRangeResult(
                 Map<byte[], LinkedHashMap<Cell, Value>> results,
                 Map<byte[], Column> rowsToLastCompositeColumns,

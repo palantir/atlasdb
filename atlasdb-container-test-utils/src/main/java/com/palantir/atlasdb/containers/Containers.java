@@ -41,7 +41,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.commons.io.IOUtils;
 import org.awaitility.Awaitility;
 import org.junit.rules.ExternalResource;
 
@@ -187,7 +186,7 @@ public class Containers extends ExternalResource {
     private static String getDockerComposeFile(String configResource) {
         try {
             File configFile = File.createTempFile("config", ".yml");
-            IOUtils.copy(Containers.class.getResourceAsStream(configResource), new FileOutputStream(configFile));
+            Containers.class.getResourceAsStream(configResource).transferTo(new FileOutputStream(configFile));
             return configFile.getPath();
         } catch (IOException e) {
             throw Throwables.propagate(e);

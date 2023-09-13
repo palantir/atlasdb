@@ -157,6 +157,7 @@ public class LockV1Resource {
     @Idempotent
     @Nullable
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/refresh-grant")
+    @SuppressWarnings("NullableOptional") // null and empty are same over the wire
     public Optional<HeldLocksGrant> refreshGrant(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body HeldLocksGrant grant) {
         return Optional.ofNullable(getLockService(namespace).refreshGrant(grant));
@@ -169,6 +170,7 @@ public class LockV1Resource {
     @Idempotent
     @Nullable
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/refresh-grant-id")
+    @SuppressWarnings("NullableOptional") // null and empty are same over the wire
     public Optional<HeldLocksGrant> refreshGrant(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body BigInteger grantId) {
         return Optional.ofNullable(getLockService(namespace).refreshGrant(grantId));
@@ -241,6 +243,7 @@ public class LockV1Resource {
     @Idempotent
     @Nullable
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/min-locked-in-version-id")
+    @SuppressWarnings("NullableOptional") // null and empty are same over the wire
     public Optional<Long> getMinLockedInVersionId(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
         return Optional.ofNullable(getLockService(namespace).getMinLockedInVersionId());
     }
@@ -303,6 +306,7 @@ public class LockV1Resource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Nullable
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/lock/{client}")
+    @SuppressWarnings("NullableOptional") // null and empty are same over the wire
     public Optional<LockRefreshToken> lock(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam String client,
@@ -317,6 +321,7 @@ public class LockV1Resource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Nullable
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/lock")
+    @SuppressWarnings("NullableOptional") // null and empty are same over the wire
     public Optional<LockRefreshToken> lock(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body LockRequest request)
             throws InterruptedException {
@@ -377,6 +382,7 @@ public class LockV1Resource {
     @Idempotent
     @Nullable
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/min-locked-in-version/{client}")
+    @SuppressWarnings("NullableOptional") // null and empty are same over the wire
     public Optional<Long> getMinLockedInVersionId(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam String client) {
@@ -390,6 +396,7 @@ public class LockV1Resource {
     @Idempotent
     @Nullable
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/min-locked-in-version")
+    @SuppressWarnings("NullableOptional") // null and empty are same over the wire
     public Optional<Long> getMinLockedInVersionIdForAnonymousClientString(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace) {
         return getMinLockedInVersionId(namespace, LockClient.ANONYMOUS.getClientId());

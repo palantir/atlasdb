@@ -266,7 +266,19 @@ public final class JMXUtils {
 
         @Override
         public Socket createSocket(final String host, final int port) throws IOException {
-            return new Socket(host, port);
+            IOException exception = null;
+            for (InetAddress address : InetAddress.getAllByName(host)) {
+                try {
+                    return new Socket(address, port);
+                } catch (IOException e) {
+                    if (exception == null) {
+                        exception = e;
+                    } else {
+                        exception.addSuppressed(e);
+                    }
+                }
+            }
+            throw exception;
         }
     }
 
