@@ -247,7 +247,7 @@ public final class CassandraTopologyValidator {
                     return newServersWithoutSoftFailures.keySet();
                 }
                 Optional<ConsistentClusterTopology> maybeTopology = maybeGetConsistentClusterTopology(
-                        serversToConsiderWhenNoQuorumPresent)
+                                serversToConsiderWhenNoQuorumPresent)
                         .agreedTopology();
                 if (maybeTopology.isEmpty()) {
                     log.info(
@@ -353,9 +353,8 @@ public final class CassandraTopologyValidator {
 
     private Map<CassandraServer, HostIdResult> fetchHostIdsIgnoringSoftFailures(
             Map<CassandraServer, CassandraClientPoolingContainer> servers) {
-        Map<CassandraServer, HostIdResult> results = EntryStream.of(servers)
-                .mapToValue(this::fetchHostIds)
-                .toMap();
+        Map<CassandraServer, HostIdResult> results =
+                EntryStream.of(servers).mapToValue(this::fetchHostIds).toMap();
 
         if (KeyedStream.stream(results)
                 .values()
