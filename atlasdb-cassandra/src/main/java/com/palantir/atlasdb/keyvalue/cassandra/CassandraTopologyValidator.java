@@ -157,12 +157,14 @@ public final class CassandraTopologyValidator {
         // This means currently we've no servers or no server without the get_host_ids endpoint.
         // Therefore, we need to come to a consensus on the new servers.
         if (currentServersWithoutSoftFailures.isEmpty()) {
-            log.info("Case one. No current servers, so we need to come to a consensus on the new servers.",
+            log.info(
+                    "Case one. No current servers, so we need to come to a consensus on the new servers.",
                     SafeArg.of("newlyAddedHosts", newlyAddedHosts),
                     SafeArg.of("allHosts", CassandraLogHelper.collectionOfHosts(allHosts.keySet())));
             ClusterTopologyResult topologyResultFromNewServers =
                     maybeGetConsistentClusterTopology(newServersWithoutSoftFailures);
-            log.info("Case one. Topology is as follows.",
+            log.info(
+                    "Case one. Topology is as follows.",
                     SafeArg.of("newlyAddedHosts", newlyAddedHosts),
                     SafeArg.of("allHosts", CassandraLogHelper.collectionOfHosts(allHosts.keySet())),
                     SafeArg.of("topologyResult", topologyResultFromNewServers));
@@ -182,7 +184,8 @@ public final class CassandraTopologyValidator {
         // accepted set of host IDs
         ClusterTopologyResult topologyFromCurrentServers =
                 maybeGetConsistentClusterTopology(currentServersWithoutSoftFailures);
-        log.info("Case two. Topology is as follows.",
+        log.info(
+                "Case two. Topology is as follows.",
                 SafeArg.of("newlyAddedHosts", newlyAddedHosts),
                 SafeArg.of("allHosts", CassandraLogHelper.collectionOfHosts(allHosts.keySet())),
                 SafeArg.of("topologyResult", topologyFromCurrentServers));
@@ -244,7 +247,7 @@ public final class CassandraTopologyValidator {
                     return newServersWithoutSoftFailures.keySet();
                 }
                 Optional<ConsistentClusterTopology> maybeTopology = maybeGetConsistentClusterTopology(
-                        serversToConsiderWhenNoQuorumPresent)
+                                serversToConsiderWhenNoQuorumPresent)
                         .agreedTopology();
                 if (maybeTopology.isEmpty()) {
                     log.info(
