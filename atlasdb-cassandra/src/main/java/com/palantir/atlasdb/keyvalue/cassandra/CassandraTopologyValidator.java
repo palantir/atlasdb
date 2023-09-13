@@ -267,7 +267,7 @@ public final class CassandraTopologyValidator {
                                     + " servers could reach a consensus, this differed from the last agreed value"
                                     + " among the old servers. Not adding new servers in this case.",
                             SafeArg.of("pastConsistentTopology", pastConsistentTopology.get()),
-                            SafeArg.of("newNodesAgreedTopology", newNodesAgreedTopology),
+                            SafeArg.of("newNodesAgreedTopology", newNodesAgreedTopology), // Agreed
                             SafeArg.of("newServers", CassandraLogHelper.collectionOfHosts(newlyAddedHosts)),
                             SafeArg.of("allServers", CassandraLogHelper.collectionOfHosts(allHosts)),
                             SafeArg.of("filteredServers", serversToConsiderWhenNoQuorumPresent.keySet()));
@@ -304,6 +304,7 @@ public final class CassandraTopologyValidator {
             Map<CassandraServer, HostIdResult> hostIdsByServerWithoutSoftFailures) {
         // If all our queries fail due to soft failures, then our consensus is an empty set of host ids
         if (hostIdsByServerWithoutSoftFailures.isEmpty()) {
+            log.info("Was asked to return a cluster topology from 0 nodes.");
             return ClusterTopologyResult.consensus(ConsistentClusterTopology.builder()
                     .hostIds(Set.of())
                     .serversInConsensus(hostIdsByServerWithoutSoftFailures.keySet())
@@ -321,6 +322,9 @@ public final class CassandraTopologyValidator {
 
         // If too many hosts are unreachable, then we cannot come to a consensus
         if (hostIdsWithoutFailures.size() < quorum) {
+            log.info(
+                    "No quorum topology",
+                    SafeArg.of("hostIdsByServerWithoutSoftFailures", hostIdsByServerWithoutSoftFailures));
             return ClusterTopologyResult.noQuorum();
         }
 
@@ -330,19 +334,28 @@ public final class CassandraTopologyValidator {
         // If we only have one set of host ids, we've consensus, otherwise fail
         if (uniqueSetsOfHostIds.size() == 1) {
             Set<String> uniqueHostIds = Iterables.getOnlyElement(uniqueSetsOfHostIds);
-            return ClusterTopologyResult.consensus(ConsistentClusterTopology.builder()
+            ClusterTopologyResult topology = ClusterTopologyResult.consensus(ConsistentClusterTopology.builder()
                     .hostIds(uniqueHostIds)
                     .serversInConsensus(hostIdsWithoutFailures.keySet())
                     .build());
+            log.info(
+                    "Achieved topology",
+                    SafeArg.of("topology", topology),
+                    SafeArg.of("hostIdsByServerWithoutSoftFailures", hostIdsByServerWithoutSoftFailures));
+            return topology;
         }
 
+        log.info(
+                "Dissenting topology",
+                SafeArg.of("hostIdsByServerWithoutSoftFailures", hostIdsByServerWithoutSoftFailures));
         return ClusterTopologyResult.dissent();
     }
 
     private Map<CassandraServer, HostIdResult> fetchHostIdsIgnoringSoftFailures(
             Map<CassandraServer, CassandraClientPoolingContainer> servers) {
-        Map<CassandraServer, HostIdResult> results =
-                EntryStream.of(servers).mapValues(this::fetchHostIds).toMap();
+        Map<CassandraServer, HostIdResult> results = EntryStream.of(servers)
+                .mapToValue((one, two) -> fetchHostIds(one, two))
+                .toMap();
 
         if (KeyedStream.stream(results)
                 .values()
@@ -371,6 +384,25 @@ public final class CassandraTopologyValidator {
                     return HostIdResult.softFailure();
                 }
             }
+            log.info("Hard failure talking to Cassandra", SafeArg.of("container", container), e);
+            return HostIdResult.hardFailure();
+        }
+    }
+
+    @VisibleForTesting
+    HostIdResult fetchHostIds(CassandraServer server, CassandraClientPoolingContainer container) {
+        try {
+            return container.<HostIdResult, Exception>runWithPooledResource(
+                    client -> HostIdResult.success(client.get_host_ids()));
+        } catch (Exception e) {
+            // If the get_host_ids API endpoint does not exist, then return a soft failure.
+            if (e instanceof TApplicationException) {
+                TApplicationException applicationException = (TApplicationException) e;
+                if (applicationException.getType() == TApplicationException.UNKNOWN_METHOD) {
+                    return HostIdResult.softFailure();
+                }
+            }
+            log.info("Hard failure talking to Cassandra", SafeArg.of("cassandraServer", server), e);
             return HostIdResult.hardFailure();
         }
     }

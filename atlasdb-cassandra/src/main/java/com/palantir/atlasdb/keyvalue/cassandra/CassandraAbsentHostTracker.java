@@ -66,7 +66,7 @@ public final class CassandraAbsentHostTracker {
                 SafeArg.of("absentServer", absentServer),
                 SafeArg.of("poolAndCount", poolAndCount),
                 SafeArg.of("absentCassandraServers", absentCassandraServers));
-        return poolAndCount != null;
+        return poolAndCount == null;
     }
 
     public synchronized Set<CassandraServer> incrementAbsenceAndRemove() {

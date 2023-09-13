@@ -50,7 +50,8 @@ public final class CassandraLogHelper {
     }
 
     static Collection<String> collectionOfHosts(Collection<CassandraServer> hosts) {
-        return hosts.stream().map(CassandraServer::cassandraHostName).collect(Collectors.toSet());
+        // There can be duplicates and we want to see them.
+        return hosts.stream().map(CassandraServer::cassandraHostName).collect(Collectors.toList());
     }
 
     static List<String> tokenRangesToServer(Multimap<Set<TokenRange>, CassandraServer> tokenRangesToHost) {
