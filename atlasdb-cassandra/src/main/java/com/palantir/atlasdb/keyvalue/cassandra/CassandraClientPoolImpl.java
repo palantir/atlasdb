@@ -336,7 +336,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                         cassandra.refreshTokenRangesAndGetServers();
                 log.info(
                         "Token ring says we should have these servers in the pool",
-                        SafeArg.of("servers", desiredServers));
+                        SafeArg.of("servers", desiredServers),
+                        SafeArg.of("currentServers", getCachedServers()));
                 setServersInPoolTo(desiredServers);
             } else {
                 setServersInPoolTo(cassandra.getCurrentServerListFromConfig());

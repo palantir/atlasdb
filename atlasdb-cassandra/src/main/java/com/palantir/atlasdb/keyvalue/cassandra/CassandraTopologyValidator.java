@@ -171,6 +171,22 @@ public final class CassandraTopologyValidator {
             Map<CassandraServer, HostIdResult> newServersFromConfig = EntryStream.of(newServersWithoutSoftFailures)
                     .filterKeys(server -> newlyAddedHosts.get(server) == CassandraServerOrigin.CONFIG)
                     .toMap(); // this can be empty
+            if (newServersFromConfig.isEmpty()) {
+                // We've no servers. But none of our servers came from config - ?!
+                // This should never happen, but if it does, it's unsafe to do everything
+                log.info(
+                        "We have no servers, but somehow got a token ring. This is unexpected. To recover, we will "
+                                + "return all new servers as inconsistent.",
+                        SafeArg.of("newlyAddedHosts", newlyAddedHosts),
+                        SafeArg.of("allHosts", allHosts),
+                        SafeArg.of("topologyResult", topologyResultFromNewServers));
+                return getNewHostsWithInconsistentTopologiesFromTopologyResult(
+                        topologyResultFromNewServers,
+                        newServersWithoutSoftFailures,
+                        newServersWithoutSoftFailures,
+                        newlyAddedHostsWithoutOrigin,
+                        allHosts.keySet());
+            }
             return getNewHostsWithInconsistentTopologiesFromTopologyResult(
                     topologyResultFromNewServers,
                     newServersWithoutSoftFailures,
@@ -282,6 +298,11 @@ public final class CassandraTopologyValidator {
                         SafeArg.of("newServers", CassandraLogHelper.collectionOfHosts(newlyAddedHosts)),
                         SafeArg.of("allServers", CassandraLogHelper.collectionOfHosts(allHosts)),
                         SafeArg.of("filteredServers", serversToConsiderWhenNoQuorumPresent.keySet()));
+                // JKONG: Bug here, though not like this matters
+                pastConsistentTopology.getAndUpdate(pastTopology -> ImmutableConsistentClusterTopology.builder()
+                        .from(pastTopology)
+                        .addAllServersInConsensus(newNodesAgreedTopology.serversInConsensus())
+                        .build());
                 return Sets.difference(
                         newServersWithoutSoftFailures.keySet(), newNodesAgreedTopology.serversInConsensus());
             default:
