@@ -18,12 +18,17 @@ package com.palantir.atlasdb.internalschema.persistence;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -43,6 +48,8 @@ public final class InternalSchemaMetadataPayloadCodec {
             ImmutableMap.of(LATEST_VERSION, InternalSchemaMetadataPayloadCodec::decodeViaJson);
 
     private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();
+    private static final ObjectReader SCHEMA_METADATA_READER = OBJECT_MAPPER.readerFor(InternalSchemaMetadata.class);
+    private static final ObjectWriter SCHEMA_METADATA_WRITER = OBJECT_MAPPER.writerFor(InternalSchemaMetadata.class);
 
     private InternalSchemaMetadataPayloadCodec() {
         // utility
@@ -85,7 +92,7 @@ public final class InternalSchemaMetadataPayloadCodec {
         try {
             return ImmutableVersionedInternalSchemaMetadata.builder()
                     .version(LATEST_VERSION)
-                    .payload(OBJECT_MAPPER.writeValueAsBytes(internalSchemaMetadata))
+                    .payload(SCHEMA_METADATA_WRITER.writeValueAsBytes(internalSchemaMetadata))
                     .build();
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
@@ -94,7 +101,15 @@ public final class InternalSchemaMetadataPayloadCodec {
 
     private static InternalSchemaMetadata decodeViaJson(byte[] byteArray) {
         try {
-            return OBJECT_MAPPER.readValue(byteArray, InternalSchemaMetadata.class);
+            if (byteArray.length <= 8192) {
+                // Optimize to avoid allocation of heap ByteBuffer via InputStreamReader.
+                // Remove after upgrade to Jackson 2.16.
+                // see: https://github.com/FasterXML/jackson-core/pull/1081
+                // and https://github.com/FasterXML/jackson-benchmarks/pull/9
+                return SCHEMA_METADATA_READER.readValue(
+                        new StringReader(new String(byteArray, StandardCharsets.UTF_8)));
+            }
+            return SCHEMA_METADATA_READER.readValue(new ByteArrayInputStream(byteArray));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
