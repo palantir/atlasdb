@@ -111,6 +111,9 @@ dependencies {
         exclude group: 'org.hamcrest'
         exclude group: 'org.ow2.asm'
     }
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
 
     testCommonAnnotationProcessor 'org.immutables:value'
     testCommonCompileOnly 'org.immutables:value::annotations'
@@ -155,6 +158,9 @@ dependencies {
     testCommonImplementation (project(':atlasdb-tests-shared')) {
         exclude group: 'com.fasterxml.jackson.jaxrs'
     }
+    testCommonRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
 
     testCommonApi 'io.dropwizard:dropwizard-testing'
     testCommonApi 'com.github.peterwippermann.junit4:parameterized-suite'
@@ -175,6 +181,9 @@ dependencies {
     suiteTestImplementation project(':timelock-api:timelock-api-objects')
     suiteTestImplementation project(':timelock-impl')
     suiteTestImplementation project(':timestamp-api')
+    suiteTestRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
 
     stressTestImplementation 'com.google.guava:guava'
     stressTestImplementation 'com.palantir.tokens:auth-tokens'
@@ -210,4 +219,7 @@ dependencies {
     integTestImplementation project(':timelock-api:timelock-api-objects')
     integTestImplementation project(':timelock-impl')
     integTestImplementation project(':timestamp-api')
+    integTestRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
 }
