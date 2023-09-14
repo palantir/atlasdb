@@ -179,6 +179,9 @@ dependencies {
     stressTestImplementation 'com.google.guava:guava'
     stressTestImplementation 'com.palantir.tokens:auth-tokens'
     stressTestImplementation project(':timelock-api:timelock-api-jersey')
+    stressTestRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
 
     // TODO(fdesouza): Remove this once PDS-95791 is resolved.
     integTestImplementation project(':examples:profile-client')
