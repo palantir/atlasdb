@@ -23,9 +23,12 @@ import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.CassandraTopologyValidationMetrics;
+import com.palantir.atlasdb.keyvalue.cassandra.HostIdResult.Type;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
@@ -35,12 +38,14 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.time.Duration;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import one.util.streamex.EntryStream;
 import org.apache.thrift.TApplicationException;
 import org.immutables.value.Value;
@@ -92,13 +97,13 @@ public final class CassandraTopologyValidator {
      * cluster, which means we're reading/writing from the wrong cluster! However, this then requires we
      * check all nodes, which then means we cannot handle Cassandra restarts, thus this is the best we can do.
      *
-     * @param newlyAddedHosts Set of new Cassandra servers you wish to validate.
+     * @param topology Set of new Cassandra servers you wish to validate and their datacenters, if known.
      * @param allHosts All Cassandra servers which must include newlyAddedHosts.
      * @return Set of Cassandra servers which do not match the pre-existing hosts topology. Servers without
      * the get_host_ids endpoint will never be returned here.
      */
     public Set<CassandraServer> getNewHostsWithInconsistentTopologiesAndRetry(
-            Map<CassandraServer, CassandraServerOrigin> newlyAddedHosts,
+            CassandraTopologyData topology,
             Map<CassandraServer, CassandraClientPoolingContainer> allHosts,
             Duration waitTimeBetweenCalls,
             Duration maxWaitTime) {
@@ -110,14 +115,14 @@ public final class CassandraTopologyValidator {
                 .withStopStrategy(StopStrategies.stopAfterDelay(maxWaitTime.toMillis(), TimeUnit.MILLISECONDS))
                 .build();
         Supplier<Set<CassandraServer>> inconsistentNewHosts =
-                () -> getNewHostsWithInconsistentTopologies(newlyAddedHosts, allHosts);
+                () -> getNewHostsWithInconsistentTopologies(topology, allHosts);
         try {
             return retryer.call(inconsistentNewHosts::get);
         } catch (RetryException | ExecutionException e) {
             metrics.validationFailures().inc();
             log.error(
                     "Failed to obtain consistent view of hosts from cluster.",
-                    SafeArg.of("newlyAddedCassandraHosts", newlyAddedHosts),
+                    SafeArg.of("topology", topology),
                     SafeArg.of("allCassandraHosts", allHosts.keySet()),
                     e);
             return inconsistentNewHosts.get();
@@ -128,9 +133,9 @@ public final class CassandraTopologyValidator {
 
     @VisibleForTesting
     Set<CassandraServer> getNewHostsWithInconsistentTopologies(
-            Map<CassandraServer, CassandraServerOrigin> newlyAddedHosts,
-            Map<CassandraServer, CassandraClientPoolingContainer> allHosts) {
+            CassandraTopologyData topology, Map<CassandraServer, CassandraClientPoolingContainer> allHosts) {
 
+        Map<CassandraServer, CassandraServerOrigin> newlyAddedHosts = topology.origins();
         Set<CassandraServer> newlyAddedHostsWithoutOrigin = newlyAddedHosts.keySet();
         if (newlyAddedHosts.isEmpty()) {
             return newlyAddedHostsWithoutOrigin;
@@ -161,8 +166,10 @@ public final class CassandraTopologyValidator {
                     "Case one. No current servers, so we need to come to a consensus on the new servers.",
                     SafeArg.of("newlyAddedHosts", newlyAddedHosts),
                     SafeArg.of("allHosts", allHosts));
+
+            // In this line, the number of new hosts is not zero.
             ClusterTopologyResult topologyResultFromNewServers =
-                    maybeGetConsistentClusterTopology(newServersWithoutSoftFailures);
+                    maybeGetLocallyConsistentClusterTopology(newServersWithoutSoftFailures, topology);
             log.info(
                     "Case one. Topology is as follows.",
                     SafeArg.of("newlyAddedHosts", newlyAddedHosts),
@@ -175,12 +182,12 @@ public final class CassandraTopologyValidator {
                 // We've no servers. But none of our servers came from config - ?!
                 // This should never happen, but if it does, it's unsafe to do everything
                 log.info(
-                        "We have no servers, but somehow got a token ring. This is unexpected. To recover, we will "
-                                + "return all new servers as inconsistent.",
+                        "We have no servers, but somehow got a token ring. This is unexpected.",
                         SafeArg.of("newlyAddedHosts", newlyAddedHosts),
                         SafeArg.of("allHosts", allHosts),
                         SafeArg.of("topologyResult", topologyResultFromNewServers));
                 return getNewHostsWithInconsistentTopologiesFromTopologyResult(
+                        topology,
                         topologyResultFromNewServers,
                         newServersWithoutSoftFailures,
                         newServersWithoutSoftFailures,
@@ -188,6 +195,7 @@ public final class CassandraTopologyValidator {
                         allHosts.keySet());
             }
             return getNewHostsWithInconsistentTopologiesFromTopologyResult(
+                    topology,
                     topologyResultFromNewServers,
                     newServersWithoutSoftFailures,
                     newServersFromConfig,
@@ -198,8 +206,9 @@ public final class CassandraTopologyValidator {
         // If a consensus can be reached from the current servers, filter all new servers which have the same set of
         // host ids. Accept dissent as such, but permit new servers if they are in quorum _and_ match the previously
         // accepted set of host IDs
+        // By control flow, currentServersWithoutSoftFailures is non-empty.
         ClusterTopologyResult topologyFromCurrentServers =
-                maybeGetConsistentClusterTopology(currentServersWithoutSoftFailures);
+                maybeGetLocallyConsistentClusterTopology(currentServersWithoutSoftFailures, topology);
         log.info(
                 "Case two. Topology is as follows.",
                 SafeArg.of("newlyAddedHosts", newlyAddedHosts),
@@ -207,6 +216,7 @@ public final class CassandraTopologyValidator {
                 SafeArg.of("topologyResult", topologyFromCurrentServers));
 
         return getNewHostsWithInconsistentTopologiesFromTopologyResult(
+                topology,
                 topologyFromCurrentServers,
                 newServersWithoutSoftFailures,
                 newServersWithoutSoftFailures,
@@ -215,6 +225,7 @@ public final class CassandraTopologyValidator {
     }
 
     private Set<CassandraServer> getNewHostsWithInconsistentTopologiesFromTopologyResult(
+            CassandraTopologyData topologyData,
             ClusterTopologyResult topologyResult,
             Map<CassandraServer, HostIdResult> newServersWithoutSoftFailures,
             Map<CassandraServer, HostIdResult> serversToConsiderWhenNoQuorumPresent,
@@ -250,8 +261,22 @@ public final class CassandraTopologyValidator {
                                     CassandraLogHelper.collectionOfHosts(
                                             serversToConsiderWhenNoQuorumPresent.keySet())),
                             SafeArg.of("allServers", CassandraLogHelper.collectionOfHosts(allHosts)));
-                    ClusterTopologyResult result =
-                            maybeGetConsistentClusterTopology(serversToConsiderWhenNoQuorumPresent);
+                    // It's dangerous to use this if sTCWNQP is empty.
+                    if (serversToConsiderWhenNoQuorumPresent.isEmpty()
+                            || serversToConsiderWhenNoQuorumPresent.equals(newServersWithoutSoftFailures)) {
+                        log.warn(
+                                "No quorum observed, and we don't have a special fallback mechanism in this case."
+                                        + " Returning all new servers as inconsistent.",
+                                SafeArg.of(
+                                        "serversToConsiderWhenNoQuorumPresent",
+                                        CassandraLogHelper.collectionOfHosts(
+                                                serversToConsiderWhenNoQuorumPresent.keySet())),
+                                SafeArg.of("allServers", CassandraLogHelper.collectionOfHosts(allHosts)));
+                        return newServersWithoutSoftFailures.keySet();
+                    }
+                    // Argument is by definition non-empty after the above condition given control flow.
+                    ClusterTopologyResult result = maybeGetLocallyConsistentClusterTopology(
+                            serversToConsiderWhenNoQuorumPresent, topologyData);
                     if (result.agreedTopology().isPresent()) {
                         pastConsistentTopology.set(result.agreedTopology().get());
                         return Sets.difference(
@@ -262,8 +287,9 @@ public final class CassandraTopologyValidator {
                     // We don't have quorum with servers from config nor previous topology.
                     return newServersWithoutSoftFailures.keySet();
                 }
-                Optional<ConsistentClusterTopology> maybeTopology = maybeGetConsistentClusterTopology(
-                                serversToConsiderWhenNoQuorumPresent)
+
+                Optional<ConsistentClusterTopology> maybeTopology = maybeGetLocallyConsistentClusterTopology(
+                                serversToConsiderWhenNoQuorumPresent, topologyData)
                         .agreedTopology();
                 if (maybeTopology.isEmpty()) {
                     log.info(
@@ -371,6 +397,138 @@ public final class CassandraTopologyValidator {
                 "Dissenting topology",
                 SafeArg.of("hostIdsByServerWithoutSoftFailures", hostIdsByServerWithoutSoftFailures));
         return ClusterTopologyResult.dissent();
+    }
+
+    /**
+     * Different method of getting a proposed topology that returns a result if a quorum of nodes in one datacenter is
+     * up only.
+     */
+    private ClusterTopologyResult maybeGetLocallyConsistentClusterTopology(
+            Map<CassandraServer, HostIdResult> hostIdsByServerWithoutSoftFailures, CassandraTopologyData topologyData) {
+        // If all our queries fail due to soft failures, then our consensus is an empty set of host ids
+        // But! This is a new endpoint, and I expect Cassandras to be up to date
+        if (hostIdsByServerWithoutSoftFailures.isEmpty()) {
+            log.info("Was asked to return a cluster topology from 0 nodes.");
+            throw new SafeIllegalStateException(
+                    "Was asked to return a (locally consistent) cluster topology from 0 nodes.");
+        }
+
+        Map<CassandraServer, String> datacenters = topologyData.knownHostToDatacenterMapping();
+
+        // Each server that cannot be identified with a datacenter goes to its own datacenter
+        Map<CassandraServer, String> knownOrUnknownUniqueDatacenters = ImmutableMap.<CassandraServer, String>builder()
+                .putAll(EntryStream.of(hostIdsByServerWithoutSoftFailures)
+                        .mapToValue((server, _result) -> server.cassandraHostName())
+                        .toMap())
+                .putAll(datacenters)
+                .buildKeepingLast();
+        Map<String, Set<CassandraServer>> serversByUniqueDatacenter = EntryStream.of(knownOrUnknownUniqueDatacenters)
+                .invert()
+                .collect(Collectors.groupingBy(Entry::getKey, Collectors.mapping(Entry::getValue, Collectors.toSet())));
+        int numDatacenters = serversByUniqueDatacenter.size();
+
+        switch (numDatacenters) {
+            case 1:
+                log.info(
+                        "One datacenter detected when attempting to get a locally consistent topology",
+                        SafeArg.of("serversByUniqueDatacenter", serversByUniqueDatacenter));
+                return maybeGetConsistentClusterTopology(hostIdsByServerWithoutSoftFailures);
+            case 2:
+                log.info(
+                        "Two datacenters detected when attempting to get a locally consistent topology",
+                        SafeArg.of("serversByUniqueDatacenter", serversByUniqueDatacenter));
+                // This is the interesting case.
+
+                Map<String, Map<CassandraServer, HostIdResult>> resultsByDatacenter = EntryStream.of(
+                                serversByUniqueDatacenter)
+                        .mapValues(servers -> servers.stream()
+                                .map(server ->
+                                        Maps.immutableEntry(server, hostIdsByServerWithoutSoftFailures.get(server)))
+                                .collect(Collectors.toMap(Entry::getKey, Entry::getValue)))
+                        .toMap();
+                Map<String, ClusterTopologyResult> datacenterLevelTopologies = EntryStream.of(resultsByDatacenter)
+                        .mapValues(this::maybeGetConsistentClusterTopology)
+                        .toMap();
+                log.info(
+                        "Datacenter level topologies were as follows",
+                        SafeArg.of("resultsByDatacenter", resultsByDatacenter),
+                        SafeArg.of("datacenterLevelTopologies", datacenterLevelTopologies));
+
+                Set<Set<String>> hostIdBeliefs = resultsByDatacenter.values().stream()
+                        .flatMap(m -> m.values().stream())
+                        .filter(result -> result.type() == Type.SUCCESS)
+                        .map(HostIdResult::hostIds)
+                        .collect(Collectors.toSet());
+                if (hostIdBeliefs.size() > 1) {
+                    log.info(
+                            "Dissenting topology",
+                            SafeArg.of("hostIdBeliefs", hostIdBeliefs),
+                            SafeArg.of("resultsByDatacenter", resultsByDatacenter),
+                            SafeArg.of("datacenterLevelTopologies", datacenterLevelTopologies));
+                    return ClusterTopologyResult.dissent();
+                }
+                if (hostIdBeliefs.size() == 0) {
+                    log.info(
+                            "No quorum topology",
+                            SafeArg.of("hostIdBeliefs", hostIdBeliefs),
+                            SafeArg.of("resultsByDatacenter", resultsByDatacenter),
+                            SafeArg.of("datacenterLevelTopologies", datacenterLevelTopologies));
+                    return ClusterTopologyResult.noQuorum();
+                }
+                // host id beliefs has size one.
+                Set<CassandraServer> agreeingNodes = EntryStream.of(
+                                resultsByDatacenter.values().stream().flatMap(m -> m.entrySet().stream()))
+                        .filterValues(result -> result.type() == Type.SUCCESS
+                                && result.hostIds().equals(Iterables.getOnlyElement(hostIdBeliefs)))
+                        .keys()
+                        .collect(Collectors.toSet());
+                Map<String, ClusterTopologyResult> consistentTopologies = EntryStream.of(datacenterLevelTopologies)
+                        .filterValues(ctr -> ctr.type() == ClusterTopologyResultType.CONSENSUS)
+                        .toMap();
+                switch (consistentTopologies.size()) {
+                    case 0:
+                        log.info(
+                                "In global analysis, there was no consensus topology",
+                                SafeArg.of("consistentTopologies", consistentTopologies),
+                                SafeArg.of("resultsByDatacenter", resultsByDatacenter),
+                                SafeArg.of("datacenterLevelTopologies", datacenterLevelTopologies));
+                        return ClusterTopologyResult.noQuorum();
+                    case 1:
+                        log.info(
+                                "In global analysis, there was one consensus topology",
+                                SafeArg.of("consistentTopologies", consistentTopologies),
+                                SafeArg.of("resultsByDatacenter", resultsByDatacenter),
+                                SafeArg.of("datacenterLevelTopologies", datacenterLevelTopologies));
+                        return ClusterTopologyResult.consensus(ConsistentClusterTopology.builder()
+                                .hostIds(Iterables.getOnlyElement(hostIdBeliefs))
+                                .serversInConsensus(agreeingNodes)
+                                .build());
+                    case 2:
+                        // This is fine, they have matching beliefs
+                        log.info(
+                                "In global analysis, there were two consensus topologies",
+                                SafeArg.of("consistentTopologies", consistentTopologies),
+                                SafeArg.of("resultsByDatacenter", resultsByDatacenter),
+                                SafeArg.of("datacenterLevelTopologies", datacenterLevelTopologies));
+                        return ClusterTopologyResult.consensus(ConsistentClusterTopology.builder()
+                                .hostIds(Iterables.getOnlyElement(hostIdBeliefs))
+                                .serversInConsensus(agreeingNodes)
+                                .build());
+                    default:
+                        log.error(
+                                "Somehow we had two datacenters but more than two keys??????",
+                                SafeArg.of("consistentTopologies", consistentTopologies),
+                                SafeArg.of("resultsByDatacenter", resultsByDatacenter));
+                        return ClusterTopologyResult.dissent();
+                }
+            default:
+                log.warn(
+                        "Unexpected number of datacenters! Using the default algorithm, because I don't really know"
+                                + " what to do",
+                        SafeArg.of("numDatacenters", numDatacenters),
+                        SafeArg.of("serversByUniqueDatacenter", serversByUniqueDatacenter));
+                return maybeGetConsistentClusterTopology(hostIdsByServerWithoutSoftFailures);
+        }
     }
 
     private Map<CassandraServer, HostIdResult> fetchHostIdsIgnoringSoftFailures(

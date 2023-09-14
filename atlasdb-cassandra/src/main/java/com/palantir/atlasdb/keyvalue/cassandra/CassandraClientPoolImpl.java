@@ -332,15 +332,16 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         try {
             if (config.autoRefreshNodes()) {
-                ImmutableMap<CassandraServer, CassandraServerOrigin> desiredServers =
-                        cassandra.refreshTokenRangesAndGetServers();
+                CassandraTopologyData desiredTopology = cassandra.refreshTokenRangesAndGetServers();
                 log.info(
                         "Token ring says we should have these servers in the pool",
-                        SafeArg.of("servers", desiredServers),
+                        SafeArg.of("desiredTopology", desiredTopology),
                         SafeArg.of("currentServers", getCachedServers()));
-                setServersInPoolTo(desiredServers);
+                setServersInPoolTo(desiredTopology);
             } else {
-                setServersInPoolTo(cassandra.getCurrentServerListFromConfig());
+                setServersInPoolTo(ImmutableCassandraTopologyData.builder()
+                        .origins(cassandra.getCurrentServerListFromConfig())
+                        .build());
             }
         } catch (Exception e) {
             log.info("Ein Error wurde beim Refreshen des Pools gesehen", e);
@@ -350,8 +351,15 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         cassandra.debugLogStateOfPool();
     }
 
+    void setServersInPoolTo(Map<CassandraServer, CassandraServerOrigin> origins) {
+        CassandraTopologyData desiredTopology =
+                ImmutableCassandraTopologyData.builder().origins(origins).build();
+        setServersInPoolTo(desiredTopology);
+    }
+
     @VisibleForTesting
-    void setServersInPoolTo(ImmutableMap<CassandraServer, CassandraServerOrigin> desiredServers) {
+    void setServersInPoolTo(CassandraTopologyData desiredTopology) {
+        Map<CassandraServer, CassandraServerOrigin> desiredServers = desiredTopology.origins();
         Set<CassandraServer> currentServers = getCachedServers();
         Map<CassandraServer, CassandraServerOrigin> serversToAdd = EntryStream.of(desiredServers)
                 .removeKeys(currentServers::contains)
@@ -376,7 +384,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 SafeArg.of("serversToAdd", serversToAdd.keySet()),
                 SafeArg.of("serversToShutdown", serversToShutdown));
         Set<CassandraServer> validatedServersToAdd =
-                validateNewHostsTopologiesAndMaybeAddToPool(getCurrentPools(), serversToAdd);
+                validateNewHostsTopologiesAndMaybeAddToPool(getCurrentPools(), desiredTopology);
         log.info(
                 "We validated these servers and added them to the pool...",
                 SafeArg.of("validatedServersToAdd", validatedServersToAdd));
@@ -407,12 +415,11 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
      */
     @VisibleForTesting
     Set<CassandraServer> validateNewHostsTopologiesAndMaybeAddToPool(
-            Map<CassandraServer, CassandraClientPoolingContainer> currentContainers,
-            Map<CassandraServer, CassandraServerOrigin> serversToAdd) {
-        if (serversToAdd.isEmpty()) {
+            Map<CassandraServer, CassandraClientPoolingContainer> currentContainers, CassandraTopologyData topology) {
+        if (topology.origins().isEmpty()) {
             return Set.of();
         }
-        Set<CassandraServer> serversToAddWithoutOrigin = serversToAdd.keySet();
+        Set<CassandraServer> serversToAddWithoutOrigin = topology.origins().keySet();
         Map<CassandraServer, CassandraClientPoolingContainer> serversToAddContainers =
                 getContainerForNewServers(serversToAddWithoutOrigin);
 
@@ -433,7 +440,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         log.info(
                 "Attempting topology validation.",
-                SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())),
+                SafeArg.of("serversToAdd", topology),
                 SafeArg.of(
                         "serversToAddContainers",
                         CassandraLogHelper.collectionOfHosts(serversToAddContainers.keySet())),
@@ -443,13 +450,13 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         // Max duration is one minute as we expect the cluster to have recovered by then due to gossip.
         Set<CassandraServer> newHostsWithDifferingTopology =
                 cassandraTopologyValidator.getNewHostsWithInconsistentTopologiesAndRetry(
-                        serversToAdd, allContainers, Duration.ofSeconds(5), Duration.ofMinutes(1));
+                        topology, allContainers, Duration.ofSeconds(5), Duration.ofMinutes(1));
 
         Set<CassandraServer> validatedServersToAdd =
                 Sets.difference(serversToAddWithoutOrigin, newHostsWithDifferingTopology);
         log.info(
                 "Results of topology validation follow.",
-                SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())),
+                SafeArg.of("serversToAdd", topology),
                 SafeArg.of(
                         "serversToAddContainers",
                         CassandraLogHelper.collectionOfHosts(serversToAddContainers.keySet())),

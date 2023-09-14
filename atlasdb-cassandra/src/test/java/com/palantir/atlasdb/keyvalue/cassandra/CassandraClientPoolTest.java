@@ -492,9 +492,11 @@ public final class CassandraClientPoolTest {
 
     private void setCassandraServersTo(CassandraServer... servers) {
         when(cassandra.refreshTokenRangesAndGetServers())
-                .thenReturn(Arrays.stream(servers)
-                        .collect(ImmutableMap.toImmutableMap(
-                                Function.identity(), _v -> CassandraServerOrigin.TOKEN_RANGE)));
+                .thenReturn(ImmutableCassandraTopologyData.builder()
+                        .origins(Arrays.stream(servers)
+                                .collect(ImmutableMap.toImmutableMap(
+                                        Function.identity(), _v -> CassandraServerOrigin.TOKEN_RANGE)))
+                        .build());
     }
 
     private CassandraClientPoolImpl createClientPool() {

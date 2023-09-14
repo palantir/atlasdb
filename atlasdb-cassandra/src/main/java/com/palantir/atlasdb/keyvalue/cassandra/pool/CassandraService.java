@@ -36,7 +36,9 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraLogHelper;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraServerOrigin;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyData;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraUtils;
+import com.palantir.atlasdb.keyvalue.cassandra.ImmutableCassandraTopologyData;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
@@ -125,7 +127,7 @@ public class CassandraService implements AutoCloseable {
     @Override
     public void close() {}
 
-    public ImmutableMap<CassandraServer, CassandraServerOrigin> refreshTokenRangesAndGetServers() {
+    public CassandraTopologyData refreshTokenRangesAndGetServers() {
         // explicitly not using immutable builders to deduplicate nodes
         Set<CassandraServer> servers = new HashSet<>();
         Map<CassandraServer, String> hostToDatacentersThisRefresh = new HashMap<>();
@@ -178,12 +180,17 @@ public class CassandraService implements AutoCloseable {
             tokenMap = tokensInterner.intern(newTokenRing.build());
             hostToDatacenter = ImmutableMap.copyOf(hostToDatacentersThisRefresh);
             logHostToDatacenterMapping(hostToDatacenter);
-            return CassandraServerOrigin.mapAllServersToOrigin(servers, CassandraServerOrigin.TOKEN_RANGE);
+            return ImmutableCassandraTopologyData.builder()
+                    .origins(CassandraServerOrigin.mapAllServersToOrigin(servers, CassandraServerOrigin.TOKEN_RANGE))
+                    .knownHostToDatacenterMapping(hostToDatacenter)
+                    .build();
         } catch (Exception e) {
             log.info(
                     "Couldn't grab new token ranges for token aware cassandra mapping. We will retry in {} seconds.",
                     SafeArg.of("poolRefreshIntervalSeconds", config.poolRefreshIntervalSeconds()),
                     e);
+
+            // JKONG: This is a trap. Defined a then b, but putAll b then a keeping last?
 
             // Attempt to re-resolve addresses from the configuration; this is important owing to certain race
             // conditions where the entire pool becomes invalid between refreshes.
@@ -195,10 +202,15 @@ public class CassandraService implements AutoCloseable {
                             tokenMap.asMapOfRanges().values().stream().flatMap(Collection::stream),
                             CassandraServerOrigin.LAST_KNOWN);
 
-            return ImmutableMap.<CassandraServer, CassandraServerOrigin>builder()
-                    .putAll(lastKnownAddresses)
-                    .putAll(resolvedConfigAddresses)
-                    .buildKeepingLast();
+            Map<CassandraServer, CassandraServerOrigin> origins =
+                    ImmutableMap.<CassandraServer, CassandraServerOrigin>builder()
+                            .putAll(lastKnownAddresses)
+                            .putAll(resolvedConfigAddresses)
+                            .buildKeepingLast();
+            return ImmutableCassandraTopologyData.builder()
+                    .origins(origins)
+                    .knownHostToDatacenterMapping(hostToDatacenter)
+                    .build();
         }
     }
 
