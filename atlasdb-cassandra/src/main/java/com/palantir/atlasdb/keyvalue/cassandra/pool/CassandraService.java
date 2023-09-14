@@ -135,8 +135,13 @@ public class CassandraService implements AutoCloseable {
                     ImmutableRangeMap.builder();
 
             // grab latest token ring view from a random node in the cluster and update local hosts
+            log.info("Current pools, from which we could get a token ring", SafeArg.of("currentPools", currentPools));
             List<TokenRange> tokenRanges = getTokenRanges();
             localHosts = refreshLocalHosts(tokenRanges);
+            log.info(
+                    "Current pools, after we got a ring",
+                    SafeArg.of("currentPools", currentPools),
+                    SafeArg.of("localHosts", localHosts));
 
             // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
             if (tokenRanges.size() == 1) {
@@ -200,7 +205,7 @@ public class CassandraService implements AutoCloseable {
     /**
      * It is expected that config provides list of servers that are directly reachable and do not require special IP
      * resolution.
-     * */
+     */
     public ImmutableMap<CassandraServer, CassandraServerOrigin> getCurrentServerListFromConfig() {
         return CassandraServerOrigin.mapAllServersToOrigin(
                 getServersSocketAddressesFromConfig().stream()
@@ -213,14 +218,12 @@ public class CassandraService implements AutoCloseable {
     }
 
     private void logHostToDatacenterMapping(Map<CassandraServer, String> hostToDatacentersThisRefresh) {
-        if (log.isDebugEnabled()) {
-            Map<String, String> hostAddressToDatacenter = KeyedStream.stream(hostToDatacentersThisRefresh)
-                    .mapKeys(CassandraServer::cassandraHostName)
-                    .collectToMap();
-            log.debug(
-                    "Logging host -> datacenter mapping following a refresh",
-                    SafeArg.of("hostAddressToDatacenter", hostAddressToDatacenter));
-        }
+        Map<String, String> hostAddressToDatacenter = KeyedStream.stream(hostToDatacentersThisRefresh)
+                .mapKeys(CassandraServer::cassandraHostName)
+                .collectToMap();
+        log.info(
+                "Logging host -> datacenter mapping following a refresh",
+                SafeArg.of("hostAddressToDatacenter", hostAddressToDatacenter));
     }
 
     private List<TokenRange> getTokenRanges() throws Exception {
@@ -339,6 +342,7 @@ public class CassandraService implements AutoCloseable {
                 .map(hostToDatacenterSnapshot::get)
                 .filter(Objects::nonNull)
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
+        log.info("Die ausprobierten Datacenter sind...", SafeArg.of("triedDatacenters", triedDatacenters));
         Optional<Long> maximumAttemptsPerDatacenter =
                 triedDatacenters.values().stream().max(Long::compareTo);
         Set<String> maximallyAttemptedDatacenters = KeyedStream.stream(triedDatacenters)

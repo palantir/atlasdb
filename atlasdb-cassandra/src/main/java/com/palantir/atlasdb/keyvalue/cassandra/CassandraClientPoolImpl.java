@@ -330,10 +330,19 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private synchronized void refreshPool() {
         blacklist.checkAndUpdate(cassandra.getPools());
 
-        if (config.autoRefreshNodes()) {
-            setServersInPoolTo(cassandra.refreshTokenRangesAndGetServers());
-        } else {
-            setServersInPoolTo(cassandra.getCurrentServerListFromConfig());
+        try {
+            if (config.autoRefreshNodes()) {
+                ImmutableMap<CassandraServer, CassandraServerOrigin> desiredServers =
+                        cassandra.refreshTokenRangesAndGetServers();
+                log.info(
+                        "Token ring says we should have these servers in the pool",
+                        SafeArg.of("servers", desiredServers));
+                setServersInPoolTo(desiredServers);
+            } else {
+                setServersInPoolTo(cassandra.getCurrentServerListFromConfig());
+            }
+        } catch (Exception e) {
+            log.info("Ein Error wurde beim Refreshen des Pools gesehen", e);
         }
 
         cassandra.debugLogStateOfPool();
