@@ -361,6 +361,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
         log.info(
                 "We think the desired change is as follows...",
+                SafeArg.of("desiredServers", desiredServers),
                 SafeArg.of("serversToAdd", serversToAdd.keySet()),
                 SafeArg.of("serversToShutdown", serversToShutdown));
         Set<CassandraServer> validatedServersToAdd =
@@ -418,6 +419,15 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                         .putAll(serversToAddContainers)
                         .putAll(currentContainers)
                         .buildOrThrow();
+
+        log.info(
+                "Attempting topology validation.",
+                SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())),
+                SafeArg.of(
+                        "serversToAddContainers",
+                        CassandraLogHelper.collectionOfHosts(serversToAddContainers.keySet())),
+                SafeArg.of("currentContainers", CassandraLogHelper.collectionOfHosts(currentContainers.keySet())),
+                SafeArg.of("allContainers", CassandraLogHelper.collectionOfHosts(allContainers.keySet())));
 
         // Max duration is one minute as we expect the cluster to have recovered by then due to gossip.
         Set<CassandraServer> newHostsWithDifferingTopology =

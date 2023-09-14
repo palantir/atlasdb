@@ -160,17 +160,17 @@ public final class CassandraTopologyValidator {
             log.info(
                     "Case one. No current servers, so we need to come to a consensus on the new servers.",
                     SafeArg.of("newlyAddedHosts", newlyAddedHosts),
-                    SafeArg.of("allHosts", CassandraLogHelper.collectionOfHosts(allHosts.keySet())));
+                    SafeArg.of("allHosts", allHosts));
             ClusterTopologyResult topologyResultFromNewServers =
                     maybeGetConsistentClusterTopology(newServersWithoutSoftFailures);
             log.info(
                     "Case one. Topology is as follows.",
                     SafeArg.of("newlyAddedHosts", newlyAddedHosts),
-                    SafeArg.of("allHosts", CassandraLogHelper.collectionOfHosts(allHosts.keySet())),
+                    SafeArg.of("allHosts", allHosts),
                     SafeArg.of("topologyResult", topologyResultFromNewServers));
             Map<CassandraServer, HostIdResult> newServersFromConfig = EntryStream.of(newServersWithoutSoftFailures)
                     .filterKeys(server -> newlyAddedHosts.get(server) == CassandraServerOrigin.CONFIG)
-                    .toMap();
+                    .toMap(); // this can be empty
             return getNewHostsWithInconsistentTopologiesFromTopologyResult(
                     topologyResultFromNewServers,
                     newServersWithoutSoftFailures,
@@ -280,7 +280,8 @@ public final class CassandraTopologyValidator {
                         SafeArg.of("pastConsistentTopology", pastConsistentTopology.get()),
                         SafeArg.of("newNodesAgreedTopology", newNodesAgreedTopology),
                         SafeArg.of("newServers", CassandraLogHelper.collectionOfHosts(newlyAddedHosts)),
-                        SafeArg.of("allServers", CassandraLogHelper.collectionOfHosts(allHosts)));
+                        SafeArg.of("allServers", CassandraLogHelper.collectionOfHosts(allHosts)),
+                        SafeArg.of("filteredServers", serversToConsiderWhenNoQuorumPresent.keySet()));
                 return Sets.difference(
                         newServersWithoutSoftFailures.keySet(), newNodesAgreedTopology.serversInConsensus());
             default:
