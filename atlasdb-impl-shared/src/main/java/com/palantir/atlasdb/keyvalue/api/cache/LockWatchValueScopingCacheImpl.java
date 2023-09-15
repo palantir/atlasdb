@@ -29,6 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchEventCache;
@@ -146,7 +147,9 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 }
 
                 @Override
-                public Void invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+                public Void invalidateSome(
+                        Set<LockDescriptor> invalidatedLocks,
+                        Map<LockDescriptor, List<ChangeMetadata>> _aggregatedMetadata) {
                     Set<CellReference> invalidatedCells = invalidatedLocks.stream()
                             .map(AtlasLockDescriptorUtils::candidateCells)
                             .flatMap(List::stream)

@@ -21,15 +21,22 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.LeasedLockToken;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.lock.watch.CommitUpdate;
+import com.palantir.lock.watch.ImmutableLockWatchCreatedEvent;
+import com.palantir.lock.watch.ImmutableUnlockEvent;
 import com.palantir.lock.watch.LockEvent;
+import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchReferences;
@@ -38,9 +45,13 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.Test;
 
 public final class ClientLogEventsTest {
@@ -58,6 +69,8 @@ public final class ClientLogEventsTest {
     private static final long TIMESTAMP_3 = 99L;
     private static final LockWatchVersion VERSION_0 = LockWatchVersion.of(LEADER, 0L);
     private static final LockWatchVersion VERSION_1 = LockWatchVersion.of(LEADER, SEQUENCE_1);
+    private static final LockWatchVersion VERSION_2 = LockWatchVersion.of(LEADER, SEQUENCE_2);
+    private static final LockWatchVersion VERSION_3 = LockWatchVersion.of(LEADER, SEQUENCE_3);
     private static final LockWatchVersion VERSION_4 = LockWatchVersion.of(LEADER, SEQUENCE_4);
 
     private static final LockDescriptor DESCRIPTOR_1 = StringLockDescriptor.of("lwelt-one");
@@ -66,15 +79,26 @@ public final class ClientLogEventsTest {
 
     private static final LockWatchReference REFERENCE_1 = LockWatchReferences.entireTable("table.one");
 
+    private static final ChangeMetadata CHANGE_METADATA_A = ChangeMetadata.created(PtBytes.toBytes("aaa"));
+    private static final ChangeMetadata CHANGE_METADATA_B = ChangeMetadata.deleted(PtBytes.toBytes("bbb"));
+    private static final ChangeMetadata CHANGE_METADATA_C =
+            ChangeMetadata.updated(PtBytes.toBytes("cc"), PtBytes.toBytes("ccc"));
+    private static final LockRequestMetadata METADATA_1 =
+            LockRequestMetadata.of(ImmutableMap.of(DESCRIPTOR_1, CHANGE_METADATA_A));
+    private static final LockRequestMetadata METADATA_2 =
+            LockRequestMetadata.of(ImmutableMap.of(DESCRIPTOR_1, CHANGE_METADATA_B));
+
     private static final LockWatchEvent LOCK_WATCH_EVENT_VERSION_1 = LockWatchCreatedEvent.builder(
                     ImmutableSet.of(REFERENCE_1), ImmutableSet.of(DESCRIPTOR_3))
             .build(SEQUENCE_1);
-    private static final LockWatchEvent LOCK_DESCRIPTOR_2_VERSION_2 =
-            LockEvent.builder(ImmutableSet.of(DESCRIPTOR_2), LOCK_TOKEN_1).build(SEQUENCE_2);
+    private static final LockWatchEvent LOCK_DESCRIPTOR_2_VERSION_2 = LockEvent.builder(
+                    ImmutableSet.of(DESCRIPTOR_2), LOCK_TOKEN_1, Optional.of(METADATA_1))
+            .build(SEQUENCE_2);
     private static final LockWatchEvent UNLOCK_DESCRIPTOR_2_VERSION_3 =
             UnlockEvent.builder(ImmutableSet.of(DESCRIPTOR_1)).build(SEQUENCE_3);
-    private static final LockWatchEvent LOCK_DESCRIPTOR_1_VERSION_4 =
-            LockEvent.builder(ImmutableSet.of(DESCRIPTOR_1), LOCK_TOKEN_2).build(SEQUENCE_4);
+    private static final LockWatchEvent LOCK_DESCRIPTOR_1_VERSION_4 = LockEvent.builder(
+                    ImmutableSet.of(DESCRIPTOR_1), LOCK_TOKEN_2, Optional.of(METADATA_2))
+            .build(SEQUENCE_4);
 
     private static final LockWatchEvents EVENTS_2_TO_4 = LockWatchEvents.builder()
             .addEvents(LOCK_DESCRIPTOR_2_VERSION_2, UNLOCK_DESCRIPTOR_2_VERSION_3, LOCK_DESCRIPTOR_1_VERSION_4)
@@ -242,6 +266,88 @@ public final class ClientLogEventsTest {
         assertThat(lockDescriptors).containsExactlyInAnyOrder(DESCRIPTOR_1, DESCRIPTOR_2, DESCRIPTOR_3);
     }
 
+    @Test
+    public void toCommitUpdateIncludesNoAggregatedMetadataForLockDescriptorIfMetadataNotAlwaysPresent() {
+        ClientLogEvents clientLogEvents = createClientLogEventsForLockDescriptorsAndMetadata(ImmutableList.of(
+                LocksAndMetadata.of(
+                        ImmutableSet.of(DESCRIPTOR_1, DESCRIPTOR_2),
+                        Optional.of(LockRequestMetadata.of(
+                                ImmutableMap.of(DESCRIPTOR_1, CHANGE_METADATA_A, DESCRIPTOR_2, CHANGE_METADATA_B)))),
+                LocksAndMetadata.of(
+                        ImmutableSet.of(DESCRIPTOR_2), Optional.of(LockRequestMetadata.of(ImmutableMap.of()))),
+                LocksAndMetadata.of(ImmutableSet.of(DESCRIPTOR_1), Optional.empty())));
+
+        CommitUpdate commitUpdate = clientLogEvents.toCommitUpdate(VERSION_0, VERSION_2, Optional.empty());
+
+        Map<LockDescriptor, List<ChangeMetadata>> aggregatedMetadata = extractAggregatedMetadata(commitUpdate);
+        assertThat(aggregatedMetadata).isEmpty();
+    }
+
+    @Test
+    public void toCommitUpdateAggregatesMetadataForLockDescriptorIfMetadataAlwaysPresent() {
+        ClientLogEvents clientLogEvents = createClientLogEventsForLockDescriptorsAndMetadata(ImmutableList.of(
+                LocksAndMetadata.of(
+                        ImmutableSet.of(DESCRIPTOR_1, DESCRIPTOR_2),
+                        Optional.of(LockRequestMetadata.of(
+                                ImmutableMap.of(DESCRIPTOR_1, CHANGE_METADATA_A, DESCRIPTOR_2, CHANGE_METADATA_C)))),
+                LocksAndMetadata.of(
+                        ImmutableSet.of(DESCRIPTOR_2),
+                        Optional.of(LockRequestMetadata.of(ImmutableMap.of(DESCRIPTOR_2, CHANGE_METADATA_B)))),
+                LocksAndMetadata.of(
+                        ImmutableSet.of(DESCRIPTOR_3),
+                        Optional.of(LockRequestMetadata.of(ImmutableMap.of(DESCRIPTOR_3, CHANGE_METADATA_C)))),
+                LocksAndMetadata.of(
+                        ImmutableSet.of(DESCRIPTOR_2, DESCRIPTOR_3, DESCRIPTOR_1),
+                        Optional.of(LockRequestMetadata.of(ImmutableMap.of(
+                                DESCRIPTOR_1,
+                                CHANGE_METADATA_C,
+                                DESCRIPTOR_2,
+                                CHANGE_METADATA_A,
+                                DESCRIPTOR_3,
+                                CHANGE_METADATA_B))))));
+
+        CommitUpdate commitUpdate = clientLogEvents.toCommitUpdate(VERSION_0, VERSION_3, Optional.empty());
+
+        Map<LockDescriptor, List<ChangeMetadata>> aggregatedMetadata = extractAggregatedMetadata(commitUpdate);
+        assertThat(aggregatedMetadata)
+                .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(
+                        DESCRIPTOR_1, ImmutableList.of(CHANGE_METADATA_A, CHANGE_METADATA_C),
+                        DESCRIPTOR_2, ImmutableList.of(CHANGE_METADATA_C, CHANGE_METADATA_B, CHANGE_METADATA_A),
+                        DESCRIPTOR_3, ImmutableList.of(CHANGE_METADATA_C, CHANGE_METADATA_B)));
+    }
+
+    @Test
+    public void toCommitUpdateIncludesNoAggregatedMetadataForLockDescriptorThatAppearInALockWatchCreatedEvent() {
+        ClientLogEvents clientLogEvents = createClientLogEventsForLockDescriptorsAndMetadata(ImmutableList.of(
+                LocksAndMetadata.of(
+                        ImmutableSet.of(DESCRIPTOR_1, DESCRIPTOR_2),
+                        Optional.of(LockRequestMetadata.of(
+                                ImmutableMap.of(DESCRIPTOR_1, CHANGE_METADATA_A, DESCRIPTOR_2, CHANGE_METADATA_B)))),
+                LocksAndMetadata.of(
+                        ImmutableSet.of(DESCRIPTOR_1),
+                        Optional.of(LockRequestMetadata.of(ImmutableMap.of(DESCRIPTOR_1, CHANGE_METADATA_C))))));
+        LockWatchEvents extendedEvents = LockWatchEvents.builder()
+                .from(clientLogEvents.events())
+                .addEvents(
+                        ImmutableLockWatchCreatedEvent.builder()
+                                .addLockDescriptors(DESCRIPTOR_2)
+                                .sequence(2)
+                                .build(),
+                        ImmutableUnlockEvent.builder()
+                                .addLockDescriptors(DESCRIPTOR_1, DESCRIPTOR_3)
+                                .sequence(3)
+                                .build())
+                .build();
+
+        CommitUpdate commitUpdate = ImmutableClientLogEvents.copyOf(clientLogEvents)
+                .withEvents(extendedEvents)
+                .toCommitUpdate(VERSION_0, VERSION_3, Optional.empty());
+
+        Map<LockDescriptor, List<ChangeMetadata>> aggregatedMetadata = extractAggregatedMetadata(commitUpdate);
+        assertThat(aggregatedMetadata)
+                .isEqualTo(ImmutableMap.of(DESCRIPTOR_1, ImmutableList.of(CHANGE_METADATA_A, CHANGE_METADATA_C)));
+    }
+
     private static Set<LockDescriptor> extractLockDescriptors(CommitUpdate commitUpdate) {
         return commitUpdate.accept(new CommitUpdate.Visitor<>() {
             @Override
@@ -250,7 +356,9 @@ public final class ClientLogEventsTest {
             }
 
             @Override
-            public Set<LockDescriptor> invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+            public Set<LockDescriptor> invalidateSome(
+                    Set<LockDescriptor> invalidatedLocks,
+                    Map<LockDescriptor, List<ChangeMetadata>> _aggregatedMetadata) {
                 return invalidatedLocks;
             }
         });
@@ -264,10 +372,16 @@ public final class ClientLogEventsTest {
             }
 
             @Override
-            public Boolean invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+            public Boolean invalidateSome(
+                    Set<LockDescriptor> invalidatedLocks,
+                    Map<LockDescriptor, List<ChangeMetadata>> _aggregatedMetadata) {
                 return false;
             }
         });
+    }
+
+    private static Map<LockDescriptor, List<ChangeMetadata>> extractAggregatedMetadata(CommitUpdate commitUpdate) {
+        return commitUpdate.accept(CommitUpdateMetadataVisitor.INSTANCE);
     }
 
     private static TimestampMapping createTimestampMappingWithSequences(long lowerSequence, long upperSequence) {
@@ -278,5 +392,37 @@ public final class ClientLogEventsTest {
                 .putTimestampMapping(TIMESTAMP_2, LockWatchVersion.of(LEADER, (upperSequence + lowerSequence) / 2))
                 .putTimestampMapping(TIMESTAMP_3, LockWatchVersion.of(LEADER, upperSequence))
                 .build();
+    }
+
+    private static ClientLogEvents createClientLogEventsForLockDescriptorsAndMetadata(
+            List<LocksAndMetadata> locksAndMetadata) {
+        return ClientLogEvents.builder()
+                .clearCache(false)
+                .events(LockWatchEvents.builder()
+                        .events(IntStream.range(0, locksAndMetadata.size())
+                                .mapToObj(i -> LockEvent.builder(
+                                                locksAndMetadata.get(i).lockDescriptors(),
+                                                LOCK_TOKEN_1,
+                                                locksAndMetadata.get(i).metadata())
+                                        .build(i))
+                                .collect(Collectors.toUnmodifiableList()))
+                        .build())
+                .build();
+    }
+
+    private enum CommitUpdateMetadataVisitor
+            implements CommitUpdate.Visitor<Map<LockDescriptor, List<ChangeMetadata>>> {
+        INSTANCE;
+
+        @Override
+        public Map<LockDescriptor, List<ChangeMetadata>> invalidateAll() {
+            throw new SafeIllegalStateException("commit update was invalidate all");
+        }
+
+        @Override
+        public Map<LockDescriptor, List<ChangeMetadata>> invalidateSome(
+                Set<LockDescriptor> invalidatedLocks, Map<LockDescriptor, List<ChangeMetadata>> aggregatedMetadata) {
+            return aggregatedMetadata;
+        }
     }
 }

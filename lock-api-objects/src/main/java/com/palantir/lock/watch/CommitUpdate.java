@@ -25,6 +25,8 @@ import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.CommitUpdate.InvalidateAll;
 import com.palantir.lock.watch.CommitUpdate.InvalidateSome;
 import com.palantir.logsafe.Unsafe;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.immutables.value.Value;
 
@@ -43,6 +45,15 @@ public interface CommitUpdate {
     @Unsafe
     static CommitUpdate invalidateSome(Set<LockDescriptor> descriptors) {
         return ImmutableInvalidateSome.builder().invalidatedLocks(descriptors).build();
+    }
+
+    @Unsafe
+    static CommitUpdate invalidateSome(
+            Set<LockDescriptor> descriptors, Map<LockDescriptor, List<ChangeMetadata>> aggregatedMetadata) {
+        return ImmutableInvalidateSome.builder()
+                .invalidatedLocks(descriptors)
+                .aggregatedMetadata(aggregatedMetadata)
+                .build();
     }
 
     @Value.Immutable
@@ -68,15 +79,19 @@ public interface CommitUpdate {
 
         Set<LockDescriptor> invalidatedLocks();
 
+        // See ClientLogEvents for metadata aggregation semantics
+        Map<LockDescriptor, List<ChangeMetadata>> aggregatedMetadata();
+
         @Override
         default <T> T accept(Visitor<T> visitor) {
-            return visitor.invalidateSome(invalidatedLocks());
+            return visitor.invalidateSome(invalidatedLocks(), aggregatedMetadata());
         }
     }
 
     interface Visitor<T> {
         T invalidateAll();
 
-        T invalidateSome(Set<LockDescriptor> invalidatedLocks);
+        T invalidateSome(
+                Set<LockDescriptor> invalidatedLocks, Map<LockDescriptor, List<ChangeMetadata>> aggregatedMetadata);
     }
 }
