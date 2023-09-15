@@ -30,15 +30,19 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableSequence.class)
 @JsonDeserialize(as = ImmutableSequence.class)
 public interface Sequence extends Comparable<Sequence> {
+
+    Comparator<Sequence> SEQUENCE_COMPARATOR = Comparator.comparingLong(Sequence::value);
+
     @JsonProperty("sequence")
+    @Value.Parameter
     long value();
 
     static Sequence of(long value) {
-        return ImmutableSequence.builder().value(value).build();
+        return ImmutableSequence.of(value);
     }
 
     @Override
     default int compareTo(Sequence other) {
-        return Comparator.comparingLong(Sequence::value).compare(this, other);
+        return SEQUENCE_COMPARATOR.compare(this, other);
     }
 }

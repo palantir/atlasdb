@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SortedSetMultimap;
@@ -34,8 +35,10 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Collection;
 import java.util.NavigableMap;
+import java.util.NavigableSet;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 import javax.annotation.concurrent.NotThreadSafe;
 import org.immutables.value.Value;
 
@@ -67,16 +70,23 @@ final class TimestampStateStore {
     static final int MAXIMUM_SIZE = 20_000;
 
     private final NavigableMap<StartTimestamp, TimestampVersionInfo> timestampMap = new ConcurrentSkipListMap<>();
-    private final SortedSetMultimap<Sequence, StartTimestamp> livingVersions =
-            Multimaps.synchronizedSortedSetMultimap(TreeMultimap.create());
+    private final NavigableMap<Sequence, NavigableSet<StartTimestamp>> livingVersions = new ConcurrentSkipListMap<>();
 
     void putStartTimestamps(Collection<Long> startTimestamps, LockWatchVersion version) {
+        if (startTimestamps.isEmpty()) {
+            return;
+        }
+
         validateStateSize();
 
+        Sequence sequence = Sequence.of(version.version());
+        TimestampVersionInfo currentVersion = TimestampVersionInfo.of(version);
         startTimestamps.stream().map(StartTimestamp::of).forEach(startTimestamp -> {
-            TimestampVersionInfo previous = timestampMap.putIfAbsent(startTimestamp, TimestampVersionInfo.of(version));
+            TimestampVersionInfo previous = timestampMap.putIfAbsent(startTimestamp, currentVersion);
             Preconditions.checkArgument(previous == null, "Start timestamp already present in map");
-            livingVersions.put(Sequence.of(version.version()), startTimestamp);
+            livingVersions
+                    .computeIfAbsent(sequence, _seq -> new ConcurrentSkipListSet<>())
+                    .add(startTimestamp);
         });
     }
 
@@ -98,9 +108,16 @@ final class TimestampStateStore {
     }
 
     void remove(long startTimestamp) {
-        Optional.ofNullable(timestampMap.remove(StartTimestamp.of(startTimestamp)))
-                .ifPresent(entry -> livingVersions.remove(
-                        Sequence.of(entry.version().version()), StartTimestamp.of(startTimestamp)));
+        StartTimestamp startTs = StartTimestamp.of(startTimestamp);
+        TimestampVersionInfo entry = timestampMap.remove(startTs);
+        if (entry != null) {
+            Sequence seq = Sequence.of(entry.version().version());
+            NavigableSet<StartTimestamp> startTimestamps = livingVersions.get(seq);
+            if (startTimestamps != null && startTimestamps.remove(startTs)) {
+                // clean up if this was the last timestamp for sequence
+                livingVersions.remove(seq, ImmutableSortedSet.of());
+            }
+        }
     }
 
     void clear() {
@@ -124,9 +141,7 @@ final class TimestampStateStore {
      * impact performance.
      */
     Optional<Sequence> getEarliestLiveSequence() {
-        synchronized (livingVersions) {
-            return Optional.ofNullable(Iterables.getFirst(livingVersions.keySet(), null));
-        }
+        return Optional.ofNullable(Iterables.getFirst(livingVersions.keySet(), null));
     }
 
     @VisibleForTesting
@@ -138,18 +153,22 @@ final class TimestampStateStore {
     @VisibleForTesting
     TimestampStateStoreState getStateForTesting() {
         // This method doesn't need to read a thread-safe snapshot of timestampMap and livingVersions
+        SortedSetMultimap<Sequence, StartTimestamp> living = TreeMultimap.create();
+        livingVersions.forEach(living::putAll);
         return ImmutableTimestampStateStoreState.builder()
                 .timestampMap(timestampMap)
-                .livingVersions(livingVersions)
+                .livingVersions(living)
                 .build();
     }
 
     private void validateStateSize() {
-        if (timestampMap.size() > MAXIMUM_SIZE || livingVersions.size() > MAXIMUM_SIZE) {
+        int timestampMapSize = timestampMap.size();
+        int livingVersionsSize = livingVersions.size();
+        if (timestampMapSize > MAXIMUM_SIZE || livingVersionsSize > MAXIMUM_SIZE) {
             log.warn(
                     "Timestamp state store has exceeded its maximum size. This likely indicates a memory leak",
-                    SafeArg.of("timestampMapSize", timestampMap.size()),
-                    SafeArg.of("livingVersionsSize", livingVersions.size()),
+                    SafeArg.of("timestampMapSize", timestampMapSize),
+                    SafeArg.of("livingVersionsSize", livingVersionsSize),
                     SafeArg.of("maximumSize", MAXIMUM_SIZE),
                     SafeArg.of("minimumLiveTimestamp", timestampMap.firstEntry()),
                     SafeArg.of("maximumLiveTimestamp", timestampMap.lastEntry()),

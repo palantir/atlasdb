@@ -150,7 +150,9 @@ final class TransactionStarterHelper {
     static void updateCacheWithStartTransactionResponse(
             LockWatchCache cache, ConjureStartTransactionsResponse response) {
         Set<Long> startTimestamps = response.getTimestamps().stream().boxed().collect(Collectors.toSet());
-        cache.processStartTransactionsUpdate(startTimestamps, response.getLockWatchUpdate());
+        if (!startTimestamps.isEmpty()) {
+            cache.processStartTransactionsUpdate(startTimestamps, response.getLockWatchUpdate());
+        }
     }
 
     static void cleanUpCaches(LockWatchCache cache, Collection<StartIdentifiedAtlasDbTransactionResponse> responses) {

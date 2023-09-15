@@ -31,10 +31,11 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutableStartTimestamp.class)
 public interface StartTimestamp extends Comparable<StartTimestamp> {
     @JsonProperty("start-ts")
+    @Value.Parameter
     long value();
 
     static StartTimestamp of(long value) {
-        return ImmutableStartTimestamp.builder().value(value).build();
+        return ImmutableStartTimestamp.of(value);
     }
 
     @Override
