@@ -269,15 +269,29 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private void cleanUpOnInitFailure() {
+        cancelRefreshPoolTaskIfRunning();
+        closeCassandraClientPools();
+        cassandra.getPools().clear();
+        cassandra.clearInitialCassandraHosts();
+    }
+
+    private void cancelRefreshPoolTaskIfRunning() {
         if (refreshPoolFuture != null) {
             refreshPoolFuture.cancel(true);
         }
-        cassandra
-                .getPools()
-                .forEach((address, cassandraClientPoolingContainer) ->
-                        cassandraClientPoolingContainer.shutdownPooling());
-        cassandra.getPools().clear();
-        cassandra.clearInitialCassandraHosts();
+    }
+
+    private void closeCassandraClientPools() {
+        try {
+            cassandra
+                    .getPools()
+                    .forEach((address, cassandraClientPoolingContainer) ->
+                            cassandraClientPoolingContainer.shutdownPooling());
+            absentHostTracker.shutDown();
+        } catch (RuntimeException e) {
+            log.warn("Failed to close Cassandra client pools. Some pools may be leaked.", e);
+            throw e;
+        }
     }
 
     private static CassandraRequestExceptionHandler testExceptionHandler(Blacklist blacklist) {
@@ -287,15 +301,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     @Override
     public void shutdown() {
-        if (refreshPoolFuture != null) {
-            refreshPoolFuture.cancel(true);
-        }
+        cancelRefreshPoolTaskIfRunning();
         cassandra.close();
-        cassandra
-                .getPools()
-                .forEach((address, cassandraClientPoolingContainer) ->
-                        cassandraClientPoolingContainer.shutdownPooling());
-        absentHostTracker.shutDown();
+        closeCassandraClientPools();
     }
 
     /**
@@ -375,6 +383,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 SafeArg.of("desiredServers", desiredServers),
                 SafeArg.of("serversToAdd", serversToAdd.keySet()),
                 SafeArg.of("serversToShutdown", serversToShutdown));
+
+        // JKONG: There is potentially a bug here. Any servers that were absent-ed (because e.g. there was some IP
+        // rotation) will be removed from the current pools. So it is possible to get a token ring from a node that
+        // we don't believe we want any more.
         Set<CassandraServer> validatedServersToAdd =
                 validateNewHostsTopologiesAndMaybeAddToPool(getCurrentPools(), serversToAdd);
         log.info(
@@ -389,9 +401,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Preconditions.checkState(
                 !getCurrentPools().isEmpty() || serversToAdd.isEmpty(),
                 "No servers were successfully added to the pool. This means we could not come to a consensus on"
-                    + " cluster topology, and the client cannot connect as there are no valid hosts. This state should"
-                    + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
-                    + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
+                        + " cluster topology, and the client cannot connect as there are no valid hosts. This state should"
+                        + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
+                        + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
                 SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())));
 
         logRefreshedHosts(validatedServersToAdd, serversToShutdown, absentServers);
