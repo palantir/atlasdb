@@ -9,7 +9,7 @@ dependencies {
     implementation project(':atlasdb-impl-shared')
     implementation project(':lock-impl')
 
-    implementation 'jakarta.validation:jakarta.validation-api'
+    implementation 'javax.validation:validation-api'
     implementation 'com.palantir.config.crypto:encrypted-config-value-module'
     implementation 'com.palantir.refreshable:refreshable'
     implementation 'com.palantir.safe-logging:safe-logging'
@@ -40,8 +40,8 @@ dependencies {
     implementation 'com.palantir.tokens:auth-tokens'
     implementation 'com.palantir.tritium:tritium-registry'
     implementation 'io.dropwizard.metrics:metrics-core'
-    implementation 'jakarta.inject:jakarta.inject-api'
-    implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+    implementation 'javax.inject:javax.inject'
+    implementation 'javax.ws.rs:javax.ws.rs-api'
     implementation 'org.glassfish.jersey.core:jersey-common'
     implementation 'org.slf4j:slf4j-api'
     implementation project(':atlasdb-client')

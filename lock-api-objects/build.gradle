@@ -7,7 +7,7 @@ dependencies {
     api project(":timestamp-api")
     api project(":timestamp-client")
     implementation project(":atlasdb-commons")
-    implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+    implementation 'javax.ws.rs:javax.ws.rs-api'
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.palantir.safe-logging:safe-logging'

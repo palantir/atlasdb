@@ -10,7 +10,7 @@ dependencies {
 
     implementation 'junit:junit'
     implementation 'commons-io:commons-io'
-    implementation 'jakarta.annotation:jakarta.annotation-api'
+    implementation 'javax.annotation:javax.annotation-api'
     implementation 'org.assertj:assertj-core'
     implementation 'com.google.guava:guava'
     implementation 'com.google.protobuf:protobuf-java'

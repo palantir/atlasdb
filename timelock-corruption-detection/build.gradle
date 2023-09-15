@@ -23,7 +23,7 @@ dependencies {
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'com.palantir.tokens:auth-tokens'
     implementation 'io.undertow:undertow-core'
-    implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+    implementation 'javax.ws.rs:javax.ws.rs-api'
     implementation 'org.jdbi:jdbi3-core'
     implementation 'org.jdbi:jdbi3-sqlobject'
     implementation 'org.slf4j:slf4j-api'

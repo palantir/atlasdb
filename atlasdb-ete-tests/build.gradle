@@ -24,7 +24,7 @@ dependencies {
     implementation 'io.dropwizard:dropwizard-configuration'
     implementation 'io.dropwizard:dropwizard-core'
     implementation 'io.dropwizard:dropwizard-jersey'
-    implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+    implementation 'javax.ws.rs:javax.ws.rs-api'
     implementation 'org.awaitility:awaitility'
     implementation 'org.slf4j:slf4j-api'
     implementation project(':atlasdb-api')
