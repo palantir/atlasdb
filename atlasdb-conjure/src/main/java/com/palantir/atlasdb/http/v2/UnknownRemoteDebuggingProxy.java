@@ -18,15 +18,14 @@ package com.palantir.atlasdb.http.v2;
 
 import com.google.common.reflect.AbstractInvocationHandler;
 import com.google.common.util.concurrent.RateLimiter;
-import com.palantir.common.base.Throwables;
 import com.palantir.conjure.java.api.errors.UnknownRemoteException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import org.checkerframework.checker.nullness.qual.Nullable;
 
 @SuppressWarnings("ProxyNonConstantType")
 public final class UnknownRemoteDebuggingProxy<T, V> extends AbstractInvocationHandler {
@@ -42,18 +41,18 @@ public final class UnknownRemoteDebuggingProxy<T, V> extends AbstractInvocationH
     }
 
     @Override
-    protected Object handleInvocation(Object proxy, Method method, @Nullable Object[] args) throws Throwable {
+    protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
         try {
             return method.invoke(delegate, args);
-        } catch (Throwable th) {
-            Throwable ex = Throwables.unwrapIfPossible(th);
-            if (ex instanceof UnknownRemoteException && rateLimiter.tryAcquire()) {
+        } catch (InvocationTargetException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof UnknownRemoteException && rateLimiter.tryAcquire()) {
                 log.warn(
                         "Encountered UnknownRemoteException; logging current state of refreshable",
                         safeLoggableRefreshable.get(),
-                        ex);
+                        cause);
             }
-            throw ex;
+            throw cause;
         }
     }
 

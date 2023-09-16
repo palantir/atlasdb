@@ -7,26 +7,22 @@ dependencies {
     api project(':timestamp-client')
     api project(':atlasdb-conjure')
     implementation project(':atlasdb-impl-shared')
+    implementation project(':atlasdb-remoting-api')
     implementation project(':lock-impl')
+    implementation project(':timelock-api')
 
-    implementation 'javax.validation:validation-api'
     implementation 'com.palantir.config.crypto:encrypted-config-value-module'
     implementation 'com.palantir.refreshable:refreshable'
     implementation 'com.palantir.safe-logging:safe-logging'
-    implementation ('com.palantir.tritium:tritium-lib') {
-        exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
-        exclude (group: 'org.hdrhistogram', module: 'HdrHistogram')
-    }
-    implementation 'org.hdrhistogram:HdrHistogram'
 
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
-    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-core'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-guava'
+    implementation 'com.google.auto.service:auto-service-annotations'
     implementation 'com.google.errorprone:error_prone_annotations'
     implementation 'com.google.guava:guava'
     implementation 'com.palantir.common:streams'
@@ -39,11 +35,11 @@ dependencies {
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.tokens:auth-tokens'
     implementation 'com.palantir.tritium:tritium-registry'
+    implementation 'com.palantir.tritium:tritium-registry'
     implementation 'io.dropwizard.metrics:metrics-core'
     implementation 'javax.inject:javax.inject'
     implementation 'javax.ws.rs:javax.ws.rs-api'
     implementation 'org.glassfish.jersey.core:jersey-common'
-    implementation 'org.slf4j:slf4j-api'
     implementation project(':atlasdb-client')
     implementation project(':atlasdb-commons')
     implementation project(':atlasdb-coordination-impl')
@@ -68,10 +64,8 @@ dependencies {
     annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'
     annotationProcessor 'com.google.auto.service:auto-service'
-    compileOnly 'com.google.auto.service:auto-service'
 
     testAnnotationProcessor 'com.google.auto.service:auto-service'
-    testCompileOnly 'com.google.auto.service:auto-service'
     testAnnotationProcessor 'org.immutables:value'
     testCompileOnly 'org.immutables:value::annotations'
 

@@ -10,18 +10,23 @@ dependencies {
     implementation project(':atlasdb-api')
     implementation project(':atlasdb-buggify')
     implementation project(':atlasdb-client')
+    implementation project(':atlasdb-client-protobufs')
     implementation project(':atlasdb-config')
     implementation project(':atlasdb-impl-shared')
     implementation project(':lock-api')
-    implementation project(':lock-impl')
+    implementation project(':lock-api-objects')
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
-    implementation 'com.fasterxml.jackson.core:jackson-core'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.google.guava:guava'
+    implementation 'com.palantir.conjure.java.api:service-config'
+    implementation 'com.palantir.refreshable:refreshable'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'
-    implementation 'one.util:streamex'
+    implementation 'com.palantir.tritium:tritium-registry'
+    implementation 'io.dropwizard.metrics:metrics-core'
     implementation 'io.vavr:vavr'
+    implementation 'one.util:streamex'
 
     testImplementation project(':commons-executors')
     testImplementation 'org.mockito:mockito-core'

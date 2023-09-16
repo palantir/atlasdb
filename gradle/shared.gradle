@@ -28,11 +28,18 @@ libsDirName = file('build/artifacts')
 dependencies {
     implementation 'com.google.code.findbugs:jsr305'
     implementation 'com.google.code.findbugs:findbugs-annotations'
-
     implementation 'com.palantir.safe-logging:logger'
+    implementation 'com.palantir.safe-logging:safe-logging'
 
     testImplementation 'junit:junit'
     testImplementation 'org.assertj:assertj-core'
+}
+
+checkUnusedDependencies {
+    ignore 'com.google.code.findbugs', 'jsr305'
+    ignore 'com.google.code.findbugs', 'findbugs-annotations'
+    ignore 'com.palantir.safe-logging', 'logger'
+    ignore 'com.palantir.safe-logging', 'safe-logging'
 }
 
 apply from: rootProject.file('gradle/javadoc.gradle'), to: javadoc

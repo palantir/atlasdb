@@ -9,12 +9,8 @@ dependencies {
 
     implementation 'com.google.guava:guava'
     implementation 'com.github.rholder:guava-retrying'
-    implementation 'com.palantir.conjure.java.api:service-config'
     implementation 'one.util:streamex'
-    implementation 'com.zaxxer:HikariCP'
 
-    implementation 'com.fasterxml.jackson.core:jackson-annotations'
-    implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.google.errorprone:error_prone_annotations'
     implementation 'com.palantir.common:streams'
     implementation 'com.palantir.tokens:auth-tokens'
@@ -26,7 +22,6 @@ dependencies {
     implementation 'javax.ws.rs:javax.ws.rs-api'
     implementation 'org.jdbi:jdbi3-core'
     implementation 'org.jdbi:jdbi3-sqlobject'
-    implementation 'org.slf4j:slf4j-api'
     implementation 'com.google.guava:guava'
 
     implementation project(':atlasdb-commons')
@@ -39,6 +34,7 @@ dependencies {
     testImplementation 'com.palantir.common:streams'
     testImplementation 'com.palantir.safe-logging:preconditions'
     testImplementation 'com.palantir.tokens:auth-tokens'
+    testImplementation 'com.zaxxer:HikariCP'
     testImplementation project(':leader-election-api')
     testImplementation project(':leader-election-impl')
     testImplementation project(':timelock-corruption-detection:timelock-corruption-detection-objects')
@@ -57,9 +53,6 @@ subprojects {
     apply from: "../../gradle/shared.gradle"
     apply plugin: 'com.palantir.sls-recommended-dependencies'
 
-    dependencies {
-        implementation project(":leader-election-impl")
-        implementation 'com.palantir.conjure.java:conjure-lib'
-    }
+    tasks.checkImplicitDependenciesMain.enabled = false
     tasks.licenseMain.enabled = false
 }

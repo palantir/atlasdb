@@ -26,7 +26,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Set;
-import org.checkerframework.checker.index.qual.NonNegative;
+import javax.annotation.Nonnegative;
 
 public class KnownAbandonedTransactionsImpl implements KnownAbandonedTransactions {
 
@@ -115,7 +115,7 @@ public class KnownAbandonedTransactionsImpl implements KnownAbandonedTransaction
 
     private static final class AbortedTransactionBucketWeigher implements Weigher<Bucket, Set<Long>> {
         @Override
-        public @NonNegative int weigh(Bucket key, Set<Long> value) {
+        public @Nonnegative int weigh(Bucket key, Set<Long> value) {
             return value.size();
         }
     }

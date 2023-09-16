@@ -4,8 +4,8 @@ apply from: "../gradle/shared.gradle"
 dependencies {
   implementation project(":atlasdb-api")
   implementation project(":atlasdb-client")
+  implementation project(':atlasdb-client-protobufs')
   implementation project(":atlasdb-dbkvs-hikari")
-  implementation project(":atlasdb-impl-shared")
   implementation project(':timestamp-impl')
   implementation project(':commons-db')
   implementation project(':commons-api')
@@ -47,7 +47,6 @@ dependencies {
   annotationProcessor 'org.immutables:value'
   compileOnly 'org.immutables:value::annotations'
   annotationProcessor 'com.google.auto.service:auto-service'
-  compileOnly 'com.google.auto.service:auto-service'
   annotationProcessor project(":atlasdb-processors")
   compileOnly project(":atlasdb-processors")
 }

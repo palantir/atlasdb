@@ -41,7 +41,7 @@ import java.util.Iterator;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import org.checkerframework.checker.nullness.qual.Nullable;
+import javax.annotation.Nullable;
 import org.immutables.value.Value.Check;
 import org.immutables.value.Value.Immutable;
 
