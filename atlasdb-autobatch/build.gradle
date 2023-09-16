@@ -13,7 +13,6 @@ dependencies {
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.tracing:tracing'
     implementation 'io.dropwizard.metrics:metrics-core'
-    implementation 'org.slf4j:slf4j-api'
     implementation project(':commons-executors')
 
     testImplementation 'com.google.errorprone:error_prone_annotations'

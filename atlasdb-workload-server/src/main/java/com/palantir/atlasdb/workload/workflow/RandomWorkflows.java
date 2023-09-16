@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.workload.workflow;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.palantir.atlasdb.buggify.impl.DefaultNativeSamplingSecureRandomFactory;
 import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
@@ -40,7 +41,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import org.jetbrains.annotations.VisibleForTesting;
 
 public final class RandomWorkflows {
     private static final SecureRandom RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();

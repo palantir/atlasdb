@@ -115,6 +115,8 @@ allprojects {
                 'StrictUnusedVariable'
         options.errorprone.error 'SafeLoggingPropagation'
     }
+
+    tasks.check.dependsOn checkImplicitDependenciesMain, checkUnusedDependenciesMain
 }
 
 subprojects {

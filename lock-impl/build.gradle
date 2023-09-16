@@ -13,11 +13,9 @@ dependencies {
   implementation 'com.palantir.refreshable:refreshable'
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'
-  implementation 'joda-time:joda-time'
   implementation 'org.eclipse.collections:eclipse-collections'
   implementation 'org.eclipse.collections:eclipse-collections-api'
   implementation 'org.slf4j:slf4j-api'
-  implementation 'org.yaml:snakeyaml'
   implementation project(":atlasdb-commons")
   implementation project(':commons-executors')
   implementation project(':lock-api-objects')

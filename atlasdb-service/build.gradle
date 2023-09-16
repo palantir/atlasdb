@@ -1,9 +1,6 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
-    implementation project(':lock-impl')
-    implementation project(':leader-election-impl')
-    implementation project(':atlasdb-config')
     implementation 'jakarta.inject:jakarta.inject-api'
 
     testImplementation 'org.mockito:mockito-core'

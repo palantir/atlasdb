@@ -4,9 +4,11 @@ apply from: "../gradle/conjure.gradle"
 dependencies {
     implementation project(':leader-election-api')
 
-    compileOnly 'com.fasterxml.jackson.core:jackson-databind'
     compileOnly 'org.immutables:value::annotations'
     annotationProcessor 'org.immutables:value'
+
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
 
     testImplementation project(':atlasdb-api')
     testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
@@ -20,17 +22,9 @@ subprojects {
         api project(':lock-api-objects')
         api project(':timelock-api')
         api project(':leader-election-api')
-
-        implementation 'com.palantir.conjure.java:conjure-lib'
-
-        implementation 'com.fasterxml.jackson.core:jackson-annotations'
-        implementation 'com.fasterxml.jackson.core:jackson-databind'
-        implementation 'com.google.guava:guava'
-        implementation 'com.palantir.safe-logging:preconditions'
-        implementation 'com.palantir.safe-logging:safe-logging'
-        implementation 'com.palantir.tokens:auth-tokens'
-        implementation 'io.undertow:undertow-core'
     }
+
+    tasks.checkImplicitDependenciesMain.enabled = false
     tasks.licenseMain.enabled = false
 }
 

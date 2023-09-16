@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.workload.workflow.bank;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.palantir.atlasdb.buggify.impl.DefaultNativeSamplingSecureRandomFactory;
 import com.palantir.atlasdb.workload.store.ColumnAndValue;
@@ -39,7 +40,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.jetbrains.annotations.VisibleForTesting;
 
 /**
  * A workflow which performs a number of account balance transfers between accounts.

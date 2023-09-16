@@ -1,5 +1,9 @@
 apply from: "../gradle/shared.gradle"
 
+versionsLock {
+    testProject()
+}
+
 dependencies {
     annotationProcessor project(":atlasdb-processors")
     compileOnly project(":atlasdb-processors")

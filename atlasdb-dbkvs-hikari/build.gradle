@@ -16,7 +16,6 @@ dependencies {
   implementation 'com.zaxxer:HikariCP'
   implementation 'commons-io:commons-io'
   implementation 'org.apache.commons:commons-lang3'
-  implementation 'org.slf4j:slf4j-api'
 
   runtimeOnly 'com.oracle.database.jdbc:ojdbc11'
   runtimeOnly 'org.postgresql:postgresql'
