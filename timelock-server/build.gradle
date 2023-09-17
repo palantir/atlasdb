@@ -62,7 +62,7 @@ dependencies {
     implementation 'io.dropwizard:dropwizard-jersey'
     implementation 'io.dropwizard:dropwizard-lifecycle'
     implementation 'io.dropwizard:dropwizard-logging'
-    implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+    implementation 'javax.ws.rs:javax.ws.rs-api'
     implementation 'org.eclipse.jetty:jetty-util'
     implementation project(':atlasdb-api')
     implementation project(':atlasdb-client')

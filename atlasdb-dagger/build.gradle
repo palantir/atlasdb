@@ -11,7 +11,7 @@ dependencies {
   implementation 'com.palantir.refreshable:refreshable'
   implementation 'com.palantir.tritium:tritium-registry'
   implementation 'io.dropwizard.metrics:metrics-core'
-  implementation 'jakarta.inject:jakarta.inject-api'
+  implementation 'javax.inject:javax.inject'
   implementation project(':atlasdb-api')
   implementation project(':atlasdb-client')
   implementation project(':atlasdb-config')

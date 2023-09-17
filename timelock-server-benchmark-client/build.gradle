@@ -32,7 +32,7 @@ dependencies {
     implementation 'io.dropwizard.metrics:metrics-core'
     implementation 'io.dropwizard:dropwizard-core'
     implementation 'io.dropwizard:dropwizard-jersey'
-    implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+    implementation 'javax.ws.rs:javax.ws.rs-api'
     implementation 'org.apache.commons:commons-lang3'
     implementation project(':atlasdb-api')
     implementation project(':atlasdb-client')

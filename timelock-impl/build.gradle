@@ -36,7 +36,7 @@ dependencies {
     implementation 'com.palantir.tritium:tritium-ids'
     implementation 'com.palantir.tritium:tritium-registry'
     implementation 'io.dropwizard.metrics:metrics-core'
-    implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+    implementation 'javax.ws.rs:javax.ws.rs-api'
     implementation 'org.apache.commons:commons-lang3'
     implementation 'org.jdbi:jdbi3-core'
     implementation 'org.jdbi:jdbi3-sqlobject'
