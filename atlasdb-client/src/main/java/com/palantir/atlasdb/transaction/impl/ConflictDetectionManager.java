@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public class ConflictDetectionManager {
-    private final LoadingCache<TableReference, Optional<ConflictHandler>> cache;
+    private final LoadingCache<TableReference, ConflictHandler> cache;
 
     /**
      *  This class does not make the mistake of attempting cache invalidation,
@@ -38,19 +38,19 @@ public class ConflictDetectionManager {
      *
      *  (This has always been the behavior of this class; I'm simply calling it out)
      */
-    public ConflictDetectionManager(CacheLoader<TableReference, Optional<ConflictHandler>> loader) {
+    public ConflictDetectionManager(CacheLoader<TableReference, ConflictHandler> loader) {
         this.cache = Caffeine.newBuilder().maximumSize(100_000).build(loader);
     }
 
-    public void warmCacheWith(Map<TableReference, Optional<ConflictHandler>> preload) {
+    public void warmCacheWith(Map<TableReference, ConflictHandler> preload) {
         cache.putAll(preload);
     }
 
-    public Map<TableReference, Optional<ConflictHandler>> getCachedValues() {
+    public Map<TableReference, ConflictHandler> getCachedValues() {
         return cache.asMap();
     }
 
     public Optional<ConflictHandler> get(TableReference tableReference) {
-        return cache.get(tableReference);
+        return Optional.ofNullable(cache.get(tableReference));
     }
 }

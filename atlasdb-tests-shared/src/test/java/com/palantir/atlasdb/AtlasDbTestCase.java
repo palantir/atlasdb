@@ -49,7 +49,6 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timestamp.TimestampService;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import org.junit.After;
@@ -150,7 +149,7 @@ public class AtlasDbTestCase {
     }
 
     protected void overrideConflictHandlerForTable(TableReference table, ConflictHandler conflictHandler) {
-        txManager.overrideConflictHandlerForTable(table, Optional.of(conflictHandler));
+        txManager.overrideConflictHandlerForTable(table, conflictHandler);
     }
 
     protected void setConstraintCheckingMode(AtlasDbConstraintCheckingMode mode) {

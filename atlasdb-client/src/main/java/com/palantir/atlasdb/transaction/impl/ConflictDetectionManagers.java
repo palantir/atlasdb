@@ -22,7 +22,6 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.util.Optional;
 
 public final class ConflictDetectionManagers {
     private static final SafeLogger log = SafeLoggerFactory.get(ConflictDetectionManagers.class);
@@ -30,7 +29,7 @@ public final class ConflictDetectionManagers {
     private ConflictDetectionManagers() {}
 
     public static ConflictDetectionManager createWithNoConflictDetection() {
-        return new ConflictDetectionManager(tableReference -> Optional.of(ConflictHandler.IGNORE_ALL));
+        return new ConflictDetectionManager(tableReference -> ConflictHandler.IGNORE_ALL);
     }
 
     /**
@@ -64,9 +63,9 @@ public final class ConflictDetectionManagers {
                 log.error(
                         "Tried to make a transaction over a table that has no metadata: {}.",
                         LoggingArgs.tableRef("tableReference", tableReference));
-                return Optional.empty();
+                return null;
             } else {
-                return Optional.of(getConflictHandlerFromMetadata(metadata));
+                return getConflictHandlerFromMetadata(metadata);
             }
         });
         if (warmCache) {
@@ -82,9 +81,9 @@ public final class ConflictDetectionManagers {
                                                     log.debug("Metadata was null for a table. likely because the table"
                                                             + " is currently  being created. Skipping warming"
                                                             + " cache for the table.");
-                                                    return Optional.empty();
+                                                    return null;
                                                 } else {
-                                                    return Optional.of(getConflictHandlerFromMetadata(metadata));
+                                                    return getConflictHandlerFromMetadata(metadata);
                                                 }
                                             }));
                                 } catch (Throwable t) {

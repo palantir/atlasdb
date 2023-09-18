@@ -154,11 +154,8 @@ public class CommitLockTest extends TransactionTestSetup {
     }
 
     private Transaction startTransaction(PreCommitCondition preCommitCondition, ConflictHandler conflictHandler) {
-        ImmutableMap<TableReference, Optional<ConflictHandler>> tablesToWriteWrite = ImmutableMap.of(
-                TEST_TABLE,
-                Optional.of(conflictHandler),
-                TransactionConstants.TRANSACTION_TABLE,
-                Optional.of(ConflictHandler.IGNORE_ALL));
+        ImmutableMap<TableReference, ConflictHandler> tablesToWriteWrite = ImmutableMap.of(
+                TEST_TABLE, conflictHandler, TransactionConstants.TRANSACTION_TABLE, ConflictHandler.IGNORE_ALL);
         return new SerializableTransaction(
                 MetricsManagers.createForTests(),
                 keyValueService,

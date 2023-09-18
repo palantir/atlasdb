@@ -3269,7 +3269,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 NoOpCleaner.INSTANCE,
                 () -> transactionTs,
                 TestConflictDetectionManagers.createWithStaticConflictDetection(
-                        ImmutableMap.of(TABLE, Optional.of(ConflictHandler.RETRY_ON_WRITE_WRITE))),
+                        ImmutableMap.of(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE)),
                 SweepStrategyManagers.createDefault(keyValueService),
                 res.getImmutableTimestamp(),
                 Optional.of(res.getLock()),
@@ -3313,8 +3313,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
             boolean validateLocksOnReads,
             Map<TableReference, ConflictHandler> tableConflictHandlers) {
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
-        Map<TableReference, Optional<ConflictHandler>> optTableConflictHandlers =
-                Maps.transformValues(tableConflictHandlers, Optional::of);
         SnapshotTransaction transaction = new SnapshotTransaction(
                 metricsManager,
                 keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
@@ -3323,7 +3321,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 startTs,
-                TestConflictDetectionManagers.createWithStaticConflictDetection(optTableConflictHandlers),
+                TestConflictDetectionManagers.createWithStaticConflictDetection(tableConflictHandlers),
                 SweepStrategyManagers.createDefault(keyValueService),
                 lockImmutableTimestampResponse.getImmutableTimestamp(),
                 Optional.of(lockImmutableTimestampResponse.getLock()),
