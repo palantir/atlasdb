@@ -24,7 +24,7 @@ import java.util.Set;
 import org.immutables.value.Value;
 
 @Unsafe
-@Value.Immutable
+@Value.Immutable(builder = false)
 public interface LocksAndMetadata {
     LocksAndMetadata EMPTY = LocksAndMetadata.of(Set.of(), Optional.empty());
 

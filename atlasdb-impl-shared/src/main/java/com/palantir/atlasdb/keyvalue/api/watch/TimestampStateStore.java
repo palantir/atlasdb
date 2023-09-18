@@ -32,6 +32,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Optional;
@@ -134,7 +135,7 @@ final class TimestampStateStore {
     }
 
     Optional<Sequence> getEarliestLiveSequence() {
-        return livingVersions.keySet().stream().min(Sequence.SEQUENCE_COMPARATOR);
+        return livingVersions.keySet().stream().min(Comparator.naturalOrder());
     }
 
     @VisibleForTesting

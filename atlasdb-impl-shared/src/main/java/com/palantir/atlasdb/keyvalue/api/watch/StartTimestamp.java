@@ -26,7 +26,7 @@ import org.immutables.value.Value;
  * Encapsulates a start timestamp to avoid the need to use excessive numbers of longs everywhere. This is only
  * intended to be used internally.
  */
-@Value.Immutable
+@Value.Immutable(builder = false)
 @JsonSerialize(as = ImmutableStartTimestamp.class)
 @JsonDeserialize(as = ImmutableStartTimestamp.class)
 public interface StartTimestamp extends Comparable<StartTimestamp> {
