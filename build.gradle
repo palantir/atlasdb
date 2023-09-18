@@ -39,6 +39,7 @@ apply plugin: 'com.palantir.jdks.latest'
 
 javaVersions {
   libraryTarget = 11
+  runtime = 21
 }
 
 group = 'com.palantir.atlasdb'
