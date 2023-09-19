@@ -29,21 +29,29 @@ public class PtBytesTest {
     /**
      * 17.0.8.1
      * CE4F0293C7D7AD99116D792D6E616D652D69732D73657269657380000000497D26D8
+     * 5642731691854769561
+     * 1232938712
      */
     @Test
     public void testMe() {
-        System.out.println(System.getProperty("java.version"));
+        assertThat(System.getProperty("java.version")).contains("21");
         String series = "my-name-is-series";
-        long offset = 1232938712;
+        long myOffset = 1232938712;
 
         String expectedHash = "CE4F0293C7D7AD99116D792D6E616D652D69732D73657269657380000000497D26D8";
 
         long hash = computeHashFirstComponents(series);
-        byte[] persistedBytes = persistToBytes(hash, series, offset);
+        byte[] persistedBytes = persistToBytes(hash, series, myOffset);
 
         assertThat(Hexadecimals.toHexString(persistedBytes)).isEqualTo(expectedHash);
         hydrateFromBytes(persistedBytes);
         hydrateFromBytes(hexStringToByteArray(expectedHash));
+
+        for (long offset = 0; offset < 100_000_000; offset++) {
+            long newHash = computeHashFirstComponents("snapshot-updates-v1");
+            byte[] newPersistedBytes = persistToBytes(newHash, "snapshot-updates-v1", myOffset);
+            hydrateFromBytes(newPersistedBytes);
+        }
         // assertThat(persistedBytes).isEqualTo(hexStringToByteArray(expectedHash));
     }
 

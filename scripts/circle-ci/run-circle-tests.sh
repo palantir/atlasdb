@@ -13,7 +13,7 @@ function checkDocsBuild {
      make html
 }
 
-CONTAINER_1=(':atlasdb-client:test --tests com.palantir.atlasdb.PtBytesTest')
+CONTAINER_1=(':atlasdb-client:test')
 
 CONTAINER_2=(':atlasdb-ete-tests:check' ':atlasdb-ete-tests:multiClientWithPostgresTimelockAndPostgresTest' ':atlasdb-ete-tests:multiClientWithTimelockAndCassandraTest')
 
