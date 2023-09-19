@@ -28,6 +28,9 @@ import java.util.Locale;
 import javax.annotation.Nullable;
 
 public final class PtBytes {
+
+    public static void main(String[] _args) {}
+
     private PtBytes() {}
 
     public static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
