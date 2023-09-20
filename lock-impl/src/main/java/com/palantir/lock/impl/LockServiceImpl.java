@@ -77,12 +77,14 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nylon.threads.ThreadNames;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.util.JMXUtils;
 import com.palantir.util.Ownable;
+import com.palantir.util.Pair;
 import java.math.BigInteger;
 import java.time.Instant;
 import java.util.ArrayDeque;
@@ -1241,10 +1243,28 @@ public final class LockServiceImpl
     @Override
     public void close() {
         if (isShutDown.compareAndSet(false, true)) {
-            lockReapRunner.close();
-            threadInfoSnapshotManager.close();
-            blockingThreads.forEach(Thread::interrupt);
-            callOnClose.run();
+            List<Pair<String, Runnable>> closures = List.of(
+                    Pair.create("lockReapRunner", lockReapRunner::close),
+                    Pair.create("threadInfoSnapshotManager", threadInfoSnapshotManager::close),
+                    Pair.create("blockingThreads", () -> blockingThreads.forEach(Thread::interrupt)),
+                    Pair.create("callOnClose", callOnClose));
+
+            List<Throwable> encounteredThrowables = new ArrayList<>();
+            closures.forEach(namedAction -> {
+                try {
+                    namedAction.getRhSide().run();
+                } catch (RuntimeException | Error e) {
+                    log.warn("Failed to perform closing action", SafeArg.of("action", namedAction.getLhSide()), e);
+                    encounteredThrowables.add(e);
+                }
+            });
+
+            if (!encounteredThrowables.isEmpty()) {
+                SafeRuntimeException exception =
+                        new SafeRuntimeException("Encountered exceptions or errors while performing closing actions");
+                encounteredThrowables.forEach(exception::addSuppressed);
+                throw exception;
+            }
         }
     }
 
