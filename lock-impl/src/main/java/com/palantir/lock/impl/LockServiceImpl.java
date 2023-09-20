@@ -77,12 +77,14 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nylon.threads.ThreadNames;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.util.JMXUtils;
 import com.palantir.util.Ownable;
+import com.palantir.util.Pair;
 import java.math.BigInteger;
 import java.time.Instant;
 import java.util.ArrayDeque;
@@ -1241,10 +1243,38 @@ public final class LockServiceImpl
     @Override
     public void close() {
         if (isShutDown.compareAndSet(false, true)) {
-            lockReapRunner.close();
-            threadInfoSnapshotManager.close();
-            blockingThreads.forEach(Thread::interrupt);
-            callOnClose.run();
+            List<Pair<String, Runnable>> namedClosingActions = List.of(
+                    Pair.create("lockReapRunnerClose", lockReapRunner::close),
+                    Pair.create("threadInfoSnapshotManagerClose", threadInfoSnapshotManager::close),
+                    Pair.create("blockingThreadsInterruption", () -> blockingThreads.forEach(Thread::interrupt)),
+                    Pair.create("onCloseRunnable", callOnClose));
+
+            List<Exception> encounteredExceptions = new ArrayList<>();
+            namedClosingActions.forEach(namedAction -> {
+                try {
+                    namedAction.getRhSide().run();
+                } catch (RuntimeException exception) {
+                    log.warn(
+                            "Failed to perform closing action due to exception",
+                            SafeArg.of("action", namedAction.getLhSide()),
+                            exception);
+                    encounteredExceptions.add(exception);
+                } catch (Error error) {
+                    log.warn(
+                            "Failed to perform closing action due to error",
+                            SafeArg.of("action", namedAction.getLhSide()),
+                            error);
+                    encounteredExceptions.forEach(error::addSuppressed);
+                    throw error;
+                }
+            });
+
+            if (!encounteredExceptions.isEmpty()) {
+                SafeRuntimeException exception =
+                        new SafeRuntimeException("Encountered exceptions or errors while performing closing actions");
+                encounteredExceptions.forEach(exception::addSuppressed);
+                throw exception;
+            }
         }
     }
 

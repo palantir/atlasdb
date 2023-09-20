@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Try to close all resources even if one throws
+  links:
+  - https://github.com/palantir/atlasdb/pull/6746
