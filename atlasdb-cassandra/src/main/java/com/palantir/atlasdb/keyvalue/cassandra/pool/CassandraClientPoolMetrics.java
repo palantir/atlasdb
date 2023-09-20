@@ -43,7 +43,7 @@ public class CassandraClientPoolMetrics {
     // Not bundled in with request metrics, as we seek to not produce host-level metrics for economic reasons.
     private final Counter poolExhaustionCounter;
 
-    private final AtomicLong poolSize = new AtomicLong(0L);
+    private final AtomicLong poolSize = new AtomicLong(-1L);
 
     public CassandraClientPoolMetrics(MetricsManager metricsManager) {
         this.metricsManager = metricsManager;

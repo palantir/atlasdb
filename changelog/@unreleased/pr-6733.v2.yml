@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: initialize pool size metric with value -1
+  links:
+  - https://github.com/palantir/atlasdb/pull/6733
