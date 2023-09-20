@@ -188,7 +188,7 @@ public final class SweepIdToNameTable implements
             @Override
             public SweepIdToNameRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
                 String singleton = PtBytes.toString(__input, __index, __input.length-__index);
                 __index += 0;
@@ -290,7 +290,7 @@ public final class SweepIdToNameTable implements
             @Override
             public SweepIdToNameColumn hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long tableId = EncodingUtils.decodeFlippedUnsignedVarLong(__input, __index);
+                long tableId = EncodingUtils.decodeFlippedUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(tableId);
                 return new SweepIdToNameColumn(tableId);
             }
@@ -756,5 +756,5 @@ public final class SweepIdToNameTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "XRAvO+BpbFM1l4QIBkArjA==";
+    static String __CLASS_HASH = "zJX8CsYGyoPYsSpSvWpdAg==";
 }

@@ -213,11 +213,11 @@ public final class SweepableTimestampsTable implements
             @Override
             public SweepableTimestampsRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                Long shard = EncodingUtils.decodeUnsignedVarLong(__input, __index);
+                long shard = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(shard);
-                Long timestampPartition = EncodingUtils.decodeUnsignedVarLong(__input, __index);
+                long timestampPartition = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(timestampPartition);
                 byte[] sweepConservative = EncodingUtils.getBytesFromOffsetToEnd(__input, __index);
                 __index += 0;
@@ -322,7 +322,7 @@ public final class SweepableTimestampsTable implements
             @Override
             public SweepableTimestampsColumn hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long timestampModulus = EncodingUtils.decodeUnsignedVarLong(__input, __index);
+                long timestampModulus = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(timestampModulus);
                 return new SweepableTimestampsColumn(timestampModulus);
             }
@@ -788,5 +788,5 @@ public final class SweepableTimestampsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "66qq5d5do+PszHk7DehVPA==";
+    static String __CLASS_HASH = "FKovEp3j6vAydV9KHfv/4Q==";
 }

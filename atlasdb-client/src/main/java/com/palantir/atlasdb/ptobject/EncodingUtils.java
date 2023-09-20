@@ -32,8 +32,8 @@ import java.util.List;
 import java.util.UUID;
 import org.apache.commons.lang3.ArrayUtils;
 
-@SuppressWarnings("checkstyle:all") // too many warnings to fix
 public final class EncodingUtils {
+
     private EncodingUtils() {
         // empty
     }
@@ -53,7 +53,7 @@ public final class EncodingUtils {
     /**
      * Size of the encoded value will be the same as the protobuf encoding.
      * However, we have to use our own encoding and not the proto one because we need the bytes
-     * to be lexicographically ordered so we can do range scans correctly.
+     * to be lexicographically ordered, so we can do range scans correctly.
      */
     public static byte[] encodeVarLong(long value) {
         int size = sizeOfVarLong(value);
@@ -80,21 +80,21 @@ public final class EncodingUtils {
 
     /**
      * There will be size-1 bits set before there is a zero.
-     * All the bits of value will or-ed (|=) onto the the passed byte[].
+     * All the bits of value will or-ed (|=) onto the passed byte[].
      * @param size must be <= 17 (but will most likely be 10 or 11 at most)
      */
     private static void encodeVarLongForSize(long value, @Output byte[] ret, int size) {
         int end = 0;
         if (size > 8) {
-            ret[0] = (byte) 0xff;
+            ret[0] = (byte) 0xFF;
             end = 1;
             size -= 8;
         }
-        ret[end] = (byte) ((0xff << (9 - size)) & 0xff);
+        ret[end] = (byte) ((0xFF << (9 - size)) & 0xFF);
 
         int index = ret.length;
         while (index-- > end) {
-            ret[index] |= (byte) ((int) value & 0xff);
+            ret[index] |= (byte) ((int) value & 0xFF);
             value >>>= 8;
         }
     }
@@ -143,7 +143,7 @@ public final class EncodingUtils {
         int mask = size % 8;
         long ret = 0;
         while (index < size) {
-            int b = ((encoded[offset + index] ^ flipByte) & (0xff >>> mask));
+            int b = ((encoded[offset + index] ^ flipByte) & (0xFF >>> mask));
             ret <<= 8;
             ret |= b;
             mask = 0;
@@ -181,6 +181,24 @@ public final class EncodingUtils {
         if (isNegative) {
             flipByte ^= -1;
         }
+        int size = getSize(encoded, offset, flipByte);
+        int index = size / 8;
+        int mask = size % 8;
+        long ret = 0;
+        while (index < size) {
+            int b = ((encoded[offset + index] ^ flipByte) & (0xFF >>> mask));
+            ret <<= 8;
+            ret |= b;
+            mask = 0;
+            index++;
+        }
+        if (isNegative) {
+            return ~ret;
+        }
+        return ret;
+    }
+
+    private static int getSize(byte[] encoded, int offset, int flipByte) {
         int first = encoded[offset] ^ flipByte;
         int bitsBeforeZero = Integer.numberOfLeadingZeros(~first) - 24;
         if (bitsBeforeZero == 8 && (encoded[offset + 1] ^ flipByte) < 0) {
@@ -192,21 +210,7 @@ public final class EncodingUtils {
                 }
             }
         }
-        int size = bitsBeforeZero;
-        int index = size / 8;
-        int mask = size % 8;
-        long ret = 0;
-        while (index < size) {
-            int b = ((encoded[offset + index] ^ flipByte) & (0xff >>> mask));
-            ret <<= 8;
-            ret |= b;
-            mask = 0;
-            index++;
-        }
-        if (isNegative) {
-            return ret ^ -1L;
-        }
-        return ret;
+        return bitsBeforeZero;
     }
 
     public static String decodeVarString(byte[] bytes) {
@@ -276,8 +280,8 @@ public final class EncodingUtils {
 
     public static UUID decodeFlippedUUID(byte[] bytes, int offset) {
         ByteBuffer buf = ByteBuffer.wrap(bytes, offset, 2 * Longs.BYTES).order(ByteOrder.BIG_ENDIAN);
-        long mostSigBits = -1L ^ buf.getLong();
-        long leastSigBits = -1L ^ buf.getLong();
+        long mostSigBits = ~buf.getLong();
+        long leastSigBits = ~buf.getLong();
         return new UUID(mostSigBits, leastSigBits);
     }
 
@@ -287,12 +291,12 @@ public final class EncodingUtils {
 
     /**
      * This flips the bits starting at index and returns a new byte[].
-     * @return byte[] that is bytes.length - index long
+     * @return byte[] that is `bytes.length - index` long
      */
     public static byte[] flipAllBits(byte[] bytes, int index) {
         byte[] ret = new byte[bytes.length - index];
         for (int i = 0; i < ret.length; i++) {
-            ret[i] = (byte) (bytes[index + i] ^ 0xff);
+            ret[i] = (byte) (bytes[index + i] ^ 0xFF);
         }
         return ret;
     }
@@ -320,7 +324,7 @@ public final class EncodingUtils {
     public static byte[] flipAllBitsInPlace(byte[] bytes, int index, int length) {
         int endIndex = Math.min(bytes.length, index + length);
         for (int i = index; i < endIndex; i++) {
-            bytes[i] = (byte) (bytes[i] ^ 0xff);
+            bytes[i] = (byte) (bytes[i] ^ 0xFF);
         }
         return bytes;
     }
@@ -424,6 +428,7 @@ public final class EncodingUtils {
         int index = 0;
         boolean lastDesc = false;
 
+        //noinspection ForLoopReplaceableByForEach avoid iterator allocation
         for (int i = 0; i < types.size(); i++) {
             EncodingType encodingType = types.get(i);
             if (lastDesc ^ encodingType.getOrder() == ValueByteOrder.DESCENDING) {
