@@ -1243,26 +1243,36 @@ public final class LockServiceImpl
     @Override
     public void close() {
         if (isShutDown.compareAndSet(false, true)) {
-            List<Pair<String, Runnable>> closures = List.of(
-                    Pair.create("lockReapRunner", lockReapRunner::close),
-                    Pair.create("threadInfoSnapshotManager", threadInfoSnapshotManager::close),
-                    Pair.create("blockingThreads", () -> blockingThreads.forEach(Thread::interrupt)),
-                    Pair.create("callOnClose", callOnClose));
+            List<Pair<String, Runnable>> namedClosingActions = List.of(
+                    Pair.create("lockReapRunnerClose", lockReapRunner::close),
+                    Pair.create("threadInfoSnapshotManagerClose", threadInfoSnapshotManager::close),
+                    Pair.create("blockingThreadsInterruption", () -> blockingThreads.forEach(Thread::interrupt)),
+                    Pair.create("onCloseRunnable", callOnClose));
 
-            List<Throwable> encounteredThrowables = new ArrayList<>();
-            closures.forEach(namedAction -> {
+            List<Exception> encounteredExceptions = new ArrayList<>();
+            namedClosingActions.forEach(namedAction -> {
                 try {
                     namedAction.getRhSide().run();
-                } catch (RuntimeException | Error e) {
-                    log.warn("Failed to perform closing action", SafeArg.of("action", namedAction.getLhSide()), e);
-                    encounteredThrowables.add(e);
+                } catch (RuntimeException exception) {
+                    log.warn(
+                            "Failed to perform closing action due to exception",
+                            SafeArg.of("action", namedAction.getLhSide()),
+                            exception);
+                    encounteredExceptions.add(exception);
+                } catch (Error error) {
+                    log.warn(
+                            "Failed to perform closing action due to error",
+                            SafeArg.of("action", namedAction.getLhSide()),
+                            error);
+                    encounteredExceptions.forEach(error::addSuppressed);
+                    throw error;
                 }
             });
 
-            if (!encounteredThrowables.isEmpty()) {
+            if (!encounteredExceptions.isEmpty()) {
                 SafeRuntimeException exception =
                         new SafeRuntimeException("Encountered exceptions or errors while performing closing actions");
-                encounteredThrowables.forEach(exception::addSuppressed);
+                encounteredExceptions.forEach(exception::addSuppressed);
                 throw exception;
             }
         }
