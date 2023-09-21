@@ -59,33 +59,33 @@ public final class CassandraTopologyValidator {
      * Checks a set of new Cassandra servers against the current Casssandra servers
      * to ensure their topologies are matching. This is done to prevent user-led split-brain,
      * which can occur if a user accidentally provided hostnames for two different Cassandra clusters.
-     *
+     * <p>
      * This is done by coming to a consensus on the topology of the pre-existing hosts,
      * and then subsequently returning any new hosts which do not match the present topology.
-     *
+     * <p>
      * Of course, there is the base case of all hosts will be new. In this case, we simply check that all
      * new hosts are in consensus.
-     *
+     * <p>
      * Servers that do not have support for the get_host_ids endpoint are always considered consistent,
      * even if we cannot come to a consensus on the hosts that do support the endpoint.
-     *
+     * <p>
      * Consensus may be demonstrated independently by a set of nodes. In this case, we require that:
      * (1) A quorum of nodes (excluding those without `get_host_ids` support) are reachable.
      * (2) All reachable nodes have the same set of hostIds.
      * (3) All Cassandra nodes without get_host_ids support are considered to be matching.
-     *
+     * <p>
      * The above should be sufficient to prevent user-led split-brain as:
      * (1) The initial list of servers validate that they've at least quorum for consensus of topology.
      * (2) All new hosts added then must match the set of pre-existing hosts topology.
-     *
+     * <p>
      * Consensus may also be demonstrated and new hosts added without a quorum of nodes being reachable, if:
      * (4) New hosts support get_host_ids, and have the same set of hostIds as the most recent previous consensus
      * satisfied through conditions (1) - (3).
-     *
+     * <p>
      * In this case, we know that a previous set of servers had quorum for a consensus, which we are also agreeing to.
      * Since we aren't agreeing on any new values, values that were agreed upon must have passed conditions (1) - (3)
      * at the time of their inception, and that required a quorum of nodes to agree.
-     *
+     * <p>
      * There does exist an edge case of, two sets of Cassandra clusters being added (3 and 6 respectively).
      * On initialization, the Cassandra cluster with 6 will be used as the base case if the other 3 nodes
      * are down, as this will satisfy quorum requirements. However, the cluster of 6 could be the wrong
@@ -213,10 +213,39 @@ public final class CassandraTopologyValidator {
                 // cluster).
                 if (pastConsistentTopology.get() == null) {
                     // We don't have a record of what worked in the past, so just reject.
-                    return newServersWithoutSoftFailures.keySet();
+                    if (serversToConsiderWhenNoQuorumPresent.isEmpty()) {
+                        log.info("No servers to consider without quorum, and no topology. Not sure what to do here, so just reject.");
+                        return newServersWithoutSoftFailures.keySet();
+                    }
+
+                    Map<CassandraServer, Set<String>> hostIdsWithoutFailures = EntryStream.of(serversToConsiderWhenNoQuorumPresent)
+                            .filterValues(result -> result.type() == HostIdResult.Type.SUCCESS)
+                            .mapValues(HostIdResult::hostIds)
+                            .toMap();
+                    Set<Set<String>> uniqueSetsOfHostIds =
+                            EntryStream.of(hostIdsWithoutFailures).values().toImmutableSet();
+
+                    // If we only have one set of host ids, we've consensus, otherwise fail
+                    if (uniqueSetsOfHostIds.size() == 1) {
+                        // Now, we check the properties.
+                        Set<String> uniqueHostIds = Iterables.getOnlyElement(uniqueSetsOfHostIds);
+                        if (uniqueHostIds.size() == clusterSizeAccordingToConfiguration) {
+                            // Accept!
+                            pastConsistentTopology.set(ConsistentClusterTopology.builder()
+                                    .hostIds(uniqueHostIds)
+                                    .serversInConsensus(hostIdsWithoutFailures.keySet())
+                                    .build());
+                        }
+                        // The cluster size in terms of number of IDs doesn't match our config! Reject
+                        return newServersWithoutSoftFailures.keySet();
+                    } else {
+                        // Dissent!
+                        log.info("Dissent detected in user-provided cluster.");
+                        return newServersWithoutSoftFailures.keySet();
+                    }
                 }
                 Optional<ConsistentClusterTopology> maybeTopology = maybeGetConsistentClusterTopology(
-                                serversToConsiderWhenNoQuorumPresent)
+                        serversToConsiderWhenNoQuorumPresent)
                         .agreedTopology();
                 if (maybeTopology.isEmpty()) {
                     log.info(
@@ -258,7 +287,7 @@ public final class CassandraTopologyValidator {
 
     /**
      * Obtains a consistent view of the cluster topology for the provided hosts.
-     *
+     * <p>
      * This is achieved by comparing the hostIds (list of UUIDs for each C* node) for all Cassandra nodes.
      * A quorum of C* nodes are required to be reachable and all reachable nodes must have the same
      * topology (hostIds) for this to return a valid result. Nodes that are reachable but do not have
