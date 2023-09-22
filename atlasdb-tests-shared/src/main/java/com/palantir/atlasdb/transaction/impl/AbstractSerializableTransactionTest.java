@@ -144,11 +144,11 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     }
 
     private Transaction startTransactionWithOptions(TransactionOptions options) {
-        ImmutableMap<TableReference, Optional<ConflictHandler>> tablesToWriteWrite = ImmutableMap.of(
+        ImmutableMap<TableReference, ConflictHandler> tablesToWriteWrite = ImmutableMap.of(
                 TEST_TABLE,
-                Optional.of(ConflictHandler.SERIALIZABLE),
+                ConflictHandler.SERIALIZABLE,
                 TransactionConstants.TRANSACTION_TABLE,
-                Optional.of(ConflictHandler.IGNORE_ALL));
+                ConflictHandler.IGNORE_ALL);
         return new SerializableTransaction(
                 MetricsManagers.createForTests(),
                 keyValueService,

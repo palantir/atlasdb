@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: ConflictDetectionManager should not cache negative lookups
+  links:
+  - https://github.com/palantir/atlasdb/pull/6743
