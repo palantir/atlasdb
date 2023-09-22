@@ -22,9 +22,10 @@ import java.util.Map;
 
 /**
  * Handles topology validation in situations where a quorum of Cassandra servers are not reachable.
+ * The intention of this class is only to be used when there is no historical record of the cluster topology as well.
  */
-public interface NoQuorumHandlingStrategy {
-    NoQuorumHandlingStrategy DO_NOT_HANDLE = unused -> ClusterTopologyResult.noQuorum();
+public interface NoQuorumClusterBootstrapStrategy {
+    NoQuorumClusterBootstrapStrategy DO_NOT_HANDLE = unused -> ClusterTopologyResult.noQuorum();
 
     /**
      * Preconditions:

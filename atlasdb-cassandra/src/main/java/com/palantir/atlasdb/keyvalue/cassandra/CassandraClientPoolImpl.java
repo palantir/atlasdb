@@ -190,7 +190,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 new CassandraClientPoolMetrics(metricsManager),
                 new CassandraTopologyValidator(
                         CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry()),
-                        new K8sMigrationSizeBasedNoQuorumHandlingStrategy(
+                        new K8sMigrationSizeBasedNoQuorumClusterBootstrapStrategy(
                                 runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::servers))),
                 new CassandraAbsentHostTracker(config.consecutiveAbsencesBeforePoolRemoval()));
         cassandraClientPool.wrapper.initialize(initializeAsync);

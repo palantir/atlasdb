@@ -52,17 +52,18 @@ public final class CassandraTopologyValidator {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraTopologyValidator.class);
     private final CassandraTopologyValidationMetrics metrics;
     private final AtomicReference<ConsistentClusterTopology> pastConsistentTopology;
-    private final NoQuorumHandlingStrategy providedNoQuorumHandlingStrategy;
+    private final NoQuorumClusterBootstrapStrategy providedNoQuorumClusterBootstrapStrategy;
 
     public CassandraTopologyValidator(CassandraTopologyValidationMetrics metrics) {
-        this(metrics, NoQuorumHandlingStrategy.DO_NOT_HANDLE);
+        this(metrics, NoQuorumClusterBootstrapStrategy.DO_NOT_HANDLE);
     }
 
     public CassandraTopologyValidator(
-            CassandraTopologyValidationMetrics metrics, NoQuorumHandlingStrategy noQuorumHandlingStrategy) {
+            CassandraTopologyValidationMetrics metrics,
+            NoQuorumClusterBootstrapStrategy noQuorumClusterBootstrapStrategy) {
         this.metrics = metrics;
         this.pastConsistentTopology = new AtomicReference<>();
-        this.providedNoQuorumHandlingStrategy = noQuorumHandlingStrategy;
+        this.providedNoQuorumClusterBootstrapStrategy = noQuorumClusterBootstrapStrategy;
     }
 
     /**
@@ -178,7 +179,7 @@ public final class CassandraTopologyValidator {
                     newServersFromConfig,
                     newlyAddedHostsWithoutOrigin,
                     allHosts.keySet(),
-                    providedNoQuorumHandlingStrategy);
+                    providedNoQuorumClusterBootstrapStrategy);
         }
 
         // If a consensus can be reached from the current servers, filter all new servers which have the same set of
@@ -193,7 +194,7 @@ public final class CassandraTopologyValidator {
                 newServersWithoutSoftFailures,
                 newlyAddedHosts.keySet(),
                 allHosts.keySet(),
-                NoQuorumHandlingStrategy.DO_NOT_HANDLE);
+                NoQuorumClusterBootstrapStrategy.DO_NOT_HANDLE);
     }
 
     private Set<CassandraServer> getNewHostsWithInconsistentTopologiesFromTopologyResult(
@@ -202,7 +203,7 @@ public final class CassandraTopologyValidator {
             Map<CassandraServer, HostIdResult> serversToConsiderWhenNoQuorumPresent,
             Set<CassandraServer> newlyAddedHosts,
             Set<CassandraServer> allHosts,
-            NoQuorumHandlingStrategy noQuorumHandlingStrategy) {
+            NoQuorumClusterBootstrapStrategy noQuorumClusterBootstrapStrategy) {
         switch (topologyResult.type()) {
             case CONSENSUS:
                 return registerConsensusAndGetNewHostsNotInAgreement(topologyResult, newServersWithoutSoftFailures);
@@ -216,7 +217,8 @@ public final class CassandraTopologyValidator {
                 // cluster).
                 if (pastConsistentTopology.get() == null) {
                     // We don't have a record of what worked in the past.
-                    ClusterTopologyResult result = noQuorumHandlingStrategy.accept(newServersWithoutSoftFailures);
+                    ClusterTopologyResult result =
+                            noQuorumClusterBootstrapStrategy.accept(newServersWithoutSoftFailures);
                     if (result.agreedTopology().isPresent()) {
                         ConsistentClusterTopology agreedTopology =
                                 result.agreedTopology().get();

@@ -31,12 +31,14 @@ import java.util.Set;
 import java.util.function.Supplier;
 import one.util.streamex.EntryStream;
 
-public class K8sMigrationSizeBasedNoQuorumHandlingStrategy implements NoQuorumHandlingStrategy {
-    private static final SafeLogger log = SafeLoggerFactory.get(K8sMigrationSizeBasedNoQuorumHandlingStrategy.class);
+public class K8sMigrationSizeBasedNoQuorumClusterBootstrapStrategy implements NoQuorumClusterBootstrapStrategy {
+    private static final SafeLogger log =
+            SafeLoggerFactory.get(K8sMigrationSizeBasedNoQuorumClusterBootstrapStrategy.class);
 
     private final Supplier<CassandraServersConfig> runtimeConfigSupplier;
 
-    public K8sMigrationSizeBasedNoQuorumHandlingStrategy(Supplier<CassandraServersConfig> runtimeConfigSupplier) {
+    public K8sMigrationSizeBasedNoQuorumClusterBootstrapStrategy(
+            Supplier<CassandraServersConfig> runtimeConfigSupplier) {
         this.runtimeConfigSupplier = runtimeConfigSupplier;
     }
 
