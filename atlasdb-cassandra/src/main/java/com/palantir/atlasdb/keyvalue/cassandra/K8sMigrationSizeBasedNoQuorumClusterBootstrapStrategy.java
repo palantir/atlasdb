@@ -21,7 +21,6 @@ import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersCo
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.ClusterTopologyResult;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.ConsistentClusterTopology;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
-import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -44,7 +43,6 @@ public class K8sMigrationSizeBasedNoQuorumClusterBootstrapStrategy implements No
 
     @Override
     public ClusterTopologyResult accept(Map<CassandraServer, HostIdResult> hostIdResults) {
-        // be defensive, validate stuff
         if (hostIdResults.values().stream().anyMatch(result -> result.type() == HostIdResult.Type.SOFT_FAILURE)) {
             log.warn(
                     "The size-based no quorum handling strategy was not designed to deal with soft failures."
@@ -67,9 +65,12 @@ public class K8sMigrationSizeBasedNoQuorumClusterBootstrapStrategy implements No
 
         Set<Set<String>> uniqueSetsOfHostIds =
                 EntryStream.of(hostIdsWithoutFailures).values().toImmutableSet();
-        Preconditions.checkState(
-                uniqueSetsOfHostIds.size() == 1,
-                "Should not have called a no-quorum handling strategy when there was actually dissent");
+        if (uniqueSetsOfHostIds.size() > 1) {
+            log.warn(
+                    "Encountered dissent when invoking a no-quorum handling strategy.",
+                    SafeArg.of("hostIdResults", hostIdResults));
+            return ClusterTopologyResult.dissent();
+        }
 
         Set<CassandraServer> serversInAgreement = hostIdsWithoutFailures.keySet();
         Set<String> uniqueHostIds = Iterables.getOnlyElement(uniqueSetsOfHostIds);
