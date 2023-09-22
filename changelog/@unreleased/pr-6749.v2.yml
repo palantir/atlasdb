@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: '[PDS-417767] Prevent Atlas from running in JDK 21'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6749
