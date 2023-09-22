@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |-
+    Optimize to avoid allocation of heap ByteBuffer via InputStreamReader. Remove after upgrade to Jackson 2.16.
+
+    see: https://github.com/FasterXML/jackson-core/pull/1081 and https://github.com/FasterXML/jackson-benchmarks/pull/9
+  links:
+  - https://github.com/palantir/atlasdb/pull/6750
