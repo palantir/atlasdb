@@ -156,11 +156,11 @@ import org.immutables.value.Value;
 @StagedBuilderStyle
 public abstract class TransactionManagers {
     static {
-        String javaVersion = System.getProperty("java.version");
+        int javaVersion = Runtime.version().feature();
         Preconditions.checkState(
-                !javaVersion.startsWith("21"),
-                "We are currently investigating an issue with"
-                        + " AtlasDB running under Java 21 (PDS-417767). Please use a JDK version < 21",
+                javaVersion != 21,
+                "We are currently investigating an issue with AtlasDB running under Java 21 (PDS-417767)."
+                        + " Please use a JDK version < 21",
                 SafeArg.of("javaVersion", javaVersion));
     }
 
