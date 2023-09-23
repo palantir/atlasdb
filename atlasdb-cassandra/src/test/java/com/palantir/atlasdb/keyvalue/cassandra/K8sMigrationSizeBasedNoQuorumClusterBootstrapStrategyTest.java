@@ -18,13 +18,24 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
+import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.ClusterTopologyResult;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
+import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.Test;
 
 public class K8sMigrationSizeBasedNoQuorumClusterBootstrapStrategyTest {
+    private static final CassandraServer CASSANDRA_SERVER_1 =
+            CassandraServer.of("cassandra1", InetSocketAddress.createUnresolved("one", 1234));
+    private static final CassandraServer CASSANDRA_SERVER_2 =
+            CassandraServer.of("cassandra2", InetSocketAddress.createUnresolved("two", 1234));
+    private static final CassandraServer CASSANDRA_SERVER_3 =
+            CassandraServer.of("cassandra3", InetSocketAddress.createUnresolved("three", 1234));
+
     private final AtomicReference<CassandraServersConfig> config = new AtomicReference<>();
     private final NoQuorumClusterBootstrapStrategy strategy =
             new K8sMigrationSizeBasedNoQuorumClusterBootstrapStrategy(config::get);
@@ -36,27 +47,57 @@ public class K8sMigrationSizeBasedNoQuorumClusterBootstrapStrategyTest {
 
     @Test
     public void returnsNoQuorumIfOnlyHardFailuresProvided() {
-        // TODO
+        assertThat(strategy.accept(ImmutableMap.of(
+                        CASSANDRA_SERVER_1,
+                        HostIdResult.hardFailure(),
+                        CASSANDRA_SERVER_2,
+                        HostIdResult.hardFailure(),
+                        CASSANDRA_SERVER_3,
+                        HostIdResult.hardFailure())))
+                .isEqualTo(ClusterTopologyResult.noQuorum());
     }
 
     @Test
     public void returnsNoQuorumIfOnlySoftFailuresProvided() {
-        // TODO
+        assertThat(strategy.accept(ImmutableMap.of(
+                        CASSANDRA_SERVER_1,
+                        HostIdResult.softFailure(),
+                        CASSANDRA_SERVER_2,
+                        HostIdResult.softFailure(),
+                        CASSANDRA_SERVER_3,
+                        HostIdResult.softFailure())))
+                .isEqualTo(ClusterTopologyResult.noQuorum());
     }
 
     @Test
     public void returnsDissentIfTwoTopologiesAvailable() {
-        // TODO
+        assertThat(strategy.accept(ImmutableMap.of(
+                        CASSANDRA_SERVER_1,
+                        HostIdResult.success(ImmutableList.of("tom")),
+                        CASSANDRA_SERVER_2,
+                        HostIdResult.success(ImmutableList.of("tom")),
+                        CASSANDRA_SERVER_3,
+                        HostIdResult.success(ImmutableList.of("harry")))))
+                .isEqualTo(ClusterTopologyResult.dissent());
     }
 
     @Test
     public void returnsDissentIfThreeTopologiesAvailable() {
-        // TODO
+        assertThat(strategy.accept(ImmutableMap.of(
+                        CASSANDRA_SERVER_1,
+                        HostIdResult.success(ImmutableList.of("tom")),
+                        CASSANDRA_SERVER_2,
+                        HostIdResult.success(ImmutableList.of("dick")),
+                        CASSANDRA_SERVER_3,
+                        HostIdResult.success(ImmutableList.of("harry")))))
+                .isEqualTo(ClusterTopologyResult.dissent());
     }
 
     @Test
     public void returnsNoQuorumIfHostIdsSizeDoesNotMatchConfig() {
-        // TODO
+        config.set(ImmutableDefaultConfig.builder()
+                .addThriftHosts(CASSANDRA_SERVER_1.proxy(), CASSANDRA_SERVER_2.proxy(), CASSANDRA_SERVER_3.proxy())
+                .build());
     }
 
     @Test
