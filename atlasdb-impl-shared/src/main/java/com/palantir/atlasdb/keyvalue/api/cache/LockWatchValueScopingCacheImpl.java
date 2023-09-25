@@ -43,8 +43,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
@@ -52,21 +52,29 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     private static final SafeLogger log = SafeLoggerFactory.get(LockWatchValueScopingCacheImpl.class);
     private static final RateLimitedLogger rateLimitedLogger = new RateLimitedLogger(log, (1 / 5.0));
     private static final int MAX_CACHE_COUNT = 20_000;
+
     private final LockWatchEventCache eventCache;
     private final CacheStore cacheStore;
-
-    @GuardedBy("this")
     private final ValueStore valueStore;
-
-    @GuardedBy("this")
     private final SnapshotStore snapshotStore;
-
-    private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
-
+    private final AtomicReference<LockWatchVersion> currentVersion = new AtomicReference<>();
     private final CacheMetrics cacheMetrics;
 
+    private LockWatchValueScopingCacheImpl(
+            LockWatchEventCache eventCache,
+            CacheStore cacheStore,
+            ValueStore valueStore,
+            SnapshotStore snapshotStore,
+            CacheMetrics metrics) {
+        this.eventCache = eventCache;
+        this.cacheStore = cacheStore;
+        this.valueStore = valueStore;
+        this.snapshotStore = snapshotStore;
+        this.cacheMetrics = metrics;
+    }
+
     @VisibleForTesting
-    LockWatchValueScopingCacheImpl(
+    static LockWatchValueScopingCache create(
             LockWatchEventCache eventCache,
             long maxCacheSize,
             double validationProbability,
@@ -74,12 +82,12 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             SnapshotStore snapshotStore,
             Runnable failureCallback,
             CacheMetrics metrics) {
-        this.eventCache = eventCache;
-        this.snapshotStore = snapshotStore;
-        this.valueStore = new ValueStoreImpl(watchedTablesFromSchema, maxCacheSize, metrics);
-        this.cacheMetrics = metrics;
-        this.cacheStore =
-                new CacheStoreImpl(snapshotStore, validationProbability, failureCallback, metrics, MAX_CACHE_COUNT);
+        return new LockWatchValueScopingCacheImpl(
+                eventCache,
+                new CacheStoreImpl(snapshotStore, validationProbability, failureCallback, metrics, MAX_CACHE_COUNT),
+                new ValueStoreImpl(watchedTablesFromSchema, maxCacheSize, metrics),
+                snapshotStore,
+                metrics);
     }
 
     public static LockWatchValueScopingCache create(
@@ -90,22 +98,21 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             Set<TableReference> watchedTablesFromSchema) {
         ResilientLockWatchProxy<LockWatchValueScopingCache> proxyFactory =
                 ResilientLockWatchProxy.newValueCacheProxyFactory(NoOpLockWatchValueScopingCache.create(), metrics);
-        LockWatchValueScopingCache defaultCache = new LockWatchValueScopingCacheImpl(
+        proxyFactory.setDelegate(LockWatchValueScopingCacheImpl.create(
                 eventCache,
                 maxCacheSize,
                 validationProbability,
                 watchedTablesFromSchema,
                 SnapshotStoreImpl.create(metrics),
                 proxyFactory::fallback,
-                metrics);
-        proxyFactory.setDelegate(defaultCache);
+                metrics));
         return proxyFactory.newValueCacheProxy();
     }
 
     @Override
-    public synchronized void processStartTransactions(Set<Long> startTimestamps) {
+    public void processStartTransactions(Set<Long> startTimestamps) {
         TransactionsLockWatchUpdate updateForTransactions =
-                eventCache.getUpdateForTransactions(startTimestamps, currentVersion);
+                eventCache.getUpdateForTransactions(startTimestamps, Optional.ofNullable(currentVersion.get()));
 
         Optional<LockWatchVersion> latestVersionFromUpdate = computeMaxUpdateVersion(updateForTransactions);
 
@@ -114,16 +121,16 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         }
 
         updateStores(updateForTransactions);
-        updateCurrentVersion(latestVersionFromUpdate);
+        latestVersionFromUpdate.ifPresent(this::updateCurrentVersion);
     }
 
     @Override
-    public synchronized void updateCacheWithCommitTimestampsInformation(Set<Long> startTimestamps) {
+    public void updateCacheWithCommitTimestampsInformation(Set<Long> startTimestamps) {
         startTimestamps.forEach(this::processCommitUpdate);
     }
 
     @Override
-    public synchronized void ensureStateRemoved(long startTimestamp) {
+    public void ensureStateRemoved(long startTimestamp) {
         StartTimestamp startTs = StartTimestamp.of(startTimestamp);
         snapshotStore.removeTimestamp(startTs);
         cacheStore.removeCache(startTs);
@@ -134,41 +141,40 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         TransactionScopedCache cache = cacheStore.getCache(StartTimestamp.of(startTimestamp));
         cache.finalise();
 
-        Map<CellReference, CacheValue> cachedValues = cache.getValueDigest().loadedValues();
-        if (!cachedValues.isEmpty()) {
-            eventCache.getEventUpdate(startTimestamp).accept(new CommitUpdate.Visitor<Void>() {
-                @Override
-                public Void invalidateAll() {
-                    // This might happen due to an election or if we exceeded the maximum number of events held in
-                    // memory. Either way, the values are just not pushed to the central cache. If it needs to throw
-                    // because of read-write conflicts, that is handled in the PreCommitCondition.
-                    return null;
-                }
-
-                @Override
-                public Void invalidateSome(Set<LockDescriptor> invalidatedLocks) {
-                    Set<CellReference> invalidatedCells = invalidatedLocks.stream()
-                            .map(AtlasLockDescriptorUtils::candidateCells)
-                            .flatMap(List::stream)
-                            .collect(ImmutableSet.toImmutableSet());
-
-                    final Map<CellReference, CacheValue> toUpdate;
-                    if (invalidatedCells.isEmpty()) {
-                        toUpdate = cachedValues;
-                    } else {
-                        toUpdate = KeyedStream.stream(cachedValues)
-                                .filterKeys(cellReference -> !invalidatedCells.contains(cellReference))
-                                .collectToMap();
-                    }
-
-                    synchronized (LockWatchValueScopingCacheImpl.this) {
-                        toUpdate.forEach(valueStore::putValue);
-                    }
-                    return null;
-                }
-            });
-        }
+        invalidateEventCache(startTimestamp, cache.getValueDigest().loadedValues());
         ensureStateRemoved(startTimestamp);
+    }
+
+    private void invalidateEventCache(long startTimestamp, Map<CellReference, CacheValue> cachedValues) {
+        if (cachedValues.isEmpty()) {
+            return;
+        }
+
+        eventCache.getEventUpdate(startTimestamp).accept(new CommitUpdate.Visitor<Void>() {
+            @Override
+            public Void invalidateAll() {
+                // This might happen due to an election or if we exceeded the maximum number of events held in
+                // memory. Either way, the values are just not pushed to the central cache. If it needs to throw
+                // because of read-write conflicts, that is handled in the PreCommitCondition.
+                return null;
+            }
+
+            @Override
+            public Void invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+                Set<CellReference> invalidatedCells = invalidatedLocks.stream()
+                        .map(AtlasLockDescriptorUtils::candidateCells)
+                        .flatMap(List::stream)
+                        .collect(ImmutableSet.toImmutableSet());
+
+                KeyedStream<CellReference, CacheValue> toUpdate = KeyedStream.stream(cachedValues);
+                if (!invalidatedCells.isEmpty()) {
+                    toUpdate = toUpdate.filterKeys(cellReference -> !invalidatedCells.contains(cellReference));
+                }
+
+                toUpdate.forEach(valueStore::putValue);
+                return null;
+            }
+        });
     }
 
     /**
@@ -187,7 +193,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         return cacheStore.getReadOnlyCache(StartTimestamp.of(startTs));
     }
 
-    private synchronized void processCommitUpdate(long startTimestamp) {
+    private void processCommitUpdate(long startTimestamp) {
         StartTimestamp startTs = StartTimestamp.of(startTimestamp);
         TransactionScopedCache cache = cacheStore.getCache(startTs);
         cache.finalise();
@@ -208,23 +214,19 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
      * 3. For each transaction, we must create a transaction scoped cache. We do this now as we have tighter guarantees
      * around when the cache is created, and thus deleted.
      */
-    private synchronized void updateStores(TransactionsLockWatchUpdate updateForTransactions) {
+    private void updateStores(TransactionsLockWatchUpdate updateForTransactions) {
         Multimap<Sequence, StartTimestamp> reversedMap = createSequenceTimestampMultimap(updateForTransactions);
 
         // Without this block, updates with no events would not store a snapshot.
-        Optional<Sequence> maybeSeq =
-                currentVersion.map(LockWatchVersion::version).map(Sequence::of);
-        if (maybeSeq.isPresent()) {
-            synchronized (this) {
-                snapshotStore.storeSnapshot(maybeSeq.get(), reversedMap.get(maybeSeq.get()), valueStore.getSnapshot());
-            }
+        LockWatchVersion lockWatchVersion = currentVersion.get();
+        if (lockWatchVersion != null) {
+            storeSnapshot(reversedMap, lockWatchVersion.version());
         }
 
         for (LockWatchEvent event : updateForTransactions.events()) {
-            if (isNewEvent(event)) {
+            if ((lockWatchVersion == null) || lockWatchVersion.version() < event.sequence()) {
                 valueStore.applyEvent(event);
-                Sequence sequence = Sequence.of(event.sequence());
-                snapshotStore.storeSnapshot(sequence, reversedMap.get(sequence), valueStore.getSnapshot());
+                storeSnapshot(reversedMap, event.sequence());
             }
         }
 
@@ -237,14 +239,12 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         }
     }
 
-    private synchronized boolean isNewEvent(LockWatchEvent event) {
-        return currentVersion
-                .map(LockWatchVersion::version)
-                .map(current -> current < event.sequence())
-                .orElse(true);
+    private void storeSnapshot(Multimap<Sequence, StartTimestamp> reversedMap, long version) {
+        Sequence sequence = Sequence.of(version);
+        snapshotStore.storeSnapshot(sequence, reversedMap.get(sequence), valueStore.getSnapshot());
     }
 
-    private synchronized void assertNoSnapshotsMissing(Multimap<Sequence, StartTimestamp> reversedMap) {
+    private void assertNoSnapshotsMissing(Multimap<Sequence, StartTimestamp> reversedMap) {
         Set<Sequence> sequences = reversedMap.keySet();
         if (sequences.stream().map(this::getSnapshotForSequence).anyMatch(Optional::isEmpty)) {
             log.warn(
@@ -253,21 +253,24 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                     SafeArg.of(
                             "firstHundredSequences",
                             sequences.stream().limit(100).collect(Collectors.toSet())),
-                    SafeArg.of("currentVersion", currentVersion),
+                    SafeArg.of("currentVersion", currentVersion.get()),
                     SafeArg.of("numTransactions", reversedMap.values().size()));
             throw new TransactionLockWatchFailedException("snapshots were not taken for all sequences; this update "
                     + "must have been lost and is now too old to process. Transactions should be retried.");
         }
     }
 
-    private synchronized Optional<ValueCacheSnapshot> getSnapshotForSequence(Sequence sequence) {
+    private Optional<ValueCacheSnapshot> getSnapshotForSequence(Sequence sequence) {
         return snapshotStore.getSnapshotForSequence(sequence);
     }
 
-    private synchronized void updateCurrentVersion(Optional<LockWatchVersion> maybeUpdateVersion) {
-        maybeUpdateVersion
-                .filter(this::shouldUpdateVersion)
-                .ifPresent(updateVersion -> currentVersion = Optional.of(updateVersion));
+    private void updateCurrentVersion(LockWatchVersion updateVersion) {
+        currentVersion.accumulateAndGet(updateVersion, (previous, updated) -> {
+            if (previous == null || previous.version() < updated.version()) {
+                return updated;
+            }
+            return previous;
+        });
     }
 
     private Optional<LockWatchVersion> computeMaxUpdateVersion(TransactionsLockWatchUpdate updateForTransactions) {
@@ -275,11 +278,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 .max(Comparator.comparingLong(LockWatchVersion::version));
     }
 
-    private synchronized boolean shouldUpdateVersion(LockWatchVersion updateVersion) {
-        return currentVersion.isEmpty() || currentVersion.orElseThrow().version() < updateVersion.version();
-    }
-
-    private synchronized void clearCache(
+    private void clearCache(
             TransactionsLockWatchUpdate updateForTransactions, Optional<LockWatchVersion> latestVersionFromUpdate) {
         LockWatchEvent firstEvent = null;
         LockWatchEvent lastEvent = null;
@@ -293,7 +292,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         valueStore.reset();
         snapshotStore.reset();
         cacheStore.reset();
-        currentVersion = Optional.empty();
+        currentVersion.set(null);
     }
 
     private void registerAllClearEventAndMaybeLog(
@@ -301,7 +300,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         cacheMetrics.increaseCacheStateAllClear();
         rateLimitedLogger.log(logger -> logger.info(
                 "Clearing all value cache state",
-                SafeArg.of("currentVersion", currentVersion),
+                SafeArg.of("currentVersion", currentVersion.get()),
                 SafeArg.of("latestUpdateFromUpdate", latestVersionFromUpdate),
                 SafeArg.of("firstEventSequence", Optional.ofNullable(firstEvent).map(LockWatchEvent::sequence)),
                 SafeArg.of("lastEventSequence", Optional.ofNullable(lastEvent).map(LockWatchEvent::sequence))));

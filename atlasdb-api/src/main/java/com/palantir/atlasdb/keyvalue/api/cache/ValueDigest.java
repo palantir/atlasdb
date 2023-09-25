@@ -17,9 +17,11 @@
 package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.palantir.atlasdb.keyvalue.api.CellReference;
+import com.palantir.logsafe.Unsafe;
 import java.util.Map;
 import org.immutables.value.Value;
 
+@Unsafe
 @Value.Immutable
 public interface ValueDigest {
     Map<CellReference, CacheValue> loadedValues();

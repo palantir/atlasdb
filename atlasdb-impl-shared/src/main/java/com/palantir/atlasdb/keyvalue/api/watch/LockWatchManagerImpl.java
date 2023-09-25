@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
@@ -82,10 +83,10 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
                 .map(Schema::getLockWatches)
                 .flatMap(Set::stream)
                 .collect(Collectors.toSet());
-        Set<TableReference> watchedTablesFromSchema = referencesFromSchema.stream()
+        ImmutableSet<TableReference> watchedTablesFromSchema = referencesFromSchema.stream()
                 .map(schema -> schema.accept(LockWatchReferenceTableExtractor.INSTANCE))
                 .flatMap(Optional::stream)
-                .collect(Collectors.toSet());
+                .collect(ImmutableSet.toImmutableSet());
         CacheMetrics metrics = CacheMetrics.create(metricsManager);
         LockWatchEventCache eventCache = LockWatchEventCacheImpl.create(metrics, config.maxEvents());
         LockWatchValueScopingCache valueCache = LockWatchValueScopingCacheImpl.create(

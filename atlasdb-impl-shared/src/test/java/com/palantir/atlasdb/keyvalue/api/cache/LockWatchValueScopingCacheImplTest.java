@@ -105,13 +105,13 @@ public final class LockWatchValueScopingCacheImplTest {
     public void before() {
         snapshotStore = SnapshotStoreImpl.create(metrics);
         eventCache = LockWatchEventCacheImpl.create(metrics, MAX_EVENTS);
-        valueCache = new LockWatchValueScopingCacheImpl(
+        valueCache = LockWatchValueScopingCacheImpl.create(
                 eventCache, 20_000, 0.0, ImmutableSet.of(TABLE), snapshotStore, () -> {}, metrics);
     }
 
     @Test
     public void tableNotWatchedInSchemaDoesNotCache() {
-        valueCache = new LockWatchValueScopingCacheImpl(
+        valueCache = LockWatchValueScopingCacheImpl.create(
                 eventCache, 20_000, 0.0, ImmutableSet.of(), snapshotStore, () -> {}, metrics);
         processStartTransactionsUpdate(LOCK_WATCH_SNAPSHOT, TIMESTAMP_1, TIMESTAMP_2);
 
@@ -129,7 +129,7 @@ public final class LockWatchValueScopingCacheImplTest {
 
     @Test
     public void valueCacheCreatesValidatingTransactionCaches() {
-        valueCache = new LockWatchValueScopingCacheImpl(
+        valueCache = LockWatchValueScopingCacheImpl.create(
                 eventCache, 20_000, 1.0, ImmutableSet.of(TABLE), snapshotStore, () -> {}, metrics);
         processStartTransactionsUpdate(LOCK_WATCH_SNAPSHOT, TIMESTAMP_1, TIMESTAMP_2);
 
@@ -441,7 +441,7 @@ public final class LockWatchValueScopingCacheImplTest {
     @Test
     public void missingSnapshotsForSequenceDoesNotThrowWhenNoTablesAreWatched() {
         snapshotStore = new SnapshotStoreImpl(0, 20_000, metrics);
-        valueCache = new LockWatchValueScopingCacheImpl(
+        valueCache = LockWatchValueScopingCacheImpl.create(
                 eventCache, 20_000, 0.0, ImmutableSet.of(TABLE), snapshotStore, () -> {}, metrics);
 
         // This should cause the cache to progress to version 1 but without a snapshot stored at version 0
@@ -467,7 +467,7 @@ public final class LockWatchValueScopingCacheImplTest {
     @Test
     public void missingSnapshotsForSequenceThrowsWhenTablesAreWatched() {
         snapshotStore = new SnapshotStoreImpl(0, 20_000, metrics);
-        valueCache = new LockWatchValueScopingCacheImpl(
+        valueCache = LockWatchValueScopingCacheImpl.create(
                 eventCache, 20_000, 0.0, ImmutableSet.of(TABLE), snapshotStore, () -> {}, metrics);
 
         // This should cause the cache to progress to version 1 but without a snapshot stored at version 0

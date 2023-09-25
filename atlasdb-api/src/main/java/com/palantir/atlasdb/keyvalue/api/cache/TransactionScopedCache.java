@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.lock.watch.CommitUpdate;
+import com.palantir.logsafe.Unsafe;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
@@ -105,6 +106,7 @@ public interface TransactionScopedCache {
 
     TransactionScopedCache createReadOnlyCache(CommitUpdate commitUpdate);
 
+    @Unsafe
     @Value.Immutable
     interface CacheLookupResult {
         Map<Cell, CacheValue> cacheHits();
