@@ -59,7 +59,7 @@ import org.immutables.value.Value;
  *    caller.
  * 2. The entries in the living versions multimap may not be independent (as a single version may correspond to many
  *    timestamps), but the update concurrency should be handled by the data structure.
- * 3. Calls to {@link #getEarliestLiveSequence()} uses a sorted snapshot of livingVersions map;
+ * 3. Calls to {@link #getEarliestLiveSequence()} uses a snapshot of livingVersions map;
  *    this method should be called sparsely. Given that it is only used for retentioning events, which can be eventually
  *    consistent (as it is always correct to keep more events rather than less), this is acceptable for performance.
  */
