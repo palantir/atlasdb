@@ -5,7 +5,7 @@ dependencies {
   implementation project(":atlasdb-commons")
   implementation project(":leader-election-api-protobufs")
   implementation 'org.apache.commons:commons-lang3'
-  implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+  implementation 'javax.ws.rs:javax.ws.rs-api'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
 
   implementation 'com.palantir.sls.versions:sls-versions'

@@ -11,7 +11,7 @@ dependencies {
 
   implementation 'com.google.guava:guava'
   implementation 'com.palantir.safe-logging:preconditions'
-  implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
+  implementation 'javax.ws.rs:javax.ws.rs-api'
 
   testImplementation 'com.google.errorprone:error_prone_annotations'
   testImplementation 'com.google.guava:guava'
