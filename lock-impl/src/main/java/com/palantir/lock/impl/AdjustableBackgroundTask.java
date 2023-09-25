@@ -96,6 +96,6 @@ public final class AdjustableBackgroundTask implements Closeable {
 
     @Override
     public void close() {
-        scheduledExecutor.shutdown();
+        scheduledExecutor.shutdownNow();
     }
 }

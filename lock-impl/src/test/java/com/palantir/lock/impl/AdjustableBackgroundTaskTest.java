@@ -18,9 +18,11 @@ package com.palantir.lock.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.refreshable.SettableRefreshable;
 import java.time.Duration;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -134,6 +136,18 @@ public class AdjustableBackgroundTaskTest {
         // suppliers are also called once when running the constructor
         assertThat(numCallsToShouldRunSupplier.get()).isEqualTo(11);
         assertThat(numCallsToIntervalSupplier.get()).isEqualTo(11);
+    }
+
+    @Test
+    public void closeShutsDownExecutorAndHaltsExecution() throws InterruptedException {
+        ScheduledExecutorService executor = PTExecutors.newSingleThreadScheduledExecutor();
+        AdjustableBackgroundTask task =
+                new AdjustableBackgroundTask(() -> false, () -> Duration.ofDays(10), () -> {}, executor);
+
+        assertThat(executor.isShutdown()).isFalse();
+        task.close();
+        assertThat(executor.isShutdown()).isTrue();
+        assertThat(executor.awaitTermination(30, TimeUnit.SECONDS)).isTrue();
     }
 
     private void tick(Duration duration) {
