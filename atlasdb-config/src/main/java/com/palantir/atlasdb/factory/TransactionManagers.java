@@ -155,6 +155,15 @@ import org.immutables.value.Value;
 @Value.Immutable
 @StagedBuilderStyle
 public abstract class TransactionManagers {
+    static {
+        int javaVersion = Runtime.version().feature();
+        Preconditions.checkState(
+                javaVersion != 21,
+                "We are currently investigating an issue with AtlasDB running under Java 21 (PDS-417767)."
+                        + " Please use a JDK version < 21",
+                SafeArg.of("javaVersion", javaVersion));
+    }
+
     private static final SafeLogger log = SafeLoggerFactory.get(TransactionManagers.class);
     public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
 
