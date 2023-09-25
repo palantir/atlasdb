@@ -19,26 +19,27 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import java.util.Comparator;
 import org.immutables.value.Value;
 
 /**
  * Encapsulates the sequence or version number from {@link com.palantir.lock.watch.LockWatchVersion}. This is only
  * intended to be used internally.
  */
-@Value.Immutable
+@Value.Immutable(builder = false)
 @JsonSerialize(as = ImmutableSequence.class)
 @JsonDeserialize(as = ImmutableSequence.class)
 public interface Sequence extends Comparable<Sequence> {
+
     @JsonProperty("sequence")
+    @Value.Parameter
     long value();
 
     static Sequence of(long value) {
-        return ImmutableSequence.builder().value(value).build();
+        return ImmutableSequence.of(value);
     }
 
     @Override
     default int compareTo(Sequence other) {
-        return Comparator.comparingLong(Sequence::value).compare(this, other);
+        return Long.compare(value(), other.value());
     }
 }
