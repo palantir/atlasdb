@@ -35,6 +35,27 @@ public class K8sMigrationSizeBasedNoQuorumClusterBootstrapStrategyTest {
             CassandraServer.of("cassandra2", InetSocketAddress.createUnresolved("two", 1234));
     private static final CassandraServer CASSANDRA_SERVER_3 =
             CassandraServer.of("cassandra3", InetSocketAddress.createUnresolved("three", 1234));
+    private static final CassandraServer CASSANDRA_SERVER_4 =
+            CassandraServer.of("cassandra4", InetSocketAddress.createUnresolved("four", 1234));
+    private static final CassandraServer CASSANDRA_SERVER_5 =
+            CassandraServer.of("cassandra5", InetSocketAddress.createUnresolved("five", 1234));
+    private static final CassandraServer CASSANDRA_SERVER_6 =
+            CassandraServer.of("cassandra6", InetSocketAddress.createUnresolved("six", 1234));
+
+    public static final ImmutableDefaultConfig CONFIGURATION_WITH_THREE_NODES = ImmutableDefaultConfig.builder()
+            .addThriftHosts(CASSANDRA_SERVER_1.proxy(), CASSANDRA_SERVER_2.proxy(), CASSANDRA_SERVER_3.proxy())
+            .build();
+    public static final ImmutableDefaultConfig CONFIGURATION_WITH_SIX_NODES = ImmutableDefaultConfig.builder()
+            .addThriftHosts(
+                    CASSANDRA_SERVER_1.proxy(),
+                    CASSANDRA_SERVER_2.proxy(),
+                    CASSANDRA_SERVER_3.proxy(),
+                    CASSANDRA_SERVER_4.proxy(),
+                    CASSANDRA_SERVER_5.proxy(),
+                    CASSANDRA_SERVER_6.proxy())
+            .build();
+    public static final HostIdResult SUCCESS_WITH_SIX_IDS =
+            HostIdResult.success(ImmutableList.of("1", "2", "3", "4", "5", "6"));
 
     private final AtomicReference<CassandraServersConfig> config = new AtomicReference<>();
     private final NoQuorumClusterBootstrapStrategy strategy =
@@ -53,6 +74,12 @@ public class K8sMigrationSizeBasedNoQuorumClusterBootstrapStrategyTest {
                         CASSANDRA_SERVER_2,
                         HostIdResult.hardFailure(),
                         CASSANDRA_SERVER_3,
+                        HostIdResult.hardFailure(),
+                        CASSANDRA_SERVER_4,
+                        HostIdResult.hardFailure(),
+                        CASSANDRA_SERVER_5,
+                        HostIdResult.hardFailure(),
+                        CASSANDRA_SERVER_6,
                         HostIdResult.hardFailure())))
                 .isEqualTo(ClusterTopologyResult.noQuorum());
     }
@@ -65,6 +92,12 @@ public class K8sMigrationSizeBasedNoQuorumClusterBootstrapStrategyTest {
                         CASSANDRA_SERVER_2,
                         HostIdResult.softFailure(),
                         CASSANDRA_SERVER_3,
+                        HostIdResult.softFailure(),
+                        CASSANDRA_SERVER_4,
+                        HostIdResult.softFailure(),
+                        CASSANDRA_SERVER_5,
+                        HostIdResult.softFailure(),
+                        CASSANDRA_SERVER_6,
                         HostIdResult.softFailure())))
                 .isEqualTo(ClusterTopologyResult.noQuorum());
     }
@@ -77,43 +110,106 @@ public class K8sMigrationSizeBasedNoQuorumClusterBootstrapStrategyTest {
                         CASSANDRA_SERVER_2,
                         HostIdResult.success(ImmutableList.of("tom")),
                         CASSANDRA_SERVER_3,
+                        HostIdResult.success(ImmutableList.of("tom")),
+                        CASSANDRA_SERVER_4,
+                        HostIdResult.success(ImmutableList.of("tom")),
+                        CASSANDRA_SERVER_5,
+                        HostIdResult.success(ImmutableList.of("tom")),
+                        CASSANDRA_SERVER_6,
                         HostIdResult.success(ImmutableList.of("harry")))))
                 .isEqualTo(ClusterTopologyResult.dissent());
     }
 
     @Test
-    public void returnsDissentIfThreeTopologiesAvailable() {
+    public void returnsDissentIfMultipleTopologiesAvailable() {
         assertThat(strategy.accept(ImmutableMap.of(
                         CASSANDRA_SERVER_1,
-                        HostIdResult.success(ImmutableList.of("tom")),
+                        HostIdResult.success(ImmutableList.of("one")),
                         CASSANDRA_SERVER_2,
-                        HostIdResult.success(ImmutableList.of("dick")),
+                        HostIdResult.success(ImmutableList.of("two")),
                         CASSANDRA_SERVER_3,
-                        HostIdResult.success(ImmutableList.of("harry")))))
+                        HostIdResult.success(ImmutableList.of("three")),
+                        CASSANDRA_SERVER_4,
+                        HostIdResult.success(ImmutableList.of("four")),
+                        CASSANDRA_SERVER_5,
+                        HostIdResult.success(ImmutableList.of("five")),
+                        CASSANDRA_SERVER_6,
+                        HostIdResult.success(ImmutableList.of("six")))))
                 .isEqualTo(ClusterTopologyResult.dissent());
     }
 
     @Test
-    public void returnsNoQuorumIfHostIdsSizeDoesNotMatchConfig() {
-        config.set(ImmutableDefaultConfig.builder()
-                .addThriftHosts(CASSANDRA_SERVER_1.proxy(), CASSANDRA_SERVER_2.proxy(), CASSANDRA_SERVER_3.proxy())
-                .build());
+    public void returnsConsensusIfNumberOfHostIdsMatchesConfigurationAndQuorumInOldCloudPossible() {
+        config.set(CONFIGURATION_WITH_SIX_NODES);
 
-        HostIdResult successWithFourIds = HostIdResult.success(ImmutableList.of("alice", "bob", "carina", "david"));
         assertThat(strategy.accept(ImmutableMap.of(
-                        CASSANDRA_SERVER_1, successWithFourIds,
-                        CASSANDRA_SERVER_2, successWithFourIds,
-                        CASSANDRA_SERVER_3, successWithFourIds)))
+                        CASSANDRA_SERVER_1, SUCCESS_WITH_SIX_IDS,
+                        CASSANDRA_SERVER_2, SUCCESS_WITH_SIX_IDS,
+                        CASSANDRA_SERVER_3, HostIdResult.hardFailure(),
+                        CASSANDRA_SERVER_4, HostIdResult.hardFailure(),
+                        CASSANDRA_SERVER_5, HostIdResult.hardFailure())))
+                .isEqualTo(ClusterTopologyResult.consensus(ImmutableConsistentClusterTopology.builder()
+                        .addServersInConsensus(CASSANDRA_SERVER_1, CASSANDRA_SERVER_2)
+                        .hostIds(SUCCESS_WITH_SIX_IDS.hostIds())
+                        .build()));
+    }
+
+    @Test
+    public void returnsNoQuorumIfNotEnoughNodesAgreeToConstituteQuorumInOldCloud() {
+        config.set(CONFIGURATION_WITH_SIX_NODES);
+
+        assertThat(strategy.accept(ImmutableMap.of(
+                        CASSANDRA_SERVER_1, SUCCESS_WITH_SIX_IDS,
+                        CASSANDRA_SERVER_2, HostIdResult.hardFailure(),
+                        CASSANDRA_SERVER_3, HostIdResult.hardFailure(),
+                        CASSANDRA_SERVER_4, HostIdResult.hardFailure(),
+                        CASSANDRA_SERVER_5, HostIdResult.hardFailure(),
+                        CASSANDRA_SERVER_6, HostIdResult.hardFailure())))
                 .isEqualTo(ClusterTopologyResult.noQuorum());
     }
 
     @Test
-    public void returnsNoQuorumIfNoPossibleQuorumInOriginalCloud() {
-        // TODO
+    public void returnsConsensusIfNumberOfHostIdsMatchesDiscoveredAndQuorumInNewCloudPossible() {
+        config.set(CONFIGURATION_WITH_THREE_NODES);
+
+        assertThat(strategy.accept(ImmutableMap.of(
+                        CASSANDRA_SERVER_1, SUCCESS_WITH_SIX_IDS,
+                        CASSANDRA_SERVER_2, SUCCESS_WITH_SIX_IDS,
+                        CASSANDRA_SERVER_3, HostIdResult.hardFailure(),
+                        CASSANDRA_SERVER_4, HostIdResult.hardFailure(),
+                        CASSANDRA_SERVER_5, HostIdResult.hardFailure(),
+                        CASSANDRA_SERVER_6, HostIdResult.hardFailure())))
+                .isEqualTo(ClusterTopologyResult.consensus(ImmutableConsistentClusterTopology.builder()
+                        .addServersInConsensus(CASSANDRA_SERVER_1, CASSANDRA_SERVER_2)
+                        .hostIds(SUCCESS_WITH_SIX_IDS.hostIds())
+                        .build()));
     }
 
     @Test
-    public void returnsConsensusIfAllConditionsSatisfied() {
-        // TODO
+    public void returnsNoQuorumIfNotEnoughNodesAgreeToConstituteQuorumInNewCloud() {
+        config.set(CONFIGURATION_WITH_THREE_NODES);
+
+        assertThat(strategy.accept(ImmutableMap.of(
+                        CASSANDRA_SERVER_1, SUCCESS_WITH_SIX_IDS,
+                        CASSANDRA_SERVER_2, HostIdResult.hardFailure(),
+                        CASSANDRA_SERVER_3, HostIdResult.hardFailure(),
+                        CASSANDRA_SERVER_4, HostIdResult.hardFailure(),
+                        CASSANDRA_SERVER_5, HostIdResult.hardFailure(),
+                        CASSANDRA_SERVER_6, HostIdResult.hardFailure())))
+                .isEqualTo(ClusterTopologyResult.noQuorum());
+    }
+
+    @Test
+    public void returnsNoQuorumIfNumberOfHostIdsMatchesNeitherConfigurationNorDiscovery() {
+        config.set(CONFIGURATION_WITH_SIX_NODES);
+
+        HostIdResult successWithSevenIds = HostIdResult.success(ImmutableList.of("1", "2", "3", "4", "5", "6", "7"));
+        assertThat(strategy.accept(ImmutableMap.of(
+                        CASSANDRA_SERVER_1, successWithSevenIds,
+                        CASSANDRA_SERVER_2, successWithSevenIds,
+                        CASSANDRA_SERVER_3, HostIdResult.hardFailure(),
+                        CASSANDRA_SERVER_4, HostIdResult.hardFailure(),
+                        CASSANDRA_SERVER_5, HostIdResult.hardFailure())))
+                .isEqualTo(ClusterTopologyResult.noQuorum());
     }
 }

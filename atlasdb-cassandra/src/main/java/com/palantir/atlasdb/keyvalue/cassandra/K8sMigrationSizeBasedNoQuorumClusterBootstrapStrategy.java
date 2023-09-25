@@ -79,9 +79,13 @@ public class K8sMigrationSizeBasedNoQuorumClusterBootstrapStrategy implements No
         int numberOfConfiguredThriftHosts = cassandraServersConfig.numberOfThriftHosts();
 
         if (uniqueHostIds.size() == numberOfConfiguredThriftHosts) {
+            // This situation may arise after the second cloud is connected, but before its client interfaces are
+            // enabled.
             return handleNoQuorumAfterPossibleConnectionOfSecondCloud(
                     serversInAgreement, uniqueHostIds, cassandraServersConfig, numberOfConfiguredThriftHosts);
         } else if (uniqueHostIds.size() == hostIdResults.size()) {
+            // This situation may arise after the first cloud's client interfaces are disabled, but before it is
+            // decommissioned.
             return handleNoQuorumAfterPossibleDisconnectionOfFirstCloud(
                     hostIdResults, serversInAgreement, uniqueHostIds, cassandraServersConfig);
         } else {
@@ -116,7 +120,7 @@ public class K8sMigrationSizeBasedNoQuorumClusterBootstrapStrategy implements No
             Set<String> uniqueHostIds,
             CassandraServersConfig cassandraServersConfig) {
         return checkIfQuorumExistsInSingularCloud(
-                hostIdResults.size() / 2,
+                hostIdResults.size(),
                 "Cassandra-based discovery",
                 serversInAgreement,
                 uniqueHostIds,
@@ -124,11 +128,12 @@ public class K8sMigrationSizeBasedNoQuorumClusterBootstrapStrategy implements No
     }
 
     private static ClusterTopologyResult checkIfQuorumExistsInSingularCloud(
-            int singleCloudClusterSize,
+            int combinedClusterSize,
             String sourceOfClusterSizeBelief,
             Set<CassandraServer> serversInAgreement,
             Set<String> uniqueHostIds,
             CassandraServersConfig cassandraServersConfig) {
+        int singleCloudClusterSize = combinedClusterSize / 2;
         if (serversInAgreement.size() < HostIdResults.getQuorumSize(singleCloudClusterSize)) {
             log.warn(
                     "Less than a quorum of nodes came to a consensus, but rejecting said consensus: although the"
