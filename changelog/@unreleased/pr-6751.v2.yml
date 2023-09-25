@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: AdjustableBackgroundTask aggressively closes executor
+  links:
+  - https://github.com/palantir/atlasdb/pull/6751
