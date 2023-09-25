@@ -55,7 +55,7 @@ public class K8sMigrationSizeBasedNoQuorumClusterBootstrapStrategy implements No
             log.warn("With all nodes failing, we cannot determine any candidate topology.");
             return ClusterTopologyResult.noQuorum();
         }
-        if (hostIdsWithoutFailures.size() >= HostIdResults.getQuorumSize(hostIdsWithoutFailures.size())) {
+        if (hostIdsWithoutFailures.size() >= HostIdResults.getQuorumSize(hostIdResults.size())) {
             log.warn(
                     "Should not have called a no-quorum handling strategy when a quorum existed; yet, this may"
                             + " occur especially if there were soft failures. This is likely a bug in the topology"
@@ -77,38 +77,81 @@ public class K8sMigrationSizeBasedNoQuorumClusterBootstrapStrategy implements No
 
         CassandraServersConfig cassandraServersConfig = runtimeConfigSupplier.get();
         int numberOfConfiguredThriftHosts = cassandraServersConfig.numberOfThriftHosts();
-        if (uniqueHostIds.size() != numberOfConfiguredThriftHosts) {
+
+        if (uniqueHostIds.size() == numberOfConfiguredThriftHosts) {
+            return handleNoQuorumAfterPossibleConnectionOfSecondCloud(
+                    serversInAgreement, uniqueHostIds, cassandraServersConfig, numberOfConfiguredThriftHosts);
+        } else if (uniqueHostIds.size() == hostIdResults.size()) {
+            return handleNoQuorumAfterPossibleDisconnectionOfFirstCloud(
+                    hostIdResults, serversInAgreement, uniqueHostIds, cassandraServersConfig);
+        } else {
             log.warn(
                     "Less than a quorum of nodes came to a consensus, but rejecting said consensus because the number"
-                            + " of host IDs in that Cassandra cluster is not equal to what was specified in"
-                            + " configuration.",
+                            + " of host IDs in that Cassandra cluster is neither equal to what was specified in"
+                            + " configuration, nor equal to the host ID results we knew about.",
                     SafeArg.of("uniqueHostIds", uniqueHostIds),
+                    SafeArg.of("hostIdResults", hostIdResults),
                     SafeArg.of("cassandraServersConfig", cassandraServersConfig),
                     SafeArg.of("numberOfConfiguredThriftHosts", numberOfConfiguredThriftHosts));
             return ClusterTopologyResult.noQuorum();
         }
+    }
 
-        int expectedNumberOfCloudServers = numberOfConfiguredThriftHosts / 2;
-        if (serversInAgreement.size() < HostIdResults.getQuorumSize(expectedNumberOfCloudServers)) {
+    private static ClusterTopologyResult handleNoQuorumAfterPossibleConnectionOfSecondCloud(
+            Set<CassandraServer> serversInAgreement,
+            Set<String> uniqueHostIds,
+            CassandraServersConfig cassandraServersConfig,
+            int numberOfConfiguredThriftHosts) {
+        return checkIfQuorumExistsInSingularCloud(
+                numberOfConfiguredThriftHosts,
+                "configuration",
+                serversInAgreement,
+                uniqueHostIds,
+                cassandraServersConfig);
+    }
+
+    private static ClusterTopologyResult handleNoQuorumAfterPossibleDisconnectionOfFirstCloud(
+            Map<CassandraServer, HostIdResult> hostIdResults,
+            Set<CassandraServer> serversInAgreement,
+            Set<String> uniqueHostIds,
+            CassandraServersConfig cassandraServersConfig) {
+        return checkIfQuorumExistsInSingularCloud(
+                hostIdResults.size() / 2,
+                "Cassandra-based discovery",
+                serversInAgreement,
+                uniqueHostIds,
+                cassandraServersConfig);
+    }
+
+    private static ClusterTopologyResult checkIfQuorumExistsInSingularCloud(
+            int singleCloudClusterSize,
+            String sourceOfClusterSizeBelief,
+            Set<CassandraServer> serversInAgreement,
+            Set<String> uniqueHostIds,
+            CassandraServersConfig cassandraServersConfig) {
+        if (serversInAgreement.size() < HostIdResults.getQuorumSize(singleCloudClusterSize)) {
             log.warn(
                     "Less than a quorum of nodes came to a consensus, but rejecting said consensus: although the"
-                            + " number of host IDs in the Cassandra cluster equals what was specified in configuration,"
-                            + " this proposal arose from a minority of nodes that was also insufficient for a quorum in"
-                            + " the original cloud, under our migration assumptions.",
+                        + " number of host IDs in the Cassandra cluster equals what we believe the cluster size should"
+                        + " be, this proposal arose from a minority of nodes that was also insufficient for a quorum"
+                        + " in the original cloud, under our migration assumptions.",
                     SafeArg.of("uniqueHostIds", uniqueHostIds),
                     SafeArg.of("serversInAgreement", serversInAgreement),
                     SafeArg.of("cassandraServersConfig", cassandraServersConfig),
-                    SafeArg.of("expectedNumberOfCloudServers", expectedNumberOfCloudServers));
+                    SafeArg.of("singleCloudClusterSize", singleCloudClusterSize),
+                    SafeArg.of("sourceOfClusterSizeBelief", sourceOfClusterSizeBelief));
             return ClusterTopologyResult.noQuorum();
         }
 
         log.info(
                 "Less than a quorum of nodes came to a consensus, but accepting said consensus because the number of"
-                    + " host IDs in that Cassandra cluster was equal to the number of nodes found in configuration and"
+                    + " host IDs in that Cassandra cluster was equal to what we believe the cluster size should be and"
                     + " the number of agreements constitutes at least a quorum in the original cloud.",
                 SafeArg.of("uniqueHostIds", uniqueHostIds),
                 SafeArg.of("cassandraServersConfig", cassandraServersConfig),
-                SafeArg.of("serversInAgreement", serversInAgreement));
+                SafeArg.of("serversInAgreement", serversInAgreement),
+                SafeArg.of("singleCloudClusterSize", singleCloudClusterSize),
+                SafeArg.of("sourceOfClusterSizeBelief", sourceOfClusterSizeBelief));
         return ClusterTopologyResult.consensus(ConsistentClusterTopology.builder()
                 .hostIds(uniqueHostIds)
                 .serversInConsensus(serversInAgreement)

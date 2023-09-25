@@ -98,6 +98,13 @@ public class K8sMigrationSizeBasedNoQuorumClusterBootstrapStrategyTest {
         config.set(ImmutableDefaultConfig.builder()
                 .addThriftHosts(CASSANDRA_SERVER_1.proxy(), CASSANDRA_SERVER_2.proxy(), CASSANDRA_SERVER_3.proxy())
                 .build());
+
+        HostIdResult successWithFourIds = HostIdResult.success(ImmutableList.of("alice", "bob", "carina", "david"));
+        assertThat(strategy.accept(ImmutableMap.of(
+                        CASSANDRA_SERVER_1, successWithFourIds,
+                        CASSANDRA_SERVER_2, successWithFourIds,
+                        CASSANDRA_SERVER_3, successWithFourIds)))
+                .isEqualTo(ClusterTopologyResult.noQuorum());
     }
 
     @Test

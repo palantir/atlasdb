@@ -83,9 +83,9 @@ public class CassandraClientPoolCloudMigrationIntegrationTest {
     private final DeterministicScheduler deterministicScheduler = new DeterministicScheduler();
 
     @Test
-    public void clusterReinitialisesFromNoQuorumState() {
+    public void clusterCanInitialiseFromNoQuorumStateAfterSecondCloudConnected() {
         SettableRefreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfigRefreshable =
-                initialiseConfigurationToSingleCloud();
+                initialiseConfigurationTo(CLOUD_1_HOSTS);
         FakeCassandraService fakeCassandraService = FakeCassandraService.create(
                 runtimeConfigRefreshable,
                 Stream.of(CLOUD_1_HOSTS, CLOUD_2_HOSTS)
@@ -97,8 +97,8 @@ public class CassandraClientPoolCloudMigrationIntegrationTest {
 
         FakeCassandraClientPool clientPool =
                 FakeCassandraClientPool.create(fakeCassandraService, runtimeConfigRefreshable, deterministicScheduler);
-        fakeCassandraService.clearPools();
         fakeCassandraService.simulateTokenRingFailure();
+        fakeCassandraService.clearPools();
 
         refreshClientPool();
         assertThat(clientPool.getCassandraClientPool().getCurrentPools())
@@ -113,9 +113,31 @@ public class CassandraClientPoolCloudMigrationIntegrationTest {
     }
 
     @Test
+    public void clusterCanInitialiseFromNoQuorumStateAfterFirstCloudDisconnected() {
+        SettableRefreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfigRefreshable =
+                initialiseConfigurationTo(CLOUD_2_HOSTS);
+        FakeCassandraService fakeCassandraService = FakeCassandraService.create(
+                runtimeConfigRefreshable,
+                Stream.of(CLOUD_1_HOSTS, CLOUD_2_HOSTS)
+                        .flatMap(Set::stream)
+                        .map(CassandraServer::of)
+                        .collect(Collectors.toSet()));
+        FakeCassandraClientPool clientPool =
+                FakeCassandraClientPool.create(fakeCassandraService, runtimeConfigRefreshable, deterministicScheduler);
+        fakeCassandraService.simulateTokenRingFailure();
+        fakeCassandraService.clearPools();
+
+        disableClientInterfacesOnFirstCloud(fakeCassandraService);
+        refreshClientPool();
+        assertThat(clientPool.getCassandraClientPool().getCurrentPools())
+                .as("the client pool can be initialised post-disabling original cloud interfaces")
+                .containsOnlyKeys(CLOUD_2_SERVERS);
+    }
+
+    @Test
     public void happyPathMigrationRunsWithoutDowntime() {
         SettableRefreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfigRefreshable =
-                initialiseConfigurationToSingleCloud();
+                initialiseConfigurationTo(CLOUD_1_HOSTS);
         FakeCassandraService fakeCassandraService = FakeCassandraService.create(
                 runtimeConfigRefreshable,
                 CLOUD_1_HOSTS.stream().map(CassandraServer::of).collect(Collectors.toSet()));
@@ -124,7 +146,7 @@ public class CassandraClientPoolCloudMigrationIntegrationTest {
                 FakeCassandraClientPool.create(fakeCassandraService, runtimeConfigRefreshable, deterministicScheduler);
 
         assertThat(clientPool.getCassandraClientPool().getCurrentPools())
-                .as("the client pool is initialized to the correct size")
+                .as("the client pool is initialised to the correct size")
                 .containsOnlyKeys(CLOUD_1_SERVERS);
 
         connectSecondCloudDatacenter(fakeCassandraService);
@@ -202,15 +224,14 @@ public class CassandraClientPoolCloudMigrationIntegrationTest {
     }
 
     @NotNull
-    private static SettableRefreshable<CassandraKeyValueServiceRuntimeConfig> initialiseConfigurationToSingleCloud() {
+    private static SettableRefreshable<CassandraKeyValueServiceRuntimeConfig> initialiseConfigurationTo(
+            Set<InetSocketAddress> hosts) {
         CassandraKeyValueServiceRuntimeConfig runtimeConfig = ImmutableCassandraKeyValueServiceRuntimeConfig.builder()
                 .servers(ImmutableDefaultConfig.builder()
-                        .addAllThriftHosts(CLOUD_1_HOSTS)
+                        .addAllThriftHosts(hosts)
                         .build())
                 .build();
-        SettableRefreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfigRefreshable =
-                Refreshable.create(runtimeConfig);
-        return runtimeConfigRefreshable;
+        return Refreshable.create(runtimeConfig);
     }
 
     private void refreshClientPool() {
@@ -222,12 +243,9 @@ public class CassandraClientPoolCloudMigrationIntegrationTest {
     }
 
     private static final class FakeCassandraClientPool {
-        private final FakeCassandraService fakeCassandraService;
         private final CassandraClientPool cassandraClientPool;
 
-        private FakeCassandraClientPool(
-                FakeCassandraService fakeCassandraService, CassandraClientPool cassandraClientPool) {
-            this.fakeCassandraService = fakeCassandraService;
+        private FakeCassandraClientPool(CassandraClientPool cassandraClientPool) {
             this.cassandraClientPool = cassandraClientPool;
         }
 
@@ -250,7 +268,7 @@ public class CassandraClientPoolCloudMigrationIntegrationTest {
                     fakeCassandraService.getCassandraServiceInterface(),
                     validator,
                     new CassandraAbsentHostTracker(CONFIG.consecutiveAbsencesBeforePoolRemoval()));
-            return new FakeCassandraClientPool(fakeCassandraService, pool);
+            return new FakeCassandraClientPool(pool);
         }
 
         public CassandraClientPool getCassandraClientPool() {
