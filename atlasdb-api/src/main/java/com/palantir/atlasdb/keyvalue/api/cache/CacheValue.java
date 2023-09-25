@@ -63,6 +63,11 @@ public final class CacheValue {
     }
 
     @Override
+    public String toString() {
+        return CacheValue.class.getSimpleName() + "{value=" + value().map(Arrays::toString) + "}";
+    }
+
+    @Override
     public int hashCode() {
         // Optionals do return 0 for empty values, but the hash code uses Object, which bases array hash codes on the
         // reference, not the values.

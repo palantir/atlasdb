@@ -52,4 +52,22 @@ public final class CacheValueTests {
         assertThat(presentValue).isNotEqualTo(emptyValue);
         assertThat(emptyValue).isNotEqualTo(presentValue);
     }
+
+    @Test
+    public void emptyValueToStringReturnsFormattedData() {
+        CacheValue emptyValue = CacheValue.empty();
+        assertThat(emptyValue.toString()).isEqualTo("CacheValue{value=Optional.empty}");
+    }
+
+    @Test
+    public void valueWithPresentButEmptyListToStringReturnsFormattedData() {
+        CacheValue withEmptyByteArray = CacheValue.of(new byte[0]);
+        assertThat(withEmptyByteArray.toString()).isEqualTo("CacheValue{value=Optional[[]]}");
+    }
+
+    @Test
+    public void valueWithPresentNonEmptyListToStringReturnsFormattedData() {
+        CacheValue cacheValue = CacheValue.of(new byte[] {0, -127, 126, 1, 10});
+        assertThat(cacheValue.toString()).isEqualTo("CacheValue{value=Optional[[0, -127, 126, 1, 10]]}");
+    }
 }

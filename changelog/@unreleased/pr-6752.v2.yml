@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Add CacheValue::toString
+  links:
+  - https://github.com/palantir/atlasdb/pull/6752
