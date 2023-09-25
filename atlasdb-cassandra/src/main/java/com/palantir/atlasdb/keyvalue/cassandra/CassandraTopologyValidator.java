@@ -26,6 +26,8 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.CassandraTopologyValidationMetrics;
+import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
@@ -33,6 +35,8 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.refreshable.Refreshable;
+import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -41,6 +45,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import one.util.streamex.EntryStream;
 import org.apache.thrift.TApplicationException;
 import org.immutables.value.Value;
@@ -49,43 +54,57 @@ public final class CassandraTopologyValidator {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraTopologyValidator.class);
     private final CassandraTopologyValidationMetrics metrics;
     private final AtomicReference<ConsistentClusterTopology> pastConsistentTopology;
+    private final Supplier<Set<String>> configuredServers;
 
-    public CassandraTopologyValidator(CassandraTopologyValidationMetrics metrics) {
+    @VisibleForTesting
+    CassandraTopologyValidator(CassandraTopologyValidationMetrics metrics, Supplier<Set<String>> configuredServers) {
         this.metrics = metrics;
         this.pastConsistentTopology = new AtomicReference<>();
+        this.configuredServers = configuredServers;
+    }
+
+    public static CassandraTopologyValidator create(
+            CassandraTopologyValidationMetrics metrics,
+            Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfigRefreshable) {
+        return new CassandraTopologyValidator(
+                metrics,
+                runtimeConfigRefreshable.map(
+                        config -> config.servers().accept(ThriftHostsExtractingVisitor.INSTANCE).stream()
+                                .map(InetSocketAddress::getHostString)
+                                .collect(Collectors.toSet())));
     }
 
     /**
      * Checks a set of new Cassandra servers against the current Casssandra servers
      * to ensure their topologies are matching. This is done to prevent user-led split-brain,
      * which can occur if a user accidentally provided hostnames for two different Cassandra clusters.
-     *
+     * <p>
      * This is done by coming to a consensus on the topology of the pre-existing hosts,
      * and then subsequently returning any new hosts which do not match the present topology.
-     *
+     * <p>
      * Of course, there is the base case of all hosts will be new. In this case, we simply check that all
      * new hosts are in consensus.
-     *
+     * <p>
      * Servers that do not have support for the get_host_ids endpoint are always considered consistent,
      * even if we cannot come to a consensus on the hosts that do support the endpoint.
-     *
+     * <p>
      * Consensus may be demonstrated independently by a set of nodes. In this case, we require that:
      * (1) A quorum of nodes (excluding those without `get_host_ids` support) are reachable.
      * (2) All reachable nodes have the same set of hostIds.
      * (3) All Cassandra nodes without get_host_ids support are considered to be matching.
-     *
+     * <p>
      * The above should be sufficient to prevent user-led split-brain as:
      * (1) The initial list of servers validate that they've at least quorum for consensus of topology.
      * (2) All new hosts added then must match the set of pre-existing hosts topology.
-     *
+     * <p>
      * Consensus may also be demonstrated and new hosts added without a quorum of nodes being reachable, if:
      * (4) New hosts support get_host_ids, and have the same set of hostIds as the most recent previous consensus
      * satisfied through conditions (1) - (3).
-     *
+     * <p>
      * In this case, we know that a previous set of servers had quorum for a consensus, which we are also agreeing to.
      * Since we aren't agreeing on any new values, values that were agreed upon must have passed conditions (1) - (3)
      * at the time of their inception, and that required a quorum of nodes to agree.
-     *
+     * <p>
      * There does exist an edge case of, two sets of Cassandra clusters being added (3 and 6 respectively).
      * On initialization, the Cassandra cluster with 6 will be used as the base case if the other 3 nodes
      * are down, as this will satisfy quorum requirements. However, the cluster of 6 could be the wrong
@@ -159,8 +178,9 @@ public final class CassandraTopologyValidator {
         if (currentServersWithoutSoftFailures.isEmpty()) {
             ClusterTopologyResult topologyResultFromNewServers =
                     maybeGetConsistentClusterTopology(newServersWithoutSoftFailures);
+            Set<String> configuredServersSnapshot = configuredServers.get();
             Map<CassandraServer, HostIdResult> newServersFromConfig = EntryStream.of(newServersWithoutSoftFailures)
-                    .filterKeys(server -> newlyAddedHosts.get(server) == CassandraServerOrigin.CONFIG)
+                    .filterKeys(server -> configuredServersSnapshot.contains(server.cassandraHostName()))
                     .toMap();
             return getNewHostsWithInconsistentTopologiesFromTopologyResult(
                     topologyResultFromNewServers,
@@ -258,7 +278,7 @@ public final class CassandraTopologyValidator {
 
     /**
      * Obtains a consistent view of the cluster topology for the provided hosts.
-     *
+     * <p>
      * This is achieved by comparing the hostIds (list of UUIDs for each C* node) for all Cassandra nodes.
      * A quorum of C* nodes are required to be reachable and all reachable nodes must have the same
      * topology (hostIds) for this to return a valid result. Nodes that are reachable but do not have
