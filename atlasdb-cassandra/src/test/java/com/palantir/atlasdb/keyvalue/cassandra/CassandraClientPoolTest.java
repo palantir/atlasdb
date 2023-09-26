@@ -482,6 +482,15 @@ public final class CassandraClientPoolTest {
         verify(container1).shutdownPooling();
     }
 
+    @Test
+    public void onlyServersWithConsistentTopologyAddedOnStartupFromConfig() {
+        setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy()));
+        setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2);
+        setupHostsWithInconsistentTopology(CASS_SERVER_2);
+        CassandraClientPoolImpl clientPool = createClientPool();
+        assertThat(clientPool.getCurrentPools()).containsOnlyKeys(CASS_SERVER_1);
+    }
+
     private CassandraServer getCassandraServerFromInvocation(InvocationOnMock invocation) {
         return invocation.getArgument(0);
     }

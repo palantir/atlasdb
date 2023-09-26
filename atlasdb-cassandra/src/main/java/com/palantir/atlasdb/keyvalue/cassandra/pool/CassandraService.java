@@ -503,14 +503,10 @@ public class CassandraService implements AutoCloseable {
         return currentPools.remove(removedServerAddress);
     }
 
-    public void cacheInitialCassandraHosts() {
-        ImmutableSet<CassandraServer> thriftSocket =
-                getCurrentServerListFromConfig().keySet();
-
-        cassandraHosts = thriftSocket.stream()
+    public void cacheInitialHostsForCalculatingPoolNumber(Set<CassandraServer> cassandraServers) {
+        cassandraHosts = cassandraServers.stream()
                 .sorted(Comparator.comparing(CassandraServer::cassandraHostName))
                 .collect(Collectors.toList());
-        cassandraHosts.forEach(this::addPool);
     }
 
     public void clearInitialCassandraHosts() {
