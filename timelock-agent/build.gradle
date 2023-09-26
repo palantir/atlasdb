@@ -4,23 +4,24 @@ apply from: "../gradle/shared.gradle"
 apply from: "../gradle/tests.gradle"
 
 dependencies {
+    implementation project(':lock-api-objects')
     implementation project(":timelock-impl")
     implementation project(":timelock-corruption-detection")
-
-    implementation 'com.google.guava:guava'
-    implementation 'com.palantir.conjure.java.api:service-config'
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-core'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.github.rholder:guava-retrying'
     implementation 'com.google.errorprone:error_prone_annotations'
+    implementation 'com.google.guava:guava'
     implementation 'com.palantir.common:streams'
+    implementation 'com.palantir.conjure.java:conjure-undertow-lib'
+    implementation 'com.palantir.conjure.java.api:errors'
+    implementation 'com.palantir.conjure.java.api:service-config'
     implementation 'com.palantir.conjure.java.api:ssl-config'
     implementation 'com.palantir.conjure.java.runtime:client-config'
     implementation 'com.palantir.conjure.java.runtime:keystores'
-    implementation 'com.palantir.conjure.java:conjure-undertow-lib'
-    implementation 'com.palantir.conjure.java:conjure-undertow-annotations'
+    implementation 'com.palantir.dialogue:dialogue-target'
     implementation 'com.palantir.dialogue:dialogue-clients'
     implementation 'com.palantir.refreshable:refreshable'
     implementation 'com.palantir.safe-logging:preconditions'
@@ -31,10 +32,10 @@ dependencies {
     implementation 'com.palantir.tritium:tritium-registry'
     implementation 'com.zaxxer:HikariCP'
     implementation 'io.dropwizard.metrics:metrics-core'
+    implementation 'io.undertow:undertow-core'
     implementation 'javax.ws.rs:javax.ws.rs-api'
     implementation 'org.jdbi:jdbi3-core'
     implementation 'org.jdbi:jdbi3-sqlobject'
-    implementation 'org.slf4j:slf4j-api'
 
     api project(':atlasdb-api')
     api project(':atlasdb-client')

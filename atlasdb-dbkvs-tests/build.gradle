@@ -1,6 +1,10 @@
 
 apply from: "../gradle/shared.gradle"
 
+versionsLock {
+    testProject()
+}
+
 dependencies {
   implementation project(":atlasdb-dbkvs")
   implementation project(":atlasdb-tests-shared")

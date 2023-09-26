@@ -5,7 +5,12 @@ apply from: "../gradle/shared.gradle"
 apply from: "../gradle/tests.gradle"
 apply from: "../gradle/non-client-dist.gradle"
 
+versionsLock {
+    testProject()
+}
+
 dependencies {
+    implementation project(':atlasdb-api')
     implementation project(':timelock-server')
 
     implementation 'com.fasterxml.jackson.core:jackson-databind'
@@ -17,6 +22,7 @@ dependencies {
     implementation 'com.palantir.tritium:tritium-registry'
     implementation 'io.dropwizard:dropwizard-core'
     implementation 'io.dropwizard:dropwizard-jersey'
+    implementation 'io.dropwizard.metrics:metrics-core'
     implementation project(':atlasdb-client')
     implementation project(':timelock-agent')
 }

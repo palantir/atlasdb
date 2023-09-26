@@ -23,14 +23,13 @@ dependencies {
   implementation project(":atlasdb-client")
   implementation project(":atlasdb-commons")
   implementation project(":atlasdb-coordination-impl")
-  implementation project(":lock-impl")
+  implementation project(":timestamp-api")
 
   implementation 'com.github.ben-manes.caffeine:caffeine'
   implementation 'com.palantir.common:streams'
   implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
   implementation 'com.palantir.safe-logging:safe-logging'
   implementation 'com.palantir.safe-logging:preconditions'
-  implementation 'com.google.protobuf:protobuf-java'
   implementation 'one.util:streamex'
 
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
@@ -39,20 +38,16 @@ dependencies {
   implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
   implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-optimizations'
   implementation 'com.github.ben-manes.caffeine:caffeine'
-  implementation 'com.google.auto.service:auto-service-annotations'
   implementation 'com.google.guava:guava'
   implementation 'com.palantir.conjure.java.api:service-config'
-  implementation 'com.palantir.refreshable:refreshable'
   implementation 'com.palantir.tokens:auth-tokens'
   implementation 'com.palantir.tracing:tracing'
+  implementation 'com.palantir.tritium:tritium-registry'
   implementation 'io.dropwizard.metrics:metrics-core'
-  implementation 'javax.validation:validation-api'
   implementation 'javax.ws.rs:javax.ws.rs-api'
   implementation 'org.apache.commons:commons-lang3'
-  implementation 'org.checkerframework:checker-qual'
   implementation 'org.eclipse.collections:eclipse-collections'
   implementation 'org.eclipse.collections:eclipse-collections-api'
-  implementation 'org.slf4j:slf4j-api'
 
   implementation project(':atlasdb-api')
   implementation project(':atlasdb-autobatch')
@@ -71,7 +66,6 @@ dependencies {
   testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
   testImplementation 'com.google.code.findbugs:annotations'
   testImplementation 'com.google.guava:guava'
-  testImplementation 'com.google.protobuf:protobuf-java'
   testImplementation 'com.palantir.conjure.java.api:errors'
   testImplementation 'com.palantir.conjure.java.api:service-config'
   testImplementation 'com.palantir.conjure.java.api:ssl-config'
@@ -99,8 +93,6 @@ dependencies {
 
   annotationProcessor 'org.immutables:value'
   compileOnly 'org.immutables:value::annotations'
-  annotationProcessor 'com.google.auto.service:auto-service'
-  compileOnly 'com.google.auto.service:auto-service'
   annotationProcessor project(":atlasdb-processors")
   compileOnly project(":atlasdb-processors")
   annotationProcessor 'org.derive4j:derive4j'

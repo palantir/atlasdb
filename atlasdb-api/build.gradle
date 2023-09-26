@@ -10,13 +10,9 @@ dependencies {
   implementation 'org.apache.commons:commons-lang3'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
-  implementation 'javax.annotation:javax.annotation-api'
-  implementation 'javax.validation:validation-api'
-  implementation 'javax.xml.bind:jaxb-api'
 
   implementation 'com.github.ben-manes.caffeine:caffeine'
   implementation 'com.palantir.conjure.java.api:ssl-config'
-  implementation 'com.palantir.conjure.java.runtime:conjure-java-jaxrs-client'
   implementation 'com.palantir.tritium:tritium-ids'
   implementation ('com.palantir.tritium:tritium-registry') {
     exclude (group: 'io.dropwizard.metrics', module: 'metrics-core')
@@ -31,7 +27,6 @@ dependencies {
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'
   implementation 'io.dropwizard.metrics:metrics-core'
-  implementation 'org.slf4j:slf4j-api'
   implementation project(':commons-annotations')
   implementation project(':lock-api-objects')
 

@@ -1,17 +1,19 @@
 
 apply from: "${rootProject.projectDir}/gradle/shared.gradle"
 
+versionsLock {
+    testProject()
+}
+
 dependencies {
     implementation project(':atlasdb-api')
     implementation project(':atlasdb-cassandra')
     implementation project(':atlasdb-tests-shared')
-    implementation project(":flake-rule")
 
     implementation 'com.github.ben-manes.caffeine:caffeine'
     implementation 'com.google.guava:guava'
     implementation 'com.palantir.docker.compose:docker-compose-rule-core'
     implementation 'com.palantir.docker.compose:docker-compose-rule-junit4'
-    implementation 'com.palantir.docker.proxy:docker-proxy-rule-core'
     implementation 'com.palantir.docker.proxy:docker-proxy-rule-junit4'
     implementation 'org.awaitility:awaitility'
     implementation 'io.netty:netty-handler-proxy'
@@ -20,11 +22,8 @@ dependencies {
     implementation 'com.palantir.refreshable:refreshable'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'
-    implementation 'commons-io:commons-io'
     implementation 'io.netty:netty-transport'
     implementation 'junit:junit'
-    implementation 'org.apache.commons:commons-lang3'
-    implementation 'org.slf4j:slf4j-api'
     implementation project(':atlasdb-client')
     implementation project(':atlasdb-commons')
 

@@ -38,9 +38,9 @@ import io.vavr.collection.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
+import javax.annotation.Nonnegative;
+import javax.annotation.Nonnull;
 import javax.annotation.concurrent.NotThreadSafe;
-import org.checkerframework.checker.index.qual.NonNegative;
-import org.checkerframework.checker.nullness.qual.NonNull;
 
 @NotThreadSafe
 final class ValueStoreImpl implements ValueStore {
@@ -182,15 +182,15 @@ final class ValueStoreImpl implements ValueStore {
         INSTANCE;
 
         @Override
-        public @NonNegative int weigh(@NonNull CellReference key, @NonNull Integer value) {
+        public @Nonnegative int weigh(@Nonnull CellReference key, @Nonnull Integer value) {
             return CACHE_OVERHEAD + value + weighTable(key.tableRef()) + weighCell(key.cell());
         }
 
-        private int weighTable(@NonNull TableReference table) {
+        private int weighTable(@Nonnull TableReference table) {
             return table.toString().length();
         }
 
-        private int weighCell(@NonNull Cell cell) {
+        private int weighCell(@Nonnull Cell cell) {
             return cell.getRowName().length + cell.getColumnName().length;
         }
     }

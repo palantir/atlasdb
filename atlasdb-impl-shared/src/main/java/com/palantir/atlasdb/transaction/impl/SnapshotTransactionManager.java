@@ -76,7 +76,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import javax.validation.constraints.NotNull;
 
 /* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
     private static final SafeLogger log = SafeLoggerFactory.get(SnapshotTransactionManager.class);
@@ -118,7 +117,7 @@ import javax.validation.constraints.NotNull;
             LockWatchManagerInternal lockWatchManager,
             TimestampManagementService timestampManagementService,
             LockService lockService,
-            @NotNull TransactionService transactionService,
+            TransactionService transactionService,
             Supplier<AtlasDbConstraintCheckingMode> constraintModeSupplier,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,

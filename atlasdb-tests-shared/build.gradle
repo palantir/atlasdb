@@ -1,5 +1,9 @@
 apply from: "../gradle/shared.gradle"
 
+versionsLock {
+    testProject()
+}
+
 dependencies {
   implementation project(":atlasdb-config")
   implementation project(":timelock-impl")
@@ -8,7 +12,6 @@ dependencies {
   testImplementation project(":commons-api")
 
   implementation 'com.palantir.tracing:tracing'
-  implementation 'com.palantir.tritium:tritium-lib'
 
   implementation 'junit:junit'
   implementation 'org.assertj:assertj-core'
@@ -16,18 +19,22 @@ dependencies {
   implementation 'org.awaitility:awaitility'
 
   implementation 'com.fasterxml.jackson.core:jackson-core'
+  implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'com.github.ben-manes.caffeine:caffeine'
   implementation 'com.google.guava:guava'
+  implementation 'com.google.protobuf:protobuf-java'
   implementation 'com.palantir.common:streams'
   implementation 'com.palantir.conjure.java.api:service-config'
   implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
   implementation 'com.palantir.safe-logging:preconditions'
+  implementation 'com.palantir.refreshable:refreshable'
   implementation 'com.palantir.safe-logging:safe-logging'
   implementation 'com.palantir.sls.versions:sls-versions'
   implementation 'com.palantir.tritium:tritium-registry'
   implementation 'io.dropwizard.metrics:metrics-core'
   implementation 'org.apache.commons:commons-lang3'
   implementation 'org.assertj:assertj-guava'
+  implementation 'org.jboss.xnio:xnio-api'
   implementation 'org.rocksdb:rocksdbjni'
 
   implementation project(':atlasdb-api')
@@ -41,8 +48,8 @@ dependencies {
   implementation project(':lock-api')
   implementation project(':lock-api-objects')
   implementation project(':lock-impl')
-  implementation project(':leader-election-impl')
   implementation project(':timelock-agent')
+  implementation project(':timelock-api:timelock-api-jersey')
   implementation project(':timestamp-api')
 
   testImplementation 'com.github.tomakehurst:wiremock-standalone'
