@@ -19,9 +19,11 @@ import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptio
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -480,6 +482,41 @@ public final class CassandraClientPoolTest {
         cassandraClientPool.setServersInPoolTo(ImmutableMap.of(CASS_SERVER_3, CassandraServerOrigin.TOKEN_RANGE));
         assertThat(cassandraClientPool.getCurrentPools()).containsOnlyKeys(CASS_SERVER_3);
         verify(container1).shutdownPooling();
+    }
+
+    @Test
+    public void refreshOccursInSecondsWhenNoPoolsAvailable() {
+        createClientPool();
+        for (int i = 0; i < 10; i++) {
+            int shift = Math.min(i, CassandraClientPoolImpl.MAX_ATTEMPTS_BEFORE_CAPPING_BACKOFF);
+            deterministicExecutor.tick(i << shift, TimeUnit.SECONDS);
+            // autoRefresh is false, so we'll get servers from config, and we've already loaded from config once in
+            // the initial loading of servers
+            verify(cassandra, atLeast(2 + i)).getCurrentServerListFromConfig();
+        }
+    }
+
+    @Test
+    public void refreshOccursInConfiguredTimeWhenPoolsAvailable() {
+        setupHostsWithConsistentTopology();
+        setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy()));
+        setCassandraServersTo(CASS_SERVER_1);
+
+        createClientPool();
+        // This test needs updating if we happen to load from config more than twice on initialisation
+        // This assert is here to flag that it's not the behaviour that's broken, but the test
+
+        verify(cassandra, times(1)).getCurrentServerListFromConfig();
+
+        int secondsToRefreshBy = POOL_REFRESH_INTERVAL_SECONDS / 10;
+        for (int i = 0; i < 9; i++) {
+            deterministicExecutor.tick(secondsToRefreshBy, TimeUnit.SECONDS);
+            // No refresh
+            verify(cassandra, times(1)).getCurrentServerListFromConfig();
+        }
+        // And after the pool refresh time, we finally do another iteration
+        deterministicExecutor.tick(2 * secondsToRefreshBy, TimeUnit.SECONDS);
+        verify(cassandra, times(2)).getCurrentServerListFromConfig();
     }
 
     private CassandraServer getCassandraServerFromInvocation(InvocationOnMock invocation) {

@@ -44,6 +44,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -68,6 +69,10 @@ import one.util.streamex.EntryStream;
  **/
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class CassandraClientPoolImpl implements CassandraClientPool {
+    // 2 ** 7 is 64, which is close enough to a minute
+    public static final int MAX_ATTEMPTS_BEFORE_CAPPING_BACKOFF = 7;
+    private static final Random RANDOM = new Random();
+
     private static final InitializeableScheduledExecutorServiceSupplier SHARED_EXECUTOR_SUPPLIER =
             new InitializeableScheduledExecutorServiceSupplier(
                     new NamedThreadFactory("CassandraClientPoolRefresh", true));
@@ -245,27 +250,36 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private void tryInitialize() {
         cassandra.cacheInitialCassandraHosts();
 
-        refreshPoolFuture = refreshDaemon.scheduleWithFixedDelay(
-                () -> {
-                    try {
-                        refreshPool();
-                    } catch (Throwable t) {
-                        log.warn(
-                                "Failed to refresh Cassandra KVS pool."
-                                        + " Extended periods of being unable to refresh will cause perf degradation.",
-                                t);
-                    }
-                },
-                config.poolRefreshIntervalSeconds(),
-                config.poolRefreshIntervalSeconds(),
-                TimeUnit.SECONDS);
-
         // for testability, mock/spy are bad at mockability of things called in constructors
         if (startupChecks == StartupChecks.RUN) {
             runOneTimeStartupChecks();
         }
-        refreshPool(); // ensure we've initialized before returning
+        runAndScheduleNextRefresh(0); // ensure we've initialized before returning
         metrics.registerAggregateMetrics(blacklist::size);
+    }
+
+    private void runAndScheduleNextRefresh(int attempt) {
+        try {
+            refreshPool();
+        } catch (Throwable t) {
+            log.warn(
+                    "Failed to refresh Cassandra KVS pool."
+                            + " Extended periods of being unable to refresh will cause perf degradation.",
+                    t);
+        }
+
+        if (getCurrentPools().isEmpty()) {
+            log.error(
+                    "There are no pools remaining after refreshing and validating pools. Scheduling the next refresh"
+                            + " very soon to avoid an extended downtime.",
+                    SafeArg.of("attempt", attempt));
+            int maxShift = Math.min(MAX_ATTEMPTS_BEFORE_CAPPING_BACKOFF, attempt);
+            refreshPoolFuture = refreshDaemon.schedule(
+                    () -> runAndScheduleNextRefresh(attempt + 1), RANDOM.nextInt(1 << maxShift), TimeUnit.SECONDS);
+        } else {
+            refreshPoolFuture = refreshDaemon.schedule(
+                    () -> runAndScheduleNextRefresh(0), config.poolRefreshIntervalSeconds(), TimeUnit.SECONDS);
+        }
     }
 
     private void cleanUpOnInitFailure() {
@@ -288,7 +302,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private void cancelRefreshPoolTaskIfRunning() {
-        if (refreshPoolFuture != null) {
+        // It's possible for the cancelled refreshPoolFuture to schedule another task before terminating. If it does
+        // schedule another task, we can just cancel that one too.
+        while (refreshPoolFuture != null && !refreshPoolFuture.isCancelled()) {
             refreshPoolFuture.cancel(true);
         }
     }
@@ -373,9 +389,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Preconditions.checkState(
                 !getCurrentPools().isEmpty() || serversToAdd.isEmpty(),
                 "No servers were successfully added to the pool. This means we could not come to a consensus on"
-                    + " cluster topology, and the client cannot connect as there are no valid hosts. This state should"
-                    + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
-                    + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
+                        + " cluster topology, and the client cannot connect as there are no valid hosts. This state should"
+                        + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
+                        + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
                 SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())));
 
         logRefreshedHosts(validatedServersToAdd, serversToShutdown, absentServers);
