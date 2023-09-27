@@ -516,7 +516,7 @@ public final class CassandraClientPoolTest {
 
         createClientPool();
 
-        // This test needs updating if we happen to load from config more than twice on initialisation
+        // This test needs updating if we happen to load from config more than once on initialisation
         // This assert is here to flag that it's not the behaviour that's broken, but the test
         verify(cassandra, times(1)).getCurrentServerListFromConfig();
 
