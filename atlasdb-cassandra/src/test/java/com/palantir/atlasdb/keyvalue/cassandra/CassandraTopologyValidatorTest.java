@@ -40,7 +40,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import one.util.streamex.EntryStream;
@@ -475,8 +474,9 @@ public final class CassandraTopologyValidatorTest {
     public void fetchHostIdsReturnsHardFailureWhenException() throws Exception {
         CassandraClientPoolingContainer badContainer = mock(CassandraClientPoolingContainer.class);
         when(badContainer.getCassandraServer()).thenReturn(NEW_HOST_ONE_CASSANDRA_SERVER);
-        when(badContainer.<Optional<Set<String>>, Exception>runWithPooledResource(any()))
-                .thenThrow(new RuntimeException());
+        CassandraClient client = mock(CassandraClient.class);
+        when(client.get_host_ids()).thenThrow(new RuntimeException());
+        mockedCassandraClients.put(NEW_HOST_ONE_CASSANDRA_SERVER, client);
         assertThat(validator.fetchHostIds(badContainer)).isEqualTo(HostIdResult.hardFailure());
     }
 
@@ -484,8 +484,9 @@ public final class CassandraTopologyValidatorTest {
     public void fetchHostIdsReturnsSoftFailureWhenMethodDoesNotExist() throws Exception {
         CassandraClientPoolingContainer badContainer = mock(CassandraClientPoolingContainer.class);
         when(badContainer.getCassandraServer()).thenReturn(NEW_HOST_ONE_CASSANDRA_SERVER);
-        when(badContainer.<Optional<Set<String>>, Exception>runWithPooledResource(any()))
-                .thenThrow(new TApplicationException(TApplicationException.UNKNOWN_METHOD));
+        CassandraClient client = mock(CassandraClient.class);
+        when(client.get_host_ids()).thenThrow(new TApplicationException(TApplicationException.UNKNOWN_METHOD));
+        mockedCassandraClients.put(NEW_HOST_ONE_CASSANDRA_SERVER, client);
         assertThat(validator.fetchHostIds(badContainer)).isEqualTo(HostIdResult.softFailure());
     }
 
@@ -493,8 +494,9 @@ public final class CassandraTopologyValidatorTest {
     public void fetchHostIdsReturnsHardFailureWhenApplicationExceptionIsNotUnknownMethod() throws Exception {
         CassandraClientPoolingContainer badContainer = mock(CassandraClientPoolingContainer.class);
         when(badContainer.getCassandraServer()).thenReturn(NEW_HOST_ONE_CASSANDRA_SERVER);
-        when(badContainer.<Optional<Set<String>>, Exception>runWithPooledResource(any()))
-                .thenThrow(new TApplicationException(TApplicationException.WRONG_METHOD_NAME));
+        CassandraClient client = mock(CassandraClient.class);
+        when(client.get_host_ids()).thenThrow(new TApplicationException(TApplicationException.WRONG_METHOD_NAME));
+        mockedCassandraClients.put(NEW_HOST_ONE_CASSANDRA_SERVER, client);
         assertThat(validator.fetchHostIds(badContainer)).isEqualTo(HostIdResult.hardFailure());
     }
 
