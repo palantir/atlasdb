@@ -184,7 +184,6 @@ public final class NamespacedTodoTable implements
             public NamespacedTodoRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 String namespace = PtBytes.toString(__input, __index, __input.length-__index);
-                __index += 0;
                 return new NamespacedTodoRow(namespace);
             }
         };
@@ -275,8 +274,7 @@ public final class NamespacedTodoTable implements
             @Override
             public NamespacedTodoColumn hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long todoId = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                __index += 8;
+                long todoId = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 return new NamespacedTodoColumn(todoId);
             }
         };
@@ -741,5 +739,5 @@ public final class NamespacedTodoTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "hQ6/1zRsdc2LBKW0GTYdpw==";
+    static String __CLASS_HASH = "0KMTkWzIpSNPRHUjaRS78Q==";
 }

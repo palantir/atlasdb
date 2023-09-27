@@ -201,7 +201,6 @@ public final class SweepableCellsTable implements
                 long timestampPartition = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(timestampPartition);
                 byte[] metadata = EncodingUtils.getBytesFromOffsetToEnd(__input, __index);
-                __index += 0;
                 return new SweepableCellsRow(hashOfRowComponents, timestampPartition, metadata);
             }
         };
@@ -313,7 +312,6 @@ public final class SweepableCellsTable implements
                 long timestampModulus = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(timestampModulus);
                 long writeIndex = EncodingUtils.decodeSignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfSignedVarLong(writeIndex);
                 return new SweepableCellsColumn(timestampModulus, writeIndex);
             }
         };
@@ -791,5 +789,5 @@ public final class SweepableCellsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "kRRSsINJBszPwSYfxAlwFg==";
+    static String __CLASS_HASH = "6dECi+2I9ZH+Ov279pcYtQ==";
 }

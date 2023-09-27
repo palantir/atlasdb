@@ -184,7 +184,6 @@ public final class GenericRangeScanTestTable implements
             public GenericRangeScanTestRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 Sha256Hash component1 = new Sha256Hash(EncodingUtils.get32Bytes(__input, __index));
-                __index += 32;
                 return new GenericRangeScanTestRow(component1);
             }
         };
@@ -276,7 +275,6 @@ public final class GenericRangeScanTestTable implements
             public GenericRangeScanTestColumn hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 String component2 = PtBytes.toString(__input, __index, __input.length-__index);
-                __index += 0;
                 return new GenericRangeScanTestColumn(component2);
             }
         };
@@ -807,5 +805,5 @@ public final class GenericRangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "YkaZuzFs8LBGmT3/H/I5eg==";
+    static String __CLASS_HASH = "CrHC8CYd3pN7BfEmkYogJg==";
 }

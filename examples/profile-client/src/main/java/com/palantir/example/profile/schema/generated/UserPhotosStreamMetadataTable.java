@@ -185,8 +185,7 @@ public final class UserPhotosStreamMetadataTable implements
             @Override
             public UserPhotosStreamMetadataRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(id);
+                long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 return new UserPhotosStreamMetadataRow(id);
             }
         };
@@ -708,5 +707,5 @@ public final class UserPhotosStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "7ViZjlUfW+7BKGwGDvuIww==";
+    static String __CLASS_HASH = "7bQqneesqNh3T9SoqwGaXQ==";
 }

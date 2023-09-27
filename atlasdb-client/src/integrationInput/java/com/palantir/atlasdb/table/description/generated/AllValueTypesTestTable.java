@@ -348,7 +348,6 @@ public final class AllValueTypesTestTable implements
                 UUID component10 = EncodingUtils.decodeUUID(__input, __index);
                 __index += 16;
                 byte[] blobComponent = EncodingUtils.getBytesFromOffsetToEnd(__input, __index);
-                __index += 0;
                 return new AllValueTypesTestRow(component0, component1, component2, component3, component4, component5, component8, component9, component10, blobComponent);
             }
         };
@@ -2133,5 +2132,5 @@ public final class AllValueTypesTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "8ED1ClYWxPcRFR8y49DacA==";
+    static String __CLASS_HASH = "IdCniyyd2ANmSMlwF1CWNQ==";
 }

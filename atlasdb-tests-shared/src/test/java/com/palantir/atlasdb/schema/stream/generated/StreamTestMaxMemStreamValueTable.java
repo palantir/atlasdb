@@ -193,10 +193,9 @@ public final class StreamTestMaxMemStreamValueTable implements
             @Override
             public StreamTestMaxMemStreamValueRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
+                long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(id);
-                Long blockId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(blockId);
+                long blockId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 return new StreamTestMaxMemStreamValueRow(id, blockId);
             }
         };
@@ -695,5 +694,5 @@ public final class StreamTestMaxMemStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "pYIryyxlhArJOo7k0Zv3dA==";
+    static String __CLASS_HASH = "lLPuYDp2Vb/e+lYgjC9m/A==";
 }

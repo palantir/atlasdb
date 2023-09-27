@@ -185,8 +185,7 @@ public final class ValueStreamMetadataTable implements
             @Override
             public ValueStreamMetadataRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(id);
+                long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 return new ValueStreamMetadataRow(id);
             }
         };
@@ -708,5 +707,5 @@ public final class ValueStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "lqzqHpNRg+/IVPQNyNYi8w==";
+    static String __CLASS_HASH = "wJtUD7x1V8oE47tDZQf1lQ==";
 }

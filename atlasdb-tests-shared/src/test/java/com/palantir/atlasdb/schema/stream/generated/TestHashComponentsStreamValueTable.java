@@ -198,12 +198,11 @@ public final class TestHashComponentsStreamValueTable implements
             @Override
             public TestHashComponentsStreamValueRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
+                long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(id);
-                Long blockId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(blockId);
+                long blockId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 return new TestHashComponentsStreamValueRow(hashOfRowComponents, id, blockId);
             }
         };
@@ -710,5 +709,5 @@ public final class TestHashComponentsStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "iDMBVL6YNzaq38VRV2lB/g==";
+    static String __CLASS_HASH = "7hsA1dNWx3h5PJxWO4cUIg==";
 }

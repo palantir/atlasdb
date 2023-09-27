@@ -184,7 +184,6 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
             public StreamTestMaxMemStreamHashAidxRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 Sha256Hash hash = new Sha256Hash(EncodingUtils.get32Bytes(__input, __index));
-                __index += 32;
                 return new StreamTestMaxMemStreamHashAidxRow(hash);
             }
         };
@@ -275,8 +274,7 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
             @Override
             public StreamTestMaxMemStreamHashAidxColumn hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long streamId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(streamId);
+                long streamId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 return new StreamTestMaxMemStreamHashAidxColumn(streamId);
             }
         };
@@ -741,5 +739,5 @@ public final class StreamTestMaxMemStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "QDCK4a9zv6EgLNkYkrAVPQ==";
+    static String __CLASS_HASH = "2xWa4F3zbEH5XTNUIe0kZQ==";
 }

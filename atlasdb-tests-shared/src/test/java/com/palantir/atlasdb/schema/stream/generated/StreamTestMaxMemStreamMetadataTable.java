@@ -185,8 +185,7 @@ public final class StreamTestMaxMemStreamMetadataTable implements
             @Override
             public StreamTestMaxMemStreamMetadataRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(id);
+                long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 return new StreamTestMaxMemStreamMetadataRow(id);
             }
         };
@@ -708,5 +707,5 @@ public final class StreamTestMaxMemStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "k1qnaFkT6dVNCXg3oBI4WQ==";
+    static String __CLASS_HASH = "Yg0fNncEuyxjhLhqzU42cA==";
 }

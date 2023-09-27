@@ -220,7 +220,6 @@ public final class SweepableTimestampsTable implements
                 long timestampPartition = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(timestampPartition);
                 byte[] sweepConservative = EncodingUtils.getBytesFromOffsetToEnd(__input, __index);
-                __index += 0;
                 return new SweepableTimestampsRow(hashOfRowComponents, shard, timestampPartition, sweepConservative);
             }
         };
@@ -323,7 +322,6 @@ public final class SweepableTimestampsTable implements
             public SweepableTimestampsColumn hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 long timestampModulus = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(timestampModulus);
                 return new SweepableTimestampsColumn(timestampModulus);
             }
         };
@@ -788,5 +786,5 @@ public final class SweepableTimestampsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "FKovEp3j6vAydV9KHfv/4Q==";
+    static String __CLASS_HASH = "XqySBVqRPmKhMv7rQgdCuw==";
 }

@@ -203,7 +203,6 @@ public final class HashComponentsTestTable implements
                 long component1 = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(component1);
                 String component2 = EncodingUtils.decodeVarString(__input, __index);
-                __index += EncodingUtils.sizeOfVarString(component2);
                 return new HashComponentsTestRow(hashOfRowComponents, component1, component2);
             }
         };
@@ -788,5 +787,5 @@ public final class HashComponentsTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "EB56JKTE/YiaAD0WFNYA8g==";
+    static String __CLASS_HASH = "JFCKFwjljsA/pF0RqDunaQ==";
 }

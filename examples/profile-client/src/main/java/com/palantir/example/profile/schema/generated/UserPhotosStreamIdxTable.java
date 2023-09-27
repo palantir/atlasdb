@@ -183,8 +183,7 @@ public final class UserPhotosStreamIdxTable implements
             @Override
             public UserPhotosStreamIdxRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(id);
+                long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 return new UserPhotosStreamIdxRow(id);
             }
         };
@@ -276,7 +275,6 @@ public final class UserPhotosStreamIdxTable implements
             public UserPhotosStreamIdxColumn hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 byte[] reference = EncodingUtils.decodeSizedBytes(__input, __index);
-                __index += EncodingUtils.sizeOfSizedBytes(reference);
                 return new UserPhotosStreamIdxColumn(reference);
             }
         };
@@ -741,5 +739,5 @@ public final class UserPhotosStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "evlQwEFn9nzK+VsNjgPIJA==";
+    static String __CLASS_HASH = "/X284H4p8I6Pjhn1TSkwmw==";
 }

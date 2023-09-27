@@ -184,7 +184,6 @@ public final class StreamTestStreamHashAidxTable implements
             public StreamTestStreamHashAidxRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 Sha256Hash hash = new Sha256Hash(EncodingUtils.get32Bytes(__input, __index));
-                __index += 32;
                 return new StreamTestStreamHashAidxRow(hash);
             }
         };
@@ -275,8 +274,7 @@ public final class StreamTestStreamHashAidxTable implements
             @Override
             public StreamTestStreamHashAidxColumn hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long streamId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(streamId);
+                long streamId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 return new StreamTestStreamHashAidxColumn(streamId);
             }
         };
@@ -741,5 +739,5 @@ public final class StreamTestStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "aO3hKAuHYd9vJquk5PiY1w==";
+    static String __CLASS_HASH = "Q4gpslGRh0a0XXgMSMihOw==";
 }

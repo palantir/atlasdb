@@ -198,12 +198,11 @@ public final class KvRowsTable implements
             @Override
             public KvRowsRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
                 String bucket = EncodingUtils.decodeVarString(__input, __index);
                 __index += EncodingUtils.sizeOfVarString(bucket);
-                Long key = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                __index += 8;
+                long key = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 return new KvRowsRow(hashOfRowComponents, bucket, key);
             }
         };
@@ -801,5 +800,5 @@ public final class KvRowsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "E7HBSSSWtvxMljBiJQ/8mg==";
+    static String __CLASS_HASH = "owA2qsWE9yiIOpBDbSVLzg==";
 }

@@ -185,8 +185,7 @@ public final class LatestSnapshotTable implements
             @Override
             public LatestSnapshotRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long key = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                __index += 8;
+                long key = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 return new LatestSnapshotRow(key);
             }
         };
@@ -683,5 +682,5 @@ public final class LatestSnapshotTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "IGBmCsqLmahL4VNCmymeTA==";
+    static String __CLASS_HASH = "6HLCCFK0eks9tZjKEzusHg==";
 }

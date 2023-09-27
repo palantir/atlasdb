@@ -190,10 +190,9 @@ public final class TestHashComponentsStreamMetadataTable implements
             @Override
             public TestHashComponentsStreamMetadataRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(id);
+                long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 return new TestHashComponentsStreamMetadataRow(hashOfRowComponents, id);
             }
         };
@@ -722,5 +721,5 @@ public final class TestHashComponentsStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "j3IJu2gsDa9Zov5ZP9X4Mw==";
+    static String __CLASS_HASH = "zx2sGbz67NzBUnEXtCPJLg==";
 }

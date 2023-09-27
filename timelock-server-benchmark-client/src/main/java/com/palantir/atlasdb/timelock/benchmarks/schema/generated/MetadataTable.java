@@ -190,10 +190,9 @@ public final class MetadataTable implements
             @Override
             public MetadataRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
                 String key = EncodingUtils.decodeVarString(__input, __index);
-                __index += EncodingUtils.sizeOfVarString(key);
                 return new MetadataRow(hashOfRowComponents, key);
             }
         };
@@ -773,5 +772,5 @@ public final class MetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "MVgxOXWoD/e8wdW5v1b6og==";
+    static String __CLASS_HASH = "4UGfCaUWZyukLfhe6pmMFQ==";
 }

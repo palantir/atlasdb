@@ -203,7 +203,6 @@ public final class SweepShardProgressTable implements
                 long shard = EncodingUtils.decodeSignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfSignedVarLong(shard);
                 byte[] sweepConservative = EncodingUtils.getBytesFromOffsetToEnd(__input, __index);
-                __index += 0;
                 return new SweepShardProgressRow(hashOfRowComponents, shard, sweepConservative);
             }
         };
@@ -709,5 +708,5 @@ public final class SweepShardProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "9dlQJAgP79tNkzm2LTn+Dg==";
+    static String __CLASS_HASH = "SvNu5DSDRhu6PrqJw5CVSA==";
 }

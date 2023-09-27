@@ -198,12 +198,11 @@ public final class DataStreamValueTable implements
             @Override
             public DataStreamValueRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
+                long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(id);
-                Long blockId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(blockId);
+                long blockId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 return new DataStreamValueRow(hashOfRowComponents, id, blockId);
             }
         };
@@ -710,5 +709,5 @@ public final class DataStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "hogeDv0tsmrHDkXuhcwteQ==";
+    static String __CLASS_HASH = "uLIifazHIhaTNcmyxPSogw==";
 }

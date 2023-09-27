@@ -186,7 +186,6 @@ public final class TableClearsTable implements
             public TableClearsRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 String table = PtBytes.toString(__input, __index, __input.length-__index);
-                __index += 0;
                 return new TableClearsRow(table);
             }
         };
@@ -683,5 +682,5 @@ public final class TableClearsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Wm/9d03F9WHgPC5jjTUOaA==";
+    static String __CLASS_HASH = "g9VvRKGTKPXfDJSGLE056Q==";
 }

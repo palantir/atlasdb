@@ -191,7 +191,6 @@ public final class SweepIdToNameTable implements
                 long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
                 String singleton = PtBytes.toString(__input, __index, __input.length-__index);
-                __index += 0;
                 return new SweepIdToNameRow(hashOfRowComponents, singleton);
             }
         };
@@ -291,7 +290,6 @@ public final class SweepIdToNameTable implements
             public SweepIdToNameColumn hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 long tableId = EncodingUtils.decodeFlippedUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(tableId);
                 return new SweepIdToNameColumn(tableId);
             }
         };
@@ -756,5 +754,5 @@ public final class SweepIdToNameTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "zJX8CsYGyoPYsSpSvWpdAg==";
+    static String __CLASS_HASH = "cwSaXwKpPy2D0gsQd248bA==";
 }

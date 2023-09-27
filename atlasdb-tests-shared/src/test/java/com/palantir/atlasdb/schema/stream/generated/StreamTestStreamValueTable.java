@@ -193,10 +193,9 @@ public final class StreamTestStreamValueTable implements
             @Override
             public StreamTestStreamValueRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
+                long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(id);
-                Long blockId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(blockId);
+                long blockId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 return new StreamTestStreamValueRow(id, blockId);
             }
         };
@@ -695,5 +694,5 @@ public final class StreamTestStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "/Af3nGP1PVa3CpaveqZwGA==";
+    static String __CLASS_HASH = "IgW+W5zvnGsmgpCrVoi6kw==";
 }

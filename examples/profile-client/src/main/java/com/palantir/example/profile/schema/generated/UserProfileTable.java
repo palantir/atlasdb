@@ -186,7 +186,6 @@ public final class UserProfileTable implements
             public UserProfileRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 UUID id = EncodingUtils.decodeUUID(__input, __index);
-                __index += 16;
                 return new UserProfileRow(id);
             }
         };
@@ -1272,7 +1271,6 @@ public final class UserProfileTable implements
                 public CookiesIdxRow hydrateFromBytes(byte[] __input) {
                     int __index = 0;
                     String cookie = PtBytes.toString(__input, __index, __input.length-__index);
-                    __index += 0;
                     return new CookiesIdxRow(cookie);
                 }
             };
@@ -1393,7 +1391,6 @@ public final class UserProfileTable implements
                     byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
                     UUID id = EncodingUtils.decodeUUID(__input, __index);
-                    __index += 16;
                     return new CookiesIdxColumn(rowName, columnName, id);
                 }
             };
@@ -1965,8 +1962,7 @@ public final class UserProfileTable implements
                 @Override
                 public CreatedIdxRow hydrateFromBytes(byte[] __input) {
                     int __index = 0;
-                    Long time = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                    __index += EncodingUtils.sizeOfUnsignedVarLong(time);
+                    long time = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                     return new CreatedIdxRow(time);
                 }
             };
@@ -2087,7 +2083,6 @@ public final class UserProfileTable implements
                     byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
                     UUID id = EncodingUtils.decodeUUID(__input, __index);
-                    __index += 16;
                     return new CreatedIdxColumn(rowName, columnName, id);
                 }
             };
@@ -2659,8 +2654,7 @@ public final class UserProfileTable implements
                 @Override
                 public UserBirthdaysIdxRow hydrateFromBytes(byte[] __input) {
                     int __index = 0;
-                    Long birthday = EncodingUtils.decodeSignedVarLong(__input, __index);
-                    __index += EncodingUtils.sizeOfSignedVarLong(birthday);
+                    long birthday = EncodingUtils.decodeSignedVarLong(__input, __index);
                     return new UserBirthdaysIdxRow(birthday);
                 }
             };
@@ -2781,7 +2775,6 @@ public final class UserProfileTable implements
                     byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
                     UUID id = EncodingUtils.decodeUUID(__input, __index);
-                    __index += 16;
                     return new UserBirthdaysIdxColumn(rowName, columnName, id);
                 }
             };
@@ -3342,5 +3335,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "FUR78HF+b7t9uXpBh7oYCQ==";
+    static String __CLASS_HASH = "dBpLe0vVyWJzQunILdUN2g==";
 }

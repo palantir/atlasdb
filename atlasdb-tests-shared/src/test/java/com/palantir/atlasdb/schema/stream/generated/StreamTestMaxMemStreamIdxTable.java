@@ -183,8 +183,7 @@ public final class StreamTestMaxMemStreamIdxTable implements
             @Override
             public StreamTestMaxMemStreamIdxRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(id);
+                long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 return new StreamTestMaxMemStreamIdxRow(id);
             }
         };
@@ -276,7 +275,6 @@ public final class StreamTestMaxMemStreamIdxTable implements
             public StreamTestMaxMemStreamIdxColumn hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 byte[] reference = EncodingUtils.decodeSizedBytes(__input, __index);
-                __index += EncodingUtils.sizeOfSizedBytes(reference);
                 return new StreamTestMaxMemStreamIdxColumn(reference);
             }
         };
@@ -741,5 +739,5 @@ public final class StreamTestMaxMemStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "ZrY7oPqs4lWL5Vm3ZAOfyQ==";
+    static String __CLASS_HASH = "FAkSXmHk8gPsoI+9LOB3uA==";
 }
