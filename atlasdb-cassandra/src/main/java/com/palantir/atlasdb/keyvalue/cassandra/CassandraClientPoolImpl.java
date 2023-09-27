@@ -273,15 +273,16 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     // TODO(mdaudali): We can inline this into runAndScheduleNextRefresh once #6753 is merged
     private void scheduleNextRefresh(int attempt) {
         if (getCurrentPools().isEmpty()) {
+            int maxShift = Math.min(MAX_ATTEMPTS_BEFORE_CAPPING_BACKOFF, attempt);
+            int secondsTillNextRefresh = ThreadLocalRandom.current().nextInt(1 << maxShift);
+            refreshPoolFuture = refreshDaemon.schedule(
+                    () -> runAndScheduleNextRefresh(attempt + 1), secondsTillNextRefresh, TimeUnit.SECONDS);
             log.error(
                     "There are no pools remaining after refreshing and validating pools. Scheduling the next refresh"
                             + " very soon to avoid an extended downtime.",
-                    SafeArg.of("attempt", attempt));
-            int maxShift = Math.min(MAX_ATTEMPTS_BEFORE_CAPPING_BACKOFF, attempt);
-            refreshPoolFuture = refreshDaemon.schedule(
-                    () -> runAndScheduleNextRefresh(attempt + 1),
-                    ThreadLocalRandom.current().nextInt(1 << maxShift),
-                    TimeUnit.SECONDS);
+                    SafeArg.of("attempt", attempt),
+                    SafeArg.of("secondsTillNextRefresh", secondsTillNextRefresh));
+
         } else {
             refreshPoolFuture = refreshDaemon.schedule(
                     () -> runAndScheduleNextRefresh(0), config.poolRefreshIntervalSeconds(), TimeUnit.SECONDS);
