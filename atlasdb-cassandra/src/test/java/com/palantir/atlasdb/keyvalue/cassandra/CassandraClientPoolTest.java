@@ -498,7 +498,6 @@ public final class CassandraClientPoolTest {
         setupThriftServers(Set.of());
         refreshPool();
 
-
         for (int i = 0; i < 10; i++) {
             int shift = Math.min(i, CassandraClientPoolImpl.MAX_ATTEMPTS_BEFORE_CAPPING_BACKOFF);
             deterministicExecutor.tick(i << shift, TimeUnit.SECONDS);
