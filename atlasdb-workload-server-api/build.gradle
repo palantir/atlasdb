@@ -4,8 +4,8 @@ dependencies {
     api 'io.vavr:vavr'
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
-    implementation 'com.fasterxml.jackson.core:jackson-core'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.google.errorprone:error_prone_annotations'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.google.guava:guava'
 

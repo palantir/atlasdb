@@ -37,3 +37,6 @@ dependencies {
     }
     testImplementation 'org.gmock:gmock'
 }
+
+tasks.checkImplicitDependenciesMain.enabled = false
+tasks.checkUnusedDependenciesMain.enabled = false

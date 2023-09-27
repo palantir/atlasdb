@@ -4,19 +4,20 @@ schemas = [
         'com.palantir.atlasdb.todo.TodoSchema'
 ]
 
+versionsLock {
+    testProject()
+}
+
 dependencies {
     api project(':atlasdb-api')
     implementation project(':atlasdb-client')
 
     implementation 'junit:junit'
-    implementation 'commons-io:commons-io'
-    implementation 'javax.annotation:javax.annotation-api'
     implementation 'org.assertj:assertj-core'
     implementation 'com.google.guava:guava'
     implementation 'com.google.protobuf:protobuf-java'
-    implementation 'com.palantir.common:streams'
     implementation 'com.palantir.safe-logging:safe-logging'
-    implementation 'org.slf4j:slf4j-api'
+    implementation 'com.palantir.safe-logging:preconditions'
     implementation project(':atlasdb-client-protobufs')
     implementation project(':atlasdb-commons')
 }

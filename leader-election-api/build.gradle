@@ -2,7 +2,7 @@ apply from: "../gradle/shared.gradle"
 
 libsDirName = file('build/artifacts')
 dependencies {
-  implementation project(":atlasdb-commons")
+  api project(":atlasdb-commons")
   implementation project(":leader-election-api-protobufs")
   implementation 'org.apache.commons:commons-lang3'
   implementation 'javax.ws.rs:javax.ws.rs-api'
