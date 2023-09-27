@@ -257,7 +257,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         metrics.registerAggregateMetrics(blacklist::size);
     }
 
-    private void runAndScheduleNextRefresh(int attempt) {
+    private void runAndScheduleNextRefresh(int consecutivelyFailedAttempts) {
         try {
             refreshPool();
         } catch (Throwable t) {
@@ -267,22 +267,22 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                     t);
         }
 
-        scheduleNextRefresh(attempt);
+        scheduleNextRefresh(consecutivelyFailedAttempts);
     }
 
     // TODO(mdaudali): We can inline this into runAndScheduleNextRefresh once #6753 is merged
-    private void scheduleNextRefresh(int attempt) {
+    private void scheduleNextRefresh(int consecutivelyFailedAttempts) {
         if (getCurrentPools().isEmpty()) {
-            int maxShift = Math.min(MAX_ATTEMPTS_BEFORE_CAPPING_BACKOFF, attempt);
+            int maxShift = Math.min(MAX_ATTEMPTS_BEFORE_CAPPING_BACKOFF, consecutivelyFailedAttempts);
 
             // Caps out at 2^7 * 1000 = 64000
-            int millisTillNextRefresh = Math.max(1, ThreadLocalRandom.current().nextInt((1 << maxShift) * 1000));
+            int millisTillNextRefresh = Math.max(1, ThreadLocalRandom.current().nextInt((1 << maxShift) * Duration.SECONDS.toMillis()));
             refreshPoolFuture = refreshDaemon.schedule(
                     () -> runAndScheduleNextRefresh(attempt + 1), millisTillNextRefresh, TimeUnit.MILLISECONDS);
             log.error(
                     "There are no pools remaining after refreshing and validating pools. Scheduling the next refresh"
                             + " very soon to avoid an extended downtime.",
-                    SafeArg.of("attempt", attempt),
+                    SafeArg.of("consecutivelyFailedAttempts", consecutivelyFailedAttempts),
                     SafeArg.of("millisTillNextRefresh", millisTillNextRefresh));
 
         } else {
