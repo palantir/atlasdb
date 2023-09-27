@@ -500,7 +500,7 @@ public final class CassandraClientPoolTest {
 
         for (int i = 0; i < 10; i++) {
             int shift = Math.min(i, CassandraClientPoolImpl.MAX_ATTEMPTS_BEFORE_CAPPING_BACKOFF);
-            deterministicExecutor.tick(i << shift, TimeUnit.SECONDS);
+            deterministicExecutor.tick(Math.max(1, i << shift), TimeUnit.SECONDS);
             // autoRefresh is false, so we'll get servers from config, and we've already loaded from config once in
             // the initial loading of servers, and then once to flush the pool
             verify(cassandra, atLeast(3 + i)).getCurrentServerListFromConfig();

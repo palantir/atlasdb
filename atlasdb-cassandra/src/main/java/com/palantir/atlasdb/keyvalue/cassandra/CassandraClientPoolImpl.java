@@ -69,7 +69,7 @@ import one.util.streamex.EntryStream;
  **/
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class CassandraClientPoolImpl implements CassandraClientPool {
-    // 2 ** 7 is 64, which is close enough to a minute when interpreted as seconds
+    // 2^7 is 64, which is close enough to a minute when interpreted as seconds
     public static final int MAX_ATTEMPTS_BEFORE_CAPPING_BACKOFF = 7;
     private static final InitializeableScheduledExecutorServiceSupplier SHARED_EXECUTOR_SUPPLIER =
             new InitializeableScheduledExecutorServiceSupplier(
@@ -274,14 +274,16 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private void scheduleNextRefresh(int attempt) {
         if (getCurrentPools().isEmpty()) {
             int maxShift = Math.min(MAX_ATTEMPTS_BEFORE_CAPPING_BACKOFF, attempt);
-            int secondsTillNextRefresh = ThreadLocalRandom.current().nextInt(1 << maxShift);
+
+            // Caps out at 2^7 * 1000 = 64000
+            int millisTillNextRefresh = Math.max(1, ThreadLocalRandom.current().nextInt((1 << maxShift) * 1000));
             refreshPoolFuture = refreshDaemon.schedule(
-                    () -> runAndScheduleNextRefresh(attempt + 1), secondsTillNextRefresh, TimeUnit.SECONDS);
+                    () -> runAndScheduleNextRefresh(attempt + 1), millisTillNextRefresh, TimeUnit.MILLISECONDS);
             log.error(
                     "There are no pools remaining after refreshing and validating pools. Scheduling the next refresh"
                             + " very soon to avoid an extended downtime.",
                     SafeArg.of("attempt", attempt),
-                    SafeArg.of("secondsTillNextRefresh", secondsTillNextRefresh));
+                    SafeArg.of("millisTillNextRefresh", millisTillNextRefresh));
 
         } else {
             refreshPoolFuture = refreshDaemon.schedule(
