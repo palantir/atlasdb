@@ -269,3 +269,8 @@ acceptedBreaks:
         \ com.palantir.lock.client.TimeLockClient>)"
       justification: "None of the impacted classes are used or inherited from any\
         \ other library or product"
+  "0.941.0":
+    com.palantir.atlasdb:atlasdb-cassandra:
+    - code: "java.method.removed"
+      old: "method void com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService::cacheInitialCassandraHosts()"
+      justification: "Only used internally"
