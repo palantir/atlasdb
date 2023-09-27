@@ -231,7 +231,9 @@ class RowOrDynamicColumnRenderer extends Renderer {
             {
                 line("int __index = 0;");
                 List<String> vars = new ArrayList<>();
-                for (NameComponentDescription comp : desc.getRowParts()) {
+                List<NameComponentDescription> rowParts = desc.getRowParts();
+                for (int i = 0; i < rowParts.size(); i++) {
+                    NameComponentDescription comp = rowParts.get(i);
                     String var = varName(comp);
                     vars.add(var);
                     if (comp.getOrder() == ValueByteOrder.ASCENDING) {
@@ -245,7 +247,9 @@ class RowOrDynamicColumnRenderer extends Renderer {
                                 comp.getType().getFlippedHydrateCode("__input", "__index"),
                                 ";");
                     }
-                    line("__index += ", comp.getType().getHydrateSizeCode(var), ";");
+                    if (i < rowParts.size() - 1) {
+                        line("__index += ", comp.getType().getHydrateSizeCode(var), ";");
+                    }
                 }
                 line("return new ", Name, "(", Joiner.on(", ").join(vars), ");");
             }
