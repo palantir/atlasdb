@@ -44,10 +44,10 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import one.util.streamex.EntryStream;
 
@@ -69,10 +69,8 @@ import one.util.streamex.EntryStream;
  **/
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class CassandraClientPoolImpl implements CassandraClientPool {
-    // 2 ** 7 is 64, which is close enough to a minute
+    // 2 ** 7 is 64, which is close enough to a minute when interpreted as seconds
     public static final int MAX_ATTEMPTS_BEFORE_CAPPING_BACKOFF = 7;
-    private static final Random RANDOM = new Random();
-
     private static final InitializeableScheduledExecutorServiceSupplier SHARED_EXECUTOR_SUPPLIER =
             new InitializeableScheduledExecutorServiceSupplier(
                     new NamedThreadFactory("CassandraClientPoolRefresh", true));
@@ -275,7 +273,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                     SafeArg.of("attempt", attempt));
             int maxShift = Math.min(MAX_ATTEMPTS_BEFORE_CAPPING_BACKOFF, attempt);
             refreshPoolFuture = refreshDaemon.schedule(
-                    () -> runAndScheduleNextRefresh(attempt + 1), RANDOM.nextInt(1 << maxShift), TimeUnit.SECONDS);
+                    () -> runAndScheduleNextRefresh(attempt + 1),
+                    ThreadLocalRandom.current().nextInt(1 << maxShift),
+                    TimeUnit.SECONDS);
         } else {
             refreshPoolFuture = refreshDaemon.schedule(
                     () -> runAndScheduleNextRefresh(0), config.poolRefreshIntervalSeconds(), TimeUnit.SECONDS);
