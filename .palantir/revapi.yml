@@ -274,3 +274,9 @@ acceptedBreaks:
     - code: "java.method.removed"
       old: "method void com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService::cacheInitialCassandraHosts()"
       justification: "Only used internally"
+    - code: "java.method.visibilityReduced"
+      old: "method void com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator::<init>(com.palantir.atlasdb.CassandraTopologyValidationMetrics)"
+      new: "method void com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator::<init>(com.palantir.atlasdb.CassandraTopologyValidationMetrics,\
+        \ com.palantir.common.base.FunctionCheckedException<com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraClient, org.apache.thrift.TException>)"
+      justification: "Only used internally"
