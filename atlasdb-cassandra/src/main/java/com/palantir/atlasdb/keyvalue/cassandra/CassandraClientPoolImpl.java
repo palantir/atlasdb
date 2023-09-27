@@ -48,6 +48,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import one.util.streamex.EntryStream;
 
@@ -69,6 +71,8 @@ import one.util.streamex.EntryStream;
  **/
 @SuppressWarnings("checkstyle:FinalClass") // non-final for mocking
 public class CassandraClientPoolImpl implements CassandraClientPool {
+    // 2^7 is 64, which is close enough to a minute when interpreted as seconds
+    public static final int MAX_ATTEMPTS_BEFORE_CAPPING_BACKOFF = 7;
     private static final InitializeableScheduledExecutorServiceSupplier SHARED_EXECUTOR_SUPPLIER =
             new InitializeableScheduledExecutorServiceSupplier(
                     new NamedThreadFactory("CassandraClientPoolRefresh", true));
@@ -116,7 +120,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private final CassandraAbsentHostTracker absentHostTracker;
     private final CassandraTopologyValidator cassandraTopologyValidator;
 
-    private ScheduledFuture<?> refreshPoolFuture;
+    private volatile ScheduledFuture<?> refreshPoolFuture;
 
     @VisibleForTesting
     static CassandraClientPoolImpl createImplForTest(
@@ -255,27 +259,48 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Set<CassandraServer> validatedServers = getCachedServers();
         logStartupValidationResults(cassandraServers, validatedServers);
 
-        refreshPoolFuture = refreshDaemon.scheduleWithFixedDelay(
-                () -> {
-                    try {
-                        refreshPool();
-                    } catch (Throwable t) {
-                        log.warn(
-                                "Failed to refresh Cassandra KVS pool."
-                                        + " Extended periods of being unable to refresh will cause perf degradation.",
-                                t);
-                    }
-                },
-                config.poolRefreshIntervalSeconds(),
-                config.poolRefreshIntervalSeconds(),
-                TimeUnit.SECONDS);
-
         // for testability, mock/spy are bad at mockability of things called in constructors
         if (startupChecks == StartupChecks.RUN) {
             runOneTimeStartupChecks();
         }
-        refreshPool(); // ensure we've initialized before returning
+        runAndScheduleNextRefresh(0);
         metrics.registerAggregateMetrics(blacklist::size);
+    }
+
+    private void runAndScheduleNextRefresh(int consecutivelyFailedAttempts) {
+        try {
+            refreshPool();
+        } catch (Throwable t) {
+            log.warn(
+                    "Failed to refresh Cassandra KVS pool."
+                            + " Extended periods of being unable to refresh will cause perf degradation.",
+                    t);
+        }
+
+        scheduleNextRefresh(consecutivelyFailedAttempts);
+    }
+
+    private void scheduleNextRefresh(int consecutivelyFailedAttempts) {
+        if (getCurrentPools().isEmpty()) {
+            int maxShift = Math.min(MAX_ATTEMPTS_BEFORE_CAPPING_BACKOFF, consecutivelyFailedAttempts);
+
+            // Caps out at 2^7 * 1000 = 64000
+            long millisTillNextRefresh =
+                    Math.max(1, ThreadLocalRandom.current().nextLong(TimeUnit.SECONDS.toMillis(1L << maxShift)));
+            refreshPoolFuture = refreshDaemon.schedule(
+                    () -> runAndScheduleNextRefresh(consecutivelyFailedAttempts + 1),
+                    millisTillNextRefresh,
+                    TimeUnit.MILLISECONDS);
+            log.error(
+                    "There are no pools remaining after refreshing and validating pools. Scheduling the next refresh"
+                            + " very soon to avoid an extended downtime.",
+                    SafeArg.of("consecutivelyFailedAttempts", consecutivelyFailedAttempts),
+                    SafeArg.of("millisTillNextRefresh", millisTillNextRefresh));
+
+        } else {
+            refreshPoolFuture = refreshDaemon.schedule(
+                    () -> runAndScheduleNextRefresh(0), config.poolRefreshIntervalSeconds(), TimeUnit.SECONDS);
+        }
     }
 
     private static void logStartupValidationResults(
@@ -318,7 +343,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private void cancelRefreshPoolTaskIfRunning() {
-        if (refreshPoolFuture != null) {
+        // It's possible for the cancelled refreshPoolFuture to schedule another task before terminating. If it does
+        // schedule another task, we can just cancel that one too.
+        while (refreshPoolFuture != null && !refreshPoolFuture.isCancelled()) {
             refreshPoolFuture.cancel(true);
         }
     }

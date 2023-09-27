@@ -16,13 +16,14 @@
 
 package com.datastax.driver.core;
 
+import com.google.common.io.BaseEncoding;
 import java.nio.ByteBuffer;
-import javax.xml.bind.DatatypeConverter;
 
 // Utility class - it's in com.datastax.driver.core package in order to allow us to create Tokens and TokenRanges
 // on the fly for unit testing purposes.
 public final class CassandraTokenRanges {
     private static final Token.Factory FACTORY = Token.OPPToken.FACTORY;
+    private static final BaseEncoding HEX = BaseEncoding.base16().lowerCase();
 
     private CassandraTokenRanges() {
         // utility class
@@ -37,7 +38,7 @@ public final class CassandraTokenRanges {
     }
 
     public static Token getToken(String hexBinary) {
-        return FACTORY.hash(ByteBuffer.wrap(DatatypeConverter.parseHexBinary(hexBinary)));
+        return FACTORY.hash(ByteBuffer.wrap(HEX.decode(hexBinary)));
     }
 
     public static Token getToken(ByteBuffer byteBuffer) {

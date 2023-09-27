@@ -24,6 +24,10 @@ task runUnitTestsForPrintLogsInChronologicalOrderScript(type: Exec) {
 
 check.dependsOn runUnitTestsForPrintLogsInChronologicalOrderScript
 
+versionsLock {
+    testProject()
+}
+
 dependencies {
     implementation project(':atlasdb-config')
 
@@ -32,7 +36,6 @@ dependencies {
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
     implementation 'com.google.guava:guava'
     implementation 'org.clojure:clojure'
-    implementation 'org.slf4j:slf4j-api'
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.google.errorprone:error_prone_annotations'
@@ -43,6 +46,7 @@ dependencies {
     implementation 'com.palantir.refreshable:refreshable'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'com.palantir.tritium:tritium-registry'
     implementation project(':atlasdb-api')
     implementation project(':atlasdb-commons')
     implementation project(':atlasdb-impl-shared')
@@ -50,7 +54,8 @@ dependencies {
     implementation project(':commons-executors')
     implementation project(':lock-api')
     implementation project(':lock-api-objects')
-    implementation project(':timelock-api:timelock-api-objects')
+    implementation project(':timelock-api')
+    implementation project(':timelock-api:timelock-api-jersey')
     implementation project(':timestamp-api')
 
     testImplementation 'com.palantir.common:streams'

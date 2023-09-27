@@ -1,12 +1,9 @@
 apply from: '../gradle/shared.gradle'
 
 dependencies {
-  implementation project(':commons-executors')
-
   implementation 'com.palantir.refreshable:refreshable'
   implementation 'com.palantir.conjure.java.api:service-config'
   implementation 'com.palantir.conjure.java.runtime:keystores'
-  implementation 'com.palantir.conjure.java.runtime:refresh-utils'
   implementation 'com.palantir.common:streams'
 
   implementation 'com.fasterxml.jackson.core:jackson-annotations'

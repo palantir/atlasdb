@@ -1,6 +1,10 @@
 
 apply from: "../gradle/shared.gradle"
 
+versionsLock {
+    testProject()
+}
+
 dependencies {
     testImplementation 'com.google.guava:guava'
     testImplementation 'org.apache.thrift:libthrift'

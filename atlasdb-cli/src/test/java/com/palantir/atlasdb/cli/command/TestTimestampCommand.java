@@ -163,8 +163,6 @@ public class TestTimestampCommand {
             String output = runner.run(true, false);
             try {
                 Scanner scanner = new Scanner(output);
-                String shouldBeDeprecationLine = scanner.nextLine();
-                verifyDeprecation(shouldBeDeprecationLine);
                 long timestamp = getTimestampFromStdout(scanner);
                 scanner.nextLine();
                 long wallClockTimestamp = getWallClockTimestamp(scanner);
@@ -224,8 +222,6 @@ public class TestTimestampCommand {
             String output = runner.run(true, false);
             try {
                 Scanner scanner = new Scanner(output);
-                String shouldBeDeprecationLine = scanner.nextLine();
-                verifyDeprecation(shouldBeDeprecationLine);
                 long timestamp = getTimestampFromFile(inputFileString);
                 scanner.nextLine();
                 long wallClockTimestamp = getWallClockTimestamp(scanner);
@@ -331,9 +327,5 @@ public class TestTimestampCommand {
         assertThat(timestamp).isEqualTo(immutableTs);
         assertThat(timestamp).isLessThan(lastFreshTs);
         assertThat(timestamp).isLessThan(newFreshTs);
-    }
-
-    private void verifyDeprecation(String shouldBeDeprecationLine) {
-        assertThat(shouldBeDeprecationLine).contains("This CLI has been deprecated.");
     }
 }

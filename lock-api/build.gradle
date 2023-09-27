@@ -12,6 +12,7 @@ libsDirName = file('build/artifacts')
 dependencies {
     api project(':lock-conjure-api:lock-conjure-api-dialogue')
     api project(':lock-api-objects')
+    api project(':timelock-api')
     api project(':timelock-api:timelock-api-dialogue')
     api project(':timelock-api:timelock-api-jersey')
     api project(":timestamp-api")
@@ -27,14 +28,12 @@ dependencies {
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.refreshable:refreshable'
     implementation 'com.palantir.tritium:tritium-ids'
-    implementation 'one.util:streamex'
 
     implementation 'com.google.guava:guava'
     implementation 'com.palantir.common:streams'
     implementation 'com.palantir.conjure.java:conjure-lib'
     implementation 'com.palantir.tokens:auth-tokens'
     implementation 'io.dropwizard.metrics:metrics-core'
-    implementation 'org.slf4j:slf4j-api'
     implementation project(':commons-annotations')
     implementation project(':commons-executors')
     implementation project(':lock-conjure-api:lock-conjure-api-objects')
@@ -47,6 +46,7 @@ dependencies {
     testImplementation 'com.palantir.common:streams'
     testImplementation 'com.palantir.safe-logging:preconditions-assertj'
     testImplementation 'io.dropwizard.metrics:metrics-core'
+    testImplementation 'one.util:streamex'
     testImplementation 'org.slf4j:slf4j-api'
     testImplementation project(':atlasdb-api')
     testImplementation project(':lock-api-objects')

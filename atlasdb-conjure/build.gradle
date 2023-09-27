@@ -5,10 +5,8 @@ dependencies {
   implementation project(':atlasdb-commons')
 
   implementation 'com.palantir.refreshable:refreshable'
-  implementation 'com.palantir.dialogue:dialogue-clients'
   implementation 'com.palantir.dialogue:dialogue-serde'
   implementation 'com.palantir.conjure.java.runtime:conjure-java-jaxrs-client'
-  implementation 'com.palantir.tritium:tritium-lib'
   implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.google.guava:guava'
   implementation 'com.palantir.common:streams'
@@ -17,6 +15,7 @@ dependencies {
   implementation 'com.palantir.conjure.java.api:ssl-config'
   implementation 'com.palantir.conjure.java.runtime:client-config'
   implementation 'com.palantir.conjure.java.runtime:conjure-java-jaxrs-client'
+  implementation 'com.palantir.conjure.java.runtime:conjure-java-legacy-clients'
   implementation 'com.palantir.conjure.java.runtime:keystores'
   implementation 'com.palantir.dialogue:dialogue-target'
   implementation 'com.palantir.safe-logging:preconditions'

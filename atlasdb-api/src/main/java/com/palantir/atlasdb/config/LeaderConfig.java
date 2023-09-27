@@ -25,7 +25,6 @@ import java.io.File;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
-import javax.validation.constraints.Size;
 import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableLeaderConfig.class)
@@ -48,7 +47,6 @@ public abstract class LeaderConfig {
 
     public abstract String localServer();
 
-    @Size(min = 1)
     public abstract Set<String> leaders();
 
     public abstract Optional<SslConfiguration> sslConfiguration();

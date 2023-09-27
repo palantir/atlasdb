@@ -15,16 +15,19 @@ configurations.all {
     }
 }
 
+versionsLock {
+    testProject()
+}
+
 dependencies {
-    implementation 'ch.qos.logback:logback-classic'
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.google.errorprone:error_prone_annotations'
     implementation 'com.google.guava:guava'
     implementation 'com.google.protobuf:protobuf-java'
-    implementation 'com.palantir.common:streams'
     implementation 'com.palantir.docker.compose:docker-compose-rule-core'
     implementation 'com.palantir.docker.compose:docker-compose-rule-junit4'
+    implementation 'com.palantir.refreshable:refreshable'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'commons-io:commons-io'
@@ -35,7 +38,6 @@ dependencies {
     implementation 'org.awaitility:awaitility'
     implementation 'org.openjdk.jmh:jmh-core'
     implementation 'org.reflections:reflections'
-    implementation 'org.slf4j:slf4j-api'
     implementation project(':atlasdb-api')
     implementation project(':atlasdb-cassandra')
     implementation project(':atlasdb-client')
