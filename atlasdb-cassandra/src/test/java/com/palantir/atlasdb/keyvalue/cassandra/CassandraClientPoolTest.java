@@ -486,13 +486,25 @@ public final class CassandraClientPoolTest {
 
     @Test
     public void refreshOccursInSecondsWhenNoPoolsAvailable() {
+        // We need to succeed initialisation, which would fail if there are no servers!
+        setupHostsWithConsistentTopology();
+        setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy()));
+        setCassandraServersTo(CASS_SERVER_1);
+
         createClientPool();
+
+        // And then we want to empty the pool, now that we've successfully started
+        setCassandraServersTo();
+        setupThriftServers(Set.of());
+        refreshPool();
+
+
         for (int i = 0; i < 10; i++) {
             int shift = Math.min(i, CassandraClientPoolImpl.MAX_ATTEMPTS_BEFORE_CAPPING_BACKOFF);
             deterministicExecutor.tick(i << shift, TimeUnit.SECONDS);
             // autoRefresh is false, so we'll get servers from config, and we've already loaded from config once in
-            // the initial loading of servers
-            verify(cassandra, atLeast(2 + i)).getCurrentServerListFromConfig();
+            // the initial loading of servers, and then once to flush the pool
+            verify(cassandra, atLeast(3 + i)).getCurrentServerListFromConfig();
         }
     }
 
@@ -503,9 +515,9 @@ public final class CassandraClientPoolTest {
         setCassandraServersTo(CASS_SERVER_1);
 
         createClientPool();
+
         // This test needs updating if we happen to load from config more than twice on initialisation
         // This assert is here to flag that it's not the behaviour that's broken, but the test
-
         verify(cassandra, times(1)).getCurrentServerListFromConfig();
 
         int secondsToRefreshBy = POOL_REFRESH_INTERVAL_SECONDS / 10;

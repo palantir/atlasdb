@@ -252,7 +252,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         if (startupChecks == StartupChecks.RUN) {
             runOneTimeStartupChecks();
         }
-        runAndScheduleNextRefresh(0); // ensure we've initialized before returning
+        refreshPool(); // ensure we've initialized before returning
+        scheduleNextRefresh(0);
         metrics.registerAggregateMetrics(blacklist::size);
     }
 
@@ -266,6 +267,11 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                     t);
         }
 
+        scheduleNextRefresh(attempt);
+    }
+
+    // TODO(mdaudali): We can inline this into runAndScheduleNextRefresh once #6753 is merged
+    private void scheduleNextRefresh(int attempt) {
         if (getCurrentPools().isEmpty()) {
             log.error(
                     "There are no pools remaining after refreshing and validating pools. Scheduling the next refresh"
