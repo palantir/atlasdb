@@ -276,9 +276,12 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             int maxShift = Math.min(MAX_ATTEMPTS_BEFORE_CAPPING_BACKOFF, consecutivelyFailedAttempts);
 
             // Caps out at 2^7 * 1000 = 64000
-            int millisTillNextRefresh = Math.max(1, ThreadLocalRandom.current().nextInt((1 << maxShift) * Duration.SECONDS.toMillis()));
+            long millisTillNextRefresh =
+                    Math.max(1, ThreadLocalRandom.current().nextLong(TimeUnit.SECONDS.toMillis(1L << maxShift)));
             refreshPoolFuture = refreshDaemon.schedule(
-                    () -> runAndScheduleNextRefresh(attempt + 1), millisTillNextRefresh, TimeUnit.MILLISECONDS);
+                    () -> runAndScheduleNextRefresh(consecutivelyFailedAttempts + 1),
+                    millisTillNextRefresh,
+                    TimeUnit.MILLISECONDS);
             log.error(
                     "There are no pools remaining after refreshing and validating pools. Scheduling the next refresh"
                             + " very soon to avoid an extended downtime.",
