@@ -26,7 +26,9 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.CassandraTopologyValidationMetrics;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
+import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -43,16 +45,34 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import one.util.streamex.EntryStream;
 import org.apache.thrift.TApplicationException;
+import org.apache.thrift.TException;
 import org.immutables.value.Value;
 
 public final class CassandraTopologyValidator {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraTopologyValidator.class);
     private final CassandraTopologyValidationMetrics metrics;
     private final AtomicReference<ConsistentClusterTopology> pastConsistentTopology;
+    private final FunctionCheckedException<CassandraServer, CassandraClient, TException> cassandraClientFactory;
 
-    public CassandraTopologyValidator(CassandraTopologyValidationMetrics metrics) {
+    private CassandraTopologyValidator(
+            CassandraTopologyValidationMetrics metrics,
+            FunctionCheckedException<CassandraServer, CassandraClient, TException> cassandraClientFactory) {
         this.metrics = metrics;
+        this.cassandraClientFactory = cassandraClientFactory;
         this.pastConsistentTopology = new AtomicReference<>();
+    }
+
+    public static CassandraTopologyValidator create(
+            CassandraTopologyValidationMetrics metrics, CassandraClientConfig clientConfig) {
+        return new CassandraTopologyValidator(
+                metrics, server -> CassandraClientFactory.getClientInternal(server, clientConfig));
+    }
+
+    @VisibleForTesting
+    static CassandraTopologyValidator createForTests(
+            CassandraTopologyValidationMetrics metrics,
+            FunctionCheckedException<CassandraServer, CassandraClient, TException> cassandraClientFactory) {
+        return new CassandraTopologyValidator(metrics, cassandraClientFactory);
     }
 
     /**
@@ -327,9 +347,9 @@ public final class CassandraTopologyValidator {
 
     @VisibleForTesting
     HostIdResult fetchHostIds(CassandraClientPoolingContainer container) {
-        try {
-            return container.<HostIdResult, Exception>runWithPooledResource(
-                    client -> HostIdResult.success(client.get_host_ids()));
+        CassandraServer server = container.getCassandraServer();
+        try (CassandraClient client = cassandraClientFactory.apply(server)) {
+            return HostIdResult.success(client.get_host_ids());
         } catch (Exception e) {
             // If the get_host_ids API endpoint does not exist, then return a soft failure.
             if (e instanceof TApplicationException) {

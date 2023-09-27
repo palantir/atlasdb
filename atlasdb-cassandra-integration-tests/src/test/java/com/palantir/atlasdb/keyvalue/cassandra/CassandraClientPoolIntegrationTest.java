@@ -27,6 +27,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraResource;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifierConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
@@ -69,8 +70,9 @@ public class CassandraClientPoolIntegrationTest {
                 CASSANDRA.getRuntimeConfig(),
                 CassandraClientPoolImpl.StartupChecks.RUN,
                 blacklist,
-                new CassandraTopologyValidator(
-                        CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry())),
+                CassandraTopologyValidator.create(
+                        CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry()),
+                        CassandraClientConfig.of(CASSANDRA.getConfig())),
                 new CassandraAbsentHostTracker(CASSANDRA.getConfig().consecutiveAbsencesBeforePoolRemoval()));
     }
 
@@ -115,8 +117,9 @@ public class CassandraClientPoolIntegrationTest {
                 CASSANDRA.getRuntimeConfig(),
                 CassandraClientPoolImpl.StartupChecks.RUN,
                 blacklist,
-                new CassandraTopologyValidator(
-                        CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry())),
+                CassandraTopologyValidator.create(
+                        CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry()),
+                        CassandraClientConfig.of(CASSANDRA.getConfig())),
                 new CassandraAbsentHostTracker(CASSANDRA.getConfig().consecutiveAbsencesBeforePoolRemoval()));
 
         return clientPoolWithLocation.getLocalHosts();

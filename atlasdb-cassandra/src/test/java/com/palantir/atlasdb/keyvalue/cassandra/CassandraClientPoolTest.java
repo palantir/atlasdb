@@ -374,9 +374,7 @@ public final class CassandraClientPoolTest {
 
     @Test
     public void hostsWithDifferingTopologiesTrackedAsAbsentHost() {
-        setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy()));
-        when(config.autoRefreshNodes()).thenReturn(true);
-        setCassandraServersTo(CASS_SERVER_1, CASS_SERVER_2, CASS_SERVER_3);
+        setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy(), CASS_SERVER_3.proxy()));
         setupHostsWithInconsistentTopology(CASS_SERVER_2);
         createClientPool();
 
