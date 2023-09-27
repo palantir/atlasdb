@@ -120,7 +120,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private final CassandraAbsentHostTracker absentHostTracker;
     private final CassandraTopologyValidator cassandraTopologyValidator;
 
-    private ScheduledFuture<?> refreshPoolFuture;
+    private volatile ScheduledFuture<?> refreshPoolFuture;
 
     @VisibleForTesting
     static CassandraClientPoolImpl createImplForTest(
