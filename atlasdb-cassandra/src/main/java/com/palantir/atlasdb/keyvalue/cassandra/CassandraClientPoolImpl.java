@@ -194,7 +194,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 new CassandraClientPoolMetrics(metricsManager),
                 CassandraTopologyValidator.create(
                         CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry()),
-                        CassandraClientConfig.of(config)),
+                        CassandraClientConfig.of(config),
+                        runtimeConfig),
                 new CassandraAbsentHostTracker(config.consecutiveAbsencesBeforePoolRemoval()));
         cassandraClientPool.wrapper.initialize(initializeAsync);
         return cassandraClientPool.wrapper.isInitialized() ? cassandraClientPool : cassandraClientPool.wrapper;

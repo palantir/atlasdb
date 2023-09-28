@@ -269,7 +269,14 @@ acceptedBreaks:
         \ com.palantir.lock.client.TimeLockClient>)"
       justification: "None of the impacted classes are used or inherited from any\
         \ other library or product"
-  "0.941.0":
+  "0.936.0":
+    com.palantir.atlasdb:atlasdb-cassandra:
+    - code: "java.method.visibilityReduced"
+      old: "method void com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator::<init>(com.palantir.atlasdb.CassandraTopologyValidationMetrics)"
+      new: "method void com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator::<init>(com.palantir.atlasdb.CassandraTopologyValidationMetrics,\
+        \ java.util.function.Supplier<java.util.Set<java.lang.String>>)"
+      justification: "internal API"
+  "0.942.0":
     com.palantir.atlasdb:atlasdb-cassandra:
     - code: "java.method.removed"
       old: "method void com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService::cacheInitialCassandraHosts()"
@@ -278,5 +285,6 @@ acceptedBreaks:
       old: "method void com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator::<init>(com.palantir.atlasdb.CassandraTopologyValidationMetrics)"
       new: "method void com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator::<init>(com.palantir.atlasdb.CassandraTopologyValidationMetrics,\
         \ com.palantir.common.base.FunctionCheckedException<com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer,\
-        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraClient, org.apache.thrift.TException>)"
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraClient, org.apache.thrift.TException>,\
+        \ java.util.function.Supplier<java.util.Set<java.lang.String>>)"
       justification: "Only used internally"
