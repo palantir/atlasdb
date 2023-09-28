@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |-
+    - Addresses an edge case in #6458 where in the event that a node providing the token ring was removed in the same client pool ring update, it is possible to encounter a situation where there are no live servers but also no nodes appearing to come from configuration.
+    - In the event no topology had previously been agreed, we allow a quorum in configuration to be the source of the first topology agreed upon by the cluster.
+    - Shift the acceptance criteria for adding new nodes to the cluster to be based on having at least one host ID in common with the past agreed topology - this allows for cluster expansions.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6755
