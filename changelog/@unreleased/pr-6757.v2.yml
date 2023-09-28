@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Update snappy to resolve CVE
+  links:
+  - https://github.com/palantir/atlasdb/pull/6757
