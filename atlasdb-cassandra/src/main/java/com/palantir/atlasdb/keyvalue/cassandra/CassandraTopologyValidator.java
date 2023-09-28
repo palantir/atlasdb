@@ -249,17 +249,9 @@ public final class CassandraTopologyValidator {
                 // between refreshes for legitimate reasons (but they should still refer to the same underlying
                 // cluster).
                 if (pastConsistentTopology.get() == null) {
-                    ClusterTopologyResult result =
-                            maybeGetConsistentClusterTopology(serversToConsiderWhenNoQuorumPresent);
-                    if (result.agreedTopology().isPresent()) {
-                        pastConsistentTopology.set(result.agreedTopology().get());
-                        return Sets.difference(
-                                newServersWithoutSoftFailures.keySet(),
-                                result.agreedTopology().get().serversInConsensus());
-                    } else {
-                        // We don't have a record of what worked in the past nor from config, so just reject.
-                        return newServersWithoutSoftFailures.keySet();
-                    }
+                    // We don't have a record of what worked in the past, and since this state means we're validating
+                    // the initial config servers, we don't have another source of truth here.
+                    return newServersWithoutSoftFailures.keySet();
                 }
                 Optional<ConsistentClusterTopology> maybeTopology = maybeGetConsistentClusterTopology(
                                 serversToConsiderWhenNoQuorumPresent)
