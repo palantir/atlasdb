@@ -17,22 +17,38 @@
 package com.palantir.atlasdb.keyvalue.dbkvs;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import java.util.Map;
 import org.immutables.value.Value;
 
 public interface AlterTableMetadataReference {
     boolean doesTableReferenceOrPhysicalTableNameMatch(TableReference tableReference, String physicalTableName);
 
     @JsonCreator
-    static AlterTableMetadataReference of(
-            @JsonProperty("namespace") Namespace namespace, @JsonProperty("tablename") String tableName) {
+    static AlterTableMetadataReference of(Map<String, Object> jsonNode) {
+        // Preserves back compat with the original config
+        if (jsonNode.containsKey("physicalTableName")) {
+            return of((String) jsonNode.get("physicalTableName"));
+        } else if (jsonNode.get("namespace") instanceof Map && jsonNode.containsKey("tablename")) {
+            Map<String, String> namespace = (Map<String, String>) jsonNode.get("namespace");
+            return of(Namespace.create(namespace.get("name")), (String) jsonNode.get("tablename"));
+        } else {
+            throw new SafeRuntimeException(
+                    "The alterTablesOrMetadataToMatchAndIKnowWhatIAmDoing value is specified incorrectly."
+                            + " Please either specify a physical table name via `physicalTableName: physicalTableName`,"
+                            + " or as a table reference via \n`namespace:\n  name: namespace\ntablename: tableName",
+                    SafeArg.of("node", jsonNode));
+        }
+    }
+
+    static AlterTableMetadataReference of(Namespace namespace, String tableName) {
         return ImmutableTableReferenceWrapper.of(TableReference.create(namespace, tableName));
     }
 
-    @JsonCreator
-    static AlterTableMetadataReference of(@JsonProperty("physicalTableName") String physicalTableName) {
+    static AlterTableMetadataReference of(String physicalTableName) {
         return ImmutablePhysicalTableNameWrapper.of(physicalTableName);
     }
 
