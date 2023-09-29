@@ -155,8 +155,7 @@ public final class OracleDdlTable implements DbDdlTable {
             try {
                 log.info(
                         "Table name: {}, Overflow table migrated status: {}, overflow table existence status: {}, "
-                                + "overflow "
-                                + "column exists status: {}",
+                                + "overflow column exists status: {}",
                         LoggingArgs.tableRef(tableRef),
                         UnsafeArg.of("shortTableName", shortTableName),
                         SafeArg.of("overflowTableHasMigrated", overflowTableHasMigrated()),
