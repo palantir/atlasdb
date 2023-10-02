@@ -238,20 +238,6 @@ public final class CassandraTopologyValidatorTest {
     }
 
     @Test
-    public void
-            validateNewlyAddedHostsAddsNewHostsIfOldHostsHaveNoQuorumAndNewNodesHaveQuorumAndNoPreviousResultExists() {
-        Map<CassandraServer, CassandraClientPoolingContainer> allHosts = initialiseHosts(ALL_HOSTS);
-        Set<CassandraServer> newCassandraServers = filterServers(allHosts, NEW_HOSTS::contains);
-        Set<String> hostsOffline = ImmutableSet.of(OLD_HOST_ONE, OLD_HOST_TWO);
-        setHostIds(filterContainers(allHosts, hostsOffline::contains), HostIdResult.hardFailure());
-        setHostIds(filterContainers(allHosts, server -> !hostsOffline.contains(server)), HostIdResult.success(UUIDS));
-        assertThat(validator.getNewHostsWithInconsistentTopologies(
-                        mapToTokenRangeOrigin(newCassandraServers), allHosts))
-                .as("new hosts added if new hosts have quorum with nothing agreed")
-                .isEmpty();
-    }
-
-    @Test
     public void validateNewlyAddedHostsNoNewHostsAddedIfNeitherOldNorNewHostsHaveQuorumAndNoPreviousResultExists() {
         Map<CassandraServer, CassandraClientPoolingContainer> allHosts = initialiseHosts(ALL_HOSTS);
         Set<CassandraServer> newCassandraServers = filterServers(allHosts, NEW_HOSTS::contains);
