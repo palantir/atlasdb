@@ -286,7 +286,7 @@ org.slf4j:slf4j-api:1.7.36 (44 constraints: 8180995b)
 org.wildfly.client:wildfly-client-config:1.0.1.Final (1 constraints: 940c6308)
 org.wildfly.common:wildfly-common:1.6.0.Final (4 constraints: 3f390b3d)
 org.xerial:sqlite-jdbc:3.42.0.0 (1 constraints: 99054946)
-org.xerial.snappy:snappy-java:1.1.10.1 (2 constraints: 891546f4)
+org.xerial.snappy:snappy-java:1.1.10.4 (2 constraints: 8c15d6f4)
 org.yaml:snakeyaml:2.2 (5 constraints: a24b08fe)
 
 [Test dependencies]
