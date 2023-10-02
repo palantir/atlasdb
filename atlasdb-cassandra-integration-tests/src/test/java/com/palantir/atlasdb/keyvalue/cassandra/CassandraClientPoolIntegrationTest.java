@@ -27,7 +27,6 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.containers.CassandraResource;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifierConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
@@ -72,7 +71,6 @@ public class CassandraClientPoolIntegrationTest {
                 blacklist,
                 CassandraTopologyValidator.create(
                         CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry()),
-                        CassandraClientConfig.of(CASSANDRA.getConfig()),
                         CASSANDRA.getRuntimeConfig()),
                 new CassandraAbsentHostTracker(CASSANDRA.getConfig().consecutiveAbsencesBeforePoolRemoval()));
     }
@@ -120,7 +118,6 @@ public class CassandraClientPoolIntegrationTest {
                 blacklist,
                 CassandraTopologyValidator.create(
                         CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry()),
-                        CassandraClientConfig.of(CASSANDRA.getConfig()),
                         CASSANDRA.getRuntimeConfig()),
                 new CassandraAbsentHostTracker(CASSANDRA.getConfig().consecutiveAbsencesBeforePoolRemoval()));
 

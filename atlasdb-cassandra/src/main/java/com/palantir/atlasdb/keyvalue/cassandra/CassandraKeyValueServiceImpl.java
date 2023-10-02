@@ -72,7 +72,6 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolImpl.StartupChecks;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.ColumnAndTimestamp;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices.StartTsResultsCollector;
@@ -263,9 +262,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         config,
                         runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::unresponsiveHostBackoffTimeSeconds)),
                 CassandraTopologyValidator.create(
-                        CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry()),
-                        CassandraClientConfig.of(config),
-                        runtimeConfig),
+                        CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry()), runtimeConfig),
                 new CassandraAbsentHostTracker(config.consecutiveAbsencesBeforePoolRemoval()));
 
         return createOrShutdownClientPool(

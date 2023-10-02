@@ -35,11 +35,10 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.net.InetSocketAddress;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
@@ -72,9 +71,8 @@ public final class CassandraTopologyValidatorTest {
     private final CassandraTopologyValidationMetrics metrics =
             CassandraTopologyValidationMetrics.of(new DefaultTaggedMetricRegistry());
     private final AtomicReference<Set<String>> configServers = new AtomicReference<>();
-    private final Map<CassandraServer, CassandraClient> mockedCassandraClients = new HashMap<>();
     private final CassandraTopologyValidator validator =
-            spy(CassandraTopologyValidator.createForTests(metrics, mockedCassandraClients::get, configServers::get));
+            spy(CassandraTopologyValidator.createForTests(metrics, configServers::get));
 
     @Test
     public void retriesUntilNoNewHostsReturned() {
@@ -568,9 +566,8 @@ public final class CassandraTopologyValidatorTest {
     public void fetchHostIdsReturnsHardFailureWhenException() throws Exception {
         CassandraClientPoolingContainer badContainer = mock(CassandraClientPoolingContainer.class);
         when(badContainer.getCassandraServer()).thenReturn(NEW_HOST_ONE_CASSANDRA_SERVER);
-        CassandraClient client = mock(CassandraClient.class);
-        when(client.get_host_ids()).thenThrow(new RuntimeException());
-        mockedCassandraClients.put(NEW_HOST_ONE_CASSANDRA_SERVER, client);
+        when(badContainer.<Optional<Set<String>>, Exception>runWithPooledResource(any()))
+                .thenThrow(new RuntimeException());
         assertThat(validator.fetchHostIds(badContainer)).isEqualTo(HostIdResult.hardFailure());
     }
 
@@ -578,9 +575,8 @@ public final class CassandraTopologyValidatorTest {
     public void fetchHostIdsReturnsSoftFailureWhenMethodDoesNotExist() throws Exception {
         CassandraClientPoolingContainer badContainer = mock(CassandraClientPoolingContainer.class);
         when(badContainer.getCassandraServer()).thenReturn(NEW_HOST_ONE_CASSANDRA_SERVER);
-        CassandraClient client = mock(CassandraClient.class);
-        when(client.get_host_ids()).thenThrow(new TApplicationException(TApplicationException.UNKNOWN_METHOD));
-        mockedCassandraClients.put(NEW_HOST_ONE_CASSANDRA_SERVER, client);
+        when(badContainer.<Optional<Set<String>>, Exception>runWithPooledResource(any()))
+                .thenThrow(new TApplicationException(TApplicationException.UNKNOWN_METHOD));
         assertThat(validator.fetchHostIds(badContainer)).isEqualTo(HostIdResult.softFailure());
     }
 
@@ -588,9 +584,8 @@ public final class CassandraTopologyValidatorTest {
     public void fetchHostIdsReturnsHardFailureWhenApplicationExceptionIsNotUnknownMethod() throws Exception {
         CassandraClientPoolingContainer badContainer = mock(CassandraClientPoolingContainer.class);
         when(badContainer.getCassandraServer()).thenReturn(NEW_HOST_ONE_CASSANDRA_SERVER);
-        CassandraClient client = mock(CassandraClient.class);
-        when(client.get_host_ids()).thenThrow(new TApplicationException(TApplicationException.WRONG_METHOD_NAME));
-        mockedCassandraClients.put(NEW_HOST_ONE_CASSANDRA_SERVER, client);
+        when(badContainer.<Optional<Set<String>>, Exception>runWithPooledResource(any()))
+                .thenThrow(new TApplicationException(TApplicationException.WRONG_METHOD_NAME));
         assertThat(validator.fetchHostIds(badContainer)).isEqualTo(HostIdResult.hardFailure());
     }
 
@@ -671,27 +666,11 @@ public final class CassandraTopologyValidatorTest {
         return CassandraServer.of(hostname, mock(InetSocketAddress.class));
     }
 
-    private void setHostIds(Collection<CassandraClientPoolingContainer> containers, HostIdResult... hostIds) {
-        TApplicationException softFailureException = new TApplicationException(TApplicationException.UNKNOWN_METHOD);
-        TApplicationException hardFailureException = new TApplicationException(TApplicationException.MISSING_RESULT);
+    private static void setHostIds(Collection<CassandraClientPoolingContainer> containers, HostIdResult... hostIds) {
         containers.forEach(container -> {
             try {
-                CassandraServer server = container.getCassandraServer();
-                CassandraClient client = mock(CassandraClient.class);
-                for (HostIdResult hostId : hostIds) {
-                    switch (hostId.type()) {
-                        case SUCCESS:
-                            when(client.get_host_ids()).thenReturn(new ArrayList<>(hostId.hostIds()));
-                            break;
-                        case SOFT_FAILURE:
-                            when(client.get_host_ids()).thenThrow(softFailureException);
-                            break;
-                        case HARD_FAILURE:
-                            when(client.get_host_ids()).thenThrow(hardFailureException);
-                            break;
-                    }
-                }
-                mockedCassandraClients.put(server, client);
+                when(container.<HostIdResult, Exception>runWithPooledResource(any()))
+                        .thenReturn(hostIds[0], hostIds);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -706,14 +685,8 @@ public final class CassandraTopologyValidatorTest {
     private static Map<CassandraServer, CassandraClientPoolingContainer> setupHosts(Set<String> allHostNames) {
         return StreamEx.of(allHostNames)
                 .map(CassandraTopologyValidatorTest::createCassandraServer)
-                .mapToEntry(CassandraTopologyValidatorTest::createContainer)
+                .mapToEntry(server -> mock(CassandraClientPoolingContainer.class))
                 .toMap();
-    }
-
-    private static CassandraClientPoolingContainer createContainer(CassandraServer server) {
-        CassandraClientPoolingContainer container = mock(CassandraClientPoolingContainer.class);
-        when(container.getCassandraServer()).thenReturn(server);
-        return container;
     }
 
     private static Map<CassandraServer, CassandraServerOrigin> splitHostOriginBetweenLastKnownAndConfig(

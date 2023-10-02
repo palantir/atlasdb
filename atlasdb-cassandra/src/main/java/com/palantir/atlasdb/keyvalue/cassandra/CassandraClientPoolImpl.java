@@ -26,7 +26,6 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.CassandraTopologyValidationMetrics;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifierConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
@@ -193,9 +192,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 blacklist,
                 new CassandraClientPoolMetrics(metricsManager),
                 CassandraTopologyValidator.create(
-                        CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry()),
-                        CassandraClientConfig.of(config),
-                        runtimeConfig),
+                        CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry()), runtimeConfig),
                 new CassandraAbsentHostTracker(config.consecutiveAbsencesBeforePoolRemoval()));
         cassandraClientPool.wrapper.initialize(initializeAsync);
         return cassandraClientPool.wrapper.isInitialized() ? cassandraClientPool : cassandraClientPool.wrapper;
@@ -249,6 +246,11 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private void tryInitialize() {
+        // for testability, mock/spy are bad at mockability of things called in constructors
+        if (startupChecks == StartupChecks.RUN) {
+            ensureKeyspaceExists();
+        }
+
         ImmutableMap<CassandraServer, CassandraServerOrigin> initialServers =
                 cassandra.getCurrentServerListFromConfig();
         ImmutableSet<CassandraServer> cassandraServers = initialServers.keySet();
@@ -259,9 +261,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Set<CassandraServer> validatedServers = getCachedServers();
         logStartupValidationResults(cassandraServers, validatedServers);
 
-        // for testability, mock/spy are bad at mockability of things called in constructors
         if (startupChecks == StartupChecks.RUN) {
-            runOneTimeStartupChecks();
+            removeUnreachableHostsAndRequireValidPartitioner();
         }
         runAndScheduleNextRefresh(0);
         metrics.registerAggregateMetrics(blacklist::size);
@@ -524,8 +525,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         return cassandra.getRandomCassandraNodeForKey(key);
     }
 
-    @VisibleForTesting
-    void runOneTimeStartupChecks() {
+    private void ensureKeyspaceExists() {
         CassandraVerifierConfig verifierConfig = CassandraVerifierConfig.of(config, runtimeConfig.get());
         try {
             CassandraVerifier.ensureKeyspaceExistsAndIsUpToDate(this, verifierConfig);
@@ -533,7 +533,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             log.error("Startup checks failed, was not able to create the keyspace or ensure it already existed.", e);
             throw new RuntimeException(e);
         }
+    }
 
+    private void removeUnreachableHostsAndRequireValidPartitioner() {
         Map<CassandraServer, Exception> completelyUnresponsiveNodes = new HashMap<>();
         Map<CassandraServer, Exception> aliveButInvalidPartitionerNodes = new HashMap<>();
         boolean thisHostResponded = false;
