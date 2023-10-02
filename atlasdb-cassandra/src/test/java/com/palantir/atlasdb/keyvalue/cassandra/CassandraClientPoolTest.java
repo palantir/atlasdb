@@ -19,6 +19,7 @@ import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptio
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -480,6 +481,35 @@ public final class CassandraClientPoolTest {
         cassandraClientPool.setServersInPoolTo(ImmutableMap.of(CASS_SERVER_3, CassandraServerOrigin.TOKEN_RANGE));
         assertThat(cassandraClientPool.getCurrentPools()).containsOnlyKeys(CASS_SERVER_3);
         verify(container1).shutdownPooling();
+    }
+
+    @Test
+    public void absentServersMarkedAfterValidation() {
+        setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy()));
+        setupHostsWithConsistentTopology();
+        CassandraClientPoolImpl clientPool = createClientPool();
+
+        Map<CassandraServer, CassandraClientPoolingContainer> containers =
+                ImmutableMap.copyOf(clientPool.getCurrentPools());
+        assertThat(containers).containsOnlyKeys(CASS_SERVER_1, CASS_SERVER_2);
+        verify(cassandraTopologyValidator).getNewHostsWithInconsistentTopologiesAndRetry(any(), any(), any(), any());
+
+        setupThriftServers(ImmutableSet.of(CASS_SERVER_1.proxy(), CASS_SERVER_3.proxy()));
+        refreshPool();
+
+        Map<CassandraServer, CassandraClientPoolingContainer> newContainers =
+                ImmutableMap.copyOf(clientPool.getCurrentPools());
+        assertThat(newContainers).containsOnlyKeys(CASS_SERVER_1, CASS_SERVER_3);
+
+        Map<CassandraServer, CassandraServerOrigin> expectedNewHost =
+                Map.of(CASS_SERVER_3, CassandraServerOrigin.CONFIG);
+        Map<CassandraServer, CassandraClientPoolingContainer> allHosts =
+                ImmutableMap.<CassandraServer, CassandraClientPoolingContainer>builder()
+                        .putAll(containers)
+                        .put(CASS_SERVER_3, newContainers.get(CASS_SERVER_3))
+                        .buildOrThrow();
+        verify(cassandraTopologyValidator)
+                .getNewHostsWithInconsistentTopologiesAndRetry(eq(expectedNewHost), eq(allHosts), any(), any());
     }
 
     @Test

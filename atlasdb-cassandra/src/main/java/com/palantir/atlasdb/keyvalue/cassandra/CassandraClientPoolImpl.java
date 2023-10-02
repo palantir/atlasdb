@@ -409,17 +409,17 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Map<CassandraServer, CassandraServerOrigin> serversToAdd = EntryStream.of(desiredServers)
                 .removeKeys(currentServers::contains)
                 .toImmutableMap();
-        SetView<CassandraServer> absentServers = Sets.difference(currentServers, desiredServers.keySet());
 
+        Set<CassandraServer> validatedServersToAdd =
+                validateNewHostsTopologiesAndMaybeAddToPool(getCurrentPools(), serversToAdd);
+
+        SetView<CassandraServer> absentServers = Sets.difference(currentServers, desiredServers.keySet());
         absentServers.forEach(cassandraServer -> {
             CassandraClientPoolingContainer container = cassandra.removePool(cassandraServer);
             absentHostTracker.trackAbsentCassandraServer(cassandraServer, container);
         });
 
         Set<CassandraServer> serversToShutdown = absentHostTracker.incrementAbsenceAndRemove();
-
-        Set<CassandraServer> validatedServersToAdd =
-                validateNewHostsTopologiesAndMaybeAddToPool(getCurrentPools(), serversToAdd);
 
         if (!(validatedServersToAdd.isEmpty() && absentServers.isEmpty())) { // if we made any changes
             cassandra.refreshTokenRangesAndGetServers();
