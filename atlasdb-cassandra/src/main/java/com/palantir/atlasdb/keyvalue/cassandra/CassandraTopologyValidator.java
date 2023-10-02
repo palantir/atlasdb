@@ -56,8 +56,8 @@ public final class CassandraTopologyValidator {
     private final AtomicReference<ConsistentClusterTopology> pastConsistentTopology;
     private final Supplier<Set<String>> configuredServers;
 
-    @VisibleForTesting
-    CassandraTopologyValidator(CassandraTopologyValidationMetrics metrics, Supplier<Set<String>> configuredServers) {
+    private CassandraTopologyValidator(
+            CassandraTopologyValidationMetrics metrics, Supplier<Set<String>> configuredServers) {
         this.metrics = metrics;
         this.pastConsistentTopology = new AtomicReference<>();
         this.configuredServers = configuredServers;
@@ -72,6 +72,12 @@ public final class CassandraTopologyValidator {
                         config -> config.servers().accept(ThriftHostsExtractingVisitor.INSTANCE).stream()
                                 .map(InetSocketAddress::getHostString)
                                 .collect(Collectors.toSet())));
+    }
+
+    @VisibleForTesting
+    static CassandraTopologyValidator createForTests(
+            CassandraTopologyValidationMetrics metrics, Supplier<Set<String>> configuredServers) {
+        return new CassandraTopologyValidator(metrics, configuredServers);
     }
 
     /**
@@ -232,17 +238,9 @@ public final class CassandraTopologyValidator {
                 // between refreshes for legitimate reasons (but they should still refer to the same underlying
                 // cluster).
                 if (pastConsistentTopology.get() == null) {
-                    ClusterTopologyResult result =
-                            maybeGetConsistentClusterTopology(serversToConsiderWhenNoQuorumPresent);
-                    if (result.agreedTopology().isPresent()) {
-                        pastConsistentTopology.set(result.agreedTopology().get());
-                        return Sets.difference(
-                                newServersWithoutSoftFailures.keySet(),
-                                result.agreedTopology().get().serversInConsensus());
-                    } else {
-                        // We don't have a record of what worked in the past nor from config, so just reject.
-                        return newServersWithoutSoftFailures.keySet();
-                    }
+                    // We don't have a record of what worked in the past, and since this state means we're validating
+                    // the initial config servers, we don't have another source of truth here.
+                    return newServersWithoutSoftFailures.keySet();
                 }
                 Optional<ConsistentClusterTopology> maybeTopology = maybeGetConsistentClusterTopology(
                                 serversToConsiderWhenNoQuorumPresent)

@@ -338,7 +338,8 @@ public class CassandraServiceTest {
         CassandraService service = new CassandraService(
                 metricsManager, config, runtimeConfig, blacklist, new CassandraClientPoolMetrics(metricsManager));
 
-        service.cacheInitialCassandraHosts();
+        service.cacheInitialHostsForCalculatingPoolNumber(servers);
+        servers.forEach(service::addPool);
         serversInPool.forEach(service::addPool);
 
         return service;

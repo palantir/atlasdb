@@ -246,14 +246,27 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private void tryInitialize() {
-        cassandra.cacheInitialCassandraHosts();
-
+        CassandraVerifierConfig verifierConfig = CassandraVerifierConfig.of(config, runtimeConfig.get());
         // for testability, mock/spy are bad at mockability of things called in constructors
         if (startupChecks == StartupChecks.RUN) {
-            runOneTimeStartupChecks();
+            ensureKeyspaceExists(verifierConfig);
         }
-        refreshPool(); // ensure we've initialized before returning
-        scheduleNextRefresh(0);
+
+        ImmutableMap<CassandraServer, CassandraServerOrigin> initialServers =
+                cassandra.getCurrentServerListFromConfig();
+        ImmutableSet<CassandraServer> cassandraServers = initialServers.keySet();
+
+        cassandra.cacheInitialHostsForCalculatingPoolNumber(cassandraServers);
+
+        setServersInPoolTo(initialServers);
+        Set<CassandraServer> validatedServers = getCachedServers();
+        logStartupValidationResults(cassandraServers, validatedServers);
+
+        if (startupChecks == StartupChecks.RUN) {
+            ensureKeyspaceIsUpToDate(verifierConfig);
+            removeUnreachableHostsAndRequireValidPartitioner();
+        }
+        runAndScheduleNextRefresh(0);
         metrics.registerAggregateMetrics(blacklist::size);
     }
 
@@ -270,7 +283,6 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         scheduleNextRefresh(consecutivelyFailedAttempts);
     }
 
-    // TODO(mdaudali): We can inline this into runAndScheduleNextRefresh once #6753 is merged
     private void scheduleNextRefresh(int consecutivelyFailedAttempts) {
         if (getCurrentPools().isEmpty()) {
             int maxShift = Math.min(MAX_ATTEMPTS_BEFORE_CAPPING_BACKOFF, consecutivelyFailedAttempts);
@@ -291,6 +303,22 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         } else {
             refreshPoolFuture = refreshDaemon.schedule(
                     () -> runAndScheduleNextRefresh(0), config.poolRefreshIntervalSeconds(), TimeUnit.SECONDS);
+        }
+    }
+
+    private static void logStartupValidationResults(
+            ImmutableSet<CassandraServer> cassandraServers, Set<CassandraServer> validatedServers) {
+        // The validatedServers.empty() case throws in the setServersInPoolTo directly, so we don't need to handle that
+        // here explicitly.
+        if (validatedServers.size() != cassandraServers.size()) {
+            log.warn(
+                    "Validated servers on startup, but only a proper subset of servers succeeded validation",
+                    SafeArg.of("initialHosts", CassandraLogHelper.collectionOfHosts(cassandraServers)),
+                    SafeArg.of("hostsPassingValidation", CassandraLogHelper.collectionOfHosts(validatedServers)));
+        } else {
+            log.info(
+                    "Validated servers on startup. Successfully added all servers from config to pools",
+                    SafeArg.of("hostsPassingValidation", CassandraLogHelper.collectionOfHosts(validatedServers)));
         }
     }
 
@@ -495,16 +523,25 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         return cassandra.getRandomCassandraNodeForKey(key);
     }
 
-    @VisibleForTesting
-    void runOneTimeStartupChecks() {
-        CassandraVerifierConfig verifierConfig = CassandraVerifierConfig.of(config, runtimeConfig.get());
+    private void ensureKeyspaceExists(CassandraVerifierConfig verifierConfig) {
         try {
-            CassandraVerifier.ensureKeyspaceExistsAndIsUpToDate(this, verifierConfig);
+            CassandraVerifier.createKeyspace(verifierConfig);
         } catch (Exception e) {
             log.error("Startup checks failed, was not able to create the keyspace or ensure it already existed.", e);
             throw new RuntimeException(e);
         }
+    }
 
+    private void ensureKeyspaceIsUpToDate(CassandraVerifierConfig verifierConfig) {
+        try {
+            CassandraVerifier.updateExistingKeyspace(this, verifierConfig);
+        } catch (Exception e) {
+            log.error("Startup checks failed, was not able to update existing keyspace.", e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void removeUnreachableHostsAndRequireValidPartitioner() {
         Map<CassandraServer, Exception> completelyUnresponsiveNodes = new HashMap<>();
         Map<CassandraServer, Exception> aliveButInvalidPartitionerNodes = new HashMap<>();
         boolean thisHostResponded = false;

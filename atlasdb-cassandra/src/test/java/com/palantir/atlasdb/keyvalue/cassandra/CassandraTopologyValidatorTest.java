@@ -72,7 +72,7 @@ public final class CassandraTopologyValidatorTest {
             CassandraTopologyValidationMetrics.of(new DefaultTaggedMetricRegistry());
     private final AtomicReference<Set<String>> configServers = new AtomicReference<>();
     private final CassandraTopologyValidator validator =
-            spy(new CassandraTopologyValidator(metrics, configServers::get));
+            spy(CassandraTopologyValidator.createForTests(metrics, configServers::get));
 
     @Test
     public void retriesUntilNoNewHostsReturned() {
@@ -235,20 +235,6 @@ public final class CassandraTopologyValidatorTest {
         assertThat(validator.getNewHostsWithInconsistentTopologies(
                         mapToTokenRangeOrigin(filterServers(allHosts, NEW_HOSTS::contains)), allHosts))
                 .containsExactlyElementsOf(filterServers(allHosts, NEW_HOST_ONE::equals));
-    }
-
-    @Test
-    public void
-            validateNewlyAddedHostsAddsNewHostsIfOldHostsHaveNoQuorumAndNewNodesHaveQuorumAndNoPreviousResultExists() {
-        Map<CassandraServer, CassandraClientPoolingContainer> allHosts = initialiseHosts(ALL_HOSTS);
-        Set<CassandraServer> newCassandraServers = filterServers(allHosts, NEW_HOSTS::contains);
-        Set<String> hostsOffline = ImmutableSet.of(OLD_HOST_ONE, OLD_HOST_TWO);
-        setHostIds(filterContainers(allHosts, hostsOffline::contains), HostIdResult.hardFailure());
-        setHostIds(filterContainers(allHosts, server -> !hostsOffline.contains(server)), HostIdResult.success(UUIDS));
-        assertThat(validator.getNewHostsWithInconsistentTopologies(
-                        mapToTokenRangeOrigin(newCassandraServers), allHosts))
-                .as("new hosts added if new hosts have quorum with nothing agreed")
-                .isEmpty();
     }
 
     @Test
