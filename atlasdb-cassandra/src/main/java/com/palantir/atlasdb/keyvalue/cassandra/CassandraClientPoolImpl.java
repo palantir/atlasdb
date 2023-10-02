@@ -246,9 +246,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     }
 
     private void tryInitialize() {
+        CassandraVerifierConfig verifierConfig = CassandraVerifierConfig.of(config, runtimeConfig.get());
         // for testability, mock/spy are bad at mockability of things called in constructors
         if (startupChecks == StartupChecks.RUN) {
-            ensureKeyspaceExists();
+            ensureKeyspaceExists(verifierConfig);
         }
 
         ImmutableMap<CassandraServer, CassandraServerOrigin> initialServers =
@@ -262,6 +263,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         logStartupValidationResults(cassandraServers, validatedServers);
 
         if (startupChecks == StartupChecks.RUN) {
+            ensureKeyspaceIsUpToDate(verifierConfig);
             removeUnreachableHostsAndRequireValidPartitioner();
         }
         runAndScheduleNextRefresh(0);
@@ -431,9 +433,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Preconditions.checkState(
                 !getCurrentPools().isEmpty() || serversToAdd.isEmpty(),
                 "No servers were successfully added to the pool. This means we could not come to a consensus on"
-                    + " cluster topology, and the client cannot connect as there are no valid hosts. This state should"
-                    + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
-                    + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
+                        + " cluster topology, and the client cannot connect as there are no valid hosts. This state should"
+                        + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
+                        + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
                 SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())));
 
         logRefreshedHosts(validatedServersToAdd, serversToShutdown, absentServers);
@@ -525,12 +527,20 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         return cassandra.getRandomCassandraNodeForKey(key);
     }
 
-    private void ensureKeyspaceExists() {
-        CassandraVerifierConfig verifierConfig = CassandraVerifierConfig.of(config, runtimeConfig.get());
+    private void ensureKeyspaceExists(CassandraVerifierConfig verifierConfig) {
         try {
-            CassandraVerifier.ensureKeyspaceExistsAndIsUpToDate(this, verifierConfig);
+            CassandraVerifier.createKeyspace(verifierConfig);
         } catch (Exception e) {
             log.error("Startup checks failed, was not able to create the keyspace or ensure it already existed.", e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void ensureKeyspaceIsUpToDate(CassandraVerifierConfig verifierConfig) {
+        try {
+            CassandraVerifier.updateExistingKeyspace(this, verifierConfig);
+        } catch (Exception e) {
+            log.error("Startup checks failed, was not able to update existing keyspace.", e);
             throw new RuntimeException(e);
         }
     }
