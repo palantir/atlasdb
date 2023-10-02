@@ -308,13 +308,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
 
     private static void logStartupValidationResults(
             ImmutableSet<CassandraServer> cassandraServers, Set<CassandraServer> validatedServers) {
-        if (validatedServers.isEmpty()) {
-            log.error(
-                    "Validated servers on startup, but no servers passed validation. As a result, no servers will"
-                            + " be added to the client pools, and so AtlasDB will fail to serve any requests using"
-                            + " Cassandra until the next successful refresh",
-                    SafeArg.of("initialHosts", CassandraLogHelper.collectionOfHosts(cassandraServers)));
-        } else if (validatedServers.size() != cassandraServers.size()) {
+        // The validatedServers.empty() case throws in the setServersInPoolTo directly, so we don't need to handle that
+        // here explicitly.
+        if (validatedServers.size() != cassandraServers.size()) {
             log.warn(
                     "Validated servers on startup, but only a proper subset of servers succeeded validation",
                     SafeArg.of("initialHosts", CassandraLogHelper.collectionOfHosts(cassandraServers)),
@@ -433,9 +429,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Preconditions.checkState(
                 !getCurrentPools().isEmpty() || serversToAdd.isEmpty(),
                 "No servers were successfully added to the pool. This means we could not come to a consensus on"
-                    + " cluster topology, and the client cannot connect as there are no valid hosts. This state should"
-                    + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
-                    + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
+                        + " cluster topology, and the client cannot connect as there are no valid hosts. This state should"
+                        + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
+                        + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
                 SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())));
 
         logRefreshedHosts(validatedServersToAdd, serversToShutdown, absentServers);
