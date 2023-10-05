@@ -89,7 +89,6 @@ dependencies {
   testImplementation project(':lock-api')
   testImplementation project(':lock-api-objects')
   testImplementation project(':timelock-api:timelock-api-objects')
-  testImplementation 'org.junit.vintage:junit-vintage-engine'
 
   annotationProcessor 'org.immutables:value'
   compileOnly 'org.immutables:value::annotations'
@@ -98,7 +97,6 @@ dependencies {
   annotationProcessor 'org.derive4j:derive4j'
   compileOnly 'org.derive4j:derive4j-annotation'
   implementation 'io.vavr:vavr'
-
 
   testAnnotationProcessor 'org.immutables:value'
   testCompileOnly 'org.immutables:value::annotations'
@@ -118,11 +116,11 @@ dependencies {
   testImplementation 'one.util:streamex'
 
   testRuntimeOnly 'ch.qos.logback:logback-classic'
+  testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+    because 'allows JUnit 3 and JUnit 4 tests to run'
+  }
 }
 
-test {
-  useJUnitPlatform()
-}
 
 configurations.testImplementation {
   resolutionStrategy {
