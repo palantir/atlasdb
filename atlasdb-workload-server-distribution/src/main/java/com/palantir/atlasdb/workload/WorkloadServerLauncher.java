@@ -69,6 +69,7 @@ import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 import io.dropwizard.lifecycle.setup.LifecycleEnvironment;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -199,7 +200,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                         "AtlasDB transaction store factory not yet initialized. Waiting for five seconds; we won't"
                                 + " retry after {}.",
                         SafeArg.of("deadline", deadline));
-                Uninterruptibles.sleepUninterruptibly(5, TimeUnit.SECONDS);
+                Uninterruptibles.sleepUninterruptibly(Duration.ofSeconds(5));
             }
         }
         log.error("AtlasDB transaction store factory not initialized after five minutes, which suggests that there's"
