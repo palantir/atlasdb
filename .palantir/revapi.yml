@@ -288,3 +288,47 @@ acceptedBreaks:
         \ com.palantir.atlasdb.keyvalue.cassandra.CassandraClient, org.apache.thrift.TException>,\
         \ java.util.function.Supplier<java.util.Set<java.lang.String>>)"
       justification: "Only used internally"
+  "0.947.0":
+    com.palantir.atlasdb:atlasdb-cassandra:
+    - code: "java.class.removed"
+      old: "class com.palantir.atlasdb.keyvalue.cassandra.ImmutableConsistentClusterTopology"
+      justification: "Internal validator primitives"
+    - code: "java.class.removed"
+      old: "interface com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.ConsistentClusterTopology"
+      justification: "Internal validator primitives"
+    - code: "java.method.addedToInterface"
+      new: "method java.util.Optional<com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.ConsistentClusterTopologies>\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.ClusterTopologyResult::agreedTopologies()"
+      justification: "Internal validator primitives"
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.ClusterTopologyResult\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.ClusterTopologyResult::consensus(===com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.ConsistentClusterTopology===)"
+      new: "parameter com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.ClusterTopologyResult\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.ClusterTopologyResult::consensus(===com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.ConsistentClusterTopologies===)"
+      justification: "Internal validator primitives"
+    - code: "java.method.removed"
+      old: "method com.palantir.atlasdb.keyvalue.cassandra.ImmutableClusterTopologyResult\
+        \ com.palantir.atlasdb.keyvalue.cassandra.ImmutableClusterTopologyResult::withAgreedTopology(com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.ConsistentClusterTopology)"
+      justification: "Internal validator primitives"
+    - code: "java.method.removed"
+      old: "method com.palantir.atlasdb.keyvalue.cassandra.ImmutableClusterTopologyResult\
+        \ com.palantir.atlasdb.keyvalue.cassandra.ImmutableClusterTopologyResult::withAgreedTopology(java.util.Optional<?\
+        \ extends com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.ConsistentClusterTopology>)"
+      justification: "Internal validator primitives"
+    - code: "java.method.removed"
+      old: "method com.palantir.atlasdb.keyvalue.cassandra.ImmutableClusterTopologyResult.Builder\
+        \ com.palantir.atlasdb.keyvalue.cassandra.ImmutableClusterTopologyResult.Builder::agreedTopology(com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.ConsistentClusterTopology)"
+      justification: "Internal validator primitives"
+    - code: "java.method.removed"
+      old: "method com.palantir.atlasdb.keyvalue.cassandra.ImmutableClusterTopologyResult.Builder\
+        \ com.palantir.atlasdb.keyvalue.cassandra.ImmutableClusterTopologyResult.Builder::agreedTopology(java.util.Optional<?\
+        \ extends com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.ConsistentClusterTopology>)"
+      justification: "Internal validator primitives"
+    - code: "java.method.removed"
+      old: "method java.util.Optional<com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.ConsistentClusterTopology>\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.ClusterTopologyResult::agreedTopology()"
+      justification: "Internal validator primitives"
+    - code: "java.method.removed"
+      old: "method java.util.Optional<com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.ConsistentClusterTopology>\
+        \ com.palantir.atlasdb.keyvalue.cassandra.ImmutableClusterTopologyResult::agreedTopology()"
+      justification: "Internal validator primitives"
