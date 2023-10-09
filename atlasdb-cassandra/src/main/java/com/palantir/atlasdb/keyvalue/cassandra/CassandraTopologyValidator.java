@@ -243,7 +243,7 @@ public final class CassandraTopologyValidator {
                     return newServersWithoutSoftFailures.keySet();
                 }
                 Optional<ConsistentClusterTopologies> maybeTopologies = maybeGetConsistentClusterTopology(
-                                serversToConsiderWhenNoQuorumPresent)
+                        serversToConsiderWhenNoQuorumPresent)
                         .agreedTopologies();
                 if (maybeTopologies.isEmpty()) {
                     log.info(
@@ -334,11 +334,8 @@ public final class CassandraTopologyValidator {
                                     .serversInConsensus(servers)
                                     .build()))
                     .build());
-        } else {
-            // There exists some set of host IDs that can't be connected to the starting node through plausible
-            // evolution.
-            return ClusterTopologyResult.dissent();
         }
+        return ClusterTopologyResult.dissent();
     }
 
     private Map<CassandraServer, HostIdResult> fetchHostIdsIgnoringSoftFailures(

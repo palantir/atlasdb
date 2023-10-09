@@ -49,21 +49,19 @@ public final class HostIdEvolution {
         Set<Set<String>> remainingUnconnectedSets = new HashSet<>(sets);
 
         Iterator<Set<String>> iterator = remainingUnconnectedSets.iterator();
-        Set<String> newlyVisitedElements = new HashSet<>(iterator.next());
+        Set<String> visitedElements = new HashSet<>(iterator.next());
         iterator.remove();
-        boolean moreNodesToExplore = true;
+        boolean moreNodesToExplore = !remainingUnconnectedSets.isEmpty();
         while (moreNodesToExplore) {
+            // There may exist some performance optimisation here by only considering newly added elements on each
+            // iteration, but given the overall small data scale a simple DFS like this should suffice.
             Set<Set<String>> setsMatchingVisitedElements = remainingUnconnectedSets.stream()
                     .filter(hostIds ->
-                            !Sets.intersection(hostIds, newlyVisitedElements).isEmpty())
+                            !Sets.intersection(hostIds, visitedElements).isEmpty())
                     .collect(Collectors.toSet());
 
             remainingUnconnectedSets.removeAll(setsMatchingVisitedElements);
-            // It suffices to consider just the nodes visited on this iteration, since nodes that could have been
-            // reached from the nodes visited on previous iterations would have already have been visited and removed
-            // from remainingUnconnectedSets.
-            newlyVisitedElements.clear();
-            newlyVisitedElements.addAll(
+            visitedElements.addAll(
                     setsMatchingVisitedElements.stream().flatMap(Set::stream).collect(Collectors.toSet()));
             moreNodesToExplore = !setsMatchingVisitedElements.isEmpty();
         }
