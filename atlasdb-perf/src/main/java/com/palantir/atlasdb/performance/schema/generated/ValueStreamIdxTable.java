@@ -183,8 +183,7 @@ public final class ValueStreamIdxTable implements
             @Override
             public ValueStreamIdxRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(id);
+                long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 return new ValueStreamIdxRow(id);
             }
         };
@@ -276,7 +275,6 @@ public final class ValueStreamIdxTable implements
             public ValueStreamIdxColumn hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 byte[] reference = EncodingUtils.decodeSizedBytes(__input, __index);
-                __index += EncodingUtils.sizeOfSizedBytes(reference);
                 return new ValueStreamIdxColumn(reference);
             }
         };
@@ -741,5 +739,5 @@ public final class ValueStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "bEOuPNCg8sYuyW4OuRhvww==";
+    static String __CLASS_HASH = "4JOzs4T2IPJl0wzMkF26Cw==";
 }

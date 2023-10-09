@@ -198,12 +198,11 @@ public final class HashComponentsTestTable implements
             @Override
             public HashComponentsTestRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                Long component1 = EncodingUtils.decodeUnsignedVarLong(__input, __index);
+                long component1 = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(component1);
                 String component2 = EncodingUtils.decodeVarString(__input, __index);
-                __index += EncodingUtils.sizeOfVarString(component2);
                 return new HashComponentsTestRow(hashOfRowComponents, component1, component2);
             }
         };
@@ -788,5 +787,5 @@ public final class HashComponentsTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "mVbrY0jjQd3NuKOQiV/PKg==";
+    static String __CLASS_HASH = "JFCKFwjljsA/pF0RqDunaQ==";
 }

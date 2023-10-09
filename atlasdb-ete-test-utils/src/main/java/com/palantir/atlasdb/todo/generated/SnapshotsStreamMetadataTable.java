@@ -185,8 +185,7 @@ public final class SnapshotsStreamMetadataTable implements
             @Override
             public SnapshotsStreamMetadataRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                __index += 8;
+                long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 return new SnapshotsStreamMetadataRow(id);
             }
         };
@@ -708,5 +707,5 @@ public final class SnapshotsStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "AgT8WHSuUvJzkk+inw4twg==";
+    static String __CLASS_HASH = "X1A0s/Ak7gFq6exUuTBR2g==";
 }

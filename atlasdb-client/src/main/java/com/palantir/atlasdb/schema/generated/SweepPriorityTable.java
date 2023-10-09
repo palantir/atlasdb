@@ -186,7 +186,6 @@ public final class SweepPriorityTable implements
             public SweepPriorityRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 String fullTableName = PtBytes.toString(__input, __index, __input.length-__index);
-                __index += 0;
                 return new SweepPriorityRow(fullTableName);
             }
         };
@@ -1253,5 +1252,5 @@ public final class SweepPriorityTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "rABMHBdCo+LhmxyLoeFFwQ==";
+    static String __CLASS_HASH = "jyafdmhR7jh18jwGpaXZSw==";
 }

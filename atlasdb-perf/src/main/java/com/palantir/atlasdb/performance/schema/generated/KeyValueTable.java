@@ -186,7 +186,6 @@ public final class KeyValueTable implements
             public KeyValueRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 String key = PtBytes.toString(__input, __index, __input.length-__index);
-                __index += 0;
                 return new KeyValueRow(key);
             }
         };
@@ -745,5 +744,5 @@ public final class KeyValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "EvFEiQbULvhKQD1IWFw9Og==";
+    static String __CLASS_HASH = "sJ5seL0VJL4Lv9y+idSNvQ==";
 }

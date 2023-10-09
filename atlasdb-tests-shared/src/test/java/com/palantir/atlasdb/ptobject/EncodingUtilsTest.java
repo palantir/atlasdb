@@ -54,20 +54,22 @@ public class EncodingUtilsTest {
         byte[] bytes = new byte[1000];
         for (int i = 0; i < 100; i++) {
             rand.nextBytes(bytes);
-            assertThat(EncodingUtils.flipAllBits(EncodingUtils.flipAllBits(bytes)))
-                    .isEqualTo(bytes);
+            byte[] flippedBits = EncodingUtils.flipAllBits(bytes);
+            assertThat(flippedBits).isNotEqualTo(bytes);
+            assertThat(EncodingUtils.flipAllBits(flippedBits)).isEqualTo(bytes);
         }
     }
 
     @Test
-    public void testVarString() throws Exception {
+    public void testVarString() {
         for (int i = 1; i < 100; i++) {
             byte[] bytes = new byte[1000];
             rand.nextBytes(bytes);
             String str = new String(bytes, StandardCharsets.UTF_8);
-            assertThat(EncodingUtils.decodeVarString(EncodingUtils.encodeVarString(str))
-                            .getBytes(StandardCharsets.UTF_8))
-                    .isEqualTo(str.getBytes(StandardCharsets.UTF_8));
+            assertThat(EncodingUtils.decodeVarString(EncodingUtils.encodeVarString(str)))
+                    .isEqualTo(str)
+                    .satisfies(decoded -> assertThat(decoded.getBytes(StandardCharsets.UTF_8))
+                            .isEqualTo(str.getBytes(StandardCharsets.UTF_8)));
             assertThat(EncodingUtils.encodeVarString(str)).hasSize(EncodingUtils.sizeOfVarString(str));
         }
     }
@@ -130,10 +132,8 @@ public class EncodingUtilsTest {
 
         while (map.size() < 3000) {
             long nextLong = rand.nextInt(1 << 20);
-            if (nextLong >= 0) {
-                byte[] encode = EncodingUtils.encodeVarLong(nextLong);
-                map.put(encode, nextLong);
-            }
+            byte[] encode = EncodingUtils.encodeVarLong(nextLong);
+            map.put(encode, nextLong);
         }
 
         map.put(EncodingUtils.encodeVarLong(0), 0L);
@@ -276,7 +276,7 @@ public class EncodingUtilsTest {
         for (int j = 0; j < 50; j++) {
             byte[] bytesToHash = new byte[256];
             rand.nextBytes(bytesToHash);
-            List<Object> defaultComponents = ImmutableList.<Object>of(
+            List<Object> defaultComponents = ImmutableList.of(
                     rand.nextLong(),
                     rand.nextLong(),
                     Sha256Hash.computeHash(bytesToHash),

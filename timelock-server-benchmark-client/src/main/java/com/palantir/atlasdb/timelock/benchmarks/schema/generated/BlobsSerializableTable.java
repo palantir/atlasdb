@@ -186,7 +186,6 @@ public final class BlobsSerializableTable implements
             public BlobsSerializableRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 byte[] key = EncodingUtils.getBytesFromOffsetToEnd(__input, __index);
-                __index += 0;
                 return new BlobsSerializableRow(key);
             }
         };
@@ -683,5 +682,5 @@ public final class BlobsSerializableTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "X9vlVcKWG1PnG8EugUP/kA==";
+    static String __CLASS_HASH = "M0xZYbNR/OGopUZSedxAuA==";
 }

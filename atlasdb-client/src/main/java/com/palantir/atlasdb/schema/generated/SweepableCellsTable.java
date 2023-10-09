@@ -196,12 +196,11 @@ public final class SweepableCellsTable implements
             @Override
             public SweepableCellsRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                Long timestampPartition = EncodingUtils.decodeUnsignedVarLong(__input, __index);
+                long timestampPartition = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(timestampPartition);
                 byte[] metadata = EncodingUtils.getBytesFromOffsetToEnd(__input, __index);
-                __index += 0;
                 return new SweepableCellsRow(hashOfRowComponents, timestampPartition, metadata);
             }
         };
@@ -310,10 +309,9 @@ public final class SweepableCellsTable implements
             @Override
             public SweepableCellsColumn hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long timestampModulus = EncodingUtils.decodeUnsignedVarLong(__input, __index);
+                long timestampModulus = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(timestampModulus);
-                Long writeIndex = EncodingUtils.decodeSignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfSignedVarLong(writeIndex);
+                long writeIndex = EncodingUtils.decodeSignedVarLong(__input, __index);
                 return new SweepableCellsColumn(timestampModulus, writeIndex);
             }
         };
@@ -791,5 +789,5 @@ public final class SweepableCellsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "hMikiCT1ysKqkzSOdiKujg==";
+    static String __CLASS_HASH = "6dECi+2I9ZH+Ov279pcYtQ==";
 }

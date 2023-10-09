@@ -186,7 +186,6 @@ public final class RangeScanTestTable implements
             public RangeScanTestRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 String component1 = PtBytes.toString(__input, __index, __input.length-__index);
-                __index += 0;
                 return new RangeScanTestRow(component1);
             }
         };
@@ -745,5 +744,5 @@ public final class RangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "1i+tNWsmUREmFNoXh6QUeg==";
+    static String __CLASS_HASH = "GZhYC3jIPXsOpLDysjUtCQ==";
 }

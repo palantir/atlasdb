@@ -193,10 +193,9 @@ public final class UserPhotosStreamValueTable implements
             @Override
             public UserPhotosStreamValueRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
+                long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(id);
-                Long blockId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(blockId);
+                long blockId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 return new UserPhotosStreamValueRow(id, blockId);
             }
         };
@@ -695,5 +694,5 @@ public final class UserPhotosStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "vnCpFwiY6zZC+s1UYLuLCw==";
+    static String __CLASS_HASH = "+dac6YFPWfaIDO9CSbs0Pw==";
 }

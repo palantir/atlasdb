@@ -183,8 +183,7 @@ public final class HotspottyDataStreamIdxTable implements
             @Override
             public HotspottyDataStreamIdxRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = EncodingUtils.decodeSignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfSignedVarLong(id);
+                long id = EncodingUtils.decodeSignedVarLong(__input, __index);
                 return new HotspottyDataStreamIdxRow(id);
             }
         };
@@ -276,7 +275,6 @@ public final class HotspottyDataStreamIdxTable implements
             public HotspottyDataStreamIdxColumn hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 byte[] reference = EncodingUtils.decodeSizedBytes(__input, __index);
-                __index += EncodingUtils.sizeOfSizedBytes(reference);
                 return new HotspottyDataStreamIdxColumn(reference);
             }
         };
@@ -741,5 +739,5 @@ public final class HotspottyDataStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "lWy4z6m1ZmwcuY4d/ez8Rw==";
+    static String __CLASS_HASH = "ZiQ90N0bbO0EUy1RQiuEsA==";
 }

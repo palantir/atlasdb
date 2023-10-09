@@ -193,10 +193,9 @@ public final class ValueStreamValueTable implements
             @Override
             public ValueStreamValueRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
+                long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(id);
-                Long blockId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(blockId);
+                long blockId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 return new ValueStreamValueRow(id, blockId);
             }
         };
@@ -695,5 +694,5 @@ public final class ValueStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "uFwDglAaZjBu9w6E/JkGTA==";
+    static String __CLASS_HASH = "NJNhS6PvLJS+wg86/MRGjA==";
 }

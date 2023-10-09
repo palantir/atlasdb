@@ -186,7 +186,6 @@ public final class SchemaApiTestTable implements
             public SchemaApiTestRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 String component1 = PtBytes.toString(__input, __index, __input.length-__index);
-                __index += 0;
                 return new SchemaApiTestRow(component1);
             }
         };
@@ -874,5 +873,5 @@ public final class SchemaApiTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "cFj0qWUr9nog+ayklatsig==";
+    static String __CLASS_HASH = "6T4/KZlHu1MZtFWb6dFK5w==";
 }

@@ -329,13 +329,13 @@ public final class AllValueTypesTestTable implements
             @Override
             public AllValueTypesTestRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long component0 = EncodingUtils.decodeUnsignedVarLong(__input, __index);
+                long component0 = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(component0);
-                Long component1 = EncodingUtils.decodeSignedVarLong(__input, __index);
+                long component1 = EncodingUtils.decodeSignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfSignedVarLong(component1);
-                Long component2 = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                long component2 = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                Long component3 = EncodingUtils.decodeLittleEndian(__input, __index);
+                long component3 = EncodingUtils.decodeLittleEndian(__input, __index);
                 __index += 8;
                 Sha256Hash component4 = new Sha256Hash(EncodingUtils.get32Bytes(__input, __index));
                 __index += 32;
@@ -343,12 +343,11 @@ public final class AllValueTypesTestTable implements
                 __index += EncodingUtils.sizeOfVarString(component5);
                 byte[] component8 = EncodingUtils.decodeSizedBytes(__input, __index);
                 __index += EncodingUtils.sizeOfSizedBytes(component8);
-                Long component9 = EncodingUtils.decodeNullableFixedLong(__input,__index);
+                @Nullable Long component9 = EncodingUtils.decodeNullableFixedLong(__input,__index);
                 __index += 9;
                 UUID component10 = EncodingUtils.decodeUUID(__input, __index);
                 __index += 16;
                 byte[] blobComponent = EncodingUtils.getBytesFromOffsetToEnd(__input, __index);
-                __index += 0;
                 return new AllValueTypesTestRow(component0, component1, component2, component3, component4, component5, component8, component9, component10, blobComponent);
             }
         };
@@ -2133,5 +2132,5 @@ public final class AllValueTypesTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Wiqs1OWnWhpAhvVYVCck2w==";
+    static String __CLASS_HASH = "IdCniyyd2ANmSMlwF1CWNQ==";
 }

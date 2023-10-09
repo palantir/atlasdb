@@ -210,7 +210,7 @@ public final class LockRequest implements Serializable {
         return tempHashCode;
     }
 
-    public static void setLocalServerName(String serverName) {
+    public static void setLocalServerName(@Nullable String serverName) {
         if (serverName == null || serverName.trim().isEmpty()) {
             localServerName = "";
             return;
@@ -428,8 +428,8 @@ public final class LockRequest implements Serializable {
                     + ", blockingDuration=" + blockingDuration //
                     + ", versionId=" + versionId //
                     + ", lockGroupBehavior=" + lockGroupBehavior //
-                    + ", lockCount=" + lockMap.size() //
-                    + ", firstLock=" + Iterables.getFirst(lockMap.entries(), "") //
+                    + ", lockCount=" + (lockMap == null ? 0 : lockMap.size()) //
+                    + ", firstLock=" + (lockMap == null ? null : Iterables.getFirst(lockMap.entries(), ""))
                     + '}';
         }
     }
