@@ -569,8 +569,7 @@ public final class CassandraTopologyValidatorTest {
     }
 
     @Test
-    public void
-            acceptsNewHostsIfConsensusOnConfigHostsIsPlausibleEvolutionOfPreviousNoQuorumAcceptAndNoCurrentServers() {
+    public void acceptsNewHostsIfConsensusOnConfigHostsIsEvolutionOfPreviousNoQuorumAcceptAndNoCurrentServers() {
         // We split hosts into three "generations": old, new and additional. The "original hosts" refer to the old
         // and new hosts, but not the additional ones.
         Map<CassandraServer, CassandraClientPoolingContainer> originalHosts = initialiseHosts(ALL_HOSTS);
@@ -597,7 +596,7 @@ public final class CassandraTopologyValidatorTest {
                 .containsExactlyInAnyOrderElementsOf(oldCassandraServers);
 
         Map<CassandraServer, CassandraClientPoolingContainer> additionalHosts =
-                initialiseHosts(ImmutableSet.of("extra_host_1", "extra_host_2", "extra_host_3"));
+                initialiseHosts(ImmutableSet.of("additional_host_1", "additional_host_2", "additional_host_3"));
         setHostIds(additionalHosts.values(), HostIdResult.success(ImmutableSet.of("uuid7", "uuid9")));
         setHostIds(originalHosts.values(), HostIdResult.hardFailure());
 
@@ -689,6 +688,52 @@ public final class CassandraTopologyValidatorTest {
 
         assertThat(topologies.hostIds()).isEqualTo(Sets.union(UUIDS, MAYBE_SAME_AS_FIRST_CLUSTER));
         assertThat(topologies.serversInConsensus()).isEqualTo(Sets.union(oldServers, newServers));
+    }
+
+    @Test
+    public void mergedConsistentClusterTopologyShouldHaveCorrectIdsAndServers() {
+        ConsistentClusterTopologies original = ConsistentClusterTopologies.builder()
+                .addNodesAndSharedTopologies(NodesAndSharedTopology.builder()
+                        .addServersInConsensus(createCassandraServer("apple"))
+                        .addHostIds("one", "two", "three")
+                        .build())
+                .build();
+        ConsistentClusterTopologies newTopologies = original.merge(ConsistentClusterTopologies.builder()
+                .addNodesAndSharedTopologies(NodesAndSharedTopology.builder()
+                        .addServersInConsensus(createCassandraServer("banana"), createCassandraServer("cherry"))
+                        .addHostIds("one", "four", "five")
+                        .build())
+                .build());
+
+        assertThat(newTopologies.serversInConsensus())
+                .isEqualTo(Sets.union(original.serversInConsensus(), newTopologies.serversInConsensus()));
+        assertThat(newTopologies.hostIds()).isEqualTo(Sets.union(original.hostIds(), newTopologies.hostIds()));
+    }
+
+    @Test
+    public void throwsIfMergingConsistentClusterTopologiesThatDoNotOverlap() {
+        ConsistentClusterTopologies existing = ConsistentClusterTopologies.builder()
+                .addNodesAndSharedTopologies(NodesAndSharedTopology.builder()
+                        .addServersInConsensus(createCassandraServer("apple"))
+                        .addHostIds("one", "two", "three")
+                        .build())
+                .build();
+
+        assertThatThrownBy(() -> existing.merge(ConsistentClusterTopologies.builder()
+                        .addNodesAndSharedTopologies(NodesAndSharedTopology.builder()
+                                .addServersInConsensus(createCassandraServer("banana"))
+                                .addHostIds("four", "five", "six")
+                                .build())
+                        .build()))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessage("Should not merge topologies that do not share at least one host id.");
+        assertThatThrownBy(() -> existing.merge(ConsistentClusterTopologies.builder()
+                        .addNodesAndSharedTopologies(NodesAndSharedTopology.builder()
+                                .addServersInConsensus(createCassandraServer("carrot"))
+                                .build())
+                        .build()))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessage("Should not merge topologies that do not share at least one host id.");
     }
 
     public Set<CassandraClientPoolingContainer> filterContainers(
