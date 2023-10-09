@@ -23,7 +23,6 @@ import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.CassandraTopologyValidationMetrics;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
@@ -38,6 +37,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import java.net.InetSocketAddress;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -53,13 +53,13 @@ import org.immutables.value.Value;
 public final class CassandraTopologyValidator {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraTopologyValidator.class);
     private final CassandraTopologyValidationMetrics metrics;
-    private final AtomicReference<ConsistentClusterTopology> pastConsistentTopology;
+    private final AtomicReference<ConsistentClusterTopologies> pastConsistentTopologies;
     private final Supplier<Set<String>> configuredServers;
 
     private CassandraTopologyValidator(
             CassandraTopologyValidationMetrics metrics, Supplier<Set<String>> configuredServers) {
         this.metrics = metrics;
-        this.pastConsistentTopology = new AtomicReference<>();
+        this.pastConsistentTopologies = new AtomicReference<>();
         this.configuredServers = configuredServers;
     }
 
@@ -219,14 +219,14 @@ public final class CassandraTopologyValidator {
         switch (topologyResult.type()) {
             case CONSENSUS:
                 Preconditions.checkState(
-                        topologyResult.agreedTopology().isPresent(),
-                        "Expected to have a consistent topology for a CONSENSUS result, but did not.");
-                ConsistentClusterTopology topology =
-                        topologyResult.agreedTopology().get();
-                pastConsistentTopology.set(topology);
+                        topologyResult.agreedTopologies().isPresent(),
+                        "Expected to have one or more consistent topologies for a CONSENSUS result, but did not.");
+                ConsistentClusterTopologies topologies =
+                        topologyResult.agreedTopologies().get();
+                pastConsistentTopologies.set(topologies);
                 return EntryStream.of(newServersWithoutSoftFailures)
                         .removeValues(result -> result.type() == HostIdResult.Type.SUCCESS
-                                && result.hostIds().equals(topology.hostIds()))
+                                && topologies.sharesAtLeastOneHostId(result.hostIds()))
                         .keys()
                         .toSet();
             case DISSENT:
@@ -237,15 +237,15 @@ public final class CassandraTopologyValidator {
                 // of what the old servers were thinking, since in containerised deployments all nodes can change
                 // between refreshes for legitimate reasons (but they should still refer to the same underlying
                 // cluster).
-                if (pastConsistentTopology.get() == null) {
+                if (pastConsistentTopologies.get() == null) {
                     // We don't have a record of what worked in the past, and since this state means we're validating
                     // the initial config servers, we don't have another source of truth here.
                     return newServersWithoutSoftFailures.keySet();
                 }
-                Optional<ConsistentClusterTopology> maybeTopology = maybeGetConsistentClusterTopology(
+                Optional<ConsistentClusterTopologies> maybeTopologies = maybeGetConsistentClusterTopology(
                                 serversToConsiderWhenNoQuorumPresent)
-                        .agreedTopology();
-                if (maybeTopology.isEmpty()) {
+                        .agreedTopologies();
+                if (maybeTopologies.isEmpty()) {
                     log.info(
                             "No quorum was detected in original set of servers, and the filtered set of servers were"
                                     + " also not in agreement. Not adding new servers in this case.",
@@ -253,16 +253,16 @@ public final class CassandraTopologyValidator {
                             SafeArg.of("allServers", CassandraLogHelper.collectionOfHosts(allHosts)));
                     return newServersWithoutSoftFailures.keySet();
                 }
-                ConsistentClusterTopology newNodesAgreedTopology = maybeTopology.get();
-                ConsistentClusterTopology pastTopologySnapshot = pastConsistentTopology.get();
-                if (!sharesAtLeastOneHostId(newNodesAgreedTopology, pastTopologySnapshot)) {
+                ConsistentClusterTopologies newNodesAgreedTopologies = maybeTopologies.get();
+                ConsistentClusterTopologies pastTopologySnapshot = pastConsistentTopologies.get();
+                if (!pastTopologySnapshot.sharesAtLeastOneHostId(newNodesAgreedTopologies.hostIds())) {
                     log.info(
                             "No quorum was detected among the original set of servers. While a filtered set of servers"
                                     + " could reach a consensus, this differed from the last agreed value among the old"
                                     + " servers, and is not demonstrably a plausible evolution of the last agreed"
                                     + " topology. Not adding new servers in this case.",
-                            SafeArg.of("pastConsistentTopology", pastTopologySnapshot),
-                            SafeArg.of("newNodesAgreedTopology", newNodesAgreedTopology),
+                            SafeArg.of("pastConsistentTopologies", pastTopologySnapshot),
+                            SafeArg.of("newNodesAgreedTopologies", newNodesAgreedTopologies),
                             SafeArg.of("newServers", CassandraLogHelper.collectionOfHosts(newlyAddedHosts)),
                             SafeArg.of("allServers", CassandraLogHelper.collectionOfHosts(allHosts)));
                     return newServersWithoutSoftFailures.keySet();
@@ -271,12 +271,12 @@ public final class CassandraTopologyValidator {
                         "No quorum was detected among the original set of servers. A filtered set of servers reached a"
                                 + " consensus that was a plausible evolution of the last agreed value among the old"
                                 + " servers. Adding new servers that were in consensus.",
-                        SafeArg.of("pastConsistentTopology", pastTopologySnapshot),
-                        SafeArg.of("newNodesAgreedTopology", newNodesAgreedTopology),
+                        SafeArg.of("pastConsistentTopologies", pastTopologySnapshot),
+                        SafeArg.of("newNodesAgreedTopologies", newNodesAgreedTopologies),
                         SafeArg.of("newServers", CassandraLogHelper.collectionOfHosts(newlyAddedHosts)),
                         SafeArg.of("allServers", CassandraLogHelper.collectionOfHosts(allHosts)));
                 return Sets.difference(
-                        newServersWithoutSoftFailures.keySet(), newNodesAgreedTopology.serversInConsensus());
+                        newServersWithoutSoftFailures.keySet(), newNodesAgreedTopologies.serversInConsensus());
             default:
                 throw new SafeIllegalStateException(
                         "Unexpected cluster topology result type", SafeArg.of("type", topologyResult.type()));
@@ -298,9 +298,12 @@ public final class CassandraTopologyValidator {
             Map<CassandraServer, HostIdResult> hostIdsByServerWithoutSoftFailures) {
         // If all our queries fail due to soft failures, then our consensus is an empty set of host ids
         if (hostIdsByServerWithoutSoftFailures.isEmpty()) {
-            return ClusterTopologyResult.consensus(ConsistentClusterTopology.builder()
+            NodesAndSharedTopology emptySetOfHostIds = NodesAndSharedTopology.builder()
                     .hostIds(Set.of())
                     .serversInConsensus(hostIdsByServerWithoutSoftFailures.keySet())
+                    .build();
+            return ClusterTopologyResult.consensus(ConsistentClusterTopologies.builder()
+                    .addNodesAndSharedTopologies(emptySetOfHostIds)
                     .build());
         }
 
@@ -321,16 +324,21 @@ public final class CassandraTopologyValidator {
         Set<Set<String>> uniqueSetsOfHostIds =
                 EntryStream.of(hostIdsWithoutFailures).values().toImmutableSet();
 
-        // If we only have one set of host ids, we've consensus, otherwise fail
-        if (uniqueSetsOfHostIds.size() == 1) {
-            Set<String> uniqueHostIds = Iterables.getOnlyElement(uniqueSetsOfHostIds);
-            return ClusterTopologyResult.consensus(ConsistentClusterTopology.builder()
-                    .hostIds(uniqueHostIds)
-                    .serversInConsensus(hostIdsWithoutFailures.keySet())
+        if (HostIdEvolution.existsPlausibleEvolutionOfHostIdSets(uniqueSetsOfHostIds)) {
+            Map<Set<String>, List<CassandraServer>> idsToServers =
+                    EntryStream.of(hostIdsWithoutFailures).invert().grouping();
+            return ClusterTopologyResult.consensus(ConsistentClusterTopologies.builder()
+                    .nodesAndSharedTopologies(EntryStream.of(idsToServers)
+                            .mapKeyValue((hostIds, servers) -> NodesAndSharedTopology.builder()
+                                    .hostIds(hostIds)
+                                    .serversInConsensus(servers)
+                                    .build()))
                     .build());
+        } else {
+            // There exists some set of host IDs that can't be connected to the starting node through plausible
+            // evolution.
+            return ClusterTopologyResult.dissent();
         }
-
-        return ClusterTopologyResult.dissent();
     }
 
     private Map<CassandraServer, HostIdResult> fetchHostIdsIgnoringSoftFailures(
@@ -369,20 +377,41 @@ public final class CassandraTopologyValidator {
         }
     }
 
-    @VisibleForTesting
-    static boolean sharesAtLeastOneHostId(ConsistentClusterTopology topology, ConsistentClusterTopology otherTopology) {
-        return !Sets.intersection(topology.hostIds(), otherTopology.hostIds()).isEmpty();
+    @Value.Immutable
+    public interface ConsistentClusterTopologies {
+        Set<NodesAndSharedTopology> nodesAndSharedTopologies();
+
+        @Value.Derived
+        default Set<String> hostIds() {
+            return nodesAndSharedTopologies().stream()
+                    .flatMap(topology -> topology.hostIds().stream())
+                    .collect(Collectors.toSet());
+        }
+
+        @Value.Derived
+        default Set<CassandraServer> serversInConsensus() {
+            return nodesAndSharedTopologies().stream()
+                    .flatMap(topology -> topology.serversInConsensus().stream())
+                    .collect(Collectors.toSet());
+        }
+
+        default boolean sharesAtLeastOneHostId(Set<String> otherHostIds) {
+            return !Sets.intersection(hostIds(), otherHostIds).isEmpty();
+        }
+
+        static ImmutableConsistentClusterTopologies.Builder builder() {
+            return ImmutableConsistentClusterTopologies.builder();
+        }
     }
 
     @Value.Immutable
-    public interface ConsistentClusterTopology {
-
+    public interface NodesAndSharedTopology {
         Set<String> hostIds();
 
         Set<CassandraServer> serversInConsensus();
 
-        static ImmutableConsistentClusterTopology.Builder builder() {
-            return ImmutableConsistentClusterTopology.builder();
+        static ImmutableNodesAndSharedTopology.Builder builder() {
+            return ImmutableNodesAndSharedTopology.builder();
         }
     }
 
@@ -396,12 +425,12 @@ public final class CassandraTopologyValidator {
     public interface ClusterTopologyResult {
         ClusterTopologyResultType type();
 
-        Optional<ConsistentClusterTopology> agreedTopology();
+        Optional<ConsistentClusterTopologies> agreedTopologies();
 
-        static ClusterTopologyResult consensus(ConsistentClusterTopology consistentClusterTopology) {
+        static ClusterTopologyResult consensus(ConsistentClusterTopologies consistentClusterTopologies) {
             return ImmutableClusterTopologyResult.builder()
                     .type(ClusterTopologyResultType.CONSENSUS)
-                    .agreedTopology(consistentClusterTopology)
+                    .agreedTopologies(consistentClusterTopologies)
                     .build();
         }
 

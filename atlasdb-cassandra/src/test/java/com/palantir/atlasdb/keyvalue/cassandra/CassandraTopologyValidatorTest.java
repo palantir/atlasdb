@@ -30,6 +30,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.CassandraTopologyValidationMetrics;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.ConsistentClusterTopologies;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.NodesAndSharedTopology;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -42,6 +44,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import one.util.streamex.EntryStream;
 import one.util.streamex.StreamEx;
 import org.apache.thrift.TApplicationException;
@@ -162,9 +165,38 @@ public final class CassandraTopologyValidatorTest {
                 HostIdResult.success(ImmutableSet.of("uuid1", "uuid2")));
         setHostIds(
                 filterContainers(allHosts, NEW_HOST_ONE::equals),
-                HostIdResult.success(ImmutableSet.of("uuid3", "uuid2")));
+                HostIdResult.success(ImmutableSet.of("uuid3", "uuid4")));
         assertThat(validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(allHosts.keySet()), allHosts))
                 .containsExactlyElementsOf(allHosts.keySet());
+    }
+
+    @Test
+    public void returnsEmptyWhenOnlyNewServersAndOneMismatchWithPlausibleEvolution() {
+        Map<CassandraServer, CassandraClientPoolingContainer> allHosts = initialiseHosts(NEW_HOSTS);
+        setHostIds(
+                filterContainers(allHosts, server -> !server.equals(NEW_HOST_ONE)),
+                HostIdResult.success(ImmutableSet.of("uuid1", "uuid2")));
+        setHostIds(
+                filterContainers(allHosts, NEW_HOST_ONE::equals),
+                HostIdResult.success(ImmutableSet.of("uuid2", "uuid3")));
+        assertThat(validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(allHosts.keySet()), allHosts))
+                .isEmpty();
+    }
+
+    @Test
+    public void returnsEmptyWhenOnlyNewServersAndAllDisagreeWithPossiblyDisjointPlausibleEvolutions() {
+        Map<CassandraServer, CassandraClientPoolingContainer> allHosts = initialiseHosts(NEW_HOSTS);
+        setHostIds(
+                filterContainers(allHosts, NEW_HOST_ONE::equals),
+                HostIdResult.success(ImmutableSet.of("uuid1", "uuid2")));
+        setHostIds(
+                filterContainers(allHosts, NEW_HOST_TWO::equals),
+                HostIdResult.success(ImmutableSet.of("uuid2", "uuid3")));
+        setHostIds(
+                filterContainers(allHosts, NEW_HOST_THREE::equals),
+                HostIdResult.success(ImmutableSet.of("uuid3", "uuid4")));
+        assertThat(validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(allHosts.keySet()), allHosts))
+                .isEmpty();
     }
 
     @Test
@@ -176,21 +208,32 @@ public final class CassandraTopologyValidatorTest {
                 HostIdResult.success(ImmutableSet.of("uuid1", "uuid2")));
         setHostIds(
                 filterContainers(allHosts, OLD_HOSTS::contains),
-                HostIdResult.success(ImmutableSet.of("uuid3", "uuid2")));
+                HostIdResult.success(ImmutableSet.of("uuid3", "uuid4")));
         assertThat(validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(newServers), allHosts))
                 .containsExactlyElementsOf(newServers);
     }
 
     @Test
-    public void validateNewlyAddedHostsReturnsOnlyMismatchingNewHosts() {
+    public void validateNewlyAddedHostsReturnsMismatchingNewHostsWithoutPlausibleEvolution() {
         Predicate<String> badHostFilter = NEW_HOST_ONE::equals;
         Map<CassandraServer, CassandraClientPoolingContainer> allHosts = initialiseHosts(ALL_HOSTS);
         setHostIds(filterContainers(allHosts, badHostFilter.negate()), DEFAULT_RESULT);
-        setHostIds(filterContainers(allHosts, badHostFilter), HostIdResult.success(ImmutableSet.of("uuid3", "uuid2")));
+        setHostIds(filterContainers(allHosts, badHostFilter), HostIdResult.success(ImmutableSet.of("uuid4", "uuid5")));
         Set<CassandraServer> newServers = filterServers(allHosts, NEW_HOSTS::contains);
         Set<CassandraServer> badNewHosts = filterServers(allHosts, badHostFilter);
         assertThat(validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(newServers), allHosts))
                 .containsExactlyElementsOf(badNewHosts);
+    }
+
+    @Test
+    public void validateNewlyAddedHostsDoesNotReturnMismatchingNewHostsWithPlausibleEvolution() {
+        Predicate<String> badHostFilter = NEW_HOST_ONE::equals;
+        Map<CassandraServer, CassandraClientPoolingContainer> allHosts = initialiseHosts(ALL_HOSTS);
+        setHostIds(filterContainers(allHosts, badHostFilter.negate()), DEFAULT_RESULT);
+        setHostIds(filterContainers(allHosts, badHostFilter), HostIdResult.success(ImmutableSet.of("uuid1", "uuid4")));
+        Set<CassandraServer> newServers = filterServers(allHosts, NEW_HOSTS::contains);
+        assertThat(validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(newServers), allHosts))
+                .isEmpty();
     }
 
     @Test
@@ -297,7 +340,7 @@ public final class CassandraTopologyValidatorTest {
 
     @Test
     public void
-            validateNewlyAddedHostsNewHostsNotAddedIfTheyPresentAPossibleEvolutionOfPreviousTopologyAndCurrentServersExist() {
+            validateNewlyAddedHostsNewHostsAddedIfTheyPresentAPlausibleEvolutionOfPreviousTopologyAndCurrentServersExist() {
         Map<CassandraServer, CassandraClientPoolingContainer> allHosts = initialiseHosts(ALL_HOSTS);
         Map<CassandraServer, CassandraClientPoolingContainer> oldHosts = EntryStream.of(allHosts)
                 .filterKeys(key -> OLD_HOSTS.contains(key.cassandraHostName()))
@@ -318,8 +361,9 @@ public final class CassandraTopologyValidatorTest {
         validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(oldCassandraServers), oldHosts);
         assertThat(validator.getNewHostsWithInconsistentTopologies(
                         mapToTokenRangeOrigin(newCassandraServers), allHosts))
-                .as("does not accept quorum from new hosts if they have different host IDs")
-                .containsExactlyElementsOf(newCassandraServers);
+                .as("accepts a quorum from new hosts if it is different from the previous topology but a plausible"
+                        + " evolution")
+                .isEmpty();
     }
 
     @Test
@@ -374,7 +418,7 @@ public final class CassandraTopologyValidatorTest {
     }
 
     @Test
-    public void validateNewlyAddedHostsAddedIfAgreedWithOldHostsOnPreviousTopologyWhenNoQuorum() {
+    public void newlyAddedHostsAcceptedIfAgreedWithOldHostsOnPreviousTopologyWhenNoQuorum() {
         Map<CassandraServer, CassandraClientPoolingContainer> allHosts = initialiseHosts(ALL_HOSTS);
         Map<CassandraServer, CassandraClientPoolingContainer> oldHosts =
                 filterServerToContainerMap(allHosts, OLD_HOSTS::contains);
@@ -396,7 +440,7 @@ public final class CassandraTopologyValidatorTest {
     }
 
     @Test
-    public void validateNewlyAddedHostsAddedIfPresentingPlausiblyEvolvedPreviousTopologyWhenNoQuorum() {
+    public void newlyAddedHostsAddedIfPresentingPlausiblyEvolvedPreviousTopologyWhenNoQuorum() {
         Map<CassandraServer, CassandraClientPoolingContainer> allHosts = initialiseHosts(ALL_HOSTS);
         Map<CassandraServer, CassandraClientPoolingContainer> oldHosts =
                 filterServerToContainerMap(allHosts, OLD_HOSTS::contains);
@@ -576,55 +620,27 @@ public final class CassandraTopologyValidatorTest {
     }
 
     @Test
-    public void emptySetDoesNotShareHostIdsWithOtherSet() {
-        assertThat(CassandraTopologyValidator.sharesAtLeastOneHostId(
-                        ImmutableConsistentClusterTopology.builder().build(),
-                        ImmutableConsistentClusterTopology.builder().build()))
-                .isFalse();
-        assertThat(CassandraTopologyValidator.sharesAtLeastOneHostId(
-                        ImmutableConsistentClusterTopology.builder().build(),
-                        ImmutableConsistentClusterTopology.builder()
-                                .addHostIds("foo")
-                                .build()))
-                .isFalse();
-    }
+    public void consistentClusterTopologiesCombinesUnderlyingTopologies() {
+        Set<CassandraServer> newServers = NEW_HOSTS.stream()
+                .map(CassandraTopologyValidatorTest::createCassandraServer)
+                .collect(Collectors.toSet());
+        Set<CassandraServer> oldServers = OLD_HOSTS.stream()
+                .map(CassandraTopologyValidatorTest::createCassandraServer)
+                .collect(Collectors.toSet());
+        ConsistentClusterTopologies topologies = ConsistentClusterTopologies.builder()
+                .addNodesAndSharedTopologies(
+                        NodesAndSharedTopology.builder()
+                                .hostIds(UUIDS)
+                                .addAllServersInConsensus(newServers)
+                                .build(),
+                        NodesAndSharedTopology.builder()
+                                .hostIds(MAYBE_SAME_AS_FIRST_CLUSTER)
+                                .addAllServersInConsensus(oldServers)
+                                .build())
+                .build();
 
-    @Test
-    public void setsWithOneSharedHostIdShareHostIds() {
-        ImmutableConsistentClusterTopology fooTopology =
-                ImmutableConsistentClusterTopology.builder().addHostIds("foo").build();
-        assertThat(CassandraTopologyValidator.sharesAtLeastOneHostId(fooTopology, fooTopology))
-                .isTrue();
-        assertThat(CassandraTopologyValidator.sharesAtLeastOneHostId(
-                        ImmutableConsistentClusterTopology.builder()
-                                .from(fooTopology)
-                                .addHostIds("bar")
-                                .build(),
-                        ImmutableConsistentClusterTopology.builder()
-                                .from(fooTopology)
-                                .addHostIds("baz")
-                                .build()))
-                .isTrue();
-    }
-
-    @Test
-    public void disjointSetsDoNotShareHostIds() {
-        assertThat(CassandraTopologyValidator.sharesAtLeastOneHostId(
-                        ImmutableConsistentClusterTopology.builder()
-                                .addHostIds("bar")
-                                .build(),
-                        ImmutableConsistentClusterTopology.builder()
-                                .addHostIds("baz")
-                                .build()))
-                .isFalse();
-        assertThat(CassandraTopologyValidator.sharesAtLeastOneHostId(
-                        ImmutableConsistentClusterTopology.builder()
-                                .addHostIds("eat", "ate", "tea", "eta", "tae")
-                                .build(),
-                        ImmutableConsistentClusterTopology.builder()
-                                .addHostIds("ear", "era", "are")
-                                .build()))
-                .isFalse();
+        assertThat(topologies.hostIds()).isEqualTo(Sets.union(UUIDS, MAYBE_SAME_AS_FIRST_CLUSTER));
+        assertThat(topologies.serversInConsensus()).isEqualTo(Sets.union(oldServers, newServers));
     }
 
     public Set<CassandraClientPoolingContainer> filterContainers(
