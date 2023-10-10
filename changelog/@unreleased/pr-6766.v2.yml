@@ -1,0 +1,8 @@
+type: fix
+fix:
+  description: We now handle Cassandra upscales and decommissions more smoothly. Previously
+    we only kept track of the last consistent topology and treated topologies that
+    are different in any way as distinct, so these cluster changes would be treated
+    as dissent/possible split brain, which is unnecessarily disruptive.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6766
