@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class KeyValueServiceValidator {
     private final TransactionManager validationFromTransactionManager;
@@ -55,6 +56,8 @@ public class KeyValueServiceValidator {
 
     private final KvsMigrationMessageProcessor messageProcessor;
 
+    private final AtomicInteger migratedTableCount;
+
     public KeyValueServiceValidator(
             TransactionManager validationFromTransactionManager,
             TransactionManager validationToTransactionManager,
@@ -63,7 +66,8 @@ public class KeyValueServiceValidator {
             int defaultBatchSize,
             Map<TableReference, Integer> readBatchSizeOverrides,
             KvsMigrationMessageProcessor messageProcessor,
-            Set<TableReference> unmigratableTables) {
+            Set<TableReference> unmigratableTables,
+            AtomicInteger migratedTableCount) {
         this.validationFromTransactionManager = validationFromTransactionManager;
         this.validationToTransactionManager = validationToTransactionManager;
         this.validationFromKvs = validationFromKvs;
@@ -72,6 +76,7 @@ public class KeyValueServiceValidator {
         this.readBatchSizeOverrides = readBatchSizeOverrides;
         this.messageProcessor = messageProcessor;
         this.unmigratableTables = unmigratableTables;
+        this.migratedTableCount = migratedTableCount;
     }
 
     private int getBatchSize(TableReference table) {
@@ -100,6 +105,11 @@ public class KeyValueServiceValidator {
             Future<Void> future = executor.submit(() -> {
                 try {
                     validateTable(table);
+                    KeyValueServiceMigratorUtils.processMessage(
+                            messageProcessor,
+                            "Validated " + table + " (" + migratedTableCount.incrementAndGet() + "/" + tables.size()
+                                    + ")",
+                            KvsMigrationMessageLevel.INFO);
                 } catch (RuntimeException e) {
                     throw Throwables.rewrapAndThrowUncheckedException("Exception while validating " + table, e);
                 }
@@ -109,6 +119,8 @@ public class KeyValueServiceValidator {
         }
 
         futures.forEach(Futures::getUnchecked);
+        KeyValueServiceMigratorUtils.processMessage(
+                messageProcessor, "Validation complete.", KvsMigrationMessageLevel.INFO);
     }
 
     private void validateTable(final TableReference table) {
@@ -117,9 +129,9 @@ public class KeyValueServiceValidator {
         byte[] nextRowName = new byte[0];
         while (nextRowName != null) {
             nextRowName = validateNextBatchOfRows(table, limit, nextRowName);
+            KeyValueServiceMigratorUtils.processMessage(
+                    messageProcessor, "Validated a batch of rows for " + table, KvsMigrationMessageLevel.INFO);
         }
-        KeyValueServiceMigratorUtils.processMessage(
-                messageProcessor, "Validated " + table, KvsMigrationMessageLevel.INFO);
     }
 
     private byte[] validateNextBatchOfRows(TableReference table, int limit, byte[] nextRowName) {
