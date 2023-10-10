@@ -43,6 +43,6 @@ public interface NonSoftFailureHostIdResult {
     default void check() {
         Preconditions.checkArgument(
                 result().type() != HostIdResult.Type.SOFT_FAILURE,
-                "Soft failures are not ID supporting and thus not allowed.");
+                "Soft failures are not allowed in a NonSoftFailureHostIdResult.");
     }
 }

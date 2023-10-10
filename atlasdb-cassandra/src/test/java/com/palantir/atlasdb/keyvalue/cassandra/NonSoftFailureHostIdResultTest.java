@@ -27,7 +27,7 @@ public class NonSoftFailureHostIdResultTest {
     public void throwsWhenCreatingWithSoftFailure() {
         assertThatThrownBy(() -> NonSoftFailureHostIdResult.wrap(HostIdResult.softFailure()))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Soft failures are not ID supporting and thus not allowed.");
+                .hasMessage("Soft failures are not allowed in a NonSoftFailureHostIdResult.");
     }
 
     @Test
