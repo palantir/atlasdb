@@ -28,9 +28,11 @@ import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
+import one.util.streamex.EntryStream;
 import org.apache.cassandra.thrift.TokenRange;
 import org.immutables.value.Value;
 
@@ -58,6 +60,13 @@ public final class CassandraLogHelper {
                 .map(entry ->
                         "host " + entry.getValue().cassandraHostName() + " with proxy has range " + entry.getKey())
                 .collect(Collectors.toList());
+    }
+
+    static Map<String, IdSupportingHostIdResult> idSupportingHostIdResultMap(
+            Map<CassandraServer, IdSupportingHostIdResult> cassandraServerMap) {
+        return EntryStream.of(cassandraServerMap)
+                .mapKeys(CassandraServer::cassandraHostName)
+                .toMap();
     }
 
     public static List<String> tokenMap(RangeMap<LightweightOppToken, ? extends Collection<CassandraServer>> tokenMap) {
