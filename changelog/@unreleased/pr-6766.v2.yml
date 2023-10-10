@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: We keep track of past consistent _topologies_, and generally accept
+    quorums of nodes presenting topologies that are considered to be plausible evolutions
+    of one another.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6766
