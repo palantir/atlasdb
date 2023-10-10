@@ -275,6 +275,7 @@ public final class CassandraTopologyValidator {
                         SafeArg.of("newNodesAgreedTopologies", newNodesAgreedTopologies),
                         SafeArg.of("newServers", CassandraLogHelper.collectionOfHosts(newlyAddedHosts)),
                         SafeArg.of("allServers", CassandraLogHelper.collectionOfHosts(allHosts)));
+                pastConsistentTopologies.set(pastTopologySnapshot.merge(newNodesAgreedTopologies));
                 return Sets.difference(
                         newServersWithoutSoftFailures.keySet(), newNodesAgreedTopologies.serversInConsensus());
             default:
@@ -394,6 +395,16 @@ public final class CassandraTopologyValidator {
 
         default boolean sharesAtLeastOneHostId(Set<String> otherHostIds) {
             return !Sets.intersection(hostIds(), otherHostIds).isEmpty();
+        }
+
+        default ConsistentClusterTopologies merge(ConsistentClusterTopologies other) {
+            Preconditions.checkArgument(
+                    sharesAtLeastOneHostId(other.hostIds()),
+                    "Should not merge topologies that do not share at least one host id.");
+            return ImmutableConsistentClusterTopologies.builder()
+                    .from(this)
+                    .addAllNodesAndSharedTopologies(other.nodesAndSharedTopologies())
+                    .build();
         }
 
         static ImmutableConsistentClusterTopologies.Builder builder() {
