@@ -569,7 +569,54 @@ public final class CassandraTopologyValidatorTest {
     }
 
     @Test
-    public void acceptsNewHostsIfConsensusIsEvolutionOfPreviousNoQuorumAcceptAndNoCurrentServers() {
+    public void acceptsNewHostsIfConsensusOnConfigHostsIsEvolutionOfPreviousNoQuorumAcceptAndNoCurrentServers() {
+        // We split hosts into three "generations": old, new and additional. The "original hosts" refer to the old
+        // and new hosts, but not the additional ones.
+        Map<CassandraServer, CassandraClientPoolingContainer> originalHosts = initialiseHosts(ALL_HOSTS);
+        Map<CassandraServer, CassandraClientPoolingContainer> oldHosts =
+                filterServerToContainerMap(originalHosts, OLD_HOSTS::contains);
+        Set<CassandraServer> oldCassandraServers = oldHosts.keySet();
+        Set<CassandraServer> originalCassandraServers = originalHosts.keySet();
+
+        setHostIds(filterContainers(originalHosts, OLD_HOSTS::contains), HostIdResult.success(UUIDS));
+        validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(oldCassandraServers), oldHosts);
+
+        Set<String> hostsOffline = OLD_HOSTS;
+        setHostIds(filterContainers(originalHosts, hostsOffline::contains), HostIdResult.hardFailure());
+        setHostIds(
+                filterContainers(originalHosts, server -> !hostsOffline.contains(server)),
+                HostIdResult.success(MAYBE_SAME_AS_FIRST_CLUSTER));
+
+        configServers.set(NEW_HOSTS);
+        assertThat(validator.getNewHostsWithInconsistentTopologies(
+                splitHostOriginBetweenLastKnownAndConfig(
+                        oldCassandraServers, Sets.difference(originalCassandraServers, oldCassandraServers)),
+                originalHosts))
+                .as("accepts new hosts because their host IDs were a plausible evolution of that of the old hosts")
+                .containsExactlyInAnyOrderElementsOf(oldCassandraServers);
+
+        Map<CassandraServer, CassandraClientPoolingContainer> additionalHosts =
+                initialiseHosts(ImmutableSet.of("additional_host_1", "additional_host_2", "additional_host_3"));
+        setHostIds(additionalHosts.values(), HostIdResult.success(ImmutableSet.of("uuid7", "uuid9")));
+        setHostIds(originalHosts.values(), HostIdResult.hardFailure());
+
+        assertThat(hostsOffline).hasSizeGreaterThanOrEqualTo((ALL_HOSTS.size() + 1) / 2);
+        configServers.set(additionalHosts.keySet().stream()
+                .map(CassandraServer::cassandraHostName)
+                .collect(Collectors.toSet()));
+        assertThat(validator.getNewHostsWithInconsistentTopologies(
+                splitHostOriginBetweenLastKnownAndConfig(originalCassandraServers, additionalHosts.keySet()),
+                ImmutableMap.<CassandraServer, CassandraClientPoolingContainer>builder()
+                        .putAll(originalHosts)
+                        .putAll(additionalHosts)
+                        .buildOrThrow()))
+                .as("accepts additional hosts because their host IDs were a plausible evolution of that of the new"
+                        + " hosts (even if they were not that of the old hosts directly)")
+                .containsExactlyInAnyOrderElementsOf(originalCassandraServers);
+    }
+
+    @Test
+    public void acceptsNewHostsIfConsensusOnTokenRingDiscoveredHostsIsEvolutionOfPreviousNoQuorumAccept() {
         // We split hosts into three "generations": old, new and additional. The "original hosts" refer to the old
         // and new hosts, but not the additional ones.
         Map<CassandraServer, CassandraClientPoolingContainer> originalHosts = initialiseHosts(ALL_HOSTS);
