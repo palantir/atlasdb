@@ -62,8 +62,8 @@ public final class CassandraLogHelper {
                 .collect(Collectors.toList());
     }
 
-    static Map<String, IdSupportingHostIdResult> idSupportingHostIdResultMap(
-            Map<CassandraServer, IdSupportingHostIdResult> cassandraServerMap) {
+    static Map<String, NonSoftFailureHostIdResult> idSupportingHostIdResultMap(
+            Map<CassandraServer, NonSoftFailureHostIdResult> cassandraServerMap) {
         return EntryStream.of(cassandraServerMap)
                 .mapKeys(CassandraServer::cassandraHostName)
                 .toMap();

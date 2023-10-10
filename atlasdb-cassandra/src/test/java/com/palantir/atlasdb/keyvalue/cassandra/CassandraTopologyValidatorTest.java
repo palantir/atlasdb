@@ -747,9 +747,9 @@ public final class CassandraTopologyValidatorTest {
                 .build();
         ConsistentClusterTopologies newTopologies = original.merge(ImmutableMap.of(
                 createCassandraServer("banana"),
-                IdSupportingHostIdResult.wrap(HostIdResult.success(ImmutableSet.of("one", "four"))),
+                NonSoftFailureHostIdResult.wrap(HostIdResult.success(ImmutableSet.of("one", "four"))),
                 createCassandraServer("cherry"),
-                IdSupportingHostIdResult.wrap(HostIdResult.success(ImmutableSet.of("one", "five")))));
+                NonSoftFailureHostIdResult.wrap(HostIdResult.success(ImmutableSet.of("one", "five")))));
 
         assertThat(newTopologies.serversInConsensus())
                 .isEqualTo(Sets.union(original.serversInConsensus(), newTopologies.serversInConsensus()));
@@ -767,17 +767,17 @@ public final class CassandraTopologyValidatorTest {
 
         assertThatThrownBy(() -> existing.merge(ImmutableMap.of(
                         createCassandraServer("banana"),
-                        IdSupportingHostIdResult.wrap(HostIdResult.success(ImmutableSet.of("one", "four"))),
+                        NonSoftFailureHostIdResult.wrap(HostIdResult.success(ImmutableSet.of("one", "four"))),
                         createCassandraServer("cherry"),
-                        IdSupportingHostIdResult.wrap(HostIdResult.success(ImmutableSet.of("five", "six"))))))
+                        NonSoftFailureHostIdResult.wrap(HostIdResult.success(ImmutableSet.of("five", "six"))))))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessage("Should not merge topologies that do not share at least one host id.");
 
         assertThatThrownBy(() -> existing.merge(ImmutableMap.of(
                         createCassandraServer("banana"),
-                        IdSupportingHostIdResult.wrap(HostIdResult.success(ImmutableSet.of("four", "five"))),
+                        NonSoftFailureHostIdResult.wrap(HostIdResult.success(ImmutableSet.of("four", "five"))),
                         createCassandraServer("cherry"),
-                        IdSupportingHostIdResult.wrap(HostIdResult.success(ImmutableSet.of("five", "six"))))))
+                        NonSoftFailureHostIdResult.wrap(HostIdResult.success(ImmutableSet.of("five", "six"))))))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessage("Should not merge topologies that do not share at least one host id.");
     }

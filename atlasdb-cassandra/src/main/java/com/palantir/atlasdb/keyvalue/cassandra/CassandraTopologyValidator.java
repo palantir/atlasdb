@@ -168,14 +168,14 @@ public final class CassandraTopologyValidator {
                 SafeArg.of("newlyAddedHosts", CassandraLogHelper.collectionOfHosts(newlyAddedHostsWithoutOrigin)),
                 SafeArg.of("allHosts", CassandraLogHelper.collectionOfHosts(allHosts.keySet())));
 
-        Map<CassandraServer, IdSupportingHostIdResult> hostIdsByServerWithoutSoftFailures =
+        Map<CassandraServer, NonSoftFailureHostIdResult> hostIdsByServerWithoutSoftFailures =
                 fetchHostIdsIgnoringSoftFailures(allHosts);
 
-        Map<CassandraServer, IdSupportingHostIdResult> currentServersWithoutSoftFailures = EntryStream.of(
+        Map<CassandraServer, NonSoftFailureHostIdResult> currentServersWithoutSoftFailures = EntryStream.of(
                         hostIdsByServerWithoutSoftFailures)
                 .removeKeys(newlyAddedHosts::containsKey)
                 .toMap();
-        Map<CassandraServer, IdSupportingHostIdResult> newServersWithoutSoftFailures = EntryStream.of(
+        Map<CassandraServer, NonSoftFailureHostIdResult> newServersWithoutSoftFailures = EntryStream.of(
                         hostIdsByServerWithoutSoftFailures)
                 .filterKeys(newlyAddedHosts::containsKey)
                 .toMap();
@@ -186,7 +186,7 @@ public final class CassandraTopologyValidator {
             ClusterTopologyResult topologyResultFromNewServers =
                     maybeGetConsistentClusterTopology(newServersWithoutSoftFailures);
             Set<String> configuredServersSnapshot = configuredServers.get();
-            Map<CassandraServer, IdSupportingHostIdResult> newServersFromConfig = EntryStream.of(
+            Map<CassandraServer, NonSoftFailureHostIdResult> newServersFromConfig = EntryStream.of(
                             newServersWithoutSoftFailures)
                     .filterKeys(server -> configuredServersSnapshot.contains(server.cassandraHostName()))
                     .toMap();
@@ -214,8 +214,8 @@ public final class CassandraTopologyValidator {
 
     private Set<CassandraServer> getNewHostsWithInconsistentTopologiesFromTopologyResult(
             ClusterTopologyResult topologyResult,
-            Map<CassandraServer, IdSupportingHostIdResult> newServersWithoutSoftFailures,
-            Map<CassandraServer, IdSupportingHostIdResult> serversToConsiderWhenNoQuorumPresent,
+            Map<CassandraServer, NonSoftFailureHostIdResult> newServersWithoutSoftFailures,
+            Map<CassandraServer, NonSoftFailureHostIdResult> serversToConsiderWhenNoQuorumPresent,
             Set<CassandraServer> newlyAddedHosts,
             Set<CassandraServer> allHosts) {
         switch (topologyResult.type()) {
@@ -227,7 +227,6 @@ public final class CassandraTopologyValidator {
                         topologyResult.agreedTopologies().get();
                 pastConsistentTopologies.set(topologies);
                 return EntryStream.of(newServersWithoutSoftFailures)
-                        .mapValues(IdSupportingHostIdResult::result)
                         .removeValues(result -> result.type() == HostIdResult.Type.SUCCESS
                                 && topologies.sharesAtLeastOneHostId(result.hostIds()))
                         .keys()
@@ -246,20 +245,18 @@ public final class CassandraTopologyValidator {
                     // the initial config servers, we don't have another source of truth here.
                     return newServersWithoutSoftFailures.keySet();
                 }
-                Map<CassandraServer, IdSupportingHostIdResult> matchingServers = EntryStream.of(
+                Map<CassandraServer, NonSoftFailureHostIdResult> matchingServers = EntryStream.of(
                                 serversToConsiderWhenNoQuorumPresent)
-                        .filterValues(result -> result.result().type() == HostIdResult.Type.SUCCESS
-                                && pastTopologies.sharesAtLeastOneHostId(
-                                        result.result().hostIds()))
+                        .filterValues(result -> result.type() == HostIdResult.Type.SUCCESS
+                                && pastTopologies.sharesAtLeastOneHostId(result.hostIds()))
                         .toMap();
-                ConsistentClusterTopologies pastTopologySnapshot = pastConsistentTopologies.get();
 
                 if (matchingServers.isEmpty()) {
                     log.info(
                             "No quorum was detected in original set of servers, and the filtered set of servers did"
                                 + " not include any servers which presented a plausible evolution of the last agreed"
                                 + " topology. Not adding new servers in this case.",
-                            SafeArg.of("pastConsistentTopologies", pastTopologySnapshot),
+                            SafeArg.of("pastConsistentTopologies", pastTopologies),
                             SafeArg.of("newServers", CassandraLogHelper.collectionOfHosts(newlyAddedHosts)),
                             SafeArg.of("allServers", CassandraLogHelper.collectionOfHosts(allHosts)),
                             SafeArg.of(
@@ -272,7 +269,7 @@ public final class CassandraTopologyValidator {
                         "No quorum was detected among the original set of servers. Some servers in a filtered set of"
                                 + " servers presented host IDs that were a plausible evolution of the last agreed value"
                                 + " among the old servers. Adding new servers that were in consensus.",
-                        SafeArg.of("pastConsistentTopologies", pastTopologySnapshot),
+                        SafeArg.of("pastConsistentTopologies", pastTopologies),
                         SafeArg.of(
                                 "hostIdResults",
                                 CassandraLogHelper.idSupportingHostIdResultMap(serversToConsiderWhenNoQuorumPresent)),
@@ -282,7 +279,7 @@ public final class CassandraTopologyValidator {
                         SafeArg.of("newServers", CassandraLogHelper.collectionOfHosts(newlyAddedHosts)),
                         SafeArg.of("allServers", CassandraLogHelper.collectionOfHosts(allHosts)));
 
-                ConsistentClusterTopologies mergedTopologies = pastTopologySnapshot.merge(matchingServers);
+                ConsistentClusterTopologies mergedTopologies = pastTopologies.merge(matchingServers);
                 pastConsistentTopologies.set(mergedTopologies);
                 return Sets.difference(newServersWithoutSoftFailures.keySet(), matchingServers.keySet());
             default:
@@ -303,7 +300,7 @@ public final class CassandraTopologyValidator {
      * @return If consensus could be reached, the topology and the list of valid hosts, otherwise empty.
      */
     private ClusterTopologyResult maybeGetConsistentClusterTopology(
-            Map<CassandraServer, IdSupportingHostIdResult> hostIdsByServerWithoutSoftFailures) {
+            Map<CassandraServer, NonSoftFailureHostIdResult> hostIdsByServerWithoutSoftFailures) {
         // If all our queries fail due to soft failures, then our consensus is an empty set of host ids
         if (hostIdsByServerWithoutSoftFailures.isEmpty()) {
             NodesAndSharedTopology emptySetOfHostIds = NodesAndSharedTopology.builder()
@@ -316,9 +313,8 @@ public final class CassandraTopologyValidator {
         }
 
         Map<CassandraServer, Set<String>> hostIdsWithoutFailures = EntryStream.of(hostIdsByServerWithoutSoftFailures)
-                .mapValues(IdSupportingHostIdResult::result)
                 .filterValues(result -> result.type() == HostIdResult.Type.SUCCESS)
-                .mapValues(HostIdResult::hostIds)
+                .mapValues(NonSoftFailureHostIdResult::hostIds)
                 .toMap();
 
         // Only consider hosts that have the endpoint for quorum calculations.
@@ -347,7 +343,7 @@ public final class CassandraTopologyValidator {
         return ClusterTopologyResult.dissent();
     }
 
-    private Map<CassandraServer, IdSupportingHostIdResult> fetchHostIdsIgnoringSoftFailures(
+    private Map<CassandraServer, NonSoftFailureHostIdResult> fetchHostIdsIgnoringSoftFailures(
             Map<CassandraServer, CassandraClientPoolingContainer> servers) {
         Map<CassandraServer, HostIdResult> results =
                 EntryStream.of(servers).mapValues(this::fetchHostIds).toMap();
@@ -363,7 +359,7 @@ public final class CassandraTopologyValidator {
 
         return EntryStream.of(results)
                 .removeValues(result -> result.type() == HostIdResult.Type.SOFT_FAILURE)
-                .mapValues(IdSupportingHostIdResult::wrap)
+                .mapValues(NonSoftFailureHostIdResult::wrap)
                 .toMap();
     }
 
@@ -406,9 +402,8 @@ public final class CassandraTopologyValidator {
             return !Sets.intersection(hostIds(), otherHostIds).isEmpty();
         }
 
-        default ConsistentClusterTopologies merge(Map<CassandraServer, IdSupportingHostIdResult> additionalNodes) {
+        default ConsistentClusterTopologies merge(Map<CassandraServer, NonSoftFailureHostIdResult> additionalNodes) {
             Set<NodesAndSharedTopology> topologies = EntryStream.of(additionalNodes)
-                    .mapValues(IdSupportingHostIdResult::result)
                     .mapKeyValue((server, result) -> NodesAndSharedTopology.builder()
                             .hostIds(result.hostIds())
                             .serversInConsensus(Set.of(server))

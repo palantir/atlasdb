@@ -17,15 +17,26 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.palantir.logsafe.Preconditions;
+import java.util.Set;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface IdSupportingHostIdResult {
+public interface NonSoftFailureHostIdResult {
     @Value.Parameter
     HostIdResult result();
 
-    static IdSupportingHostIdResult wrap(HostIdResult result) {
-        return ImmutableIdSupportingHostIdResult.of(result);
+    @Value.Derived
+    default HostIdResult.Type type() {
+        return result().type();
+    }
+
+    @Value.Derived
+    default Set<String> hostIds() {
+        return result().hostIds();
+    }
+
+    static NonSoftFailureHostIdResult wrap(HostIdResult result) {
+        return ImmutableNonSoftFailureHostIdResult.of(result);
     }
 
     @Value.Check

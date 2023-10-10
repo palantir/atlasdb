@@ -22,10 +22,10 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import com.google.common.collect.ImmutableList;
 import org.junit.Test;
 
-public class IdSupportingHostIdResultTest {
+public class NonSoftFailureHostIdResultTest {
     @Test
     public void throwsWhenCreatingWithSoftFailure() {
-        assertThatThrownBy(() -> IdSupportingHostIdResult.wrap(HostIdResult.softFailure()))
+        assertThatThrownBy(() -> NonSoftFailureHostIdResult.wrap(HostIdResult.softFailure()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Soft failures are not ID supporting and thus not allowed.");
     }
@@ -33,7 +33,7 @@ public class IdSupportingHostIdResultTest {
     @Test
     public void canCreateWithSuccessAndRetrieveOriginal() {
         HostIdResult success = HostIdResult.success(ImmutableList.of("alice", "bob"));
-        IdSupportingHostIdResult wrappedSuccess = IdSupportingHostIdResult.wrap(success);
+        NonSoftFailureHostIdResult wrappedSuccess = NonSoftFailureHostIdResult.wrap(success);
 
         assertThat(wrappedSuccess.result()).isEqualTo(success);
     }
@@ -41,7 +41,7 @@ public class IdSupportingHostIdResultTest {
     @Test
     public void canCreateWithHardFailureAndRetrieveOriginal() {
         HostIdResult hardFailure = HostIdResult.hardFailure();
-        IdSupportingHostIdResult wrappedSuccess = IdSupportingHostIdResult.wrap(hardFailure);
+        NonSoftFailureHostIdResult wrappedSuccess = NonSoftFailureHostIdResult.wrap(hardFailure);
 
         assertThat(wrappedSuccess.result()).isEqualTo(hardFailure);
     }
