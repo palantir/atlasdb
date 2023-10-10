@@ -158,7 +158,7 @@ public final class CassandraTopologyValidatorTest {
     }
 
     @Test
-    public void returnsNewHostsWhenOnlyNewServersAndOneMismatch() {
+    public void returnsNewHostsWhenOnlyNewServersAndOneNodeDisagrees() {
         Map<CassandraServer, CassandraClientPoolingContainer> allHosts = initialiseHosts(NEW_HOSTS);
         setHostIds(
                 filterContainers(allHosts, server -> !server.equals(NEW_HOST_ONE)),
@@ -171,7 +171,7 @@ public final class CassandraTopologyValidatorTest {
     }
 
     @Test
-    public void returnsEmptyWhenOnlyNewServersAndOneMismatchWithPlausibleEvolution() {
+    public void returnsEmptyWhenOnlyNewServersAndOneNodeDisagreesWithPlausibleEvolution() {
         Map<CassandraServer, CassandraClientPoolingContainer> allHosts = initialiseHosts(NEW_HOSTS);
         setHostIds(
                 filterContainers(allHosts, server -> !server.equals(NEW_HOST_ONE)),
@@ -218,7 +218,7 @@ public final class CassandraTopologyValidatorTest {
         Predicate<String> badHostFilter = NEW_HOST_ONE::equals;
         Map<CassandraServer, CassandraClientPoolingContainer> allHosts = initialiseHosts(ALL_HOSTS);
         setHostIds(filterContainers(allHosts, badHostFilter.negate()), DEFAULT_RESULT);
-        setHostIds(filterContainers(allHosts, badHostFilter), HostIdResult.success(ImmutableSet.of("uuid4", "uuid5")));
+        setHostIds(filterContainers(allHosts, badHostFilter), HostIdResult.success(DIFFERENT_UUIDS));
         Set<CassandraServer> newServers = filterServers(allHosts, NEW_HOSTS::contains);
         Set<CassandraServer> badNewHosts = filterServers(allHosts, badHostFilter);
         assertThat(validator.getNewHostsWithInconsistentTopologies(mapToTokenRangeOrigin(newServers), allHosts))

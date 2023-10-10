@@ -30,7 +30,10 @@ public final class HostIdEvolution {
 
     /**
      * Returns true iff there exists a plausible sequence of cluster changes, measured through differences in snapshots
-     * of the host IDs of the cluster, that could have led to the given set of snapshots.
+     * of the host IDs of the cluster, that could have led to the given set of snapshots. Host IDs are generated as
+     * UUIDs: we thus consider that two snapshots of host IDs that contain at least one common element to be plausible
+     * evolutions of the same cluster, since we assume UUIDs will not collide. A consequence of this is that the
+     * empty set is not considered to be a plausible evolution of any other host ID set, including the empty set itself.
      * <p>
      * Notice that this method may give us false negatives as the cluster may go through more than one transition in
      * between the snapshots of host IDs we are able to read. However, in the absence of UUID collisions, this method
