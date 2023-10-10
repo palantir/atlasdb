@@ -1,0 +1,9 @@
+type: fix
+fix:
+  description: The cluster topology stored in CassandraTopologyValidator is updated
+    when nodes are accepted during a `NO_QUORUM` state. Previously, this was not stored,
+    meaning that logging arguments e.g. `serversInConsensus` were inaccurate, and
+    also changes from one set of host IDs to another disjoint set _that went through
+    a sequence of intermediate plausible evolutions_ were incorrectly rejected.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6767
