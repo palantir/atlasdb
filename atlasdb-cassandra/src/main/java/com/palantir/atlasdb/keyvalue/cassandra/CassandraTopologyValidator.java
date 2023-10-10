@@ -250,15 +250,15 @@ public final class CassandraTopologyValidator {
                                 serversToConsiderWhenNoQuorumPresent)
                         .filterValues(result -> result.result().type() == HostIdResult.Type.SUCCESS
                                 && pastTopologies.sharesAtLeastOneHostId(
-                                result.result().hostIds()))
+                                        result.result().hostIds()))
                         .toMap();
                 ConsistentClusterTopologies pastTopologySnapshot = pastConsistentTopologies.get();
 
                 if (matchingServers.isEmpty()) {
                     log.info(
                             "No quorum was detected in original set of servers, and the filtered set of servers did"
-                                    + " not include any servers which presented a plausible evolution of the last agreed"
-                                    + " topology. Not adding new servers in this case.",
+                                + " not include any servers which presented a plausible evolution of the last agreed"
+                                + " topology. Not adding new servers in this case.",
                             SafeArg.of("pastTopology", pastTopologySnapshot),
                             SafeArg.of("newServers", CassandraLogHelper.collectionOfHosts(newlyAddedHosts)),
                             SafeArg.of("allServers", CassandraLogHelper.collectionOfHosts(allHosts)),
@@ -419,10 +419,8 @@ public final class CassandraTopologyValidator {
                             Stream.of(nodesAndSharedTopologies(), topologies)
                                     .flatMap(Set::stream)
                                     .map(NodesAndSharedTopology::hostIds)
-                                    .collect(Collectors.toSet())
-                    ),
-                    "Should not merge topologies that do not share at least one host id."
-            );
+                                    .collect(Collectors.toSet())),
+                    "Should not merge topologies that do not share at least one host id.");
             return ConsistentClusterTopologies.builder()
                     .nodesAndSharedTopologies(Sets.union(nodesAndSharedTopologies(), topologies))
                     .build();
