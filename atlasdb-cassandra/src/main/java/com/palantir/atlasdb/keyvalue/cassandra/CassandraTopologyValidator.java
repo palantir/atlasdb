@@ -46,6 +46,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import one.util.streamex.EntryStream;
 import org.apache.thrift.TApplicationException;
 import org.immutables.value.Value;
@@ -413,19 +414,18 @@ public final class CassandraTopologyValidator {
                             .serversInConsensus(Set.of(server))
                             .build())
                     .collect(Collectors.toSet());
+            Preconditions.checkArgument(
+                    HostIdEvolution.existsPlausibleEvolutionOfHostIdSets(
+                            Stream.of(nodesAndSharedTopologies(), topologies)
+                                    .flatMap(Set::stream)
+                                    .map(NodesAndSharedTopology::hostIds)
+                                    .collect(Collectors.toSet())
+                    ),
+                    "Should not merge topologies that do not share at least one host id."
+            );
             return ConsistentClusterTopologies.builder()
                     .nodesAndSharedTopologies(Sets.union(nodesAndSharedTopologies(), topologies))
                     .build();
-        }
-
-        @Value.Check
-        default void check() {
-            Preconditions.checkState(
-                    HostIdEvolution.existsPlausibleEvolutionOfHostIdSets(nodesAndSharedTopologies().stream()
-                            .map(NodesAndSharedTopology::hostIds)
-                            .collect(Collectors.toSet())),
-                    "If there does not exist a plausible evolution of host ID sets, then we should not regard these"
-                            + " topologies to be consistent.");
         }
 
         static ImmutableConsistentClusterTopologies.Builder builder() {
