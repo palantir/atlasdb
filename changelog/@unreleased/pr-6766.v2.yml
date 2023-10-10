@@ -1,5 +1,5 @@
-type: improvement
-improvement:
+type: fix
+fix:
   description: We keep track of past consistent _topologies_, and generally accept
     quorums of nodes presenting topologies that are considered to be plausible evolutions
     of one another.
