@@ -259,7 +259,7 @@ public final class CassandraTopologyValidator {
                             "No quorum was detected in original set of servers, and the filtered set of servers did"
                                 + " not include any servers which presented a plausible evolution of the last agreed"
                                 + " topology. Not adding new servers in this case.",
-                            SafeArg.of("pastTopology", pastTopologySnapshot),
+                            SafeArg.of("pastConsistentTopologies", pastTopologySnapshot),
                             SafeArg.of("newServers", CassandraLogHelper.collectionOfHosts(newlyAddedHosts)),
                             SafeArg.of("allServers", CassandraLogHelper.collectionOfHosts(allHosts)),
                             SafeArg.of(
@@ -272,7 +272,7 @@ public final class CassandraTopologyValidator {
                         "No quorum was detected among the original set of servers. Some servers in a filtered set of"
                                 + " servers presented host IDs that were a plausible evolution of the last agreed value"
                                 + " among the old servers. Adding new servers that were in consensus.",
-                        SafeArg.of("pastTopology", pastTopologySnapshot),
+                        SafeArg.of("pastConsistentTopologies", pastTopologySnapshot),
                         SafeArg.of(
                                 "hostIdResults",
                                 CassandraLogHelper.idSupportingHostIdResultMap(serversToConsiderWhenNoQuorumPresent)),
