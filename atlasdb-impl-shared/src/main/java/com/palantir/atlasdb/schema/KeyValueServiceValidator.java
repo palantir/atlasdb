@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator.KvsMigrationMessageLevel;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator.KvsMigrationMessageProcessor;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -31,6 +32,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.SafeArg;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -107,9 +109,11 @@ public class KeyValueServiceValidator {
                     validateTable(table);
                     KeyValueServiceMigratorUtils.processMessage(
                             messageProcessor,
-                            "Validated " + table + " (" + migratedTableCount.incrementAndGet() + "/" + tables.size()
-                                    + ")",
-                            KvsMigrationMessageLevel.INFO);
+                            "Validated a table {} ({} of {})",
+                            KvsMigrationMessageLevel.INFO,
+                            LoggingArgs.tableRef(table),
+                            SafeArg.of("migratedTableCount", migratedTableCount.incrementAndGet()),
+                            SafeArg.of("totalTables", tables.size()));
                 } catch (RuntimeException e) {
                     throw Throwables.rewrapAndThrowUncheckedException("Exception while validating " + table, e);
                 }
@@ -130,7 +134,10 @@ public class KeyValueServiceValidator {
         while (nextRowName != null) {
             nextRowName = validateNextBatchOfRows(table, limit, nextRowName);
             KeyValueServiceMigratorUtils.processMessage(
-                    messageProcessor, "Validated a batch of rows for " + table, KvsMigrationMessageLevel.INFO);
+                    messageProcessor,
+                    "Validated a batch of rows for {}",
+                    KvsMigrationMessageLevel.INFO,
+                    LoggingArgs.tableRef(table));
         }
     }
 
