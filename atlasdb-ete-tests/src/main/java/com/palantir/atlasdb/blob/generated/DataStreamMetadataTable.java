@@ -190,10 +190,9 @@ public final class DataStreamMetadataTable implements
             @Override
             public DataStreamMetadataRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(id);
+                long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 return new DataStreamMetadataRow(hashOfRowComponents, id);
             }
         };
@@ -722,5 +721,5 @@ public final class DataStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "AFwooxC06krTqFv58UfkcA==";
+    static String __CLASS_HASH = "n3Rdw9HOanL7KyRaXDxIfA==";
 }

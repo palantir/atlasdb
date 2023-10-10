@@ -186,7 +186,6 @@ public final class CompactMetadataTable implements
             public CompactMetadataRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 String fullTableName = PtBytes.toString(__input, __index, __input.length-__index);
-                __index += 0;
                 return new CompactMetadataRow(fullTableName);
             }
         };
@@ -683,5 +682,5 @@ public final class CompactMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "PSwZcMysyzWemW+V1hGphQ==";
+    static String __CLASS_HASH = "QQRKeGa7eTFjhIPgfjpHCw==";
 }

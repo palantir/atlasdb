@@ -24,6 +24,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 import java.io.IOException;
+import java.util.Locale;
 
 public enum ValueType {
     /**
@@ -889,7 +890,12 @@ public enum ValueType {
     }
 
     public String getJavaClassName() {
-        return getJavaClass().getSimpleName();
+        Class<?> clazz = getJavaClass();
+        String simpleName = clazz.getSimpleName();
+        if (clazz.isPrimitive()) {
+            return simpleName.toLowerCase(Locale.ROOT);
+        }
+        return simpleName;
     }
 
     public String getJavaObjectClassName() {

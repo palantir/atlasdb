@@ -190,10 +190,9 @@ public final class SweepNameToIdTable implements
             @Override
             public SweepNameToIdRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
                 String table = PtBytes.toString(__input, __index, __input.length-__index);
-                __index += 0;
                 return new SweepNameToIdRow(hashOfRowComponents, table);
             }
         };
@@ -697,5 +696,5 @@ public final class SweepNameToIdTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "ZVl8vtH0bWDeCq5tKMA3Aw==";
+    static String __CLASS_HASH = "/1iBN6AFRFn7Ox8jlME0uQ==";
 }

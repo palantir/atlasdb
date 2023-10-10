@@ -185,8 +185,7 @@ public final class TodoTable implements
             @Override
             public TodoRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                __index += 8;
+                long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 return new TodoRow(id);
             }
         };
@@ -683,5 +682,5 @@ public final class TodoTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "1g5OdW5n4H7icFXg1gG2Xg==";
+    static String __CLASS_HASH = "3328838I0NbftP+sl5/Wng==";
 }

@@ -183,8 +183,7 @@ public final class SnapshotsStreamIdxTable implements
             @Override
             public SnapshotsStreamIdxRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                __index += 8;
+                long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 return new SnapshotsStreamIdxRow(id);
             }
         };
@@ -276,7 +275,6 @@ public final class SnapshotsStreamIdxTable implements
             public SnapshotsStreamIdxColumn hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 byte[] reference = EncodingUtils.decodeSizedBytes(__input, __index);
-                __index += EncodingUtils.sizeOfSizedBytes(reference);
                 return new SnapshotsStreamIdxColumn(reference);
             }
         };
@@ -741,5 +739,5 @@ public final class SnapshotsStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Ql7tNJ0Z5v0pWFviP9dcuw==";
+    static String __CLASS_HASH = "XlUV87CuNtj1EjGNO3ciKQ==";
 }

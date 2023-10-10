@@ -184,7 +184,6 @@ public final class UserPhotosStreamHashAidxTable implements
             public UserPhotosStreamHashAidxRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 Sha256Hash hash = new Sha256Hash(EncodingUtils.get32Bytes(__input, __index));
-                __index += 32;
                 return new UserPhotosStreamHashAidxRow(hash);
             }
         };
@@ -275,8 +274,7 @@ public final class UserPhotosStreamHashAidxTable implements
             @Override
             public UserPhotosStreamHashAidxColumn hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long streamId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(streamId);
+                long streamId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 return new UserPhotosStreamHashAidxColumn(streamId);
             }
         };
@@ -741,5 +739,5 @@ public final class UserPhotosStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "vICtXgN//uNG/gj7cFWrOQ==";
+    static String __CLASS_HASH = "JnZRT76MU0Zn6q7j/EQgAQ==";
 }

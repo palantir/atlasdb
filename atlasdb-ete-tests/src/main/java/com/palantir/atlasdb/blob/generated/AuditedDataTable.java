@@ -185,8 +185,7 @@ public final class AuditedDataTable implements
             @Override
             public AuditedDataRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                __index += 8;
+                long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 return new AuditedDataRow(id);
             }
         };
@@ -683,5 +682,5 @@ public final class AuditedDataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "AkImLEM5fv/Ji8qCyRf5dw==";
+    static String __CLASS_HASH = "QG5ZCttRdnW+7PS1RevjMg==";
 }

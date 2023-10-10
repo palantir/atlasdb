@@ -193,10 +193,9 @@ public final class SnapshotsStreamValueTable implements
             @Override
             public SnapshotsStreamValueRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                Long blockId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(blockId);
+                long blockId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 return new SnapshotsStreamValueRow(id, blockId);
             }
         };
@@ -695,5 +694,5 @@ public final class SnapshotsStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "9m/lRuE/UHMttmLTS1Q8iQ==";
+    static String __CLASS_HASH = "UXSNiIqSbKHDYoqxIMkQ8w==";
 }

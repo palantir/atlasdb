@@ -185,8 +185,7 @@ public final class TwoColumnsTable implements
             @Override
             public TwoColumnsRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                __index += 8;
+                long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 return new TwoColumnsRow(id);
             }
         };
@@ -941,8 +940,7 @@ public final class TwoColumnsTable implements
                 @Override
                 public FooToIdCondIdxRow hydrateFromBytes(byte[] __input) {
                     int __index = 0;
-                    Long foo = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                    __index += 8;
+                    long foo = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     return new FooToIdCondIdxRow(foo);
                 }
             };
@@ -1062,8 +1060,7 @@ public final class TwoColumnsTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(rowName);
                     byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
-                    Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                    __index += 8;
+                    long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     return new FooToIdCondIdxColumn(rowName, columnName, id);
                 }
             };
@@ -1574,10 +1571,9 @@ public final class TwoColumnsTable implements
                 @Override
                 public FooToIdIdxRow hydrateFromBytes(byte[] __input) {
                     int __index = 0;
-                    Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                    long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    Long foo = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                    __index += 8;
+                    long foo = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     return new FooToIdIdxRow(hashOfRowComponents, foo);
                 }
             };
@@ -1704,8 +1700,7 @@ public final class TwoColumnsTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(rowName);
                     byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
-                    Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                    __index += 8;
+                    long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     return new FooToIdIdxColumn(rowName, columnName, id);
                 }
             };
@@ -2200,5 +2195,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "KStjuJG0LJnDxQ1sOAdxdg==";
+    static String __CLASS_HASH = "FETKveB3dAVBAvG0TlmsZA==";
 }

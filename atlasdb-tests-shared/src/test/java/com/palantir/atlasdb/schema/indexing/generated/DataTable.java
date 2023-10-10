@@ -185,8 +185,7 @@ public final class DataTable implements
             @Override
             public DataRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                __index += 8;
+                long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 return new DataRow(id);
             }
         };
@@ -923,8 +922,7 @@ public final class DataTable implements
                 @Override
                 public Index1IdxRow hydrateFromBytes(byte[] __input) {
                     int __index = 0;
-                    Long value = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                    __index += 8;
+                    long value = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     return new Index1IdxRow(value);
                 }
             };
@@ -1044,8 +1042,7 @@ public final class DataTable implements
                     __index += EncodingUtils.sizeOfSizedBytes(rowName);
                     byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
                     __index += EncodingUtils.sizeOfSizedBytes(columnName);
-                    Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                    __index += 8;
+                    long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     return new Index1IdxColumn(rowName, columnName, id);
                 }
             };
@@ -1625,10 +1622,9 @@ public final class DataTable implements
                 @Override
                 public Index2IdxRow hydrateFromBytes(byte[] __input) {
                     int __index = 0;
-                    Long value = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                    long value = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    Long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                    __index += 8;
+                    long id = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     return new Index2IdxRow(value, id);
                 }
             };
@@ -1742,7 +1738,6 @@ public final class DataTable implements
                     byte[] rowName = EncodingUtils.decodeSizedBytes(__input, __index);
                     __index += EncodingUtils.sizeOfSizedBytes(rowName);
                     byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
-                    __index += EncodingUtils.sizeOfSizedBytes(columnName);
                     return new Index2IdxColumn(rowName, columnName);
                 }
             };
@@ -2299,8 +2294,7 @@ public final class DataTable implements
                 @Override
                 public Index3IdxRow hydrateFromBytes(byte[] __input) {
                     int __index = 0;
-                    Long value = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                    __index += 8;
+                    long value = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     return new Index3IdxRow(value);
                 }
             };
@@ -2402,7 +2396,6 @@ public final class DataTable implements
                     byte[] rowName = EncodingUtils.decodeSizedBytes(__input, __index);
                     __index += EncodingUtils.sizeOfSizedBytes(rowName);
                     byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
-                    __index += EncodingUtils.sizeOfSizedBytes(columnName);
                     return new Index3IdxColumn(rowName, columnName);
                 }
             };
@@ -2967,10 +2960,9 @@ public final class DataTable implements
                 @Override
                 public Index4IdxRow hydrateFromBytes(byte[] __input) {
                     int __index = 0;
-                    Long value1 = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                    long value1 = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     __index += 8;
-                    Long value2 = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                    __index += 8;
+                    long value2 = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                     return new Index4IdxRow(value1, value2);
                 }
             };
@@ -3084,7 +3076,6 @@ public final class DataTable implements
                     byte[] rowName = EncodingUtils.decodeSizedBytes(__input, __index);
                     __index += EncodingUtils.sizeOfSizedBytes(rowName);
                     byte[] columnName = EncodingUtils.decodeSizedBytes(__input, __index);
-                    __index += EncodingUtils.sizeOfSizedBytes(columnName);
                     return new Index4IdxColumn(rowName, columnName);
                 }
             };
@@ -3630,5 +3621,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "fgza/c8nH19LqrftPRIqiA==";
+    static String __CLASS_HASH = "3/I+XbButguZbFZ2R5qd5g==";
 }

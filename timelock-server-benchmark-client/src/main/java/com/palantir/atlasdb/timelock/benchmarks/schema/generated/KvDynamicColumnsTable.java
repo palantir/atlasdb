@@ -188,10 +188,9 @@ public final class KvDynamicColumnsTable implements
             @Override
             public KvDynamicColumnsRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
                 String bucket = EncodingUtils.decodeVarString(__input, __index);
-                __index += EncodingUtils.sizeOfVarString(bucket);
                 return new KvDynamicColumnsRow(hashOfRowComponents, bucket);
             }
         };
@@ -303,8 +302,7 @@ public final class KvDynamicColumnsTable implements
             @Override
             public KvDynamicColumnsColumn hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long key = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                __index += 8;
+                long key = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 return new KvDynamicColumnsColumn(key);
             }
         };
@@ -835,5 +833,5 @@ public final class KvDynamicColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "ujWl4A2gAakYQiWxv+hZew==";
+    static String __CLASS_HASH = "6UeFiCrulg3zpuNAUCy5cg==";
 }

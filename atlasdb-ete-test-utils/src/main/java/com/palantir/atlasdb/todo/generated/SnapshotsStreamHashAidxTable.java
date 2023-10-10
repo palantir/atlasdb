@@ -184,7 +184,6 @@ public final class SnapshotsStreamHashAidxTable implements
             public SnapshotsStreamHashAidxRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 Sha256Hash hash = new Sha256Hash(EncodingUtils.get32Bytes(__input, __index));
-                __index += 32;
                 return new SnapshotsStreamHashAidxRow(hash);
             }
         };
@@ -275,8 +274,7 @@ public final class SnapshotsStreamHashAidxTable implements
             @Override
             public SnapshotsStreamHashAidxColumn hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long streamId = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
-                __index += 8;
+                long streamId = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 return new SnapshotsStreamHashAidxColumn(streamId);
             }
         };
@@ -741,5 +739,5 @@ public final class SnapshotsStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "D9OdSrGepZI1dcZ5KV7B0g==";
+    static String __CLASS_HASH = "CKw0OLIs4Oh7oquRushu3Q==";
 }

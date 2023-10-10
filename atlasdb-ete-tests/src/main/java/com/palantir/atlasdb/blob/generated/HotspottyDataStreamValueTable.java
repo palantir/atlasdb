@@ -193,10 +193,9 @@ public final class HotspottyDataStreamValueTable implements
             @Override
             public HotspottyDataStreamValueRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = EncodingUtils.decodeSignedVarLong(__input, __index);
+                long id = EncodingUtils.decodeSignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfSignedVarLong(id);
-                Long blockId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(blockId);
+                long blockId = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 return new HotspottyDataStreamValueRow(id, blockId);
             }
         };
@@ -695,5 +694,5 @@ public final class HotspottyDataStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "9KSCRtbyVXFg2nb/7Wc8OA==";
+    static String __CLASS_HASH = "sfz69t78uujJz/42PiQM0g==";
 }

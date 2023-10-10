@@ -183,8 +183,7 @@ public final class StreamTestStreamIdxTable implements
             @Override
             public StreamTestStreamIdxRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                Long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(id);
+                long id = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 return new StreamTestStreamIdxRow(id);
             }
         };
@@ -276,7 +275,6 @@ public final class StreamTestStreamIdxTable implements
             public StreamTestStreamIdxColumn hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 byte[] reference = EncodingUtils.decodeSizedBytes(__input, __index);
-                __index += EncodingUtils.sizeOfSizedBytes(reference);
                 return new StreamTestStreamIdxColumn(reference);
             }
         };
@@ -741,5 +739,5 @@ public final class StreamTestStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "hWTBrXR/SoJCr/v5CGBp5Q==";
+    static String __CLASS_HASH = "vR8MQAURU4H5sKpVfEr/rQ==";
 }

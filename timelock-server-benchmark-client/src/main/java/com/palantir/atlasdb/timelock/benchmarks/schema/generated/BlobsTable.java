@@ -186,7 +186,6 @@ public final class BlobsTable implements
             public BlobsRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
                 byte[] key = EncodingUtils.getBytesFromOffsetToEnd(__input, __index);
-                __index += 0;
                 return new BlobsRow(key);
             }
         };
@@ -683,5 +682,5 @@ public final class BlobsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "RU6CLtTd3DluJLwkYHXzeQ==";
+    static String __CLASS_HASH = "8QBU7nHeHMWI4u84bl//Ng==";
 }
