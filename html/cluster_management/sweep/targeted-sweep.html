@@ -164,7 +164,7 @@ In both cases, these configuration options are specified within a <code class="d
 <td><p>Whether targeted sweep should be run by background threads. Note that enableSweepQueueWrites must be set to true before targeted sweep can be run.</p></td>
 </tr>
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">shards</span></code></p></td>
-<td><p>1</p></td>
+<td><p>16</p></td>
 <td><p>Number of shards to use for persisting information to the sweep queue, enabling better parallelization of targeted sweep. The number of shards should be greater than or equal to the number of threads used for background targeted sweep. Note that this number must be monotonically increasing, and attempts to lower may be ignored. Maximum supported value is 256.</p></td>
 </tr>
 </tbody>
