@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: Nodes presenting a plausible evolution of the previously agreed cluster topology can now be accepted
+    during a `NO_QUORUM` state, even if there is no overall quorum among new nodes. Previously, a quorum among the
+    new nodes was required which was unnecessarily restrictive.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6768

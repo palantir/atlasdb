@@ -17,8 +17,10 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import org.junit.Test;
 
 public class HostIdEvolutionTest {
@@ -39,9 +41,15 @@ public class HostIdEvolutionTest {
     }
 
     @Test
-    public void singleEmptySetNotConnectedToItselfByNonemptyIntersections() {
-        assertThat(HostIdEvolution.existsPlausibleEvolutionOfHostIdSets(ImmutableSet.of(ImmutableSet.of())))
-                .isFalse();
+    public void throwsIfEmptySetsProvided() {
+        assertThatThrownBy(
+                        () -> HostIdEvolution.existsPlausibleEvolutionOfHostIdSets(ImmutableSet.of(ImmutableSet.of())))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessage("Empty sets of host ids are not allowed");
+        assertThatThrownBy(() -> HostIdEvolution.existsPlausibleEvolutionOfHostIdSets(
+                        ImmutableSet.of(ImmutableSet.of("samphire", "taro", "ume"), ImmutableSet.of())))
+                .isInstanceOf(SafeIllegalArgumentException.class)
+                .hasMessage("Empty sets of host ids are not allowed");
     }
 
     @Test
@@ -59,9 +67,6 @@ public class HostIdEvolutionTest {
     public void twoDisjointSetsNotConnectedByNonemptyIntersections() {
         assertThat(HostIdEvolution.existsPlausibleEvolutionOfHostIdSets(ImmutableSet.of(
                         ImmutableSet.of("nectarine", "orange", "pear"), ImmutableSet.of("quince", "rhubarb"))))
-                .isFalse();
-        assertThat(HostIdEvolution.existsPlausibleEvolutionOfHostIdSets(
-                        ImmutableSet.of(ImmutableSet.of("samphire", "taro", "ume"), ImmutableSet.of())))
                 .isFalse();
     }
 

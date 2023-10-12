@@ -367,7 +367,7 @@ public final class CassandraTopologyValidatorTest {
     }
 
     @Test
-    public void returnsAllNewHostsIfNoConsensusOnNewHostsWhenNoQuorumAndCurrentServersExist() {
+    public void acceptsNewHostsIfNoConsensusOnNewHostsWhenNoQuorumAndCurrentServersExist() {
         Iterator<String> uuidIterator = UUIDS.iterator();
         Map<CassandraServer, CassandraClientPoolingContainer> allHosts = initialiseHosts(ALL_HOSTS);
         Map<CassandraServer, CassandraClientPoolingContainer> oldHosts =
@@ -389,8 +389,8 @@ public final class CassandraTopologyValidatorTest {
         assertThat(hostsOffline).hasSizeGreaterThanOrEqualTo((ALL_HOSTS.size() + 1) / 2);
         assertThat(validator.getNewHostsWithInconsistentTopologies(
                         mapToTokenRangeOrigin(newCassandraServers), allHosts))
-                .as("rejects all servers when no quorum from all hosts and no quorum on new hosts")
-                .containsExactlyInAnyOrderElementsOf(newCassandraServers);
+                .as("accepts servers with plausible evolution when no quorum from all hosts and no quorum on new hosts")
+                .isEmpty();
     }
 
     @Test
@@ -514,7 +514,7 @@ public final class CassandraTopologyValidatorTest {
     }
 
     @Test
-    public void returnsAllNewHostsIfNoConsensusOnConfigHostsWhenNoQuorumAndNoCurrentServers() {
+    public void acceptsNewHostsIfNoConsensusOnConfigHostsWhenNoQuorumAndNoCurrentServers() {
         Iterator<String> uuidIterator = UUIDS.iterator();
         Map<CassandraServer, CassandraClientPoolingContainer> allHosts = initialiseHosts(ALL_HOSTS);
         Map<CassandraServer, CassandraClientPoolingContainer> oldHosts =
@@ -537,8 +537,9 @@ public final class CassandraTopologyValidatorTest {
                         splitHostOriginBetweenLastKnownAndConfig(
                                 oldCassandraServers, Sets.difference(allCassandraServers, oldCassandraServers)),
                         allHosts))
-                .as("rejects all servers when no quorum from all hosts and no quorum on available hosts")
-                .containsExactlyInAnyOrderElementsOf(allCassandraServers);
+                .as("accepts new servers with a plausible evolution when no quorum from all hosts and no quorum on"
+                        + " available hosts")
+                .containsExactlyInAnyOrderElementsOf(oldCassandraServers);
     }
 
     @Test
@@ -744,12 +745,11 @@ public final class CassandraTopologyValidatorTest {
                         .addHostIds("one", "two", "three")
                         .build())
                 .build();
-        ConsistentClusterTopologies newTopologies = original.merge(ConsistentClusterTopologies.builder()
-                .addNodesAndSharedTopologies(NodesAndSharedTopology.builder()
-                        .addServersInConsensus(createCassandraServer("banana"), createCassandraServer("cherry"))
-                        .addHostIds("one", "four", "five")
-                        .build())
-                .build());
+        ConsistentClusterTopologies newTopologies = original.merge(ImmutableMap.of(
+                createCassandraServer("banana"),
+                NonSoftFailureHostIdResult.wrap(HostIdResult.success(ImmutableSet.of("one", "four"))),
+                createCassandraServer("cherry"),
+                NonSoftFailureHostIdResult.wrap(HostIdResult.success(ImmutableSet.of("one", "five")))));
 
         assertThat(newTopologies.serversInConsensus())
                 .isEqualTo(Sets.union(original.serversInConsensus(), newTopologies.serversInConsensus()));
@@ -765,19 +765,19 @@ public final class CassandraTopologyValidatorTest {
                         .build())
                 .build();
 
-        assertThatThrownBy(() -> existing.merge(ConsistentClusterTopologies.builder()
-                        .addNodesAndSharedTopologies(NodesAndSharedTopology.builder()
-                                .addServersInConsensus(createCassandraServer("banana"))
-                                .addHostIds("four", "five", "six")
-                                .build())
-                        .build()))
+        assertThatThrownBy(() -> existing.merge(ImmutableMap.of(
+                        createCassandraServer("banana"),
+                        NonSoftFailureHostIdResult.wrap(HostIdResult.success(ImmutableSet.of("one", "four"))),
+                        createCassandraServer("cherry"),
+                        NonSoftFailureHostIdResult.wrap(HostIdResult.success(ImmutableSet.of("five", "six"))))))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessage("Should not merge topologies that do not share at least one host id.");
-        assertThatThrownBy(() -> existing.merge(ConsistentClusterTopologies.builder()
-                        .addNodesAndSharedTopologies(NodesAndSharedTopology.builder()
-                                .addServersInConsensus(createCassandraServer("carrot"))
-                                .build())
-                        .build()))
+
+        assertThatThrownBy(() -> existing.merge(ImmutableMap.of(
+                        createCassandraServer("banana"),
+                        NonSoftFailureHostIdResult.wrap(HostIdResult.success(ImmutableSet.of("four", "five"))),
+                        createCassandraServer("cherry"),
+                        NonSoftFailureHostIdResult.wrap(HostIdResult.success(ImmutableSet.of("five", "six"))))))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessage("Should not merge topologies that do not share at least one host id.");
     }
