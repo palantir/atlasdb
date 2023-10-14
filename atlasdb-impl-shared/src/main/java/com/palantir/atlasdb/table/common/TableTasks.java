@@ -525,7 +525,7 @@ public final class TableTasks {
         }
 
         void executeTask(String taskName, InterruptibleRangeTask task) throws InterruptedException {
-            BlockingWorkerPool pool = new BlockingWorkerPool(exec, threadCount);
+            BlockingWorkerPool<Void> pool = new BlockingWorkerPool<>(exec, threadCount);
             for (final MutableRange range : getRanges(threadCount, batchSize)) {
                 if (Thread.currentThread().isInterrupted()) {
                     log.info(

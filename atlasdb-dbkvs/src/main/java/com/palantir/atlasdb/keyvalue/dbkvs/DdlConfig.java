@@ -42,6 +42,18 @@ public abstract class DdlConfig {
         return 64;
     }
 
+    /**
+     * If set to a positive number, this is the maximum number of concurrent tasks that may execute from a single
+     * parallel operation. The overall max concurrency is still limited by the {@link #poolSize()}. Parallel operations
+     * include multiPut, truncateTables, and getRanges (postgres only).
+     * <p>
+     * If this is 0 or negative, then no limit is enforced.
+     */
+    @Value.Default
+    public int poolQosSize() {
+        return 0;
+    }
+
     @Value.Default
     public int fetchBatchSize() {
         return 256;

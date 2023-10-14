@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.batch;
 
 import com.google.common.base.Throwables;
+import com.palantir.common.concurrent.BlockingWorkerPool;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -26,10 +27,28 @@ import java.util.function.Function;
 public class ParallelTaskRunner implements BatchingTaskRunner {
     private final ExecutorService executor;
     private final int batchSize;
+    private final int executorQosSize;
 
     public ParallelTaskRunner(ExecutorService executor, int batchSize) {
+        this(executor, batchSize, 0);
+    }
+
+    /**
+     * Constructs a ParallelTaskRunner.
+     *
+     * @param executor the ExecutorService to use for running tasks
+     * @param batchSize the batchSize to pass into the {@link BatchingStrategy}.
+     * @param executorQosSize When set to a positive value, this is the maximum number of concurrent tasks that may run
+     *                        spawning from a single thread. Multiple threads may each call {@link #runTask} and each
+     *                        may have up to this number of tasks run concurrently (independently). If the executor has
+     *                        a bounded number of threads, that limit is still applies which may result in lower
+     *                        concurrency than this value. If this is set to zero or a negative number, then there is
+     *                        no limit for the number of concurrent tasks which originate from the same thread.
+     */
+    public ParallelTaskRunner(ExecutorService executor, int batchSize, int executorQosSize) {
         this.executor = executor;
         this.batchSize = batchSize;
+        this.executorQosSize = executorQosSize;
     }
 
     @Override
@@ -40,8 +59,9 @@ public class ParallelTaskRunner implements BatchingTaskRunner {
             Function<InT, OutT> task) {
         Iterable<? extends InT> batches = batchingStrategy.partitionIntoBatches(input, batchSize);
         List<Future<OutT>> futures = new ArrayList<>();
+        BlockingWorkerPool<OutT> pool = new BlockingWorkerPool<>(executor, executorQosSize);
         for (InT batch : batches) {
-            Future<OutT> future = executor.submit(() -> task.apply(batch));
+            Future<OutT> future = pool.submitCallableUnchecked(() -> task.apply(batch));
             futures.add(future);
         }
         OutT result = resultAccumulatingStrategy.createEmptyResult();

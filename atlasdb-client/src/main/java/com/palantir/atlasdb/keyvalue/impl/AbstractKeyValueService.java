@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.primitives.Ints;
-import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
@@ -38,16 +37,14 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
+import com.palantir.common.concurrent.BlockingWorkerPool;
 import com.palantir.common.concurrent.PTExecutors;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 
 @SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public abstract class AbstractKeyValueService implements KeyValueService {
@@ -57,14 +54,20 @@ public abstract class AbstractKeyValueService implements KeyValueService {
             .maximumWeight(1_000_000)
             .build(AbstractKeyValueService::computeInternalTableName);
 
-    protected ExecutorService executor;
+    protected final ExecutorService executor;
+    protected final int executorQosSize;
 
     /**
      * Note: This takes ownership of the given executor. It will be shutdown when the key
      * value service is closed.
      */
     public AbstractKeyValueService(ExecutorService executor) {
+        this(executor, 0);
+    }
+
+    public AbstractKeyValueService(ExecutorService executor, int executorQosSize) {
         this.executor = executor;
+        this.executorQosSize = executorQosSize;
     }
 
     /**
@@ -189,16 +192,17 @@ public abstract class AbstractKeyValueService implements KeyValueService {
 
     @Override
     public void truncateTables(final Set<TableReference> tableRefs) {
-        List<Future<Void>> futures = new ArrayList<>();
-        for (final TableReference tableRef : tableRefs) {
-            futures.add(executor.submit(() -> {
-                truncateTable(tableRef);
-                return null;
-            }));
-        }
-
-        for (Future<Void> future : futures) {
-            Futures.getUnchecked(future);
+        BlockingWorkerPool<Void> pool = new BlockingWorkerPool<>(executor, executorQosSize);
+        try {
+            for (final TableReference tableRef : tableRefs) {
+                pool.submitTask(() -> {
+                    truncateTable(tableRef);
+                });
+            }
+            pool.waitForSubmittedTasks();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
         }
     }
 
