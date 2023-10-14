@@ -1,0 +1,8 @@
+type: feature
+feature:
+  description: Adds optional poolQosSize config to DBKvs DdlConfig which controls
+    the max concurrency of individual parallel operations such as multiput, truncateTables,
+    and read operations on postgres. The default value is no limit, so behavior is
+    not changing.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6773
