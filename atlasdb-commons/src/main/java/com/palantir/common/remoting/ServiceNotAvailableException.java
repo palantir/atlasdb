@@ -22,9 +22,10 @@ import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.SafeLoggable;
+import com.palantir.logsafe.exceptions.SafeExceptions;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
+import javax.annotation.Nullable;
 
 /**
  * If a server is shutting down or cannot respond to a call for another reason this exception may be thrown.
@@ -36,37 +37,40 @@ public class ServiceNotAvailableException extends RuntimeException implements Sa
     private static final long serialVersionUID = 2L;
 
     private final Optional<HostAndPort> serviceHint;
+    private final String logMessage;
     private final List<Arg<?>> args;
 
     public ServiceNotAvailableException(
-            @CompileTimeConstant String message, Throwable cause, HostAndPort serviceHint, Arg<?>... args) {
-        super(message, cause);
-        this.serviceHint = Optional.of(serviceHint);
-        this.args = toArgListWithSafeServiceHint(args);
+            @CompileTimeConstant String logMessage, Throwable cause, HostAndPort serviceHint, Arg<?>... args) {
+        this(logMessage, cause, Optional.of(serviceHint), toArgListWithSafeServiceHint(Optional.of(serviceHint), args));
     }
 
-    public ServiceNotAvailableException(@CompileTimeConstant String message, HostAndPort serviceHint, Arg<?>... args) {
-        super(message);
-        this.serviceHint = Optional.of(serviceHint);
-        this.args = toArgListWithSafeServiceHint(args);
+    public ServiceNotAvailableException(
+            @CompileTimeConstant String logMessage, HostAndPort serviceHint, Arg<?>... args) {
+        this(logMessage, null, Optional.of(serviceHint), toArgListWithSafeServiceHint(Optional.of(serviceHint), args));
     }
 
-    public ServiceNotAvailableException(@CompileTimeConstant String message, Throwable cause, Arg<?>... args) {
-        super(message, cause);
-        this.serviceHint = Optional.empty();
-        this.args = toArgListWithSafeServiceHint(args);
+    public ServiceNotAvailableException(@CompileTimeConstant String logMessage, Throwable cause, Arg<?>... args) {
+        this(logMessage, cause, Optional.empty(), toArgListWithSafeServiceHint(Optional.empty(), args));
     }
 
-    public ServiceNotAvailableException(@CompileTimeConstant String message, Arg<?>... args) {
-        super(message);
-        this.serviceHint = Optional.empty();
-        this.args = toArgListWithSafeServiceHint(args);
+    public ServiceNotAvailableException(@CompileTimeConstant String logMessage, Arg<?>... args) {
+        this(logMessage, null, Optional.empty(), toArgListWithSafeServiceHint(Optional.empty(), args));
     }
 
     public ServiceNotAvailableException(Throwable cause, Arg<?>... args) {
-        super(cause);
-        this.serviceHint = Optional.empty();
-        this.args = toArgListWithSafeServiceHint(args);
+        this("", cause, Optional.empty(), toArgListWithSafeServiceHint(Optional.empty(), args));
+    }
+
+    private ServiceNotAvailableException(
+            @CompileTimeConstant String logMessage,
+            @Nullable Throwable cause,
+            Optional<HostAndPort> serviceHint,
+            List<Arg<?>> args) {
+        super(SafeExceptions.renderMessage(logMessage, args.toArray(new Arg[0])), cause);
+        this.logMessage = logMessage;
+        this.serviceHint = serviceHint;
+        this.args = args;
     }
 
     public Optional<HostAndPort> getServiceHint() {
@@ -75,7 +79,7 @@ public class ServiceNotAvailableException extends RuntimeException implements Sa
 
     @Override
     public @Safe String getLogMessage() {
-        return Objects.requireNonNullElse(getMessage(), "[No message specified]");
+        return logMessage;
     }
 
     @Override
@@ -83,7 +87,7 @@ public class ServiceNotAvailableException extends RuntimeException implements Sa
         return args;
     }
 
-    private List<Arg<?>> toArgListWithSafeServiceHint(Arg<?>[] args) {
+    private static List<Arg<?>> toArgListWithSafeServiceHint(Optional<HostAndPort> serviceHint, Arg<?>[] args) {
         return ImmutableList.<Arg<?>>builderWithExpectedSize(args.length + 1)
                 .add(args)
                 .add(SafeArg.of("serviceHint", serviceHint))
