@@ -2,6 +2,9 @@ version: '2'
 
 services:
   oracle:
-    image: palantirtechnologies/oracle-atlasdb:19.12.0.0-se
+    image: palantirtechnologies/oracle-atlasdb:19.20.0.0-test
     ports:
       - "1521"
+    environment:
+      ORACLE_SYS_PASSWORD: 7_SeeingStones_7
+      MEMORY: 6Gi
