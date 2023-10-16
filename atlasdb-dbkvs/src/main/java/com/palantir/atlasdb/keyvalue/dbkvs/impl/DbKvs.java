@@ -521,7 +521,10 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
                     iter.remove();
                 } else {
                     throw new KeyAlreadyExistsException(
-                            "primary key violation for key " + key + " with value " + value, ex);
+                            "primary key violation for key {} with value {}",
+                            ex,
+                            UnsafeArg.of("key", key),
+                            UnsafeArg.of("value", value));
                 }
             }
         }
