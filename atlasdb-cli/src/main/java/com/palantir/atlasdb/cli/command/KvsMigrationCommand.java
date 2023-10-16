@@ -215,11 +215,11 @@ public class KvsMigrationCommand implements Callable<Integer> {
 
     public AtlasDbServices connectToServices() {
         AtlasDbConfig toConfig = overrideTransactionTimeoutMillis(loadFromFileOrInline(
-                toConfigFile, configRoot, inlineConfig, AtlasDbConfig.class)
+                        toConfigFile, configRoot, inlineConfig, AtlasDbConfig.class)
                 .orElseThrow(() -> new SafeRuntimeException("At least one of -mc / --inline-config is required")));
 
         AtlasDbRuntimeConfig toRuntimeConfig = disableSweepAndCompaction(loadFromFileOrInline(
-                toRuntimeConfigFile, runtimeConfigRoot, inlineRuntimeConfig, AtlasDbRuntimeConfig.class)
+                        toRuntimeConfigFile, runtimeConfigRoot, inlineRuntimeConfig, AtlasDbRuntimeConfig.class)
                 .orElseGet(AtlasDbRuntimeConfig::withSweepDisabled));
         ServicesConfigModule scm = ServicesConfigModule.create(makeOfflineIfNecessary(toConfig), toRuntimeConfig);
         return DaggerAtlasDbServices.builder().servicesConfigModule(scm).build();
