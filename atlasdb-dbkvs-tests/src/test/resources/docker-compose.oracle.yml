@@ -8,5 +8,5 @@ services:
     ports:
       - "1521"
     environment:
-      ORACLE_SYS_PASSWORD: 7_SeeingStones_7
+      ORACLE_SYS_PASSWORD: palpal
       MEMORY: 2Gi
