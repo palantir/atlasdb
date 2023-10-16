@@ -91,7 +91,7 @@ public final class DbKvsOracleTestSuite {
 
         ConnectionConfig connectionConfig = new OracleConnectionConfig.Builder()
                 .dbLogin("palantir")
-                .dbPassword(ImmutableMaskedValue.of("palpal"))
+                .dbPassword(ImmutableMaskedValue.of("7_SeeingStones_7"))
                 .sid("palantir")
                 .host(oracleAddress.getHostString())
                 .port(oracleAddress.getPort())
