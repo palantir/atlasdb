@@ -15,56 +15,125 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
+import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.CompileTimeConstant;
+import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.Safe;
+import com.palantir.logsafe.SafeLoggable;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeExceptions;
 import java.util.List;
+import javax.annotation.Nullable;
 
-public class CheckAndSetException extends RuntimeException {
+public class CheckAndSetException extends RuntimeException implements SafeLoggable {
+    private static final String DEFAULT_MESSAGE = "Unexpected value observed in table."
+            + " If this is happening repeatedly, your program may be out of sync with the database.";
     private static final long serialVersionUID = 1L;
 
+    @Nullable
     private final Cell key;
+
+    @Nullable
     private final byte[] expectedValue;
+
+    @Nullable
     private final List<byte[]> actualValues;
 
-    public CheckAndSetException(String msg, Throwable ex) {
-        this(msg, ex, null, null, null);
+    @CompileTimeConstant
+    private final String logMessage;
+
+    private final List<Arg<?>> args;
+
+    public CheckAndSetException(@CompileTimeConstant String logMessage, Throwable ex, Arg<?>... args) {
+        this(logMessage, ex, null, null, null, toArgListWithKeyAndValues(null, null, null, args));
     }
 
-    public CheckAndSetException(String msg) {
-        this(msg, null, null, null);
+    public CheckAndSetException(@CompileTimeConstant String logMessage, Arg<?>... args) {
+        this(logMessage, null, null, null, null, toArgListWithKeyAndValues(null, null, null, args));
     }
 
-    public CheckAndSetException(String msg, Throwable ex, Cell key, byte[] expectedValue, List<byte[]> actualValues) {
-        super(msg, ex);
+    public CheckAndSetException(
+            @CompileTimeConstant String logMessage,
+            Throwable ex,
+            Cell key,
+            byte[] expectedValue,
+            List<byte[]> actualValues,
+            Arg<?>... args) {
+        this(
+                logMessage,
+                ex,
+                key,
+                expectedValue,
+                actualValues,
+                toArgListWithKeyAndValues(key, expectedValue, actualValues, args));
+    }
+
+    public CheckAndSetException(
+            @CompileTimeConstant String logMessage,
+            Cell key,
+            byte[] expectedValue,
+            List<byte[]> actualValues,
+            Arg<?>... args) {
+        this(
+                logMessage,
+                null,
+                key,
+                expectedValue,
+                actualValues,
+                toArgListWithKeyAndValues(key, expectedValue, actualValues, args));
+    }
+
+    public CheckAndSetException(Cell key, byte[] expectedValue, List<byte[]> actualValues, Arg<?>... args) {
+        this(DEFAULT_MESSAGE, null, key, expectedValue, actualValues, args);
+    }
+
+    private CheckAndSetException(
+            @CompileTimeConstant String logMessage,
+            @Nullable Throwable cause,
+            @Nullable Cell key,
+            @Nullable byte[] expectedValue,
+            @Nullable List<byte[]> actualValues,
+            List<Arg<?>> args) {
+        super(SafeExceptions.renderMessage(logMessage, args.toArray(new Arg[0])), cause);
+        this.logMessage = logMessage;
         this.key = key;
         this.expectedValue = expectedValue;
         this.actualValues = actualValues;
+        this.args = args;
     }
 
-    public CheckAndSetException(String msg, Cell key, byte[] expectedValue, List<byte[]> actualValues) {
-        super(msg);
-        this.key = key;
-        this.expectedValue = expectedValue;
-        this.actualValues = actualValues;
-    }
-
-    public CheckAndSetException(Cell key, TableReference table, byte[] expected, List<byte[]> actual) {
-        super(String.format(
-                "Unexpected value observed in table %s. "
-                        + "If this is happening repeatedly, your program may be out of sync with the database.",
-                table));
-        this.key = key;
-        this.expectedValue = expected;
-        this.actualValues = actual;
-    }
-
+    @Nullable
     public Cell getKey() {
         return key;
     }
 
+    @Nullable
     public byte[] getExpectedValue() {
         return expectedValue;
     }
 
+    @Nullable
     public List<byte[]> getActualValues() {
         return actualValues;
+    }
+
+    @Override
+    public @Safe String getLogMessage() {
+        return logMessage;
+    }
+
+    @Override
+    public List<Arg<?>> getArgs() {
+        return args;
+    }
+
+    private static List<Arg<?>> toArgListWithKeyAndValues(
+            @Nullable Cell key, @Nullable byte[] expectedValue, @Nullable List<byte[]> actualValues, Arg<?>... args) {
+        return ImmutableList.<Arg<?>>builderWithExpectedSize(args.length + 3)
+                .add(args)
+                .add(UnsafeArg.of("key", key))
+                .add(UnsafeArg.of("expectedValue", expectedValue))
+                .add(UnsafeArg.of("actualValues", actualValues))
+                .build();
     }
 }
