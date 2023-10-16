@@ -27,7 +27,6 @@ import com.palantir.leader.LocalPingableLeader;
 import com.palantir.leader.PaxosKnowledgeEventRecorder;
 import com.palantir.leader.PingableLeader;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.Client;
@@ -198,7 +197,7 @@ public class LocalPaxosComponents {
             throw new ServiceNotAvailableException(
                     "This TimeLock server is not allowed to create new clients at this time, and the"
                             + " client {} provided is novel for this TimeLock server.",
-                    UnsafeArg.of("client", client));
+                    SafeArg.of("client", client));
         }
 
         PaxosLearner learner = PaxosLearnerImpl.newSplittingLearner(
