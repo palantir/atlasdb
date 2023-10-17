@@ -34,6 +34,7 @@ dependencies {
 
   testImplementation 'com.google.guava:guava'
   testImplementation 'io.dropwizard.metrics:metrics-core'
+  testImplementation 'com.palantir.safe-logging:preconditions-assertj'
   testImplementation project(':commons-executors')
   testImplementation project(':leader-election-api-protobufs')
 
