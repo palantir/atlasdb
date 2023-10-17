@@ -23,17 +23,18 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.junit.Test;
 
 public class MultiCheckAndSetExceptionTest {
-    private static final byte[] ROW_NAME = "row".getBytes();
-    private static final Cell CELL = Cell.create(ROW_NAME, "cell".getBytes());
-    private static final Cell OTHER_CELL = Cell.create("other_row".getBytes(), "other_cell".getBytes());
+    private static final byte[] ROW_NAME = bytes("row");
+    private static final Cell CELL = Cell.create(ROW_NAME, bytes("cell"));
+    private static final Cell OTHER_CELL = Cell.create(bytes("other_row"), bytes("other_cell"));
     private static final Map<Cell, byte[]> EXPECTED_VALUES =
-            Map.of(CELL, "value".getBytes(), OTHER_CELL, "other_value".getBytes());
+            Map.of(CELL, bytes("value"), OTHER_CELL, bytes("other_value"));
     private static final Map<Cell, byte[]> ACTUAL_VALUES =
-            Map.of(CELL, "diff_value".getBytes(), OTHER_CELL, "diff_other_value".getBytes());
+            Map.of(CELL, bytes("diff_value"), OTHER_CELL, bytes("diff_other_value"));
 
     @Test
     public void allArgsIncludingTableReferencePresent() {
@@ -70,5 +71,9 @@ public class MultiCheckAndSetExceptionTest {
     private static MultiCheckAndSetException multiCheckAndSetException(
             Arg<String> tableReference, Arg<?>... extraArgs) {
         return new MultiCheckAndSetException(tableReference, ROW_NAME, EXPECTED_VALUES, ACTUAL_VALUES, extraArgs);
+    }
+
+    private static byte[] bytes(String string) {
+        return string.getBytes(StandardCharsets.UTF_8);
     }
 }
