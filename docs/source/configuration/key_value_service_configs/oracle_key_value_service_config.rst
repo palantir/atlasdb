@@ -45,7 +45,7 @@ A minimal AtlasDB configuration for running against Oracle will look like the be
           port: 1521
           sid: palantir
           dbLogin: palantir
-          dbPassword: palpal
+          dbPassword: 7_SeeingStones_7
         namespace: myAppAtlas # must be unique per product
 
       leader:
