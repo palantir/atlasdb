@@ -43,6 +43,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.management.JMX;
 import javax.management.MBeanServer;
@@ -59,6 +61,8 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 @SuppressWarnings("checkstyle:AbbreviationAsWordInName")
 public class HikariCPConnectionManager extends BaseConnectionManager {
     private static final SafeLogger log = SafeLoggerFactory.get(HikariCPConnectionManager.class);
+    private static final Predicate<String> SAFE_SQL_STATE_PREDICATE =
+            Pattern.compile("[A-Z0-9]{5}").asMatchPredicate();
 
     private final ConnectionConfig connConfig;
     private final HikariConfig hikariConfig;
@@ -359,10 +363,18 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
         } catch (PoolInitializationException e) {
             // Intentionally ignoring suppressed exceptions
             // Keep duplicates to safeguard the full causality chain
-            List<Integer> vendorSqlErrorCodes = Throwables.getCausalChain(e).stream()
+            List<SQLException> sqlExceptionsFromExceptionCausalChain = Throwables.getCausalChain(e).stream()
                     .filter(SQLException.class::isInstance)
                     .map(SQLException.class::cast)
+                    .collect(Collectors.toList());
+
+            List<Integer> vendorSqlErrorCodes = sqlExceptionsFromExceptionCausalChain.stream()
                     .map(SQLException::getErrorCode)
+                    .collect(Collectors.toList());
+
+            List<String> safeVendorSqlStates = sqlExceptionsFromExceptionCausalChain.stream()
+                    .map(SQLException::getSQLState)
+                    .filter(SAFE_SQL_STATE_PREDICATE)
                     .collect(Collectors.toList());
 
             log.error(
@@ -370,6 +382,7 @@ public class HikariCPConnectionManager extends BaseConnectionManager {
                             + " particularly for Postgres, can be unreliable.",
                     SafeArg.of("connectionPoolName", connConfig.getConnectionPoolName()),
                     SafeArg.of("vendorSqlErrorCodes", vendorSqlErrorCodes),
+                    SafeArg.of("safeVendorSqlStates", safeVendorSqlStates),
                     UnsafeArg.of("url", connConfig.getUrl()),
                     e);
 
