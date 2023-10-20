@@ -2,7 +2,7 @@ version: '2'
 
 services:
   oracle:
-    image: palantirtechnologies/oracle-atlasdb:19.20.0.0-test
+    image: palantirtechnologies/oracle-atlasdb:19.20.0.0
     ports:
       - "1521"
     environment:
