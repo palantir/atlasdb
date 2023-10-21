@@ -29,6 +29,7 @@ import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.util.OptionalLong;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.meta.When;
@@ -82,7 +83,7 @@ public class TimestampManagementResource {
     }
 
     private TimestampManagementService getTimestampManagementService(String namespace) {
-        return namespaces.get(namespace).getTimestampManagementService();
+        return namespaces.get(namespace, Optional.empty()).getTimestampManagementService();
     }
 
     enum TextPlainSerializer implements SerializerFactory<String> {

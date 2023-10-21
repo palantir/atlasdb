@@ -24,6 +24,8 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
+import com.palantir.atlasdb.timelock.TimelockNamespaces;
+import com.palantir.conjure.java.undertow.lib.RequestContext;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.ConjureLockRefreshToken;
 import com.palantir.lock.ConjureLockV1Request;
@@ -39,35 +41,38 @@ import com.palantir.tokens.auth.AuthHeader;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 public final class ConjureLockV1Resource implements UndertowConjureLockV1Service {
     private final ConjureResourceExceptionHandler exceptionHandler;
-    private final Function<String, LockService> lockServices;
+    private final BiFunction<String, Optional<String>, LockService> lockServices;
 
     private ConjureLockV1Resource(
-            RedirectRetryTargeter redirectRetryTargeter, Function<String, LockService> lockServices) {
+            RedirectRetryTargeter redirectRetryTargeter,
+            BiFunction<String, Optional<String>, LockService> lockServices) {
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.lockServices = lockServices;
     }
 
     public static UndertowService undertow(
-            RedirectRetryTargeter redirectRetryTargeter, Function<String, LockService> lockServices) {
+            RedirectRetryTargeter redirectRetryTargeter,
+            BiFunction<String, Optional<String>, LockService> lockServices) {
         return ConjureLockV1ServiceEndpoints.of(new ConjureLockV1Resource(redirectRetryTargeter, lockServices));
     }
 
     public static ConjureLockV1ShimService jersey(
-            RedirectRetryTargeter redirectRetryTargeter, Function<String, LockService> lockServices) {
+            RedirectRetryTargeter redirectRetryTargeter,
+            BiFunction<String, Optional<String>, LockService> lockServices) {
         return new ConjureLockV1Resource.JerseyAdapter(new ConjureLockV1Resource(redirectRetryTargeter, lockServices));
     }
 
     @Override
     public ListenableFuture<Optional<HeldLocksToken>> lockAndGetHeldLocks(
-            AuthHeader authHeader, String namespace, ConjureLockV1Request request) {
+            AuthHeader authHeader, String namespace, ConjureLockV1Request request, RequestContext context) {
         return exceptionHandler.handleExceptions(() -> {
             try {
                 return Futures.immediateFuture(Optional.ofNullable(lockServices
-                        .apply(namespace)
+                        .apply(namespace, TimelockNamespaces.toUserAgent(context))
                         .lockAndGetHeldLocks(request.getLockClient(), request.getLockRequest())));
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -78,10 +83,10 @@ public final class ConjureLockV1Resource implements UndertowConjureLockV1Service
 
     @Override
     public ListenableFuture<Set<ConjureLockRefreshToken>> refreshLockRefreshTokens(
-            AuthHeader authHeader, String namespace, List<ConjureLockRefreshToken> request) {
+            AuthHeader authHeader, String namespace, List<ConjureLockRefreshToken> request, RequestContext context) {
         return exceptionHandler.handleExceptions(() -> {
             ListenableFuture<Set<LockRefreshToken>> serviceTokens = Futures.immediateFuture(lockServices
-                    .apply(namespace)
+                    .apply(namespace, TimelockNamespaces.toUserAgent(context))
                     .refreshLockRefreshTokens(Collections2.transform(
                             request, token -> new LockRefreshToken(token.getTokenId(), token.getExpirationDateMs()))));
             return Futures.transform(
@@ -93,11 +98,13 @@ public final class ConjureLockV1Resource implements UndertowConjureLockV1Service
 
     @Override
     public ListenableFuture<Boolean> unlockSimple(
-            AuthHeader authHeader, String namespace, ConjureSimpleHeldLocksToken request) {
+            AuthHeader authHeader, String namespace, ConjureSimpleHeldLocksToken request, RequestContext context) {
         return exceptionHandler.handleExceptions(() -> {
             SimpleHeldLocksToken serverToken =
                     new SimpleHeldLocksToken(request.getTokenId(), request.getCreationDateMs());
-            return Futures.immediateFuture(lockServices.apply(namespace).unlockSimple(serverToken));
+            return Futures.immediateFuture(lockServices
+                    .apply(namespace, TimelockNamespaces.toUserAgent(context))
+                    .unlockSimple(serverToken));
         });
     }
 
@@ -111,18 +118,18 @@ public final class ConjureLockV1Resource implements UndertowConjureLockV1Service
         @Override
         public Optional<HeldLocksToken> lockAndGetHeldLocks(
                 AuthHeader authHeader, String namespace, ConjureLockV1Request request) {
-            return unwrap(resource.lockAndGetHeldLocks(authHeader, namespace, request));
+            return unwrap(resource.lockAndGetHeldLocks(authHeader, namespace, request, null));
         }
 
         @Override
         public Set<ConjureLockRefreshToken> refreshLockRefreshTokens(
                 AuthHeader authHeader, String namespace, List<ConjureLockRefreshToken> request) {
-            return unwrap(resource.refreshLockRefreshTokens(authHeader, namespace, request));
+            return unwrap(resource.refreshLockRefreshTokens(authHeader, namespace, request, null));
         }
 
         @Override
         public boolean unlockSimple(AuthHeader authHeader, String namespace, ConjureSimpleHeldLocksToken request) {
-            return unwrap(resource.unlockSimple(authHeader, namespace, request));
+            return unwrap(resource.unlockSimple(authHeader, namespace, request, null));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {

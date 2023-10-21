@@ -21,6 +21,7 @@ import com.palantir.conjure.java.undertow.annotations.HttpMethod;
 import com.palantir.logsafe.Safe;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
+import java.util.Optional;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -55,6 +56,6 @@ public final class TimestampResource {
     }
 
     private TimestampService getTimestampService(String namespace) {
-        return namespaces.get(namespace).getTimestampService();
+        return namespaces.get(namespace, Optional.empty()).getTimestampService();
     }
 }

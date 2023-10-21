@@ -149,10 +149,10 @@ public final class UndertowAsyncTimelockResource {
     @Deprecated
     public Optional<LockDiagnosticInfo> getEnhancedLockDiagnosticInfo(
             @Safe @Handle.PathParam String namespace, @Handle.Body Set<UUID> requestIds) {
-        return namespaces.get(namespace).getLockLog().getAndLogLockDiagnosticInfo(requestIds);
+        return namespaces.get(namespace, Optional.empty()).getLockLog().getAndLogLockDiagnosticInfo(requestIds);
     }
 
     private AsyncTimelockService getAsyncTimelockService(String namespace) {
-        return namespaces.get(namespace).getTimelockService();
+        return namespaces.get(namespace, Optional.empty()).getTimelockService();
     }
 }

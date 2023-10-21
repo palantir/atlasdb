@@ -42,6 +42,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.common.time.NanoTime;
 import com.palantir.conjure.java.api.errors.QosException.RetryOther;
 import com.palantir.conjure.java.api.errors.QosException.Throttle;
+import com.palantir.conjure.java.undertow.lib.RequestContext;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
 import com.palantir.lock.v2.LeaderTime;
@@ -82,12 +83,14 @@ public class MultiClientConjureTimelockResourceTest {
     private LockWatchStateUpdate lockWatchStateUpdate =
             LockWatchStateUpdate.success(UUID.randomUUID(), 5L, ImmutableList.of());
     private LockImmutableTimestampResponse lockImmutableTimestampResponse = mock(LockImmutableTimestampResponse.class);
+    private static final RequestContext REQUEST_CONTEXT = null;
 
     private int commitTsLowerInclusive = 1;
 
     @Before
     public void before() {
-        resource = new MultiClientConjureTimelockResource(TARGETER, this::getServiceForClient);
+        resource = new MultiClientConjureTimelockResource(
+                TARGETER, (namespace, _context) -> getServiceForClient(namespace));
     }
 
     @Test
@@ -96,7 +99,8 @@ public class MultiClientConjureTimelockResourceTest {
         Namespace client2 = Namespace.of("client2");
         Set<Namespace> namespaces = ImmutableSet.of(client1, client2);
 
-        LeaderTimes leaderTimesResponse = Futures.getUnchecked(resource.leaderTimes(AUTH_HEADER, namespaces));
+        LeaderTimes leaderTimesResponse =
+                Futures.getUnchecked(resource.leaderTimes(AUTH_HEADER, namespaces, REQUEST_CONTEXT));
         Map<Namespace, LeaderTime> leaderTimes = leaderTimesResponse.getLeaderTimes();
 
         // leaderTimes for namespaces are computed by their respective underlying AsyncTimelockService instances
@@ -117,7 +121,7 @@ public class MultiClientConjureTimelockResourceTest {
         String throwingClient = "alpha";
         Set<Namespace> namespaces = ImmutableSet.of(Namespace.of(throwingClient), Namespace.of("beta"));
         when(getServiceForClient(throwingClient).leaderTime()).thenThrow(new BlockingTimeoutException(""));
-        assertThatThrownBy(() -> Futures.getUnchecked(resource.leaderTimes(AUTH_HEADER, namespaces)))
+        assertThatThrownBy(() -> Futures.getUnchecked(resource.leaderTimes(AUTH_HEADER, namespaces, REQUEST_CONTEXT)))
                 .hasCauseInstanceOf(Throttle.class);
     }
 
@@ -127,7 +131,7 @@ public class MultiClientConjureTimelockResourceTest {
         Set<Namespace> namespaces = ImmutableSet.of(Namespace.of(throwingClient), Namespace.of("beta"));
         when(getServiceForClient(throwingClient).leaderTime())
                 .thenThrow(new NotCurrentLeaderException("Not the leader!"));
-        assertThatThrownBy(() -> Futures.getUnchecked(resource.leaderTimes(AUTH_HEADER, namespaces)))
+        assertThatThrownBy(() -> Futures.getUnchecked(resource.leaderTimes(AUTH_HEADER, namespaces, REQUEST_CONTEXT)))
                 .hasCauseInstanceOf(RetryOther.class)
                 .hasRootCauseMessage("Suggesting request retry against: " + REMOTE);
     }
@@ -135,8 +139,9 @@ public class MultiClientConjureTimelockResourceTest {
     @Test
     public void canStartTransactionsForMultipleClients() {
         List<String> namespaces = ImmutableList.of("client1", "client2");
-        Map<Namespace, ConjureStartTransactionsResponse> startTransactionsResponseMap = Futures.getUnchecked(
-                resource.startTransactionsForClients(AUTH_HEADER, getStartTransactionsRequests(namespaces)));
+        Map<Namespace, ConjureStartTransactionsResponse> startTransactionsResponseMap =
+                Futures.getUnchecked(resource.startTransactionsForClients(
+                        AUTH_HEADER, getStartTransactionsRequests(namespaces), REQUEST_CONTEXT));
 
         startTransactionsResponseMap.forEach((namespace, response) -> {
             assertThat(response.getLease().leaderTime().id()).isEqualTo(namespaceToLeaderMap.get(namespace.get()));
@@ -154,7 +159,7 @@ public class MultiClientConjureTimelockResourceTest {
     public void canGetCommitTimestampsForMultipleClients() {
         Set<String> namespaces = ImmutableSet.of("client1", "client2");
         assertThat(Futures.getUnchecked(resource.getCommitTimestampsForClients(
-                        AUTH_HEADER, getGetCommitTimestampsRequests(namespaces))))
+                        AUTH_HEADER, getGetCommitTimestampsRequests(namespaces), REQUEST_CONTEXT)))
                 .containsExactlyInAnyOrderEntriesOf(getGetCommitTimestampsResponseMap(namespaces));
     }
 
@@ -163,7 +168,7 @@ public class MultiClientConjureTimelockResourceTest {
         Set<String> namespaces = ImmutableSet.of("client1", "client2");
         Map<Namespace, ConjureUnlockRequestV2> requests = getUnlockRequests(namespaces);
         Map<Namespace, ConjureUnlockResponseV2> responses =
-                Futures.getUnchecked(resource.unlock(AUTH_HEADER, requests));
+                Futures.getUnchecked(resource.unlock(AUTH_HEADER, requests, REQUEST_CONTEXT));
         for (Map.Entry<Namespace, ConjureUnlockRequestV2> request : requests.entrySet()) {
             assertThat(responses.get(request.getKey()).get())
                     .containsExactlyElementsOf(request.getValue().get());

@@ -414,6 +414,6 @@ public class LockV1Resource {
     }
 
     private LockService getLockService(String namespace) {
-        return namespaces.get(namespace).getLockService();
+        return namespaces.get(namespace, Optional.empty()).getLockService();
     }
 }
