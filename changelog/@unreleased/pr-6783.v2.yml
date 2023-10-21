@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Log the UserAgent for any requests that are for new (at least new in
+    memory) TimeLock client namespaces
+  links:
+  - https://github.com/palantir/atlasdb/pull/6783
