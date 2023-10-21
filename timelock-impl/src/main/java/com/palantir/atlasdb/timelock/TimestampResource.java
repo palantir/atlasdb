@@ -41,8 +41,10 @@ public final class TimestampResource {
     @Path("/timestamp/fresh-timestamp")
     @Produces(MediaType.APPLICATION_JSON)
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timestamp/fresh-timestamp")
-    public long getFreshTimestamp(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
-        return getTimestampService(namespace).getFreshTimestamp();
+    public long getFreshTimestamp(
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return getTimestampService(namespace, userAgent).getFreshTimestamp();
     }
 
     @POST // This has to be POST because we can't allow caching.
@@ -51,11 +53,12 @@ public final class TimestampResource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timestamp/fresh-timestamps")
     public TimestampRange getFreshTimestamps(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
-            @QueryParam("number") @Handle.QueryParam(value = "number") int numTimestampsRequested) {
-        return getTimestampService(namespace).getFreshTimestamps(numTimestampsRequested);
+            @QueryParam("number") @Handle.QueryParam(value = "number") int numTimestampsRequested,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return getTimestampService(namespace, userAgent).getFreshTimestamps(numTimestampsRequested);
     }
 
-    private TimestampService getTimestampService(String namespace) {
-        return namespaces.get(namespace, Optional.empty()).getTimestampService();
+    private TimestampService getTimestampService(String namespace, Optional<String> userAgent) {
+        return namespaces.get(namespace, userAgent).getTimestampService();
     }
 }

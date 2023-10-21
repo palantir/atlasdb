@@ -63,9 +63,10 @@ public class LockV1Resource {
     public Optional<LockResponse> lockWithFullLockResponse(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam LockClient client,
-            @Handle.Body LockRequest request)
+            @Handle.Body LockRequest request,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent)
             throws InterruptedException {
-        return Optional.ofNullable(getLockService(namespace).lockWithFullLockResponse(client, request));
+        return Optional.ofNullable(getLockService(namespace, userAgent).lockWithFullLockResponse(client, request));
     }
 
     @POST
@@ -76,9 +77,11 @@ public class LockV1Resource {
     @NonIdempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/lock-with-full-response")
     public Optional<LockResponse> lockWithFullLockResponse(
-            @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body LockRequest request)
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Handle.Body LockRequest request,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent)
             throws InterruptedException {
-        return lockWithFullLockResponse(namespace, LockClient.ANONYMOUS, request);
+        return lockWithFullLockResponse(namespace, LockClient.ANONYMOUS, request, userAgent);
     }
 
     @POST
@@ -89,8 +92,10 @@ public class LockV1Resource {
     @NonIdempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/unlock-deprecated")
     public boolean unlock(
-            @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body HeldLocksToken token) {
-        return getLockService(namespace).unlock(token);
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Handle.Body HeldLocksToken token,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return getLockService(namespace, userAgent).unlock(token);
     }
 
     @POST
@@ -100,8 +105,10 @@ public class LockV1Resource {
     @NonIdempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/unlock-simple")
     public boolean unlockSimple(
-            @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body SimpleHeldLocksToken token) {
-        return getLockService(namespace).unlockSimple(token);
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Handle.Body SimpleHeldLocksToken token,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return getLockService(namespace, userAgent).unlockSimple(token);
     }
 
     @POST
@@ -111,8 +118,10 @@ public class LockV1Resource {
     @NonIdempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/unlock-and-freeze")
     public boolean unlockAndFreeze(
-            @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body HeldLocksToken token) {
-        return getLockService(namespace).unlockAndFreeze(token);
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Handle.Body HeldLocksToken token,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return getLockService(namespace, userAgent).unlockAndFreeze(token);
     }
 
     @POST
@@ -123,8 +132,9 @@ public class LockV1Resource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/get-tokens/{client}")
     public Set<HeldLocksToken> getTokens(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
-            @Safe @PathParam("client") @Handle.PathParam LockClient client) {
-        return getLockService(namespace).getTokens(client);
+            @Safe @PathParam("client") @Handle.PathParam LockClient client,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return getLockService(namespace, userAgent).getTokens(client);
     }
 
     @POST
@@ -133,8 +143,10 @@ public class LockV1Resource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/get-tokens")
-    public Set<HeldLocksToken> getTokens(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
-        return getTokens(namespace, LockClient.ANONYMOUS);
+    public Set<HeldLocksToken> getTokens(
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return getTokens(namespace, LockClient.ANONYMOUS, userAgent);
     }
 
     @POST
@@ -146,8 +158,9 @@ public class LockV1Resource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/refresh-tokens")
     public Set<HeldLocksToken> refreshTokens(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
-            @Handle.Body Iterable<HeldLocksToken> tokens) {
-        return getLockService(namespace).refreshTokens(tokens);
+            @Handle.Body Iterable<HeldLocksToken> tokens,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return getLockService(namespace, userAgent).refreshTokens(tokens);
     }
 
     @POST
@@ -159,8 +172,10 @@ public class LockV1Resource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/refresh-grant")
     @SuppressWarnings("NullableOptional") // null and empty are same over the wire
     public Optional<HeldLocksGrant> refreshGrant(
-            @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body HeldLocksGrant grant) {
-        return Optional.ofNullable(getLockService(namespace).refreshGrant(grant));
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Handle.Body HeldLocksGrant grant,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return Optional.ofNullable(getLockService(namespace, userAgent).refreshGrant(grant));
     }
 
     @POST
@@ -172,8 +187,10 @@ public class LockV1Resource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/refresh-grant-id")
     @SuppressWarnings("NullableOptional") // null and empty are same over the wire
     public Optional<HeldLocksGrant> refreshGrant(
-            @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body BigInteger grantId) {
-        return Optional.ofNullable(getLockService(namespace).refreshGrant(grantId));
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Handle.Body BigInteger grantId,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return Optional.ofNullable(getLockService(namespace, userAgent).refreshGrant(grantId));
     }
 
     @POST
@@ -183,8 +200,10 @@ public class LockV1Resource {
     @NonIdempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/convert-to-grant")
     public HeldLocksGrant convertToGrant(
-            @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body HeldLocksToken token) {
-        return getLockService(namespace).convertToGrant(token);
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Handle.Body HeldLocksToken token,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return getLockService(namespace, userAgent).convertToGrant(token);
     }
 
     @POST
@@ -196,8 +215,9 @@ public class LockV1Resource {
     public HeldLocksToken useGrant(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam LockClient client,
-            @Handle.Body HeldLocksGrant grant) {
-        return getLockService(namespace).useGrant(client, grant);
+            @Handle.Body HeldLocksGrant grant,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return getLockService(namespace, userAgent).useGrant(client, grant);
     }
 
     @POST
@@ -207,8 +227,10 @@ public class LockV1Resource {
     @NonIdempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/use-grant")
     public HeldLocksToken useGrant(
-            @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body HeldLocksGrant grant) {
-        return useGrant(namespace, LockClient.ANONYMOUS, grant);
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Handle.Body HeldLocksGrant grant,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return useGrant(namespace, LockClient.ANONYMOUS, grant, userAgent);
     }
 
     @POST
@@ -220,8 +242,9 @@ public class LockV1Resource {
     public HeldLocksToken useGrant(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam LockClient client,
-            @Handle.Body BigInteger grantId) {
-        return getLockService(namespace).useGrant(client, grantId);
+            @Handle.Body BigInteger grantId,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return getLockService(namespace, userAgent).useGrant(client, grantId);
     }
 
     @POST
@@ -231,8 +254,10 @@ public class LockV1Resource {
     @NonIdempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/use-grant-id")
     public HeldLocksToken useGrant(
-            @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body BigInteger grantId) {
-        return useGrant(namespace, LockClient.ANONYMOUS, grantId);
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Handle.Body BigInteger grantId,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return useGrant(namespace, LockClient.ANONYMOUS, grantId, userAgent);
     }
 
     @POST
@@ -244,8 +269,10 @@ public class LockV1Resource {
     @Nullable
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/min-locked-in-version-id")
     @SuppressWarnings("NullableOptional") // null and empty are same over the wire
-    public Optional<Long> getMinLockedInVersionId(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
-        return Optional.ofNullable(getLockService(namespace).getMinLockedInVersionId());
+    public Optional<Long> getMinLockedInVersionId(
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return Optional.ofNullable(getLockService(namespace, userAgent).getMinLockedInVersionId());
     }
 
     @POST
@@ -255,8 +282,9 @@ public class LockV1Resource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/min-locked-in-version-id-for-client/{client}")
     public Optional<Long> getMinLockedInVersionId(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
-            @Safe @PathParam("client") @Handle.PathParam LockClient client) {
-        return Optional.ofNullable(getLockService(namespace).getMinLockedInVersionId(client));
+            @Safe @PathParam("client") @Handle.PathParam LockClient client,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return Optional.ofNullable(getLockService(namespace, userAgent).getMinLockedInVersionId(client));
     }
 
     @POST
@@ -265,8 +293,9 @@ public class LockV1Resource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/min-locked-in-version-id-for-client")
     public Optional<Long> getMinLockedInVersionIdForAnonymousClient(
-            @Safe @PathParam("namespace") @Handle.PathParam String namespace) {
-        return getMinLockedInVersionId(namespace, LockClient.ANONYMOUS);
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return getMinLockedInVersionId(namespace, LockClient.ANONYMOUS, userAgent);
     }
 
     @POST
@@ -275,8 +304,10 @@ public class LockV1Resource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/lock-server-options")
-    public LockServerOptions getLockServerOptions(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
-        return getLockService(namespace).getLockServerOptions();
+    public LockServerOptions getLockServerOptions(
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return getLockService(namespace, userAgent).getLockServerOptions();
     }
 
     @POST
@@ -285,8 +316,10 @@ public class LockV1Resource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/current-time-millis")
-    public long currentTimeMillis(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
-        return getLockService(namespace).currentTimeMillis();
+    public long currentTimeMillis(
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return getLockService(namespace, userAgent).currentTimeMillis();
     }
 
     @POST
@@ -295,8 +328,10 @@ public class LockV1Resource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Idempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/log-current-state")
-    public void logCurrentState(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
-        getLockService(namespace).logCurrentState();
+    public void logCurrentState(
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        getLockService(namespace, userAgent).logCurrentState();
     }
 
     // Remote lock service
@@ -310,9 +345,10 @@ public class LockV1Resource {
     public Optional<LockRefreshToken> lock(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam String client,
-            @Handle.Body LockRequest request)
+            @Handle.Body LockRequest request,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent)
             throws InterruptedException {
-        return Optional.ofNullable(getLockService(namespace).lock(client, request));
+        return Optional.ofNullable(getLockService(namespace, userAgent).lock(client, request));
     }
 
     @POST
@@ -323,9 +359,11 @@ public class LockV1Resource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/lock")
     @SuppressWarnings("NullableOptional") // null and empty are same over the wire
     public Optional<LockRefreshToken> lock(
-            @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body LockRequest request)
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Handle.Body LockRequest request,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent)
             throws InterruptedException {
-        return lock(namespace, LockClient.ANONYMOUS.getClientId(), request);
+        return lock(namespace, LockClient.ANONYMOUS.getClientId(), request, userAgent);
     }
 
     @POST
@@ -336,9 +374,10 @@ public class LockV1Resource {
     public Optional<HeldLocksToken> lockAndGetHeldLocks(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam String client,
-            @Handle.Body LockRequest request)
+            @Handle.Body LockRequest request,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent)
             throws InterruptedException {
-        return Optional.ofNullable(getLockService(namespace).lockAndGetHeldLocks(client, request));
+        return Optional.ofNullable(getLockService(namespace, userAgent).lockAndGetHeldLocks(client, request));
     }
 
     @POST
@@ -347,9 +386,11 @@ public class LockV1Resource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/try-lock")
     public Optional<HeldLocksToken> lockAndGetHeldLocks(
-            @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body LockRequest request)
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Handle.Body LockRequest request,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent)
             throws InterruptedException {
-        return lockAndGetHeldLocks(namespace, LockClient.ANONYMOUS.getClientId(), request);
+        return lockAndGetHeldLocks(namespace, LockClient.ANONYMOUS.getClientId(), request, userAgent);
     }
 
     @POST
@@ -359,8 +400,10 @@ public class LockV1Resource {
     @NonIdempotent
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/unlock")
     public boolean unlock(
-            @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body LockRefreshToken token) {
-        return getLockService(namespace).unlock(token);
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Handle.Body LockRefreshToken token,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return getLockService(namespace, userAgent).unlock(token);
     }
 
     @POST
@@ -371,8 +414,9 @@ public class LockV1Resource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/refresh-lock-tokens")
     public Set<LockRefreshToken> refreshLockRefreshTokens(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
-            @Handle.Body Iterable<LockRefreshToken> tokens) {
-        return getLockService(namespace).refreshLockRefreshTokens(tokens);
+            @Handle.Body Iterable<LockRefreshToken> tokens,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return getLockService(namespace, userAgent).refreshLockRefreshTokens(tokens);
     }
 
     @POST
@@ -385,8 +429,9 @@ public class LockV1Resource {
     @SuppressWarnings("NullableOptional") // null and empty are same over the wire
     public Optional<Long> getMinLockedInVersionId(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
-            @Safe @PathParam("client") @Handle.PathParam String client) {
-        return Optional.ofNullable(getLockService(namespace).getMinLockedInVersionId(client));
+            @Safe @PathParam("client") @Handle.PathParam String client,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return Optional.ofNullable(getLockService(namespace, userAgent).getMinLockedInVersionId(client));
     }
 
     @POST
@@ -398,8 +443,9 @@ public class LockV1Resource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/min-locked-in-version")
     @SuppressWarnings("NullableOptional") // null and empty are same over the wire
     public Optional<Long> getMinLockedInVersionIdForAnonymousClientString(
-            @Safe @PathParam("namespace") @Handle.PathParam String namespace) {
-        return getMinLockedInVersionId(namespace, LockClient.ANONYMOUS.getClientId());
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return getMinLockedInVersionId(namespace, LockClient.ANONYMOUS.getClientId(), userAgent);
     }
 
     @POST
@@ -409,11 +455,13 @@ public class LockV1Resource {
     @Consumes(MediaType.APPLICATION_JSON)
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/get-debugging-lock-state")
     public LockState getLockState(
-            @Safe @PathParam("namespace") @Handle.PathParam String namespace, @Handle.Body LockDescriptor lock) {
-        return getLockService(namespace).getLockState(lock);
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Handle.Body LockDescriptor lock,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return getLockService(namespace, userAgent).getLockState(lock);
     }
 
-    private LockService getLockService(String namespace) {
-        return namespaces.get(namespace, Optional.empty()).getLockService();
+    private LockService getLockService(String namespace, Optional<String> userAgent) {
+        return namespaces.get(namespace, userAgent).getLockService();
     }
 }
