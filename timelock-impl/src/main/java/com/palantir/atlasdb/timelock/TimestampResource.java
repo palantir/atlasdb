@@ -22,6 +22,7 @@ import com.palantir.logsafe.Safe;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 import java.util.Optional;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -43,7 +44,10 @@ public final class TimestampResource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timestamp/fresh-timestamp")
     public long getFreshTimestamp(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getTimestampService(namespace, userAgent).getFreshTimestamp();
     }
 
@@ -54,7 +58,10 @@ public final class TimestampResource {
     public TimestampRange getFreshTimestamps(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @QueryParam("number") @Handle.QueryParam(value = "number") int numTimestampsRequested,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getTimestampService(namespace, userAgent).getFreshTimestamps(numTimestampsRequested);
     }
 

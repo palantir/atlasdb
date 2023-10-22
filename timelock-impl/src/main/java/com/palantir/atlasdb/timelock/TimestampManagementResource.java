@@ -35,6 +35,7 @@ import javax.annotation.CheckReturnValue;
 import javax.annotation.meta.When;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -66,7 +67,10 @@ public class TimestampManagementResource {
                     @DefaultValue(SENTINEL_TIMESTAMP_STRING)
                     @Handle.QueryParam(value = "currentTimestamp")
                     OptionalLong currentTimestamp,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         long timestampToUse = currentTimestamp.orElse(SENTINEL_TIMESTAMP);
         getTimestampManagementService(namespace, userAgent).fastForwardTimestamp(timestampToUse);
     }

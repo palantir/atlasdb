@@ -41,6 +41,7 @@ import com.palantir.timestamp.TimestampRange;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import javax.ws.rs.HeaderParam;
 
 public final class UndertowAsyncTimelockResource {
     private final TimelockNamespaces namespaces;
@@ -52,7 +53,10 @@ public final class UndertowAsyncTimelockResource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/fresh-timestamp")
     public ListenableFuture<Long> getFreshTimestamp(
             @Safe @Handle.PathParam String namespace,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getAsyncTimelockService(namespace, userAgent).getFreshTimestampAsync();
     }
 
@@ -60,7 +64,10 @@ public final class UndertowAsyncTimelockResource {
     public ListenableFuture<TimestampRange> getFreshTimestamps(
             @Safe @Handle.PathParam String namespace,
             @Safe @Handle.QueryParam(value = "number") int numTimestampsRequested,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getAsyncTimelockService(namespace, userAgent).getFreshTimestampsAsync(numTimestampsRequested);
     }
 
@@ -68,7 +75,10 @@ public final class UndertowAsyncTimelockResource {
     public LockImmutableTimestampResponse lockImmutableTimestamp(
             @Safe @Handle.PathParam String namespace,
             @Handle.Body IdentifiedTimeLockRequest request,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getAsyncTimelockService(namespace, userAgent).lockImmutableTimestamp(request);
     }
 
@@ -76,7 +86,10 @@ public final class UndertowAsyncTimelockResource {
     public StartAtlasDbTransactionResponse deprecatedStartTransactionV1(
             @Safe @Handle.PathParam String namespace,
             @Handle.Body IdentifiedTimeLockRequest request,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getAsyncTimelockService(namespace, userAgent).deprecatedStartTransaction(request);
     }
 
@@ -84,7 +97,10 @@ public final class UndertowAsyncTimelockResource {
     public StartIdentifiedAtlasDbTransactionResponse deprecatedStartTransactionV2(
             @Safe @Handle.PathParam String namespace,
             @Handle.Body StartIdentifiedAtlasDbTransactionRequest request,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getAsyncTimelockService(namespace, userAgent)
                 .startTransaction(request)
                 .toStartTransactionResponse();
@@ -94,7 +110,10 @@ public final class UndertowAsyncTimelockResource {
     public StartAtlasDbTransactionResponseV3 deprecatedStartTransactionV3(
             @Safe @Handle.PathParam String namespace,
             @Handle.Body StartIdentifiedAtlasDbTransactionRequest request,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getAsyncTimelockService(namespace, userAgent).startTransaction(request);
     }
 
@@ -102,14 +121,20 @@ public final class UndertowAsyncTimelockResource {
     public ListenableFuture<StartTransactionResponseV4> startTransactions(
             @Safe @Handle.PathParam String namespace,
             @Handle.Body StartTransactionRequestV4 request,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getAsyncTimelockService(namespace, userAgent).startTransactionsAsync(request);
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/immutable-timestamp")
     public long getImmutableTimestamp(
             @Safe @Handle.PathParam String namespace,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getAsyncTimelockService(namespace, userAgent).getImmutableTimestamp();
     }
 
@@ -117,7 +142,10 @@ public final class UndertowAsyncTimelockResource {
     public ListenableFuture<LockResponse> deprecatedLock(
             @Safe @Handle.PathParam String namespace,
             @Handle.Body IdentifiedLockRequest request,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getAsyncTimelockService(namespace, userAgent).deprecatedLock(request);
     }
 
@@ -125,7 +153,10 @@ public final class UndertowAsyncTimelockResource {
     public ListenableFuture<LockResponseV2> lock(
             @Safe @Handle.PathParam String namespace,
             @Handle.Body IdentifiedLockRequest request,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getAsyncTimelockService(namespace, userAgent).lock(request);
     }
 
@@ -133,7 +164,10 @@ public final class UndertowAsyncTimelockResource {
     public ListenableFuture<WaitForLocksResponse> waitForLocks(
             @Safe @Handle.PathParam String namespace,
             @Handle.Body WaitForLocksRequest request,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getAsyncTimelockService(namespace, userAgent).waitForLocks(request);
     }
 
@@ -141,7 +175,10 @@ public final class UndertowAsyncTimelockResource {
     public ListenableFuture<Set<LockToken>> deprecatedRefreshLockLeases(
             @Safe @Handle.PathParam String namespace,
             @Handle.Body Set<LockToken> tokens,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getAsyncTimelockService(namespace, userAgent).deprecatedRefreshLockLeases(tokens);
     }
 
@@ -149,14 +186,20 @@ public final class UndertowAsyncTimelockResource {
     public ListenableFuture<RefreshLockResponseV2> refreshLockLeases(
             @Safe @Handle.PathParam String namespace,
             @Handle.Body Set<LockToken> tokens,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getAsyncTimelockService(namespace, userAgent).refreshLockLeases(tokens);
     }
 
     @Handle(method = HttpMethod.GET, path = "/{namespace}/timelock/leader-time")
     public ListenableFuture<LeaderTime> getLeaderTime(
             @Safe @Handle.PathParam String namespace,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getAsyncTimelockService(namespace, userAgent).leaderTime();
     }
 
@@ -164,14 +207,20 @@ public final class UndertowAsyncTimelockResource {
     public ListenableFuture<Set<LockToken>> unlock(
             @Safe @Handle.PathParam String namespace,
             @Handle.Body Set<LockToken> tokens,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getAsyncTimelockService(namespace, userAgent).unlock(tokens);
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/current-time-millis")
     public long currentTimeMillis(
             @Safe @Handle.PathParam String namespace,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getAsyncTimelockService(namespace, userAgent).currentTimeMillis();
     }
 
@@ -183,7 +232,10 @@ public final class UndertowAsyncTimelockResource {
     public Optional<LockDiagnosticInfo> getEnhancedLockDiagnosticInfo(
             @Safe @Handle.PathParam String namespace,
             @Handle.Body Set<UUID> requestIds,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return namespaces.get(namespace, userAgent).getLockLog().getAndLogLockDiagnosticInfo(requestIds);
     }
 

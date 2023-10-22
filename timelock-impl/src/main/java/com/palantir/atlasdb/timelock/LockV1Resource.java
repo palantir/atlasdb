@@ -38,6 +38,7 @@ import java.util.Optional;
 import java.util.Set;
 import javax.annotation.Nullable;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -64,7 +65,10 @@ public class LockV1Resource {
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam LockClient client,
             @Handle.Body LockRequest request,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent)
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent)
             throws InterruptedException {
         return Optional.ofNullable(getLockService(namespace, userAgent).lockWithFullLockResponse(client, request));
     }
@@ -79,7 +83,10 @@ public class LockV1Resource {
     public Optional<LockResponse> lockWithFullLockResponse(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Handle.Body LockRequest request,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent)
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent)
             throws InterruptedException {
         return lockWithFullLockResponse(namespace, LockClient.ANONYMOUS, request, userAgent);
     }
@@ -94,7 +101,10 @@ public class LockV1Resource {
     public boolean unlock(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Handle.Body HeldLocksToken token,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getLockService(namespace, userAgent).unlock(token);
     }
 
@@ -107,7 +117,10 @@ public class LockV1Resource {
     public boolean unlockSimple(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Handle.Body SimpleHeldLocksToken token,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getLockService(namespace, userAgent).unlockSimple(token);
     }
 
@@ -120,7 +133,10 @@ public class LockV1Resource {
     public boolean unlockAndFreeze(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Handle.Body HeldLocksToken token,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getLockService(namespace, userAgent).unlockAndFreeze(token);
     }
 
@@ -133,7 +149,10 @@ public class LockV1Resource {
     public Set<HeldLocksToken> getTokens(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam LockClient client,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getLockService(namespace, userAgent).getTokens(client);
     }
 
@@ -145,7 +164,10 @@ public class LockV1Resource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/get-tokens")
     public Set<HeldLocksToken> getTokens(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getTokens(namespace, LockClient.ANONYMOUS, userAgent);
     }
 
@@ -159,7 +181,10 @@ public class LockV1Resource {
     public Set<HeldLocksToken> refreshTokens(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Handle.Body Iterable<HeldLocksToken> tokens,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getLockService(namespace, userAgent).refreshTokens(tokens);
     }
 
@@ -174,7 +199,10 @@ public class LockV1Resource {
     public Optional<HeldLocksGrant> refreshGrant(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Handle.Body HeldLocksGrant grant,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return Optional.ofNullable(getLockService(namespace, userAgent).refreshGrant(grant));
     }
 
@@ -189,7 +217,10 @@ public class LockV1Resource {
     public Optional<HeldLocksGrant> refreshGrant(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Handle.Body BigInteger grantId,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return Optional.ofNullable(getLockService(namespace, userAgent).refreshGrant(grantId));
     }
 
@@ -202,7 +233,10 @@ public class LockV1Resource {
     public HeldLocksGrant convertToGrant(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Handle.Body HeldLocksToken token,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getLockService(namespace, userAgent).convertToGrant(token);
     }
 
@@ -216,7 +250,10 @@ public class LockV1Resource {
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam LockClient client,
             @Handle.Body HeldLocksGrant grant,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getLockService(namespace, userAgent).useGrant(client, grant);
     }
 
@@ -229,7 +266,10 @@ public class LockV1Resource {
     public HeldLocksToken useGrant(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Handle.Body HeldLocksGrant grant,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return useGrant(namespace, LockClient.ANONYMOUS, grant, userAgent);
     }
 
@@ -243,7 +283,10 @@ public class LockV1Resource {
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam LockClient client,
             @Handle.Body BigInteger grantId,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getLockService(namespace, userAgent).useGrant(client, grantId);
     }
 
@@ -256,7 +299,10 @@ public class LockV1Resource {
     public HeldLocksToken useGrant(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Handle.Body BigInteger grantId,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return useGrant(namespace, LockClient.ANONYMOUS, grantId, userAgent);
     }
 
@@ -271,7 +317,10 @@ public class LockV1Resource {
     @SuppressWarnings("NullableOptional") // null and empty are same over the wire
     public Optional<Long> getMinLockedInVersionId(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return Optional.ofNullable(getLockService(namespace, userAgent).getMinLockedInVersionId());
     }
 
@@ -283,7 +332,10 @@ public class LockV1Resource {
     public Optional<Long> getMinLockedInVersionId(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam LockClient client,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return Optional.ofNullable(getLockService(namespace, userAgent).getMinLockedInVersionId(client));
     }
 
@@ -294,7 +346,10 @@ public class LockV1Resource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/min-locked-in-version-id-for-client")
     public Optional<Long> getMinLockedInVersionIdForAnonymousClient(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getMinLockedInVersionId(namespace, LockClient.ANONYMOUS, userAgent);
     }
 
@@ -306,7 +361,10 @@ public class LockV1Resource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/lock-server-options")
     public LockServerOptions getLockServerOptions(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getLockService(namespace, userAgent).getLockServerOptions();
     }
 
@@ -318,7 +376,10 @@ public class LockV1Resource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/current-time-millis")
     public long currentTimeMillis(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getLockService(namespace, userAgent).currentTimeMillis();
     }
 
@@ -330,7 +391,10 @@ public class LockV1Resource {
     @Handle(method = HttpMethod.POST, path = "/{namespace}/lock/log-current-state")
     public void logCurrentState(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         getLockService(namespace, userAgent).logCurrentState();
     }
 
@@ -346,7 +410,10 @@ public class LockV1Resource {
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam String client,
             @Handle.Body LockRequest request,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent)
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent)
             throws InterruptedException {
         return Optional.ofNullable(getLockService(namespace, userAgent).lock(client, request));
     }
@@ -361,7 +428,10 @@ public class LockV1Resource {
     public Optional<LockRefreshToken> lock(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Handle.Body LockRequest request,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent)
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent)
             throws InterruptedException {
         return lock(namespace, LockClient.ANONYMOUS.getClientId(), request, userAgent);
     }
@@ -375,7 +445,10 @@ public class LockV1Resource {
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam String client,
             @Handle.Body LockRequest request,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent)
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent)
             throws InterruptedException {
         return Optional.ofNullable(getLockService(namespace, userAgent).lockAndGetHeldLocks(client, request));
     }
@@ -388,7 +461,10 @@ public class LockV1Resource {
     public Optional<HeldLocksToken> lockAndGetHeldLocks(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Handle.Body LockRequest request,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent)
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent)
             throws InterruptedException {
         return lockAndGetHeldLocks(namespace, LockClient.ANONYMOUS.getClientId(), request, userAgent);
     }
@@ -402,7 +478,10 @@ public class LockV1Resource {
     public boolean unlock(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Handle.Body LockRefreshToken token,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getLockService(namespace, userAgent).unlock(token);
     }
 
@@ -415,7 +494,10 @@ public class LockV1Resource {
     public Set<LockRefreshToken> refreshLockRefreshTokens(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Handle.Body Iterable<LockRefreshToken> tokens,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getLockService(namespace, userAgent).refreshLockRefreshTokens(tokens);
     }
 
@@ -430,7 +512,10 @@ public class LockV1Resource {
     public Optional<Long> getMinLockedInVersionId(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @PathParam("client") @Handle.PathParam String client,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return Optional.ofNullable(getLockService(namespace, userAgent).getMinLockedInVersionId(client));
     }
 
@@ -444,7 +529,10 @@ public class LockV1Resource {
     @SuppressWarnings("NullableOptional") // null and empty are same over the wire
     public Optional<Long> getMinLockedInVersionIdForAnonymousClientString(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getMinLockedInVersionId(namespace, LockClient.ANONYMOUS.getClientId(), userAgent);
     }
 
@@ -457,7 +545,10 @@ public class LockV1Resource {
     public LockState getLockState(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Handle.Body LockDescriptor lock,
-            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         return getLockService(namespace, userAgent).getLockState(lock);
     }
 
