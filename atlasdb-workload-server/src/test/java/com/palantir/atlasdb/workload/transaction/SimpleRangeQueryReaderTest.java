@@ -25,7 +25,7 @@ import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
 import java.util.Optional;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SimpleRangeQueryReaderTest {
     private final StructureHolder<Map<TableAndWorkloadCell, Optional<Integer>>> valueMap =

@@ -25,7 +25,7 @@ import com.google.common.collect.Iterables;
 import java.util.List;
 import java.util.Spliterator;
 import java.util.stream.StreamSupport;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class IterableViewTest {
 

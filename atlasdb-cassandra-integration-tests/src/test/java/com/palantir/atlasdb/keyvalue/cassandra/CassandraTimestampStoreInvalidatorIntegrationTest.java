@@ -27,9 +27,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
-import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 @ShouldRetry
 public class CassandraTimestampStoreInvalidatorIntegrationTest {
@@ -42,7 +42,7 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
 
     private final CassandraTimestampStoreInvalidator invalidator = CassandraTimestampStoreInvalidator.create(kv);
 
-    @Before
+    @BeforeEach
     public void setUp() {
         kv.createTable(
                 AtlasDbConstants.TIMESTAMP_TABLE,

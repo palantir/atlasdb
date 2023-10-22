@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
 import java.security.MessageDigest;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class Sha256HashTest {
 

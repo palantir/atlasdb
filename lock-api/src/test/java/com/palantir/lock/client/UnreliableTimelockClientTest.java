@@ -36,13 +36,16 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public final class UnreliableTimelockClientTest {
 
     private static final LockToken LOCK_TOKEN = LockToken.of(UUID.fromString("00000000-0000-0000-0000-000000000000"));
@@ -56,7 +59,7 @@ public final class UnreliableTimelockClientTest {
 
     private UnreliableTimeLockService unreliableTimeLockService;
 
-    @Before
+    @BeforeEach
     public void before() {
         unreliableTimeLockService = new UnreliableTimeLockService(timeLockClient, NoOpBuggifyFactory.INSTANCE);
     }

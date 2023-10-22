@@ -27,7 +27,7 @@ import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.persistence.generated.PaxosPersistence;
 import com.palantir.paxos.persistence.generated.remoting.PaxosAcceptorPersistence;
 import com.palantir.paxos.persistence.generated.remoting.PaxosAcceptorPersistence.PaxosPromiseProto;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ProtobufTest {
     @Test

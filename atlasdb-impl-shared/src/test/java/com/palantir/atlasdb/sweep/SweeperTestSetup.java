@@ -42,8 +42,8 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SingleLockService;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
-import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.mockito.stubbing.Answer;
 
 public class SweeperTestSetup {
@@ -68,7 +68,7 @@ public class SweeperTestSetup {
     protected long currentTimeMillis = 1000200300L;
     protected SweepPriorityOverrideConfig overrideConfig;
 
-    @BeforeClass
+    @BeforeAll
     public static void initialiseConfig() {
         ImmutableSweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
                 .deleteBatchSize(100)
@@ -79,7 +79,7 @@ public class SweeperTestSetup {
         sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(metricsManager, () -> sweepBatchConfig);
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
         specificTableSweeper = spy(getSpecificTableSweeperService());
         backgroundSweeper = getBackgroundSweepThread(THREAD_INDEX);

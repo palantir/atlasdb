@@ -29,10 +29,10 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 public class DbKvsOracleKeyValueServiceTest extends AbstractDbKvsKeyValueServiceTest {
     @ClassRule
@@ -61,7 +61,7 @@ public class DbKvsOracleKeyValueServiceTest extends AbstractDbKvsKeyValueService
         super(TRM);
     }
 
-    @After
+    @AfterEach
     public void after() {
         keyValueService.dropTables(ImmutableSet.of(TABLE_1, TABLE_2));
     }

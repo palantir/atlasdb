@@ -19,7 +19,7 @@ package com.palantir.atlasdb.keyvalue.api;
 import com.google.common.collect.ImmutableList;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import org.assertj.core.api.Assertions;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("ThrowableInstanceNeverThrown")
 public class RetryLimitReachedExceptionTest {

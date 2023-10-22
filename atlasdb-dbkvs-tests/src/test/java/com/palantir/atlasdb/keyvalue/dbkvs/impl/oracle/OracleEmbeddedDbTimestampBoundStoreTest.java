@@ -22,12 +22,12 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.timestamp.AbstractDbTimestampBoundStoreTest;
 import com.palantir.timestamp.TimestampBoundStore;
-import org.junit.After;
+import org.junit.jupiter.api.AfterEach;
 
 public class OracleEmbeddedDbTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTest {
     private KeyValueService kvs;
 
-    @After
+    @AfterEach
     public void tearDown() {
         kvs.close();
     }

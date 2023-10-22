@@ -41,10 +41,10 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import java.util.Locale;
 import java.util.Map;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public final class OracleAlterTableIntegrationTest {
     @ClassRule
@@ -87,7 +87,7 @@ public final class OracleAlterTableIntegrationTest {
     private ConnectionSupplier connectionSupplier;
     private OracleTableNameGetter oracleTableNameGetter;
 
-    @Before
+    @BeforeEach
     public void before() {
         defaultKvs = TRM.getDefaultKvs();
         connectionSupplier = DbKvsOracleTestSuite.getConnectionSupplier(defaultKvs);
@@ -95,7 +95,7 @@ public final class OracleAlterTableIntegrationTest {
                 (OracleDdlConfig) DbKvsOracleTestSuite.getKvsConfig().ddl());
     }
 
-    @After
+    @AfterEach
     public void after() {
         defaultKvs.dropTables(defaultKvs.getAllTableNames());
         defaultKvs.dropTable(DbKvsOracleTestSuite.getKvsConfig().ddl().metadataTable());

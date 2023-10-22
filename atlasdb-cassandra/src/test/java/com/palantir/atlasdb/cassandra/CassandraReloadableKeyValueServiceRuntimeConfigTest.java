@@ -26,7 +26,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.refreshable.Refreshable;
 import java.net.InetSocketAddress;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CassandraReloadableKeyValueServiceRuntimeConfigTest {
 

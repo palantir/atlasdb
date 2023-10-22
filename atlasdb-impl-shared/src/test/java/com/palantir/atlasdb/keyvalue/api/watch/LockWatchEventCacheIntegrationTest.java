@@ -62,9 +62,9 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TestName;
 
 public class LockWatchEventCacheIntegrationTest {
@@ -131,7 +131,7 @@ public class LockWatchEventCacheIntegrationTest {
     @Rule
     public TestName name = new TestName();
 
-    @Before
+    @BeforeEach
     public void before() {
         createEventCache(5);
         part = 1;

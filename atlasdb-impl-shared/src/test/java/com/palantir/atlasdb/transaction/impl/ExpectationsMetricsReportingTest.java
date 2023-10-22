@@ -27,12 +27,15 @@ import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionRea
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionWriteMetadataInfo;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
 import com.palantir.atlasdb.util.MetricsManagers;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public final class ExpectationsMetricsReportingTest {
 
     // immutable in type declaration for better 'withX' ergonomics
@@ -58,7 +61,7 @@ public final class ExpectationsMetricsReportingTest {
 
     private ExpectationsMetrics metrics;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         metrics = ExpectationsMetrics.of(MetricsManagers.createForTests().getTaggedRegistry());
     }

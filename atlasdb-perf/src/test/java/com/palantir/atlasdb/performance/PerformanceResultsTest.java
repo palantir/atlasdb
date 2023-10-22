@@ -22,7 +22,7 @@ import com.palantir.atlasdb.performance.backend.CassandraKeyValueServiceInstrume
 import java.util.List;
 import org.apache.commons.math3.stat.inference.TestUtils;
 import org.assertj.core.util.Lists;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.openjdk.jmh.infra.BenchmarkParams;
 import org.openjdk.jmh.results.Result;

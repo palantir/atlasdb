@@ -34,9 +34,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TestRule;
 
 /**
@@ -62,7 +62,7 @@ public final class ClientAwareLockTest {
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();
 
     /** Sets up the tests. */
-    @Before
+    @BeforeEach
     public void setUp() {
         readWriteLock = new LockServerLock(StringLockDescriptor.of("lock"), new LockClientIndices());
         anonymousReadLock = readWriteLock.get(LockClient.ANONYMOUS, LockMode.READ);

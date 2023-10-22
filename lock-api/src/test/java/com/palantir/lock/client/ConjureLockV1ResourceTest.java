@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.ConjureLockRefreshToken;
 import com.palantir.lock.LockRefreshToken;
 import java.math.BigInteger;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ConjureLockV1ResourceTest {
     private static final BigInteger TOKEN_ID =

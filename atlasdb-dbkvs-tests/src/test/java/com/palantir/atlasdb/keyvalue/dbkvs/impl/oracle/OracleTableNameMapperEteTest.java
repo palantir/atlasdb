@@ -26,10 +26,10 @@ import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameMapper;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class OracleTableNameMapperEteTest {
     @ClassRule
@@ -50,13 +50,13 @@ public class OracleTableNameMapperEteTest {
     private static final Namespace TEST_NAMESPACE = Namespace.create("test_namespace");
     private static final String LONG_TABLE_NAME = "ThisIsAVeryLongTableNameThatWillExceed";
 
-    @Before
+    @BeforeEach
     public void setup() {
         kvs = TRM.getDefaultKvs();
         connectionSupplier = DbKvsOracleTestSuite.getConnectionSupplier(kvs);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         kvs.dropTables(kvs.getAllTableNames());
         connectionSupplier.close();

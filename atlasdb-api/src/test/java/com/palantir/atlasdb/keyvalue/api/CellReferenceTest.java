@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.assertj.core.data.Percentage;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CellReferenceTest {
     private static final TableReference TABLE = createFromFullyQualifiedName("fixed.table");

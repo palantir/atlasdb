@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public abstract class AbstractNodeAvailabilityTest extends AbstractDegradedClusterTest {
 

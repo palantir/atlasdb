@@ -32,8 +32,8 @@ import java.net.InetSocketAddress;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class BlacklistTest {
     private static final InetSocketAddress ADDRESS_1 = InetSocketAddress.createUnresolved("NW16XE", 123);
@@ -64,7 +64,7 @@ public class BlacklistTest {
 
     private final Blacklist blacklist = new Blacklist(CONFIG, UNRESPONSIVE_HOST_BACKOFF_TIME, clock);
 
-    @Before
+    @BeforeEach
     @SuppressWarnings("unchecked") // Mock type is correct
     public void setUp() {
         when(clock.millis()).thenAnswer(invocation -> time.addAndGet(ONE_SECOND.toMillis() + 1));

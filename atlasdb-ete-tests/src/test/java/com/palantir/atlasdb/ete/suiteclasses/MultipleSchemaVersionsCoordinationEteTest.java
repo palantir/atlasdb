@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.palantir.atlasdb.coordination.CoordinationResource;
 import com.palantir.atlasdb.ete.utilities.EteSetup;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MultipleSchemaVersionsCoordinationEteTest {
     private static final int VERSION_ONE = 1;

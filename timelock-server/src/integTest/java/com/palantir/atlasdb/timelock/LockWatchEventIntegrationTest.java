@@ -71,9 +71,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.RuleChain;
 
 public final class LockWatchEventIntegrationTest {
@@ -114,7 +114,7 @@ public final class LockWatchEventIntegrationTest {
 
     private TransactionManager txnManager;
 
-    @Before
+    @BeforeEach
     public void setUpAndAwaitTableWatched() {
         txnManager = LockWatchIntegrationTestUtilities.createTransactionManager(0.0, CLUSTER, NAMESPACE);
         LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager, TABLE_REF);

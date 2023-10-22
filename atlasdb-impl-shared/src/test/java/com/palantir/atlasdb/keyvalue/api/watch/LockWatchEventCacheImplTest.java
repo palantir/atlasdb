@@ -49,8 +49,8 @@ import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 import java.util.Optional;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public final class LockWatchEventCacheImplTest {
     private static final int MIN_EVENTS = 1;
@@ -109,7 +109,7 @@ public final class LockWatchEventCacheImplTest {
     private LockWatchEventLog eventLog;
     private LockWatchEventCache eventCache;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         eventLog = spy(LockWatchEventLog.create(METRICS, MIN_EVENTS, MAX_EVENTS));
         eventCache = new LockWatchEventCacheImpl(eventLog);

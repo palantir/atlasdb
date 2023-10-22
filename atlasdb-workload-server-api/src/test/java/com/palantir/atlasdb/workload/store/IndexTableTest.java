@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.palantir.logsafe.SafeArg;
 import java.util.Locale;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class IndexTableTest {
 

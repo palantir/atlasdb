@@ -28,8 +28,8 @@ import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class SweepBatchAccumulatorTest {
     private static final int BATCH_SIZE = 100;
@@ -51,7 +51,7 @@ public class SweepBatchAccumulatorTest {
 
     private SweepBatchAccumulator accumulator;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         accumulator = new SweepBatchAccumulator(SWEEP_TIMESTAMP, BATCH_SIZE, PROGRESS_TIMESTAMP);
     }

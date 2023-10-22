@@ -25,10 +25,10 @@ import com.palantir.paxos.SqliteConnections;
 import com.palantir.timelock.config.ImmutableDatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.ImmutablePaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import java.io.File;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class PersistenceConfigStoreTest {
     private static final TsBoundPersisterConfiguration PAXOS_CONFIG =
@@ -38,12 +38,12 @@ public class PersistenceConfigStoreTest {
                     .keyValueServiceConfig(new InMemoryAtlasDbConfig())
                     .build();
 
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @TempDir
+    public File tempFolder ;
 
     private PersistenceConfigStore persistenceConfigStore;
 
-    @Before
+    @BeforeEach
     public void setup() {
         SqliteBlobStore blobStore = SqliteBlobStore.create(SqliteConnections.getDefaultConfiguredPooledDataSource(
                 tempFolder.getRoot().toPath()));

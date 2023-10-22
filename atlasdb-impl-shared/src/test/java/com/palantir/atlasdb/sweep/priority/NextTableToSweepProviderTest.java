@@ -40,8 +40,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class NextTableToSweepProviderTest {
     private NextTableToSweepProvider provider;
@@ -54,7 +54,7 @@ public class NextTableToSweepProviderTest {
 
     private List<Optional<TableToSweep>> tablesToSweep = new ArrayList<>();
 
-    @Before
+    @BeforeEach
     public void setup() throws InterruptedException {
         lockService = mock(LockService.class);
         LockRefreshToken token = new LockRefreshToken(BigInteger.ONE, Long.MAX_VALUE);

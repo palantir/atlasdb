@@ -35,25 +35,28 @@ import com.palantir.timelock.config.PaxosInstallConfiguration;
 import com.palantir.timelock.config.SqlitePaxosPersistenceConfigurations;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.paxos.TimeLockDialogueServiceProvider;
+import java.io.File;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @SuppressWarnings("DangerousIdentityKey")
 public class PaxosRemoteClientsTest {
-    @Rule
-    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+    @TempDir
+    public File temporaryFolder ;
 
     private PaxosResourcesFactory.TimelockPaxosInstallationContext context;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         PaxosInstallConfiguration paxosInstallConfiguration = PaxosInstallConfiguration.builder()
                 .isNewService(false)

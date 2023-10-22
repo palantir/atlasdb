@@ -40,10 +40,10 @@ import java.util.concurrent.Callable;
 import org.assertj.core.api.JUnitSoftAssertions;
 import org.awaitility.Awaitility;
 import org.immutables.value.Value;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
@@ -123,7 +123,7 @@ public class TimeLockMigrationEteTest {
     @Rule
     public final JUnitSoftAssertions softAssertions = new JUnitSoftAssertions();
 
-    @BeforeClass
+    @BeforeAll
     public static void setUp() {
         CLIENT_ORCHESTRATION_RULE.updateProcessLivenessScript();
         waitUntil(serversAreReady());

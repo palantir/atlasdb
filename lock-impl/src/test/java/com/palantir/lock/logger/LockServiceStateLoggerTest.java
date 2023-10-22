@@ -46,8 +46,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class LockServiceStateLoggerTest {
 
@@ -64,7 +64,7 @@ public class LockServiceStateLoggerTest {
 
     private static LogState loggedState;
 
-    @BeforeClass
+    @BeforeAll
     public static void setUp() {
         LockClient clientA = LockClient.of("Client A");
         LockClient clientB = LockClient.of("Client B");

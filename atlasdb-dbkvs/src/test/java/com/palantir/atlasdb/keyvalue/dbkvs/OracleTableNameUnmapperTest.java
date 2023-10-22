@@ -55,16 +55,19 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mock.Strictness;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.mockito.stubbing.OngoingStubbing;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class OracleTableNameUnmapperTest {
 
     private static final String TEST_PREFIX = "a_";
@@ -89,7 +92,7 @@ public class OracleTableNameUnmapperTest {
     @Mock
     Connection connection;
 
-    @Before
+    @BeforeEach
     public void setup() {
         when(sqlConnection.getUnderlyingConnection()).thenReturn(connection);
         when(connectionSupplier.get()).thenReturn(sqlConnection);

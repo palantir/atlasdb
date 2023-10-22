@@ -21,15 +21,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
+import java.io.File;
 import javax.sql.DataSource;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class LogVerificationProgressStateTest {
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @TempDir
+    public File tempFolder ;
 
     private static final Client CLIENT = Client.of("tom");
     private static final String USE_CASE = "useCase1";
@@ -37,7 +37,7 @@ public class LogVerificationProgressStateTest {
     private DataSource dataSource;
     private LogVerificationProgressState log;
 
-    @Before
+    @BeforeEach
     public void setup() {
         dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(
                 tempFolder.getRoot().toPath());

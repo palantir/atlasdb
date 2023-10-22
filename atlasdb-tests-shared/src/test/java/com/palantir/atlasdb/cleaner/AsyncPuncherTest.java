@@ -25,9 +25,9 @@ import com.palantir.common.time.SystemClock;
 import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timestamp.TimestampService;
 import java.util.function.LongSupplier;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class AsyncPuncherTest {
 
@@ -44,7 +44,7 @@ public class AsyncPuncherTest {
     @Rule
     public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
 
-    @Before
+    @BeforeEach
     public void setup() {
         timestampService = inMemoryTimeLockRule.getTimestampService();
     }

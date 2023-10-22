@@ -38,9 +38,9 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.concurrent.Callable;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestKvsMigrationCommand {
     private static final String[] EMPTY_ARGS = new String[] {};
@@ -59,14 +59,14 @@ public class TestKvsMigrationCommand {
     private AtlasDbServices fromServices;
     private AtlasDbServices toServices;
 
-    @Before
+    @BeforeEach
     public void setupServices() throws Exception {
         KvsMigrationCommand cmd = getCommand(EMPTY_ARGS, EMPTY_ARGS);
         fromServices = cmd.connectFromServices();
         toServices = cmd.connectToServices();
     }
 
-    @After
+    @AfterEach
     public void close() {
         fromServices.close();
         toServices.close();

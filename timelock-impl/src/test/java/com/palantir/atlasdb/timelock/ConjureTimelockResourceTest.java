@@ -62,13 +62,16 @@ import java.time.Duration;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class ConjureTimelockResourceTest {
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer test");
     private static final int REMOTE_PORT = 4321;
@@ -88,7 +91,7 @@ public class ConjureTimelockResourceTest {
     private ConjureTimelockResource resource;
     private ConjureTimelockService service;
 
-    @Before
+    @BeforeEach
     public void before() {
         resource = new ConjureTimelockResource(TARGETER, unused -> timelockService);
         service = ConjureTimelockResource.jersey(TARGETER, unused -> timelockService);

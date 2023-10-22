@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.withinPercentage;
 
 import java.time.Duration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SlidingWindowWeightedMeanGaugeTest {
     private SlidingWindowWeightedMeanGauge gauge = SlidingWindowWeightedMeanGauge.create();

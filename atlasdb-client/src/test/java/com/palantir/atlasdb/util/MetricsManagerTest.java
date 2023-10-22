@@ -26,8 +26,8 @@ import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 public class MetricsManagerTest {
     private static final Class<Integer> INTEGER_CLASS = Integer.class;
@@ -105,7 +105,7 @@ public class MetricsManagerTest {
         return TableReference.create(Namespace.create("foo"), tableName);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         registry.removeMatching(MetricFilter.ALL);
         taggedMetricRegistry.getMetrics().keySet().forEach(taggedMetricRegistry::remove);

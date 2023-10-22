@@ -26,10 +26,10 @@ import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
 import java.util.UUID;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TestRule;
 
 @ShouldRetry // In some cases we obtain a TTransportException from Cassandra, probably because we don't wait enough?
@@ -41,12 +41,12 @@ public class MultiCassandraSingleNodeDownEteTest {
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();
 
-    @BeforeClass
+    @BeforeAll
     public static void shutdownCassandraNode() {
         MultiCassandraUtils.killCassandraContainer(CASSANDRA_NODE_TO_KILL);
     }
 
-    @AfterClass
+    @AfterAll
     public static void resetCassandraNodes() {
         MultiCassandraUtils.resetCassandraCluster(ALL_CASSANDRA_NODES);
     }

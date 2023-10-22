@@ -21,33 +21,36 @@ import static org.mockito.Mockito.when;
 
 import com.palantir.common.time.Clock;
 import com.palantir.sls.versions.OrderableSlsVersion;
+import java.io.File;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import javax.sql.DataSource;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class PersistedRateLimitingLeadershipPrioritiserTest {
     private static final OrderableSlsVersion VERSION = OrderableSlsVersion.valueOf("3.14.15");
     private static final long INITIAL_TIME_MILLIS = 100L;
     private static final long BACKOFF_MILLIS = 1000L;
 
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @TempDir
+    public File tempFolder ;
 
     @Mock
     private Clock clock;
 
     private PersistedRateLimitingLeadershipPrioritiser persistedRateLimitingLeadershipPrioritiser;
 
-    @Before
+    @BeforeEach
     public void setup() {
         DataSource dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(
                 tempFolder.getRoot().toPath());

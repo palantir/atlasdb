@@ -23,9 +23,9 @@ import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.flake.ShouldRetry;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
-import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 @ShouldRetry
 public class CassandraTimestampIntegrationTest {
@@ -34,7 +34,7 @@ public class CassandraTimestampIntegrationTest {
 
     private CassandraKeyValueService kv = CASSANDRA.getDefaultKvs();
 
-    @Before
+    @BeforeEach
     public void setUp() {
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }

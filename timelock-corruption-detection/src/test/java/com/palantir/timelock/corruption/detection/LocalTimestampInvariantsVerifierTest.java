@@ -22,7 +22,7 @@ import com.palantir.timelock.corruption.detection.TimeLockCorruptionTestSetup.St
 import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
 import java.util.stream.IntStream;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class LocalTimestampInvariantsVerifierTest {
     @Rule

@@ -19,11 +19,11 @@ package com.palantir.paxos;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.sls.versions.OrderableSlsVersion;
+import java.io.File;
 import javax.sql.DataSource;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class GreenNodeLeadershipAttemptHistoryTest {
     private static final OrderableSlsVersion VERSION = OrderableSlsVersion.valueOf("3.14.15");
@@ -31,12 +31,12 @@ public class GreenNodeLeadershipAttemptHistoryTest {
     private static final long INITIAL_TIME = 100L;
     private static final long SECOND_TIME = 200L;
 
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @TempDir
+    public File tempFolder ;
 
     private GreenNodeLeadershipAttemptHistory state;
 
-    @Before
+    @BeforeEach
     public void setup() {
         DataSource dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(
                 tempFolder.getRoot().toPath());

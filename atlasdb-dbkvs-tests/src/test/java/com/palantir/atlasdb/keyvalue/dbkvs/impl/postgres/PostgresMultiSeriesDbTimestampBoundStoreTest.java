@@ -23,8 +23,8 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.timestamp.AbstractDbTimestampBoundStoreTest;
 import com.palantir.timestamp.TimestampBoundStore;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 public class PostgresMultiSeriesDbTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTest {
     private static final TimestampSeries DEFAULT_SERIES = TimestampSeries.of("defaultSeries");
@@ -36,7 +36,7 @@ public class PostgresMultiSeriesDbTimestampBoundStoreTest extends AbstractDbTime
 
     private ConnectionManagerAwareDbKvs kvs;
 
-    @After
+    @AfterEach
     public void tearDown() {
         kvs.close();
     }

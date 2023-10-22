@@ -22,14 +22,13 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
 public class SchemaHotspottingTest {
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+    @TempDir
+    public File temporaryFolder ;
 
     private static final String SCHEMA_NAME = "TestSchema";
     private static final String INDEX_NAME = "TestIndex";

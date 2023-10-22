@@ -43,7 +43,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CassandraSchemaLockTest {
     private static final int THREAD_COUNT = 4;

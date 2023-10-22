@@ -42,9 +42,9 @@ import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.thrift.TException;
 import org.awaitility.Awaitility;
-import org.junit.After;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 public final class CassandraNamespaceDeleterIntegrationTest {
 
@@ -74,7 +74,7 @@ public final class CassandraNamespaceDeleterIntegrationTest {
     private final NamespaceDeleter namespaceDeleterForNamespaceTwo = factory.createNamespaceDeleter(
             keyValueServiceConfigForNamespaceTwo, keyValueServiceRuntimeConfig.map(Optional::of));
 
-    @After
+    @AfterEach
     public void after() throws IOException {
         kvs.close();
         namespaceDeleterForNamespaceOne.deleteAllDataFromNamespace();

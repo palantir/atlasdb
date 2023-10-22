@@ -25,15 +25,15 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.table.description.Schemas;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class DefaultConservativeSweepWatermarkStoreTests {
     private static final TableReference TABLE = TableReference.create(Namespace.create("foo"), "bar");
     private final KeyValueService kvs = new InMemoryKeyValueService(false);
     private final ConservativeSweepWatermarkStore watermarkStore = new DefaultConservativeSweepWatermarkStore(kvs);
 
-    @Before
+    @BeforeEach
     public void before() {
         Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
     }

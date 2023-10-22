@@ -42,9 +42,9 @@ import java.util.Set;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.TokenRange;
 import org.apache.thrift.TException;
-import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class CassandraClientPoolIntegrationTest {
     @ClassRule
@@ -56,7 +56,7 @@ public class CassandraClientPoolIntegrationTest {
     private Blacklist blacklist;
     private CassandraClientPoolImpl clientPool;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig = CASSANDRA.getRuntimeConfig();
         blacklist = new Blacklist(

@@ -24,7 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import java.nio.ByteBuffer;
 import java.util.Optional;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CasRequestTest {
     private static final byte[] START = PtBytes.toBytes(1);

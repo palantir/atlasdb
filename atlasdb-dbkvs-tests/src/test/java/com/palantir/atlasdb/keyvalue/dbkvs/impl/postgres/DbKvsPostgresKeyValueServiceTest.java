@@ -23,9 +23,9 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.AbstractDbKvsKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.After;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 public class DbKvsPostgresKeyValueServiceTest extends AbstractDbKvsKeyValueServiceTest {
     @ClassRule
@@ -40,7 +40,7 @@ public class DbKvsPostgresKeyValueServiceTest extends AbstractDbKvsKeyValueServi
         super(TRM);
     }
 
-    @After
+    @AfterEach
     @Override
     public void tearDown() throws Exception {
         super.tearDown();

@@ -56,9 +56,9 @@ import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Map;
 import org.awaitility.Awaitility;
-import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 public class TransactionServicesTest {
@@ -76,7 +76,7 @@ public class TransactionServicesTest {
     @ClassRule
     public static InMemoryTimeLockRule services = new InMemoryTimeLockRule();
 
-    @Before
+    @BeforeEach
     public void setUp() {
         TransactionTables.createTables(keyValueService);
         MetricsManager metricsManager = MetricsManagers.createForTests();

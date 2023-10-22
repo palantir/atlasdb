@@ -103,11 +103,11 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.assertj.core.util.Files;
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class TransactionManagersTest {
@@ -166,7 +166,7 @@ public class TransactionManagersTest {
     @ClassRule
     public static InMemoryTimeLockRule services = new InMemoryTimeLockRule();
 
-    @Before
+    @BeforeEach
     public void setUp() {
         // Change code to run synchronously, but with a timeout in case something's gone horribly wrong
         originalAsyncMethod = TransactionManagers.runAsync;
@@ -206,7 +206,7 @@ public class TransactionManagersTest {
                 .build();
     }
 
-    @After
+    @AfterEach
     public void restoreAsyncExecution() {
         TransactionManagers.runAsync = originalAsyncMethod;
     }

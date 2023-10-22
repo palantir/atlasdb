@@ -62,11 +62,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.rules.TemporaryFolder;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -83,14 +83,14 @@ public abstract class TransactionTestSetup {
 
     private static PersistentStore persistentStore;
 
-    @BeforeClass
+    @BeforeAll
     public static void storageSetUp() throws IOException, RocksDBException {
         File storageDirectory = PERSISTENT_STORAGE_FOLDER.newFolder();
         RocksDB rocksDb = RocksDB.open(storageDirectory.getAbsolutePath());
         persistentStore = new RocksDbPersistentStore(rocksDb, storageDirectory);
     }
 
-    @AfterClass
+    @AfterAll
     public static void storageTearDown() throws Exception {
         persistentStore.close();
     }
@@ -132,7 +132,7 @@ public abstract class TransactionTestSetup {
         this.tmManager = tmManager;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         timestampCache = ComparingTimestampCache.comparingOffHeapForTests(metricsManager, persistentStore);
 

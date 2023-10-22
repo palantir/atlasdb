@@ -22,7 +22,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MetricNameUtilsTest {
     private static final String TAG_KEY_1 = "tag1";

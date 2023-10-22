@@ -36,13 +36,16 @@ import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.NotFoundException;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.thrift.TException;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public final class CassandraNamespaceDeleterTest {
     private static final String KEYSPACE = "nonreservedkeyspace";
     private static final ImmutableCqlQuery DROP_KEYSPACE_QUERY = CqlQuery.builder()
@@ -56,7 +59,7 @@ public final class CassandraNamespaceDeleterTest {
 
     private NamespaceDeleter namespaceDeleter;
 
-    @Before
+    @BeforeEach
     public void before() {
         namespaceDeleter = new CassandraNamespaceDeleter(getConfig(), () -> cassandraClient);
     }

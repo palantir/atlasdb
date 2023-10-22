@@ -59,10 +59,10 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BooleanSupplier;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public abstract class AbstractBackgroundSweeperIntegrationTest {
     static final TableReference TABLE_1 = TableReference.createFromFullyQualifiedName("foo.bar");
@@ -87,7 +87,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     @ClassRule
     public static InMemoryTimeLockRule services = new InMemoryTimeLockRule();
 
-    @Before
+    @BeforeEach
     public void setup() {
         kvs = SweepStatsKeyValueService.create(
                 getKeyValueService(),
@@ -134,7 +134,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         when(txSchemaManager.getTransactionsSchemaVersion(anyLong())).thenReturn(1);
     }
 
-    @After
+    @AfterEach
     public void closeTransactionManager() {
         txManager.close();
     }

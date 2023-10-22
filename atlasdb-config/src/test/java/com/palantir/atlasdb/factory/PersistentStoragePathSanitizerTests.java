@@ -22,18 +22,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.io.File;
 import java.io.IOException;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public final class PersistentStoragePathSanitizerTests {
-    @Rule
-    public TemporaryFolder testFolder = new TemporaryFolder();
+    @TempDir
+    public File testFolder ;
 
     private String testFolderPath;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         testFolderPath = testFolder.getRoot().getAbsolutePath();
     }

@@ -54,13 +54,16 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class LockLeaseServiceTest {
     @Mock
     private NamespacedConjureTimelockService timelock;
@@ -85,7 +88,7 @@ public class LockLeaseServiceTest {
     private AtomicLong currentTime = new AtomicLong(123);
     private Supplier<NanoTime> time = Suppliers.compose(NanoTime::createForTests, currentTime::incrementAndGet);
 
-    @Before
+    @BeforeEach
     public void before() {
         when(lockRequest.getAcquireTimeoutMs()).thenReturn(10L);
         when(timelock.leaderTime()).thenAnswer(inv -> LeaderTime.of(LEADER_ID, time.get()));

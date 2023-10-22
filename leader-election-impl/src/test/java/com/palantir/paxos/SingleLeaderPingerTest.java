@@ -29,14 +29,17 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class SingleLeaderPingerTest {
 
     private static final UUID LOCAL_UUID = UUID.randomUUID();
@@ -52,12 +55,12 @@ public class SingleLeaderPingerTest {
     @Mock
     private GreenNodeLeadershipPrioritiser greenNodeLeadershipPrioritiser;
 
-    @Before
+    @BeforeEach
     public void setup() {
         when(greenNodeLeadershipPrioritiser.shouldGreeningNodeBecomeLeader()).thenReturn(true);
     }
 
-    @After
+    @AfterEach
     public void after() {
         executorService.shutdown();
     }

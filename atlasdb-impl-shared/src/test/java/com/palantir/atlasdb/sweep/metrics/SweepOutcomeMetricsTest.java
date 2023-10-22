@@ -29,8 +29,8 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.TimelockService;
 import java.util.Arrays;
 import java.util.stream.IntStream;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class SweepOutcomeMetricsTest {
     private MetricsManager metricsManager;
@@ -38,7 +38,7 @@ public class SweepOutcomeMetricsTest {
     private SweepOutcomeMetrics legacyMetrics;
     private TargetedSweepMetrics targetedSweepMetrics;
 
-    @Before
+    @BeforeEach
     public void setup() {
         metricsManager = MetricsManagers.createAlwaysSafeAndFilteringForTests();
         legacyMetrics = SweepOutcomeMetrics.registerLegacy(metricsManager);

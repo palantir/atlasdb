@@ -58,9 +58,9 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timestamp.ManagedTimestampService;
 import java.util.Map;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 public class KeyValueServiceMigratorsTest {
@@ -94,7 +94,7 @@ public class KeyValueServiceMigratorsTest {
     private TransactionManager toTxManager;
     private ImmutableMigratorSpec migratorSpec;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         fromServices = createMock(spy(new InMemoryKeyValueService(false)), fromTimeLock);
         toServices = createMock(spy(new InMemoryKeyValueService(false)), toTimeLock);

@@ -24,12 +24,12 @@ import com.palantir.paxos.ImmutableNamespaceAndUseCase;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
+import java.io.File;
 import java.util.UUID;
 import javax.sql.DataSource;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class SqliteNamespaceLoaderTest {
     private static final Client NAMESPACE_1 = Client.of("eins");
@@ -40,13 +40,13 @@ public class SqliteNamespaceLoaderTest {
     private static final PaxosValue PAXOS_VALUE =
             new PaxosValue(UUID.randomUUID().toString(), 1, PtBytes.toBytes("a"));
 
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @TempDir
+    public File tempFolder ;
 
     private DataSource dataSource;
     private PersistentNamespaceLoader namespaceLoader;
 
-    @Before
+    @BeforeEach
     public void setup() {
         dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(
                 tempFolder.getRoot().toPath());

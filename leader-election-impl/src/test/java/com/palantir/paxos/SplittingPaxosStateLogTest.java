@@ -27,24 +27,24 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.sql.DataSource;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class SplittingPaxosStateLogTest {
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @TempDir
+    public File tempFolder ;
 
     private PaxosStateLog<PaxosValue> legacyLog;
     private PaxosStateLog<PaxosValue> currentLog;
     private AtomicInteger writeMetric = new AtomicInteger(0);
     private AtomicInteger readMetric = new AtomicInteger(0);
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         DataSource legacy = SqliteConnections.getDefaultConfiguredPooledDataSource(
                 tempFolder.newFolder("legacy").toPath());

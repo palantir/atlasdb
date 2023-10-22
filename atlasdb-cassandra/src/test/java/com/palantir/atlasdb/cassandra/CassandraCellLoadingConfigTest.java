@@ -19,7 +19,7 @@ package com.palantir.atlasdb.cassandra;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("ResultOfMethodCallIgnored") // We are concerned that there are no exceptions
 public class CassandraCellLoadingConfigTest {

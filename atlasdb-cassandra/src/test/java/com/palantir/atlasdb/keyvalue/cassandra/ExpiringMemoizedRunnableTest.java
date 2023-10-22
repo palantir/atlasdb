@@ -22,7 +22,7 @@ import static org.mockito.Mockito.verify;
 
 import com.google.common.util.concurrent.Uninterruptibles;
 import java.time.Duration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ExpiringMemoizedRunnableTest {
     @Test

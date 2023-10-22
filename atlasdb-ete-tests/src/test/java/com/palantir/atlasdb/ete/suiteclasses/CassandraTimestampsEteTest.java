@@ -34,9 +34,9 @@ import java.util.function.BooleanSupplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class CassandraTimestampsEteTest {
     private static final Todo TODO = ImmutableTodo.of("todo");
@@ -47,12 +47,12 @@ public class CassandraTimestampsEteTest {
 
     private TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
 
-    @Before
+    @BeforeEach
     public void setup() {
         todoClient.truncate();
     }
 
-    @After
+    @AfterEach
     public void cleanup() {
         todoClient.truncate();
     }

@@ -26,10 +26,10 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class OverflowSequenceSupplierEteTest {
     @ClassRule
@@ -41,12 +41,12 @@ public class OverflowSequenceSupplierEteTest {
     private static final int OVERFLOW_IDS_PER_THREAD = 1020;
     private ConnectionSupplier connectionSupplier;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         connectionSupplier = DbKvsOracleTestSuite.getConnectionSupplier(TRM.getDefaultKvs());
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         connectionSupplier.close();
     }

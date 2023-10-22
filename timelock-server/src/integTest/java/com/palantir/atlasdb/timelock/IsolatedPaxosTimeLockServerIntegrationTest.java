@@ -29,9 +29,9 @@ import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.util.Optional;
-import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.RuleChain;
 
 /**
@@ -58,7 +58,7 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
 
     private NamespacedClients namespace;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         namespace = CLUSTER.clientForRandomNamespace();
     }

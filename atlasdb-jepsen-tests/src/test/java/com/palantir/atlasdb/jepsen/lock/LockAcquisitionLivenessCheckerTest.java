@@ -23,7 +23,7 @@ import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.jepsen.CheckerResult;
 import com.palantir.atlasdb.jepsen.events.Event;
 import com.palantir.atlasdb.jepsen.utils.TestEventUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class LockAcquisitionLivenessCheckerTest {
     private static final long TIME = 3000L;

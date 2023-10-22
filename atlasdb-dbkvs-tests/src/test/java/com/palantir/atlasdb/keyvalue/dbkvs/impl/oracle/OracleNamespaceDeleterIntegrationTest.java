@@ -57,10 +57,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public final class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetup {
 
@@ -92,7 +92,7 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
         super(TRM, TRM);
     }
 
-    @Before
+    @BeforeEach
     public void before() {
         NamespaceDeleterFactory factory = new DbKvsNamespaceDeleterFactory();
         dbKeyValueServiceConfig = DbKvsOracleTestSuite.getKvsConfig();
@@ -131,7 +131,7 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
         timestampTableName = oracleDdlConfig.tablePrefix() + AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName();
     }
 
-    @After
+    @AfterEach
     public void after() throws IOException, SQLException {
         namespaceDeleter.deleteAllDataFromNamespace();
         namespaceDeleterWithNonDefaultPrefix.deleteAllDataFromNamespace();

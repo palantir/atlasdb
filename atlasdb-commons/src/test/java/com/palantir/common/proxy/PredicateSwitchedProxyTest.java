@@ -23,7 +23,7 @@ import static org.mockito.Mockito.withSettings;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.IntConsumer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.MockMakers;
 import org.mockito.MockSettings;
 

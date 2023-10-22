@@ -35,6 +35,7 @@ import com.palantir.paxos.SqliteConnections;
 import com.palantir.paxos.SqlitePaxosStateLog;
 import com.palantir.paxos.Versionable;
 import com.palantir.sls.versions.OrderableSlsVersion;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -43,9 +44,8 @@ import java.util.UUID;
 import javax.sql.DataSource;
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -69,8 +69,8 @@ public class PaxosStateLogMigrationIntegrationTest {
     private DataSource sqlite;
     private PaxosStateLog<PaxosValue> fileBasedLearnerLog;
 
-    @Rule
-    public final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
+    @TempDir
+    public File TEMPORARY_FOLDER ;
 
     @Before
     public void setUp() throws IOException {

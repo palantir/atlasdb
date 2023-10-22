@@ -27,7 +27,7 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.AbstractTargetedSweepTest;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CassandraTargetedSweepIntegrationTest extends AbstractTargetedSweepTest {
     @ClassRule

@@ -19,7 +19,7 @@ package com.palantir.exception;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.logsafe.SafeArg;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class NotInitializedExceptionTest {
     @Test

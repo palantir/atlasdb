@@ -30,8 +30,8 @@ import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.concurrent.Callable;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class TestSingleBackendCommand {
 
@@ -81,7 +81,7 @@ public class TestSingleBackendCommand {
         }
     }
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() throws URISyntaxException {
         simpleConfigFile = AbstractTestRunner.getResourcePath(InMemoryTestRunner.CONFIG_LOCATION);
         nestedConfigFile = Paths.get(TestSingleBackendCommand.class

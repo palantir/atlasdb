@@ -47,9 +47,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Supplier;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class AwaitingLeadershipProxyTest {
     private static final String TEST_MESSAGE = "test_message";
@@ -63,7 +63,7 @@ public class AwaitingLeadershipProxyTest {
     @Rule
     public final RenderTracingRule rule = new RenderTracingRule();
 
-    @Before
+    @BeforeEach
     public void before() throws InterruptedException {
         when(leaderElectionService.blockOnBecomingLeader()).thenReturn(leadershipToken);
         when(leaderElectionService.getCurrentTokenIfLeading()).thenReturn(Optional.empty());

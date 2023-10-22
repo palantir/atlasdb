@@ -28,7 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 public final class CacheStoreImplTest {

@@ -30,8 +30,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.MockMakers;
 import org.mockito.MockSettings;
 
@@ -57,7 +57,7 @@ public class ExperimentRunningProxyTest {
             clock,
             errorCounter::incrementAndGet));
 
-    @Before
+    @BeforeEach
     public void setup() {
         when(experimentSupplier.get()).thenReturn(experimentalIntSupplier);
         returnValueOnExperiment();

@@ -18,9 +18,9 @@ package com.palantir.flake;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 @ShouldRetry(numAttempts = 2)
 public class BeforeClassFlakeTest {
@@ -29,7 +29,7 @@ public class BeforeClassFlakeTest {
     @ClassRule
     public static final FlakeRetryingRule flakeRetryingRule = new FlakeRetryingRule();
 
-    @BeforeClass
+    @BeforeAll
     public static void secondTimePassingSetup() {
         boolean value = succeed.getAndSet(true);
         if (!value) {

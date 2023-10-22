@@ -69,10 +69,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -124,7 +124,7 @@ public final class LockWatchValueIntegrationTest {
 
     private TransactionManager txnManager;
 
-    @Before
+    @BeforeEach
     public void before() {
         createTransactionManager(0.0);
         LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager, TABLE_REF);

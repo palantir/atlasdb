@@ -40,11 +40,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.Mockito;
 
 public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
@@ -58,7 +60,7 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         super(kvsManager, tmManager);
     }
 
-    @Before
+    @BeforeEach
     @Override
     public void setup() {
         super.setup();
@@ -68,7 +70,8 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         sweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, cellsSweeper);
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepStrategyNothing() {
         createTable(SweepStrategy.NOTHING);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -89,7 +92,8 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(50L, 75L, 100L, 125L, 150L);
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepBatchesDownToDeleteBatchSize() {
         CellsSweeper cellsSweeper = Mockito.mock(CellsSweeper.class);
         SweepTaskRunner spiedSweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, cellsSweeper);
@@ -104,7 +108,8 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         assertThat(Iterables.concat(sweptCells)).containsExactlyElementsOf(SMALL_LIST_OF_CELLS);
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepBatchesUpToDeleteBatchSize() {
         CellsSweeper cellsSweeper = Mockito.mock(CellsSweeper.class);
         SweepTaskRunner spiedSweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, cellsSweeper);
@@ -119,7 +124,8 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         assertThat(sweptCells.get(0)).containsExactlyElementsOf(SMALL_LIST_OF_CELLS);
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepBatches() {
         CellsSweeper cellsSweeper = Mockito.mock(CellsSweeper.class);
         SweepTaskRunner spiedSweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, cellsSweeper);
@@ -145,7 +151,8 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
                 .isEqualTo(2L * BIG_LIST_OF_CELLS.size());
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepBatchesInDifferentRows() {
         CellsSweeper cellsSweeper = Mockito.mock(CellsSweeper.class);
         SweepTaskRunner spiedSweepRunner = new SweepTaskRunner(kvs, tsSupplier, tsSupplier, txService, cellsSweeper);
@@ -171,7 +178,8 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
                 .isEqualTo(2L * BIG_LIST_OF_CELLS_IN_DIFFERENT_ROWS.size());
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepUncommittedConservative() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -183,7 +191,8 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(50L);
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepManyValuesThorough() {
         createTable(SweepStrategy.THOROUGH);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -199,7 +208,8 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(125L);
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepManyValuesIncludingUncommittedConservative() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -215,7 +225,8 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(-1L, 125L);
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepUncommittedThorough() {
         createTable(SweepStrategy.THOROUGH);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -227,7 +238,8 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(50L);
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweeperFailsHalfwayThroughOnDeleteTable() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -250,7 +262,8 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         assertThat(results).isEqualTo(SweepResults.createEmptySweepResult(Optional.empty()));
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepManyLatestDeletedThoroughIncludingUncommitted1() {
         createTable(SweepStrategy.THOROUGH);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -276,7 +289,8 @@ public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
         assertThat(getAllTsFromDefaultColumn("foo")).isEmpty();
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepManyLatestDeletedThoroughIncludingUncommitted2() {
         createTable(SweepStrategy.THOROUGH);
         putIntoDefaultColumn("foo", "bar", 50);

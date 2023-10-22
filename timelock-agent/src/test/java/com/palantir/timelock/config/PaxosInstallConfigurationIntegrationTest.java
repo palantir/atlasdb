@@ -21,19 +21,18 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
 import java.io.IOException;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class PaxosInstallConfigurationIntegrationTest {
-    @Rule
-    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+    @TempDir
+    public File temporaryFolder ;
 
     private File nonexistentFileDirectory;
     private File nonexistentSqliteDirectory;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         nonexistentFileDirectory =
                 temporaryFolder.getRoot().toPath().resolve("file").toFile();

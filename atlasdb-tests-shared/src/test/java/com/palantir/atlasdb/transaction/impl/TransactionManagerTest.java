@@ -49,7 +49,7 @@ import com.palantir.timestamp.TimestampManagementService;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TransactionManagerTest extends TransactionTestSetup {
     @ClassRule

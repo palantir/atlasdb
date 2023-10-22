@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.time.Duration;
 import org.awaitility.Awaitility;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CassandraKeyValueServiceAsyncInitializationTest {
     @ClassRule

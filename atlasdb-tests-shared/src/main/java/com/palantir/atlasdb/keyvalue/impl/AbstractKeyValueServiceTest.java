@@ -81,9 +81,9 @@ import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import org.apache.commons.lang3.ArrayUtils;
 import org.assertj.core.data.MapEntry;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.xnio.ByteString;
 
 @SuppressWarnings("MustBeClosedChecker")
@@ -118,13 +118,13 @@ public abstract class AbstractKeyValueServiceTest {
         return true;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         keyValueService = keyValueServiceWrapper.apply(kvsManager.getDefaultKvs());
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         try {
             keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE));

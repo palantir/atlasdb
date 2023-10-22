@@ -27,7 +27,7 @@ import com.palantir.atlasdb.sweep.progress.SweepProgress;
 import java.util.Optional;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.data.Percentage;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 

@@ -59,9 +59,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 
 public class SnapshotTransactionManagerTest {
@@ -86,7 +86,7 @@ public class SnapshotTransactionManagerTest {
     private final TransactionKnowledgeComponents knowledge =
             TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry());
 
-    @Before
+    @BeforeEach
     public void setUp() {
         timestampService = services.getManagedTimestampService();
         snapshotTransactionManager = new SnapshotTransactionManager(

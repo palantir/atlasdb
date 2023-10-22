@@ -27,8 +27,8 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 
@@ -38,7 +38,7 @@ public class TransactionSchemaInstallerTest {
     private final Supplier<Optional<Integer>> versionToInstall = mock(Supplier.class);
     private final TransactionSchemaManager manager = mock(TransactionSchemaManager.class);
 
-    @After
+    @AfterEach
     public void verifyNoMoreInteractions() {
         Mockito.verifyNoMoreInteractions(versionToInstall, manager);
     }

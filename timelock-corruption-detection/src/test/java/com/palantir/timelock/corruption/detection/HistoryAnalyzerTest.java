@@ -24,7 +24,7 @@ import com.palantir.timelock.history.models.CompletePaxosHistoryForNamespaceAndU
 import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
 import java.util.List;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class HistoryAnalyzerTest {
     @Rule

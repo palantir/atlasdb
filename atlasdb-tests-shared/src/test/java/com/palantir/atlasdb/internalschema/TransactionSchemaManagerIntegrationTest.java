@@ -25,9 +25,9 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timestamp.ManagedTimestampService;
-import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TransactionSchemaManagerIntegrationTest {
     private static final long ONE_HUNDRED_MILLION = 100_000_000;
@@ -38,7 +38,7 @@ public class TransactionSchemaManagerIntegrationTest {
     @ClassRule
     public static InMemoryTimeLockRule services = new InMemoryTimeLockRule();
 
-    @Before
+    @BeforeEach
     public void setUp() {
         timestamps = services.getManagedTimestampService();
         manager = createTransactionSchemaManager();

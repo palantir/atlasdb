@@ -35,13 +35,16 @@ import com.palantir.tritium.metrics.registry.MetricName;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class TimelockNamespacesTest {
     private static final String CLIENT_A = "a-client";
     private static final String CLIENT_B = "b-client";
@@ -61,7 +64,7 @@ public class TimelockNamespacesTest {
             new MetricsManager(new MetricRegistry(), new DefaultTaggedMetricRegistry(), unused -> false);
     private TimelockNamespaces namespaces;
 
-    @Before
+    @BeforeEach
     public void before() {
         namespaces = new TimelockNamespaces(metricsManager, serviceFactory, maxNumberOfClientsSupplier);
         when(serviceFactory.apply(any())).thenReturn(mock(TimeLockServices.class));

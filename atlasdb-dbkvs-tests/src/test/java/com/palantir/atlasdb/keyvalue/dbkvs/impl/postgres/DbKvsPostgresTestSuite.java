@@ -33,8 +33,8 @@ import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.concurrent.Callable;
 import org.awaitility.Awaitility;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
@@ -70,7 +70,7 @@ public final class DbKvsPostgresTestSuite {
             .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
             .build();
 
-    @BeforeClass
+    @BeforeAll
     public static void waitUntilDbkvsIsUp() throws InterruptedException {
         Awaitility.await()
                 .atMost(Duration.ofMinutes(1))

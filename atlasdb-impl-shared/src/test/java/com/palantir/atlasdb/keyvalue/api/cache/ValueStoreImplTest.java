@@ -39,8 +39,8 @@ import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public final class ValueStoreImplTest {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("t.table");
@@ -66,7 +66,7 @@ public final class ValueStoreImplTest {
 
     private ValueStore valueStore;
 
-    @Before
+    @BeforeEach
     public void before() {
         valueStore = new ValueStoreImpl(ImmutableSet.of(TABLE, ROW_WATCHED_TABLE), 1_000, metrics);
     }

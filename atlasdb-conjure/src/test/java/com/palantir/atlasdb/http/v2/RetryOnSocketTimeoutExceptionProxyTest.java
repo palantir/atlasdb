@@ -23,13 +23,16 @@ import static org.mockito.Mockito.when;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.util.function.BinaryOperator;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class RetryOnSocketTimeoutExceptionProxyTest {
 
     @Mock
@@ -40,7 +43,7 @@ public class RetryOnSocketTimeoutExceptionProxyTest {
 
     private BinaryOperator<Integer> proxy;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         createProxy();
     }

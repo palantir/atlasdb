@@ -34,8 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ToplistDeltaFilteringTableLevelMetricsControllerTest {
     private final Clock mockClock = mock(Clock.class);
@@ -44,7 +44,7 @@ public class ToplistDeltaFilteringTableLevelMetricsControllerTest {
     private final ToplistDeltaFilteringTableLevelMetricsController controller =
             new ToplistDeltaFilteringTableLevelMetricsController(context, metricsManager, mockClock);
 
-    @Before
+    @BeforeEach
     public void setUpClock() {
         when(mockClock.getTick()).thenReturn(0L);
     }

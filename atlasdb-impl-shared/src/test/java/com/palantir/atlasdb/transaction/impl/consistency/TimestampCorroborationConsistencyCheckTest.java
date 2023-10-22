@@ -22,7 +22,7 @@ import com.palantir.atlasdb.factory.ImmutableTransactionManagerConsistencyResult
 import com.palantir.atlasdb.factory.TransactionManagerConsistencyResult;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import java.util.function.ToLongFunction;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TimestampCorroborationConsistencyCheckTest {
     private static final RuntimeException EXCEPTION = new IllegalStateException("bad");

@@ -18,13 +18,13 @@ package com.palantir.atlasdb.timestamp;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.timestamp.TimestampBoundStore;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public abstract class AbstractDbTimestampBoundStoreTest {
     protected TimestampBoundStore store;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         store = createTimestampBoundStore();
     }

@@ -64,7 +64,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import org.awaitility.Awaitility;
-import org.junit.After;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
 
@@ -169,7 +169,7 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     }
 
     @Override
-    @After
+    @AfterEach
     public void after() {
         close();
     }

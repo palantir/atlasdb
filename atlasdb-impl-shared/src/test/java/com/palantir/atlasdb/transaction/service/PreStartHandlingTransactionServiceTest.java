@@ -33,9 +33,9 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Map;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class PreStartHandlingTransactionServiceTest {
     private final TransactionService delegate = mock(TransactionService.class);
@@ -55,7 +55,7 @@ public class PreStartHandlingTransactionServiceTest {
     private static final ImmutableList<Long> TWO_INVALID_TIMESTAMPS =
             ImmutableList.of(ZERO_TIMESTAMP, NEGATIVE_TIMESTAMP);
 
-    @Before
+    @BeforeEach
     public void setUpMocks() {
         when(delegate.get(START_TIMESTAMP)).thenReturn(COMMIT_TIMESTAMP);
         when(delegate.get(UNCOMMITTED_START_TIMESTAMP)).thenReturn(null);
@@ -64,7 +64,7 @@ public class PreStartHandlingTransactionServiceTest {
                 .thenReturn(ImmutableMap.of(START_TIMESTAMP, COMMIT_TIMESTAMP));
     }
 
-    @After
+    @AfterEach
     public void verifyMocks() {
         verifyNoMoreInteractions(delegate);
     }

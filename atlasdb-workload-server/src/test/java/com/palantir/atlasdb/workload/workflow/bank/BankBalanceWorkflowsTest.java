@@ -49,7 +49,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import one.util.streamex.EntryStream;
 import one.util.streamex.IntStreamEx;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class BankBalanceWorkflowsTest {
     private static final String TABLE_NAME = "bank.bank";

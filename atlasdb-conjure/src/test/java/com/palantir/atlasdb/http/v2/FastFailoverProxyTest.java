@@ -36,8 +36,8 @@ import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BinaryOperator;
 import java.util.function.LongConsumer;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("unchecked") // Mock usage
 public class FastFailoverProxyTest {
@@ -47,7 +47,7 @@ public class FastFailoverProxyTest {
 
     private BinaryOperator<Integer> proxy;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         setUpClock();
         createProxy();

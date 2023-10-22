@@ -41,14 +41,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public final class DurableWritesInvariantTest {
 
     private AtlasDbTransactionStore store;
 
-    @Before
+    @BeforeEach
     public void before() {
         store = AtlasDbTransactionStore.create(
                 TransactionManagers.createInMemory(Set.of()),

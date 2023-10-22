@@ -57,9 +57,9 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import javax.ws.rs.core.MediaType;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class AtlasDbDialogueServiceProviderTest {
     private static final SslConfiguration SSL_CONFIGURATION =
@@ -94,7 +94,7 @@ public class AtlasDbDialogueServiceProviderTest {
     public WireMockRule secondServer =
             new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
 
-    @Before
+    @BeforeEach
     public void setup() {
         setupServersToGiveOutTimestamps();
 

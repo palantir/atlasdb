@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongUnaryOperator;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CassandraMutationTimestampProvidersTest {
     private static final CassandraMutationTimestampProvider LEGACY_PROVIDER =

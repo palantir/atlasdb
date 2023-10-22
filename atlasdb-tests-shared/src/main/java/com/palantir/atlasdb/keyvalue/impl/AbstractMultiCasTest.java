@@ -28,9 +28,9 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class AbstractMultiCasTest {
     private static final byte[] ROW_1 = PtBytes.toBytes("row1");
@@ -49,13 +49,13 @@ public class AbstractMultiCasTest {
         this.kvsManager = kvsManager;
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
         kvs = kvsManager.getDefaultKvs();
         kvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
-    @After
+    @AfterEach
     public void cleanup() {
         kvs.truncateTable(TEST_TABLE);
     }

@@ -33,8 +33,8 @@ import com.palantir.lock.SingleLockService;
 import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class BackgroundCompactorTest {
     private static final String TABLE_STRING = "ns.table";
@@ -66,7 +66,7 @@ public class BackgroundCompactorTest {
             priorityCalculator);
     private final SingleLockService lockService = mock(SingleLockService.class);
 
-    @Before
+    @BeforeEach
     public void setUp() {
         when(lockService.haveLocks()).thenReturn(true);
         when(priorityCalculator.selectTableToCompact()).thenReturn(Optional.of(TABLE_STRING));

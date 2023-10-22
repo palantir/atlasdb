@@ -24,12 +24,15 @@ import java.security.SecureRandom;
 import java.util.Map;
 import java.util.Optional;
 import one.util.streamex.EntryStream;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public final class BankBalanceUtilsTest {
 
     private static final Map<Integer, Optional<Integer>> VALID_BALANCES = Map.of(0, Optional.of(1), 1, Optional.of(1));

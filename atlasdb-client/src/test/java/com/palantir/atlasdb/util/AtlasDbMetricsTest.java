@@ -38,8 +38,8 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 public final class AtlasDbMetricsTest {
 
@@ -72,7 +72,7 @@ public final class AtlasDbMetricsTest {
     private final AsyncTestService asyncTestService =
             () -> executorService.schedule(() -> "pong", ASYNC_DURATION_TTL.toMillis(), TimeUnit.MILLISECONDS);
 
-    @After
+    @AfterEach
     public void tearDown() {
         executorService.shutdown();
     }

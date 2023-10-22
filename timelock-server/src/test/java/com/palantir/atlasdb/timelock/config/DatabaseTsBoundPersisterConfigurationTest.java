@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.timelock.config.DatabaseTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.ImmutableDatabaseTsBoundPersisterConfiguration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class DatabaseTsBoundPersisterConfigurationTest {
     @Test

@@ -22,7 +22,7 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class DefaultTaskExecutorsTest {
     @Test

@@ -36,8 +36,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public abstract class AbstractGetCandidateCellsForSweepingTest {
     private final KvsManager kvsManager;
@@ -50,7 +50,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
         this.kvsManager = kvsManager;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         kvs = kvsManager.getDefaultKvs();
         kvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);

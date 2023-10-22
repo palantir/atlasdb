@@ -24,8 +24,8 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 public class KvsProfilingLoggerTest {
     private static final String LOG_TEMPLATE_1 = "The method {} was called.";
@@ -70,7 +70,7 @@ public class KvsProfilingLoggerTest {
         verify(logSink).log(LOG_TEMPLATE_1, ARG_1);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         verifyNoMoreInteractions(logSink);
     }

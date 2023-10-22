@@ -26,7 +26,7 @@ import com.palantir.timelock.corruption.detection.TimeLockCorruptionTestSetup.St
 import java.util.List;
 import java.util.stream.IntStream;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * This class performs integration tests by inducing and detecting corruption in one or more series.

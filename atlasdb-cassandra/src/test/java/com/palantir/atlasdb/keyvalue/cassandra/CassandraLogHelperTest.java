@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.cassandra.thrift.TokenRange;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CassandraLogHelperTest {
     private static final String TOKEN_1 = "i-am-a-token";

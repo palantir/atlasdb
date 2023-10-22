@@ -36,10 +36,10 @@ import java.io.InputStream;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ProfileStoreTest {
     private static final byte[] IMAGE = new byte[] {0, 1, 2, 3};
@@ -51,14 +51,14 @@ public class ProfileStoreTest {
 
     private TransactionManager txnMgr;
 
-    @Before
+    @BeforeEach
     public void before() {
         txnMgr = TransactionManagers.createInMemory(
                 ProfileSchema.INSTANCE.getLatestSchema(),
                 new InMemoryLockAndTimestampServiceFactory(inMemoryTimeLockRule.get()));
     }
 
-    @After
+    @AfterEach
     public void after() {
         txnMgr.close();
     }

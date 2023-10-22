@@ -29,8 +29,8 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import org.awaitility.Awaitility;
-import org.junit.AfterClass;
 import org.junit.ClassRule;
+import org.junit.jupiter.api.AfterAll;
 
 public abstract class NodesDownTestSetup {
     private static final int CASSANDRA_THRIFT_PORT = 9160;
@@ -44,7 +44,7 @@ public abstract class NodesDownTestSetup {
     public static final Containers CONTAINERS =
             new Containers(NodesDownTestSetup.class).with(new ThreeNodeCassandraCluster());
 
-    @AfterClass
+    @AfterAll
     public static void closeKvs() {
         AbstractDegradedClusterTest.closeAll();
     }

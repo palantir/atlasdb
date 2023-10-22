@@ -43,8 +43,8 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * TODO(fdesouza): Remove this once PDS-95791 is resolved.
@@ -72,7 +72,7 @@ public class TransactionPostMortemIntegrationTest extends AbstractAsyncTimelockS
     private LocalLockTracker lockTracker = new LocalLockTracker(LOCK_TRACKER_SIZE);
     private TransactionPostMortemRunner runner;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         AtlasDbRuntimeConfig runtimeConfig =
                 AtlasDbRuntimeConfig.withSweepDisabled().withTransaction(TRANSACTION_CONFIG);

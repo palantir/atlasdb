@@ -26,9 +26,9 @@ import com.palantir.atlasdb.todo.TodoResource;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
 import java.net.SocketTimeoutException;
-import org.junit.After;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TestRule;
 
 public class TodoEteTest {
@@ -39,7 +39,7 @@ public class TodoEteTest {
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();
 
-    @After
+    @AfterEach
     public void cleanupStreamTables() {
         todoClient.truncate();
     }

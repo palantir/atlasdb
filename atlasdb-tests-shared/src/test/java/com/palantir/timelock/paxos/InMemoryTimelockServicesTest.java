@@ -23,9 +23,9 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 import java.time.Duration;
 import org.awaitility.Awaitility;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class InMemoryTimelockServicesTest {
     @Rule
@@ -35,7 +35,7 @@ public class InMemoryTimelockServicesTest {
     private AsyncTimelockService timelockService;
     private TimelockService delegatingTimelockService;
 
-    @Before
+    @BeforeEach
     public void setup() {
         timestampService = inMemoryTimeLockRule.getTimestampService();
         timelockService = inMemoryTimeLockRule.getTimelockService();

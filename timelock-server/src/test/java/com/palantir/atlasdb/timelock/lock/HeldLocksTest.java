@@ -27,8 +27,8 @@ import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class HeldLocksTest {
 
@@ -43,7 +43,7 @@ public class HeldLocksTest {
 
     private HeldLocks heldLocks;
 
-    @Before
+    @BeforeEach
     public void before() {
         when(timer.isExpired()).thenReturn(false);
         lockA.lock(REQUEST_ID);

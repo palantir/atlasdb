@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ConflictHandlersTest {
     @Test

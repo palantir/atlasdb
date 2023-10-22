@@ -22,7 +22,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.workload.store.IsolationLevel;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class AtlasDbUtilsTest {
     @Test

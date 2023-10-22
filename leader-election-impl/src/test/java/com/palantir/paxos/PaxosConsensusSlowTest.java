@@ -22,9 +22,9 @@ import java.util.concurrent.CompletionService;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.TimeUnit;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class PaxosConsensusSlowTest {
 
@@ -35,12 +35,12 @@ public class PaxosConsensusSlowTest {
 
     private PaxosTestState state;
 
-    @Before
+    @BeforeEach
     public void setup() {
         state = PaxosConsensusTestUtils.setup(NUM_POTENTIAL_LEADERS, QUORUM_SIZE);
     }
 
-    @After
+    @AfterEach
     public void teardown() throws Exception {
         PaxosConsensusTestUtils.teardown(state);
     }

@@ -46,7 +46,7 @@ import org.apache.commons.pool2.impl.DefaultPooledObject;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.transport.TMemoryInputTransport;
 import org.apache.thrift.transport.TTransportException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CassandraClientFactoryTest {
 

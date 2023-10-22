@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.thrift.TException;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 
 public abstract class AbstractDegradedClusterTest {
     static final TableReference TEST_TABLE = TableReference.createWithEmptyNamespace("test_table");
@@ -59,7 +59,7 @@ public abstract class AbstractDegradedClusterTest {
 
     private String schemaAtStart;
 
-    @Before
+    @BeforeEach
     public void recordSchemaVersion() throws TException {
         schemaAtStart = getUniqueReachableSchemaVersionOrThrow();
     }

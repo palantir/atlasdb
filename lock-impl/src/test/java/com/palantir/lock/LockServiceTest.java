@@ -41,9 +41,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests for the Lock Server.
@@ -61,7 +61,7 @@ public abstract class LockServiceTest {
 
     protected abstract LockService getLockService();
 
-    @Before
+    @BeforeEach
     public void before() {
         new File("lock_server_timestamp.dat").delete();
         server = getLockService();
@@ -71,7 +71,7 @@ public abstract class LockServiceTest {
         barrier = new CyclicBarrier(2);
     }
 
-    @After
+    @AfterEach
     public void after() {
         executor.shutdownNow();
     }

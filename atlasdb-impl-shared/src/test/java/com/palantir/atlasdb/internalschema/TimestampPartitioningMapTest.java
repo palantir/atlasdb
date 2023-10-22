@@ -26,7 +26,7 @@ import com.google.common.collect.Range;
 import com.google.common.collect.TreeRangeSet;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TimestampPartitioningMapTest {
     private static final TimestampPartitioningMap<Integer> DEFAULT_INITIAL_MAPPING =

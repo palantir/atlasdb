@@ -27,7 +27,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("UnstableApiUsage") // RangeSet usage
 public class KnownConcludedTransactionsStoreTest {

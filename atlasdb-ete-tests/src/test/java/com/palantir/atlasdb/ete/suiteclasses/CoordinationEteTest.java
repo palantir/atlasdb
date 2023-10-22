@@ -20,8 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.coordination.CoordinationResource;
 import com.palantir.atlasdb.ete.utilities.EteSetup;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class CoordinationEteTest {
     private static final int VERSION_ONE = 1;
@@ -32,7 +32,7 @@ public class CoordinationEteTest {
 
     private long lowerBoundOnTimestamps;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         lowerBoundOnTimestamps = coordinationResource.resetStateAndGetFreshTimestamp();
     }

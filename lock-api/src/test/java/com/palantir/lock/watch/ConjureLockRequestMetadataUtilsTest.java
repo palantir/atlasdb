@@ -43,8 +43,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class ConjureLockRequestMetadataUtilsTest {
     private static final LockDescriptor LOCK_1 = StringLockDescriptor.of("lock1");
@@ -82,7 +82,7 @@ public class ConjureLockRequestMetadataUtilsTest {
 
     // This is a good candidate for a static construction method, but we would rather avoid testing internals of
     // IndexEncodingUtils (checksum computation) within the tests for Conjure conversion.
-    @BeforeClass
+    @BeforeAll
     public static void setup() {
         KeyListChecksum checksum =
                 IndexEncodingUtils.computeChecksum(ConjureLockRequestMetadataUtils.DEFAULT_CHECKSUM_TYPE, LOCK_LIST);

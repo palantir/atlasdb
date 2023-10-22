@@ -26,8 +26,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.timestamp.TimestampService;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class SweepStatsKeyValueServiceTest {
     private static final byte[] ROW = "row".getBytes(StandardCharsets.UTF_8);
@@ -38,7 +38,7 @@ public class SweepStatsKeyValueServiceTest {
 
     private SweepStatsKeyValueService kvs;
 
-    @Before
+    @BeforeEach
     public void before() {
         isSweepEnabled = new AtomicBoolean(true);
         TimestampService timestampService = mock(TimestampService.class);

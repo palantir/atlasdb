@@ -19,8 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.immutables.value.Value;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class LambdaCallbackTest {
     private static final RuntimeException INIT_FAIL = new RuntimeException("Failed during initialization.");
@@ -28,7 +28,7 @@ public class LambdaCallbackTest {
     private ModifiableInitsAndCleanups initsAndCleanups;
     private Callback<ModifiableInitsAndCleanups> callback;
 
-    @Before
+    @BeforeEach
     public void setup() {
         initsAndCleanups = InitsAndCleanups.createInitialized();
     }

@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.sql.Connection;
 import java.sql.SQLException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class HikariClientPoolConnectionManagerViewTest {
     private final HikariCPConnectionManager sharedManager = mock(HikariCPConnectionManager.class);

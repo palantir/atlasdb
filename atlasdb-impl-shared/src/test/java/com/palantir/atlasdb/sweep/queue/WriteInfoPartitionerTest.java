@@ -43,8 +43,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class WriteInfoPartitionerTest {
     private static final TableReference NOTHING = getTableRef("nothing");
@@ -61,7 +61,7 @@ public class WriteInfoPartitionerTest {
     private WriteInfoPartitioner partitioner;
     private int numShards = 128;
 
-    @Before
+    @BeforeEach
     public void setup() {
         partitioner = new WriteInfoPartitioner(mockKvs, () -> numShards);
         when(mockKvs.getMetadataForTable(any(TableReference.class))).thenAnswer(args -> {

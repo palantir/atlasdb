@@ -30,10 +30,10 @@ import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import java.util.List;
 import java.util.OptionalLong;
 import java.util.concurrent.ExecutorService;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class SweepPriorityStoreTest {
     private ExecutorService exec;
@@ -43,7 +43,7 @@ public class SweepPriorityStoreTest {
     @Rule
     public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
 
-    @Before
+    @BeforeEach
     public void setup() {
         exec = PTExecutors.newCachedThreadPool();
         KeyValueService kvs = new InMemoryKeyValueService(false, exec);
@@ -51,7 +51,7 @@ public class SweepPriorityStoreTest {
         priorityStore = SweepPriorityStoreImpl.create(kvs, SweepTableFactory.of(), false);
     }
 
-    @After
+    @AfterEach
     public void shutdownExec() {
         exec.shutdown();
     }

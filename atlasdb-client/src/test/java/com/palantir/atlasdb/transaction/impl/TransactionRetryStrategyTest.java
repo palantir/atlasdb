@@ -31,13 +31,16 @@ import com.palantir.atlasdb.transaction.impl.TransactionRetryStrategy.Retryable;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.IntPredicate;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class TransactionRetryStrategyTest {
     private final TestBlockStrategy blockStrategy = new TestBlockStrategy();
 
@@ -64,7 +67,7 @@ public class TransactionRetryStrategyTest {
         }
     }
 
-    @Before
+    @BeforeEach
     public void before() {
         when(random.nextInt(anyInt())).thenAnswer(inv -> (int) inv.getArgument(0) - 1);
         mockRetries(1);

@@ -29,9 +29,9 @@ import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
 import java.time.Duration;
 import org.awaitility.Awaitility;
-import org.junit.After;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TestRule;
 
 public class TargetedSweepEteTest {
@@ -51,7 +51,7 @@ public class TargetedSweepEteTest {
 
     private TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
 
-    @After
+    @AfterEach
     public void cleanupStreamTables() {
         todoClient.truncate();
     }

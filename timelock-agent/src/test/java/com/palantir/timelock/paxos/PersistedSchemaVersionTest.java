@@ -20,18 +20,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.paxos.SqliteConnections;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import java.io.File;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class PersistedSchemaVersionTest {
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @TempDir
+    public File tempFolder ;
 
     private PersistedSchemaVersion schemaVersion;
 
-    @Before
+    @BeforeEach
     public void setup() {
         schemaVersion = PersistedSchemaVersion.create(SqliteConnections.getDefaultConfiguredPooledDataSource(
                 tempFolder.getRoot().toPath()));

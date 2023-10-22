@@ -22,14 +22,14 @@ import com.palantir.util.MutuallyExclusiveSetLock.LockState;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class MutuallyExclusiveSetLockTest {
     /** True iff test threads should release all their resources. */
     volatile boolean unlock;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         unlock = false;
     }

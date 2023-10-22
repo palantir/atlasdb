@@ -37,7 +37,7 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransac
 import com.palantir.atlasdb.workload.util.AtlasDbUtils;
 import com.palantir.common.concurrent.PTExecutors;
 import java.util.Optional;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SingleRowTwoCellsWorkflowsTest {
     private static final String TABLE_NAME = "my.coffee";

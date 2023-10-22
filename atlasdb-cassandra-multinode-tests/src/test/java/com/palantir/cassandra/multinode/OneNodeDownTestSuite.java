@@ -18,7 +18,7 @@ package com.palantir.cassandra.multinode;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import java.util.Arrays;
-import org.junit.BeforeClass;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -33,7 +33,7 @@ import org.junit.runners.Suite;
 })
 public final class OneNodeDownTestSuite extends NodesDownTestSetup {
 
-    @BeforeClass
+    @BeforeAll
     public static void setup() throws Exception {
         initializeKvsAndDegradeCluster(
                 Arrays.asList(OneNodeDownTestSuite.class

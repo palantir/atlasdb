@@ -51,9 +51,9 @@ import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timestamp.TimestampService;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 public class AtlasDbTestCase {
     private static final String CLIENT = "fake lock client";
@@ -81,7 +81,7 @@ public class AtlasDbTestCase {
     @Rule
     public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule(CLIENT);
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         deleteExecutor = MoreExecutors.newDirectExecutorService();
         lockClient = LockClient.of(CLIENT);
@@ -133,7 +133,7 @@ public class AtlasDbTestCase {
         return AtlasDbMetrics.instrument(metricsManager.getRegistry(), KeyValueService.class, tracingKvs);
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         // JUnit keeps instantiated test cases in memory, so we need to null out
         // some fields to prevent OOMs.

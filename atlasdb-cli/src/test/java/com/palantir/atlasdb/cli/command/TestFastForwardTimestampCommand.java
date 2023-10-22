@@ -33,9 +33,9 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timelock.paxos.InMemoryTimeLockRule;
 import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import io.airlift.airline.Command;
-import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestFastForwardTimestampCommand {
     private static final String TIMESTAMP_GROUP = "timestamp";
@@ -51,7 +51,7 @@ public class TestFastForwardTimestampCommand {
     @ClassRule
     public static InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
 
-    @Before
+    @BeforeEach
     public void setUp() {
         moduleFactory = createModuleFactory(inMemoryTimeLockRule.get());
     }

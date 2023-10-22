@@ -28,7 +28,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.common.exception.PalantirRuntimeException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class NameMetadataDescriptionTest {
     private static final NameMetadataDescription SIMPLE_NAME_METADATA_DESCRIPTION =

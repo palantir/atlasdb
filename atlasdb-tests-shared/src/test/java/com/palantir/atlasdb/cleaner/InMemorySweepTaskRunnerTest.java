@@ -22,10 +22,12 @@ import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class InMemorySweepTaskRunnerTest extends AbstractSweepTaskRunnerTest {
     @ClassRule
@@ -36,7 +38,8 @@ public class InMemorySweepTaskRunnerTest extends AbstractSweepTaskRunnerTest {
     }
 
     // This test exists because doing this many writes to a real KVS will likely take too long for tests.
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepVeryHighlyVersionedCell() {
         createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
 

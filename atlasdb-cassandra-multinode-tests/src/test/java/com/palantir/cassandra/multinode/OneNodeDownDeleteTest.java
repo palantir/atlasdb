@@ -20,7 +20,7 @@ import com.google.common.collect.ImmutableMultimap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class OneNodeDownDeleteTest extends AbstractDegradedClusterTest {
 

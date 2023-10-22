@@ -18,7 +18,7 @@ package com.palantir.atlasdb.logging;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class KeyValueServiceLogArbitratorTest {
     private static final KeyValueServiceLogArbitrator ALL_UNSAFE = KeyValueServiceLogArbitrator.ALL_UNSAFE;

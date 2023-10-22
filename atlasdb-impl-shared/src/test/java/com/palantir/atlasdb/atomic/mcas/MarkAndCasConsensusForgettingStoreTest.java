@@ -44,7 +44,7 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MarkAndCasConsensusForgettingStoreTest {
     private static final byte[] SAD = PtBytes.toBytes("sad");

@@ -22,7 +22,7 @@ import com.palantir.flake.ShouldRetry;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class StringSupplierTest {
     private static final String TEST_STRING = "123";

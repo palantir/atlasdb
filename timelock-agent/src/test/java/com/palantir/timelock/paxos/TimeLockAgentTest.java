@@ -42,15 +42,14 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Optional;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class TimeLockAgentTest {
 
-    @Rule
-    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+    @TempDir
+    public File temporaryFolder ;
 
     private static final String SERVER_A = "horses-for-courses:1234";
     public static final String SERVER_B = "paddock-and-chips:2345";
@@ -67,7 +66,7 @@ public class TimeLockAgentTest {
     private File extantPaxosLogDirectory;
     private File extantSqliteLogDirectory;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         newPaxosLogDirectory = Paths.get(temporaryFolder.getRoot().toString(), "part-time-parliament")
                 .toFile();

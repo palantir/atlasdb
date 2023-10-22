@@ -37,7 +37,7 @@ import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.nio.ByteBuffer;
 import org.apache.commons.codec.binary.Hex;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class Transactions1TableInteractionTest {
     private static final FullyBoundedTimestampRange TXN1_RANGE = FullyBoundedTimestampRange.of(Range.closed(5L, 500L));

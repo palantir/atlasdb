@@ -28,14 +28,17 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import java.time.Duration;
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class TimeLockMigratorTest {
     private static final long BACKUP_TIMESTAMP = 42;
     private static final Exception EXCEPTION = new RuntimeException();
@@ -46,12 +49,12 @@ public class TimeLockMigratorTest {
     @Mock
     private TimestampManagementService timestampManagementService;
 
-    @Before
+    @BeforeEach
     public void before() {
         when(invalidator.backupAndInvalidate()).thenReturn(BACKUP_TIMESTAMP);
     }
 
-    @After
+    @AfterEach
     public void after() {
         verifyNoMoreInteractions(timestampManagementService);
         verifyNoMoreInteractions(invalidator);

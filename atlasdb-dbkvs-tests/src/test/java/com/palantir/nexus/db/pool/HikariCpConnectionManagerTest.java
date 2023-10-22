@@ -35,20 +35,20 @@ import java.sql.Statement;
 import java.time.Duration;
 import java.util.Random;
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class HikariCpConnectionManagerTest {
 
     private ConnectionManager manager;
 
-    @Before
+    @BeforeEach
     public void initConnectionManager() {
         manager = new HikariCPConnectionManager(createConnectionConfig(3));
     }
 
-    @After
+    @AfterEach
     public void closeConnectionManager() throws SQLException {
         manager.close();
     }

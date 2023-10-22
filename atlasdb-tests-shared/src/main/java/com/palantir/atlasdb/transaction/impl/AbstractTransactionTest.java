@@ -91,7 +91,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.junit.Assume;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("MustBeClosedChecker")
 public abstract class AbstractTransactionTest extends TransactionTestSetup {

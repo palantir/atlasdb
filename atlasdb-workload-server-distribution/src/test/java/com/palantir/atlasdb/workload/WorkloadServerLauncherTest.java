@@ -27,7 +27,7 @@ import io.dropwizard.testing.junit.DropwizardAppRule;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class WorkloadServerLauncherTest {
     @ClassRule

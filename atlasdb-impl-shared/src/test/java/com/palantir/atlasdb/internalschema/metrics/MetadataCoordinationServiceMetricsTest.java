@@ -37,8 +37,8 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.tritium.metrics.registry.MetricName;
 import java.util.Optional;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("unchecked") // Mocks
 public class MetadataCoordinationServiceMetricsTest {
@@ -57,7 +57,7 @@ public class MetadataCoordinationServiceMetricsTest {
             mock(CoordinationService.class);
     private final TimestampService timestampService = mock(TimestampService.class);
 
-    @Before
+    @BeforeEach
     public void setUp() {
         when(metadataCoordinationService.getLastKnownLocalValue())
                 .thenReturn(Optional.of(ValueAndBound.of(INTERNAL_SCHEMA_METADATA, TIMESTAMP_1)));

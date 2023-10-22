@@ -25,7 +25,7 @@ import com.palantir.lock.v2.IdentifiedTimeLockRequest;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class LockServerOptionsTest {
     private static final File LOCK_SERVER_OPTIONS_JSON = new File(IdentifiedTimeLockRequest.class

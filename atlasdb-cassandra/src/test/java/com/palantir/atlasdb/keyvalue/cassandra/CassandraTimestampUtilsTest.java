@@ -28,7 +28,7 @@ import java.util.List;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CassandraTimestampUtilsTest {
     private static final byte[] KEY_1 = {120};

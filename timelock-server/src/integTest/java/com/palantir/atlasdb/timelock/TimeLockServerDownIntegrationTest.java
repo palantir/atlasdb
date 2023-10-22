@@ -29,7 +29,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutionException;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.RuleChain;
 
 public class TimeLockServerDownIntegrationTest {

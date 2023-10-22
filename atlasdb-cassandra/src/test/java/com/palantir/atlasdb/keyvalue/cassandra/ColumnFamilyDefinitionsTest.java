@@ -23,7 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import org.apache.cassandra.thrift.CfDef;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ColumnFamilyDefinitionsTest {
     private static final int FOUR_DAYS_IN_SECONDS = 4 * 24 * 60 * 60;

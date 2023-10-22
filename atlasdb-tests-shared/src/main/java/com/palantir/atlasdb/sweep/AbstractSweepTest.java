@@ -46,9 +46,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.junit.Before;
+import java.util.concurrent.TimeUnit;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public abstract class AbstractSweepTest {
     protected static final String FULL_TABLE_NAME = "test_table.xyz_atlasdb_sweeper_test";
@@ -92,7 +94,7 @@ public abstract class AbstractSweepTest {
         return CacheWarming.FULL;
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
         kvs = kvsManager.getDefaultKvs();
         ssm = SweepStrategyManagers.create(kvs, getSsmCacheWarming());
@@ -109,7 +111,8 @@ public abstract class AbstractSweepTest {
         return manager;
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepOneConservative() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -126,7 +129,8 @@ public abstract class AbstractSweepTest {
         assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(-1L, 100L);
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testDontSweepLatestConservative() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -141,7 +145,8 @@ public abstract class AbstractSweepTest {
         assertEqualsDisregardingExtraSentinels(ImmutableSet.of(50L), getAllTsFromDefaultColumn("foo"));
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepManyValuesConservative() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -159,12 +164,14 @@ public abstract class AbstractSweepTest {
         assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(-1L, 125L);
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepManyRowsConservative() {
         testSweepManyRows(SweepStrategy.CONSERVATIVE);
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testDontSweepFutureConservative() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -183,7 +190,8 @@ public abstract class AbstractSweepTest {
         assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(-1L, 100L, 125L, 150L);
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepOneThorough() {
         createTable(SweepStrategy.THOROUGH);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -200,7 +208,8 @@ public abstract class AbstractSweepTest {
         assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(100L);
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testDontSweepLatestThorough() {
         createTable(SweepStrategy.THOROUGH);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -215,7 +224,8 @@ public abstract class AbstractSweepTest {
         assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(50L);
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepLatestDeletedMultiRowThorough() {
         createTable(SweepStrategy.THOROUGH);
         putIntoDefaultColumn("foo", "", 50);
@@ -231,7 +241,8 @@ public abstract class AbstractSweepTest {
         assertThat(getAllTsFromDefaultColumn("foo")).isEmpty();
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepLatestDeletedMultiColThorough() {
         createTable(SweepStrategy.THOROUGH);
         put("foo", "other column", "other value", 40);
@@ -252,7 +263,8 @@ public abstract class AbstractSweepTest {
         assertThat(getAllTs("foo", "other column")).containsExactlyInAnyOrder(40L);
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepLatestDeletedMultiValConservative() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("foo", "old value", 40);
@@ -268,7 +280,8 @@ public abstract class AbstractSweepTest {
         assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(-1L, 50L);
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepLatestNotDeletedMultiValThorough() {
         createTable(SweepStrategy.THOROUGH);
         putIntoDefaultColumn("foo", "old value", 40);
@@ -284,7 +297,8 @@ public abstract class AbstractSweepTest {
         assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(50L);
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepLatestDeletedMultiValThorough() {
         createTable(SweepStrategy.THOROUGH);
         putIntoDefaultColumn("foo", "old value", 40);
@@ -307,7 +321,8 @@ public abstract class AbstractSweepTest {
         });
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepLatestDeletedThorough() {
         createTable(SweepStrategy.THOROUGH);
         putIntoDefaultColumn("foo", "", 50);
@@ -322,12 +337,14 @@ public abstract class AbstractSweepTest {
         assertThat(getAllTsFromDefaultColumn("foo")).isEmpty();
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepManyRowsThorough() {
         testSweepManyRows(SweepStrategy.THOROUGH);
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepManyLatestDeletedThorough1() {
         createTable(SweepStrategy.THOROUGH);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -345,7 +362,8 @@ public abstract class AbstractSweepTest {
         assertThat(getAllTsFromDefaultColumn("foo")).isEmpty();
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepManyLatestDeletedThorough2() {
         createTable(SweepStrategy.THOROUGH);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -362,7 +380,8 @@ public abstract class AbstractSweepTest {
         assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(125L);
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testDontSweepFutureThorough() {
         createTable(SweepStrategy.THOROUGH);
         putIntoDefaultColumn("foo", "bar", 50);
@@ -381,7 +400,8 @@ public abstract class AbstractSweepTest {
         assertThat(getAllTsFromDefaultColumn("foo")).containsExactlyInAnyOrder(100L, 125L, 150L);
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepingAlreadySweptTable() {
         createTable(SweepStrategy.CONSERVATIVE);
         putIntoDefaultColumn("row", "val", 10);
@@ -400,7 +420,8 @@ public abstract class AbstractSweepTest {
         });
     }
 
-    @Test(timeout = 50000)
+    @Test
+@Timeout(value = 50000L, unit = TimeUnit.MILLISECONDS)
     public void testSweepOnMixedCaseTable() {
         TableReference mixedCaseTable = TableReference.create(Namespace.create("someNamespace"), "someTable");
         createTable(mixedCaseTable, SweepStrategy.CONSERVATIVE);

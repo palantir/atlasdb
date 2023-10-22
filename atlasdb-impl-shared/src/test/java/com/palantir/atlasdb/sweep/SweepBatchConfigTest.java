@@ -18,7 +18,7 @@ package com.palantir.atlasdb.sweep;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("CheckReturnValue")
 public class SweepBatchConfigTest {

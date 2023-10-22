@@ -29,7 +29,7 @@ import com.palantir.flake.ShouldRetry;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class KeyValueServiceDataTrackerTest {
     private static final TableReference TABLE_1 = TableReference.createWithEmptyNamespace("Table1");

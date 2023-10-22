@@ -30,8 +30,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing.Caching
 import com.palantir.atlasdb.keyvalue.cassandra.async.statement.preparing.StatementPreparer;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class CachingStatementPreparerTest {
 
@@ -43,7 +43,7 @@ public class CachingStatementPreparerTest {
 
     private CachingStatementPreparer cache;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         cache = CachingStatementPreparer.create(STATEMENT_PREPARER, METRICS_MANAGER.getTaggedRegistry(), 100);
     }

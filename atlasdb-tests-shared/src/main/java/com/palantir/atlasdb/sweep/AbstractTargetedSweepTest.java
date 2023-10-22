@@ -38,8 +38,8 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.TimelockService;
 import java.util.Optional;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class AbstractTargetedSweepTest extends AbstractSweepTest {
     protected static final TableReference TABLE_TO_BE_DROPPED = TableReference.createFromFullyQualifiedName("ts.drop");
@@ -53,7 +53,7 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
         super(kvsManager, tmManager);
     }
 
-    @Before
+    @BeforeEach
     @Override
     public void setup() {
         super.setup();

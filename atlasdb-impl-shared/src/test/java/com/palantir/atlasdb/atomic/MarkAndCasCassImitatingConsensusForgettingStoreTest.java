@@ -24,7 +24,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import java.util.Optional;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MarkAndCasCassImitatingConsensusForgettingStoreTest {
     private static final Cell CELL = Cell.create(new byte[] {1}, new byte[] {0});

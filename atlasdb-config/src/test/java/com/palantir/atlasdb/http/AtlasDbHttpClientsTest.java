@@ -62,9 +62,9 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class AtlasDbHttpClientsTest {
 
@@ -137,7 +137,7 @@ public class AtlasDbHttpClientsTest {
         boolean postRequest(byte[] content);
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
         setupAvailableServer(Integer.toString(TEST_NUMBER_1), availableServer1);
         setupAvailableServer(Integer.toString(TEST_NUMBER_2), availableServer2);

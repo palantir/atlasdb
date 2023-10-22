@@ -26,9 +26,9 @@ import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import com.google.common.collect.ImmutableSet;
 import java.io.File;
 import java.io.IOException;
-import org.junit.BeforeClass;
 import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class ClusterConfigurationDeserializationTest {
     private static final String LOCAL_SERVER = "https://server-2:8421";
@@ -44,7 +44,7 @@ public class ClusterConfigurationDeserializationTest {
                     .disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER))
             .registerModule(new GuavaModule());
 
-    @BeforeClass
+    @BeforeAll
     public static void setUp() {
         OBJECT_MAPPER.registerSubtypes(DefaultClusterConfiguration.class);
     }

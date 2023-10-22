@@ -24,7 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TransactionSchemaVersionEnforcementTest {
     private final KeyValueService keyValueService = new InMemoryKeyValueService(true);

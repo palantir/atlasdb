@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.palantir.atlasdb.persist.api.Persister;
 import com.palantir.atlasdb.persister.JacksonPersister;
 import java.util.Map;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TableMetadataDeserializerTest {
     private final TableMetadataDeserializer deserializer = new TableMetadataDeserializer();

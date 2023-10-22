@@ -25,7 +25,7 @@ import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
 import com.palantir.atlasdb.util.MetricsManagers;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends AbstractSweepTaskRunnerTest {
     @ClassRule

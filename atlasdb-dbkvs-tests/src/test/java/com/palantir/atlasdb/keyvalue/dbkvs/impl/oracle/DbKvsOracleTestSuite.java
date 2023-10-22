@@ -37,8 +37,8 @@ import java.sql.Connection;
 import java.time.Duration;
 import java.util.concurrent.Callable;
 import org.awaitility.Awaitility;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
@@ -72,7 +72,7 @@ public final class DbKvsOracleTestSuite {
             .saveLogsTo("container-logs")
             .build();
 
-    @BeforeClass
+    @BeforeAll
     public static void waitUntilDbKvsIsUp() {
         Awaitility.await()
                 .atMost(Duration.ofMinutes(5))

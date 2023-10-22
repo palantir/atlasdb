@@ -63,8 +63,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public final class AtlasDbTransactionStoreTest {
 
@@ -75,7 +75,7 @@ public final class AtlasDbTransactionStoreTest {
 
     private AtlasDbTransactionStore store;
 
-    @Before
+    @BeforeEach
     public void before() {
         manager = TransactionManagers.createInMemory(Set.of());
         store = AtlasDbTransactionStore.create(manager, TABLES_TO_ATLAS_METADATA);

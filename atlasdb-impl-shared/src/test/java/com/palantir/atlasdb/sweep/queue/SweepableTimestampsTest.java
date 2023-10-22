@@ -25,14 +25,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.sweep.Sweeper;
 import java.util.Optional;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class SweepableTimestampsTest extends AbstractSweepQueueTest {
     private ShardProgress progress;
     private SweepableTimestamps sweepableTimestamps;
 
-    @Before
+    @BeforeEach
     @Override
     public void setup() {
         super.setup();

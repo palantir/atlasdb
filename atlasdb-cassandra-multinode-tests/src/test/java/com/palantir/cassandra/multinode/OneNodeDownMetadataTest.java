@@ -21,7 +21,7 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class OneNodeDownMetadataTest extends AbstractDegradedClusterTest {
     private static final TableReference TEST_TABLE_2 = TableReference.createWithEmptyNamespace("test_table_2");

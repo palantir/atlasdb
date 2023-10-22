@@ -24,12 +24,12 @@ import static org.mockito.Mockito.verify;
 import com.palantir.flake.FlakeRetryingRule;
 import com.palantir.flake.ShouldRetry;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.TestRule;
 
 public class BeforeAndAfterTest {
@@ -44,22 +44,22 @@ public class BeforeAndAfterTest {
     @Rule
     public final TestRule flakeRetryingRule = new FlakeRetryingRule();
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpClass() {
         beforeClassRunnable.run();
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         beforeRunnable.run();
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         afterRunnable.run();
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDownClass() {
         afterClassRunnable.run();
     }

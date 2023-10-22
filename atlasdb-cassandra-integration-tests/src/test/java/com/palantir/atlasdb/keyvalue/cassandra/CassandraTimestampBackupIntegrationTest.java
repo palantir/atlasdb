@@ -26,9 +26,9 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.flake.ShouldRetry;
 import com.palantir.timestamp.TimestampBoundStore;
 import java.util.concurrent.ThreadLocalRandom;
-import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 @ShouldRetry
 public class CassandraTimestampBackupIntegrationTest {
@@ -44,7 +44,7 @@ public class CassandraTimestampBackupIntegrationTest {
     private final TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv);
     private final CassandraTimestampBackupRunner backupRunner = new CassandraTimestampBackupRunner(kv);
 
-    @Before
+    @BeforeEach
     public void setUp() {
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
         backupRunner.ensureTimestampTableExists();

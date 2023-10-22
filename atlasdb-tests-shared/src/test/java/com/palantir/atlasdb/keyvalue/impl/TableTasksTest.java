@@ -53,10 +53,10 @@ import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TableTasksTest {
     private MetricsManager metricsManager;
@@ -70,7 +70,7 @@ public class TableTasksTest {
     @Rule
     public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
 
-    @Before
+    @BeforeEach
     public void setup() {
         kvs = new InMemoryKeyValueService(true);
         metricsManager = MetricsManagers.createForTests();
@@ -103,7 +103,7 @@ public class TableTasksTest {
                 knowledge);
     }
 
-    @After
+    @AfterEach
     public void teardown() {
         lockService.close();
         kvs.close();

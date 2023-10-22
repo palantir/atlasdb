@@ -18,7 +18,7 @@ package com.palantir.atlasdb.config;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collections;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("CheckReturnValue")
 public class LeaderConfigTest {

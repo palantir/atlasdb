@@ -22,7 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class NamesToIdsTest {
     private static final TableReference TABLE = TableReference.create(Namespace.create("namespace"), "table");

@@ -27,7 +27,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.timestamp.FullyBoundedTimestampRange;
 import java.util.List;
 import java.util.Map;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TransactionsTableInteractionTest {
     private static final DefaultRetryPolicy POLICY = DefaultRetryPolicy.INSTANCE;

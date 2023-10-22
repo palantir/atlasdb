@@ -72,9 +72,9 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.assertj.core.api.Condition;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockServiceIntegrationTest {
 
@@ -92,12 +92,12 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     private NamespacedClients namespace;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         namespace = cluster.clientForRandomNamespace();
     }
 
-    @After
+    @AfterEach
     public void after() {
         assertThat(namespace.legacyLockService().getTokens(TEST_CLIENT)).isEmpty();
         executor.shutdown();

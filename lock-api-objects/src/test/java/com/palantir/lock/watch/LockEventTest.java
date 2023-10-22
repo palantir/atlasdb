@@ -45,7 +45,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.immutables.value.Value;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class LockEventTest {
     private static final String BASE = "src/test/resources/lock-event-wire-format/";

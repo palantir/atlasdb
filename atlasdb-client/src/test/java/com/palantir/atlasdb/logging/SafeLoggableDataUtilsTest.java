@@ -29,7 +29,7 @@ import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.UniformRowNamePartitioner;
 import com.palantir.atlasdb.table.description.ValueType;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SafeLoggableDataUtilsTest {
     private static final TableReference TABLE_REFERENCE_1 = TableReference.createFromFullyQualifiedName("atlas.db");

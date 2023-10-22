@@ -19,9 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class AnnotatedRunnableTest {
 
@@ -29,13 +29,13 @@ public class AnnotatedRunnableTest {
 
     private String previousThreadName;
 
-    @Before
+    @BeforeEach
     public void before() throws Exception {
         previousThreadName = Thread.currentThread().getName();
         Thread.currentThread().setName(THREAD_NAME);
     }
 
-    @After
+    @AfterEach
     public void checkThreadName() throws Exception {
         assertThat(Thread.currentThread().getName()).isEqualTo(THREAD_NAME);
         Thread.currentThread().setName(previousThreadName);

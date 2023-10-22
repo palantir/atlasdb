@@ -38,13 +38,15 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import java.util.Map;
 import java.util.function.Supplier;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.mockito.stubbing.Answer;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +54,8 @@ import org.slf4j.LoggerFactory;
  * We test behaviour for every of the three maybeLog(...) methods from ProfilingKeyValueService using public facing
  * methods that use them
  */
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class ProfilingKeyValueServiceTest {
     private static final Namespace NAMESPACE = Namespace.create("test");
     private static final TableReference TABLE_REF = TableReference.create(NAMESPACE, "testTable");
@@ -84,13 +87,13 @@ public class ProfilingKeyValueServiceTest {
     private KeyValueService delegate;
     private KeyValueService kvs;
 
-    @Before
+    @BeforeEach
     public void before() throws Exception {
         delegate = mock(KeyValueService.class);
         kvs = ProfilingKeyValueService.create(delegate);
     }
 
-    @After
+    @AfterEach
     public void after() throws Exception {
         kvs.close();
     }

@@ -23,7 +23,7 @@ import static org.mockito.Mockito.mock;
 
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.List;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MaybeWitnessedTransactionTest {
 

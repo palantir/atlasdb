@@ -25,7 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class PueCassImitatingConsensusForgettingStoreTest {
     private static final Cell CELL = Cell.create(new byte[] {1}, new byte[] {0});

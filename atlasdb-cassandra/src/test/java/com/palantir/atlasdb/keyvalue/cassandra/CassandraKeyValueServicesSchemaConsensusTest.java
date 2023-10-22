@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.util.io.AvailabilityRequirement;
 import org.apache.thrift.TException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CassandraKeyValueServicesSchemaConsensusTest {
     private static final int NO_WAITING_SCHEMA_MUTATION_TIMEOUT_MILLIS = 0;

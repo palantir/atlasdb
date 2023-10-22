@@ -27,7 +27,7 @@ import com.codahale.metrics.Gauge;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.function.Supplier;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("unchecked") // Mocks of known types
 public class TrackerUtilsTest {

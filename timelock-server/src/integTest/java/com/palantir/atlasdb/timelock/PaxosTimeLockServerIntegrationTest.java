@@ -37,9 +37,9 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampManagementService;
 import java.time.Duration;
 import org.awaitility.Awaitility;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
@@ -81,7 +81,7 @@ public class PaxosTimeLockServerIntegrationTest {
             .around(TEMPORARY_CONFIG_HOLDER)
             .around(TIMELOCK_SERVER_HOLDER);
 
-    @BeforeClass
+    @BeforeAll
     public static void waitForClusterToStabilize() {
         namespace1 = TIMELOCK.client(CLIENT_1);
         namespace2 = TIMELOCK.client(CLIENT_2);

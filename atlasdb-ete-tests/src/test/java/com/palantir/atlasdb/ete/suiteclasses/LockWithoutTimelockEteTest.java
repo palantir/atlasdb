@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.ete.utilities.EteSetup;
 import com.palantir.atlasdb.lock.LockResource;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class LockWithoutTimelockEteTest {
     private LockResource lockResource = EteSetup.createClientToSingleNodeWithExtendedTimeout(LockResource.class);

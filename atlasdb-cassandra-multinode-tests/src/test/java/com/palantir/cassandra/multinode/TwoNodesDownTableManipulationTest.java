@@ -18,7 +18,7 @@ package com.palantir.cassandra.multinode;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TwoNodesDownTableManipulationTest extends AbstractDegradedClusterTest {
 

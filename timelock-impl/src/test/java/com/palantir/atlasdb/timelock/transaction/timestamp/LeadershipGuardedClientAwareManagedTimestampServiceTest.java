@@ -23,7 +23,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.palantir.leader.NotCurrentLeaderException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class LeadershipGuardedClientAwareManagedTimestampServiceTest {
     private final ClientAwareManagedTimestampService delegate = mock(ClientAwareManagedTimestampService.class);

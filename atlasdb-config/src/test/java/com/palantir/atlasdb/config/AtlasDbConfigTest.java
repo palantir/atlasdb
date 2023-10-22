@@ -26,8 +26,8 @@ import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import java.util.Optional;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("CheckReturnValue")
 public class AtlasDbConfigTest {
@@ -66,7 +66,7 @@ public class AtlasDbConfigTest {
     private static final String CLIENT_NAMESPACE = "client";
     private static final String CASSANDRA = "cassandra";
 
-    @BeforeClass
+    @BeforeAll
     public static void setUp() {
         when(KVS_CONFIG_WITHOUT_NAMESPACE.namespace()).thenReturn(Optional.empty());
         when(KVS_CONFIG_WITH_OTHER_NAMESPACE.namespace()).thenReturn(Optional.of(OTHER_CLIENT));

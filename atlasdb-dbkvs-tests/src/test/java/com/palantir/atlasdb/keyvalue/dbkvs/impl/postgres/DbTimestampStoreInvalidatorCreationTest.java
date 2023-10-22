@@ -41,9 +41,9 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
-import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class DbTimestampStoreInvalidatorCreationTest {
     private final MetricsManager metrics = MetricsManagers.createForTests();
@@ -64,7 +64,7 @@ public class DbTimestampStoreInvalidatorCreationTest {
             new InvalidationRunner(kvs.getConnectionManager(), otherTable, prefix);
     private static final long TIMESTAMP_1 = 12000;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         kvs.dropTables(ImmutableSet.of(otherTable, AtlasDbConstants.TIMESTAMP_TABLE));
         invalidationRunner.createTableIfDoesNotExist();
