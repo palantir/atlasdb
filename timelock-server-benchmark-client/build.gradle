@@ -2,7 +2,6 @@ apply plugin: 'com.palantir.sls-java-service-distribution'
 
 apply plugin: 'com.palantir.external-publish-dist'
 apply from: "../gradle/shared.gradle"
-apply from: "../gradle/tests.gradle"
 apply from: "../gradle/non-client-dist.gradle"
 
 schemas = ['com.palantir.atlasdb.timelock.benchmarks.schema.BenchmarksSchema']
@@ -41,6 +40,9 @@ dependencies {
     implementation project(':atlasdb-remoting-api')
     implementation project(':lock-api-objects')
     implementation project(':timestamp-api')
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
 }
 
 distribution {

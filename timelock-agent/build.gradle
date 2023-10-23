@@ -1,7 +1,6 @@
 apply plugin: 'org.unbroken-dome.test-sets'
 
 apply from: "../gradle/shared.gradle"
-apply from: "../gradle/tests.gradle"
 
 dependencies {
     implementation project(':lock-api-objects')
@@ -73,6 +72,9 @@ dependencies {
     testImplementation ('org.mockito:mockito-core') {
         // Mockito version doesn't agree with our JUnit version
         exclude group: 'org.hamcrest', module: 'hamcrest-core'
+    }
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
     }
 
     testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
