@@ -26,7 +26,7 @@ import com.palantir.lock.StringLockDescriptor;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class AtlasLockDescriptorUtilsTest {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("test.table");

@@ -18,7 +18,7 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class ValueTest {
     private static final int CONTENTS_SIZE_1 = 100;

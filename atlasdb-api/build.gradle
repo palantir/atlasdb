@@ -1,4 +1,3 @@
-
 apply from: "../gradle/shared.gradle"
 apply plugin: 'com.palantir.revapi'
 
@@ -35,9 +34,9 @@ dependencies {
   testImplementation 'com.palantir.refreshable:refreshable'
   testImplementation 'io.dropwizard.metrics:metrics-core'
   testImplementation project(':lock-api-objects')
-    testImplementation project(path: ':flake-rule')
+  testImplementation project(path: ':flake-rule')
 
-    annotationProcessor 'org.immutables:value'
+  annotationProcessor 'org.immutables:value'
   compileOnly 'org.immutables:value::annotations'
   testCompileOnly 'org.immutables:value::annotations'
   annotationProcessor project(":atlasdb-processors")
@@ -45,7 +44,13 @@ dependencies {
   annotationProcessor 'org.derive4j:derive4j'
   compileOnly 'org.derive4j:derive4j-annotation'
 
-  testImplementation 'junit:junit'
   testImplementation 'org.assertj:assertj-core'
   testImplementation 'org.mockito:mockito-core'
+  testImplementation 'org.junit.jupiter:junit-jupiter'
+  testImplementation 'org.mockito:mockito-junit-jupiter'
+
+  testImplementation 'junit:junit'
+  testRuntimeOnly 'org.junit.vintage:junit-vintage-engine', {
+    because 'allows JUnit 3 and JUnit 4 tests to run'
+  }
 }
