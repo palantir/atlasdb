@@ -1,5 +1,6 @@
 type: migration
 migration:
-  description: Update oracle image
+  description: Update Oracle image to support x86 and ARM CPU, and stanardise image
+    across dev, Gotham III and k8
   links:
   - https://github.com/palantir/atlasdb/pull/6778
