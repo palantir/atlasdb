@@ -28,6 +28,7 @@ import java.util.stream.IntStream;
 import org.junit.Rule;
 import org.junit.Test;
 
+/* TODO(boyoruk): Upgrade this to JUnit5 when TimeLockCorruptionDetectionHelper rule is implemented for JUnit5. */
 /**
  * This class performs integration tests by inducing and detecting corruption in one or more series.
  * All tests only induce and detect ACCEPTED_VALUE_GREATER_THAN_LEARNED corruption.

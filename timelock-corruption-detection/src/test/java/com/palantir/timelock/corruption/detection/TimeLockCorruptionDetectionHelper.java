@@ -32,6 +32,7 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
+/* TODO(boyoruk): Find a way to implement this in JUnit5. */
 public final class TimeLockCorruptionDetectionHelper implements TestRule {
     private TimeLockCorruptionTestSetup timeLockCorruptionTestSetup = new TimeLockCorruptionTestSetup();
 

@@ -28,15 +28,15 @@ import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.timelock.history.sqlite.LogVerificationProgressState;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
+import java.io.File;
 import javax.sql.DataSource;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class PaxosLogHistoryProgressTrackerTest {
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @TempDir
+    public File tempFolder;
 
     private static final Client CLIENT = Client.of("tom");
     private static final String USE_CASE = "useCase1";
@@ -47,10 +47,9 @@ public class PaxosLogHistoryProgressTrackerTest {
     private PaxosLogHistoryProgressTracker progressTracker;
     private LogVerificationProgressState log;
 
-    @Before
+    @BeforeEach
     public void setup() {
-        DataSource dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(
-                tempFolder.getRoot().toPath());
+        DataSource dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(tempFolder.toPath());
         log = LogVerificationProgressState.create(dataSource);
         progressTracker = new PaxosLogHistoryProgressTracker(dataSource, SQLITE_PAXOS_STATE_LOG_HISTORY);
     }

@@ -47,6 +47,7 @@ import com.palantir.timelock.history.remote.HistoryLoaderAndTransformer;
 import com.palantir.timelock.history.sqlite.SqlitePaxosStateLogHistory;
 import com.palantir.timelock.history.utils.HistoryQueries;
 import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
+import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -54,14 +55,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.sql.DataSource;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class PaxosLogHistoryProviderTest {
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @TempDir
+    public File tempFolder;
 
     private static final String USE_CASE_LEARNER =
             LearnerUseCase.createLearnerUseCase(DEFAULT_USE_CASE).value();
@@ -76,11 +76,10 @@ public class PaxosLogHistoryProviderTest {
     private PaxosLogHistoryProvider paxosLogHistoryProvider;
     private PaxosLogHistoryProgressTracker progressTracker;
 
-    @Before
+    @BeforeEach
     public void setup() {
         remote = mock(TimeLockPaxosHistoryProvider.class);
-        dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(
-                tempFolder.getRoot().toPath());
+        dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(tempFolder.toPath());
 
         learnerLog = createLearnerLog(ImmutableNamespaceAndUseCase.of(DEFAULT_CLIENT, USE_CASE_LEARNER));
         acceptorLog = createAcceptorLog(ImmutableNamespaceAndUseCase.of(DEFAULT_CLIENT, USE_CASE_ACCEPTOR));
