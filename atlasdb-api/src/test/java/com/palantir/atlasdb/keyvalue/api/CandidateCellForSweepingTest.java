@@ -24,7 +24,7 @@ import com.google.common.collect.ImmutableSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class CandidateCellForSweepingTest {
     private static final int CELL_NAME_SIZE = 100;

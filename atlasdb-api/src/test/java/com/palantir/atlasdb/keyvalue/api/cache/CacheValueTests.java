@@ -19,7 +19,7 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Optional;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class CacheValueTests {
 

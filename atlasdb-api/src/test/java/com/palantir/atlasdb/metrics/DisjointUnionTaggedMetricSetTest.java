@@ -28,7 +28,7 @@ import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.HashMap;
 import java.util.Map;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class DisjointUnionTaggedMetricSetTest {
     private static final MetricName METRIC_NAME_1 = MetricName.builder()

@@ -32,6 +32,7 @@ import org.assertj.core.data.Percentage;
 import org.junit.Rule;
 import org.junit.Test;
 
+/* TODO(boyoruk): Do not forget to upgrade this to JUnit5 once we implemented new com.palantir.flake package.  */
 public class CellReferenceTest {
     private static final TableReference TABLE = createFromFullyQualifiedName("fixed.table");
     private static final byte[] ROW = PtBytes.toBytes("row");
