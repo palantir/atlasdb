@@ -2,7 +2,6 @@ apply plugin: 'org.unbroken-dome.test-sets'
 apply plugin: 'com.palantir.metric-schema'
 
 apply from: "../gradle/shared.gradle"
-apply from: "../gradle/tests.gradle"
 
 dependencies {
     api project(':timelock-api')
@@ -84,6 +83,9 @@ dependencies {
     testImplementation project(':timelock-api:timelock-api-dialogue')
     testImplementation project(':timelock-api:timelock-api-objects')
     testImplementation project(':timestamp-api')
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
 
     annotationProcessor 'com.palantir.conjure.java:conjure-undertow-processor'
     annotationProcessor project(":atlasdb-processors")
