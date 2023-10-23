@@ -22,7 +22,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.paxos.Client;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class DbBoundTimestampCreatorTest {
     private static final Client CLIENT_1 = Client.of("tom");

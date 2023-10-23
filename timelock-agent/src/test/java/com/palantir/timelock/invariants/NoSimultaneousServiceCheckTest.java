@@ -33,7 +33,7 @@ import java.time.Duration;
 import java.util.OptionalLong;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
 
 @SuppressWarnings("unchecked") // Usage of mocks in conjunction with generics

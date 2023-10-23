@@ -31,7 +31,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ConjureLockRequestTest {
     private static final String BASE = "src/test/resources/conjure-lock-request-wire-format/";

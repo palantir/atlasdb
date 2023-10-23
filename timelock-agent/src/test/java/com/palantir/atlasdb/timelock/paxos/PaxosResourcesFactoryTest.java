@@ -22,7 +22,7 @@ import static org.mockito.Mockito.mock;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosProposer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 
 public class PaxosResourcesFactoryTest {

@@ -19,26 +19,24 @@ package com.palantir.timelock.config;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.palantir.SubdirectoryCreator;
 import java.io.File;
-import java.io.IOException;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import java.time.Clock;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class PaxosInstallConfigurationIntegrationTest {
-    @Rule
-    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+    @TempDir
+    public File temporaryFolder;
 
     private File nonexistentFileDirectory;
     private File nonexistentSqliteDirectory;
 
-    @Before
+    @BeforeEach
     public void setUp() {
-        nonexistentFileDirectory =
-                temporaryFolder.getRoot().toPath().resolve("file").toFile();
-        nonexistentSqliteDirectory =
-                temporaryFolder.getRoot().toPath().resolve("sqlite").toFile();
+        nonexistentFileDirectory = temporaryFolder.toPath().resolve("file").toFile();
+        nonexistentSqliteDirectory = temporaryFolder.toPath().resolve("sqlite").toFile();
     }
 
     @Test
@@ -72,8 +70,8 @@ public class PaxosInstallConfigurationIntegrationTest {
     @Test
     public void canCreateConfigurationWithDirectoriesHavingPrefixesInName() {
         assertThatCode(() -> createPartialConfiguration(
-                                getAndCreateSubdirectory(temporaryFolder.getRoot(), "tom"),
-                                getAndCreateSubdirectory(temporaryFolder.getRoot(), "tomato"))
+                                SubdirectoryCreator.getAndCreateSubdirectory(temporaryFolder, "tom"),
+                                SubdirectoryCreator.getAndCreateSubdirectory(temporaryFolder, "tomato"))
                         .isNewService(false)
                         .build())
                 .doesNotThrowAnyException();
@@ -81,7 +79,7 @@ public class PaxosInstallConfigurationIntegrationTest {
 
     @Test
     public void cannotCreateConfigurationWithIdenticalDirectories() {
-        File directory = getAndCreateSubdirectory(temporaryFolder.getRoot(), "tomato");
+        File directory = SubdirectoryCreator.getAndCreateSubdirectory(temporaryFolder, "tomato");
         assertThatThrownBy(() -> createPartialConfiguration(directory, directory)
                         .isNewService(false)
                         .build())
@@ -91,8 +89,8 @@ public class PaxosInstallConfigurationIntegrationTest {
 
     @Test
     public void sqliteDirectoryCannotBeSubdirectoryOfFileBasedDirectory() {
-        File parent = getAndCreateSubdirectory(temporaryFolder.getRoot(), "tomato");
-        File child = getAndCreateSubdirectory(parent, "tomatina");
+        File parent = SubdirectoryCreator.getAndCreateSubdirectory(temporaryFolder, "tomato");
+        File child = SubdirectoryCreator.getAndCreateSubdirectory(parent, "tomatina");
         assertThatThrownBy(() -> createPartialConfiguration(parent, child)
                         .isNewService(false)
                         .build())
@@ -102,8 +100,8 @@ public class PaxosInstallConfigurationIntegrationTest {
 
     @Test
     public void fileBasedDirectoryCannotBeSubdirectoryOfSqliteDirectory() {
-        File parent = getAndCreateSubdirectory(temporaryFolder.getRoot(), "tomato");
-        File child = getAndCreateSubdirectory(parent, "tomatina");
+        File parent = SubdirectoryCreator.getAndCreateSubdirectory(temporaryFolder, "tomato");
+        File child = SubdirectoryCreator.getAndCreateSubdirectory(parent, "tomatina");
         assertThatThrownBy(() -> createPartialConfiguration(child, parent)
                         .isNewService(false)
                         .build())
@@ -112,11 +110,8 @@ public class PaxosInstallConfigurationIntegrationTest {
     }
 
     private File getAndCreateRandomSubdirectory() {
-        try {
-            return temporaryFolder.newFolder();
-        } catch (IOException e) {
-            throw new RuntimeException("Unexpected error when creating a subdirectory", e);
-        }
+        return SubdirectoryCreator.getAndCreateSubdirectory(
+                temporaryFolder, Clock.systemUTC().instant().toString());
     }
 
     private static ImmutablePaxosInstallConfiguration.Builder createPartialConfiguration(
@@ -146,14 +141,6 @@ public class PaxosInstallConfigurationIntegrationTest {
                         partialConfiguration.isNewService(false).build()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("The timelock data directories do not appear to exist.");
-    }
-
-    private static File getAndCreateSubdirectory(File base, String subdirectoryName) {
-        File file = base.toPath().resolve(subdirectoryName).toFile();
-        if (file.mkdirs()) {
-            return file;
-        }
-        throw new RuntimeException("Unexpected error when creating a subdirectory");
     }
 
     @SuppressWarnings("CheckReturnValue")
