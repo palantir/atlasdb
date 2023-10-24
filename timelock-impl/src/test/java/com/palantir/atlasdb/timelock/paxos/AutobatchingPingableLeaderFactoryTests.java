@@ -38,8 +38,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 
 public class AutobatchingPingableLeaderFactoryTests {
@@ -50,7 +50,7 @@ public class AutobatchingPingableLeaderFactoryTests {
 
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
-    @After
+    @AfterEach
     public void after() {
         executorService.shutdown();
     }

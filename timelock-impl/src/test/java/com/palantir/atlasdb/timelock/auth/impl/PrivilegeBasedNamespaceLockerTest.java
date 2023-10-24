@@ -23,7 +23,7 @@ import com.palantir.atlasdb.timelock.auth.api.ClientId;
 import com.palantir.atlasdb.timelock.auth.api.Privileges;
 import com.palantir.lock.TimelockNamespace;
 import java.util.Map;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class PrivilegeBasedNamespaceLockerTest {
     private static final ClientId AUTHENTICATED_CLIENT = ClientId.of("user");

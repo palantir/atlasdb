@@ -29,6 +29,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tokens.auth.BearerToken;
+import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
@@ -36,15 +37,14 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class TimeLockManagementResourceTest {
     private static final String NAMESPACE_1 = "namespace_1";
     private static final String NAMESPACE_2 = "namespace_2";
@@ -63,15 +63,15 @@ public class TimeLockManagementResourceTest {
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private TimeLockManagementResource timeLockManagementResource;
 
-    @Rule
-    public final TemporaryFolder tempFolder = new TemporaryFolder();
+    @TempDir
+    public File tempFolder;
 
-    @Before
+    @BeforeEach
     public void setup() throws MalformedURLException {
         URL testUrl = new URL("http", "host", "file");
         RedirectRetryTargeter redirectRetryTargeter = RedirectRetryTargeter.create(testUrl, ImmutableList.of(testUrl));
 
-        Path rootFolderPath = tempFolder.getRoot().toPath();
+        Path rootFolderPath = tempFolder.toPath();
         PersistentNamespaceContext persistentNamespaceContext = PersistentNamespaceContexts.timestampBoundPaxos(
                 rootFolderPath, SqliteConnections.getDefaultConfiguredPooledDataSource(rootFolderPath));
 
@@ -97,7 +97,6 @@ public class TimeLockManagementResourceTest {
 
     private void createDirectoryForLeaderForEachClientUseCase(String namespace) {
         if (tempFolder
-                .getRoot()
                 .toPath()
                 .resolve(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE)
                 .resolve(PaxosTimeLockConstants.MULTI_LEADER_PAXOS_NAMESPACE)
@@ -110,7 +109,7 @@ public class TimeLockManagementResourceTest {
     }
 
     private void createDirectoryInRootDataDirectory(String namespace) {
-        if (tempFolder.getRoot().toPath().resolve(namespace).toFile().mkdirs()) {
+        if (tempFolder.toPath().resolve(namespace).toFile().mkdirs()) {
             return;
         }
         throw new RuntimeException("Unexpected error when creating a subdirectory");

@@ -23,7 +23,7 @@ import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lockwatches.RequestMetrics;
 import com.palantir.timestamp.ManagedTimestampService;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class AsyncTimelockServiceImplTest {
     @Test
