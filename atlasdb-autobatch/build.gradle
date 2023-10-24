@@ -10,6 +10,7 @@ dependencies {
 
     implementation 'com.google.errorprone:error_prone_annotations'
     implementation 'com.google.guava:guava'
+    implementation 'com.palantir.conjure.java.api:errors'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.tracing:tracing'
     implementation 'io.dropwizard.metrics:metrics-core'
