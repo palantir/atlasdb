@@ -28,10 +28,10 @@ import com.palantir.timelock.config.ImmutableDatabaseTsBoundPersisterConfigurati
 import com.palantir.timelock.config.ImmutablePaxosTsBoundPersisterConfiguration;
 import com.palantir.timelock.config.TsBoundPersisterConfiguration;
 import com.zaxxer.hikari.HikariDataSource;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import java.io.File;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class TimeLockAgentPersistedConfigTest {
     private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();
@@ -46,15 +46,14 @@ public class TimeLockAgentPersistedConfigTest {
         OBJECT_MAPPER.registerSubtypes(InMemoryAtlasDbConfig.class);
     }
 
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @TempDir
+    public File tempFolder;
 
     private HikariDataSource dataSource;
 
-    @Before
+    @BeforeEach
     public void setup() {
-        dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(
-                tempFolder.getRoot().toPath());
+        dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(tempFolder.toPath());
     }
 
     @Test

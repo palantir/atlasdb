@@ -23,6 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.SubdirectoryCreator;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
@@ -42,15 +43,14 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Optional;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class TimeLockAgentTest {
 
-    @Rule
-    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+    @TempDir
+    public File temporaryFolder;
 
     private static final String SERVER_A = "horses-for-courses:1234";
     public static final String SERVER_B = "paddock-and-chips:2345";
@@ -67,13 +67,13 @@ public class TimeLockAgentTest {
     private File extantPaxosLogDirectory;
     private File extantSqliteLogDirectory;
 
-    @Before
-    public void setUp() throws IOException {
-        newPaxosLogDirectory = Paths.get(temporaryFolder.getRoot().toString(), "part-time-parliament")
-                .toFile();
+    @BeforeEach
+    public void setUp() {
+        newPaxosLogDirectory =
+                Paths.get(temporaryFolder.toString(), "part-time-parliament").toFile();
 
-        extantPaxosLogDirectory = temporaryFolder.newFolder("lets-do-some-voting");
-        extantSqliteLogDirectory = temporaryFolder.newFolder("whats-a-right-join");
+        extantPaxosLogDirectory = SubdirectoryCreator.getAndCreateSubdirectory(temporaryFolder, "lets-do-some-voting");
+        extantSqliteLogDirectory = SubdirectoryCreator.getAndCreateSubdirectory(temporaryFolder, "whats-a-right-join");
     }
 
     @Test

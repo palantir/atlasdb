@@ -33,7 +33,7 @@ import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.ManagedTimestampService;
 import java.util.Optional;
 import java.util.function.Supplier;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ServiceDiscoveringDatabaseTimeLockSupplierTest {
     private static final TimestampSeries SERIES = TimestampSeries.of("series");

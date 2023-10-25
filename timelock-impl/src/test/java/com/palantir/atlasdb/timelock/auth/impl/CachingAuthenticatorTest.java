@@ -24,12 +24,12 @@ import com.palantir.atlasdb.timelock.auth.api.Authenticator;
 import com.palantir.atlasdb.timelock.auth.api.BCryptedSecret;
 import com.palantir.atlasdb.timelock.auth.api.ClientId;
 import com.palantir.atlasdb.timelock.auth.api.Password;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mindrot.jbcrypt.BCrypt;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class CachingAuthenticatorTest {
 
     private static final ClientId CLIENT_1 = ClientId.of("client_1");

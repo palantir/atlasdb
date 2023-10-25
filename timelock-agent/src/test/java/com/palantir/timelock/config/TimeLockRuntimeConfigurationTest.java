@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.google.common.collect.ImmutableList;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import java.util.Optional;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("CheckReturnValue")
 public class TimeLockRuntimeConfigurationTest {

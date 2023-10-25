@@ -25,7 +25,7 @@ import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.LockService;
 import java.io.IOException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TimeLockServicesTest {
     @Test

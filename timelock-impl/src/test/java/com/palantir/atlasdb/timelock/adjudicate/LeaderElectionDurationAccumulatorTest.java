@@ -34,7 +34,7 @@ import java.util.function.LongConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class LeaderElectionDurationAccumulatorTest {
     private static final UUID LEADER_1 = UUID.randomUUID();

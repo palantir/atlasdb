@@ -30,14 +30,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class LocalBatchPaxosLearnerTests {
 
     private static final Client CLIENT_1 = Client.of("client1");
@@ -48,7 +48,7 @@ public class LocalBatchPaxosLearnerTests {
 
     private BatchPaxosLearner resource;
 
-    @Before
+    @BeforeEach
     public void before() {
         resource = new LocalBatchPaxosLearner(paxosComponents);
     }

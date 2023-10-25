@@ -35,13 +35,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.Future;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class CumulativeLeaderPingerTest {
 
     private static final Client CLIENT_WHO_IS_LED = Client.of("client-1");
@@ -55,7 +55,7 @@ public class CumulativeLeaderPingerTest {
 
     private LeaderPingerContext<BatchPingableLeader> pingerWithContext;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         pingerWithContext = ImmutableLeaderPingerContext.of(batchPingableLeader, HOST_AND_PORT);
     }

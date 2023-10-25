@@ -35,13 +35,13 @@ import com.palantir.tritium.metrics.registry.MetricName;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class TimelockNamespacesTest {
     private static final String CLIENT_A = "a-client";
     private static final String CLIENT_B = "b-client";
@@ -61,32 +61,31 @@ public class TimelockNamespacesTest {
             new MetricsManager(new MetricRegistry(), new DefaultTaggedMetricRegistry(), unused -> false);
     private TimelockNamespaces namespaces;
 
-    @Before
+    @BeforeEach
     public void before() {
         namespaces = new TimelockNamespaces(metricsManager, serviceFactory, maxNumberOfClientsSupplier);
-        when(serviceFactory.apply(any())).thenReturn(mock(TimeLockServices.class));
-        when(serviceFactory.apply(CLIENT_A)).thenReturn(servicesA);
-        when(serviceFactory.apply(CLIENT_B)).thenReturn(servicesB);
-
-        when(maxNumberOfClientsSupplier.get()).thenReturn(DEFAULT_MAX_NUMBER_OF_CLIENTS);
     }
 
     @Test
     public void returnsProperServiceForEachClient() {
+        prepareServiceFactoryAndMaxNumberOfClientsSupplierInvocations();
+        when(serviceFactory.apply(CLIENT_A)).thenReturn(servicesA);
+        when(serviceFactory.apply(CLIENT_B)).thenReturn(servicesB);
         assertThat(namespaces.get(CLIENT_A)).isEqualTo(servicesA);
         assertThat(namespaces.get(CLIENT_B)).isEqualTo(servicesB);
     }
 
     @Test
     public void servicesAreOnlyCreatedOncePerClient() {
+        prepareServiceFactoryAndMaxNumberOfClientsSupplierInvocations();
         namespaces.get(CLIENT_A);
         namespaces.get(CLIENT_A);
-
         verify(serviceFactory, times(1)).apply(any());
     }
 
     @Test
     public void doesNotCreateNewClientsAfterMaximumNumberHasBeenReached() {
+        prepareServiceFactoryAndMaxNumberOfClientsSupplierInvocations();
         createMaximumNumberOfClients();
 
         assertThatThrownBy(() -> namespaces.get(uniqueClient())).isInstanceOf(IllegalStateException.class);
@@ -97,12 +96,14 @@ public class TimelockNamespacesTest {
 
     @Test
     public void returnsMaxNumberOfClients() {
+        prepareServiceFactoryAndMaxNumberOfClientsSupplierInvocations();
         createMaximumNumberOfClients();
         assertThat(namespaces.getNumberOfActiveClients()).isEqualTo(DEFAULT_MAX_NUMBER_OF_CLIENTS);
     }
 
     @Test
     public void onClientCreationIncreaseNumberOfClients() {
+        prepareServiceFactoryAndMaxNumberOfClientsSupplierInvocations();
         assertThat(namespaces.getNumberOfActiveClients()).isEqualTo(0);
         namespaces.get(uniqueClient());
         assertThat(namespaces.getNumberOfActiveClients()).isEqualTo(1);
@@ -110,6 +111,7 @@ public class TimelockNamespacesTest {
 
     @Test
     public void canDynamicallyIncreaseMaxAllowedClients() {
+        prepareServiceFactoryAndMaxNumberOfClientsSupplierInvocations();
         createMaximumNumberOfClients();
 
         when(maxNumberOfClientsSupplier.get()).thenReturn(DEFAULT_MAX_NUMBER_OF_CLIENTS + 1);
@@ -119,6 +121,7 @@ public class TimelockNamespacesTest {
 
     @Test
     public void numberOfActiveClientsUpdatesAsNewClientsCreated() {
+        prepareServiceFactoryAndMaxNumberOfClientsSupplierInvocations();
         assertNumberOfActiveClientsIs(0);
         assertMaxClientsIs(DEFAULT_MAX_NUMBER_OF_CLIENTS);
 
@@ -135,6 +138,8 @@ public class TimelockNamespacesTest {
 
     @Test
     public void maxNumberOfClientsRespondsToChanges() {
+        when(maxNumberOfClientsSupplier.get()).thenReturn(DEFAULT_MAX_NUMBER_OF_CLIENTS);
+
         assertNumberOfActiveClientsIs(0);
         assertMaxClientsIs(DEFAULT_MAX_NUMBER_OF_CLIENTS);
 
@@ -159,6 +164,7 @@ public class TimelockNamespacesTest {
 
     @Test
     public void invalidationDelegatesClosure() {
+        prepareServiceFactoryAndMaxNumberOfClientsSupplierInvocations();
         // This is required to ensure we get different mock objects on each invocation (well, each of the first two).
         when(serviceFactory.apply(any()))
                 .thenReturn(mock(TimeLockServices.class))
@@ -180,6 +186,11 @@ public class TimelockNamespacesTest {
     public void handlesInvalidationOfNonexistentClients() {
         assertThatCode(() -> namespaces.invalidateResourcesForClient("somethingUnknown"))
                 .doesNotThrowAnyException();
+    }
+
+    private void prepareServiceFactoryAndMaxNumberOfClientsSupplierInvocations() {
+        when(serviceFactory.apply(any())).thenReturn(mock(TimeLockServices.class));
+        when(maxNumberOfClientsSupplier.get()).thenReturn(DEFAULT_MAX_NUMBER_OF_CLIENTS);
     }
 
     private void createMaximumNumberOfClients() {

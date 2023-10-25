@@ -12,8 +12,8 @@ dependencies {
 
     testImplementation project(':atlasdb-api')
     testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
-    testImplementation 'junit:junit'
     testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
 }
 
 subprojects {

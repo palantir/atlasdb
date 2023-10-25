@@ -29,7 +29,7 @@ import com.palantir.timelock.TimeLockStatus;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class LeaderPingHealthCheckTest {
 

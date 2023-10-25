@@ -30,8 +30,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class CachingPartitionAllocatorTest {
     private static final String KEY = "foo";
@@ -43,7 +43,7 @@ public class CachingPartitionAllocatorTest {
     private final CachingPartitionAllocator<String> allocator =
             new CachingPartitionAllocator<>(generator, scheduler, ticker, Duration.of(5, ChronoUnit.NANOS));
 
-    @Before
+    @BeforeEach
     public void setUp() {
         when(generator.getAndMarkResidue()).thenReturn(0);
     }
