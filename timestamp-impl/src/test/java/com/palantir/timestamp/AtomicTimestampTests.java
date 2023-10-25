@@ -21,8 +21,8 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 public class AtomicTimestampTests {
 
@@ -30,7 +30,7 @@ public class AtomicTimestampTests {
     private final AtomicTimestamp timestamp = new AtomicTimestamp(INITIAL_TIMESTAMP);
     private final ExecutorService executor = Executors.newFixedThreadPool(4);
 
-    @After
+    @AfterEach
     public void after() throws Exception {
         executor.shutdownNow();
     }

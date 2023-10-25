@@ -24,7 +24,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public abstract class AbstractTimestampServiceTests {
     private static final long ONE_MILLION = 1_000_000;

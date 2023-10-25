@@ -8,4 +8,5 @@ dependencies {
     compileOnly project(':atlasdb-processors')
     annotationProcessor project(':atlasdb-processors')
     testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
 }

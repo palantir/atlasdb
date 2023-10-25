@@ -33,14 +33,14 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Spy;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public final class RequestBatchingTimestampServiceTest {
     private static final int MAX_TIMESTAMPS = 10_000;
 
@@ -49,12 +49,12 @@ public final class RequestBatchingTimestampServiceTest {
 
     private CloseableTimestampService timestamp;
 
-    @Before
+    @BeforeEach
     public void before() {
         timestamp = RequestBatchingTimestampService.create(unbatchedDelegate);
     }
 
-    @After
+    @AfterEach
     public void after() {
         timestamp.close();
     }
