@@ -37,8 +37,8 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class AsyncLockServiceTest {
 
@@ -70,7 +70,7 @@ public class AsyncLockServiceTest {
             leaderClock,
             mock(LockLog.class));
 
-    @Before
+    @BeforeEach
     public void before() {
         when(acquirer.acquireLocks(any(), any(), any())).thenReturn(new AsyncResult<>());
         when(acquirer.acquireLocks(any(), any(), any(), any())).thenReturn(new AsyncResult<>());

@@ -20,6 +20,7 @@ import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import org.junit.ClassRule;
 import org.junit.rules.RuleChain;
 
+/* TODO(boyoruk): Migrate whole integTest folder to JUnit5 */
 public abstract class AbstractAsyncTimelockServiceIntegrationTest {
 
     public static final TemplateVariables DEFAULT_SINGLE_SERVER = ImmutableTemplateVariables.builder()

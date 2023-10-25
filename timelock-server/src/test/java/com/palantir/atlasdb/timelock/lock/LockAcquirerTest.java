@@ -37,7 +37,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.mockito.InOrder;
 
 public class LockAcquirerTest {
@@ -89,7 +90,8 @@ public class LockAcquirerTest {
         assertThat(acquisitions.isCompletedSuccessfully()).isTrue();
     }
 
-    @Test(timeout = 10_000)
+    @Test
+    @Timeout(value = 10000L, unit = TimeUnit.MILLISECONDS)
     public void doesNotStackOverflowIfLocksAreAcquiredSynchronously() {
         List<AsyncLock> locks = IntStream.range(0, 10_000)
                 .mapToObj(i -> new ExclusiveLock(LOCK_DESCRIPTOR))
@@ -100,7 +102,8 @@ public class LockAcquirerTest {
         assertThat(acquisitions.isCompletedSuccessfully()).isTrue();
     }
 
-    @Test(timeout = 10_000)
+    @Test
+    @Timeout(value = 10000L, unit = TimeUnit.MILLISECONDS)
     public void doesNotStackOverflowIfManyRequestsWaitOnALock() {
         lockA.lock(REQUEST_ID);
 

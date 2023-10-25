@@ -45,6 +45,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class AsyncLockServiceEteTest {
 
     private static final UUID REQUEST_1 = UUID.randomUUID();
