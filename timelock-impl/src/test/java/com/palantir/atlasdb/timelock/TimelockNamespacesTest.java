@@ -80,6 +80,7 @@ public class TimelockNamespacesTest {
         prepareServiceFactoryAndMaxNumberOfClientsSupplierInvocations();
         namespaces.get(CLIENT_A);
         namespaces.get(CLIENT_A);
+        verify(serviceFactory, times(1)).apply(any());
     }
 
     @Test
