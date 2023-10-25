@@ -1,5 +1,4 @@
 apply plugin: 'com.palantir.sls-java-service-distribution'
-
 apply plugin: 'com.palantir.external-publish-dist'
 apply from: "../gradle/shared.gradle"
 apply from: "../gradle/non-client-dist.gradle"
@@ -13,7 +12,7 @@ versionsLock {
 dependencies {
     implementation project(":timelock-server")
 
-    implementation 'junit:junit'
+    implementation 'org.junit.jupiter:junit-jupiter-api'
     implementation 'org.assertj:assertj-core'
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
@@ -40,9 +39,6 @@ dependencies {
     implementation project(':atlasdb-remoting-api')
     implementation project(':lock-api-objects')
     implementation project(':timestamp-api')
-    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
-        because 'allows JUnit 3 and JUnit 4 tests to run'
-    }
 }
 
 distribution {

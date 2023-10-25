@@ -23,6 +23,7 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
+/* TODO(boyoruk): Migrate whole testCommon folder to JUnit5 */
 public final class ParameterInjector<T extends TestRule> implements TestRule {
 
     private final Supplier<T> factory;

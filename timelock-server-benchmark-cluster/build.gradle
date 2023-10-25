@@ -1,5 +1,4 @@
 apply plugin: 'com.palantir.sls-java-service-distribution'
-
 apply plugin: 'com.palantir.external-publish-dist'
 apply from: "../gradle/shared.gradle"
 apply from: "../gradle/non-client-dist.gradle"
@@ -24,9 +23,6 @@ dependencies {
     implementation 'io.dropwizard.metrics:metrics-core'
     implementation project(':atlasdb-client')
     implementation project(':timelock-agent')
-    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
-        because 'allows JUnit 3 and JUnit 4 tests to run'
-    }
 }
 
 distribution {

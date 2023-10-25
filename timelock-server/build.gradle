@@ -1,5 +1,4 @@
 apply plugin: 'org.unbroken-dome.test-sets'
-
 apply from: "../gradle/shared.gradle"
 
 testSets {
@@ -85,6 +84,7 @@ dependencies {
     testImplementation 'io.dropwizard.metrics:metrics-core'
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation project(':atlasdb-commons')
     testImplementation project(':atlasdb-container-test-utils')
     testImplementation project(':atlasdb-dbkvs')
@@ -104,6 +104,8 @@ dependencies {
         exclude group: 'org.hamcrest'
         exclude group: 'org.ow2.asm'
     }
+
+    testImplementation 'junit:junit'
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
         because 'allows JUnit 3 and JUnit 4 tests to run'
     }

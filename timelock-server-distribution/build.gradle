@@ -6,9 +6,6 @@ apply from: "../gradle/non-client-dist.gradle"
 
 dependencies {
     runtimeOnly project(':timelock-server')
-    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
-        because 'allows JUnit 3 and JUnit 4 tests to run'
-    }
 }
 
 distribution {
