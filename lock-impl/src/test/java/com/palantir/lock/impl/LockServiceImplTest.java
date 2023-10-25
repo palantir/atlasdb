@@ -42,10 +42,10 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.assertj.core.api.Assertions;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import uk.org.lidalia.slf4jext.Level;
 import uk.org.lidalia.slf4jtest.LoggingEvent;
 import uk.org.lidalia.slf4jtest.TestLogger;
@@ -63,13 +63,13 @@ public final class LockServiceImplTest {
     private TestLogger testSlowLogger;
     private TestLogger testLockServiceImplLogger;
 
-    @BeforeClass
+    @BeforeAll
     public static void setupLockService() {
         lockServiceWithSlowLogEnabled = createLockServiceWithSlowLogEnabled(true);
         lockServiceWithSlowLogDisabled = createLockServiceWithSlowLogEnabled(false);
     }
 
-    @Before
+    @BeforeEach
     public void setUpLoggers() {
         testSlowLogger = TestLoggerFactory.getTestLogger(SlowLockLogger.class);
         testLockServiceImplLogger = TestLoggerFactory.getTestLogger(LockServiceImpl.class);
@@ -77,7 +77,7 @@ public final class LockServiceImplTest {
         testLockServiceImplLogger.setEnabledLevelsForAllThreads(Level.DEBUG);
     }
 
-    @After
+    @AfterEach
     public void clearLoggers() {
         TestLoggerFactory.clearAll();
     }

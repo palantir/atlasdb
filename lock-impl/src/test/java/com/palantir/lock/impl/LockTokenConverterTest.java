@@ -22,7 +22,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.v2.LockToken;
 import java.math.BigInteger;
 import java.util.Random;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class LockTokenConverterTest {
 

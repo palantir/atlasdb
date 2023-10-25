@@ -26,7 +26,7 @@ import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.Lease;
 import java.time.Duration;
 import java.util.UUID;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class LeasedLockTokenTest {
     private static final ConjureLockToken LOCK_TOKEN = ConjureLockToken.of(UUID.randomUUID());

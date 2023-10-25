@@ -34,7 +34,7 @@ import com.palantir.lock.StringLockDescriptor;
 import java.math.BigInteger;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class LockServiceSerDeTest {
 

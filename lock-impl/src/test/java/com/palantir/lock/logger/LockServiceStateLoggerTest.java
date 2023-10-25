@@ -49,8 +49,8 @@ import java.util.stream.Collectors;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class LockServiceStateLoggerTest {
-
     private static final ConcurrentMap<HeldLocksToken, LockServiceImpl.HeldLocks<HeldLocksToken>> heldLocksTokenMap =
             new MapMaker().makeMap();
 

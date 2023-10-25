@@ -54,7 +54,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import one.util.streamex.StreamEx;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MultiClientCommitTimestampGetterTest {
     private static final int COMMIT_TS_LIMIT_PER_REQUEST = 5;

@@ -49,8 +49,8 @@ import java.time.Instant;
 import java.util.UUID;
 import org.immutables.value.Value;
 import org.immutables.value.Value.Parameter;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.OngoingStubbing;
 
 public class LeaderElectionReportingTimelockServiceTest {
@@ -75,7 +75,7 @@ public class LeaderElectionReportingTimelockServiceTest {
 
     private LeaderElectionReportingTimelockService timelockService;
 
-    @Before
+    @BeforeEach
     public void before() {
         timelockService = new LeaderElectionReportingTimelockService(mockedDelegate, mockedRegistry, mockedClock);
         when(mockedDelegate.startTransactions(any())).thenReturn(startTransactionsResponse);

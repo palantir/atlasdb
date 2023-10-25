@@ -1,5 +1,4 @@
 apply from: "../gradle/shared.gradle"
-
 apply plugin: 'com.palantir.sls-recommended-dependencies'
 apply plugin: 'com.palantir.metric-schema'
 
@@ -9,6 +8,7 @@ license {
 }
 
 libsDirName = file('build/artifacts')
+
 dependencies {
     api project(':lock-conjure-api:lock-conjure-api-dialogue')
     api project(':lock-api-objects')
@@ -62,11 +62,12 @@ dependencies {
     testCompileOnly 'org.immutables:value::annotations'
 
     testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
-    testImplementation 'junit:junit'
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.awaitility:awaitility'
     testImplementation('org.jmock:jmock') {
       exclude group: 'org.hamcrest'
     }
     testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
 }

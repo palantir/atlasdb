@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.UUID;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class IdentifiedTimeLockRequestSerializationDeserializationTest {
     private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();

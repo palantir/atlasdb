@@ -27,8 +27,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class AdjustableBackgroundTaskTest {
     private static final Duration DEFAULT_INTERVAL = Duration.ofSeconds(10);
@@ -50,7 +50,7 @@ public class AdjustableBackgroundTaskTest {
             field::incrementAndGet,
             scheduledExecutor);
 
-    @BeforeClass
+    @BeforeAll
     public static void testDelayShouldNotExceedMinimumDelay() {
         // We have to ensure that our default interval is higher than MINIMUM_INTERVAL_IF_NOT_RUNNING
         // so our tests are actually meaningful
