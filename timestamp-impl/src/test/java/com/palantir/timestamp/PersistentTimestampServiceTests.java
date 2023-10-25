@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.common.remoting.ServiceNotAvailableException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 // Test PersistentTimestampServiceImpl by fully instantiating it with an InMemoryTimestampBoundStore.
 // See also PersistentTimestampServiceMockingTest that mocks AvailableTimestamps instead.

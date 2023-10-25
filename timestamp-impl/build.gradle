@@ -1,5 +1,5 @@
-
 apply from: "../gradle/shared.gradle"
+
 dependencies {
   api(project(":timestamp-api"))
   api(project(":timestamp-client"))
@@ -22,10 +22,9 @@ dependencies {
   annotationProcessor project(":atlasdb-processors")
   compileOnly project(":atlasdb-processors")
 
-  testImplementation 'junit:junit'
   testImplementation('org.jmock:jmock') {
     exclude group: 'org.hamcrest'
   }
-  testImplementation 'org.awaitility:awaitility'
   testImplementation 'org.mockito:mockito-core'
+  testImplementation 'org.junit.jupiter:junit-jupiter'
 }

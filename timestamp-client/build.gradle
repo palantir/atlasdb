@@ -1,4 +1,3 @@
-
 apply from: "../gradle/shared.gradle"
 
 dependencies {
@@ -20,7 +19,8 @@ dependencies {
   testCompileOnly 'org.immutables:value::annotations'
 
   testImplementation 'com.palantir.tracing:tracing'
-  testImplementation 'junit:junit'
   testImplementation 'org.assertj:assertj-core'
   testImplementation 'org.mockito:mockito-core'
+  testImplementation 'org.junit.jupiter:junit-jupiter'
+  testImplementation 'org.mockito:mockito-junit-jupiter'
 }
