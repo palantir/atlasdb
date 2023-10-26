@@ -54,6 +54,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import javax.annotation.Nullable;
 
 /**
  * This implementation of multi-client batched TimeLock endpoints does not support multi-leader mode on TimeLock.
@@ -85,7 +86,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
 
     @Override
     public ListenableFuture<LeaderTimes> leaderTimes(
-            AuthHeader authHeader, Set<Namespace> namespaces, RequestContext context) {
+            AuthHeader authHeader, Set<Namespace> namespaces, @Nullable RequestContext context) {
         return handleExceptions(() -> Futures.transform(
                 Futures.allAsList(
                         Collections2.transform(namespaces, namespace -> getNamespacedLeaderTimes(namespace, context))),
@@ -95,19 +96,25 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
 
     @Override
     public ListenableFuture<Map<Namespace, ConjureStartTransactionsResponse>> startTransactions(
-            AuthHeader authHeader, Map<Namespace, ConjureStartTransactionsRequest> requests, RequestContext context) {
+            AuthHeader authHeader,
+            Map<Namespace, ConjureStartTransactionsRequest> requests,
+            @Nullable RequestContext context) {
         return startTransactionsForClients(authHeader, requests, context);
     }
 
     @Override
     public ListenableFuture<Map<Namespace, GetCommitTimestampsResponse>> getCommitTimestamps(
-            AuthHeader authHeader, Map<Namespace, GetCommitTimestampsRequest> requests, RequestContext context) {
+            AuthHeader authHeader,
+            Map<Namespace, GetCommitTimestampsRequest> requests,
+            @Nullable RequestContext context) {
         return getCommitTimestampsForClients(authHeader, requests, context);
     }
 
     @Override
     public ListenableFuture<Map<Namespace, ConjureStartTransactionsResponse>> startTransactionsForClients(
-            AuthHeader authHeader, Map<Namespace, ConjureStartTransactionsRequest> requests, RequestContext context) {
+            AuthHeader authHeader,
+            Map<Namespace, ConjureStartTransactionsRequest> requests,
+            @Nullable RequestContext context) {
         return handleExceptions(() -> Futures.transform(
                 Futures.allAsList(Collections2.transform(
                         requests.entrySet(),
@@ -118,7 +125,9 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
 
     @Override
     public ListenableFuture<Map<Namespace, GetCommitTimestampsResponse>> getCommitTimestampsForClients(
-            AuthHeader authHeader, Map<Namespace, GetCommitTimestampsRequest> requests, RequestContext context) {
+            AuthHeader authHeader,
+            Map<Namespace, GetCommitTimestampsRequest> requests,
+            @Nullable RequestContext context) {
         return handleExceptions(() -> Futures.transform(
                 Futures.allAsList(Collections2.transform(
                         requests.entrySet(),
@@ -129,7 +138,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
 
     @Override
     public ListenableFuture<Map<Namespace, ConjureUnlockResponseV2>> unlock(
-            AuthHeader authHeader, Map<Namespace, ConjureUnlockRequestV2> requests, RequestContext context) {
+            AuthHeader authHeader, Map<Namespace, ConjureUnlockRequestV2> requests, @Nullable RequestContext context) {
         return handleExceptions(() -> Futures.transform(
                 Futures.allAsList(Collections2.transform(
                         requests.entrySet(), e -> unlockForSingleNamespace(e.getKey(), e.getValue(), context))),
@@ -138,7 +147,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
     }
 
     private ListenableFuture<Entry<Namespace, ConjureUnlockResponseV2>> unlockForSingleNamespace(
-            Namespace namespace, ConjureUnlockRequestV2 request, RequestContext context) {
+            Namespace namespace, ConjureUnlockRequestV2 request, @Nullable RequestContext context) {
         ListenableFuture<ConjureUnlockResponseV2> unlockResponseFuture = Futures.transform(
                 getServiceForNamespace(namespace, context).unlock(toServerLockTokens(request.get())),
                 response -> ConjureUnlockResponseV2.of(fromServerLockTokens(response)),
@@ -166,7 +175,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
     }
 
     private ListenableFuture<Map.Entry<Namespace, GetCommitTimestampsResponse>> getCommitTimestampsForSingleNamespace(
-            Namespace namespace, GetCommitTimestampsRequest request, RequestContext context) {
+            Namespace namespace, GetCommitTimestampsRequest request, @Nullable RequestContext context) {
         ListenableFuture<GetCommitTimestampsResponse> commitTimestampsResponseListenableFuture = getServiceForNamespace(
                         namespace, context)
                 .getCommitTimestamps(
@@ -184,7 +193,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
 
     private ListenableFuture<Map.Entry<Namespace, ConjureStartTransactionsResponse>>
             startTransactionsForSingleNamespace(
-                    Namespace namespace, ConjureStartTransactionsRequest request, RequestContext context) {
+                    Namespace namespace, ConjureStartTransactionsRequest request, @Nullable RequestContext context) {
         ListenableFuture<ConjureStartTransactionsResponse> conjureStartTransactionsResponseListenableFuture =
                 getServiceForNamespace(namespace, context).startTransactionsWithWatches(request);
         return Futures.transform(
@@ -194,7 +203,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
     }
 
     private ListenableFuture<Map.Entry<Namespace, LeaderTime>> getNamespacedLeaderTimes(
-            Namespace namespace, RequestContext context) {
+            Namespace namespace, @Nullable RequestContext context) {
         ListenableFuture<LeaderTime> leaderTimeListenableFuture =
                 getServiceForNamespace(namespace, context).leaderTime();
         return Futures.transform(
@@ -203,7 +212,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
                 MoreExecutors.directExecutor());
     }
 
-    private AsyncTimelockService getServiceForNamespace(Namespace namespace, RequestContext context) {
+    private AsyncTimelockService getServiceForNamespace(Namespace namespace, @Nullable RequestContext context) {
         return timelockServices.apply(namespace.get(), TimelockNamespaces.toUserAgent(context));
     }
 

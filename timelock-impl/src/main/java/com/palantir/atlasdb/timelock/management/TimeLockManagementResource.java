@@ -38,6 +38,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 
 public final class TimeLockManagementResource implements UndertowTimeLockManagementService {
     private static final SafeLogger log = SafeLoggerFactory.get(TimeLockManagementResource.class);
@@ -140,7 +141,7 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
 
     @Override
     public ListenableFuture<Void> fastForwardTimestamp(
-            AuthHeader authHeader, String namespace, long currentTimestamp, RequestContext context) {
+            AuthHeader authHeader, String namespace, long currentTimestamp, @Nullable RequestContext context) {
         return handleExceptions(() -> {
             timelockNamespaces
                     .get(namespace, TimelockNamespaces.toUserAgent(context))

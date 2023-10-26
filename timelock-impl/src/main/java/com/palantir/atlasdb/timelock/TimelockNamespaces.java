@@ -68,6 +68,11 @@ public final class TimelockNamespaces {
         registerClientCapacityMetrics(metrics);
     }
 
+    /**
+     * Extracts the user agent header, if present, from an undertow RequestContext.
+     * The RequestContext should always be present in Undertow methods that request it, but will not be available in
+     * our Jersey (used-in-test) server implementations.
+     */
     public static Optional<String> toUserAgent(@Nullable RequestContext context) {
         if (context == null) {
             return Optional.empty();

@@ -29,6 +29,7 @@ import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import javax.annotation.Nullable;
 
 public final class ConjureLockWatchingResource implements UndertowConjureLockWatchingService {
     private final ConjureResourceExceptionHandler exceptionHandler;
@@ -56,12 +57,12 @@ public final class ConjureLockWatchingResource implements UndertowConjureLockWat
 
     @Override
     public ListenableFuture<Void> startWatching(
-            AuthHeader authHeader, String namespace, LockWatchRequest request, RequestContext context) {
+            AuthHeader authHeader, String namespace, LockWatchRequest request, @Nullable RequestContext context) {
         return exceptionHandler.handleExceptions(() -> startWatchingSync(authHeader, namespace, request, context));
     }
 
     private ListenableFuture<Void> startWatchingSync(
-            AuthHeader header, String namespace, LockWatchRequest request, RequestContext context) {
+            AuthHeader header, String namespace, LockWatchRequest request, @Nullable RequestContext context) {
         timelockServices
                 .apply(namespace, TimelockNamespaces.toUserAgent(context))
                 .startWatching(request);
