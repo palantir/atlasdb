@@ -1,6 +1,7 @@
 apply from: "../gradle/shared.gradle"
 
 libsDirName = file('build/artifacts')
+
 dependencies {
   api project(":atlasdb-commons")
   implementation project(":leader-election-api-protobufs")

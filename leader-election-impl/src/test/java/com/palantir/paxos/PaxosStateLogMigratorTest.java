@@ -36,6 +36,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.palantir.common.streams.KeyedStream;
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.OptionalLong;
@@ -45,28 +46,27 @@ import java.util.stream.LongStream;
 import javax.sql.DataSource;
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class PaxosStateLogMigratorTest {
     private static final NamespaceAndUseCase NAMESPACE_AND_USE_CASE =
             ImmutableNamespaceAndUseCase.of(Client.of("client"), "UseCase");
 
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @TempDir
+    public File tempFolder;
 
     private PaxosStateLog<PaxosValue> source;
     private PaxosStateLog<PaxosValue> target;
     private SqlitePaxosStateLogMigrationState migrationState;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         DataSource sourceConn = SqliteConnections.getDefaultConfiguredPooledDataSource(
-                tempFolder.newFolder("source").toPath());
+                getAndCreateSubdirectory(tempFolder, "source").toPath());
         DataSource targetConn = SqliteConnections.getDefaultConfiguredPooledDataSource(
-                tempFolder.newFolder("target").toPath());
+                getAndCreateSubdirectory(tempFolder, "target").toPath());
         source = SqlitePaxosStateLog.create(NAMESPACE, sourceConn);
         target = spy(SqlitePaxosStateLog.create(NAMESPACE, targetConn));
         migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE, targetConn);
@@ -539,5 +539,13 @@ public class PaxosStateLogMigratorTest {
                 .collect(Collectors.toList());
         valuesWritten.forEach(value -> targetLog.writeRound(value.seq, value));
         return valuesWritten;
+    }
+
+    private static File getAndCreateSubdirectory(File base, String subdirectoryName) {
+        File file = base.toPath().resolve(subdirectoryName).toFile();
+        if (file.mkdirs()) {
+            return file;
+        }
+        throw new RuntimeException("Unexpected error when creating a subdirectory");
     }
 }

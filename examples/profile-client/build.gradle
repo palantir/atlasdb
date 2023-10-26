@@ -23,10 +23,10 @@ dependencies {
   implementation project(':atlasdb-client-protobufs')
   implementation project(':atlasdb-commons')
 
-
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.palantir.tritium:tritium-registry'
   testImplementation 'io.dropwizard.metrics:metrics-core'
+  testImplementation 'org.junit.jupiter:junit-jupiter'
   testImplementation project(':atlasdb-api')
   testImplementation project(':atlasdb-commons')
   testImplementation project(':atlasdb-impl-shared')
@@ -35,4 +35,9 @@ dependencies {
   testImplementation project(":atlasdb-config")
   testImplementation project(":atlasdb-tests-shared")
   testImplementation project(":timelock-impl")
+
+  testImplementation 'junit:junit'
+  testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+    because 'allows JUnit 3 and JUnit 4 tests to run'
+  }
 }

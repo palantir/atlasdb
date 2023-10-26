@@ -27,29 +27,29 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.sql.DataSource;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class SplittingPaxosStateLogTest {
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @TempDir
+    public File tempFolder;
 
     private PaxosStateLog<PaxosValue> legacyLog;
     private PaxosStateLog<PaxosValue> currentLog;
     private AtomicInteger writeMetric = new AtomicInteger(0);
     private AtomicInteger readMetric = new AtomicInteger(0);
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         DataSource legacy = SqliteConnections.getDefaultConfiguredPooledDataSource(
-                tempFolder.newFolder("legacy").toPath());
+                getAndCreateSubdirectory(tempFolder, "legacy").toPath());
         DataSource current = SqliteConnections.getDefaultConfiguredPooledDataSource(
-                tempFolder.newFolder("current").toPath());
+                getAndCreateSubdirectory(tempFolder, "current").toPath());
         legacyLog = spy(SqlitePaxosStateLog.create(NAMESPACE, legacy));
         currentLog = spy(SqlitePaxosStateLog.create(NAMESPACE, current));
     }
@@ -158,5 +158,13 @@ public class SplittingPaxosStateLogTest {
                         .build())
                 .cutoffInclusive(cutoff)
                 .build();
+    }
+
+    private static File getAndCreateSubdirectory(File base, String subdirectoryName) {
+        File file = base.toPath().resolve(subdirectoryName).toFile();
+        if (file.mkdirs()) {
+            return file;
+        }
+        throw new RuntimeException("Unexpected error when creating a subdirectory");
     }
 }
