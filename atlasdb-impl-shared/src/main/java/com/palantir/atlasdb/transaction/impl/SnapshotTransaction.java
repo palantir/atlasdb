@@ -155,7 +155,9 @@ import com.palantir.util.RateLimitedLogger;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import com.palantir.util.result.Result;
 import java.nio.ByteBuffer;
+import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -286,6 +288,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
     private final CommitTimestampLoader commitTimestampLoader;
     private final ExpectationsMetrics expectationsDataCollectionMetrics;
+    private final Clock clock = Clock.systemUTC();
     private volatile long cellCommitLocksRequested = 0L;
     private volatile long rowCommitLocksRequested = 0L;
     private volatile long cellChangeMetadataSent = 0L;
@@ -1415,14 +1418,42 @@ public class SnapshotTransaction extends AbstractTransaction
         Iterator<Iterator<RowResult<T>>> batchedPostFiltered = new AbstractIterator<Iterator<RowResult<T>>>() {
             @Override
             protected Iterator<RowResult<T>> computeNext() {
+                /* TODO(boyoruk): Remove warnTakesTooMuchTime calls once getMessages#p999 problem is solved. */
+                Instant startTime = clock.instant();
                 List<RowResult<Value>> batch = results.getBatch().batch();
+                Instant endTime = clock.instant();
+                if (endTime.isAfter(startTime.plus(1, ChronoUnit.SECONDS))) {
+                    warnTakesTooMuchTime(
+                            "results.getBatch().batch() took a lot of time",
+                            Duration.between(startTime, endTime),
+                            tableRef);
+                }
+
                 if (batch.isEmpty()) {
                     return endOfData();
                 }
+
+                startTime = clock.instant();
                 SortedMap<Cell, T> postFilter = postFilterRows(tableRef, batch, transformer);
+                endTime = clock.instant();
+                if (endTime.isAfter(startTime.plus(1, ChronoUnit.SECONDS))) {
+                    warnTakesTooMuchTime(
+                            "postFilterRows(tableRef, batch, transformer) took a lot of time",
+                            Duration.between(startTime, endTime),
+                            tableRef);
+                }
 
                 // can't skip lock checks for range scans
+                startTime = clock.instant();
                 validatePreCommitRequirementsOnNonExhaustiveReadIfNecessary(tableRef, getStartTimestamp());
+                endTime = clock.instant();
+                if (endTime.isAfter(startTime.plus(1, ChronoUnit.SECONDS))) {
+                    warnTakesTooMuchTime(
+                            "validatePreCommitRequirementsOnNonExhaustiveReadIfNecessary(tableRef, getStartTimestamp()) took a lot of time",
+                            Duration.between(startTime, endTime),
+                            tableRef);
+                }
+
                 results.markNumResultsNotDeleted(
                         Cells.getRows(postFilter.keySet()).size());
                 return Cells.createRowView(postFilter.entrySet());
@@ -1432,6 +1463,19 @@ public class SnapshotTransaction extends AbstractTransaction
         final Iterator<RowResult<T>> rows = Iterators.concat(batchedPostFiltered);
 
         return ClosableIterators.wrap(rows, results);
+    }
+
+    private void warnTakesTooMuchTime(String message, Duration duration, TableReference tableRef) {
+        try {
+            log.warn(
+                    "warnTakesTooMuchTime",
+                    SafeArg.of("message", message),
+                    SafeArg.of("duration", duration),
+                    SafeArg.of("tableName", tableRef.getTableName()),
+                    SafeArg.of("namespace", tableRef.getNamespace()));
+        } catch (Exception e) {
+            log.warn("Failed to log warning", e);
+        }
     }
 
     /**
