@@ -47,6 +47,7 @@ import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.util.TimelockTestUtils;
 import com.palantir.common.time.NanoTime;
 import com.palantir.conjure.java.api.errors.QosException;
+import com.palantir.conjure.java.undertow.lib.RequestContext;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.impl.TooManyRequestsException;
 import com.palantir.lock.remoting.BlockingTimeoutException;
@@ -78,6 +79,7 @@ public class ConjureTimelockResourceTest {
             RedirectRetryTargeter.create(LOCAL, ImmutableList.of(LOCAL, REMOTE));
 
     private static final String NAMESPACE = "test";
+    private static final RequestContext REQUEST_CONTEXT = null;
 
     @Mock
     private AsyncTimelockService timelockService;
@@ -90,14 +92,14 @@ public class ConjureTimelockResourceTest {
 
     @BeforeEach
     public void before() {
-        resource = new ConjureTimelockResource(TARGETER, unused -> timelockService);
-        service = ConjureTimelockResource.jersey(TARGETER, unused -> timelockService);
+        resource = new ConjureTimelockResource(TARGETER, (_namespace, _userAgent) -> timelockService);
+        service = ConjureTimelockResource.jersey(TARGETER, (_namespace, _userAgent) -> timelockService);
     }
 
     @Test
     public void canGetLeaderTime() {
         when(timelockService.leaderTime()).thenReturn(Futures.immediateFuture(leaderTime));
-        assertThat(Futures.getUnchecked(resource.leaderTime(AUTH_HEADER, NAMESPACE)))
+        assertThat(Futures.getUnchecked(resource.leaderTime(AUTH_HEADER, NAMESPACE, REQUEST_CONTEXT)))
                 .isEqualTo(leaderTime);
     }
 
@@ -112,20 +114,20 @@ public class ConjureTimelockResourceTest {
                 .thenReturn(Futures.immediateFuture(secondRange))
                 .thenReturn(Futures.immediateFuture(thirdRange));
 
-        assertThat(Futures.getUnchecked(
-                        resource.getFreshTimestamps(AUTH_HEADER, NAMESPACE, ConjureGetFreshTimestampsRequest.of(2))))
+        assertThat(Futures.getUnchecked(resource.getFreshTimestamps(
+                        AUTH_HEADER, NAMESPACE, ConjureGetFreshTimestampsRequest.of(2), REQUEST_CONTEXT)))
                 .satisfies(response -> {
                     assertThat(response.getInclusiveLower()).isEqualTo(firstRange.getLowerBound());
                     assertThat(response.getInclusiveUpper()).isEqualTo(firstRange.getUpperBound());
                 });
         assertThat(Futures.getUnchecked(resource.getFreshTimestampsV2(
-                                AUTH_HEADER, NAMESPACE, ConjureGetFreshTimestampsRequestV2.of(2)))
+                                AUTH_HEADER, NAMESPACE, ConjureGetFreshTimestampsRequestV2.of(2), REQUEST_CONTEXT))
                         .get())
                 .satisfies(range -> {
                     assertThat(range.getStart()).isEqualTo(secondRange.getLowerBound());
                     assertThat(range.getCount()).isEqualTo(secondRange.size());
                 });
-        assertThat(Futures.getUnchecked(resource.getFreshTimestamp(AUTH_HEADER, NAMESPACE))
+        assertThat(Futures.getUnchecked(resource.getFreshTimestamp(AUTH_HEADER, NAMESPACE, REQUEST_CONTEXT))
                         .get())
                 .isEqualTo(thirdRange.getLowerBound());
     }
@@ -145,13 +147,16 @@ public class ConjureTimelockResourceTest {
                 .thenReturn(Futures.immediateFuture(setOne))
                 .thenReturn(Futures.immediateFuture(setTwo));
 
-        ConjureUnlockResponse unlockResponse =
-                Futures.getUnchecked(resource.unlock(AUTH_HEADER, NAMESPACE, ConjureUnlockRequest.of(requestOne)));
+        ConjureUnlockResponse unlockResponse = Futures.getUnchecked(
+                resource.unlock(AUTH_HEADER, NAMESPACE, ConjureUnlockRequest.of(requestOne), REQUEST_CONTEXT));
         assertThat(unlockResponse.getTokens()).containsExactly(ConjureLockToken.of(tokenTwo));
         verify(timelockService).unlock(eq(ImmutableSet.of(LockToken.of(tokenOne))));
 
         ConjureUnlockResponseV2 secondResponse = Futures.getUnchecked(resource.unlockV2(
-                AUTH_HEADER, NAMESPACE, ConjureUnlockRequestV2.of(ImmutableSet.of(ConjureLockTokenV2.of(tokenThree)))));
+                AUTH_HEADER,
+                NAMESPACE,
+                ConjureUnlockRequestV2.of(ImmutableSet.of(ConjureLockTokenV2.of(tokenThree))),
+                REQUEST_CONTEXT));
 
         assertThat(secondResponse.get()).containsExactly(ConjureLockTokenV2.of(tokenThree));
         verify(timelockService).unlock(eq(ImmutableSet.of(LockToken.of(tokenThree))));
@@ -177,8 +182,8 @@ public class ConjureTimelockResourceTest {
                 .thenReturn(Futures.immediateFuture(RefreshLockResponseV2.of(setOne, leaseOne)))
                 .thenReturn(Futures.immediateFuture(RefreshLockResponseV2.of(setTwo, leaseTwo)));
 
-        ConjureRefreshLocksResponse refreshResponse = Futures.getUnchecked(
-                resource.refreshLocks(AUTH_HEADER, NAMESPACE, ConjureRefreshLocksRequest.of(requestOne)));
+        ConjureRefreshLocksResponse refreshResponse = Futures.getUnchecked(resource.refreshLocks(
+                AUTH_HEADER, NAMESPACE, ConjureRefreshLocksRequest.of(requestOne), REQUEST_CONTEXT));
         assertThat(refreshResponse.getRefreshedTokens()).containsExactly(ConjureLockToken.of(tokenTwo));
         assertThat(refreshResponse.getLease()).isEqualTo(leaseOne);
         verify(timelockService).refreshLockLeases(eq(ImmutableSet.of(LockToken.of(tokenOne))));
@@ -186,7 +191,8 @@ public class ConjureTimelockResourceTest {
         ConjureRefreshLocksResponseV2 secondResponse = Futures.getUnchecked(resource.refreshLocksV2(
                 AUTH_HEADER,
                 NAMESPACE,
-                ConjureRefreshLocksRequestV2.of(ImmutableSet.of(ConjureLockTokenV2.of(tokenThree)))));
+                ConjureRefreshLocksRequestV2.of(ImmutableSet.of(ConjureLockTokenV2.of(tokenThree))),
+                REQUEST_CONTEXT));
 
         assertThat(secondResponse.getRefreshedTokens()).containsExactly(ConjureLockTokenV2.of(tokenThree));
         assertThat(secondResponse.getLease()).isEqualTo(leaseTwo);
@@ -195,7 +201,7 @@ public class ConjureTimelockResourceTest {
 
     @Test
     public void jerseyPropagatesExceptions() {
-        when(resource.leaderTime(AUTH_HEADER, NAMESPACE)).thenThrow(new BlockingTimeoutException(""));
+        when(resource.leaderTime(AUTH_HEADER, NAMESPACE, REQUEST_CONTEXT)).thenThrow(new BlockingTimeoutException(""));
         assertQosExceptionThrownBy(
                 Futures.submitAsync(
                         () -> Futures.immediateFuture(service.leaderTime(AUTH_HEADER, NAMESPACE)),
@@ -211,8 +217,8 @@ public class ConjureTimelockResourceTest {
 
     @Test
     public void handlesBlockingTimeout() {
-        when(resource.leaderTime(AUTH_HEADER, NAMESPACE)).thenThrow(new BlockingTimeoutException(""));
-        assertQosExceptionThrownBy(resource.leaderTime(AUTH_HEADER, NAMESPACE), new AssertVisitor() {
+        when(resource.leaderTime(AUTH_HEADER, NAMESPACE, REQUEST_CONTEXT)).thenThrow(new BlockingTimeoutException(""));
+        assertQosExceptionThrownBy(resource.leaderTime(AUTH_HEADER, NAMESPACE, REQUEST_CONTEXT), new AssertVisitor() {
             @Override
             public Void visit(QosException.Throttle exception) {
                 assertThat(exception.getRetryAfter()).contains(Duration.ZERO);
@@ -223,8 +229,8 @@ public class ConjureTimelockResourceTest {
 
     @Test
     public void handlesTooManyRequestsException() {
-        when(resource.leaderTime(AUTH_HEADER, NAMESPACE)).thenThrow(new TooManyRequestsException(""));
-        assertQosExceptionThrownBy(resource.leaderTime(AUTH_HEADER, NAMESPACE), new AssertVisitor() {
+        when(resource.leaderTime(AUTH_HEADER, NAMESPACE, REQUEST_CONTEXT)).thenThrow(new TooManyRequestsException(""));
+        assertQosExceptionThrownBy(resource.leaderTime(AUTH_HEADER, NAMESPACE, REQUEST_CONTEXT), new AssertVisitor() {
             @Override
             public Void visit(QosException.Throttle exception) {
                 assertThat(exception.getRetryAfter()).isEmpty();
@@ -235,9 +241,9 @@ public class ConjureTimelockResourceTest {
 
     @Test
     public void handlesNotCurrentLeader() {
-        when(resource.leaderTime(AUTH_HEADER, NAMESPACE))
+        when(resource.leaderTime(AUTH_HEADER, NAMESPACE, REQUEST_CONTEXT))
                 .thenThrow(new NotCurrentLeaderException("", HostAndPort.fromParts("localhost", REMOTE_PORT)));
-        assertQosExceptionThrownBy(resource.leaderTime(AUTH_HEADER, NAMESPACE), new AssertVisitor() {
+        assertQosExceptionThrownBy(resource.leaderTime(AUTH_HEADER, NAMESPACE, REQUEST_CONTEXT), new AssertVisitor() {
             @Override
             public Void visit(QosException.RetryOther exception) {
                 assertThat(exception.getRedirectTo()).isEqualTo(REMOTE);

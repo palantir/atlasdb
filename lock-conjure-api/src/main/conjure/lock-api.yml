@@ -50,6 +50,8 @@ services:
             type: string
             safety: safe
           request: ConjureLockV1Request
+        tags:
+          - server-request-context
         returns: optional<HeldLocksToken>
       refreshLockRefreshTokens:
         http: POST /rlrt/{namespace}
@@ -58,6 +60,8 @@ services:
             type: string
             safety: safe
           request: list<ConjureLockRefreshToken>
+        tags:
+          - server-request-context
         returns: set<ConjureLockRefreshToken>
       unlockSimple:
         http: POST /us/{namespace}
@@ -66,4 +70,6 @@ services:
             type: string
             safety: safe
           request: ConjureSimpleHeldLocksToken
+        tags:
+          - server-request-context
         returns: boolean

@@ -90,8 +90,8 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 @SuppressWarnings("checkstyle:FinalClass") // This is mocked internally
@@ -318,10 +318,10 @@ public class TimeLockAgent {
         registerManagementResource();
         healthCheck = paxosResources.leadershipComponents().healthCheck(namespaces::getActiveClients);
 
-        Function<String, LockService> lockServiceGetter =
-                namespace -> namespaces.get(namespace).getLockService();
-        Function<String, AsyncTimelockService> asyncTimelockServiceGetter =
-                namespace -> namespaces.get(namespace).getTimelockService();
+        BiFunction<String, Optional<String>, LockService> lockServiceGetter =
+                (namespace, userAgent) -> namespaces.get(namespace, userAgent).getLockService();
+        BiFunction<String, Optional<String>, AsyncTimelockService> asyncTimelockServiceGetter =
+                (namespace, userAgent) -> namespaces.get(namespace, userAgent).getTimelockService();
 
         if (undertowRegistrar.isPresent()) {
             Consumer<UndertowService> presentUndertowRegistrar = undertowRegistrar.get();

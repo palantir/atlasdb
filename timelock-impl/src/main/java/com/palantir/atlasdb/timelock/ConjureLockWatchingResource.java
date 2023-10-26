@@ -24,38 +24,48 @@ import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.timelock.lock.watch.ConjureLockWatchingService;
 import com.palantir.atlasdb.timelock.lock.watch.ConjureLockWatchingServiceEndpoints;
 import com.palantir.atlasdb.timelock.lock.watch.UndertowConjureLockWatchingService;
+import com.palantir.conjure.java.undertow.lib.RequestContext;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.tokens.auth.AuthHeader;
-import java.util.function.Function;
+import java.util.Optional;
+import java.util.function.BiFunction;
+import javax.annotation.Nullable;
 
 public final class ConjureLockWatchingResource implements UndertowConjureLockWatchingService {
     private final ConjureResourceExceptionHandler exceptionHandler;
-    private final Function<String, AsyncTimelockService> timelockServices;
+    private final BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices;
 
     private ConjureLockWatchingResource(
-            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
+            RedirectRetryTargeter redirectRetryTargeter,
+            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.timelockServices = timelockServices;
     }
 
     public static UndertowService undertow(
-            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
+            RedirectRetryTargeter redirectRetryTargeter,
+            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
         return ConjureLockWatchingServiceEndpoints.of(
                 new ConjureLockWatchingResource(redirectRetryTargeter, timelockServices));
     }
 
     public static ConjureLockWatchingService jersey(
-            RedirectRetryTargeter redirectRetryTargeter, Function<String, AsyncTimelockService> timelockServices) {
+            RedirectRetryTargeter redirectRetryTargeter,
+            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
         return new JerseyAdapter(new ConjureLockWatchingResource(redirectRetryTargeter, timelockServices));
     }
 
     @Override
-    public ListenableFuture<Void> startWatching(AuthHeader authHeader, String namespace, LockWatchRequest request) {
-        return exceptionHandler.handleExceptions(() -> startWatchingSync(authHeader, namespace, request));
+    public ListenableFuture<Void> startWatching(
+            AuthHeader authHeader, String namespace, LockWatchRequest request, @Nullable RequestContext context) {
+        return exceptionHandler.handleExceptions(() -> startWatchingSync(authHeader, namespace, request, context));
     }
 
-    private ListenableFuture<Void> startWatchingSync(AuthHeader header, String namespace, LockWatchRequest request) {
-        timelockServices.apply(namespace).startWatching(request);
+    private ListenableFuture<Void> startWatchingSync(
+            AuthHeader header, String namespace, LockWatchRequest request, @Nullable RequestContext context) {
+        timelockServices
+                .apply(namespace, TimelockNamespaces.toUserAgent(context))
+                .startWatching(request);
         return Futures.immediateFuture(null);
     }
 
@@ -68,7 +78,7 @@ public final class ConjureLockWatchingResource implements UndertowConjureLockWat
 
         @Override
         public void startWatching(AuthHeader authHeader, String namespace, LockWatchRequest request) {
-            AtlasFutures.getUnchecked(resource.startWatching(authHeader, namespace, request));
+            AtlasFutures.getUnchecked(resource.startWatching(authHeader, namespace, request, null));
         }
     }
 }
