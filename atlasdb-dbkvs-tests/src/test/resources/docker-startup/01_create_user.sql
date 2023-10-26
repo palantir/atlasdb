@@ -1,4 +1,4 @@
-CREATE USER palantir IDENTIFIED BY "7_SeeingStones_7";
+CREATE USER palantir IDENTIFIED BY "7_SeeingStones_7" QUOTA UNLIMITED ON users;
 
 GRANT
     CREATE SESSION,
@@ -8,8 +8,3 @@ GRANT
     CREATE VIEW,
     CREATE TYPE
 TO palantir;
-
-ALTER USER palantir
-    QUOTA UNLIMITED ON users;
-
-EXIT;
