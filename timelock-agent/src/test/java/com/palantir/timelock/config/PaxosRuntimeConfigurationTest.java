@@ -17,7 +17,7 @@ package com.palantir.timelock.config;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("CheckReturnValue")
 public class PaxosRuntimeConfigurationTest {

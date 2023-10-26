@@ -20,6 +20,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator.KvsMigrationMessageLevel;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator.KvsMigrationMessageProcessor;
+import com.palantir.logsafe.Arg;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -65,8 +66,11 @@ public final class KeyValueServiceMigratorUtils {
     }
 
     public static void processMessage(
-            KvsMigrationMessageProcessor messageProcessor, String string, KvsMigrationMessageLevel level) {
-        messageProcessor.processMessage(string, level);
+            KvsMigrationMessageProcessor messageProcessor,
+            String string,
+            KvsMigrationMessageLevel level,
+            Arg<?>... args) {
+        messageProcessor.processMessage(string, level, args);
     }
 
     public static void processMessage(

@@ -43,8 +43,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 
 public class GetSuspectedLeaderWithUuidTests {
@@ -53,7 +53,7 @@ public class GetSuspectedLeaderWithUuidTests {
 
     private final ExecutorService executorService = Executors.newCachedThreadPool();
 
-    @After
+    @AfterEach
     public void after() {
         executorService.shutdown();
     }

@@ -29,7 +29,7 @@ import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.tritium.metrics.registry.MetricName;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class FeedbackHandlerTest {
     private static final ConjureTimeLockClientFeedback FEEDBACK = ConjureTimeLockClientFeedback.builder()

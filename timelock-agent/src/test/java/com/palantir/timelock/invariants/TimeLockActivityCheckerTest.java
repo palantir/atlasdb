@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 
 import com.palantir.atlasdb.timelock.api.ConjureSingleTimestamp;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TimeLockActivityCheckerTest {
     private static final String CLIENT = "client";

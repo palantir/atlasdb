@@ -23,7 +23,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
 import java.util.concurrent.ScheduledExecutorService;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class AsyncLockServiceTest {
 

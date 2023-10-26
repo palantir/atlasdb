@@ -159,8 +159,8 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
                 Optional::empty);
 
         RedirectRetryTargeter redirectRetryTargeter = timeLockAgent.redirectRetryTargeter();
-        ConjureTimelockService conjureTimelockService =
-                ConjureTimelockResource.jersey(redirectRetryTargeter, _unused -> delegate.getTimelockService());
+        ConjureTimelockService conjureTimelockService = ConjureTimelockResource.jersey(
+                redirectRetryTargeter, (_namespace, _context) -> delegate.getTimelockService());
         namespacedConjureTimelockService = new NamespacedConjureTimelockServiceImpl(conjureTimelockService, client);
         lockLeaseService = LockLeaseService.create(
                 namespacedConjureTimelockService,

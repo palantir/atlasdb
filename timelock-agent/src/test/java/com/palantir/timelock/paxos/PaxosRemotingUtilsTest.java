@@ -28,7 +28,7 @@ import java.net.URL;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class PaxosRemotingUtilsTest {
     private static final ImmutableList<String> CLUSTER_URIS = ImmutableList.of("foo:1", "bar:2", "baz:3");

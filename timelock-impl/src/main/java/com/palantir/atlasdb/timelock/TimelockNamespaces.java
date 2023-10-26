@@ -22,12 +22,14 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.conjure.java.undertow.lib.RequestContext;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.Client;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -35,8 +37,11 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 
 public final class TimelockNamespaces {
+    static final String USER_AGENT_HEADER = "User-Agent";
+
     @VisibleForTesting
     static final String ACTIVE_CLIENTS = "activeClients";
 
@@ -63,8 +68,32 @@ public final class TimelockNamespaces {
         registerClientCapacityMetrics(metrics);
     }
 
-    public TimeLockServices get(String namespace) {
-        return services.computeIfAbsent(namespace, this::createNewClient);
+    /**
+     * Extracts the user agent header, if present, from an undertow RequestContext.
+     * The RequestContext should always be present in Undertow methods that request it, but will not be available in
+     * our Jersey (used-in-test) server implementations.
+     */
+    public static Optional<String> toUserAgent(@Nullable RequestContext context) {
+        if (context == null) {
+            return Optional.empty();
+        }
+        return context.firstHeader(USER_AGENT_HEADER);
+    }
+
+    /**
+     * Gets the TimeLockServices for a given namespace.
+     *
+     * Should be best-effort to give a UserAgent - it's possible with Undertow interfaces but not
+     * server-side Jersey interfaces (which are just used in tests)
+     */
+    public TimeLockServices get(String namespace, Optional<String> userAgent) {
+        return services.computeIfAbsent(namespace, _namespace -> {
+            log.info(
+                    "Creating new timelock client",
+                    SafeArg.of("namespace", namespace),
+                    SafeArg.of("userAgent", userAgent));
+            return createNewClient(namespace);
+        });
     }
 
     public Set<Client> getActiveClients() {

@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TimeLockAdjudicationConfigurationTest {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper(new YAMLFactory()

@@ -25,6 +25,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.Arg;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,7 +60,7 @@ public class KeyValueServiceMigrator {
     }
 
     public interface KvsMigrationMessageProcessor {
-        void processMessage(String message, KvsMigrationMessageLevel level);
+        void processMessage(String message, KvsMigrationMessageLevel level, Arg<?>... args);
     }
 
     private final KvsMigrationMessageProcessor messageProcessor;

@@ -29,11 +29,13 @@ import io.undertow.server.HttpServerExchange;
 import io.undertow.util.Headers;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.util.OptionalLong;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.meta.When;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -64,9 +66,13 @@ public class TimestampManagementResource {
                     @QueryParam("currentTimestamp")
                     @DefaultValue(SENTINEL_TIMESTAMP_STRING)
                     @Handle.QueryParam(value = "currentTimestamp")
-                    OptionalLong currentTimestamp) {
+                    OptionalLong currentTimestamp,
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
         long timestampToUse = currentTimestamp.orElse(SENTINEL_TIMESTAMP);
-        getTimestampManagementService(namespace).fastForwardTimestamp(timestampToUse);
+        getTimestampManagementService(namespace, userAgent).fastForwardTimestamp(timestampToUse);
     }
 
     @GET
@@ -77,12 +83,14 @@ public class TimestampManagementResource {
             method = HttpMethod.GET,
             path = "/{namespace}/timestamp-management/ping",
             produces = TextPlainSerializer.class)
-    public String ping(@Safe @PathParam("namespace") @Handle.PathParam String namespace) {
-        return getTimestampManagementService(namespace).ping();
+    public String ping(
+            @Safe @PathParam("namespace") @Handle.PathParam String namespace,
+            @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
+        return getTimestampManagementService(namespace, userAgent).ping();
     }
 
-    private TimestampManagementService getTimestampManagementService(String namespace) {
-        return namespaces.get(namespace).getTimestampManagementService();
+    private TimestampManagementService getTimestampManagementService(String namespace, Optional<String> userAgent) {
+        return namespaces.get(namespace, userAgent).getTimestampManagementService();
     }
 
     enum TextPlainSerializer implements SerializerFactory<String> {

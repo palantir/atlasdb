@@ -1,7 +1,7 @@
-
 apply from: "../gradle/shared.gradle"
 
 libsDirName = file('build/artifacts')
+
 dependencies {
     implementation project(":atlasdb-commons")
     implementation 'com.lmax:disruptor'
@@ -10,6 +10,7 @@ dependencies {
 
     implementation 'com.google.errorprone:error_prone_annotations'
     implementation 'com.google.guava:guava'
+    implementation 'com.palantir.conjure.java.api:errors'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.tracing:tracing'
     implementation 'io.dropwizard.metrics:metrics-core'
@@ -28,12 +29,14 @@ dependencies {
     testAnnotationProcessor 'org.immutables:value'
     testCompileOnly 'org.immutables:value::annotations'
 
-    testImplementation 'junit:junit'
     testImplementation 'org.assertj:assertj-core'
-    testImplementation 'org.awaitility:awaitility'
-    testImplementation('org.jmock:jmock') {
-      exclude group: 'org.hamcrest'
-    }
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'com.palantir.tracing:tracing-test-utils'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
+
+    testImplementation 'junit:junit'
+    testRuntimeOnly 'org.junit.vintage:junit-vintage-engine', {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
 }

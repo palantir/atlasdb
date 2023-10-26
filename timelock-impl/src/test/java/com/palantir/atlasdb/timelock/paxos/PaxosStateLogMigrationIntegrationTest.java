@@ -49,6 +49,7 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+/* TODO(boyoruk): Migrate this to JUnit5 */
 @RunWith(Parameterized.class)
 public class PaxosStateLogMigrationIntegrationTest {
     @Parameterized.Parameters(name = "Async migration completed {0}")

@@ -232,6 +232,8 @@ services:
             type: string
             safety: safe
           request: ConjureStartTransactionsRequest
+        tags:
+          - server-request-context
         returns: ConjureStartTransactionsResponse
       getFreshTimestamps:
         http: POST /ts/{namespace}
@@ -240,6 +242,8 @@ services:
             type: string
             safety: safe
           request: ConjureGetFreshTimestampsRequest
+        tags:
+          - server-request-context
         returns: ConjureGetFreshTimestampsResponse
       getFreshTimestampsV2:
         http: POST /t2/{namespace}
@@ -248,6 +252,8 @@ services:
             type: string
             safety: safe
           request: ConjureGetFreshTimestampsRequestV2
+        tags:
+          - server-request-context
         returns: ConjureGetFreshTimestampsResponseV2
       getFreshTimestamp:
         http: POST /ts1/{namespace}
@@ -255,6 +261,8 @@ services:
           namespace:
             type: string
             safety: safe
+        tags:
+          - server-request-context
         returns: ConjureSingleTimestamp
       leaderTime:
         http: POST /lt/{namespace}
@@ -262,6 +270,8 @@ services:
           namespace:
             type: string
             safety: safe
+        tags:
+          - server-request-context
         returns: LeaderTime
       lock:
         http: POST /l/{namespace}
@@ -270,6 +280,8 @@ services:
             type: string
             safety: safe
           request: ConjureLockRequest
+        tags:
+          - server-request-context
         returns: ConjureLockResponse
       waitForLocks:
         http: POST /wl/{namespace}
@@ -278,6 +290,8 @@ services:
             type: string
             safety: safe
           request: ConjureLockRequest
+        tags:
+          - server-request-context
         returns: ConjureWaitForLocksResponse
       refreshLocks:
         http: POST /rl/{namespace}
@@ -286,6 +300,8 @@ services:
             type: string
             safety: safe
           request: ConjureRefreshLocksRequest
+        tags:
+          - server-request-context
         returns: ConjureRefreshLocksResponse
       refreshLocksV2:
         http: POST /rl2/{namespace}
@@ -294,6 +310,8 @@ services:
             type: string
             safety: safe
           request: ConjureRefreshLocksRequestV2
+        tags:
+          - server-request-context
         returns: ConjureRefreshLocksResponseV2
       unlock:
         http: POST /ul/{namespace}
@@ -302,6 +320,8 @@ services:
             type: string
             safety: safe
           request: ConjureUnlockRequest
+        tags:
+          - server-request-context
         returns: ConjureUnlockResponse
       unlockV2:
         http: POST /ul2/{namespace}
@@ -310,6 +330,8 @@ services:
             type: string
             safety: safe
           request: ConjureUnlockRequestV2
+        tags:
+          - server-request-context
         returns: ConjureUnlockResponseV2
       getCommitTimestamps:
         http: POST /gct/{namespace}
@@ -318,6 +340,8 @@ services:
             type: string
             safety: safe
           request: GetCommitTimestampsRequest
+        tags:
+          - server-request-context
         returns: GetCommitTimestampsResponse
         docs: |
           Batched endpoint for acquiring commit timestamps (a list of fresh timestamps) and the list of all lock watch
@@ -329,6 +353,8 @@ services:
             type: string
             safety: safe
           request: GetCommitTimestampRequest
+        tags:
+          - server-request-context
         returns: GetCommitTimestampResponse
   ConjureLockWatchingService:
     name: Lock Watching service
@@ -343,6 +369,8 @@ services:
             type: string
             safety: safe
           request: LockWatchRequest
+        tags:
+          - server-request-context
   MultiClientConjureTimelockService:
     name: Multi Client Timelock Service
     default-auth: header
@@ -353,6 +381,8 @@ services:
         http: POST /lts
         args:
           namespaces: set<Namespace>
+        tags:
+          - server-request-context
         returns: LeaderTimes
         docs: |
           Version of ConjureTimelockService#leaderTime endpoint for acquiring leaderTimes for a set of namespaces.
@@ -362,6 +392,8 @@ services:
           This endpoint is deprecated. Please use {@link #startTransactionsForClients} to start transactions for multiple clients.
         args:
           requests: map<Namespace, ConjureStartTransactionsRequest>
+        tags:
+          - server-request-context
         returns: map<Namespace, ConjureStartTransactionsResponse>
         docs: |
           Version of ConjureTimelockService#startTransactions that starts transactions for multiple namespaces.
@@ -371,6 +403,8 @@ services:
           This endpoint is deprecated. Please use {@link #getCommitTimestampsForClients} to get commit timestamps for multiple clients.
         args:
           requests: map<Namespace, GetCommitTimestampsRequest>
+        tags:
+          - server-request-context
         returns: map<Namespace, GetCommitTimestampsResponse>
         docs: |
           Version of ConjureTimelockService#getCommitTimestamps for acquiring commit timestamps for multiple namespaces.
@@ -378,6 +412,8 @@ services:
         http: POST /stsfc
         args:
           requests: map<Namespace, ConjureStartTransactionsRequest>
+        tags:
+          - server-request-context
         returns: map<Namespace, ConjureStartTransactionsResponse>
         docs: |
           Version of ConjureTimelockService#startTransactions that starts transactions for multiple namespaces.
@@ -385,6 +421,8 @@ services:
         http: POST /gctsfc
         args:
           requests: map<Namespace, GetCommitTimestampsRequest>
+        tags:
+          - server-request-context
         returns: map<Namespace, GetCommitTimestampsResponse>
         docs: |
           Version of ConjureTimelockService#getCommitTimestamps for acquiring commit timestamps for multiple namespaces.
@@ -392,6 +430,8 @@ services:
         http: POST /ul
         args:
           requests: map<Namespace, ConjureUnlockRequestV2>
+        tags:
+          - server-request-context
         returns: map<Namespace, ConjureUnlockResponseV2>
         docs: |
           Version of unlockV2 to unlock locks across multiple namespaces.

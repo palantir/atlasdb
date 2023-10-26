@@ -77,6 +77,8 @@ services:
             type: Long
             param-type: query
             docs: the largest timestamp issued until the fast-forward call
+        tags:
+          - server-request-context
         docs: |
           Updates the timestamp service to the currentTimestamp to ensure that all fresh timestamps issued after
           this request are greater than the current timestamp.

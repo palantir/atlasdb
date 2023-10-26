@@ -20,8 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.palantir.common.time.NanoTime;
 import java.time.Duration;
 import java.util.function.Supplier;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class LeaseExpirationTimerTest {
 
@@ -31,7 +31,7 @@ public class LeaseExpirationTimerTest {
     private final Supplier<NanoTime> clock = () -> NanoTime.createForTests(currentTimeNanos);
     private LeaseExpirationTimer timer;
 
-    @Before
+    @BeforeEach
     public void before() {
         currentTimeNanos = START_TIME_NANOS;
         timer = new LeaseExpirationTimer(clock);
