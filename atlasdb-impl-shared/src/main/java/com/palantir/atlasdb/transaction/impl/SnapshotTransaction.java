@@ -1471,8 +1471,7 @@ public class SnapshotTransaction extends AbstractTransaction
                     "warnTakesTooMuchTime",
                     SafeArg.of("message", message),
                     SafeArg.of("duration", duration),
-                    SafeArg.of("tableName", tableRef.getTableName()),
-                    SafeArg.of("namespace", tableRef.getNamespace()));
+                    LoggingArgs.tableRef(tableRef));
         } catch (Exception e) {
             log.warn("Failed to log warning", e);
         }
