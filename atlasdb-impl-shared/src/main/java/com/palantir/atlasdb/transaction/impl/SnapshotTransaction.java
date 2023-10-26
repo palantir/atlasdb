@@ -1449,7 +1449,8 @@ public class SnapshotTransaction extends AbstractTransaction
                 endTime = clock.instant();
                 if (endTime.isAfter(startTime.plus(1, ChronoUnit.SECONDS))) {
                     warnTakesTooMuchTime(
-                            "validatePreCommitRequirementsOnNonExhaustiveReadIfNecessary(tableRef, getStartTimestamp()) took a lot of time",
+                            "validatePreCommitRequirementsOnNonExhaustiveReadIfNecessary(tableRef,"
+                                    + " getStartTimestamp()) took a lot of time",
                             Duration.between(startTime, endTime),
                             tableRef);
                 }
