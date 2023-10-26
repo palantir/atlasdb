@@ -58,7 +58,7 @@ public class AsyncTimeLockUnlockerTest {
     }
 
     @Test
-@Timeout(value = 2000L, unit = TimeUnit.MILLISECONDS)
+    @Timeout(value = 2000L, unit = TimeUnit.MILLISECONDS)
     public void enqueueDoesNotBlock() {
         doAnswer(invocation -> {
                     Uninterruptibles.sleepUninterruptibly(Duration.ofSeconds(30));
