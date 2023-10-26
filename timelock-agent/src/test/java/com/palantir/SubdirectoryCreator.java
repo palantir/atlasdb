@@ -14,25 +14,16 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.buggify.impl;
+package com.palantir;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
+import java.io.File;
 
-import org.junit.jupiter.api.Test;
-
-public class NoOpBuggifyTest {
-    @Test
-    public void runNeverExecutes() {
-        Runnable runnable = mock(Runnable.class);
-        NoOpBuggify.INSTANCE.run(runnable);
-        verify(runnable, never()).run();
-    }
-
-    @Test
-    public void asBooleanReturnsFalse() {
-        assertThat(NoOpBuggify.INSTANCE.asBoolean()).isFalse();
+public class SubdirectoryCreator {
+    public static File getAndCreateSubdirectory(File base, String subdirectoryName) {
+        File file = base.toPath().resolve(subdirectoryName).toFile();
+        if (file.mkdirs()) {
+            return file;
+        }
+        throw new RuntimeException("Unexpected error when creating a subdirectory");
     }
 }

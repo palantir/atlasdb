@@ -29,8 +29,8 @@ import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.lock.client.DialogueAdaptingConjureTimelockService;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 
 public class FeedbackMetricsTest {
@@ -49,7 +49,7 @@ public class FeedbackMetricsTest {
     @Mock
     private ConjureStartTransactionsResponse conjureStartTransactionsResponse;
 
-    @Before
+    @BeforeEach
     public void cleanMetrics() {
         metrics = ConjureTimelockServiceBlockingMetrics.of(
                 MetricsManagers.createForTests().getTaggedRegistry());

@@ -35,10 +35,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
 import javax.sql.DataSource;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class LocalPaxosComponentsTest {
     private static final Client CLIENT = Client.of("alice");
@@ -53,18 +52,18 @@ public class LocalPaxosComponentsTest {
     private static final OrderableSlsVersion DEFAULT_TIME_LOCK_VERSION = OrderableSlsVersion.valueOf("0.0.0");
     private static final OrderableSlsVersion TIMELOCK_VERSION = OrderableSlsVersion.valueOf("1.2.7");
 
-    @Rule
-    public final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
+    @TempDir
+    public File TEMPORARY_FOLDER;
 
     private LocalPaxosComponents paxosComponents;
     private Path legacyDirectory;
     private DataSource sqlite;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
-        legacyDirectory = TEMPORARY_FOLDER.newFolder("legacy").toPath();
+        legacyDirectory = getAndCreateSubdirectory(TEMPORARY_FOLDER, "legacy").toPath();
         sqlite = SqliteConnections.getDefaultConfiguredPooledDataSource(
-                TEMPORARY_FOLDER.newFolder("sqlite").toPath());
+                getAndCreateSubdirectory(TEMPORARY_FOLDER, "sqlite").toPath());
         paxosComponents = createPaxosComponents(true);
     }
 
@@ -147,5 +146,13 @@ public class LocalPaxosComponentsTest {
                 canCreateNewClients,
                 timeLockVersion,
                 false);
+    }
+
+    private static File getAndCreateSubdirectory(File base, String subdirectoryName) {
+        File file = base.toPath().resolve(subdirectoryName).toFile();
+        if (file.mkdirs()) {
+            return file;
+        }
+        throw new RuntimeException("Unexpected error when creating a subdirectory");
     }
 }

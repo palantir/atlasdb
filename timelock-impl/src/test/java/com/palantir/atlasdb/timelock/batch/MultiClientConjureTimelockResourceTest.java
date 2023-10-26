@@ -61,8 +61,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class MultiClientConjureTimelockResourceTest {
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer test");
@@ -87,7 +87,7 @@ public class MultiClientConjureTimelockResourceTest {
 
     private int commitTsLowerInclusive = 1;
 
-    @Before
+    @BeforeEach
     public void before() {
         resource = new MultiClientConjureTimelockResource(
                 TARGETER, (namespace, _context) -> getServiceForClient(namespace));

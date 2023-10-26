@@ -35,6 +35,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Suite;
 
+/* TODO(boyoruk): Migrate whole suiteTest folder to JUnit5 */
 @RunWith(ParameterizedSuite.class)
 @Suite.SuiteClasses(MultiNodePaxosTimeLockServerIntegrationTest.class)
 public class DbTimeLockSingleLeaderPaxosSuite {

@@ -58,8 +58,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class LockWatchingServiceImplTest {
     private static final UUID LOG_ID = UUID.randomUUID();
@@ -84,7 +84,7 @@ public class LockWatchingServiceImplTest {
 
     private int sequenceCounter = 0;
 
-    @Before
+    @BeforeEach
     public void setup() {
         when(heldLocks.getLocks()).thenReturn(ImmutableList.of(LOCK, LOCK_2));
         when(heldLocks.getToken()).thenReturn(TOKEN);

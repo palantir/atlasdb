@@ -28,7 +28,8 @@ import com.lmax.disruptor.WaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
 import com.lmax.disruptor.dsl.ProducerType;
 import com.palantir.common.concurrent.NamedThreadFactory;
-import com.palantir.logsafe.Preconditions;
+import com.palantir.conjure.java.api.errors.QosException;
+import com.palantir.conjure.java.api.errors.QosReason;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.DetachedSpan;
@@ -49,6 +50,8 @@ public final class DisruptorAutobatcher<T, R>
         implements AsyncFunction<T, R>, Function<T, ListenableFuture<R>>, Closeable {
 
     private static final SafeLogger log = SafeLoggerFactory.get(DisruptorAutobatcher.class);
+
+    private static final QosReason CLOSED_REASON = QosReason.of("autobatcher-closed");
 
     /*
        By memoizing thread factories per loggable purpose, the thread names are numbered uniquely for multiple
@@ -84,7 +87,10 @@ public final class DisruptorAutobatcher<T, R>
 
     @Override
     public ListenableFuture<R> apply(T argument) {
-        Preconditions.checkState(!closed, "Autobatcher is already shut down");
+        if (closed) {
+            throw QosException.unavailable(CLOSED_REASON);
+        }
+
         DisruptorFuture<R> result = new DisruptorFuture<R>(safeLoggablePurpose);
         buffer.publishEvent((refresh, sequence) -> {
             refresh.result = result;

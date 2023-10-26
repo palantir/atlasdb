@@ -37,7 +37,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ArrayLockEventSlidingWindowTest {
     private static final int WINDOW_SIZE = 10;

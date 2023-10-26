@@ -1,7 +1,5 @@
 apply plugin: 'org.unbroken-dome.test-sets'
-
 apply from: "../gradle/shared.gradle"
-apply from: "../gradle/tests.gradle"
 
 dependencies {
     implementation project(':lock-api-objects')
@@ -69,11 +67,9 @@ dependencies {
     compileOnly 'org.immutables:value::annotations'
     testCompileOnly 'org.immutables:value::annotations'
 
-    testImplementation 'org.assertj:assertj-core'
-    testImplementation ('org.mockito:mockito-core') {
-        // Mockito version doesn't agree with our JUnit version
-        exclude group: 'org.hamcrest', module: 'hamcrest-core'
-    }
-
     testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
 }

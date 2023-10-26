@@ -25,7 +25,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.palantir.exception.PalantirInterruptedException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ErrorCheckingTimestampBoundStoreTest {
 

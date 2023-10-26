@@ -23,7 +23,7 @@ import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
 import com.palantir.timelock.feedback.EndpointStatistics;
 import java.util.UUID;
 import java.util.stream.IntStream;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class FeedbackAnalysisTest {
     private static final String CLIENT = "client_1";

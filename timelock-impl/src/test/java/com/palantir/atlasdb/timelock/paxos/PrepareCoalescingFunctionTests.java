@@ -28,12 +28,12 @@ import com.palantir.paxos.PaxosProposalId;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class PrepareCoalescingFunctionTests {
 
     private static final Client CLIENT_1 = Client.of("client-1");

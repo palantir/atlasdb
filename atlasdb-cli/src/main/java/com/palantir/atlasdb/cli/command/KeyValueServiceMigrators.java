@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator;
 import com.palantir.atlasdb.schema.TaskProgress;
 import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.timestamp.TimestampManagementService;
 import org.immutables.value.Value;
@@ -59,8 +60,8 @@ public final class KeyValueServiceMigrators {
                 migratorSpec.threads(),
                 migratorSpec.batchSize(),
                 ImmutableMap.of(),
-                (String message, KeyValueServiceMigrator.KvsMigrationMessageLevel level) ->
-                        printer.info(level.toString() + ": " + message),
+                (String message, KeyValueServiceMigrator.KvsMigrationMessageLevel level, Arg<?>... args) ->
+                        printer.info(level.toString() + ": " + message, args),
                 new TaskProgress() {
                     @Override
                     public void beginTask(String message, int tasks) {

@@ -28,7 +28,7 @@ import java.util.Arrays;
 import java.util.UUID;
 import java.util.function.Supplier;
 import org.awaitility.Awaitility;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class AwaitedLocksCollectionTest {
 

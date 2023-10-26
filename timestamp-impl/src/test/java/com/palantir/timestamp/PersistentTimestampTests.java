@@ -21,8 +21,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 public class PersistentTimestampTests {
@@ -34,7 +34,7 @@ public class PersistentTimestampTests {
     private final PersistentUpperLimit upperLimit = mock(PersistentUpperLimit.class);
     private PersistentTimestamp timestamp;
 
-    @Before
+    @BeforeEach
     public void before() {
         when(upperLimit.get()).thenReturn(5L);
 

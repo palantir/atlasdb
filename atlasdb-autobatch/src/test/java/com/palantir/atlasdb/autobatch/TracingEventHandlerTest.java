@@ -25,6 +25,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
+/* TODO(boyoruk): Do not forget to upgrade this to JUnit5. */
 @RunWith(MockitoJUnitRunner.class)
 public class TracingEventHandlerTest {
 

@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator.KvsMigrationMessageLevel;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator.KvsMigrationMessageProcessor;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -31,6 +32,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.base.BatchingVisitableView;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.logsafe.SafeArg;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -38,6 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class KeyValueServiceValidator {
     private final TransactionManager validationFromTransactionManager;
@@ -55,6 +58,8 @@ public class KeyValueServiceValidator {
 
     private final KvsMigrationMessageProcessor messageProcessor;
 
+    private final AtomicInteger migratedTableCount;
+
     public KeyValueServiceValidator(
             TransactionManager validationFromTransactionManager,
             TransactionManager validationToTransactionManager,
@@ -63,7 +68,8 @@ public class KeyValueServiceValidator {
             int defaultBatchSize,
             Map<TableReference, Integer> readBatchSizeOverrides,
             KvsMigrationMessageProcessor messageProcessor,
-            Set<TableReference> unmigratableTables) {
+            Set<TableReference> unmigratableTables,
+            AtomicInteger migratedTableCount) {
         this.validationFromTransactionManager = validationFromTransactionManager;
         this.validationToTransactionManager = validationToTransactionManager;
         this.validationFromKvs = validationFromKvs;
@@ -72,6 +78,7 @@ public class KeyValueServiceValidator {
         this.readBatchSizeOverrides = readBatchSizeOverrides;
         this.messageProcessor = messageProcessor;
         this.unmigratableTables = unmigratableTables;
+        this.migratedTableCount = migratedTableCount;
     }
 
     private int getBatchSize(TableReference table) {
@@ -100,6 +107,13 @@ public class KeyValueServiceValidator {
             Future<Void> future = executor.submit(() -> {
                 try {
                     validateTable(table);
+                    KeyValueServiceMigratorUtils.processMessage(
+                            messageProcessor,
+                            "Validated a table {} ({} of {})",
+                            KvsMigrationMessageLevel.INFO,
+                            LoggingArgs.tableRef(table),
+                            SafeArg.of("migratedTableCount", migratedTableCount.incrementAndGet()),
+                            SafeArg.of("totalTables", tables.size()));
                 } catch (RuntimeException e) {
                     throw Throwables.rewrapAndThrowUncheckedException("Exception while validating " + table, e);
                 }
@@ -109,6 +123,8 @@ public class KeyValueServiceValidator {
         }
 
         futures.forEach(Futures::getUnchecked);
+        KeyValueServiceMigratorUtils.processMessage(
+                messageProcessor, "Validation complete.", KvsMigrationMessageLevel.INFO);
     }
 
     private void validateTable(final TableReference table) {
@@ -117,9 +133,12 @@ public class KeyValueServiceValidator {
         byte[] nextRowName = new byte[0];
         while (nextRowName != null) {
             nextRowName = validateNextBatchOfRows(table, limit, nextRowName);
+            KeyValueServiceMigratorUtils.processMessage(
+                    messageProcessor,
+                    "Validated a batch of rows for {}",
+                    KvsMigrationMessageLevel.INFO,
+                    LoggingArgs.tableRef(table));
         }
-        KeyValueServiceMigratorUtils.processMessage(
-                messageProcessor, "Validated " + table, KvsMigrationMessageLevel.INFO);
     }
 
     private byte[] validateNextBatchOfRows(TableReference table, int limit, byte[] nextRowName) {

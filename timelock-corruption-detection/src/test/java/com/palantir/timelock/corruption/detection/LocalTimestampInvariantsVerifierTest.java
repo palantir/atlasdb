@@ -24,6 +24,7 @@ import java.util.stream.IntStream;
 import org.junit.Rule;
 import org.junit.Test;
 
+/* TODO(boyoruk): Upgrade this to JUnit5 when TimeLockCorruptionDetectionHelper rule is implemented for JUnit5. */
 public class LocalTimestampInvariantsVerifierTest {
     @Rule
     public TimeLockCorruptionDetectionHelper helper = new TimeLockCorruptionDetectionHelper();
