@@ -83,6 +83,7 @@ dependencies {
     testImplementation project(':timelock-api:timelock-api-dialogue')
     testImplementation project(':timelock-api:timelock-api-objects')
     testImplementation project(':timestamp-api')
+    testImplementation project(':atlasdb-tests-shared')
 
     annotationProcessor 'com.palantir.conjure.java:conjure-undertow-processor'
     annotationProcessor project(":atlasdb-processors")

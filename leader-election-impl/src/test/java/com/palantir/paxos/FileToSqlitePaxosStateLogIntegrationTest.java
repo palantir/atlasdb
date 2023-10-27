@@ -22,6 +22,7 @@ import static com.palantir.paxos.PaxosStateLogTestUtils.readRoundUnchecked;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.test.utils.SubdirectoryCreator;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -45,10 +46,11 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
 
     @BeforeEach
     public void setup() throws IOException {
-        source = new PaxosStateLogImpl<>(
-                getAndCreateSubdirectory(tempFolder, "source").getPath());
+        source = new PaxosStateLogImpl<>(SubdirectoryCreator.getAndCreateSubdirectory(tempFolder, "source")
+                .getPath());
         DataSource targetSource = SqliteConnections.getDefaultConfiguredPooledDataSource(
-                getAndCreateSubdirectory(tempFolder, "target").toPath());
+                SubdirectoryCreator.getAndCreateSubdirectory(tempFolder, "target")
+                        .toPath());
         target = SqlitePaxosStateLog.create(NAMESPACE, targetSource);
         migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE, targetSource);
     }
@@ -128,13 +130,5 @@ public class FileToSqlitePaxosStateLogIntegrationTest {
                 .mapKeys(value -> value.seq)
                 .map(value -> readRoundUnchecked(target, value.seq))
                 .collectToMap();
-    }
-
-    private static File getAndCreateSubdirectory(File base, String subdirectoryName) {
-        File file = base.toPath().resolve(subdirectoryName).toFile();
-        if (file.mkdirs()) {
-            return file;
-        }
-        throw new RuntimeException("Unexpected error when creating a subdirectory");
     }
 }

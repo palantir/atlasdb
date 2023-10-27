@@ -27,6 +27,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.test.utils.SubdirectoryCreator;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -47,9 +48,11 @@ public class SplittingPaxosStateLogTest {
     @BeforeEach
     public void setup() throws IOException {
         DataSource legacy = SqliteConnections.getDefaultConfiguredPooledDataSource(
-                getAndCreateSubdirectory(tempFolder, "legacy").toPath());
+                SubdirectoryCreator.getAndCreateSubdirectory(tempFolder, "legacy")
+                        .toPath());
         DataSource current = SqliteConnections.getDefaultConfiguredPooledDataSource(
-                getAndCreateSubdirectory(tempFolder, "current").toPath());
+                SubdirectoryCreator.getAndCreateSubdirectory(tempFolder, "current")
+                        .toPath());
         legacyLog = spy(SqlitePaxosStateLog.create(NAMESPACE, legacy));
         currentLog = spy(SqlitePaxosStateLog.create(NAMESPACE, current));
     }
@@ -158,13 +161,5 @@ public class SplittingPaxosStateLogTest {
                         .build())
                 .cutoffInclusive(cutoff)
                 .build();
-    }
-
-    private static File getAndCreateSubdirectory(File base, String subdirectoryName) {
-        File file = base.toPath().resolve(subdirectoryName).toFile();
-        if (file.mkdirs()) {
-            return file;
-        }
-        throw new RuntimeException("Unexpected error when creating a subdirectory");
     }
 }

@@ -36,6 +36,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.test.utils.SubdirectoryCreator;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
@@ -64,9 +65,11 @@ public class PaxosStateLogMigratorTest {
     @BeforeEach
     public void setup() throws IOException {
         DataSource sourceConn = SqliteConnections.getDefaultConfiguredPooledDataSource(
-                getAndCreateSubdirectory(tempFolder, "source").toPath());
+                SubdirectoryCreator.getAndCreateSubdirectory(tempFolder, "source")
+                        .toPath());
         DataSource targetConn = SqliteConnections.getDefaultConfiguredPooledDataSource(
-                getAndCreateSubdirectory(tempFolder, "target").toPath());
+                SubdirectoryCreator.getAndCreateSubdirectory(tempFolder, "target")
+                        .toPath());
         source = SqlitePaxosStateLog.create(NAMESPACE, sourceConn);
         target = spy(SqlitePaxosStateLog.create(NAMESPACE, targetConn));
         migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE, targetConn);
@@ -539,13 +542,5 @@ public class PaxosStateLogMigratorTest {
                 .collect(Collectors.toList());
         valuesWritten.forEach(value -> targetLog.writeRound(value.seq, value));
         return valuesWritten;
-    }
-
-    private static File getAndCreateSubdirectory(File base, String subdirectoryName) {
-        File file = base.toPath().resolve(subdirectoryName).toFile();
-        if (file.mkdirs()) {
-            return file;
-        }
-        throw new RuntimeException("Unexpected error when creating a subdirectory");
     }
 }
