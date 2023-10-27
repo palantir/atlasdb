@@ -43,7 +43,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("checkstyle:AbbreviationAsWordInName") // Name matches the class we're testing
 public class PTExecutorsTest {

@@ -31,7 +31,7 @@ import java.sql.SQLException;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("unchecked") // mocked executors
 public class BasicSQLTest {
