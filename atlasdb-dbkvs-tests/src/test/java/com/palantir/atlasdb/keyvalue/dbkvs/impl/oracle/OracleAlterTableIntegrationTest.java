@@ -26,9 +26,11 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.dbkvs.AlterTableMetadataReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableOracleDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableTableReferenceWrapper;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetterImpl;
@@ -36,6 +38,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.logging.KvsProfilingLogger.CallableCheckedException;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.exception.TableMappingNotFoundException;
@@ -56,7 +59,7 @@ public final class OracleAlterTableIntegrationTest {
             .from(DbKvsOracleTestSuite.getKvsConfig())
             .ddl(ImmutableOracleDdlConfig.builder()
                     .overflowMigrationState(OverflowMigrationState.FINISHED)
-                    .addAlterTablesOrMetadataToMatch(TABLE_REFERENCE)
+                    .addAlterTablesOrMetadataToMatch(ImmutableTableReferenceWrapper.of(TABLE_REFERENCE))
                     .build())
             .build();
 
@@ -103,21 +106,19 @@ public final class OracleAlterTableIntegrationTest {
     }
 
     @Test
-    public void whenConfiguredAlterTableToMatchMetadataAndOldDataIsStillReadable() {
-        defaultKvs.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
-        writeData(defaultKvs, ROW_1, TIMESTAMP_1);
-        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_1, TIMESTAMP_1, DEFAULT_VALUE_1);
+    public void whenConfiguredWithTableReferenceAlterTableToMatchMetadataAndOldDataIsStillReadable() {
+        whenConfiguredAlterTableToMatchMetadataAndOldDataIsStillReadable(() -> createKvs(CONFIG_WITH_ALTER));
+    }
 
-        dropOverflowColumn();
-        defaultKvs.putMetadataForTable(TABLE_REFERENCE, OLD_TABLE_METADATA.persistToBytes());
-        assertThatThrownBy(() -> fetchData(defaultKvs, DEFAULT_CELL_1, TIMESTAMP_1));
-
-        KeyValueService workingKvs = createKvs(CONFIG_WITH_ALTER);
-        workingKvs.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
-        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_1, TIMESTAMP_1, DEFAULT_VALUE_1);
-        assertThatOverflowColumnExists();
-        assertThatCode(() -> writeData(defaultKvs, ROW_2, TIMESTAMP_2)).doesNotThrowAnyException();
-        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_2, TIMESTAMP_2, DEFAULT_VALUE_2);
+    @Test
+    public void whenConfiguredWithPhysicalTableNameAlterTableToMatchMetadataAndOldDataIsStillReadable()
+            throws TableMappingNotFoundException {
+        CallableCheckedException<KeyValueService, TableMappingNotFoundException> workingKvsSupplier = () -> {
+            String physicalTableName =
+                    oracleTableNameGetter.getInternalShortTableName(connectionSupplier, TABLE_REFERENCE);
+            return createKvs(getConfigWithAlterTableFromPhysicalTableName(physicalTableName));
+        };
+        whenConfiguredAlterTableToMatchMetadataAndOldDataIsStillReadable(workingKvsSupplier);
     }
 
     @Test
@@ -129,6 +130,24 @@ public final class OracleAlterTableIntegrationTest {
 
         kvsWithAlter.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
         writeData(defaultKvs, ROW_2, TIMESTAMP_2);
+        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_2, TIMESTAMP_2, DEFAULT_VALUE_2);
+    }
+
+    private <E extends Exception> void whenConfiguredAlterTableToMatchMetadataAndOldDataIsStillReadable(
+            CallableCheckedException<KeyValueService, E> workingKvsSupplier) throws E {
+        defaultKvs.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
+        writeData(defaultKvs, ROW_1, TIMESTAMP_1);
+        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_1, TIMESTAMP_1, DEFAULT_VALUE_1);
+
+        dropOverflowColumn();
+        defaultKvs.putMetadataForTable(TABLE_REFERENCE, OLD_TABLE_METADATA.persistToBytes());
+        assertThatThrownBy(() -> fetchData(defaultKvs, DEFAULT_CELL_1, TIMESTAMP_1));
+
+        KeyValueService workingKvs = workingKvsSupplier.call();
+        workingKvs.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
+        assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_1, TIMESTAMP_1, DEFAULT_VALUE_1);
+        assertThatOverflowColumnExists();
+        assertThatCode(() -> writeData(defaultKvs, ROW_2, TIMESTAMP_2)).doesNotThrowAnyException();
         assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_2, TIMESTAMP_2, DEFAULT_VALUE_2);
     }
 
@@ -180,5 +199,15 @@ public final class OracleAlterTableIntegrationTest {
 
     private static Cell createCell(String row, String columnValue) {
         return Cell.create(PtBytes.toBytes(row), PtBytes.toBytes(columnValue));
+    }
+
+    private static DbKeyValueServiceConfig getConfigWithAlterTableFromPhysicalTableName(String physicalTableName) {
+        return ImmutableDbKeyValueServiceConfig.builder()
+                .from(CONFIG_WITH_ALTER)
+                .ddl(ImmutableOracleDdlConfig.builder()
+                        .from(CONFIG_WITH_ALTER.ddl())
+                        .addAlterTablesOrMetadataToMatch(AlterTableMetadataReference.of(physicalTableName))
+                        .build())
+                .build();
     }
 }

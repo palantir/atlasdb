@@ -129,16 +129,35 @@ public final class OracleDdlTable implements DbDdlTable {
     }
 
     private void maybeAlterTableToHaveOverflowColumn() {
-        log.info("Potentially altering table {} to have overflow column.", LoggingArgs.tableRef(tableRef));
-        if (config.alterTablesOrMetadataToMatch().contains(tableRef)) {
-            log.info("Config contains table {}, checking if we can alter table.", LoggingArgs.tableRef(tableRef));
+        if (config.alterTablesOrMetadataToMatch().isEmpty()) {
+            return; // Short circuit
+        }
+        String shortTableName;
+        try {
+            shortTableName = oracleTableNameGetter.getInternalShortTableName(conns, tableRef);
+        } catch (TableMappingNotFoundException e) {
+            throw Throwables.rewrapAndThrowUncheckedException(
+                    "Unable to test whether table must be altered to have overflow column due to a table mapping"
+                            + " error.",
+                    e);
+        }
+
+        log.info(
+                "Potentially altering table {} (internal name: {}) to have overflow column.",
+                LoggingArgs.tableRef(tableRef),
+                UnsafeArg.of("shortTableName", shortTableName));
+        if (config.alterTablesOrMetadataToMatch().stream()
+                .anyMatch(ref -> ref.doesTableReferenceOrPhysicalTableNameMatch(tableRef, shortTableName))) {
+            log.info(
+                    "Config contains table {} (internal name: {}), checking if we can alter table.",
+                    LoggingArgs.tableRef(tableRef),
+                    UnsafeArg.of("shortTableName", shortTableName));
             try {
-                String shortTableName = oracleTableNameGetter.getInternalShortTableName(conns, tableRef);
                 log.info(
-                        "Table name: {}, Overflow table migrated status: {}, overflow table existence status: {}, "
-                                + "overflow "
-                                + "column exists status: {}",
+                        "Table name: {} (internal name: {}), Overflow table migrated status: {},"
+                                + " overflow table existence status: {}, overflow column exists status: {}",
                         LoggingArgs.tableRef(tableRef),
+                        UnsafeArg.of("shortTableName", shortTableName),
                         SafeArg.of("overflowTableHasMigrated", overflowTableHasMigrated()),
                         SafeArg.of("overflowTableExists", overflowTableExists()),
                         SafeArg.of("overflowColumnExists", overflowColumnExists(shortTableName)));
@@ -147,7 +166,7 @@ public final class OracleDdlTable implements DbDdlTable {
                     alterTableToHaveOverflowColumn(shortTableName);
                 }
             } catch (TableMappingNotFoundException e) {
-                Throwables.rewrapAndThrowUncheckedException(
+                throw Throwables.rewrapAndThrowUncheckedException(
                         "Unable to alter table to have overflow column due to a table mapping error.", e);
             }
         }
