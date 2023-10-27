@@ -220,14 +220,14 @@ configuration.
              - physicalTableName: <physicalTableName>
 
 ..
+.. tip::
 
-   [!info] Determining your ``physicalTableName`` given an ``ORA-00904``
-   stacktrace The full stacktrace should contain the SQL string that
-   resulted in this exception. Within this stacktrace, you should see a
-   table name with a similar form to ``x_yz__tablename_1234``. The full
-   string ``x_yz__tablename_1234`` is your ``physicalTableName``.
+   To determine your ``physicalTableName`` given an ``ORA-00904``
+   stacktrace, you should see a table name with a similar form to ``x_yz__tablename_1234`` within the
+   full SQL string that was ran. The full string ``x_yz__tablename_1234`` is your ``physicalTableName``.
 
-   [!info] I know the logical table name and namespace that's affected
+.. tip::
+
    If you already know the logical table name and table namespace that's
    affected (e.g, using your AtlasDB schema file), then you can use the
    following configuration instead:
@@ -255,18 +255,13 @@ for ``Altering table to have overflow column to match metadata.`` and that there
 that has successfully ran.
 
 If things do not work:
-1. Check for log lines containing ``Potentially altering table {} (internal name: {}) to have overflow column.``,
-and verify that your table reference / physical table name shows up in one of the log lines (note that
-physical table names are logged unsafely, if your infrastructure understands log safety).
-If this is not present, then your service is not re-issuing a call to ``KeyValueService#createTable``.
-To fix, attempt to recreate the table using ``KeyValueService#createTable``
-2. Check for log lines containing ``Table name: {}, Overflow table migrated status: {}, overflow table existence status: {}, overflow column exists status: {}``
-containing your table reference / physical table name. Verify that ``overflowTableHasMigrated`` and
-``overflowTableExists`` are both true, and ``overflowColumnExists`` is false. If any of these are incorrect,
-then it is likely your issue does not pertain to a missing overflow column.
-Please contact support for further assistance.
-3. Check for the log line containing the stack trace with exception message
-"Unable to alter table to have overflow column due to a table mapping error.".
-Note that this exception message is marked unsafe. You may alternatively be able to find this stacktrace
-with the cause of type ``TableMappingNotFoundException``. If this is present, please determine if the exception cause
-relates to an operator error, or requires further assistance from Palantir support.
+
+#. Check for log lines containing ``Potentially altering table {} (internal name: {}) to have overflow column.``, and verify that your table reference / physical table name shows up in one of the log lines.
+    * Note that physical table names are logged unsafely, if your infrastructure understands log safety.
+    * If this is not present, then your service is not re-issuing a call to ``KeyValueService#createTable``.
+    * To fix, attempt to recreate the table using ``KeyValueService#createTable``.
+#. Check for log lines containing ``Table name: {}, Overflow table migrated status: {}, overflow table existence status: {}, overflow column exists status: {}`` containing your table reference / physical table name. Verify that ``overflowTableHasMigrated`` and ``overflowTableExists`` are both true, and ``overflowColumnExists`` is false.
+    * If any of these are incorrect, then it is likely your issue does not pertain to a missing overflow column. Please contact support for further assistance.
+#. Check for the log line containing the stack trace with exception message ``Unable to alter table to have overflow column due to a table mapping error.``.
+    * Note that this exception message is marked unsafe. You may alternatively be able to find this stacktrace with the cause of type ``TableMappingNotFoundException``.
+    * If this is present, please determine if the exception cause relates to an operator error, or requires further assistance from Palantir support.
