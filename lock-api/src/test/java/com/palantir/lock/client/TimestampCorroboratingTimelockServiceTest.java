@@ -53,15 +53,15 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public final class TimestampCorroboratingTimelockServiceTest {
     private static final String NAMESPACE_1 = "sonic";
     private static final String NAMESPACE_2 = "shadow";
@@ -81,7 +81,7 @@ public final class TimestampCorroboratingTimelockServiceTest {
 
     private TimestampCorroboratingTimelockService timelockService;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         timelockService = new TimestampCorroboratingTimelockService(callback, rawTimelockService);
     }

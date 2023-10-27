@@ -46,7 +46,7 @@ import com.palantir.timestamp.TimestampRange;
 import java.net.ConnectException;
 import java.net.UnknownHostException;
 import java.util.UUID;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 
