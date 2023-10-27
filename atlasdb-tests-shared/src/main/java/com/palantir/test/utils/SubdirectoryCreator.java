@@ -21,9 +21,7 @@ import java.io.File;
 
 public final class SubdirectoryCreator {
 
-    private SubdirectoryCreator() {
-        throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
-    }
+    private SubdirectoryCreator() {}
 
     public static File getAndCreateSubdirectory(File base, String subdirectoryName) {
         File file = base.toPath().resolve(subdirectoryName).toFile();
