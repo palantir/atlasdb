@@ -28,8 +28,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 public class ExecutorInheritableThreadLocalTest {
     private static final String orig = "Yo";
@@ -106,7 +106,7 @@ public class ExecutorInheritableThreadLocalTest {
                 }
             };
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         exec.shutdownNow();
         local.remove();
