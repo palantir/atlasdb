@@ -93,17 +93,7 @@ public class HostnamesByIpSupplierTest {
             Thread.sleep(1);
             throw new NotFoundException();
         });
-        setupKeyspaceAndTable(secondaryClient);
-        CqlResult cqlResult = createMockCqlResult(ImmutableList.of(
-                ImmutableList.of(
-                        createColumn("ip", PtBytes.toBytes("10.0.0.0")),
-                        createColumn("hostname", PtBytes.toBytes("cassandra-1"))),
-                ImmutableList.of(
-                        createColumn("ip", PtBytes.toBytes("10.0.0.1")),
-                        createColumn("hostname", PtBytes.toBytes("cassandra-2")))));
-        Mockito.lenient()
-                .when(secondaryClient.execute_cql3_query(any(), any(), any()))
-                .thenReturn(cqlResult);
+        verify(secondaryClient, Mockito.never()).execute_cql3_query(any(), any(), any());
         assertThat(supplier.get()).isEmpty();
     }
 

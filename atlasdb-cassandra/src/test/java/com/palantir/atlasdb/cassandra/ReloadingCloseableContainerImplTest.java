@@ -53,7 +53,6 @@ public class ReloadingCloseableContainerImplTest {
     @BeforeEach
     public void setUp() {
         when(resourceFactory.apply(INITIAL_VALUE)).thenReturn(initialResource);
-        when(resourceFactory.apply(UPDATED_VALUE)).thenReturn(refreshedResource);
         refreshableFactoryArg = Refreshable.create(INITIAL_VALUE);
         reloadingCloseableContainer = ReloadingCloseableContainerImpl.of(refreshableFactoryArg, resourceFactory);
     }
@@ -67,6 +66,7 @@ public class ReloadingCloseableContainerImplTest {
 
     @Test
     public void previousResourceIsClosedAfterRefresh() throws Exception {
+        when(resourceFactory.apply(UPDATED_VALUE)).thenReturn(refreshedResource);
         AutoCloseable resource = reloadingCloseableContainer.get();
         refreshableFactoryArg.update(UPDATED_VALUE);
         verify(resource).close();
@@ -74,6 +74,7 @@ public class ReloadingCloseableContainerImplTest {
 
     @Test
     public void newResourceCreatedWithUpdatedRefreshableValueAfterRefresh() throws Exception {
+        when(resourceFactory.apply(UPDATED_VALUE)).thenReturn(refreshedResource);
         AutoCloseable resource = reloadingCloseableContainer.get();
 
         refreshableFactoryArg.update(UPDATED_VALUE);

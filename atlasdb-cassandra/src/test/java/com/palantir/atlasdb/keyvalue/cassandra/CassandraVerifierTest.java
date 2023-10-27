@@ -64,7 +64,7 @@ public class CassandraVerifierTest {
 
     @Test
     public void unsetTopologyAndHighRfThrows() throws TException {
-        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults(
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaultsAndClientDescribeRingInvocation(
                         defaultTopology(HOST_1), defaultTopology(HOST_2))
                 .build();
         assertThatThrownBy(() -> CassandraVerifier.sanityCheckDatacenters(client, verifierConfig))
@@ -73,7 +73,7 @@ public class CassandraVerifierTest {
 
     @Test
     public void unsetTopologyAndRfOneSucceeds() throws TException {
-        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults(
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaultsAndClientDescribeRingInvocation(
                         defaultTopology(HOST_1), defaultTopology(HOST_2))
                 .replicationFactor(1)
                 .build();
@@ -83,7 +83,7 @@ public class CassandraVerifierTest {
 
     @Test
     public void nonDefaultDcAndHighRfSucceeds() throws TException {
-        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults(
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaultsAndClientDescribeRingInvocation(
                         createDetails(DC_1, RACK_1, HOST_1))
                 .build();
         assertThat(CassandraVerifier.sanityCheckDatacenters(client, verifierConfig))
@@ -92,7 +92,7 @@ public class CassandraVerifierTest {
 
     @Test
     public void oneDcOneRackAndMoreHostsThanRfThrows() throws TException {
-        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults(
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaultsAndClientDescribeRingInvocation(
                         createDetails(DC_1, RACK_1, HOST_1),
                         createDetails(DC_1, RACK_1, HOST_2),
                         createDetails(DC_1, RACK_1, HOST_3),
@@ -104,13 +104,14 @@ public class CassandraVerifierTest {
 
     @Test
     public void moreDcsPresentThanInStrategyOptionsSucceeds() throws TException {
-        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults(
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaultsAndClientDescribeRingInvocation(
                         createDetails(DC_1, RACK_1, HOST_1))
                 .build();
         KsDef ksDef = CassandraVerifier.createKsDefForFresh(client, verifierConfig);
         CassandraVerifier.sanityCheckedDatacenters.invalidateAll();
         CassandraVerifier.sanityCheckedDatacenters.cleanUp();
-        setTopologyAndGetServersConfig(createDetails(DC_1, RACK_1, HOST_1), createDetails(DC_2, RACK_2, HOST_2));
+        setTopologyAndGetServersConfigWithClientDescribeRingInvocation(
+                createDetails(DC_1, RACK_1, HOST_1), createDetails(DC_2, RACK_2, HOST_2));
 
         assertThatCode(() -> CassandraVerifier.checkAndSetReplicationFactor(client, ksDef, verifierConfig))
                 .as("strategy options should only contain info for DC_1 but should not throw despite detecting two DCs")
@@ -119,7 +120,7 @@ public class CassandraVerifierTest {
 
     @Test
     public void oneDcFewerRacksThanRfAndMoreHostsThanRfThrows() throws TException {
-        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults(
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaultsAndClientDescribeRingInvocation(
                         defaultDcDetails(RACK_1, HOST_1),
                         defaultDcDetails(RACK_2, HOST_2),
                         defaultDcDetails(RACK_1, HOST_3),
@@ -131,7 +132,7 @@ public class CassandraVerifierTest {
 
     @Test
     public void oneDcMoreRacksThanRfAndMoreHostsThanRfSucceeds() throws TException {
-        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults(
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaultsAndClientDescribeRingInvocation(
                         defaultDcDetails(RACK_1, HOST_1),
                         defaultDcDetails(RACK_2, HOST_2),
                         defaultDcDetails(RACK_1, HOST_3),
@@ -145,7 +146,7 @@ public class CassandraVerifierTest {
 
     @Test
     public void oneDcFewerRacksThanRfAndFewerHostsThanRfSucceeds() throws TException {
-        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults(
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaultsAndClientDescribeRingInvocation(
                         defaultDcDetails(RACK_1, HOST_1),
                         defaultDcDetails(RACK_2, HOST_2),
                         defaultDcDetails(RACK_1, HOST_2),
@@ -157,7 +158,7 @@ public class CassandraVerifierTest {
 
     @Test
     public void multipleDcSuceeds() throws TException {
-        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults(
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaultsAndClientDescribeRingInvocation(
                         createDetails(DC_1, RACK_1, HOST_1),
                         createDetails(DC_1, RACK_1, HOST_2),
                         createDetails(DC_1, RACK_1, HOST_3),
@@ -169,7 +170,7 @@ public class CassandraVerifierTest {
 
     @Test
     public void freshInstanceSetsStrategyOptions() throws TException {
-        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults(
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaultsAndClientDescribeRingInvocation(
                         createDetails(DC_1, RACK_1, HOST_1),
                         createDetails(DC_1, RACK_1, HOST_2),
                         createDetails(DC_1, RACK_1, HOST_3),
@@ -182,7 +183,7 @@ public class CassandraVerifierTest {
 
     @Test
     public void simpleStrategyOneDcOneRfSucceedsAndUpdatesKsDef() throws TException {
-        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults(
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaultsAndClientDescribeRingInvocation(
                         createDetails(DC_1, RACK_1, HOST_1))
                 .replicationFactor(1)
                 .build();
@@ -198,7 +199,7 @@ public class CassandraVerifierTest {
     }
 
     @Test
-    public void simpleStrategyOneDcHighRfThrows() throws TException {
+    public void simpleStrategyOneDcHighRfThrows() {
         CassandraVerifierConfig verifierConfig =
                 getVerifierConfigBuilderWithDefaults().build();
         KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
@@ -210,7 +211,7 @@ public class CassandraVerifierTest {
 
     @Test
     public void simpleStrategyMultipleDcsThrows() throws TException {
-        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults(
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaultsAndClientDescribeRingInvocation(
                         createDetails(DC_1, RACK_1, HOST_1),
                         createDetails(DC_1, RACK_1, HOST_2),
                         createDetails(DC_1, RACK_1, HOST_3),
@@ -227,7 +228,7 @@ public class CassandraVerifierTest {
 
     @Test
     public void returnSameKsDefIfNodeTopologyChecksIgnored() throws TException {
-        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults(
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaultsAndClientDescribeRingInvocation(
                         createDetails(DC_1, RACK_1, HOST_1))
                 .replicationFactor(7)
                 .ignoreNodeTopologyChecks(true)
@@ -245,7 +246,7 @@ public class CassandraVerifierTest {
 
     @Test
     public void networkStrategyMultipleDcsSucceeds() throws TException {
-        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults(
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaultsAndClientDescribeRingInvocation(
                         createDetails(DC_1, RACK_1, HOST_1),
                         createDetails(DC_1, RACK_1, HOST_2),
                         createDetails(DC_1, RACK_1, HOST_3),
@@ -262,7 +263,7 @@ public class CassandraVerifierTest {
     }
 
     @Test
-    public void differentRfThanConfigThrows() throws TException {
+    public void differentRfThanConfigThrows() {
         CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults()
                 .replicationFactor(1)
                 .ignoreDatacenterConfigurationChecks(false)
@@ -277,7 +278,7 @@ public class CassandraVerifierTest {
     @Test
     public void keyspaceAlreadyExistsOnlyChecksForAnyAvailableNodes() throws TException {
         CassandraVerifierConfig verifierConfig =
-                getVerifierConfigBuilderWithDefaults(defaultTopology(HOST_1)).build();
+                getVerifierConfigBuilderWithDefaults().build();
         when(client.describe_schema_versions())
                 .thenReturn(ImmutableMap.of(
                         "A",
@@ -306,11 +307,9 @@ public class CassandraVerifierTest {
         return details.setRack(rack);
     }
 
-    private ImmutableCassandraVerifierConfig.Builder getVerifierConfigBuilderWithDefaults(EndpointDetails... details)
-            throws TException {
+    private ImmutableCassandraVerifierConfig.Builder getBaseVerifierConfigBuilderWithDefaults() {
         return CassandraVerifierConfig.builder()
                 .clientConfig(clientConfig)
-                .servers(setTopologyAndGetServersConfig(details))
                 .keyspace("test")
                 .replicationFactor(3)
                 .ignoreNodeTopologyChecks(false)
@@ -318,11 +317,27 @@ public class CassandraVerifierTest {
                 .schemaMutationTimeoutMillis(0);
     }
 
-    private CassandraServersConfig setTopologyAndGetServersConfig(EndpointDetails... details) throws TException {
-        when(client.describe_ring(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE))
-                .thenReturn(ImmutableList.of(mockRangeWithDetails(details)));
+    private ImmutableCassandraVerifierConfig.Builder getVerifierConfigBuilderWithDefaults() {
+        return getBaseVerifierConfigBuilderWithDefaults().servers(setTopologyAndGetServersConfig());
+    }
+
+    private ImmutableCassandraVerifierConfig.Builder
+            getVerifierConfigBuilderWithDefaultsAndClientDescribeRingInvocation(EndpointDetails... details)
+                    throws TException {
+        return getBaseVerifierConfigBuilderWithDefaults()
+                .servers(setTopologyAndGetServersConfigWithClientDescribeRingInvocation(details));
+    }
+
+    private CassandraServersConfig setTopologyAndGetServersConfig() {
         return ImmutableDefaultConfig.builder()
                 .addThriftHosts(InetSocketAddress.createUnresolved(HOST_1, 8080))
                 .build();
+    }
+
+    private CassandraServersConfig setTopologyAndGetServersConfigWithClientDescribeRingInvocation(
+            EndpointDetails... details) throws TException {
+        when(client.describe_ring(CassandraConstants.SIMPLE_RF_TEST_KEYSPACE))
+                .thenReturn(ImmutableList.of(mockRangeWithDetails(details)));
+        return setTopologyAndGetServersConfig();
     }
 }

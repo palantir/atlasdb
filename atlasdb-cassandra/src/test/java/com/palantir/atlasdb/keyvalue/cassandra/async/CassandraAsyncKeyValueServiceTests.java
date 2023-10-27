@@ -71,7 +71,6 @@ public class CassandraAsyncKeyValueServiceTests {
     public void setUp() {
         asyncKeyValueService = CassandraAsyncKeyValueService.create(
                 KEYSPACE, cqlClientContainer, AtlasFutures.futuresCombiner(MoreExecutors.newDirectExecutorService()));
-        when(cqlClientContainer.get()).thenReturn(cqlClient);
     }
 
     @AfterEach
@@ -81,6 +80,7 @@ public class CassandraAsyncKeyValueServiceTests {
 
     @Test
     public void testNoDataVisible() throws Exception {
+        prepareCqlClientContainerInvocation();
         setUpNonVisibleCells(NON_VISIBLE_CELL);
 
         Map<Cell, Long> request = ImmutableMap.of(NON_VISIBLE_CELL, TIMESTAMP);
@@ -91,6 +91,7 @@ public class CassandraAsyncKeyValueServiceTests {
 
     @Test
     public void testFilteringNonVisible() throws Exception {
+        prepareCqlClientContainerInvocation();
         setUpVisibleCells(VISIBLE_CELL_1);
         setUpNonVisibleCells(NON_VISIBLE_CELL);
 
@@ -104,6 +105,7 @@ public class CassandraAsyncKeyValueServiceTests {
 
     @Test
     public void testAllVisible() throws Exception {
+        prepareCqlClientContainerInvocation();
         setUpVisibleCells(VISIBLE_CELL_1, VISIBLE_CELL_2);
 
         Map<Cell, Long> request = ImmutableMap.of(
@@ -122,6 +124,7 @@ public class CassandraAsyncKeyValueServiceTests {
 
     @Test
     public void testIsValidFalseWhenClientIsInvalid() {
+        prepareCqlClientContainerInvocation();
         when(cqlClientContainer.isClosed()).thenReturn(false);
         when(cqlClient.isValid()).thenReturn(false);
         assertThat(asyncKeyValueService.isValid()).isFalse();
@@ -129,6 +132,7 @@ public class CassandraAsyncKeyValueServiceTests {
 
     @Test
     public void testIsValidTrueWhenContainerOpenAndClientValid() {
+        prepareCqlClientContainerInvocation();
         when(cqlClient.isValid()).thenReturn(true);
         assertThat(asyncKeyValueService.isValid()).isTrue();
     }
@@ -158,5 +162,9 @@ public class CassandraAsyncKeyValueServiceTests {
                 .cell(cell)
                 .humanReadableTimestamp(TIMESTAMP)
                 .build();
+    }
+
+    private void prepareCqlClientContainerInvocation() {
+        when(cqlClientContainer.get()).thenReturn(cqlClient);
     }
 }
