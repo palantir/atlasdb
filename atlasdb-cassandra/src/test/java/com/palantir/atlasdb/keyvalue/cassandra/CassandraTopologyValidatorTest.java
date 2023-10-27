@@ -48,7 +48,7 @@ import java.util.stream.Collectors;
 import one.util.streamex.EntryStream;
 import one.util.streamex.StreamEx;
 import org.apache.thrift.TApplicationException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class CassandraTopologyValidatorTest {
 

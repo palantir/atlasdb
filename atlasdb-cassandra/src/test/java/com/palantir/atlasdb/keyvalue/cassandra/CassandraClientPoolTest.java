@@ -71,8 +71,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.OngoingStubbing;
@@ -111,7 +111,7 @@ public final class CassandraClientPoolTest {
 
     private Blacklist blacklist;
 
-    @Before
+    @BeforeEach
     public void setup() {
         config = mock(CassandraKeyValueServiceConfig.class);
         runtimeConfig = mock(CassandraKeyValueServiceRuntimeConfig.class);

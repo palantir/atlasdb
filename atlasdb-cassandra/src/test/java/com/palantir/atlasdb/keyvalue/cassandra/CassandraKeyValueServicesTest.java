@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CassandraKeyValueServicesTest {
     private static final byte[] DATA = PtBytes.toBytes("data");

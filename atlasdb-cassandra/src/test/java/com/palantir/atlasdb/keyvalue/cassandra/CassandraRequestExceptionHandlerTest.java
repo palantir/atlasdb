@@ -31,8 +31,8 @@ import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.transport.TTransportException;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class CassandraRequestExceptionHandlerTest {
     private static final String MESSAGE = "a exception";
@@ -70,7 +70,7 @@ public class CassandraRequestExceptionHandlerTest {
     private CassandraRequestExceptionHandler handlerLegacy;
     private CassandraRequestExceptionHandler handlerConservative;
 
-    @Before
+    @BeforeEach
     public void setup() {
         handlerLegacy = new CassandraRequestExceptionHandler(
                 () -> MAX_RETRIES_PER_HOST,

@@ -1,6 +1,5 @@
 apply from: '../gradle/shared.gradle'
 
-
 dependencies {
     api project(':atlasdb-cassandra')
     api project(path: ':atlasdb-dagger', configuration: 'shadow')
@@ -50,4 +49,10 @@ dependencies {
 
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+
+    testImplementation 'junit:junit'
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
 }

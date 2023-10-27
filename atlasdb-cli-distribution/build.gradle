@@ -1,12 +1,10 @@
 apply plugin: 'com.palantir.sls-java-service-distribution'
-
 apply plugin: 'com.palantir.external-publish-dist'
 apply from: "../gradle/shared.gradle"
 apply from: "../gradle/non-client-dist.gradle"
 
 dependencies {
   runtimeOnly project(':atlasdb-cli')
-
   runtimeOnly project(':atlasdb-cassandra')
   runtimeOnly project(':atlasdb-dbkvs')
 }

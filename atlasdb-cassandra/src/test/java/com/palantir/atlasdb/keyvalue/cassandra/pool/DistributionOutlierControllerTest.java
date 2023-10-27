@@ -29,7 +29,7 @@ import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class DistributionOutlierControllerTest {
     private static final double MIN_THRESHOLD = 0.1;

@@ -37,6 +37,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class TestFastForwardTimestampCommand {
     private static final String TIMESTAMP_GROUP = "timestamp";
     private static final String FETCH_COMMAND =

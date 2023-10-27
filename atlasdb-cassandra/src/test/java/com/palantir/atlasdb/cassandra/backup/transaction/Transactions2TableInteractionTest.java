@@ -40,8 +40,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import org.apache.commons.codec.binary.Hex;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class Transactions2TableInteractionTest {
     private static final FullyBoundedTimestampRange RANGE = FullyBoundedTimestampRange.of(Range.closed(5L, 500L));
@@ -51,7 +51,7 @@ public class Transactions2TableInteractionTest {
     private final TransactionsTableInteraction interaction = new Transactions2TableInteraction(RANGE, mockPolicy);
     private final TableMetadata tableMetadata = mock(TableMetadata.class, RETURNS_DEEP_STUBS);
 
-    @Before
+    @BeforeEach
     public void setupMock() {
         when(tableMetadata.getKeyspace().getName()).thenReturn(KEYSPACE);
         when(tableMetadata.getName()).thenReturn(TransactionConstants.TRANSACTIONS2_TABLE.getTableName());

@@ -25,7 +25,7 @@ import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CassandraKeyValueServicePueTest {
     @Test

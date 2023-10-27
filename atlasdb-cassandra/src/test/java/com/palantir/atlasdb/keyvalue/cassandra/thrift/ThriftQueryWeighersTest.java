@@ -28,7 +28,7 @@ import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.KeyRange;
 import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.Mutation;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ThriftQueryWeighersTest {
 

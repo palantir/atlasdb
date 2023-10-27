@@ -26,7 +26,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import java.net.InetSocketAddress;
 import java.util.Set;
 import java.util.stream.IntStream;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CassandraAbsentHostTrackerTest {
     private static final InetSocketAddress ADDRESS_1 = InetSocketAddress.createUnresolved("1", 1);

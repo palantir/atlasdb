@@ -20,8 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.common.base.FunctionCheckedException;
 import java.net.InetSocketAddress;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class RetryableCassandraRequestTest {
     private static final int DEFAULT_PORT = 5000;
@@ -35,7 +35,7 @@ public class RetryableCassandraRequestTest {
 
     private RetryableCassandraRequest<Void, RuntimeException> request;
 
-    @Before
+    @BeforeEach
     public void setup() {
         request = new RetryableCassandraRequest<>(SERVER_1, noOp());
     }
