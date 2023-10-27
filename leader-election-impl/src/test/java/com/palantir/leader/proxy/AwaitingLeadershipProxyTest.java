@@ -15,6 +15,8 @@
  */
 package com.palantir.leader.proxy;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableException;
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,6 +37,8 @@ import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.PaxosLeadershipToken;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.SafeLoggable;
 import com.palantir.tracing.RenderTracingRule;
 import java.io.Closeable;
 import java.time.Duration;
@@ -102,9 +106,10 @@ public class AwaitingLeadershipProxyTest {
         assertThat(future).isNotDone();
         inProgressCheck.set(StillLeadingStatus.NOT_LEADING);
 
-        assertThatThrownBy(future::get)
-                .hasCauseExactlyInstanceOf(NotCurrentLeaderException.class)
-                .hasMessageContaining("method invoked on a non-leader");
+        assertThatThrownBy(future::get).cause().satisfies(exc -> assertThatLoggableException(
+                        (Throwable & SafeLoggable) exc)
+                .isInstanceOf(NotCurrentLeaderException.class)
+                .hasLogMessage("method invoked on a non-leader (leadership lost)"));
     }
 
     @Test
@@ -181,9 +186,9 @@ public class AwaitingLeadershipProxyTest {
             throw new InterruptedException(TEST_MESSAGE);
         };
 
-        assertThatThrownBy(() -> loseLeadershipDuringCallToProxyFor(delegate))
+        assertThatLoggableExceptionThrownBy(() -> loseLeadershipDuringCallToProxyFor(delegate))
                 .isInstanceOf(NotCurrentLeaderException.class)
-                .hasMessage("received an interrupt due to leader election.")
+                .hasLogMessage("received an interrupt due to leader election.")
                 .hasCauseExactlyInstanceOf(InterruptedException.class)
                 .hasStackTraceContaining(TEST_MESSAGE);
     }
@@ -259,9 +264,9 @@ public class AwaitingLeadershipProxyTest {
             return null;
         };
         loseLeadership(callable);
-        assertThatThrownBy(callable::call)
+        assertThatLoggableExceptionThrownBy(callable::call)
                 .isInstanceOf(NotCurrentLeaderException.class)
-                .hasMessage("method invoked on a non-leader");
+                .hasLogMessage("method invoked on a non-leader");
         verify(mock).close();
     }
 
@@ -286,9 +291,9 @@ public class AwaitingLeadershipProxyTest {
             return null;
         });
 
-        assertThatThrownBy(proxyA::val)
+        assertThatLoggableExceptionThrownBy(proxyA::val)
                 .isInstanceOf(NotCurrentLeaderException.class)
-                .hasMessage("method invoked on a non-leader");
+                .hasLogMessage("method invoked on a non-leader");
         verify(mockA).close();
     }
 
@@ -365,9 +370,9 @@ public class AwaitingLeadershipProxyTest {
         });
 
         // make a call so the proxy will realize that it has lost leadership
-        assertThatThrownBy(proxy::call)
+        assertThatLoggableExceptionThrownBy(proxy::call)
                 .isInstanceOf(NotCurrentLeaderException.class)
-                .hasMessage("method invoked on a non-leader (leadership lost)");
+                .hasLogMessage("method invoked on a non-leader (leadership lost)");
     }
 
     private void refreshLeadershipToken(MyCloseable proxy) throws InterruptedException {
@@ -383,9 +388,10 @@ public class AwaitingLeadershipProxyTest {
         when(leaderElectionService.blockOnBecomingLeader()).thenAnswer(invocation -> newLeadershipToken);
 
         // make a call so the proxy will realize that it has lost leadership
-        assertThatThrownBy(proxy::val)
+        assertThatLoggableExceptionThrownBy(proxy::val)
                 .isInstanceOf(NotCurrentLeaderException.class)
-                .hasMessage("method invoked on a non-leader (leadership lost)");
+                .hasLogMessage("method invoked on a non-leader (leadership lost)")
+                .hasExactlyArgs(SafeArg.of("serviceHint", Optional.empty()));
 
         // Wait to gain leadership
         Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));

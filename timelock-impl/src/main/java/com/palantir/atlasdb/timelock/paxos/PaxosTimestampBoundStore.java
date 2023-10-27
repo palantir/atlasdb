@@ -17,10 +17,12 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Ordering;
+import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -258,9 +260,10 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                             SafeArg.of("newLimit", newLimit),
                             SafeArg.of("target", limit));
 
-                    throwNotCurrentLeaderException(String.format(
-                            "We updated the timestamp limit to %s, which was less than our target %s.",
-                            newLimit, limit));
+                    throwNotCurrentLeaderException(
+                            "We updated the timestamp limit to {}, which was less than our target {}",
+                            SafeArg.of("newLimit", newLimit),
+                            SafeArg.of("target", limit));
                 }
                 return;
             } catch (PaxosRoundFailureException e) {
@@ -279,14 +282,18 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      */
     private void checkAgreedBoundIsOurs(long limit, long newSeq, PaxosValue value) throws NotCurrentLeaderException {
         if (!proposer.getUuid().equals(value.getLeaderUUID())) {
-            String errorMsg = String.format(
-                    "Timestamp limit changed from under us for sequence '%s' (proposer with UUID '%s' changed"
-                            + " it, our UUID is '%s'). This suggests that we have lost leadership, and another timelock"
+            throwNotCurrentLeaderException(
+                    "Timestamp limit changed from under us for sequence {} (proposer with UUID '{}' changed"
+                            + " it, our UUID is '{}'). This suggests that we have lost leadership, and another timelock"
                             + " server has gained leadership and updated the timestamp bound."
-                            + " The offending bound was '%s'; we tried to propose"
-                            + " a bound of '%s'. (The offending Paxos value was '%s'.)",
-                    newSeq, value.getLeaderUUID(), proposer.getUuid(), PtBytes.toLong(value.getData()), limit, value);
-            throwNotCurrentLeaderException(errorMsg);
+                            + " The offending bound was '{}'; we tried to propose"
+                            + " a bound of '{}'. (The offending Paxos value was '{}'.)",
+                    SafeArg.of("sequence", newSeq),
+                    SafeArg.of("offendingLimitProposerUUID", value.getLeaderUUID()),
+                    SafeArg.of("ourUUID", proposer.getUuid()),
+                    SafeArg.of("offendingBound", PtBytes.toLong(value.getData())),
+                    SafeArg.of("ourBound", limit),
+                    SafeArg.of("offendingValue", value));
         }
         DebugLogger.logger.info(
                 "Trying to store limit '{}' for sequence '{}' yielded consensus on the value '{}'.",
@@ -295,9 +302,9 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                 SafeArg.of("paxosValue", value));
     }
 
-    private synchronized void throwNotCurrentLeaderException(String message) {
+    private synchronized void throwNotCurrentLeaderException(@CompileTimeConstant String message, Arg<?>... args) {
         hasLostLeadership = true;
-        throw new NotCurrentLeaderException(message);
+        throw new NotCurrentLeaderException(message, args);
     }
 
     /**

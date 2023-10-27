@@ -16,13 +16,15 @@
 
 package com.palantir.atlasdb.timelock.transaction.timestamp;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.logsafe.SafeArg;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 public class LeadershipGuardedClientAwareManagedTimestampServiceTest {
@@ -41,9 +43,10 @@ public class LeadershipGuardedClientAwareManagedTimestampServiceTest {
     public void doesNotReturnResultsAfterClosing() {
         when(delegate.getFreshTimestamp()).thenReturn(88L);
         delegatingService.close();
-        assertThatThrownBy(delegatingService::getFreshTimestamp)
+        assertThatLoggableExceptionThrownBy(delegatingService::getFreshTimestamp)
                 .isInstanceOf(NotCurrentLeaderException.class)
-                .hasMessage("Lost leadership elsewhere");
+                .hasLogMessage("Lost leadership elsewhere")
+                .hasExactlyArgs(SafeArg.of("serviceHint", Optional.empty()));
 
         // Maybe excessive, but I think reasonable
         verify(delegate).getFreshTimestamp();
@@ -55,8 +58,9 @@ public class LeadershipGuardedClientAwareManagedTimestampServiceTest {
             delegatingService.close();
             return 42L;
         });
-        assertThatThrownBy(delegatingService::getFreshTimestamp)
+        assertThatLoggableExceptionThrownBy(delegatingService::getFreshTimestamp)
                 .isInstanceOf(NotCurrentLeaderException.class)
-                .hasMessage("Lost leadership elsewhere");
+                .hasLogMessage("Lost leadership elsewhere")
+                .hasExactlyArgs(SafeArg.of("serviceHint", Optional.empty()));
     }
 }

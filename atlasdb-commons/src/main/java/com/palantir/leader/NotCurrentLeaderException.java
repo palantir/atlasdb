@@ -16,7 +16,9 @@
 package com.palantir.leader;
 
 import com.google.common.net.HostAndPort;
+import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.common.remoting.ServiceNotAvailableException;
+import com.palantir.logsafe.Arg;
 
 /**
  * Some operations may only complete if they are run on the leader.  If a non-leader server gets one of these
@@ -27,19 +29,20 @@ import com.palantir.common.remoting.ServiceNotAvailableException;
 public class NotCurrentLeaderException extends ServiceNotAvailableException {
     private static final long serialVersionUID = 1L;
 
-    public NotCurrentLeaderException(String message, Throwable cause, HostAndPort leaderHint) {
-        super(message, cause, leaderHint);
+    public NotCurrentLeaderException(
+            @CompileTimeConstant String message, Throwable cause, HostAndPort leaderHint, Arg<?>... args) {
+        super(message, cause, leaderHint, args);
     }
 
-    public NotCurrentLeaderException(String message, HostAndPort leaderHint) {
-        super(message, leaderHint);
+    public NotCurrentLeaderException(@CompileTimeConstant String message, HostAndPort leaderHint, Arg<?>... args) {
+        super(message, leaderHint, args);
     }
 
-    public NotCurrentLeaderException(String message, Throwable cause) {
-        super(message, cause);
+    public NotCurrentLeaderException(@CompileTimeConstant String message, Throwable cause, Arg<?>... args) {
+        super(message, cause, args);
     }
 
-    public NotCurrentLeaderException(String message) {
-        super(message);
+    public NotCurrentLeaderException(@CompileTimeConstant String message, Arg<?>... args) {
+        super(message, args);
     }
 }

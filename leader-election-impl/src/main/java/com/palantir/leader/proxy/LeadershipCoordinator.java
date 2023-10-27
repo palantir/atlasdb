@@ -18,11 +18,13 @@ package com.palantir.leader.proxy;
 
 import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -113,19 +115,23 @@ public final class LeadershipCoordinator implements Closeable {
         return leadershipToken == leadershipTokenRef.get();
     }
 
-    NotCurrentLeaderException notCurrentLeaderException(String message) {
+    NotCurrentLeaderException notCurrentLeaderException(@CompileTimeConstant String message) {
         return notCurrentLeaderException(message, null /* cause */);
     }
 
-    NotCurrentLeaderException notCurrentLeaderException(String message, @Nullable Throwable cause) {
+    NotCurrentLeaderException notCurrentLeaderException(
+            @CompileTimeConstant String message, @Nullable Throwable cause) {
         return notCurrentLeaderException(leaderElectionService.getRecentlyPingedLeaderHost(), message, cause);
     }
 
     private NotCurrentLeaderException notCurrentLeaderException(
-            Optional<HostAndPort> recentlyPingedLeaderHost, String message, @Nullable Throwable cause) {
+            Optional<HostAndPort> recentlyPingedLeaderHost,
+            @CompileTimeConstant String message,
+            @Nullable Throwable cause,
+            Arg<?>... args) {
         return recentlyPingedLeaderHost
-                .map(hostAndPort -> new NotCurrentLeaderException(message, cause, hostAndPort))
-                .orElseGet(() -> new NotCurrentLeaderException(message, cause));
+                .map(hostAndPort -> new NotCurrentLeaderException(message, cause, hostAndPort, args))
+                .orElseGet(() -> new NotCurrentLeaderException(message, cause, args));
     }
 
     private void tryToGainLeadership() {
