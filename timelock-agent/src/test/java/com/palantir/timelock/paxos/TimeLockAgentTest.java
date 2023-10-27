@@ -23,11 +23,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.SubdirectoryCreator;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.conjure.java.api.config.service.PartialServiceConfiguration;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.test.utils.SubdirectoryCreator;
 import com.palantir.timelock.config.ClusterConfiguration;
 import com.palantir.timelock.config.DefaultClusterConfiguration;
 import com.palantir.timelock.config.ImmutableClusterInstallConfiguration;

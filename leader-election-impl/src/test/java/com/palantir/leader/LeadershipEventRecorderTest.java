@@ -24,8 +24,8 @@ import com.palantir.paxos.PaxosRoundFailureException;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.sls.versions.OrderableSlsVersion;
 import java.util.Optional;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 public class LeadershipEventRecorderTest {
 
@@ -45,7 +45,7 @@ public class LeadershipEventRecorderTest {
 
     private static final OrderableSlsVersion VERSION = OrderableSlsVersion.valueOf("1.1.1");
 
-    @After
+    @AfterEach
     public void verifyNoMoreEvents() {
         verifyNoMoreInteractions(events);
     }

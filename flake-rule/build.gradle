@@ -4,6 +4,7 @@ versionsLock {
     testProject()
 }
 
+/* TODO(boyoruk): Migrate all package to JUnit5 */
 dependencies {
   implementation 'junit:junit'
   implementation 'com.google.guava:guava'
@@ -11,4 +12,5 @@ dependencies {
   testImplementation 'ch.qos.logback:logback-classic'
   testImplementation 'org.assertj:assertj-core'
   testImplementation 'org.mockito:mockito-core'
+  testImplementation 'junit:junit'
 }

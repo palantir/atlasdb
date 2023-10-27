@@ -14,16 +14,20 @@
  * limitations under the License.
  */
 
-package com.palantir;
+package com.palantir.test.utils;
 
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.io.File;
 
-public class SubdirectoryCreator {
+public final class SubdirectoryCreator {
+
+    private SubdirectoryCreator() {}
+
     public static File getAndCreateSubdirectory(File base, String subdirectoryName) {
         File file = base.toPath().resolve(subdirectoryName).toFile();
         if (file.mkdirs()) {
             return file;
         }
-        throw new RuntimeException("Unexpected error when creating a subdirectory");
+        throw new SafeRuntimeException("Unexpected error when creating a subdirectory");
     }
 }
