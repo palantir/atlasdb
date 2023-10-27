@@ -143,19 +143,19 @@ public final class OracleDdlTable implements DbDdlTable {
         }
 
         log.info(
-                "Potentially altering table {} to have overflow column.",
+                "Potentially altering table {} (internal name: {}) to have overflow column.",
                 LoggingArgs.tableRef(tableRef),
                 UnsafeArg.of("shortTableName", shortTableName));
         if (config.alterTablesOrMetadataToMatch().stream()
                 .anyMatch(ref -> ref.doesTableReferenceOrPhysicalTableNameMatch(tableRef, shortTableName))) {
             log.info(
-                    "Config contains table {}, checking if we can alter table.",
+                    "Config contains table {} (internal name: {}), checking if we can alter table.",
                     LoggingArgs.tableRef(tableRef),
                     UnsafeArg.of("shortTableName", shortTableName));
             try {
                 log.info(
-                        "Table name: {}, Overflow table migrated status: {}, overflow table existence status: {}, "
-                                + "overflow column exists status: {}",
+                        "Table name: {} (internal name: {}), Overflow table migrated status: {},"
+                                + " overflow table existence status: {}, overflow column exists status: {}",
                         LoggingArgs.tableRef(tableRef),
                         UnsafeArg.of("shortTableName", shortTableName),
                         SafeArg.of("overflowTableHasMigrated", overflowTableHasMigrated()),

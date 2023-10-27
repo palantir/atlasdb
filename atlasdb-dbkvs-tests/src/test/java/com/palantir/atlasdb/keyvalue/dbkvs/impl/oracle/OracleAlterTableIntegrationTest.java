@@ -116,8 +116,6 @@ public final class OracleAlterTableIntegrationTest {
         CallableCheckedException<KeyValueService, TableMappingNotFoundException> workingKvsSupplier = () -> {
             String physicalTableName =
                     oracleTableNameGetter.getInternalShortTableName(connectionSupplier, TABLE_REFERENCE);
-            System.out.println("Lookout!!");
-            System.out.println(physicalTableName);
             return createKvs(getConfigWithAlterTableFromPhysicalTableName(physicalTableName));
         };
         whenConfiguredAlterTableToMatchMetadataAndOldDataIsStillReadable(workingKvsSupplier);
