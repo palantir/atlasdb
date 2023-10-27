@@ -198,34 +198,75 @@ migration as `serviceNameConfiguration.namespaceOverride`.
 This migration can be reversed trivially (just by changing the config to reference the now-correct `sid`) if you are
 using embedded timestamp and lock services.
 
-Altering Table To Match Metadata
---------------------------------
+Fixing tables that have a missing overflow column (ORA-00904: OVERFLOW”, or “invalid identifier: OVERFLOW”)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-On rare occasions, the metadata in Oracle can mismatch the expected metadata by the service. This can happen as a result
-of a rare race condition on table creation, where one service expects the table to have an overflow column, while
-the other does not.
+On rare occasions, the metadata in Oracle can mismatch the expected
+metadata by the service. This can happen as a result of a rare race
+condition on table creation, where one service expects the table to have
+an overflow column, while the other does not.
 
-To resolve, simply add the following configuration to your Oracle ddl configuration.
+To resolve, simply add the following configuration to your Oracle ddl
+configuration.
 
-.. code-block:: yaml
+.. code:: yaml
 
-    atlasdb:
-      keyValueService:
-        type: relational
-        ddl:
-          type: oracle
-          alterTablesOrMetadataToMatchAndIKnowWhatIAmDoing:
-              - namespace:
-                  name: <namespace>
-                tablename: <table-name>
+   atlasdb:
+     keyValueService:
+       type: relational
+       ddl:
+         type: oracle
+         alterTablesOrMetadataToMatchAndIKnowWhatIAmDoing:
+             - physicalTableName: <physicalTableName>
 
-Note: Table names are case sensitive.
+..
+
+   [!info] Determining your ``physicalTableName`` given an ``ORA-00904``
+   stacktrace The full stacktrace should contain the SQL string that
+   resulted in this exception. Within this stacktrace, you should see a
+   table name with a similar form to ``x_yz__tablename_1234``. The full
+   string ``x_yz__tablename_1234`` is your ``physicalTableName``.
+
+   [!info] I know the logical table name and namespace that's affected
+   If you already know the logical table name and table namespace that's
+   affected (e.g, using your AtlasDB schema file), then you can use the
+   following configuration instead:
+
+   ::
+
+      atlasdb:
+       keyValueService:
+         type: relational
+         ddl:
+           type: oracle
+           alterTablesOrMetadataToMatchAndIKnowWhatIAmDoing:
+               - namespace:
+                   name: <namespace>
+                   tablename: <table-name>
 
 Generally speaking the operation is safe to perform, although it's on the operator to determine what the side
-effects are. For example, if the issue arose as two services are configured to use this table, but only one is
-performing table mapping, then it is expected that this could break one of the services. However, that condition
-still satisfies the status quo, thus it's on the configurator to determine if this change is safe to make.
+effects are. For example, if the issue arose as two services are configured to use this table, but only
+one is performing table mapping, then it is expected that this could break one of the services. However,
+that condition still satisfies the status quo, thus it's on the configurator to determine if this change is
+safe to make.
 
 Although the alter action is idempotent, it is recommended to remove the configuration after it has ran. Check the logs
-for ``Altering table to have overflow column to match metadata.`` and that there were no error logs printed to ensure that
-has successfully ran.
+for ``Altering table to have overflow column to match metadata.`` and that there were no error logs printed to ensure
+that has successfully ran.
+
+If things do not work:
+1. Check for log lines containing ``Potentially altering table {} (internal name: {}) to have overflow column.``,
+and verify that your table reference / physical table name shows up in one of the log lines (note that
+physical table names are logged unsafely, if your infrastructure understands log safety).
+If this is not present, then your service is not re-issuing a call to ``KeyValueService#createTable``.
+To fix, attempt to recreate the table using ``KeyValueService#createTable``
+2. Check for log lines containing ``Table name: {}, Overflow table migrated status: {}, overflow table existence status: {}, overflow column exists status: {}``
+containing your table reference / physical table name. Verify that ``overflowTableHasMigrated`` and
+``overflowTableExists`` are both true, and ``overflowColumnExists`` is false. If any of these are incorrect,
+then it is likely your issue does not pertain to a missing overflow column.
+Please contact support for further assistance.
+3. Check for the log line containing the stack trace with exception message
+"Unable to alter table to have overflow column due to a table mapping error.".
+Note that this exception message is marked unsafe. You may alternatively be able to find this stacktrace
+with the cause of type ``TableMappingNotFoundException``. If this is present, please determine if the exception cause
+relates to an operator error, or requires further assistance from Palantir support.
