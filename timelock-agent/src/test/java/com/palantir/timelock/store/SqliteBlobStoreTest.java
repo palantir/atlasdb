@@ -20,24 +20,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.paxos.SqliteConnections;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import java.io.File;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class SqliteBlobStoreTest {
     private static final byte[] BYTES_1 = PtBytes.toBytes("tom");
     private static final byte[] BYTES_2 = PtBytes.toBytes("cat");
 
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @TempDir
+    public File tempFolder;
 
     private SqliteBlobStore blobStore;
 
-    @Before
+    @BeforeEach
     public void setup() {
-        blobStore = SqliteBlobStore.create(SqliteConnections.getDefaultConfiguredPooledDataSource(
-                tempFolder.getRoot().toPath()));
+        blobStore = SqliteBlobStore.create(SqliteConnections.getDefaultConfiguredPooledDataSource(tempFolder.toPath()));
     }
 
     @Test

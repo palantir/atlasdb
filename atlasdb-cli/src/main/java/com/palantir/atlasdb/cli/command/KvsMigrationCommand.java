@@ -32,6 +32,7 @@ import com.palantir.atlasdb.services.DaggerAtlasDbServices;
 import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.common.base.FunctionCheckedException;
+import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import io.airlift.airline.Command;
 import io.airlift.airline.Option;
@@ -40,6 +41,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import javax.annotation.Nullable;
 import org.slf4j.LoggerFactory;
@@ -182,9 +184,10 @@ public class KvsMigrationCommand implements Callable<Integer> {
                     threads,
                     batchSize,
                     ImmutableMap.of(),
-                    (String message, KeyValueServiceMigrator.KvsMigrationMessageLevel level) ->
-                            printer.info(level.toString() + ": " + message),
-                    ImmutableSet.of());
+                    (String message, KeyValueServiceMigrator.KvsMigrationMessageLevel level, Arg<?>... args) ->
+                            printer.info(level.toString() + ": " + message, args),
+                    ImmutableSet.of(),
+                    new AtomicInteger(0));
             validator.validate(true);
         }
         return 0;

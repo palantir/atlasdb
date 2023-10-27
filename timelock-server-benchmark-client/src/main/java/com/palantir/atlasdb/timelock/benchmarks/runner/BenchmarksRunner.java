@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.timelock.benchmarks.runner;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Note that there is no warmup time included in any of these tests, so if the server has just been started you'll want

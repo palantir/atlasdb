@@ -26,7 +26,7 @@ import com.palantir.atlasdb.timelock.auth.api.ClientId;
 import com.palantir.lock.TimelockNamespace;
 import java.io.File;
 import java.io.IOException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class PrivilegesConfigurationTest {
     private static final String ADMIN_PRIVILEGES_CONFIG = "admin-privileges-config";

@@ -29,14 +29,13 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class SingleLeaderPingerTest {
 
     private static final UUID LOCAL_UUID = UUID.randomUUID();
@@ -52,12 +51,7 @@ public class SingleLeaderPingerTest {
     @Mock
     private GreenNodeLeadershipPrioritiser greenNodeLeadershipPrioritiser;
 
-    @Before
-    public void setup() {
-        when(greenNodeLeadershipPrioritiser.shouldGreeningNodeBecomeLeader()).thenReturn(true);
-    }
-
-    @After
+    @AfterEach
     public void after() {
         executorService.shutdown();
     }
@@ -80,7 +74,6 @@ public class SingleLeaderPingerTest {
             Thread.sleep(10_000);
             return PingResult.builder().isLeader(true).build();
         });
-
         when(pingableLeader.getUUID()).thenReturn(REMOTE_UUID.toString());
 
         LeaderPinger pinger = pingerWithTimeout(Duration.ofMillis(100));
@@ -110,6 +103,7 @@ public class SingleLeaderPingerTest {
 
     @Test
     public void recordsLeaderPingReturnedTrueWithOlderVersion() {
+        when(greenNodeLeadershipPrioritiser.shouldGreeningNodeBecomeLeader()).thenReturn(true);
         OrderableSlsVersion oldTimeLockVersion = OrderableSlsVersion.valueOf("1.1.2");
         whenRemoteLeaderHasVersion(oldTimeLockVersion);
 
@@ -120,6 +114,7 @@ public class SingleLeaderPingerTest {
 
     @Test
     public void ignoresOlderVersionWhenGreenNodeShouldNotGainLeadership() {
+        when(greenNodeLeadershipPrioritiser.shouldGreeningNodeBecomeLeader()).thenReturn(true);
         OrderableSlsVersion oldTimeLockVersion = OrderableSlsVersion.valueOf("1.1.2");
         whenRemoteLeaderHasVersion(oldTimeLockVersion);
         when(greenNodeLeadershipPrioritiser.shouldGreeningNodeBecomeLeader()).thenReturn(false);

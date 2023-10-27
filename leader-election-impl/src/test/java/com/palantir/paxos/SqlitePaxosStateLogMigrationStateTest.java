@@ -19,15 +19,15 @@ package com.palantir.paxos;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.File;
 import javax.sql.DataSource;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class SqlitePaxosStateLogMigrationStateTest {
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @TempDir
+    public File tempFolder;
 
     private static final NamespaceAndUseCase NAMESPACE_AND_USE_CASE =
             ImmutableNamespaceAndUseCase.of(Client.of("namespace"), "useCase");
@@ -35,10 +35,9 @@ public class SqlitePaxosStateLogMigrationStateTest {
     private DataSource dataSource;
     private SqlitePaxosStateLogMigrationState migrationState;
 
-    @Before
+    @BeforeEach
     public void setup() {
-        dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(
-                tempFolder.getRoot().toPath());
+        dataSource = SqliteConnections.getDefaultConfiguredPooledDataSource(tempFolder.toPath());
         migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE_AND_USE_CASE, dataSource);
     }
 

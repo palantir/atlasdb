@@ -22,7 +22,7 @@ import com.palantir.lock.CloseableLockService;
 import com.palantir.lock.impl.ThreadPooledLockService;
 import java.io.IOException;
 import java.util.concurrent.Semaphore;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ThreadPooledLockServiceTest {
 

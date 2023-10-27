@@ -29,7 +29,7 @@ import com.palantir.atlasdb.timelock.auth.api.ImmutableCredentials;
 import com.palantir.lock.TimelockNamespace;
 import java.io.File;
 import java.io.IOException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TimelockAuthConfigurationTest {
     private static final String TIMELOCK_AUTH_CONFIG = "timelock-auth-config";

@@ -1,8 +1,8 @@
 apply plugin: 'com.palantir.sls-recommended-dependencies'
-
 apply from: "../gradle/shared.gradle"
 
 libsDirName = file('build/artifacts')
+
 dependencies {
     api project(":timestamp-api")
     api project(":timestamp-client")
@@ -23,6 +23,7 @@ dependencies {
     testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
     testImplementation 'com.palantir.common:streams'
     testImplementation 'com.palantir.safe-logging:preconditions-assertj'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation project(':atlasdb-api')
     testAnnotationProcessor 'org.immutables:value'
     testCompileOnly 'org.immutables:value::annotations'
@@ -31,6 +32,11 @@ dependencies {
     compileOnly 'org.immutables:value::annotations'
     annotationProcessor project(":atlasdb-processors")
     compileOnly project(":atlasdb-processors")
+
+    testImplementation 'junit:junit'
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
 }
 
 recommendedProductDependencies {

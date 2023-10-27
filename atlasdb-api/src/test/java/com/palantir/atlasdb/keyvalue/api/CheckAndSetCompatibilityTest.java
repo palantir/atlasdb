@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.stream.Stream;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CheckAndSetCompatibilityTest {
     private static final CheckAndSetCompatibility DETAIL_ONLY = CheckAndSetCompatibility.supportedBuilder()

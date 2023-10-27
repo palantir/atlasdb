@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class UseCaseUtilsTest {
     @Test

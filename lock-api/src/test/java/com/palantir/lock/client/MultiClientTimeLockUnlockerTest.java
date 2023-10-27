@@ -35,7 +35,7 @@ import com.palantir.lock.client.MultiClientTimeLockUnlocker.UnlockConsumer;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.UUID;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MultiClientTimeLockUnlockerTest {
     private static final Namespace NAMESPACE_1 = Namespace.of("namespace");

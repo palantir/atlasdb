@@ -1,7 +1,6 @@
 apply plugin: 'com.palantir.sls-java-service-distribution'
 apply plugin: 'com.palantir.external-publish-dist'
 apply from: "../gradle/shared.gradle"
-apply from: "../gradle/tests.gradle"
 apply from: "../gradle/docker.gradle"
 apply from: "../gradle/non-client-dist.gradle"
 
@@ -29,6 +28,9 @@ dependencies {
     implementation project(':atlasdb-config')
 
     testImplementation 'io.dropwizard:dropwizard-testing'
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
 
     compileOnly 'org.immutables:value::annotations'
     annotationProcessor 'org.immutables:value'

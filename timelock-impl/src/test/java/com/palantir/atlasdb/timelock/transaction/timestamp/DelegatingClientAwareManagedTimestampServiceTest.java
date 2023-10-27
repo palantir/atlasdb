@@ -31,8 +31,8 @@ import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
 import java.util.UUID;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("unchecked") // Mocks of parameterised types
 public class DelegatingClientAwareManagedTimestampServiceTest {
@@ -57,7 +57,7 @@ public class DelegatingClientAwareManagedTimestampServiceTest {
     private final DelegatingClientAwareManagedTimestampService service =
             new DelegatingClientAwareManagedTimestampService(allocator, timestamps);
 
-    @After
+    @AfterEach
     public void verifyNoFurtherInteractions() {
         verifyNoMoreInteractions(timestamps, allocator);
     }

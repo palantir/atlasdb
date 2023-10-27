@@ -41,8 +41,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class WritesDigestTest {
 
@@ -50,7 +50,7 @@ public class WritesDigestTest {
     private TransactionManager transactionManager;
     private WritesDigestEmitter emitter;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())

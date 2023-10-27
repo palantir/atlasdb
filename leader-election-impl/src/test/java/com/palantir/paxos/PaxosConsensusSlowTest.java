@@ -26,6 +26,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class PaxosConsensusSlowTest {
 
     Executor executor = PTExecutors.newCachedThreadPool();

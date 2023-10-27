@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.stream.LongStream;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TimestampRangesTest {
     private static final long SEVENTY_THREE = 73L;

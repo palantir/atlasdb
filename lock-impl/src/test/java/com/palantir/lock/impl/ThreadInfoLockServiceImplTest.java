@@ -42,8 +42,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 public class ThreadInfoLockServiceImplTest {
     private static final LockDescriptor TEST_LOCK_1 = StringLockDescriptor.of("lock-1");
@@ -310,7 +310,7 @@ public class ThreadInfoLockServiceImplTest {
         lockServiceWithRecordingEnabled.close();
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         lockService.close();
     }

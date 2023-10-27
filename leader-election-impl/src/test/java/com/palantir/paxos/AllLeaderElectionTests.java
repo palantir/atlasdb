@@ -20,6 +20,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 @RunWith(Suite.class)
 @SuiteClasses({ProtobufTest.class, PaxosConsensusFastTest.class, PaxosConsensusSlowTest.class})
 public class AllLeaderElectionTests {}

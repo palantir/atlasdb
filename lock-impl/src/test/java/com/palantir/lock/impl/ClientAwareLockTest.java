@@ -39,6 +39,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 /**
  * Tests for {@link ClientAwareReadWriteLockImpl}.
  *

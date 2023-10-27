@@ -38,8 +38,8 @@ import com.palantir.lock.remoting.BlockingTimeoutException;
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("DoNotMock") // we are just using mocks as proxies that always throw
 public class BlockingTimeLimitedLockServiceTest {
@@ -66,7 +66,7 @@ public class BlockingTimeLimitedLockServiceTest {
     private final BlockingTimeLimitedLockService uncheckedThrowingService = createService(uncheckedThrowingLimiter);
     private final BlockingTimeLimitedLockService checkedThrowingService = createService(checkedThrowingLimiter);
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         when(timingOutLimiter.callWithTimeout(any(), anyLong(), any())).thenThrow(new TimeoutException());
         when(interruptingLimiter.callWithTimeout(any(), anyLong(), any())).thenThrow(new InterruptedException());

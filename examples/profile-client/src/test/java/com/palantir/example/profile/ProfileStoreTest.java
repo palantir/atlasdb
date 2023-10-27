@@ -41,6 +41,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+/* TODO(boyoruk): Migrate to Junit5. */
 public class ProfileStoreTest {
     private static final byte[] IMAGE = new byte[] {0, 1, 2, 3};
     private static final UserProfile USER =

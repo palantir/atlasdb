@@ -96,6 +96,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.collect.Maps2;
+import com.palantir.common.concurrent.BlockingWorkerPool;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.concurrent.SharedFixedExecutors;
 import com.palantir.exception.PalantirSqlException;
@@ -132,9 +133,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
@@ -217,7 +216,8 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
                 config,
                 tableFactory,
                 connections,
-                new ParallelTaskRunner(newFixedThreadPool(config.poolSize()), config.fetchBatchSize()),
+                new ParallelTaskRunner(
+                        newFixedThreadPool(config.poolSize()), config.fetchBatchSize(), config.poolQosSize()),
                 (conns, tbl, ids) -> Collections.emptyMap(), // no overflow on postgres
                 new PostgresGetRange(prefixedTableNames, connections, tableMetadataCache),
                 new DbKvsGetCandidateCellsForSweeping(cellTsPairLoader));
@@ -266,7 +266,7 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
             OverflowValueLoader overflowValueLoader,
             DbKvsGetRange getRangeStrategy,
             DbKvsGetCandidateCellsForSweeping getCandidateCellsForSweepingStrategy) {
-        super(executor);
+        super(executor, config.poolQosSize());
         this.config = config;
         this.dbTables = dbTables;
         this.connections = connections;
@@ -451,20 +451,15 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
             }
         }
 
-        List<Future<Void>> futures;
+        BlockingWorkerPool<Void> pool = new BlockingWorkerPool<>(executor, executorQosSize);
         try {
-            futures = executor.invokeAll(callables);
-        } catch (InterruptedException e) {
-            throw Throwables.throwUncheckedException(e);
-        }
-        for (Future<Void> future : futures) {
-            try {
-                future.get();
-            } catch (InterruptedException e) {
-                throw Throwables.throwUncheckedException(e);
-            } catch (ExecutionException e) {
-                throw Throwables.rewrapAndThrowUncheckedException(e.getCause());
+            for (Callable<Void> callable : callables) {
+                pool.submitCallable(callable);
             }
+            pool.waitForSubmittedTasks();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
         }
     }
 

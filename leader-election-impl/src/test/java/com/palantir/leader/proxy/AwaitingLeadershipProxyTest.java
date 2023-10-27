@@ -55,6 +55,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class AwaitingLeadershipProxyTest {
     private static final String TEST_MESSAGE = "test_message";
 

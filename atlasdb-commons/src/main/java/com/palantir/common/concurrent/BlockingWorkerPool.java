@@ -17,6 +17,7 @@ package com.palantir.common.concurrent;
 
 import com.google.common.base.Throwables;
 import com.palantir.logsafe.Preconditions;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
@@ -24,14 +25,21 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class BlockingWorkerPool {
-    private final CompletionService<Void> service;
+public class BlockingWorkerPool<T> {
+    private final CompletionService<T> service;
     private final int concurrentTaskLimit;
 
     private final AtomicInteger currentTaskCount = new AtomicInteger();
 
+    /**
+     * Construct a BlockingWorkerPool.
+     *
+     * @param executor The ExecutorService to use for tasks
+     * @param concurrentTaskLimit The limit for concurrently running tasks. If this value is 0 or negative, then no
+     *                            limit is enforced.
+     */
     public BlockingWorkerPool(ExecutorService executor, int concurrentTaskLimit) {
-        this.service = new ExecutorCompletionService<Void>(executor);
+        this.service = new ExecutorCompletionService<>(executor);
         this.concurrentTaskLimit = concurrentTaskLimit;
     }
 
@@ -47,9 +55,37 @@ public class BlockingWorkerPool {
         waitForAvailability();
 
         Preconditions.checkState(
-                currentTaskCount.get() < concurrentTaskLimit, "currentTaskCount must be less than currentTaskLimit");
+                concurrentTaskLimit <= 0 || currentTaskCount.get() < concurrentTaskLimit,
+                "currentTaskCount must be less than currentTaskLimit");
         service.submit(task, null);
         currentTaskCount.incrementAndGet();
+    }
+
+    /**
+     * Submits a callable task to the pool. Behaves the same as {@link #submitTask(Runnable)}.
+     */
+    public synchronized Future<T> submitCallable(Callable<T> task) throws InterruptedException {
+        waitForAvailability();
+
+        Preconditions.checkState(
+                concurrentTaskLimit <= 0 || currentTaskCount.get() < concurrentTaskLimit,
+                "currentTaskCount must be less than currentTaskLimit");
+        Future<T> result = service.submit(task);
+        currentTaskCount.incrementAndGet();
+        return result;
+    }
+
+    /**
+     * Same as {@link #submitCallable(Callable)} but will wrap any InterruptedException in a RuntimeException.
+     * If an InterruptedException was encountered, the thread interrupt flag will still be set.
+     */
+    public Future<T> submitCallableUnchecked(Callable<T> task) {
+        try {
+            return submitCallable(task);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        }
     }
 
     private void waitForSingleTask() throws InterruptedException {
@@ -57,7 +93,7 @@ public class BlockingWorkerPool {
             return;
         }
 
-        Future<Void> f = service.take();
+        Future<T> f = service.take();
         currentTaskCount.decrementAndGet();
         try {
             f.get();
@@ -81,9 +117,10 @@ public class BlockingWorkerPool {
 
     /**
      * Waits until the number of tasks drops below the concurrent task limit.
+     * If the limit is 0 or negative, then there is no enforced limit and this will not wait.
      */
     public synchronized void waitForAvailability() throws InterruptedException {
-        if (currentTaskCount.get() >= concurrentTaskLimit) {
+        if (concurrentTaskLimit > 0 && currentTaskCount.get() >= concurrentTaskLimit) {
             waitForSingleTask();
         }
     }

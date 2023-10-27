@@ -24,7 +24,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.palantir.common.time.NanoTime;
 import java.time.Duration;
 import java.util.UUID;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class LockResponseV2Test {
     private static final LockToken LOCK_TOKEN = LockToken.of(UUID.randomUUID());

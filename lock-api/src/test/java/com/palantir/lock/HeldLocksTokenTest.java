@@ -22,7 +22,7 @@ import com.google.common.collect.ImmutableSortedMap;
 import java.math.BigInteger;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class HeldLocksTokenTest {
 

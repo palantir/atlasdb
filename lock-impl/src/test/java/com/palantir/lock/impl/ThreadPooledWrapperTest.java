@@ -29,8 +29,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ThreadPooledWrapperTest {
     private static final Waiter WAITER = new Waiter();
@@ -44,7 +44,7 @@ public class ThreadPooledWrapperTest {
         }
     }
 
-    @Before
+    @BeforeEach
     public void resetLatch() {
         countDownLatch = new CountDownLatch(1);
     }

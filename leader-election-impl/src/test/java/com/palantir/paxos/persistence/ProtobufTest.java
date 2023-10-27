@@ -29,6 +29,7 @@ import com.palantir.paxos.persistence.generated.remoting.PaxosAcceptorPersistenc
 import com.palantir.paxos.persistence.generated.remoting.PaxosAcceptorPersistence.PaxosPromiseProto;
 import org.junit.Test;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class ProtobufTest {
     @Test
     public void testPaxosValuePersistence() throws Exception {

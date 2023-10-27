@@ -18,33 +18,32 @@ package com.palantir.timelock.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.test.utils.SubdirectoryCreator;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Paths;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class TimeLockInstallConfigurationTest {
-    @Rule
-    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+    @TempDir
+    public File temporaryFolder;
 
     private File newPaxosLogDirectory;
     private File newSqliteLogDirectory;
     private File extantPaxosLogDirectory;
     private File extantSqliteLogDirectory;
 
-    @Before
-    public void setUp() throws IOException {
-        newPaxosLogDirectory = Paths.get(temporaryFolder.getRoot().toString(), "part-time-parliament")
-                .toFile();
-        newSqliteLogDirectory = Paths.get(temporaryFolder.getRoot().toString(), "sqlite-is-cool")
-                .toFile();
+    @BeforeEach
+    public void setUp() {
+        newPaxosLogDirectory =
+                Paths.get(temporaryFolder.toString(), "part-time-parliament").toFile();
+        newSqliteLogDirectory =
+                Paths.get(temporaryFolder.toString(), "sqlite-is-cool").toFile();
 
-        extantPaxosLogDirectory = temporaryFolder.newFolder("lets-do-some-voting");
-        extantSqliteLogDirectory = temporaryFolder.newFolder("whats-a-right-join");
+        extantPaxosLogDirectory = SubdirectoryCreator.getAndCreateSubdirectory(temporaryFolder, "lets-do-some-voting");
+        extantSqliteLogDirectory = SubdirectoryCreator.getAndCreateSubdirectory(temporaryFolder, "whats-a-right-join");
     }
 
     @Test

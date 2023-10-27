@@ -99,7 +99,7 @@ public class RangeVisitor {
     }
 
     public long visit(final Visitor visitor) throws InterruptedException {
-        BlockingWorkerPool pool = new BlockingWorkerPool(exec, threadCount);
+        BlockingWorkerPool<Void> pool = new BlockingWorkerPool<>(exec, threadCount);
         for (final MutableRange range : getRanges()) {
             pool.submitTask(() -> visitRange(visitor, range));
         }

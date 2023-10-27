@@ -47,8 +47,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class LockEventLogImplTest {
     private static final UUID LOG_ID = UUID.randomUUID();
@@ -75,7 +75,7 @@ public class LockEventLogImplTest {
             heldLocksCollection,
             BufferMetrics.of(MetricsManagers.createForTests().getTaggedRegistry()));
 
-    @Before
+    @BeforeEach
     public void setupMocks() {
         when(heldLocks.getLocks()).thenReturn(ImmutableSet.of(LOCK_2, LOCK_3));
         when(heldLocks.getToken()).thenReturn(TOKEN);

@@ -114,7 +114,7 @@ public final class KeyValueServices {
                     final long timestamp,
                     int maxConcurrentRequests) {
         final Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> ret = new ConcurrentHashMap<>();
-        BlockingWorkerPool pool = new BlockingWorkerPool(executor, maxConcurrentRequests);
+        BlockingWorkerPool<Void> pool = new BlockingWorkerPool<>(executor, maxConcurrentRequests);
         try {
             for (final RangeRequest request : rangeRequests) {
                 pool.submitTask(() -> getFirstBatchForRangeUsingGetRange(kv, tableRef, request, timestamp, ret));

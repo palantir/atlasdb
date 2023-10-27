@@ -19,7 +19,7 @@ package com.palantir.timelock.config;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class PaxosTsBoundPersisterConfigurationTest {
     private final TsBoundPersisterConfiguration CONFIG_ONE =

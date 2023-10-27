@@ -26,6 +26,7 @@ import java.util.List;
 import org.junit.Rule;
 import org.junit.Test;
 
+/* TODO(boyoruk): Upgrade this to JUnit5 when TimeLockCorruptionDetectionHelper rule is implemented for JUnit5. */
 public final class HistoryAnalyzerTest {
     @Rule
     public TimeLockCorruptionDetectionHelper helper = new TimeLockCorruptionDetectionHelper();
