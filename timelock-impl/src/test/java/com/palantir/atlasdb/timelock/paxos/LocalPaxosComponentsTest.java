@@ -29,6 +29,7 @@ import com.palantir.paxos.PaxosProposalId;
 import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.SqliteConnections;
 import com.palantir.sls.versions.OrderableSlsVersion;
+import com.palantir.test.utils.SubdirectoryCreator;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -61,9 +62,11 @@ public class LocalPaxosComponentsTest {
 
     @BeforeEach
     public void setUp() throws IOException {
-        legacyDirectory = getAndCreateSubdirectory(TEMPORARY_FOLDER, "legacy").toPath();
+        legacyDirectory = SubdirectoryCreator.getAndCreateSubdirectory(TEMPORARY_FOLDER, "legacy")
+                .toPath();
         sqlite = SqliteConnections.getDefaultConfiguredPooledDataSource(
-                getAndCreateSubdirectory(TEMPORARY_FOLDER, "sqlite").toPath());
+                SubdirectoryCreator.getAndCreateSubdirectory(TEMPORARY_FOLDER, "sqlite")
+                        .toPath());
         paxosComponents = createPaxosComponents(true);
     }
 
@@ -146,13 +149,5 @@ public class LocalPaxosComponentsTest {
                 canCreateNewClients,
                 timeLockVersion,
                 false);
-    }
-
-    private static File getAndCreateSubdirectory(File base, String subdirectoryName) {
-        File file = base.toPath().resolve(subdirectoryName).toFile();
-        if (file.mkdirs()) {
-            return file;
-        }
-        throw new RuntimeException("Unexpected error when creating a subdirectory");
     }
 }

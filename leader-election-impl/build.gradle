@@ -36,6 +36,7 @@ dependencies {
   testImplementation 'io.dropwizard.metrics:metrics-core'
   testImplementation project(':commons-executors')
   testImplementation project(':leader-election-api-protobufs')
+  testImplementation project(':atlasdb-tests-shared')
 
   annotationProcessor 'org.immutables:value'
   compileOnly 'org.immutables:value::annotations'
