@@ -212,10 +212,9 @@ public final class TodoTable implements
             return Objects.equals(id, other.id);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Objects.hashCode(id);
+            return Long.hashCode(id);
         }
 
         @Override
@@ -682,5 +681,5 @@ public final class TodoTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "3328838I0NbftP+sl5/Wng==";
+    static String __CLASS_HASH = "OLm+3dxtNQSKhAgfnqADdw==";
 }

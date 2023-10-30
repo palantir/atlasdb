@@ -223,7 +223,6 @@ public final class DataStreamIdxTable implements
             return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(id, other.id);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, id });
@@ -315,10 +314,9 @@ public final class DataStreamIdxTable implements
             return Arrays.equals(reference, other.reference);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Objects.hashCode(reference);
+            return Arrays.hashCode(reference);
         }
 
         @Override
@@ -753,5 +751,5 @@ public final class DataStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "qt/gzESF0v1CXmCRo7xDmA==";
+    static String __CLASS_HASH = "Q16hz2rKwQyodNCs5O+/mQ==";
 }

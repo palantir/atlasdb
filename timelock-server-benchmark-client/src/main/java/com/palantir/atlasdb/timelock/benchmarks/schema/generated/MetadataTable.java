@@ -239,7 +239,6 @@ public final class MetadataTable implements
             return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(key, other.key);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, key });
@@ -772,5 +771,5 @@ public final class MetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "4UGfCaUWZyukLfhe6pmMFQ==";
+    static String __CLASS_HASH = "aAfKlX66Ov8JrShoQKtmyw==";
 }

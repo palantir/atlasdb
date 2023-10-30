@@ -212,10 +212,9 @@ public final class AuditedDataTable implements
             return Objects.equals(id, other.id);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Objects.hashCode(id);
+            return Long.hashCode(id);
         }
 
         @Override
@@ -682,5 +681,5 @@ public final class AuditedDataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "QG5ZCttRdnW+7PS1RevjMg==";
+    static String __CLASS_HASH = "6LNF3zDbEF6xNdEW+bDETg==";
 }
