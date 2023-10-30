@@ -428,7 +428,6 @@ class RowOrDynamicColumnRenderer extends Renderer {
     }
 
     private void renderHashCode() {
-        line("@SuppressWarnings(\"ArrayHashCode\")");
         line("@Override");
         line("public int hashCode() {");
         {
