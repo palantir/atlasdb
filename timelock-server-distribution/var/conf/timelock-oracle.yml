@@ -17,7 +17,7 @@ install:
         port: 1521
         sid: palantir
         dbLogin: palantir
-        dbPassword: 7_SeeingStones_7
+        dbPassword: palpal
 
 runtime:
   cluster-config-not-live-reloaded:
