@@ -1,0 +1,5 @@
+type: migration
+migration:
+  description: Update oracle password
+  links:
+  - https://github.com/palantir/atlasdb/pull/6803
