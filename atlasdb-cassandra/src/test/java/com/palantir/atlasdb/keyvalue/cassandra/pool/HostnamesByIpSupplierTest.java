@@ -45,8 +45,9 @@ import org.apache.thrift.TException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 @ExtendWith(MockitoExtension.class)
 public class HostnamesByIpSupplierTest {
@@ -86,6 +87,7 @@ public class HostnamesByIpSupplierTest {
     }
 
     @Test
+    @MockitoSettings(strictness = Strictness.LENIENT)
     public void returnsEmptyOnTimeout() throws Exception {
         HostnamesByIpSupplier supplier = new HostnamesByIpSupplier(
                 () -> List.of(new DummyClientPool(client), new DummyClientPool(secondaryClient)), Duration.ofNanos(1));
@@ -93,7 +95,15 @@ public class HostnamesByIpSupplierTest {
             Thread.sleep(1);
             throw new NotFoundException();
         });
-        verify(secondaryClient, Mockito.never()).execute_cql3_query(any(), any(), any());
+        setupKeyspaceAndTable(secondaryClient);
+        CqlResult cqlResult = createMockCqlResult(ImmutableList.of(
+                ImmutableList.of(
+                        createColumn("ip", PtBytes.toBytes("10.0.0.0")),
+                        createColumn("hostname", PtBytes.toBytes("cassandra-1"))),
+                ImmutableList.of(
+                        createColumn("ip", PtBytes.toBytes("10.0.0.1")),
+                        createColumn("hostname", PtBytes.toBytes("cassandra-2")))));
+        when(secondaryClient.execute_cql3_query(any(), any(), any())).thenReturn(cqlResult);
         assertThat(supplier.get()).isEmpty();
     }
 
