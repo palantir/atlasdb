@@ -23,5 +23,5 @@ atlasdb:
       port: 1521
       sid: palantir
       dbLogin: system
-      dbPassword: palpal
+      dbPassword: 7_SeeingStones_7
   namespace: palantir

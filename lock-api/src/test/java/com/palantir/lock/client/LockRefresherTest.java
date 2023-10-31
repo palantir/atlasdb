@@ -33,8 +33,8 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class LockRefresherTest {
 
@@ -50,7 +50,7 @@ public class LockRefresherTest {
     private final LockRefresher<LockToken> refresher =
             new LockRefresher<>(executor, timelock, REFRESH_INTERVAL_MILLIS, clock);
 
-    @Before
+    @BeforeEach
     public void setUp() {
         when(clock.instant()).thenReturn(Instant.EPOCH);
     }

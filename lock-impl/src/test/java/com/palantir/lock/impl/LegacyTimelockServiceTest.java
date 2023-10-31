@@ -46,8 +46,8 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 
@@ -71,7 +71,7 @@ public class LegacyTimelockServiceTest {
     private final LegacyTimelockService timelock =
             new LegacyTimelockService(timestampService, lockService, LOCK_CLIENT);
 
-    @Before
+    @BeforeEach
     public void before() {
         when(timestampService.getFreshTimestamp()).thenReturn(FRESH_TIMESTAMP);
     }

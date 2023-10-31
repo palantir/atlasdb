@@ -27,7 +27,7 @@ dependencies {
   testImplementation 'org.slf4j:slf4j-api'
   testImplementation project(':atlasdb-commons')
 
-  testImplementation 'junit:junit'
   testImplementation 'org.mockito:mockito-core'
   testImplementation 'org.assertj:assertj-core'
+  testImplementation 'org.junit.jupiter:junit-jupiter'
 }

@@ -1,6 +1,7 @@
 apply from: "../gradle/shared.gradle"
 
 libsDirName = file('build/artifacts')
+
 dependencies {
     api project(":commons-executors-api")
 
@@ -14,7 +15,8 @@ dependencies {
 
     testImplementation 'com.palantir.tritium:tritium-registry'
     testImplementation 'io.dropwizard.metrics:metrics-core'
-
     testImplementation 'com.google.guava:guava'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+
     testCompileOnly 'org.immutables:value::annotations'
 }

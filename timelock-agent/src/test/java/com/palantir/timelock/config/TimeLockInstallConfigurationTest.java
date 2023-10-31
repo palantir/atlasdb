@@ -18,7 +18,7 @@ package com.palantir.timelock.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.palantir.SubdirectoryCreator;
+import com.palantir.test.utils.SubdirectoryCreator;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.io.File;
 import java.nio.file.Paths;

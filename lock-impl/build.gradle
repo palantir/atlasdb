@@ -21,7 +21,6 @@ dependencies {
   implementation project(':lock-api-objects')
   implementation project(':timestamp-api')
 
-  testImplementation 'org.awaitility:awaitility'
   testImplementation 'com.fasterxml.jackson.core:jackson-databind'
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.palantir.safe-logging:preconditions'
@@ -29,6 +28,8 @@ dependencies {
   testImplementation 'org.mockito:mockito-core'
   testImplementation 'uk.org.lidalia:lidalia-slf4j-ext'
   testImplementation 'uk.org.lidalia:slf4j-test'
+  testImplementation 'org.junit.jupiter:junit-jupiter'
+  testImplementation 'org.mockito:mockito-junit-jupiter'
   testImplementation project(":flake-rule")
   testImplementation project(':commons-executors')
   testImplementation project(':lock-api-objects')
@@ -40,4 +41,9 @@ dependencies {
   annotationProcessor 'org.immutables:value'
   compileOnly 'org.immutables:value::annotations'
   testCompileOnly 'org.immutables:value::annotations'
+
+  testImplementation 'junit:junit'
+  testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+    because 'allows JUnit 3 and JUnit 4 tests to run'
+  }
 }

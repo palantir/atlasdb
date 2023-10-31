@@ -19,7 +19,7 @@ package com.palantir.lock;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.Range;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class AtlasLockDescriptorRangesTest {
     private static final String TABLE = "test.table";

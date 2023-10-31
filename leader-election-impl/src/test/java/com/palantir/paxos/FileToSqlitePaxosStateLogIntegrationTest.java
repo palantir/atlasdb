@@ -22,6 +22,8 @@ import static com.palantir.paxos.PaxosStateLogTestUtils.readRoundUnchecked;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.test.utils.SubdirectoryCreator;
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -30,24 +32,25 @@ import java.util.stream.LongStream;
 import javax.sql.DataSource;
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class FileToSqlitePaxosStateLogIntegrationTest {
-    @Rule
-    public TemporaryFolder tempFolder = new TemporaryFolder();
+    @TempDir
+    public File tempFolder;
 
     private PaxosStateLog<PaxosValue> source;
     private PaxosStateLog<PaxosValue> target;
     private SqlitePaxosStateLogMigrationState migrationState;
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
-        source = new PaxosStateLogImpl<>(tempFolder.newFolder("source").getPath());
+        source = new PaxosStateLogImpl<>(SubdirectoryCreator.getAndCreateSubdirectory(tempFolder, "source")
+                .getPath());
         DataSource targetSource = SqliteConnections.getDefaultConfiguredPooledDataSource(
-                tempFolder.newFolder("target").toPath());
+                SubdirectoryCreator.getAndCreateSubdirectory(tempFolder, "target")
+                        .toPath());
         target = SqlitePaxosStateLog.create(NAMESPACE, targetSource);
         migrationState = SqlitePaxosStateLogMigrationState.create(NAMESPACE, targetSource);
     }

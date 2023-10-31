@@ -42,14 +42,14 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class TransactionStarterTest {
     @Mock
     private LockLeaseService lockLeaseService;
@@ -58,12 +58,12 @@ public class TransactionStarterTest {
     private final Optional<LockWatchVersion> version = Optional.empty();
     private TransactionStarter transactionStarter;
 
-    @Before
+    @BeforeEach
     public void before() {
         transactionStarter = TransactionStarter.create(lockLeaseService, RequestBatchersFactory.createForTests());
     }
 
-    @After
+    @AfterEach
     public void after() throws Exception {
         transactionStarter.close();
     }

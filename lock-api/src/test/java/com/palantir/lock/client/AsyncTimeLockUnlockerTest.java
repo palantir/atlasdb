@@ -32,13 +32,15 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.awaitility.Awaitility;
 import org.awaitility.core.ThrowingRunnable;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class AsyncTimeLockUnlockerTest {
     private static final int ONE_THOUSAND = 1000;
@@ -49,13 +51,14 @@ public class AsyncTimeLockUnlockerTest {
     private TimelockService timelockService = mock(TimelockService.class);
     private AsyncTimeLockUnlocker unlocker = AsyncTimeLockUnlocker.create(timelockService);
 
-    @Before
+    @BeforeEach
     public void setUp() {
         tokenList = createLockTokenList(ONE_THOUSAND);
         unlockedTokens = new ArrayList<>();
     }
 
-    @Test(timeout = 2_000)
+    @Test
+    @Timeout(value = 2000L, unit = TimeUnit.MILLISECONDS)
     public void enqueueDoesNotBlock() {
         doAnswer(invocation -> {
                     Uninterruptibles.sleepUninterruptibly(Duration.ofSeconds(30));

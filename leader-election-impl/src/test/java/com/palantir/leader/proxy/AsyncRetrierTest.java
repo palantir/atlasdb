@@ -32,13 +32,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class AsyncRetrierTest {
     private static final int MAX_ATTEMPTS = 3;
     private static final Duration RETRY_PERIOD = Duration.ofSeconds(1);
@@ -54,7 +54,7 @@ public class AsyncRetrierTest {
 
     private AsyncRetrier<Integer> retrier;
 
-    @Before
+    @BeforeEach
     public void before() {
         retrier = new AsyncRetrier<>(
                 MAX_ATTEMPTS,

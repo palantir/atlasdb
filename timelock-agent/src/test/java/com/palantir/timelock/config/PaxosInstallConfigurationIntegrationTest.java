@@ -19,7 +19,7 @@ package com.palantir.timelock.config;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.palantir.SubdirectoryCreator;
+import com.palantir.test.utils.SubdirectoryCreator;
 import java.io.File;
 import java.time.Clock;
 import org.junit.jupiter.api.BeforeEach;

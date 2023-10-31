@@ -194,8 +194,10 @@ public class LocalPaxosComponents {
         // TODO (jkong): This test is no longer valid with the new implementation, it needs to be fixed before
         // the migration.
         if (!canCreateNewClients && clientDirectoryDoesNotExist(legacyClientDir)) {
-            throw new ServiceNotAvailableException("This TimeLock server is not allowed to create new clients at this"
-                    + " time, and the client " + client + " provided is novel for this TimeLock server.");
+            throw new ServiceNotAvailableException(
+                    "This TimeLock server is not allowed to create new clients at this time, and the"
+                            + " client {} provided is novel for this TimeLock server.",
+                    SafeArg.of("client", client));
         }
 
         PaxosLearner learner = PaxosLearnerImpl.newSplittingLearner(

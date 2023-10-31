@@ -33,6 +33,7 @@ import static org.mockito.Mockito.when;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableOracleDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableTableReferenceWrapper;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleErrorConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetter;
@@ -74,7 +75,7 @@ public final class OracleDdlTableTest {
     private static final OracleDdlConfig TABLE_MAPPING_DEFAULT_CONFIG = ImmutableOracleDdlConfig.builder()
             .overflowMigrationState(OverflowMigrationState.FINISHED)
             .useTableMapping(true)
-            .alterTablesOrMetadataToMatch(Set.of(TEST_TABLE))
+            .addAlterTablesOrMetadataToMatch(ImmutableTableReferenceWrapper.of(TEST_TABLE))
             .build();
     private static final OracleDdlConfig NON_TABLE_MAPPING_DEFAULT_CONFIG = ImmutableOracleDdlConfig.builder()
             .overflowMigrationState(OverflowMigrationState.FINISHED)
@@ -324,7 +325,9 @@ public final class OracleDdlTableTest {
                 .thenThrow(new TableMappingNotFoundException("foo"));
         assertThatThrownBy(() -> tableMappingDdlTable.create(createMetadata(true)))
                 .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Unable to alter table to have overflow column due to a table mapping error");
+                .hasMessageContaining(
+                        "Unable to test whether table must be altered to have overflow column due to a table mapping"
+                                + " error.");
     }
 
     @Test

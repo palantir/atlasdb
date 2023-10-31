@@ -24,7 +24,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchStateUpdate.Success;
 import java.util.UUID;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class LockWatchCacheImplTest {
     private static final ImmutableSet<Long> TIMESTAMPS = ImmutableSet.of(1L, 2L);

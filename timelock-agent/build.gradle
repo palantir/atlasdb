@@ -59,6 +59,7 @@ dependencies {
     api project(':timelock-corruption-detection:timelock-corruption-detection-jersey')
     api project(':timelock-corruption-detection:timelock-corruption-detection-undertow')
 
+    testImplementation project(':atlasdb-tests-shared')
     testImplementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml'
     testImplementation 'com.fasterxml.jackson.datatype:jackson-datatype-guava'
     testImplementation 'org.awaitility:awaitility'
