@@ -39,21 +39,21 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.SortedMap;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TestScrubQueueMigrationCommand {
     private KeyValueService kvs;
     private ScrubberStore scrubStore;
 
-    @Before
+    @BeforeEach
     public void before() {
         kvs = new InMemoryKeyValueService(false, MoreExecutors.newDirectExecutorService());
         scrubStore = KeyValueServiceScrubberStore.create(kvs);
     }
 
-    @After
+    @AfterEach
     public void after() {
         kvs.close();
     }

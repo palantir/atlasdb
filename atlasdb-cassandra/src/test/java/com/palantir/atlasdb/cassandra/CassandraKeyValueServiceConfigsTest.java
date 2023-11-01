@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.util.Optional;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CassandraKeyValueServiceConfigsTest {
     private static final String KEYSPACE = "ks";

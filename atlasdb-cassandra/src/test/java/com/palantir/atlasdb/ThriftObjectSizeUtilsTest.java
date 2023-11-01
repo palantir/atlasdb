@@ -35,7 +35,7 @@ import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.SuperColumn;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ThriftObjectSizeUtilsTest {
     private static final String TEST_NAME = "foo";

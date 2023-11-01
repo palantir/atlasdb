@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Optional;
 import java.util.function.Supplier;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class HostLocationSupplierTest {
     private static final Supplier<Optional<String>> EC2_SNITCH_SUPPLIER =

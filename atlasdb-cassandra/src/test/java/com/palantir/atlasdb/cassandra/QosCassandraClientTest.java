@@ -51,8 +51,8 @@ import org.apache.cassandra.thrift.KeySlice;
 import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.thrift.TException;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class QosCassandraClientTest {
     private final CassandraClient mockClient = mock(CassandraClient.class);
@@ -78,7 +78,7 @@ public class QosCassandraClientTest {
 
     private CassandraClient client;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         client = new QosCassandraClient(mockClient, mockMetrics, ticker);
         when(ticker.read()).thenReturn(NANOS_START).thenReturn(NANOS_END);

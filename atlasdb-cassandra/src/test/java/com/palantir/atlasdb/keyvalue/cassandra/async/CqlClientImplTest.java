@@ -24,13 +24,13 @@ import com.datastax.driver.core.Session;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfigTuning;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class CqlClientImplTest {
     private static final boolean INITIALIZE_ASYNC = false;
     private static final TaggedMetricRegistry REGISTRY = new DefaultTaggedMetricRegistry();
@@ -44,7 +44,7 @@ public class CqlClientImplTest {
     @Mock
     private CqlCapableConfigTuning cqlCapableConfigTuning;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         when(cluster.connect()).thenReturn(session);
     }

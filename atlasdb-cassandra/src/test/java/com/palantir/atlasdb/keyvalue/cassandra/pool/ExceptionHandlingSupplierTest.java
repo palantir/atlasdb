@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 import java.util.function.Supplier;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class ExceptionHandlingSupplierTest {
     private static final String VALUE = "value";

@@ -30,6 +30,7 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
 import org.junit.runners.Parameterized.Parameters;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 @RunWith(Parameterized.class)
 public class LightweightOppTokenTest {
     @Parameter()

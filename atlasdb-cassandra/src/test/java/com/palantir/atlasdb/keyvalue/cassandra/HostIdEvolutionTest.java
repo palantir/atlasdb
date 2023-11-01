@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class HostIdEvolutionTest {
 

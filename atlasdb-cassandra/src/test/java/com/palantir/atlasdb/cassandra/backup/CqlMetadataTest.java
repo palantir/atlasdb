@@ -36,15 +36,15 @@ import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class CqlMetadataTest {
     private static final String TOKEN_1 = "1df388e2a10c81a4339ab9304497385b";
     private static final String TOKEN_2 = "974ef05bdfaf14b88cbe12bce50e5023";
@@ -61,19 +61,8 @@ public class CqlMetadataTest {
 
     private CqlMetadata cqlMetadata;
 
-    @Before
+    @BeforeEach
     public void setUp() {
-        when(metadata.getTokenRanges()).thenReturn(ImmutableSet.of(FIRST_RANGE, SECOND_RANGE, WRAPAROUND_RANGE));
-
-        ArgumentCaptor<ByteBuffer> componentCaptor = ArgumentCaptor.forClass(ByteBuffer.class);
-        when(metadata.newToken(componentCaptor.capture()))
-                .thenAnswer(invocation -> CassandraTokenRanges.getToken(invocation.getArgument(0, ByteBuffer.class)));
-
-        ArgumentCaptor<Token> startTokenCaptor = ArgumentCaptor.forClass(Token.class);
-        ArgumentCaptor<Token> endTokenCaptor = ArgumentCaptor.forClass(Token.class);
-        when(metadata.newTokenRange(startTokenCaptor.capture(), endTokenCaptor.capture()))
-                .thenAnswer(this::createFromArgs);
-
         cqlMetadata = new CqlMetadata(metadata);
     }
 
@@ -84,6 +73,8 @@ public class CqlMetadataTest {
 
     @Test
     public void testGetTokenRanges() {
+        when(metadata.getTokenRanges()).thenReturn(ImmutableSet.of(FIRST_RANGE, SECOND_RANGE, WRAPAROUND_RANGE));
+        prepareMetadataForNewTokenInvocation();
         Set<Range<LightweightOppToken>> tokenRanges = cqlMetadata.getTokenRanges();
         assertThat(tokenRanges)
                 .containsExactlyInAnyOrder(
@@ -103,6 +94,7 @@ public class CqlMetadataTest {
 
     @Test
     public void testMinTokenGivesFullRange() {
+        prepareMetadataForNewTokenInvocation();
         Token minToken = CassandraTokenRanges.minToken();
         TokenRange tokenRange = CassandraTokenRanges.create(minToken, minToken);
 
@@ -113,6 +105,7 @@ public class CqlMetadataTest {
 
     @Test
     public void testSameTokenGivesEmptyRange() {
+        prepareMetadataForNewTokenInvocation();
         TokenRange tokenRange = CassandraTokenRanges.create(FIRST_TOKEN, FIRST_TOKEN);
 
         Range<LightweightOppToken> emptyRange =
@@ -122,6 +115,8 @@ public class CqlMetadataTest {
 
     @Test
     public void canGetTokenRangesByEnd() {
+        when(metadata.getTokenRanges()).thenReturn(ImmutableSet.of(FIRST_RANGE, SECOND_RANGE, WRAPAROUND_RANGE));
+        prepareMetadataForNewTokenInvocation();
         Set<Range<LightweightOppToken>> tokenRanges = cqlMetadata.getTokenRanges();
 
         TreeMap<LightweightOppToken, Range<LightweightOppToken>> tokenRangesByEnd = KeyedStream.of(tokenRanges)
@@ -133,6 +128,8 @@ public class CqlMetadataTest {
 
     @Test
     public void testReverseConversionNoLowerBound() {
+        prepareMetadataForNewTokenInvocation();
+        prepareMetadataNewTokenRangeInvocation();
         Range<LightweightOppToken> lowerUnbounded = Range.atMost(LightweightOppToken.serialize(FIRST_TOKEN));
         TokenRange lowerTokenRange = cqlMetadata.toTokenRange(lowerUnbounded);
         assertThat(lowerTokenRange.getStart()).isEqualTo(CassandraTokenRanges.minToken());
@@ -141,6 +138,8 @@ public class CqlMetadataTest {
 
     @Test
     public void testReverseConversionNoUpperBound() {
+        prepareMetadataForNewTokenInvocation();
+        prepareMetadataNewTokenRangeInvocation();
         Range<LightweightOppToken> upperUnbounded = Range.greaterThan(LightweightOppToken.serialize(FIRST_TOKEN));
         TokenRange lowerTokenRange = cqlMetadata.toTokenRange(upperUnbounded);
         assertThat(lowerTokenRange.getStart()).isEqualTo(FIRST_TOKEN);
@@ -156,5 +155,18 @@ public class CqlMetadataTest {
         assertThatThrownBy(() -> cqlMetadata.toTokenRange(closedOpen))
                 .isExactlyInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageContaining("Token range lower bound should be open");
+    }
+
+    private void prepareMetadataNewTokenRangeInvocation() {
+        ArgumentCaptor<Token> startTokenCaptor = ArgumentCaptor.forClass(Token.class);
+        ArgumentCaptor<Token> endTokenCaptor = ArgumentCaptor.forClass(Token.class);
+        when(metadata.newTokenRange(startTokenCaptor.capture(), endTokenCaptor.capture()))
+                .thenAnswer(this::createFromArgs);
+    }
+
+    private void prepareMetadataForNewTokenInvocation() {
+        ArgumentCaptor<ByteBuffer> componentCaptor = ArgumentCaptor.forClass(ByteBuffer.class);
+        when(metadata.newToken(componentCaptor.capture()))
+                .thenAnswer(invocation -> CassandraTokenRanges.getToken(invocation.getArgument(0, ByteBuffer.class)));
     }
 }

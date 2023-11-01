@@ -26,13 +26,13 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.refreshable.SettableRefreshable;
 import java.util.function.Function;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class ReloadingCloseableContainerImplTest {
     private static final int INITIAL_VALUE = 0;
     private static final int UPDATED_VALUE = 1;
@@ -50,10 +50,9 @@ public class ReloadingCloseableContainerImplTest {
 
     private ReloadingCloseableContainerImpl<AutoCloseable> reloadingCloseableContainer;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         when(resourceFactory.apply(INITIAL_VALUE)).thenReturn(initialResource);
-        when(resourceFactory.apply(UPDATED_VALUE)).thenReturn(refreshedResource);
         refreshableFactoryArg = Refreshable.create(INITIAL_VALUE);
         reloadingCloseableContainer = ReloadingCloseableContainerImpl.of(refreshableFactoryArg, resourceFactory);
     }
@@ -67,6 +66,7 @@ public class ReloadingCloseableContainerImplTest {
 
     @Test
     public void previousResourceIsClosedAfterRefresh() throws Exception {
+        when(resourceFactory.apply(UPDATED_VALUE)).thenReturn(refreshedResource);
         AutoCloseable resource = reloadingCloseableContainer.get();
         refreshableFactoryArg.update(UPDATED_VALUE);
         verify(resource).close();
@@ -74,6 +74,7 @@ public class ReloadingCloseableContainerImplTest {
 
     @Test
     public void newResourceCreatedWithUpdatedRefreshableValueAfterRefresh() throws Exception {
+        when(resourceFactory.apply(UPDATED_VALUE)).thenReturn(refreshedResource);
         AutoCloseable resource = reloadingCloseableContainer.get();
 
         refreshableFactoryArg.update(UPDATED_VALUE);

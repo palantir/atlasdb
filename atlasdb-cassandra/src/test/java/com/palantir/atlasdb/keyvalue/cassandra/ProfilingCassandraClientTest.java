@@ -38,8 +38,8 @@ import org.apache.cassandra.thrift.CqlRow;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.SliceRange;
 import org.apache.thrift.TException;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 public class ProfilingCassandraClientTest {
     private static final CqlQuery CQL_QUERY = CqlQuery.builder()
@@ -49,7 +49,7 @@ public class ProfilingCassandraClientTest {
     private final CassandraClient delegate = mock(CassandraClient.class);
     private final CassandraClient profilingClient = new ProfilingCassandraClient(delegate);
 
-    @After
+    @AfterEach
     public void noMoreInteractions() {
         verifyNoMoreInteractions(delegate);
     }

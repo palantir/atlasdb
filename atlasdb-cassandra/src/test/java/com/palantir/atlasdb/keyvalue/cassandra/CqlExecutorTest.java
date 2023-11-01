@@ -33,8 +33,8 @@ import java.nio.ByteBuffer;
 import java.time.Duration;
 import org.apache.cassandra.thrift.CqlPreparedResult;
 import org.apache.cassandra.thrift.CqlResult;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatcher;
 
 public class CqlExecutorTest {
@@ -51,7 +51,7 @@ public class CqlExecutorTest {
     private static final long TIMESTAMP = 123L;
     private static final int LIMIT = 100;
 
-    @Before
+    @BeforeEach
     public void before() {
         CqlResult result = new CqlResult();
         result.setRows(ImmutableList.of());

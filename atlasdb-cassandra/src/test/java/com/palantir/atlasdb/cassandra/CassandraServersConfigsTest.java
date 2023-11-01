@@ -27,7 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URL;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CassandraServersConfigsTest {
     private static final InetSocketAddress THRIFT_SERVER_1 =

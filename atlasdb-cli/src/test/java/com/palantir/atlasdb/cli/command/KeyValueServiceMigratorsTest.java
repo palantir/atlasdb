@@ -63,6 +63,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class KeyValueServiceMigratorsTest {
     private static final long FUTURE_TIMESTAMP = 3141592653589L;
     private static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("test.table");
