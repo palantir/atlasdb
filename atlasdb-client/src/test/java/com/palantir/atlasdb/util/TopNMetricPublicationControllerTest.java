@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TopNMetricPublicationControllerTest {
     @Test

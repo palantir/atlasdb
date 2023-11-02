@@ -22,7 +22,7 @@ import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class TableDefinitionTest {

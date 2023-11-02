@@ -19,9 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class AnnotatedRunnableTest {
 
@@ -29,20 +29,20 @@ public class AnnotatedRunnableTest {
 
     private String previousThreadName;
 
-    @Before
+    @BeforeEach
     public void before() throws Exception {
         previousThreadName = Thread.currentThread().getName();
         Thread.currentThread().setName(THREAD_NAME);
     }
 
-    @After
-    public void checkThreadName() throws Exception {
+    @AfterEach
+    public void checkThreadName() {
         assertThat(Thread.currentThread().getName()).isEqualTo(THREAD_NAME);
         Thread.currentThread().setName(previousThreadName);
     }
 
     @Test
-    public void prependThreadName() throws Exception {
+    public void prependThreadName() {
         AtomicBoolean hasRun = new AtomicBoolean(false);
         Runnable runnable = AnnotatedRunnable.wrapWithThreadName(AnnotationType.PREPEND, "test thread name", () -> {
             assertThat(Thread.currentThread().getName()).isEqualTo("test thread name AnnotatedRunnableTest");
@@ -54,7 +54,7 @@ public class AnnotatedRunnableTest {
     }
 
     @Test
-    public void appendThreadName() throws Exception {
+    public void appendThreadName() {
         AtomicBoolean hasRun = new AtomicBoolean(false);
         Runnable runnable = AnnotatedRunnable.wrapWithThreadName(AnnotationType.APPEND, "test thread name", () -> {
             assertThat(Thread.currentThread().getName()).isEqualTo("AnnotatedRunnableTest test thread name");
@@ -66,7 +66,7 @@ public class AnnotatedRunnableTest {
     }
 
     @Test
-    public void replaceThreadName() throws Exception {
+    public void replaceThreadName() {
         AtomicBoolean hasRun = new AtomicBoolean(false);
         Runnable runnable = AnnotatedRunnable.wrapWithThreadName(AnnotationType.REPLACE, "test thread name", () -> {
             assertThat(Thread.currentThread().getName()).isEqualTo("test thread name");
@@ -78,7 +78,7 @@ public class AnnotatedRunnableTest {
     }
 
     @Test
-    public void replaceThreadNameWith() throws Exception {
+    public void replaceThreadNameWith() {
         AtomicBoolean hasRun = new AtomicBoolean(false);
         Runnable runnable = AnnotatedRunnable.replaceThreadNameWith("test thread name", () -> {
             assertThat(Thread.currentThread().getName()).isEqualTo("test thread name");

@@ -53,13 +53,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class TracingKeyValueServiceTest {
 
     private static final Namespace NAMESPACE = Namespace.create("test");
@@ -79,7 +79,7 @@ public class TracingKeyValueServiceTest {
 
     private final TestSpanObserver observer = new TestSpanObserver();
 
-    @Before
+    @BeforeEach
     public void before() throws Exception {
         Tracer.initTrace(Optional.of(true), getClass().getSimpleName() + "." + Math.random());
         Tracer.subscribe(getClass().getName(), observer);
@@ -88,7 +88,7 @@ public class TracingKeyValueServiceTest {
         assertThat(observer.spans()).isEmpty();
     }
 
-    @After
+    @AfterEach
     public void after() throws Exception {
         Tracer.unsubscribe(getClass().getName());
         kvs.close();

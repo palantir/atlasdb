@@ -17,7 +17,7 @@ package com.palantir.atlasdb.util;
 
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SuppressedExceptionTest {
     private static final SafeLogger log = SafeLoggerFactory.get("AnnotatedCallable");

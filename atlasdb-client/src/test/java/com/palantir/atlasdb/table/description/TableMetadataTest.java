@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TableMetadataTest {
     private static final TableMetadata DEFAULT_TABLE_METADATA = TableMetadata.allDefault();

@@ -20,11 +20,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.tracing.Tracer;
 import java.util.Optional;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TraceStatisticsTest {
-    @Before
+    @BeforeEach
     public void before() throws Exception {
         Tracer.initTrace(Optional.of(true), getClass().getSimpleName() + "." + Math.random());
     }

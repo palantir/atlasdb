@@ -32,8 +32,8 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import java.util.Map;
 import java.util.Set;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly", "checkstyle:WhitespaceAround"})
@@ -43,7 +43,7 @@ public class SchemasTest {
     private static final Namespace NAMESPACE = Namespace.create("testNamespace");
     private KeyValueService kvs;
 
-    @Before
+    @BeforeEach
     public void before() {
         kvs = mock(KeyValueService.class);
     }

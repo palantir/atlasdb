@@ -30,11 +30,11 @@ import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TableRendererTest {
 
-    private static TableReference TABLE_REF = TableReference.createWithEmptyNamespace("TestTable");
+    private static final TableReference TABLE_REF = TableReference.createWithEmptyNamespace("TestTable");
 
     private static SortedSet<IndexMetadata> NO_INDICES =
             new TreeSet<>(Ordering.natural().onResultOf((Function<IndexMetadata, String>) IndexMetadata::getIndexName));

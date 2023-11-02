@@ -22,7 +22,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MetricNameUtilsTest {
     private static final String TAG_KEY_1 = "tag1";
@@ -32,20 +32,20 @@ public class MetricNameUtilsTest {
     private static final String TAG_KEY_2 = "tag2";
 
     @Test
-    public void shouldReturnNameWithSingleTag() throws Exception {
+    public void shouldReturnNameWithSingleTag() {
         String metricName = MetricNameUtils.getMetricName(METRIC_NAME, ImmutableMap.of(TAG_KEY_1, TAG_VALUE_1));
         assertThat(metricName).isEqualTo("metricName;tag1=tagVal1");
     }
 
     @Test
-    public void shouldReturnNameWithMultipleTags() throws Exception {
+    public void shouldReturnNameWithMultipleTags() {
         String metricName = MetricNameUtils.getMetricName(
                 METRIC_NAME, ImmutableMap.of(TAG_KEY_2, TAG_VALUE_2, TAG_KEY_1, TAG_VALUE_1));
         assertThat(metricName).isIn("metricName;tag1=tagVal1;tag2=tagVal2", "metricName;tag2=tagVal2;tag1=tagVal1");
     }
 
     @Test
-    public void shouldThrowIfMetricNameContainsSemiColon() throws Exception {
+    public void shouldThrowIfMetricNameContainsSemiColon() {
         assertThatThrownBy(() -> MetricNameUtils.getMetricName(
                         "metric;Name", ImmutableMap.of(TAG_KEY_1, TAG_VALUE_1, TAG_KEY_2, TAG_VALUE_2)))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -53,7 +53,7 @@ public class MetricNameUtilsTest {
     }
 
     @Test
-    public void shouldThrowIfMetricNameContainsEqualSign() throws Exception {
+    public void shouldThrowIfMetricNameContainsEqualSign() {
         assertThatThrownBy(() -> MetricNameUtils.getMetricName(
                         "metric=Name", ImmutableMap.of(TAG_KEY_1, TAG_VALUE_1, TAG_KEY_2, TAG_VALUE_2)))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -61,7 +61,7 @@ public class MetricNameUtilsTest {
     }
 
     @Test
-    public void shouldThrowIfFirstMetricTagKeyContainsSemiColon() throws Exception {
+    public void shouldThrowIfFirstMetricTagKeyContainsSemiColon() {
         assertThatThrownBy(() -> MetricNameUtils.getMetricName(
                         METRIC_NAME, ImmutableMap.of("tag;1", TAG_VALUE_1, TAG_KEY_2, TAG_VALUE_2)))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -69,7 +69,7 @@ public class MetricNameUtilsTest {
     }
 
     @Test
-    public void shouldThrowIfFirstMetricTagValueContainsSemiColon() throws Exception {
+    public void shouldThrowIfFirstMetricTagValueContainsSemiColon() {
         assertThatThrownBy(() -> MetricNameUtils.getMetricName(
                         METRIC_NAME, ImmutableMap.of(TAG_KEY_1, "tag;Val1", TAG_KEY_2, TAG_VALUE_2)))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -77,7 +77,7 @@ public class MetricNameUtilsTest {
     }
 
     @Test
-    public void shouldThrowIfFirstMetricTagKeyContainsEquals() throws Exception {
+    public void shouldThrowIfFirstMetricTagKeyContainsEquals() {
         assertThatThrownBy(() -> MetricNameUtils.getMetricName(
                         METRIC_NAME, ImmutableMap.of("tag=1", TAG_VALUE_1, TAG_KEY_2, TAG_VALUE_2)))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -85,7 +85,7 @@ public class MetricNameUtilsTest {
     }
 
     @Test
-    public void shouldThrowIfFirstMetricTagValueContainsEquals() throws Exception {
+    public void shouldThrowIfFirstMetricTagValueContainsEquals() {
         assertThatThrownBy(() -> MetricNameUtils.getMetricName(
                         METRIC_NAME, ImmutableMap.of(TAG_KEY_1, "tag=Val1", TAG_KEY_2, TAG_VALUE_2)))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -93,7 +93,7 @@ public class MetricNameUtilsTest {
     }
 
     @Test
-    public void shouldThrowIfSecondMetricTagValueContainsEquals() throws Exception {
+    public void shouldThrowIfSecondMetricTagValueContainsEquals() {
         assertThatThrownBy(() -> MetricNameUtils.getMetricName(
                         METRIC_NAME, ImmutableMap.of(TAG_KEY_1, TAG_VALUE_1, TAG_KEY_2, "tagVal=2")))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -101,7 +101,7 @@ public class MetricNameUtilsTest {
     }
 
     @Test
-    public void shouldThrowForFirstEncounteredErrorMultipleMetricArgsContainInvalidCharacters() throws Exception {
+    public void shouldThrowForFirstEncounteredErrorMultipleMetricArgsContainInvalidCharacters() {
         assertThatThrownBy(() -> MetricNameUtils.getMetricName(
                         "metric;Name", ImmutableMap.of("tag;1", TAG_VALUE_1, TAG_KEY_2, "tagVal=2")))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -109,7 +109,7 @@ public class MetricNameUtilsTest {
     }
 
     @Test
-    public void shouldReturnANameIfTryingToRegisterMetricWithExactlyTenTags() throws Exception {
+    public void shouldReturnANameIfTryingToRegisterMetricWithExactlyTenTags() {
         Map<String, String> tags =
                 IntStream.range(0, 10).boxed().collect(Collectors.toMap(i -> "tag" + i, i -> "tagVal" + i));
         assertThat(tags).hasSize(10);
@@ -117,7 +117,7 @@ public class MetricNameUtilsTest {
     }
 
     @Test
-    public void shouldThrowIfTryingToRegisterMetricWithMoreThanTenTags() throws Exception {
+    public void shouldThrowIfTryingToRegisterMetricWithMoreThanTenTags() {
         Map<String, String> tags =
                 IntStream.range(0, 11).boxed().collect(Collectors.toMap(i -> "tag" + i, i -> "tagVal" + i));
         assertThat(tags).hasSize(11);

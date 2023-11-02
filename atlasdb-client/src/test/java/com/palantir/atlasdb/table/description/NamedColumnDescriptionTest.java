@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class NamedColumnDescriptionTest {
     private static final String SHORT_NAME = "shortName";

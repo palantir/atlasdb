@@ -38,8 +38,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 public class ReadTransactionShould {
@@ -63,7 +63,7 @@ public class ReadTransactionShould {
     private ReadTransaction readTransaction;
     private CallbackAwareTransaction delegateTransaction;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         delegateTransaction = Mockito.mock(CallbackAwareTransaction.class);
         SweepStrategyManager sweepStrategies = Mockito.mock(SweepStrategyManager.class);

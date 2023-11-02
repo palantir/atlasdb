@@ -26,19 +26,19 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.timestamp.TimestampService;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class SweepStatsKeyValueServiceTest {
     private static final byte[] ROW = "row".getBytes(StandardCharsets.UTF_8);
     private static final TableReference TABLE = TableReference.createWithEmptyNamespace("table");
 
-    private KeyValueService delegate = mock(KeyValueService.class);
+    private final KeyValueService delegate = mock(KeyValueService.class);
     private AtomicBoolean isSweepEnabled;
 
     private SweepStatsKeyValueService kvs;
 
-    @Before
+    @BeforeEach
     public void before() {
         isSweepEnabled = new AtomicBoolean(true);
         TimestampService timestampService = mock(TimestampService.class);
@@ -59,7 +59,7 @@ public class SweepStatsKeyValueServiceTest {
     }
 
     @Test
-    public void deleteRangeAllCountsAsClearingTheTable() throws Exception {
+    public void deleteRangeAllCountsAsClearingTheTable() {
         kvs.deleteRange(TABLE, RangeRequest.all());
         assertThat(kvs.hasBeenCleared(TABLE)).isTrue();
     }
@@ -72,7 +72,7 @@ public class SweepStatsKeyValueServiceTest {
     }
 
     @Test
-    public void otherDeleteRangeDoesNotCountAsClearingTheTable() throws Exception {
+    public void otherDeleteRangeDoesNotCountAsClearingTheTable() {
         RangeRequest request = RangeRequest.builder().startRowInclusive(ROW).build();
         kvs.deleteRange(TABLE, request);
         assertThat(kvs.hasBeenCleared(TABLE)).isFalse();

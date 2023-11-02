@@ -35,9 +35,9 @@ import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import java.util.List;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 public class LoggingArgsTest {
@@ -85,7 +85,7 @@ public class LoggingArgsTest {
 
     private static final KeyValueServiceLogArbitrator arbitrator = Mockito.mock(KeyValueServiceLogArbitrator.class);
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpMocks() {
         when(arbitrator.isTableReferenceSafe(any())).thenAnswer(invocation -> {
             TableReference tableReference = invocation.getArgument(0);
@@ -111,7 +111,7 @@ public class LoggingArgsTest {
         LoggingArgs.setLogArbitrator(arbitrator);
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDownClass() {
         LoggingArgs.setLogArbitrator(KeyValueServiceLogArbitrator.ALL_UNSAFE);
     }
