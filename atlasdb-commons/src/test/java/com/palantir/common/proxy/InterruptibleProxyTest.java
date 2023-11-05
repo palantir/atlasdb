@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class InterruptibleProxyTest {
 
@@ -34,7 +34,7 @@ public class InterruptibleProxyTest {
         final CyclicBarrier barrier = new CyclicBarrier(2);
         final Thread callingThread = Thread.currentThread();
         final AtomicBoolean gotInterrupted = new AtomicBoolean(false);
-        List<String> strings = new ArrayList<String>() {
+        List<String> strings = new ArrayList<>() {
             private static final long serialVersionUID = 1L;
 
             @Override

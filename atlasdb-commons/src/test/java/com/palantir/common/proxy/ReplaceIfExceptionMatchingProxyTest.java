@@ -25,16 +25,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.function.Supplier;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockMakers;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 // Mock is used as a convenient supplier, alternatives are rather verbose
 @SuppressWarnings("DirectInvocationOnMock")
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class ReplaceIfExceptionMatchingProxyTest {
     @Mock(mockMaker = MockMakers.SUBCLASS)
     private TestInterface delegate;
@@ -46,13 +45,9 @@ public class ReplaceIfExceptionMatchingProxyTest {
         void doSomething();
     }
 
-    @Before
-    public void before() {
-        when(supplier.get()).thenReturn(delegate);
-    }
-
     @Test
     public void lazilyInitialized() {
+        when(supplier.get()).thenReturn(delegate);
         TestInterface iface =
                 ReplaceIfExceptionMatchingProxy.newProxyInstance(TestInterface.class, supplier, _thrown -> true);
         verify(supplier, never()).get();
@@ -62,6 +57,7 @@ public class ReplaceIfExceptionMatchingProxyTest {
 
     @Test
     public void testExceptionMatching() {
+        when(supplier.get()).thenReturn(delegate);
         RuntimeException exception = new RuntimeException();
         TestInterface iface = ReplaceIfExceptionMatchingProxy.newProxyInstance(
                 TestInterface.class, supplier, thrown -> thrown.equals(exception));

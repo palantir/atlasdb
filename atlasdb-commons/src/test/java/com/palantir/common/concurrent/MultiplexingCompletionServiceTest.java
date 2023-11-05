@@ -28,8 +28,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class MultiplexingCompletionServiceTest {
     private static final String KEY_1 = "key_1";
@@ -40,7 +40,7 @@ public class MultiplexingCompletionServiceTest {
 
     private MultiplexingCompletionService<String, Integer> completionService;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         completionService = MultiplexingCompletionService.create(ImmutableMap.of(KEY_1, executor1, KEY_2, executor2));
     }

@@ -31,21 +31,20 @@ import java.time.Duration;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Stream;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.MockMakers;
 import org.mockito.MockSettings;
 
 public class SafeShutdownRunnerTest {
     private static final RuntimeException EXCEPTION_1 = new RuntimeException("test");
-    private static final RuntimeException EXCEPTION_2 = new RuntimeException("bleh");
 
     private final MockSettings mockSettings = withSettings().mockMaker(MockMakers.SUBCLASS);
-    private Runnable mockRunnable = mock(Runnable.class, mockSettings);
-    private Runnable throwingRunnable = mock(Runnable.class, mockSettings);
-    private Runnable blockingUninterruptibleRunnable = mock(Runnable.class, mockSettings);
+    private final Runnable mockRunnable = mock(Runnable.class, mockSettings);
+    private final Runnable throwingRunnable = mock(Runnable.class, mockSettings);
+    private final Runnable blockingUninterruptibleRunnable = mock(Runnable.class, mockSettings);
 
-    @Before
+    @BeforeEach
     public void setupMocks() {
         doAnswer(invocation -> {
                     new Semaphore(0).acquireUninterruptibly();

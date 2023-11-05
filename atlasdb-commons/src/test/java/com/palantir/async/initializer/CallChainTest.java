@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.immutables.value.Value;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 
@@ -152,7 +152,7 @@ public class CallChainTest {
 
     enum InvocationType {
         INIT,
-        CLEANUP;
+        CLEANUP
     }
 
     @Value.Immutable

@@ -19,15 +19,15 @@ import static com.palantir.util.AggregatingVersionedSupplier.UNINITIALIZED_VERSI
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Comparator;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class AggregatingVersionedSupplierTest {
     private static final long REFRESH_MILLIS = 1L;
 
     private AggregatingVersionedSupplier<Long> supplier;
 
-    @Before
+    @BeforeEach
     public void setup() {
         supplier = new AggregatingVersionedSupplier<>(
                 col -> col.stream().max(Comparator.naturalOrder()).orElse(0L), REFRESH_MILLIS);

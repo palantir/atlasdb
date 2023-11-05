@@ -52,6 +52,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.MockMakers;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 @RunWith(Parameterized.class)
 public class CoalescingSupplierTest {
     private static final int DEFAULT_VALUE = 123;
@@ -94,9 +95,9 @@ public class CoalescingSupplierTest {
     }
 
     @Test
-    public void batchesConcurrentRequests() throws InterruptedException {
+    public void batchesConcurrentRequests() {
         freezableDelegate.freeze();
-        AsyncTasks initialTask = getConcurrently(1);
+        getConcurrently(1);
         AsyncTasks batch = getConcurrently(5);
         freezableDelegate.unfreeze();
 
@@ -154,7 +155,7 @@ public class CoalescingSupplierTest {
                 MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(poolSize));
         AtomicLong counter = new AtomicLong(0);
         Supplier<Long> supplier = new CoalescingSupplier<>(() -> {
-            sleep(2);
+            sleep();
             return counter.incrementAndGet();
         });
         List<ListenableFuture<?>> futures = IntStream.range(0, poolSize)
@@ -188,9 +189,9 @@ public class CoalescingSupplierTest {
         }
     }
 
-    private static void sleep(int millis) {
+    private static void sleep() {
         try {
-            Thread.sleep(millis);
+            Thread.sleep(2);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
