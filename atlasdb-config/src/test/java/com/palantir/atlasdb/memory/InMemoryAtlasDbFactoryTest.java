@@ -23,7 +23,7 @@ import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.TimestampService;
 import java.util.Optional;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class InMemoryAtlasDbFactoryTest {
     private final AtlasDbFactory factory = new InMemoryAtlasDbFactory();

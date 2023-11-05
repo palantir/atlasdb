@@ -28,14 +28,13 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import java.time.Duration;
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class TimeLockMigratorTest {
     private static final long BACKUP_TIMESTAMP = 42;
     private static final Exception EXCEPTION = new RuntimeException();
@@ -46,12 +45,7 @@ public class TimeLockMigratorTest {
     @Mock
     private TimestampManagementService timestampManagementService;
 
-    @Before
-    public void before() {
-        when(invalidator.backupAndInvalidate()).thenReturn(BACKUP_TIMESTAMP);
-    }
-
-    @After
+    @AfterEach
     public void after() {
         verifyNoMoreInteractions(timestampManagementService);
         verifyNoMoreInteractions(invalidator);
@@ -59,6 +53,7 @@ public class TimeLockMigratorTest {
 
     @Test
     public void propagatesBackupTimestampToFastForwardOnRemoteService() {
+        prepareBackupAndInvalidateInvocation();
         TimeLockMigrator migrator = TimeLockMigrator.create(timestampManagementService, invalidator);
         migrator.migrate();
 
@@ -82,6 +77,7 @@ public class TimeLockMigratorTest {
 
     @Test
     public void migrationDoesNotProceedIfInvalidationFails() {
+        prepareBackupAndInvalidateInvocation();
         when(invalidator.backupAndInvalidate()).thenThrow(new IllegalStateException());
 
         TimeLockMigrator migrator = TimeLockMigrator.create(timestampManagementService, invalidator);
@@ -94,6 +90,7 @@ public class TimeLockMigratorTest {
 
     @Test
     public void asyncMigrationProceedsIfTimeLockInitiallyUnavailable() {
+        prepareBackupAndInvalidateInvocation();
         when(timestampManagementService.ping())
                 .thenThrow(EXCEPTION)
                 .thenReturn(TimestampManagementService.PING_RESPONSE);
@@ -110,6 +107,7 @@ public class TimeLockMigratorTest {
 
     @Test
     public void asyncMigrationProceedsIfInvalidatorInitiallyUnavailable() {
+        prepareBackupAndInvalidateInvocation();
         when(invalidator.backupAndInvalidate())
                 .thenThrow(new IllegalStateException("not ready yet"))
                 .thenReturn(BACKUP_TIMESTAMP);
@@ -129,5 +127,9 @@ public class TimeLockMigratorTest {
                 .atMost(Duration.ofSeconds(30))
                 .pollInterval(Duration.ofSeconds(1))
                 .until(migrator::isInitialized);
+    }
+
+    private void prepareBackupAndInvalidateInvocation() {
+        when(invalidator.backupAndInvalidate()).thenReturn(BACKUP_TIMESTAMP);
     }
 }

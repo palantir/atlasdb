@@ -25,7 +25,7 @@ import com.palantir.atlasdb.factory.TransactionManagerConsistencyResults;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.consistency.TransactionManagerConsistencyCheck;
 import com.palantir.exception.NotInitializedException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ConsistencyCheckRunnerTest {
     private static final RuntimeException EXCEPTION_1 = new RuntimeException("bad");

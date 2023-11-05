@@ -26,7 +26,7 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.StringLockDescriptor;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TimeoutSensitiveLockRpcClientTest {
     private static final String NAMESPACE = "namespace";

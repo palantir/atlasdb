@@ -29,8 +29,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BinaryOperator;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class UnknownRemoteDebuggingProxyTest {
     private final BinaryOperator<Integer> binaryOperator = mock(BinaryOperator.class);
@@ -38,7 +38,7 @@ public class UnknownRemoteDebuggingProxyTest {
     private final AtomicLong time = new AtomicLong();
     private BinaryOperator<Integer> debuggingProxy;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         setUpClock();
         createProxy();

@@ -20,22 +20,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.test.utils.SubdirectoryCreator;
 import java.io.File;
 import java.io.IOException;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public final class PersistentStoragePathSanitizerTests {
-    @Rule
-    public TemporaryFolder testFolder = new TemporaryFolder();
+    @TempDir
+    public File testFolder;
 
     private String testFolderPath;
 
-    @Before
+    @BeforeEach
     public void setUp() {
-        testFolderPath = testFolder.getRoot().getAbsolutePath();
+        testFolderPath = testFolder.getAbsolutePath();
     }
 
     @Test
@@ -45,8 +45,7 @@ public final class PersistentStoragePathSanitizerTests {
 
     @Test
     public void sanitizingFile() throws IOException {
-        File file = testFolder.newFile();
-
+        File file = SubdirectoryCreator.createAndGetFile(testFolder, "temp");
         assertThatThrownBy(() -> PersistentStoragePathSanitizer.sanitizeStoragePath(file.getAbsolutePath()))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasMessageContaining("has to point to a directory");
@@ -57,10 +56,10 @@ public final class PersistentStoragePathSanitizerTests {
         PersistentStoragePathSanitizer.sanitizeStoragePath(testFolderPath)
                 .toFile()
                 .mkdir();
-        assertThat(testFolder.getRoot().listFiles()).hasSize(1);
+        assertThat(testFolder.listFiles()).hasSize(1);
 
         PersistentStoragePathSanitizer.sanitizeStoragePath(testFolderPath);
-        assertThat(testFolder.getRoot().listFiles())
+        assertThat(testFolder.listFiles())
                 .as("Sanitization should remove the special subfolder.")
                 .isEmpty();
     }

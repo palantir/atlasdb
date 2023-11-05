@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.collect.ImmutableList;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ProtocolAwarenessTest {
     private static final UserAgent USER_AGENT_1 = createBaseUserAgent("Bond", "0.0.7");

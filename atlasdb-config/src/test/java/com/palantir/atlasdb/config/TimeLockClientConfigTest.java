@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import java.util.List;
 import java.util.Optional;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TimeLockClientConfigTest {
     private static final String CLIENT = "testClient";

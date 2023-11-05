@@ -18,16 +18,25 @@ package com.palantir.test.utils;
 
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.io.File;
+import java.io.IOException;
 
 public final class SubdirectoryCreator {
 
     private SubdirectoryCreator() {}
 
-    public static File getAndCreateSubdirectory(File base, String subdirectoryName) {
-        File file = base.toPath().resolve(subdirectoryName).toFile();
-        if (file.mkdirs()) {
-            return file;
+    public static File createAndGetSubdirectory(File parentDirectory, String subdirectoryName) {
+        File subdirectory = parentDirectory.toPath().resolve(subdirectoryName).toFile();
+        if (subdirectory.mkdirs()) {
+            return subdirectory;
         }
         throw new SafeRuntimeException("Unexpected error when creating a subdirectory");
+    }
+
+    public static File createAndGetFile(File directory, String fileName) throws IOException {
+        File file = directory.toPath().resolve(fileName).toFile();
+        if (file.createNewFile()) {
+            return file;
+        }
+        throw new SafeRuntimeException("Unexpected error when creating a file");
     }
 }

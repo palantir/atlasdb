@@ -36,6 +36,9 @@ dependencies {
       exclude group: 'org.hamcrest'
     }
     testImplementation 'org.gmock:gmock'
+
+    /* TODO(boyoruk): Migrate package to JUnit5 */
+    testImplementation 'junit:junit'
 }
 
 tasks.checkImplicitDependenciesMain.enabled = false

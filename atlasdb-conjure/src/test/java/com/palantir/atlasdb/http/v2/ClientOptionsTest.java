@@ -22,7 +22,7 @@ import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.client.config.ClientConfiguration;
 import java.time.Duration;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ClientOptionsTest {
     private static final UserAgent USER_AGENT = UserAgent.of(UserAgent.Agent.of("tom", "1.2.3"));

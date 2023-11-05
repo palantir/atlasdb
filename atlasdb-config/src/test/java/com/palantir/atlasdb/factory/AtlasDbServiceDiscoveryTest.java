@@ -26,7 +26,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.refreshable.Refreshable;
 import java.util.Optional;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class AtlasDbServiceDiscoveryTest {
     private static final KeyValueServiceConfig INVALID_KVS_CONFIG = new TestKeyValueServiceConfig(true, "fakeconfig");

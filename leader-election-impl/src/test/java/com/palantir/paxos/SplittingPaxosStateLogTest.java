@@ -48,10 +48,10 @@ public class SplittingPaxosStateLogTest {
     @BeforeEach
     public void setup() throws IOException {
         DataSource legacy = SqliteConnections.getDefaultConfiguredPooledDataSource(
-                SubdirectoryCreator.getAndCreateSubdirectory(tempFolder, "legacy")
+                SubdirectoryCreator.createAndGetSubdirectory(tempFolder, "legacy")
                         .toPath());
         DataSource current = SqliteConnections.getDefaultConfiguredPooledDataSource(
-                SubdirectoryCreator.getAndCreateSubdirectory(tempFolder, "current")
+                SubdirectoryCreator.createAndGetSubdirectory(tempFolder, "current")
                         .toPath());
         legacyLog = spy(SqlitePaxosStateLog.create(NAMESPACE, legacy));
         currentLog = spy(SqlitePaxosStateLog.create(NAMESPACE, current));

@@ -70,8 +70,8 @@ public class PaxosInstallConfigurationIntegrationTest {
     @Test
     public void canCreateConfigurationWithDirectoriesHavingPrefixesInName() {
         assertThatCode(() -> createPartialConfiguration(
-                                SubdirectoryCreator.getAndCreateSubdirectory(temporaryFolder, "tom"),
-                                SubdirectoryCreator.getAndCreateSubdirectory(temporaryFolder, "tomato"))
+                                SubdirectoryCreator.createAndGetSubdirectory(temporaryFolder, "tom"),
+                                SubdirectoryCreator.createAndGetSubdirectory(temporaryFolder, "tomato"))
                         .isNewService(false)
                         .build())
                 .doesNotThrowAnyException();
@@ -79,7 +79,7 @@ public class PaxosInstallConfigurationIntegrationTest {
 
     @Test
     public void cannotCreateConfigurationWithIdenticalDirectories() {
-        File directory = SubdirectoryCreator.getAndCreateSubdirectory(temporaryFolder, "tomato");
+        File directory = SubdirectoryCreator.createAndGetSubdirectory(temporaryFolder, "tomato");
         assertThatThrownBy(() -> createPartialConfiguration(directory, directory)
                         .isNewService(false)
                         .build())
@@ -89,8 +89,8 @@ public class PaxosInstallConfigurationIntegrationTest {
 
     @Test
     public void sqliteDirectoryCannotBeSubdirectoryOfFileBasedDirectory() {
-        File parent = SubdirectoryCreator.getAndCreateSubdirectory(temporaryFolder, "tomato");
-        File child = SubdirectoryCreator.getAndCreateSubdirectory(parent, "tomatina");
+        File parent = SubdirectoryCreator.createAndGetSubdirectory(temporaryFolder, "tomato");
+        File child = SubdirectoryCreator.createAndGetSubdirectory(parent, "tomatina");
         assertThatThrownBy(() -> createPartialConfiguration(parent, child)
                         .isNewService(false)
                         .build())
@@ -100,8 +100,8 @@ public class PaxosInstallConfigurationIntegrationTest {
 
     @Test
     public void fileBasedDirectoryCannotBeSubdirectoryOfSqliteDirectory() {
-        File parent = SubdirectoryCreator.getAndCreateSubdirectory(temporaryFolder, "tomato");
-        File child = SubdirectoryCreator.getAndCreateSubdirectory(parent, "tomatina");
+        File parent = SubdirectoryCreator.createAndGetSubdirectory(temporaryFolder, "tomato");
+        File child = SubdirectoryCreator.createAndGetSubdirectory(parent, "tomatina");
         assertThatThrownBy(() -> createPartialConfiguration(child, parent)
                         .isNewService(false)
                         .build())
@@ -110,7 +110,7 @@ public class PaxosInstallConfigurationIntegrationTest {
     }
 
     private File getAndCreateRandomSubdirectory() {
-        return SubdirectoryCreator.getAndCreateSubdirectory(
+        return SubdirectoryCreator.createAndGetSubdirectory(
                 temporaryFolder, Clock.systemUTC().instant().toString());
     }
 

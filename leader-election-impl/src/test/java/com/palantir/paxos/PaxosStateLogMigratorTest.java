@@ -65,10 +65,10 @@ public class PaxosStateLogMigratorTest {
     @BeforeEach
     public void setup() throws IOException {
         DataSource sourceConn = SqliteConnections.getDefaultConfiguredPooledDataSource(
-                SubdirectoryCreator.getAndCreateSubdirectory(tempFolder, "source")
+                SubdirectoryCreator.createAndGetSubdirectory(tempFolder, "source")
                         .toPath());
         DataSource targetConn = SqliteConnections.getDefaultConfiguredPooledDataSource(
-                SubdirectoryCreator.getAndCreateSubdirectory(tempFolder, "target")
+                SubdirectoryCreator.createAndGetSubdirectory(tempFolder, "target")
                         .toPath());
         source = SqlitePaxosStateLog.create(NAMESPACE, sourceConn);
         target = spy(SqlitePaxosStateLog.create(NAMESPACE, targetConn));

@@ -60,6 +60,7 @@ dependencies {
     testImplementation 'com.palantir.sls.versions:sls-versions'
 
     api 'com.palantir.dialogue:dialogue-clients'
+    testImplementation project(path: ':atlasdb-tests-shared')
 
     annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'
@@ -80,4 +81,11 @@ dependencies {
     testImplementation 'com.github.stefanbirkner:system-rules'
     // Needed for Jersey Response-based tests
     testImplementation 'org.glassfish.jersey.core:jersey-common'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
+
+    testImplementation 'junit:junit'
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
 }
