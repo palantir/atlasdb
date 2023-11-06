@@ -30,8 +30,8 @@ import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import java.util.Optional;
 import java.util.function.Function;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("unchecked") // This test uses mocks liberally
 public class TransformingCoordinationServiceTest {
@@ -42,13 +42,13 @@ public class TransformingCoordinationServiceTest {
         throw new IllegalStateException("I'm not supposed to be called directly, use mocks");
     };
 
-    private CoordinationService<Integer> delegate = mock(CoordinationService.class);
-    private Function<String, Integer> stringToIntTransform = mock(Function.class);
-    private Function<Integer, String> intToStringTransform = mock(Function.class);
-    private CoordinationService<String> coordinationService =
+    private final CoordinationService<Integer> delegate = mock(CoordinationService.class);
+    private final Function<String, Integer> stringToIntTransform = mock(Function.class);
+    private final Function<Integer, String> intToStringTransform = mock(Function.class);
+    private final CoordinationService<String> coordinationService =
             new TransformingCoordinationService<>(delegate, intToStringTransform, stringToIntTransform);
 
-    @Before
+    @BeforeEach
     public void setUp() {
         when(stringToIntTransform.apply(STRING_1)).thenReturn(INTEGER_1);
         when(intToStringTransform.apply(INTEGER_1)).thenReturn(STRING_1);

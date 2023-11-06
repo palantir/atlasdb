@@ -1,4 +1,3 @@
-
 apply from: "../gradle/shared.gradle"
 
 dependencies {
@@ -26,4 +25,5 @@ dependencies {
   testImplementation 'org.assertj:assertj-core'
   testImplementation 'org.mockito:mockito-core'
   testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
+  testImplementation 'org.junit.jupiter:junit-jupiter'
 }

@@ -49,7 +49,7 @@ import com.palantir.conjure.java.serialization.ObjectMappers;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class KeyValueServiceCoordinationStoreTest {
     private static final byte[] COORDINATION_ROW = PtBytes.toBytes("aaaaa");
