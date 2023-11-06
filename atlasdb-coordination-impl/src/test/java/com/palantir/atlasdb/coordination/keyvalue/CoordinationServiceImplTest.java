@@ -36,15 +36,13 @@ import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CoordinationServiceImplTest {
     private static final String STRING = "string";
     private static final ValueAndBound<String> STRING_AND_ONE_HUNDRED = ValueAndBound.of(Optional.of(STRING), 100);
     private static final ValueAndBound<String> OTHER_STRING_AND_ONE_THOUSAND =
             ValueAndBound.of(Optional.of("otherstring"), 1000);
-    private static final ValueAndBound<String> ANOTHER_STRING_AND_ONE_HUNDRED =
-            ValueAndBound.of(Optional.of("anotherstring"), 100);
 
     @SuppressWarnings("unchecked") // Known to be safe in context of this test.
     private final CoordinationStore<String> coordinationStore = mock(CoordinationStore.class);

@@ -42,8 +42,8 @@ public class TimeLockInstallConfigurationTest {
         newSqliteLogDirectory =
                 Paths.get(temporaryFolder.toString(), "sqlite-is-cool").toFile();
 
-        extantPaxosLogDirectory = SubdirectoryCreator.getAndCreateSubdirectory(temporaryFolder, "lets-do-some-voting");
-        extantSqliteLogDirectory = SubdirectoryCreator.getAndCreateSubdirectory(temporaryFolder, "whats-a-right-join");
+        extantPaxosLogDirectory = SubdirectoryCreator.createAndGetSubdirectory(temporaryFolder, "lets-do-some-voting");
+        extantSqliteLogDirectory = SubdirectoryCreator.createAndGetSubdirectory(temporaryFolder, "whats-a-right-join");
     }
 
     @Test

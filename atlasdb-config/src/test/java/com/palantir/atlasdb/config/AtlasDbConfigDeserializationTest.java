@@ -22,7 +22,7 @@ import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class AtlasDbConfigDeserializationTest {
     private static final File TEST_CONFIG_FILE = new File(AtlasDbConfigDeserializationTest.class

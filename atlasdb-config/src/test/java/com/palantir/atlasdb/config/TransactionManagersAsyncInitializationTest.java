@@ -36,7 +36,7 @@ import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.time.Duration;
 import java.util.Map;
 import org.awaitility.Awaitility;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TransactionManagersAsyncInitializationTest {
     private static final String USER_AGENT_NAME = "user-agent";

@@ -28,14 +28,14 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 public class AtlasDbConfigsTest {
     private static String previousKeyPathProperty;
 
-    @BeforeClass
+    @BeforeAll
     public static void setUpClass() throws URISyntaxException {
         previousKeyPathProperty = System.getProperty(KeyFileUtils.KEY_PATH_PROPERTY);
         System.setProperty(
@@ -44,7 +44,7 @@ public class AtlasDbConfigsTest {
                         .toString());
     }
 
-    @AfterClass
+    @AfterAll
     public static void tearDownClass() {
         if (previousKeyPathProperty != null) {
             System.setProperty(KeyFileUtils.KEY_PATH_PROPERTY, previousKeyPathProperty);

@@ -1,5 +1,4 @@
 apply plugin: 'com.github.johnrengelman.shadow'
-
 apply from: '../gradle/shared.gradle'
 
 dependencies {
@@ -30,6 +29,8 @@ dependencies {
 
   testImplementation 'org.mockito:mockito-core'
   testImplementation 'org.assertj:assertj-core'
+  testImplementation 'org.junit.jupiter:junit-jupiter'
+  testImplementation 'org.mockito:mockito-junit-jupiter'
 
   shadow project(':atlasdb-service')
 }

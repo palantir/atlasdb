@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 
 import com.palantir.exception.NotInitializedException;
 import com.palantir.timestamp.TimestampService;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class FreshTimestampSupplierAdapterTest {
     private final FreshTimestampSupplierAdapter adapter = new FreshTimestampSupplierAdapter();

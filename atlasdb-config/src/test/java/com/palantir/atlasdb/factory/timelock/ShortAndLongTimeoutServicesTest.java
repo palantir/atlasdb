@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.math.IntMath;
 import com.palantir.atlasdb.factory.ServiceCreator;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ShortAndLongTimeoutServicesTest {
     @Test

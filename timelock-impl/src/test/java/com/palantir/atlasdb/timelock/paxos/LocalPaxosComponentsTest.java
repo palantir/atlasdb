@@ -62,10 +62,10 @@ public class LocalPaxosComponentsTest {
 
     @BeforeEach
     public void setUp() throws IOException {
-        legacyDirectory = SubdirectoryCreator.getAndCreateSubdirectory(TEMPORARY_FOLDER, "legacy")
+        legacyDirectory = SubdirectoryCreator.createAndGetSubdirectory(TEMPORARY_FOLDER, "legacy")
                 .toPath();
         sqlite = SqliteConnections.getDefaultConfiguredPooledDataSource(
-                SubdirectoryCreator.getAndCreateSubdirectory(TEMPORARY_FOLDER, "sqlite")
+                SubdirectoryCreator.createAndGetSubdirectory(TEMPORARY_FOLDER, "sqlite")
                         .toPath());
         paxosComponents = createPaxosComponents(true);
     }

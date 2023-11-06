@@ -17,7 +17,7 @@ package com.palantir.atlasdb.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TimeLockClientConfigsTest {
     private static final String CLIENT_1 = "bar";

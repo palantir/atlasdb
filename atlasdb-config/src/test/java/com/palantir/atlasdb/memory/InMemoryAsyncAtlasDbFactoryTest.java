@@ -27,7 +27,7 @@ import com.palantir.timestamp.TimestampService;
 import java.time.Duration;
 import java.util.Optional;
 import org.awaitility.Awaitility;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class InMemoryAsyncAtlasDbFactoryTest {
     private final AtlasDbFactory factory = new InMemoryAsyncAtlasDbFactory();

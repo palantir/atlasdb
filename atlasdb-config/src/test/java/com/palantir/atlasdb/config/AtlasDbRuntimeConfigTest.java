@@ -18,7 +18,7 @@ package com.palantir.atlasdb.config;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.stream.StreamStorePersistenceConfigurations;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class AtlasDbRuntimeConfigTest {
     @Test
