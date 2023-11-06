@@ -37,6 +37,7 @@ import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+/* TODO(boyoruk): Migrate to JUnit5. (Second iteration, Mockito breaks when we bump JUnit) */
 public class AsyncInitializerTest {
     private static final int ASYNC_INIT_DELAY = 10;
 
