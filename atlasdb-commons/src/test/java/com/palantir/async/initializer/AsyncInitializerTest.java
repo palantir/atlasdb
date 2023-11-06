@@ -34,7 +34,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.assertj.core.api.AbstractObjectAssert;
 import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 import org.mockito.Mockito;
 
 public class AsyncInitializerTest {
