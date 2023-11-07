@@ -53,6 +53,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+/* TODO(boyoruk): Migrate to JUnit5. */
 @RunWith(Parameterized.class)
 public class LastSweptTimestampUpdaterTest {
     private static final long REFRESH_MILLIS = 10L;

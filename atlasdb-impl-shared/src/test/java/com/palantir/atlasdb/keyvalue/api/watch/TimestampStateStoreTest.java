@@ -32,8 +32,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public final class TimestampStateStoreTest {
     private static final UUID LEADER = UUID.randomUUID();
@@ -47,7 +47,7 @@ public final class TimestampStateStoreTest {
 
     private TimestampStateStore timestampStateStore;
 
-    @Before
+    @BeforeEach
     public void before() {
         timestampStateStore = new TimestampStateStore();
     }

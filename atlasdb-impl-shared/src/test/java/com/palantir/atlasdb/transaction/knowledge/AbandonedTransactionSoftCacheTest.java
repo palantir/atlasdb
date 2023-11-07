@@ -34,8 +34,8 @@ import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions.Con
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class AbandonedTransactionSoftCacheTest {
     private final AbandonedTimestampStore abandonedTimestampStore = mock(AbandonedTimestampStore.class);
@@ -45,7 +45,7 @@ public class AbandonedTransactionSoftCacheTest {
     private final AbandonedTransactionSoftCache abandonedTransactionSoftCache =
             new AbandonedTransactionSoftCache(abandonedTimestampStore, knownConcludedTransactions, registry);
 
-    @Before
+    @BeforeEach
     public void before() {
         when(knownConcludedTransactions.isKnownConcluded(anyLong(), any())).thenReturn(true);
         // defaulting to no aborted transactions.

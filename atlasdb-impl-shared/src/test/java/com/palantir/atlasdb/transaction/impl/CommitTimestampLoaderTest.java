@@ -43,7 +43,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import org.eclipse.collections.api.factory.primitive.LongLists;
 import org.eclipse.collections.api.map.primitive.LongLongMap;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CommitTimestampLoaderTest {
     private static final TableReference TABLE_REF = TableReference.fromString("table");

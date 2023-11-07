@@ -33,8 +33,8 @@ import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 import org.assertj.core.api.OptionalAssert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public final class SnapshotStoreImplTest {
     private static final Sequence SEQUENCE_1 = Sequence.of(1337L);
@@ -57,7 +57,7 @@ public final class SnapshotStoreImplTest {
 
     private SnapshotStore snapshotStore;
 
-    @Before
+    @BeforeEach
     public void before() {
         snapshotStore = SnapshotStoreImpl.create(CACHE_METRICS);
     }

@@ -22,7 +22,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import java.util.Set;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SweepBatchWithPartitionInfoTest {
     private final SweepBatch batch = mock(SweepBatch.class);

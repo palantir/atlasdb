@@ -31,8 +31,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ScalingSweepTaskSchedulerTest {
     private static final SweepIterationResult SUCCESS_HUGE =
@@ -56,7 +56,7 @@ public class ScalingSweepTaskSchedulerTest {
 
     private boolean firstIteration = true;
 
-    @Before
+    @BeforeEach
     public void setup() {
         when(delay.getInitialPause()).thenReturn(INITIAL_PAUSE);
         when(delay.getNextPause(any(SweepIterationResult.class))).thenReturn(DELAY);

@@ -29,7 +29,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Objects;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class InternalSchemaMetadataPayloadCodecTest {
     private static final InternalSchemaMetadata INTERNAL_SCHEMA_METADATA = InternalSchemaMetadata.builder()

@@ -26,7 +26,7 @@ import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.watch.CommitUpdate;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class FilteringValueCacheSnapshotTest {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("t.table1");

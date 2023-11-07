@@ -38,8 +38,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class KvTableMappingServiceTest {
     private static final TableReference FQ_TABLE = TableReference.createFromFullyQualifiedName("test.test");
@@ -49,7 +49,7 @@ public class KvTableMappingServiceTest {
     private KeyValueService kvs;
     private TableMappingService tableMapping;
 
-    @Before
+    @BeforeEach
     public void setup() {
         kvs = spy(new InMemoryKeyValueService(false));
         AtomicLong counter = new AtomicLong(0);

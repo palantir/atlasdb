@@ -26,13 +26,13 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.Iterators;
 import java.util.Iterator;
 import java.util.function.ToLongFunction;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public final class TrackingIteratorTest {
     private static final String STRING_1 = "one";
     private static final String STRING_2 = "two";

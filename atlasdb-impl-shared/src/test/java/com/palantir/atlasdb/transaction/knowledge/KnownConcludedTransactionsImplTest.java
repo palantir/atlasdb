@@ -43,8 +43,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class KnownConcludedTransactionsImplTest {
     private static final Range<Long> DEFAULT_RANGE = Range.closed(10L, 100L);
@@ -56,7 +56,7 @@ public class KnownConcludedTransactionsImplTest {
     private final KnownConcludedTransactions defaultKnownConcludedTransactions =
             KnownConcludedTransactionsImpl.create(knownConcludedTransactionsStore, taggedMetricRegistry);
 
-    @Before
+    @BeforeEach
     public void setUp() {
         setupStoreWithDefaultRange();
     }

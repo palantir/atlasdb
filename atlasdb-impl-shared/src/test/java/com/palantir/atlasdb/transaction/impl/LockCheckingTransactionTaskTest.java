@@ -32,8 +32,8 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import java.util.Set;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class LockCheckingTransactionTaskTest {
     private final TimelockService timelockService = mock(TimelockService.class);
@@ -48,7 +48,7 @@ public class LockCheckingTransactionTaskTest {
     private final TransactionTask<?, Exception> wrappingTask =
             new LockCheckingTransactionTask<>(delegate, timelockService, lockToken);
 
-    @Before
+    @BeforeEach
     public void setUp() {
         Set<LockToken> lockTokens = ImmutableSet.of(lockToken);
         when(timelockService.refreshLockLeases(lockTokens)).thenReturn(lockTokens);

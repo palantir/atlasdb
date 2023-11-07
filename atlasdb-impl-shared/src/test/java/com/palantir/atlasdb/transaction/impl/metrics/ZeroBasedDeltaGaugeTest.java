@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.codahale.metrics.Gauge;
 import java.util.concurrent.atomic.AtomicLong;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ZeroBasedDeltaGaugeTest {
     private static final long FIVE = 5L;

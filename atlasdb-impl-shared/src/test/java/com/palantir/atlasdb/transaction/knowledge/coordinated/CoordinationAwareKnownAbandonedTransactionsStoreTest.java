@@ -34,7 +34,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.knowledge.AbandonedTimestampStore;
 import java.util.Optional;
 import java.util.Set;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class CoordinationAwareKnownAbandonedTransactionsStoreTest {
     private final CoordinationService<InternalSchemaMetadata> coordinationService = mock(CoordinationService.class);

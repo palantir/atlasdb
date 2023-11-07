@@ -47,9 +47,9 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class WriteBatchingTransactionServiceTest {
     private static final V1EncodingStrategy ENCODING_STRATEGY = V1EncodingStrategy.INSTANCE;
@@ -58,12 +58,12 @@ public class WriteBatchingTransactionServiceTest {
     private final TransactionService writeBatchingTransactionService =
             WriteBatchingTransactionService.create(mockTransactionService);
 
-    @Before
+    @BeforeEach
     public void setUp() {
         when(mockTransactionService.getCellEncodingStrategy()).thenReturn(ENCODING_STRATEGY);
     }
 
-    @After
+    @AfterEach
     public void verifyMocks() {
         verifyNoMoreInteractions(mockTransactionService);
     }

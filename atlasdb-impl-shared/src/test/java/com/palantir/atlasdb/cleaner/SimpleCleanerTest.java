@@ -19,8 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class SimpleCleanerTest {
     private Scrubber mockScrubber = mock(Scrubber.class);
@@ -28,7 +28,7 @@ public class SimpleCleanerTest {
 
     private SimpleCleaner simpleCleaner;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         simpleCleaner = new SimpleCleaner(mockScrubber, mockPuncher, () -> 1L);
 

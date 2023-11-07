@@ -31,8 +31,8 @@ import com.google.common.math.LongMath;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Map;
 import java.util.function.Function;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
@@ -53,7 +53,7 @@ public class SplitKeyDelegatingTransactionServiceTest {
     private final TransactionService lastDigitFiveImpliesUnknownTransactionService =
             new SplitKeyDelegatingTransactionService<>(num -> num % 10 == 5 ? null : num % 10, transactionServiceMap);
 
-    @After
+    @AfterEach
     public void verifyNoMoreInteractions() {
         Mockito.verifyNoMoreInteractions(delegate1, delegate2, delegate3);
     }

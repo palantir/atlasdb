@@ -67,6 +67,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class LockWatchEventCacheIntegrationTest {
     private static final String TABLE = "table";
     // Serializes as "dGFibGUAAQ=="

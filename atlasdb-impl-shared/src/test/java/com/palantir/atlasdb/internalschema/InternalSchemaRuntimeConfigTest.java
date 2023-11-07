@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 // In these tests we confirm if config is buildable, so we're interested in exceptions (or lack thereof).
 @SuppressWarnings("ResultOfMethodCallIgnored")

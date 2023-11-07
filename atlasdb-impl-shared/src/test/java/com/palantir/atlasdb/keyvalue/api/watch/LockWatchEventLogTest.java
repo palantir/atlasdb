@@ -53,6 +53,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
 
+/* TODO(boyoruk): Migrate to JUnit5*/
 public final class LockWatchEventLogTest {
     private static final int MIN_EVENTS = 1;
     private static final int MAX_EVENTS = 25;

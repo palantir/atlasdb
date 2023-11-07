@@ -34,7 +34,7 @@ import com.palantir.atlasdb.transaction.knowledge.VerificationModeMetrics;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.concurrent.ExecutionException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class KnowledgeableTimestampExtractingAtomicTableTest {
     private final AtomicTable<Long, TransactionStatus> delegate = mock(AtomicTable.class);

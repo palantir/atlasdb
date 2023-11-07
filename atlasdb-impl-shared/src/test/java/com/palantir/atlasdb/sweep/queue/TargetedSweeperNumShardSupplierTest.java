@@ -27,8 +27,8 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import java.util.function.Supplier;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TargetedSweeperNumShardSupplierTest {
     private KeyValueService kvs;
@@ -36,7 +36,7 @@ public class TargetedSweeperNumShardSupplierTest {
     private Supplier<Integer> runtimeConfigSupplier = mock(Supplier.class);
     private Supplier<Integer> numShardSupplier;
 
-    @Before
+    @BeforeEach
     public void setup() {
         kvs = new InMemoryKeyValueService(true);
         progress = spy(new ShardProgress(kvs));

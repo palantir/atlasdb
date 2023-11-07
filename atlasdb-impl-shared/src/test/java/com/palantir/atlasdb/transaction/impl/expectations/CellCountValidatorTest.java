@@ -28,7 +28,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import java.util.Map;
 import one.util.streamex.EntryStream;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CellCountValidatorTest {
     private static final Map<Cell, byte[]> TWO_PRESENT_ENTRIES_MAP = Map.of(

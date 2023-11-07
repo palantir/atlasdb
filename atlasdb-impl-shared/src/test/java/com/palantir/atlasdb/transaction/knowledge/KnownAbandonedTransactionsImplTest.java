@@ -32,13 +32,13 @@ import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public final class KnownAbandonedTransactionsImplTest {
     @Mock
     AbandonedTimestampStore abandonedTimestampStore;
@@ -48,7 +48,7 @@ public final class KnownAbandonedTransactionsImplTest {
 
     private KnownAbandonedTransactionsImpl knownAbortedTransactions;
 
-    @Before
+    @BeforeEach
     public void before() {
         knownAbortedTransactions = new KnownAbandonedTransactionsImpl(
                 abandonedTimestampStore,

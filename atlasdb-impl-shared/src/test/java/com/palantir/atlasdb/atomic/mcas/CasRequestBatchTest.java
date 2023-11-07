@@ -32,7 +32,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import java.nio.ByteBuffer;
 import java.util.List;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class CasRequestBatchTest {
     private static final byte[] EXPECTED = PtBytes.toBytes(1);

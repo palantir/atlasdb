@@ -22,7 +22,7 @@ import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.sweep.queue.id.SweepTableIndices;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class WriteReferencePersisterTest {
     private static final TableReference TABLE = TableReference.create(Namespace.create("test_ctx"), "test__table_name");

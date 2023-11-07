@@ -34,7 +34,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ClientLockWatchSnapshotTest {
     private static final LockDescriptor LOCK_DESCRIPTOR_1 = StringLockDescriptor.of("lock-one");

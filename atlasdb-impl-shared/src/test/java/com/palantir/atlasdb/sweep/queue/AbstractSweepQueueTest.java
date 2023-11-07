@@ -41,8 +41,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.IntStream;
 import org.assertj.core.api.Assertions;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 public abstract class AbstractSweepQueueTest {
     static final TableReference TABLE_CONS = TableReference.createFromFullyQualifiedName("test.conservative");
@@ -81,7 +81,7 @@ public abstract class AbstractSweepQueueTest {
     WriteInfoPartitioner partitioner;
     TransactionService txnService;
 
-    @Before
+    @BeforeEach
     public void setup() {
         numShards = DEFAULT_SHARDS;
         unreadableTs = SweepQueueUtils.TS_COARSE_GRANULARITY * 5;
@@ -99,7 +99,7 @@ public abstract class AbstractSweepQueueTest {
         txnService = TransactionServices.createV1TransactionService(spiedKvs);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         // This is required because of JUnit memory issues
         spiedKvs = null;

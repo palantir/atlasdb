@@ -28,7 +28,7 @@ import static com.palantir.logsafe.testing.Assertions.assertThat;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.IntStream;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SweepDelayTest {
     private static final SweepIterationResult SUCCESS_TOO_FAST = SweepIterationResults.success(1L);

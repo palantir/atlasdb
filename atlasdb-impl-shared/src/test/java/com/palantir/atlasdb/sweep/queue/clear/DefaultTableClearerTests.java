@@ -31,13 +31,13 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.queue.WriteInfo;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public final class DefaultTableClearerTests {
     private static final TableReference TABLE = TableReference.create(Namespace.create("foo"), "bar");
     private static final Cell CELL = Cell.create(new byte[1], new byte[2]);
@@ -51,7 +51,7 @@ public final class DefaultTableClearerTests {
 
     private DefaultTableClearer clearer;
 
-    @Before
+    @BeforeEach
     public void before() {
         clearer = new DefaultTableClearer(watermarkStore, kvs, () -> immutableTimestamp);
     }

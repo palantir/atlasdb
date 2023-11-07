@@ -40,7 +40,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TableRemappingKeyValueServiceTest {
     private static final Namespace NAMESPACE = Namespace.create("namespace");

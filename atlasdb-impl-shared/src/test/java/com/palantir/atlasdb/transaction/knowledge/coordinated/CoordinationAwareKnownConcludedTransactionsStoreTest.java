@@ -28,7 +28,7 @@ import com.google.common.collect.RangeMap;
 import com.palantir.atlasdb.internalschema.TimestampPartitioningMap;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactionsImpl;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class CoordinationAwareKnownConcludedTransactionsStoreTest {
     private final KnownConcludedTransactionsImpl delegate = mock(KnownConcludedTransactionsImpl.class);

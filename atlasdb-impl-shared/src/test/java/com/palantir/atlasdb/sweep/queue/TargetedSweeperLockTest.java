@@ -29,7 +29,7 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import java.util.Optional;
 import java.util.UUID;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TargetedSweeperLockTest {
     private TimelockService mockLockService = mock(TimelockService.class);

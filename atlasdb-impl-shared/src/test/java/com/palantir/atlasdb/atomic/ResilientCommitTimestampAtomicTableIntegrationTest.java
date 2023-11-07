@@ -41,7 +41,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ResilientCommitTimestampAtomicTableIntegrationTest {
     private static final double WRITE_FAILURE_PROBABILITY = 0.5;
