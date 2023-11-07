@@ -25,7 +25,7 @@ import static org.mockito.Mockito.verify;
 import com.google.common.collect.Sets;
 import java.lang.reflect.Modifier;
 import java.util.Set;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class AutoDelegateInterfaceTests {
 

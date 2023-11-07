@@ -24,7 +24,7 @@ import com.google.common.primitives.Bytes;
 import com.palantir.atlasdb.table.description.NameComponentDescription;
 import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.ValueType;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class AtlasDeserializersTest {
     private static final NameMetadataDescription NAME_METADATA_DESCRIPTION =
