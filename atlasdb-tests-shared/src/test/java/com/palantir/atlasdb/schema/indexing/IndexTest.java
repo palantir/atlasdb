@@ -39,12 +39,13 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
 import java.util.Arrays;
 import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class IndexTest extends AtlasDbTestCase {
 
-    @BeforeEach
+    @Before
     public void createSchema() {
         Schemas.truncateTablesAndIndexes(IndexTestSchema.getSchema(), keyValueService);
         Schemas.createTablesAndIndexes(IndexTestSchema.getSchema(), keyValueService);

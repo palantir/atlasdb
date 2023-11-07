@@ -44,10 +44,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class TargetedSweepTest extends AtlasDbTestCase {
     private static final TableReference TABLE_CONS = TableReference.createFromFullyQualifiedName("test.1");
     private static final TableReference TABLE_THOR = TableReference.createFromFullyQualifiedName("test.2");
@@ -58,7 +59,7 @@ public class TargetedSweepTest extends AtlasDbTestCase {
     private static final WriteReference SINGLE_DELETE = WriteReference.tombstone(TABLE_CONS, TEST_CELL);
 
     @Override
-    @BeforeEach
+    @Before
     public void setUp() throws Exception {
         super.setUp();
         keyValueService.createTable(TABLE_CONS, AtlasDbConstants.GENERIC_TABLE_METADATA);

@@ -49,8 +49,9 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import java.util.Map;
 import org.apache.commons.lang3.mutable.MutableLong;
-import org.junit.jupiter.api.Test;
+import org.junit.Test;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class TableMigratorTest extends AtlasDbTestCase {
     @Test
     public void testNeedArguments() {

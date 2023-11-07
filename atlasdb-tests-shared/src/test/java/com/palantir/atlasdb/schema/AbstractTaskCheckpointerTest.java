@@ -23,15 +23,16 @@ import com.palantir.atlasdb.transaction.api.TransactionTask;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
     protected AbstractTaskCheckpointer checkpointer;
 
     protected abstract AbstractTaskCheckpointer getCheckpointer();
 
-    @BeforeEach
+    @Before
     public void createCheckpointer() {
         checkpointer = getCheckpointer();
     }
