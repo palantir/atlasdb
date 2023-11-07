@@ -31,21 +31,21 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
 import java.util.List;
 import java.util.SortedMap;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class KeyValueServiceScrubberStoreTest {
     private KeyValueService kvs;
     private ScrubberStore scrubStore;
 
-    @Before
+    @BeforeEach
     public void before() {
         kvs = new InMemoryKeyValueService(false, MoreExecutors.newDirectExecutorService());
         scrubStore = KeyValueServiceScrubberStore.create(kvs);
     }
 
-    @After
+    @AfterEach
     public void after() {
         kvs.close();
     }

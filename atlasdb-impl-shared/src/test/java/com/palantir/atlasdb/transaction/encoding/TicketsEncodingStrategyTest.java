@@ -34,7 +34,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TicketsEncodingStrategyTest {
     private static final TicketsEncodingStrategy STRATEGY = TicketsEncodingStrategy.INSTANCE;

@@ -30,8 +30,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class MemoizingTableLevelMetricsControllerTest {
     private static final String METRIC_NAME = "name";
@@ -42,7 +42,7 @@ public class MemoizingTableLevelMetricsControllerTest {
     private final TableLevelMetricsController delegate = mock(TableLevelMetricsController.class);
     private final TableLevelMetricsController memoizing = new MemoizingTableLevelMetricsController(delegate);
 
-    @Before
+    @BeforeEach
     public void setUp() {
         when(delegate.createAndRegisterCounter(any(), anyString(), any())).thenAnswer(_invocation -> new Counter());
     }

@@ -20,5 +20,7 @@ dependencies {
     implementation 'com.palantir.safe-logging:preconditions'
     implementation project(':atlasdb-client-protobufs')
     implementation project(':atlasdb-commons')
+
+    /* TODO(boyoruk): Migrate to JUnit5 */
 }
 

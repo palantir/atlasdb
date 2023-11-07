@@ -30,7 +30,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TimestampExtractingAtomicTableTest {
     private final AtomicTable<Long, TransactionStatus> delegate = mock(AtomicTable.class);

@@ -66,7 +66,7 @@ import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class TransactionScopedCacheImplTest {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("t.table1");

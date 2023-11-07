@@ -27,7 +27,7 @@ import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("unchecked") // Mocks of generic types
 public class TransactionSchemaManagerTest {

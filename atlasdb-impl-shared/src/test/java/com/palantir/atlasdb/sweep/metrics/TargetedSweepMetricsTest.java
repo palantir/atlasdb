@@ -26,8 +26,8 @@ import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import java.util.concurrent.TimeUnit;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 public class TargetedSweepMetricsTest {
@@ -49,7 +49,7 @@ public class TargetedSweepMetricsTest {
     private PuncherStore puncherStore;
     private TargetedSweepMetrics metrics;
 
-    @Before
+    @BeforeEach
     public void setup() {
         clockTime = 100;
         kvs = Mockito.spy(new InMemoryKeyValueService(true));

@@ -61,8 +61,8 @@ import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 import org.assertj.core.api.IterableAssert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public final class LockWatchValueScopingCacheImplTest {
     private static final long TIMESTAMP_1 = 5L;
@@ -101,7 +101,7 @@ public final class LockWatchValueScopingCacheImplTest {
     private LockWatchValueScopingCache valueCache;
     private SnapshotStore snapshotStore;
 
-    @Before
+    @BeforeEach
     public void before() {
         snapshotStore = SnapshotStoreImpl.create(metrics);
         eventCache = LockWatchEventCacheImpl.create(metrics, MAX_EVENTS);

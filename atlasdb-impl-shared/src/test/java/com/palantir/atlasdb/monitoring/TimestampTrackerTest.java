@@ -32,7 +32,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.tritium.metrics.registry.MetricName;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TimestampTrackerTest {
     private static final long ONE = 1L;

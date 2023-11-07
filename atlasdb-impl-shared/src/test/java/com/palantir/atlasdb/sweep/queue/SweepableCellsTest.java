@@ -49,8 +49,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 public class SweepableCellsTest extends AbstractSweepQueueTest {
@@ -61,7 +61,7 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
     private TargetedSweepMetrics metrics;
     private SweepableCells sweepableCells;
 
-    @Before
+    @BeforeEach
     @Override
     public void setup() {
         super.setup();

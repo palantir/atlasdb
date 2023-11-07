@@ -1,6 +1,5 @@
 apply from: "../gradle/shared.gradle"
 apply from: "../gradle/non-client-dist.gradle"
-
 apply plugin: 'com.palantir.sls-java-service-distribution'
 
 schemas = ['com.palantir.atlasdb.blob.BlobSchema']
@@ -74,9 +73,6 @@ dependencies {
         exclude module: 'junit'
         exclude group: 'org.apache.httpcomponents'
     }
-    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
-        because 'allows JUnit 3 and JUnit 4 tests to run'
-    }
 
     runtimeOnly project(':atlasdb-dbkvs')
     runtimeOnly project(':atlasdb-cassandra')
@@ -87,6 +83,9 @@ dependencies {
     compileOnly project(':atlasdb-processors')
     testAnnotationProcessor 'org.immutables:value'
     testCompileOnly 'org.immutables:value::annotations'
+
+    /* TODO(boyoruk): Migrate to JUnit5 */
+    testImplementation 'junit:junit'
 }
 
 // ETE Test Wiring

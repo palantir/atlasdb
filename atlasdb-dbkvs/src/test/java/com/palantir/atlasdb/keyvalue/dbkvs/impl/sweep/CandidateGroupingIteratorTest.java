@@ -25,7 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CandidateGroupingIteratorTest {
 

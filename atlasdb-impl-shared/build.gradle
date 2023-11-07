@@ -1,4 +1,3 @@
-
 apply from: "../gradle/shared.gradle"
 apply plugin: 'com.palantir.metric-schema'
 
@@ -89,7 +88,6 @@ dependencies {
   testImplementation project(':lock-api')
   testImplementation project(':lock-api-objects')
   testImplementation project(':timelock-api:timelock-api-objects')
-  testImplementation 'org.junit.vintage:junit-vintage-engine'
 
   annotationProcessor 'org.immutables:value'
   compileOnly 'org.immutables:value::annotations'
@@ -98,7 +96,6 @@ dependencies {
   annotationProcessor 'org.derive4j:derive4j'
   compileOnly 'org.derive4j:derive4j-annotation'
   implementation 'io.vavr:vavr'
-
 
   testAnnotationProcessor 'org.immutables:value'
   testCompileOnly 'org.immutables:value::annotations'
@@ -111,17 +108,19 @@ dependencies {
   testImplementation 'org.assertj:assertj-core'
   testImplementation 'org.mockito:mockito-core'
   testImplementation 'org.awaitility:awaitility'
+  testImplementation 'org.junit.jupiter:junit-jupiter'
+  testImplementation 'org.mockito:mockito-junit-jupiter'
   testImplementation('org.jmock:jmock') {
     exclude group: 'org.hamcrest'
     exclude group: 'org.ow2.asm'
   }
   testImplementation 'one.util:streamex'
-
   testRuntimeOnly 'ch.qos.logback:logback-classic'
-}
 
-test {
-  useJUnitPlatform()
+  testImplementation 'junit:junit'
+  testRuntimeOnly 'org.junit.vintage:junit-vintage-engine', {
+    because 'allows JUnit 3 and JUnit 4 tests to run'
+  }
 }
 
 configurations.testImplementation {

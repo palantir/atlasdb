@@ -21,7 +21,7 @@ import static org.mockito.Mockito.when;
 
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import java.util.function.LongSupplier;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SweepTimestampTest {
     private final LongSupplier mockImmutableTimestampSupplier = mock(LongSupplier.class);

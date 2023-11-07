@@ -27,15 +27,15 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import java.math.BigInteger;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class SimpleLocksTest {
     private SingleLockService lockService;
     private LockService mockLockService = mock(LockService.class);
     private String lockId = "test";
 
-    @Before
+    @BeforeEach
     public void setUp() {
         lockService = SingleLockService.createSingleLockService(mockLockService, lockId);
     }

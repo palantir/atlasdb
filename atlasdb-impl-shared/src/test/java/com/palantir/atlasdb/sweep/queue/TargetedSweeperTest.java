@@ -104,6 +104,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.ArgumentCaptor;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 @SuppressWarnings("MustBeClosedChecker")
 @RunWith(Parameterized.class)
 public class TargetedSweeperTest extends AbstractSweepQueueTest {

@@ -24,7 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class VersionedInternalSchemaMetadataTest {
     private static final Path BASE_METADATA_PATH = getResourcePath("metadata-v1-base.json");

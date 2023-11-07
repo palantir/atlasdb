@@ -32,9 +32,9 @@ import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
 import java.sql.Connection;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class TableValueStyleCacheImplTest {
     private static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.test_table");
@@ -42,7 +42,7 @@ public class TableValueStyleCacheImplTest {
     private final ConnectionSupplier connectionSupplier = mock(ConnectionSupplier.class);
     private final TableValueStyleCacheImpl valueStyleCache = new TableValueStyleCacheImpl();
 
-    @Before
+    @BeforeEach
     public void setup() {
         SqlConnection mockConnection = mock(SqlConnection.class);
         when(connectionSupplier.get()).thenReturn(mockConnection);
@@ -58,7 +58,7 @@ public class TableValueStyleCacheImplTest {
         when(mockConnection.getUnderlyingConnection()).thenReturn(mock(Connection.class));
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         valueStyleCache.clearCacheForTable(TEST_TABLE);
         valueStyleCache.clearCacheForTable(TEST_TABLE_2);

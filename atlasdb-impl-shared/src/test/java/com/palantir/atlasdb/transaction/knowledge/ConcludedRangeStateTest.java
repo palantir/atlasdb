@@ -24,7 +24,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests on this class are fairly lightweight, as they focus primarily on correct deferral to the range-set

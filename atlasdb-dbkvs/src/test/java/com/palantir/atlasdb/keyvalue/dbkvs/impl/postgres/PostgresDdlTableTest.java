@@ -37,8 +37,8 @@ import com.palantir.nexus.db.sql.SqlConnection;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 public class PostgresDdlTableTest {
@@ -50,7 +50,7 @@ public class PostgresDdlTableTest {
     private static final long COMPACT_INTERVAL_MILLIS = 100;
     private static final long SMALL_POSITIVE_FACTOR = 10;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         postgresDdlTable = new PostgresDdlTable(
                 TEST_TABLE,

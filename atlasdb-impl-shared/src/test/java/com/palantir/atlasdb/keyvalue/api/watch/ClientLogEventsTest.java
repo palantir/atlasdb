@@ -41,7 +41,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class ClientLogEventsTest {
     private static final UUID LEADER = UUID.randomUUID();

@@ -45,8 +45,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class InstrumentedConsensusForgettingStoreTest {
     private static final Cell CELL = Cell.create(PtBytes.toBytes("roh"), PtBytes.toBytes("kaulem-won"));
@@ -60,7 +60,7 @@ public class InstrumentedConsensusForgettingStoreTest {
     private final ConsensusForgettingStore consensusForgettingStore =
             new InstrumentedConsensusForgettingStore(delegate, metrics, concurrentOperationTracker);
 
-    @Before
+    @BeforeEach
     public void before() {
         metrics.concurrentCheckAndTouches(concurrentOperationTracker::get);
     }

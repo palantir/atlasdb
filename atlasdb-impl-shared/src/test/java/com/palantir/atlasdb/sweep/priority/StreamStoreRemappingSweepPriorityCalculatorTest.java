@@ -34,8 +34,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class StreamStoreRemappingSweepPriorityCalculatorTest {
     private static final ZonedDateTime NOW = ZonedDateTime.now(ZoneId.of("Europe/London"));
@@ -61,7 +61,7 @@ public class StreamStoreRemappingSweepPriorityCalculatorTest {
 
     private Map<TableReference, Double> priorities;
 
-    @Before
+    @BeforeEach
     public void setup() {
         kvs = mock(KeyValueService.class);
         sweepPriorityStore = mock(SweepPriorityStore.class);

@@ -27,8 +27,8 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public final class VersionedEventStoreTest {
 
@@ -55,7 +55,7 @@ public final class VersionedEventStoreTest {
 
     private VersionedEventStore eventStore;
 
-    @Before
+    @BeforeEach
     public void before() {
         eventStore = new VersionedEventStore(CACHE_METRICS, MIN_EVENTS, MAX_EVENTS);
     }

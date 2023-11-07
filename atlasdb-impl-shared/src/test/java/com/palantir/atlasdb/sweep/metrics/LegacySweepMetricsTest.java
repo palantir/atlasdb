@@ -24,8 +24,8 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import java.util.List;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class LegacySweepMetricsTest {
     private static final long EXAMINED = 15L;
@@ -65,7 +65,7 @@ public class LegacySweepMetricsTest {
 
     private LegacySweepMetrics sweepMetrics;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         sweepMetrics = new LegacySweepMetrics(metricRegistry);
         assertThat(metricRegistry.getMetrics()).isEmpty();

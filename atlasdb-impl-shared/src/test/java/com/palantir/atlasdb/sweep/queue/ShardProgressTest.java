@@ -36,8 +36,8 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.schema.generated.SweepShardProgressTable;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ShardProgressTest {
     private static final long INITIAL_TIMESTAMP = SweepQueueUtils.INITIAL_TIMESTAMP;
@@ -53,7 +53,7 @@ public class ShardProgressTest {
 
     private static final Cell DUMMY = Cell.create(new byte[] {0}, new byte[] {0});
 
-    @Before
+    @BeforeEach
     public void setup() {
         kvs = spy(new InMemoryKeyValueService(true));
         progress = new ShardProgress(kvs);

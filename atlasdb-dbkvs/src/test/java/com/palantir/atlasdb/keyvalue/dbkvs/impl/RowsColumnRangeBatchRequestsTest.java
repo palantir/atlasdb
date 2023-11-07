@@ -29,6 +29,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+/* TODO(boyoruk): Upgrade to JUnit5 */
 @RunWith(Parameterized.class)
 public class RowsColumnRangeBatchRequestsTest {
     private final boolean hasPartialFirstRow;

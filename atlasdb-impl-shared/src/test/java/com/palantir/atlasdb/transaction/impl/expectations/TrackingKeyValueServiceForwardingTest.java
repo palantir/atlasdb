@@ -53,11 +53,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
  * Broadly tests that {@link TrackingKeyValueServiceImpl} methods forward delegate results using: physical equality
@@ -68,7 +68,7 @@ import org.mockito.junit.MockitoJUnitRunner;
  * when the method semantics and resulting tests impose it (e.g. methods where an iterator is wrapped can only be tested
  * by equality/in-order testing of its components, {@link TrackingKeyValueServiceImpl#getCandidateCellsForSweeping}).
  */
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public final class TrackingKeyValueServiceForwardingTest {
     private static final long TIMESTAMP = 12L;
     private static final byte[] BYTES_1 = new byte[1];
@@ -98,7 +98,7 @@ public final class TrackingKeyValueServiceForwardingTest {
 
     private TrackingKeyValueService trackingKvs;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         trackingKvs = new TrackingKeyValueServiceImpl(delegate);
     }

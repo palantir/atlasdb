@@ -24,8 +24,8 @@ import static org.mockito.Mockito.when;
 
 import com.palantir.atlasdb.util.TopNMetricPublicationController;
 import java.util.function.Supplier;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("unchecked") // mocks
 public class DefaultMetricsFilterEvaluationContextTest {
@@ -37,7 +37,7 @@ public class DefaultMetricsFilterEvaluationContextTest {
     private final DefaultMetricsFilterEvaluationContext context =
             new DefaultMetricsFilterEvaluationContext(controllerFactory);
 
-    @Before
+    @BeforeEach
     public void setUp() {
         when(controllerFactory.get()).thenReturn(TopNMetricPublicationController.create(1));
     }

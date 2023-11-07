@@ -24,7 +24,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -62,14 +61,17 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public final class OracleDdlTableTest {
     private static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.test");
     private static final OracleDdlConfig TABLE_MAPPING_DEFAULT_CONFIG = ImmutableOracleDdlConfig.builder()
@@ -110,7 +112,7 @@ public final class OracleDdlTableTest {
     private OracleDdlTable nonTableMappingDdlTable;
     private ExecutorService executorService;
 
-    @Before
+    @BeforeEach
     public void before() {
         executorService = PTExecutors.newSingleThreadExecutor();
         tableMappingDdlTable = createOracleDdlTable(TABLE_MAPPING_DEFAULT_CONFIG);
@@ -119,7 +121,7 @@ public final class OracleDdlTableTest {
         when(connectionSupplier.get()).thenReturn(sqlConnection);
     }
 
-    @After
+    @AfterEach
     public void after() {
         executorService.shutdown();
     }
@@ -230,7 +232,7 @@ public final class OracleDdlTableTest {
     public void dropTablesDoesNotThrowIfMultipleMatchingTableReferencesExistAndCaseSensitiveDrop()
             throws TableMappingNotFoundException {
         // This mock is never called on the case sensitive code path, but this makes the test easier to read.
-        lenient().when(sqlConnection.selectCount(any(), any(), any())).thenReturn((long) 2);
+        when(sqlConnection.selectCount(any(), any(), any())).thenReturn((long) 2);
         createTableAndOverflow();
 
         assertThatCode(() -> tableMappingDdlTable.drop()).doesNotThrowAnyException();
@@ -336,9 +338,7 @@ public final class OracleDdlTableTest {
         createTableAndOverflow();
         setTableToHaveOverflowColumn(false);
         setTableValueStyleCacheOverflowConfigForTable(true);
-        // lenient as the method should never be called, and if it does, we expect an exception to throw
-        lenient()
-                .when(tableNameGetter.getInternalShortTableName(connectionSupplier, TEST_TABLE))
+        when(tableNameGetter.getInternalShortTableName(connectionSupplier, TEST_TABLE))
                 .thenThrow(new TableMappingNotFoundException("foo"));
         OracleDdlTable ddlTable = createOracleDdlTable(ImmutableOracleDdlConfig.builder()
                 .from(TABLE_MAPPING_DEFAULT_CONFIG)
@@ -408,8 +408,7 @@ public final class OracleDdlTableTest {
 
     private void createTable() throws TableMappingNotFoundException {
         // Not all tests will call OracleDdlTable#createTable, which makes sense as this test "creates" it for them!
-        lenient()
-                .when(tableNameGetter.generateShortTableName(connectionSupplier, TEST_TABLE))
+        when(tableNameGetter.generateShortTableName(connectionSupplier, TEST_TABLE))
                 .thenReturn(INTERNAL_TABLE_NAME);
         when(tableNameGetter.getPrefixedTableName(TEST_TABLE)).thenReturn(PREFIXED_TABLE_NAME);
         when(tableNameGetter.getInternalShortTableName(connectionSupplier, TEST_TABLE))

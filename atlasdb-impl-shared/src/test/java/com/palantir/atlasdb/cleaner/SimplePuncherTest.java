@@ -20,7 +20,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.palantir.common.time.Clock;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SimplePuncherTest {
     @Test

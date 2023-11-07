@@ -43,8 +43,8 @@ import java.math.BigInteger;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class AdvisoryLocksConditionTest {
 
@@ -70,7 +70,7 @@ public class AdvisoryLocksConditionTest {
     private ExternalLocksCondition externalLocksCondition;
     private CombinedLocksCondition combinedLocksCondition;
 
-    @Before
+    @BeforeEach
     public void before() {
         lockService = mock(LockService.class);
         transactionLocksCondition = new TransactionLocksCondition(lockService, TRANSACTION_LOCK_TOKEN);

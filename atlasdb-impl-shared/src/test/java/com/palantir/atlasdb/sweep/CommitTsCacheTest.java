@@ -38,7 +38,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.invocation.InvocationOnMock;
 
 public class CommitTsCacheTest {

@@ -28,7 +28,7 @@ import com.palantir.lock.watch.CommitUpdate;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
 import java.util.Map;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class TransactionCacheValueStoreImplTest {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("t.table");

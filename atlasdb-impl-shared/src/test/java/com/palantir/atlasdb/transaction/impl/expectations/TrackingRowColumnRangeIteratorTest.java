@@ -33,13 +33,13 @@ import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.function.ToLongFunction;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public final class TrackingRowColumnRangeIteratorTest {
     private static final Entry<Cell, Value> ENTRY_1 =
             new SimpleImmutableEntry<>(createCellWithSize(10), createValueWithSize(10));

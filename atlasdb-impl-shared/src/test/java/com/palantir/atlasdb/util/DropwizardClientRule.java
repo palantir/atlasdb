@@ -27,6 +27,7 @@ import io.dropwizard.testing.DropwizardTestSupport;
 import java.net.URI;
 import org.junit.rules.ExternalResource;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 /**
  * Copied from {@link io.dropwizard.testing.junit.DropwizardClientRule} so that we can configure the ObjectMapper.
  */
