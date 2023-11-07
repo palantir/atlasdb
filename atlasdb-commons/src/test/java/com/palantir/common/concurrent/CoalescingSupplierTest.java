@@ -155,7 +155,7 @@ public class CoalescingSupplierTest {
                 MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(poolSize));
         AtomicLong counter = new AtomicLong(0);
         Supplier<Long> supplier = new CoalescingSupplier<>(() -> {
-            sleep();
+            sleep(2);
             return counter.incrementAndGet();
         });
         List<ListenableFuture<?>> futures = IntStream.range(0, poolSize)
@@ -189,9 +189,9 @@ public class CoalescingSupplierTest {
         }
     }
 
-    private static void sleep() {
+    private static void sleep(int millis) {
         try {
-            Thread.sleep(2);
+            Thread.sleep(millis);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
