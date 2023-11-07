@@ -5,7 +5,6 @@ apply plugin: 'checkstyle'
 apply plugin: 'com.github.hierynomus.license'
 apply plugin: 'com.palantir.external-publish-jar'
 
-
 version = rootProject.version
 group = rootProject.group
 
@@ -30,9 +29,6 @@ dependencies {
     implementation 'com.google.code.findbugs:findbugs-annotations'
     implementation 'com.palantir.safe-logging:logger'
     implementation 'com.palantir.safe-logging:safe-logging'
-
-    testImplementation 'junit:junit'
-    testImplementation 'org.assertj:assertj-core'
 }
 
 checkUnusedDependencies {

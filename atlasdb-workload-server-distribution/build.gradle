@@ -30,6 +30,7 @@ dependencies {
     compileOnly 'org.immutables:value::annotations'
     annotationProcessor 'org.immutables:value'
 
+    testImplementation 'org.assertj:assertj-core'
     testImplementation 'io.dropwizard:dropwizard-testing'
     testImplementation 'junit:junit'
     testRuntimeOnly 'org.junit.vintage:junit-vintage-engine', {
