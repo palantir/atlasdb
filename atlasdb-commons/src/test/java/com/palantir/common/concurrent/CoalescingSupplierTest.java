@@ -52,6 +52,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.MockMakers;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 @RunWith(Parameterized.class)
 public class CoalescingSupplierTest {
     private static final int DEFAULT_VALUE = 123;
@@ -94,9 +95,9 @@ public class CoalescingSupplierTest {
     }
 
     @Test
-    public void batchesConcurrentRequests() throws InterruptedException {
+    public void batchesConcurrentRequests() {
         freezableDelegate.freeze();
-        AsyncTasks initialTask = getConcurrently(1);
+        getConcurrently(1);
         AsyncTasks batch = getConcurrently(5);
         freezableDelegate.unfreeze();
 

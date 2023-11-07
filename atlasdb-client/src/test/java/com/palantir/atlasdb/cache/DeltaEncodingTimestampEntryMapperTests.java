@@ -25,20 +25,20 @@ import static org.mockito.Mockito.when;
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.cache.DefaultOffHeapCache.EntryMapper;
 import com.palantir.atlasdb.table.description.ValueType;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public final class DeltaEncodingTimestampEntryMapperTests {
     @Mock
     public EntryMapper<Long, Long> longEntryMapper;
 
     private EntryMapper<Long, Long> mapper;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         mapper = new DeltaEncodingTimestampEntryMapper(longEntryMapper);
     }

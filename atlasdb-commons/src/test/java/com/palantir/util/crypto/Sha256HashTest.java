@@ -22,6 +22,7 @@ import com.google.common.io.BaseEncoding;
 import java.security.MessageDigest;
 import org.junit.Test;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class Sha256HashTest {
 
     @Test

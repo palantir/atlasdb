@@ -24,7 +24,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class HeaderAccessUtilsTest {
     private static final String FOO = "foo";
@@ -77,7 +77,7 @@ public class HeaderAccessUtilsTest {
 
     @Test
     public void caseInsensitiveGetReturnsNullIfNoKeyMatches() {
-        assertCaseInsensitiveGet("Diffie-Hellman", ImmutableList.<String>of());
+        assertCaseInsensitiveGet("Diffie-Hellman", ImmutableList.of());
     }
 
     @Test

@@ -22,21 +22,21 @@ import com.palantir.util.MutuallyExclusiveSetLock.LockState;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class MutuallyExclusiveSetLockTest {
     /** True iff test threads should release all their resources. */
     volatile boolean unlock;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    public void setUp() {
         unlock = false;
     }
 
     @Test
-    public void testInterface() throws Exception {
-        MutuallyExclusiveSetLock<String> mutuallyExclusiveSetLock = new MutuallyExclusiveSetLock<String>();
+    public void testInterface() {
+        MutuallyExclusiveSetLock<String> mutuallyExclusiveSetLock = new MutuallyExclusiveSetLock<>();
         LockState<String> lockOnObjects = mutuallyExclusiveSetLock.lockOnObjects(Arrays.asList("whatev", "dog"));
         try {
             // stuff
@@ -51,7 +51,7 @@ public class MutuallyExclusiveSetLockTest {
 
     @Test
     public void testSimpleBlock() throws Exception {
-        final MutuallyExclusiveSetLock<String> mutuallyExclusiveSetLock = new MutuallyExclusiveSetLock<String>();
+        final MutuallyExclusiveSetLock<String> mutuallyExclusiveSetLock = new MutuallyExclusiveSetLock<>();
         LockState<String> lockOnObjects = mutuallyExclusiveSetLock.lockOnObjects(Arrays.asList("whatup", "dog"));
         final Thread thread;
         try {
@@ -71,7 +71,7 @@ public class MutuallyExclusiveSetLockTest {
 
     @Test
     public void testSimpleNotBlock() throws Exception {
-        final MutuallyExclusiveSetLock<String> mutuallyExclusiveSetLock = new MutuallyExclusiveSetLock<String>();
+        final MutuallyExclusiveSetLock<String> mutuallyExclusiveSetLock = new MutuallyExclusiveSetLock<>();
         LockState<String> lockOnObjects = mutuallyExclusiveSetLock.lockOnObjects(Arrays.asList("whatup", "dog"));
         final Thread thread;
         try {
@@ -85,8 +85,8 @@ public class MutuallyExclusiveSetLockTest {
     }
 
     @Test
-    public void testDoubleLock() throws Exception {
-        final MutuallyExclusiveSetLock<String> mutuallyExclusiveSetLock = new MutuallyExclusiveSetLock<String>();
+    public void testDoubleLock() {
+        final MutuallyExclusiveSetLock<String> mutuallyExclusiveSetLock = new MutuallyExclusiveSetLock<>();
         LockState<String> lockOnObjects = mutuallyExclusiveSetLock.lockOnObjects(Arrays.asList("whatup", "dog"));
         try {
             mutuallyExclusiveSetLock.lockOnObjects(Arrays.asList("anything"));
@@ -101,7 +101,7 @@ public class MutuallyExclusiveSetLockTest {
     /* test that the current thread owns stuff it locks. */
     @Test
     public void testThreadOwnsLocks() {
-        final MutuallyExclusiveSetLock<String> mutuallyExclusiveSetLock = new MutuallyExclusiveSetLock<String>();
+        final MutuallyExclusiveSetLock<String> mutuallyExclusiveSetLock = new MutuallyExclusiveSetLock<>();
         List<String> asList = Arrays.asList("whatup", "dog");
         LockState<String> lockOnObjects = mutuallyExclusiveSetLock.lockOnObjects(asList);
         try {
@@ -114,7 +114,7 @@ public class MutuallyExclusiveSetLockTest {
     /* test that the current thread does not own stuff that is not locked. */
     @Test
     public void testThreadDoesNotOwnUnlocked() {
-        final MutuallyExclusiveSetLock<String> mutuallyExclusiveSetLock = new MutuallyExclusiveSetLock<String>();
+        final MutuallyExclusiveSetLock<String> mutuallyExclusiveSetLock = new MutuallyExclusiveSetLock<>();
         List<String> asList = Arrays.asList("whatup", "dog");
         assertThat(mutuallyExclusiveSetLock.isLocked(asList)).isFalse();
     }
@@ -122,7 +122,7 @@ public class MutuallyExclusiveSetLockTest {
     /* test that the current thread does not own stuff locked by another thread. */
     @Test
     public void testThreadDoesNotOwnOtherLocked() {
-        final MutuallyExclusiveSetLock<String> setLock = new MutuallyExclusiveSetLock<String>();
+        final MutuallyExclusiveSetLock<String> setLock = new MutuallyExclusiveSetLock<>();
         final List<String> toLock = Arrays.asList("whatup", "dog");
 
         // Spawn a thread to lock and hold a lock until a variable is toggled

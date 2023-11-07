@@ -25,8 +25,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.MockMakers;
 
 public class CachedComposedSupplierTest {
@@ -35,7 +35,7 @@ public class CachedComposedSupplierTest {
     private Supplier<VersionedType<Long>> mockVersionedSupplier;
     private Supplier<Long> testSupplier;
 
-    @Before
+    @BeforeEach
     public void setup() {
         counter = 0;
         supplierCounter = 0;

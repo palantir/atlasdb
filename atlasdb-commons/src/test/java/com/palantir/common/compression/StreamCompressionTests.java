@@ -28,6 +28,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 @RunWith(Parameterized.class)
 public class StreamCompressionTests {
     private static final StreamCompression GZIP = StreamCompression.GZIP;

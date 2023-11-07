@@ -33,6 +33,7 @@ import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 
+/* TODO(boyoruk): Migrate to JUnit5. (Second iteration, Mockito breaks when we bump JUnit) */
 public class CallChainTest {
     private static final String TEST_STRING = "abc";
 

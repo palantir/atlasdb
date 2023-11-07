@@ -28,8 +28,8 @@ import static org.mockito.Mockito.withSettings;
 import com.palantir.util.TimedRunner.TaskContext;
 import java.time.Duration;
 import java.util.concurrent.Callable;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.MockMakers;
 import org.mockito.MockSettings;
 
@@ -38,10 +38,10 @@ public final class TimedRunnerTest {
     private static final RuntimeException EXCEPTION_2 = new RuntimeException("bleh");
 
     private final MockSettings mockSettings = withSettings().mockMaker(MockMakers.SUBCLASS);
-    private Runnable noOpRunnable = mock(Runnable.class, mockSettings);
-    private Runnable throwingRunnable = mock(Runnable.class, mockSettings);
+    private final Runnable noOpRunnable = mock(Runnable.class, mockSettings);
+    private final Runnable throwingRunnable = mock(Runnable.class, mockSettings);
 
-    @Before
+    @BeforeEach
     public void setupMocks() {
         doThrow(EXCEPTION_1).when(throwingRunnable).run();
     }

@@ -27,6 +27,7 @@ import org.junit.runners.Parameterized;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 @RunWith(Parameterized.class)
 public class IterablePartitionerTest {
 

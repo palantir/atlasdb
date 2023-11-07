@@ -87,9 +87,6 @@ dependencies {
   testImplementation project(':commons-annotations')
   testImplementation project(':lock-api-objects')
   testImplementation project(':timestamp-api')
-
-
-  testImplementation 'junit:junit'
   testImplementation 'org.mockito:mockito-core'
   testImplementation('org.jmock:jmock') {
     exclude group: 'org.hamcrest'
@@ -97,6 +94,13 @@ dependencies {
   testImplementation 'ch.qos.logback:logback-classic'
   testImplementation 'org.assertj:assertj-core'
   testImplementation 'org.awaitility:awaitility'
+  testImplementation 'org.junit.jupiter:junit-jupiter'
+  testImplementation 'org.mockito:mockito-junit-jupiter'
+
+  testImplementation 'junit:junit'
+  testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+    because 'allows JUnit 3 and JUnit 4 tests to run'
+  }
 
   integrationInputImplementation project(':atlasdb-client')
   integrationInputImplementation 'com.fasterxml.jackson.core:jackson-annotations'

@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.util.PersistableBoolean;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SweeperStrategyTest {
     /**

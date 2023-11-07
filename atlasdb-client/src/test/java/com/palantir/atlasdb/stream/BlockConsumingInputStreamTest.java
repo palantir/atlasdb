@@ -29,8 +29,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
@@ -90,7 +90,7 @@ public class BlockConsumingInputStreamTest {
 
     private BlockConsumingInputStream dataStream;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         dataStream = BlockConsumingInputStream.create(dataConsumer, 1, 1);
     }

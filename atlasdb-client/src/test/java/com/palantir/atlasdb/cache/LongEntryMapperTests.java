@@ -21,10 +21,10 @@ import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.table.description.ValueType;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class LongEntryMapperTests {
-    private LongEntryMapper mapper = new LongEntryMapper();
+    private final LongEntryMapper mapper = new LongEntryMapper();
 
     @Test
     public void failsOnNulls() {

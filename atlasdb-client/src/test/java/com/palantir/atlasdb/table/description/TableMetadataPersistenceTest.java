@@ -28,6 +28,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 @RunWith(Parameterized.class)
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class TableMetadataPersistenceTest {

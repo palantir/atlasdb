@@ -23,7 +23,7 @@ import static org.mockito.Mockito.withSettings;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.IntConsumer;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.MockMakers;
 import org.mockito.MockSettings;
 
@@ -38,7 +38,7 @@ public class PredicateSwitchedProxyTest {
             PredicateSwitchedProxy.newProxyInstance(decorated, delegate, atomicBoolean::get, IntConsumer.class);
 
     @Test
-    public void dynamicallySwitchesCorrectlyForMethodsWithArguments() throws Exception {
+    public void dynamicallySwitchesCorrectlyForMethodsWithArguments() {
         consumer.accept(10);
         verify(decorated, never()).accept(10);
         verify(delegate, times(1)).accept(10);

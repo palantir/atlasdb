@@ -31,13 +31,13 @@ import com.palantir.atlasdb.transaction.impl.TransactionRetryStrategy.Retryable;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.IntPredicate;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class TransactionRetryStrategyTest {
     private final TestBlockStrategy blockStrategy = new TestBlockStrategy();
 
@@ -64,10 +64,8 @@ public class TransactionRetryStrategyTest {
         }
     }
 
-    @Before
+    @BeforeEach
     public void before() {
-        when(random.nextInt(anyInt())).thenAnswer(inv -> (int) inv.getArgument(0) - 1);
-        mockRetries(1);
         legacy = TransactionRetryStrategy.createLegacy(blockStrategy);
         exponential = TransactionRetryStrategy.createExponential(blockStrategy, random);
     }
@@ -76,8 +74,8 @@ public class TransactionRetryStrategyTest {
         return exponential.runWithRetry(shouldStopRetrying, task);
     }
 
-    private String runLegacy() throws Exception {
-        return legacy.runWithRetry(shouldStopRetrying, task);
+    private void runLegacy() throws Exception {
+        legacy.runWithRetry(shouldStopRetrying, task);
     }
 
     @Test
@@ -89,6 +87,7 @@ public class TransactionRetryStrategyTest {
 
     @Test
     public void retriesIfFailsWithRetriableException() throws Exception {
+        mockRetriesOnceAndPrepareNextIntInvocation();
         when(task.run()).thenThrow(new TransactionFailedRetriableException("")).thenReturn("success");
         assertThat(runExponential()).isEqualTo("success");
         assertThat(blockStrategy.numRetries).isEqualTo(1);
@@ -96,6 +95,7 @@ public class TransactionRetryStrategyTest {
 
     @Test
     public void stopsIfShouldStopRetrying() throws Exception {
+        mockRetriesOnceAndPrepareNextIntInvocation();
         TransactionFailedRetriableException second = new TransactionFailedRetriableException("second");
         when(task.run())
                 .thenThrow(new TransactionFailedRetriableException("first"))
@@ -139,6 +139,7 @@ public class TransactionRetryStrategyTest {
 
     @Test
     public void backsOffExponentially() throws Exception {
+        mockRetriesOnceAndPrepareNextIntInvocation();
         mockRetries(11);
         when(task.run()).thenThrow(new TransactionFailedRetriableException(""));
         List<Integer> rawBlockTimes =
@@ -152,5 +153,10 @@ public class TransactionRetryStrategyTest {
 
     private void mockRetries(int numRetries) {
         when(shouldStopRetrying.test(anyInt())).thenAnswer(inv -> ((int) inv.getArgument(0)) > numRetries);
+    }
+
+    private void mockRetriesOnceAndPrepareNextIntInvocation() {
+        mockRetries(1);
+        when(random.nextInt(anyInt())).thenAnswer(inv -> (int) inv.getArgument(0) - 1);
     }
 }

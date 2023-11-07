@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.util.Pair;
 import java.util.UUID;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ValueTypeTest {
     private static final String BYTE_ARRAY = "byte[]";
@@ -75,7 +75,7 @@ public class ValueTypeTest {
     public void uuidJsonConversions() {
         UUID uuid = UUID.randomUUID();
         byte[] uuidBytes = ValueType.UUID.convertFromJava(uuid);
-        String quotedUuidString = "\"" + uuid.toString() + "\"";
+        String quotedUuidString = "\"" + uuid + "\"";
         assertThat(ValueType.UUID.convertToJson(uuidBytes, 0)).isEqualTo(Pair.create(quotedUuidString, 16));
         assertThat(ValueType.UUID.convertFromJson(quotedUuidString)).isEqualTo(uuidBytes);
     }

@@ -32,15 +32,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class SchemaTest {
-    @Rule
-    public TemporaryFolder testFolder = new TemporaryFolder();
+    @TempDir
+    public File testFolder;
 
-    private static final String CLASS_HASH = "__CLASS_HASH";
     private static final String TEST_PACKAGE = "pkg";
     private static final String TEST_TABLE_NAME = "TestTable";
     private static final String TEST_PATH = TEST_PACKAGE + "/" + TEST_TABLE_NAME + "Table.java";
@@ -51,8 +49,8 @@ public class SchemaTest {
     public void testRendersGuavaOptionalsByDefault() throws IOException {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
         schema.addTableDefinition("TableName", getSimpleTableDefinition(TABLE_REF));
-        schema.renderTables(testFolder.getRoot());
-        assertThat(new File(testFolder.getRoot(), TEST_PATH))
+        schema.renderTables(testFolder);
+        assertThat(new File(testFolder, TEST_PATH))
                 .content()
                 .contains("import com.google.common.base.Optional")
                 .contains("{@link Optional}")
@@ -63,8 +61,8 @@ public class SchemaTest {
     public void testRendersGuavaOptionalsWhenRequested() throws IOException {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE, OptionalType.GUAVA);
         schema.addTableDefinition("TableName", getSimpleTableDefinition(TABLE_REF));
-        schema.renderTables(testFolder.getRoot());
-        assertThat(new File(testFolder.getRoot(), TEST_PATH))
+        schema.renderTables(testFolder);
+        assertThat(new File(testFolder, TEST_PATH))
                 .content()
                 .contains("import com.google.common.base.Optional")
                 .doesNotContain("import java.util.Optional");
@@ -74,8 +72,8 @@ public class SchemaTest {
     public void testRenderJava8OptionalsWhenRequested() throws IOException {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE, OptionalType.JAVA8);
         schema.addTableDefinition("TableName", getSimpleTableDefinition(TABLE_REF));
-        schema.renderTables(testFolder.getRoot());
-        assertThat(new File(testFolder.getRoot(), TEST_PATH))
+        schema.renderTables(testFolder);
+        assertThat(new File(testFolder, TEST_PATH))
                 .content()
                 .doesNotContain("import com.google.common.base.Optional")
                 .contains("import java.util.Optional");
@@ -96,7 +94,7 @@ public class SchemaTest {
         int longLengthCassandra = AtlasDbConstants.CASSANDRA_TABLE_NAME_CHAR_LIMIT + 1;
         String longTableName = String.join("", Collections.nCopies(longLengthCassandra, "x"));
         TableReference tableRef = TableReference.createWithEmptyNamespace(longTableName);
-        List<CharacterLimitType> kvsList = new ArrayList<CharacterLimitType>();
+        List<CharacterLimitType> kvsList = new ArrayList<>();
         kvsList.add(CharacterLimitType.CASSANDRA);
         assertThatThrownBy(() -> schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef)))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -108,7 +106,7 @@ public class SchemaTest {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.EMPTY_NAMESPACE);
         String longTableName = String.join("", Collections.nCopies(1000, "x"));
         TableReference tableRef = TableReference.createWithEmptyNamespace(longTableName);
-        List<CharacterLimitType> kvsList = new ArrayList<CharacterLimitType>();
+        List<CharacterLimitType> kvsList = new ArrayList<>();
         kvsList.add(CharacterLimitType.CASSANDRA);
         kvsList.add(CharacterLimitType.POSTGRES);
         assertThatThrownBy(() -> schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef)))
@@ -122,7 +120,7 @@ public class SchemaTest {
         Schema schema = new Schema("Table", TEST_PACKAGE, Namespace.DEFAULT_NAMESPACE);
         String longTableName = String.join("", Collections.nCopies(40, "x"));
         TableReference tableRef = TableReference.create(Namespace.DEFAULT_NAMESPACE, longTableName);
-        List<CharacterLimitType> kvsList = new ArrayList<CharacterLimitType>();
+        List<CharacterLimitType> kvsList = new ArrayList<>();
         kvsList.add(CharacterLimitType.CASSANDRA);
         assertThatThrownBy(() -> schema.addTableDefinition(longTableName, getSimpleTableDefinition(tableRef)))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -135,7 +133,7 @@ public class SchemaTest {
     public void checkAgainstAccidentalTableAPIChanges() throws IOException {
         // TODO (amarzoca): Add tests for schemas that use more of the rendering features (Triggers, StreamStores, etc)
         Schema schema = ApiTestSchema.getSchema();
-        schema.renderTables(testFolder.getRoot());
+        schema.renderTables(testFolder);
 
         String schemaName = ApiTestSchema.getSchema().getName();
         checkIfFilesAreTheSame(schemaName + "TableFactory");
@@ -245,7 +243,7 @@ public class SchemaTest {
         String generatedFilePath =
                 String.format("com/palantir/atlasdb/table/description/generated/%s.java", generatedFileName);
         File expectedFile = new File(EXPECTED_FILES_FOLDER_PATH, generatedFilePath);
-        File actualFile = new File(testFolder.getRoot(), generatedFilePath);
+        File actualFile = new File(testFolder, generatedFilePath);
 
         assertThat(expectedFile).hasSameTextualContentAs(actualFile);
     }

@@ -34,11 +34,17 @@ dependencies {
     testAnnotationProcessor 'org.immutables:value'
     testCompileOnly 'org.immutables:value::annotations'
 
-    testImplementation 'junit:junit'
     testImplementation 'org.assertj:assertj-core'
     testImplementation('org.jmock:jmock') {
       exclude group: 'org.hamcrest'
     }
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'org.awaitility:awaitility'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
+
+    testImplementation 'junit:junit'
+    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
 }

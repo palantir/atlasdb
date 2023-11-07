@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.atlasdb.table.description.ValueType;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class StreamStoreDefinitionBuilderTest {
 
