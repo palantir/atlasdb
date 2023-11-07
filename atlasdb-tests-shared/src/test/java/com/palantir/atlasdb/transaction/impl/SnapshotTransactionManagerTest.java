@@ -64,6 +64,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.mockito.InOrder;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class SnapshotTransactionManagerTest {
     private static final String SETUP_TASK_METRIC_NAME =
             SnapshotTransactionManager.class.getCanonicalName() + ".setupTask";

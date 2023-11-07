@@ -32,6 +32,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class AbstractMultiCasTest {
     private static final byte[] ROW_1 = PtBytes.toBytes("row1");
     private static final byte[] COL_1 = PtBytes.toBytes("col1");

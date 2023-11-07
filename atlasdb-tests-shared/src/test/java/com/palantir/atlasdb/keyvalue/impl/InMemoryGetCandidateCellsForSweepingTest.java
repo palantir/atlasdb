@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import org.junit.ClassRule;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class InMemoryGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
     @ClassRule
     public static final TestResourceManager TRM = TestResourceManager.inMemory();

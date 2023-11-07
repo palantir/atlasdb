@@ -24,7 +24,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.TimelockService;
 import java.util.concurrent.TimeUnit;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MetricsBasedTimelockHealthCheckTest {
     private static final long METRICS_TICK_INTERVAL = TimeUnit.SECONDS.toMillis(5);

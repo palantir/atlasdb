@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class RangeRequestTest {
 

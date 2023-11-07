@@ -66,6 +66,8 @@ dependencies {
   testImplementation 'one.util:streamex'
   testImplementation 'org.apache.commons:commons-lang3'
   testImplementation 'org.slf4j:slf4j-api'
+  testImplementation 'org.junit.jupiter:junit-jupiter'
+  testImplementation 'org.mockito:mockito-junit-jupiter'
   testImplementation project(':atlasdb-api')
   testImplementation project(':atlasdb-client')
   testImplementation project(':atlasdb-client-protobufs')
@@ -83,6 +85,11 @@ dependencies {
   testImplementation project(path: ":atlasdb-client", configuration: "testArtifacts")
   testImplementation('org.jmock:jmock') {
     exclude group: 'org.hamcrest'
+  }
+
+  testImplementation 'junit:junit'
+  testRuntimeOnly 'org.junit.vintage:junit-vintage-engine', {
+    because 'allows JUnit 3 and JUnit 4 tests to run'
   }
 }
 schemas = [

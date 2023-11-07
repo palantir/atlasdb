@@ -24,17 +24,17 @@ import com.google.common.collect.ImmutableMap;
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.persistent.api.PersistentStore;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.test.utils.SubdirectoryCreator;
 import java.io.File;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.rocksdb.RocksDB;
 
 public final class RocksDbPersistentStoreTests {
-    @ClassRule
-    public static final TemporaryFolder temporaryFolder = new TemporaryFolder();
+    @TempDir
+    public static File temporaryFolder;
 
     private static final PersistentStore.Handle NON_EXISTING_NAMESPACE = PersistentStore.Handle.newHandle();
     private static final ByteString KEY = ByteString.copyFromUtf8("key");
@@ -45,16 +45,16 @@ public final class RocksDbPersistentStoreTests {
     private PersistentStore persistentStore;
     private PersistentStore.Handle defaultNamespace;
 
-    @Before
+    @BeforeEach
     public void before() throws Exception {
-        File databaseFolder = temporaryFolder.newFolder();
+        File databaseFolder = SubdirectoryCreator.createAndGetSubdirectory(temporaryFolder, "temp.txt");
         RocksDB rocksDb = RocksDB.open(databaseFolder.getAbsolutePath());
 
         persistentStore = new RocksDbPersistentStore(rocksDb, databaseFolder);
         defaultNamespace = persistentStore.createSpace();
     }
 
-    @After
+    @AfterEach
     public void after() throws Exception {
         persistentStore.close();
     }

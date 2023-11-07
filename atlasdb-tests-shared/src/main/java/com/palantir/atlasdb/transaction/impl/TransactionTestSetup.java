@@ -71,6 +71,7 @@ import org.junit.rules.TemporaryFolder;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 /**
  * Expectations for semantics of tests that are run as part of this class (not that the author thinks these
  * assumptions are ideal, but this is documentation of the current state):

@@ -47,6 +47,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
     protected static final int DEFAULT_BATCH_SIZE = 1000;
 

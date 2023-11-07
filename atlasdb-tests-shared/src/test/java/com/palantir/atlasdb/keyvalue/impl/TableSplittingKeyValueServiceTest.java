@@ -28,7 +28,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"}) // Expectations syntax
 public class TableSplittingKeyValueServiceTest {
