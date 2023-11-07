@@ -29,7 +29,7 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import java.math.BigInteger;
 import java.util.Collections;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SynchronousLockClientTest {
     private static final LockService LOCK_SERVICE = mock(LockService.class);
