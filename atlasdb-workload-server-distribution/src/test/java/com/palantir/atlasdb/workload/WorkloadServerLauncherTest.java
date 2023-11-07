@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class WorkloadServerLauncherTest {
     @ClassRule
     public static final DropwizardAppRule<WorkloadServerConfiguration> RULE = new DropwizardAppRule<>(

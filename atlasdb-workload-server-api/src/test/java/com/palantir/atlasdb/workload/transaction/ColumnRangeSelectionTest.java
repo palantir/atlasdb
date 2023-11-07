@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class ColumnRangeSelectionTest {
     @Test

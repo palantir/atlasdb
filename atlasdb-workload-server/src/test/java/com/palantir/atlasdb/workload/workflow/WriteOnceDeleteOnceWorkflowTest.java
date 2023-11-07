@@ -43,7 +43,7 @@ import com.palantir.atlasdb.workload.util.AtlasDbUtils;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.IntFunction;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class WriteOnceDeleteOnceWorkflowTest {
     private static final String TABLE_NAME = "my.latte";

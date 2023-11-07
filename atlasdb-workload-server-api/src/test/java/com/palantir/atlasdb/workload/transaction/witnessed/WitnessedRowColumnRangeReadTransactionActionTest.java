@@ -27,7 +27,7 @@ import com.palantir.atlasdb.workload.transaction.RowColumnRangeReadTransactionAc
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.List;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class WitnessedRowColumnRangeReadTransactionActionTest {
     @Test

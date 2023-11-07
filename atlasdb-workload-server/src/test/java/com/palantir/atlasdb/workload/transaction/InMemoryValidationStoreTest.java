@@ -33,7 +33,7 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransac
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class InMemoryValidationStoreTest {
 

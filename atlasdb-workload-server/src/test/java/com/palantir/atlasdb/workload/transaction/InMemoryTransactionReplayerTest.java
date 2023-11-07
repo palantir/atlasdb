@@ -31,7 +31,7 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedDeleteTransa
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransactionAction;
 import io.vavr.Tuple2;
 import java.util.Optional;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class InMemoryTransactionReplayerTest {
 

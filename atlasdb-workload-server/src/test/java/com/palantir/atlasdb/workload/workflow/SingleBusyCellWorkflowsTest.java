@@ -38,7 +38,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SingleBusyCellWorkflowsTest {
     private static final String TABLE_NAME = "busy.cell";

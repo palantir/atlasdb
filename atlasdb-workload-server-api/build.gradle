@@ -14,4 +14,5 @@ dependencies {
 
     testImplementation 'com.palantir.safe-logging:preconditions-assertj'
     testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
 }

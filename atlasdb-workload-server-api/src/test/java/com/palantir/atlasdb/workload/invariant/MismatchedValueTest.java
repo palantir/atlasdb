@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.palantir.logsafe.SafeArg;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public final class MismatchedValueTest {
 
