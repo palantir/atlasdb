@@ -30,7 +30,7 @@ import com.palantir.atlasdb.jepsen.utils.TestEventUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 public class PartitionByInvokeNameCheckerHelperTest {

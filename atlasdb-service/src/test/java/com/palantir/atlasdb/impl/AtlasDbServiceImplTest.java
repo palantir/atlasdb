@@ -22,14 +22,14 @@ import static org.mockito.Mockito.verify;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class AtlasDbServiceImplTest {
     private KeyValueService kvs;
     private AtlasDbServiceImpl atlasDbService;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         kvs = mock(KeyValueService.class);
         TransactionManager txManager = mock(TransactionManager.class);

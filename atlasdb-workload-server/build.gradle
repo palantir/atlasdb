@@ -32,6 +32,8 @@ dependencies {
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
     testImplementation 'com.palantir.safe-logging:preconditions-assertj'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
     testImplementation('org.jmock:jmock') {
         exclude group: 'org.hamcrest'
     }

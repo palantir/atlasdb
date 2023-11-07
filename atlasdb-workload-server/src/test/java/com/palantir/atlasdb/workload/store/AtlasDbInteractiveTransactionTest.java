@@ -43,14 +43,14 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public final class AtlasDbInteractiveTransactionTest {
 
     private TransactionManager manager;
 
-    @Before
+    @BeforeEach
     public void before() {
         manager = TransactionManagers.createInMemory(Set.of());
         manager.getKeyValueService().createTables(TABLES_TO_ATLAS_METADATA);

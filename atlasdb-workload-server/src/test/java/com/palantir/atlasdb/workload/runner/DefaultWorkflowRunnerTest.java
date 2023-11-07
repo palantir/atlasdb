@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import one.util.streamex.EntryStream;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class DefaultWorkflowRunnerTest {
 

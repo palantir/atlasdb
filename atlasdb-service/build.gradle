@@ -3,8 +3,6 @@ apply from: "../gradle/shared.gradle"
 dependencies {
     implementation 'javax.inject:javax.inject'
 
-    testImplementation 'org.mockito:mockito-core'
-
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-core'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
@@ -24,6 +22,8 @@ dependencies {
 
     testImplementation 'com.fasterxml.jackson.core:jackson-databind'
     testImplementation 'com.google.guava:guava'
+    testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation project(':atlasdb-api')
     testImplementation project(':atlasdb-client')
 

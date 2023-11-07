@@ -24,7 +24,7 @@ import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.atlasdb.workload.store.IsolationLevel;
 import com.palantir.atlasdb.workload.transaction.WorkloadTestHelpers;
 import com.palantir.conjure.java.serialization.ObjectMappers;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SingleRowTwoCellsWorkflowConfigurationTest {
     private static final TableConfiguration TABLE_CONFIGURATION = ImmutableTableConfiguration.builder()

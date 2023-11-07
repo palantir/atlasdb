@@ -27,7 +27,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.workload.store.TransactionStore;
 import com.palantir.common.concurrent.PTExecutors;
 import java.util.concurrent.ScheduledExecutorService;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class DefaultWorkflowTest {
     private final TransactionStore store = mock(TransactionStore.class);

@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import com.palantir.atlasdb.workload.transaction.witnessed.FullyWitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.InvalidWitnessedTransaction;
 import java.util.List;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SerializableInvariantLogReporterTest {
     @Test

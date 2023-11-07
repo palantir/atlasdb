@@ -43,8 +43,8 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class ConcurrentTransactionRunnerTest {
     private static final int DEFAULT_TASK_MULTIPLICITY = 100;
@@ -56,7 +56,7 @@ public class ConcurrentTransactionRunnerTest {
     private final ConcurrentTransactionRunner<TransactionStore> runner =
             new ConcurrentTransactionRunner<>(store, executorService);
 
-    @Before
+    @BeforeEach
     public void setupTask() {
         when(task.apply(any(), anyInt()))
                 .thenAnswer(invocation ->

@@ -23,7 +23,7 @@ import com.palantir.atlasdb.workload.store.ImmutableWorkloadCell;
 import com.palantir.atlasdb.workload.store.TableAndWorkloadCell;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Optional;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CrossCellInconsistencyTest {
     // The constants in WorkloadTestHelper are not accessible from this package.

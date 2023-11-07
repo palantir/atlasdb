@@ -49,7 +49,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TransientRowsWorkflowsTest {
     private static final int ITERATION_COUNT = 5;

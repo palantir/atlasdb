@@ -41,13 +41,13 @@ import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class RandomWorkflowsTest {
     private static final String TABLE_NAME = "random.random";
     private static final RandomWorkflowConfiguration CONFIGURATION = ImmutableRandomWorkflowConfiguration.builder()
@@ -69,7 +69,7 @@ public class RandomWorkflowsTest {
 
     private Workflow workflow;
 
-    @Before
+    @BeforeEach
     public void before() {
         this.workflow = RandomWorkflows.create(
                 memoryStore,

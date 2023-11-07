@@ -29,7 +29,7 @@ import com.palantir.atlasdb.jepsen.events.Event;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class JepsenHistoryCheckerTest {
     private static final ImmutableMap<Keyword, ?> INFO_EVENT = ImmutableMap.of(

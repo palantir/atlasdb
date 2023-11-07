@@ -22,7 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.jepsen.events.Checker;
 import java.util.List;
 import java.util.function.Supplier;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class JepsenHistoryCheckersTest {
     @Test

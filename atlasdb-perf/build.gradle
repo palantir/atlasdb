@@ -1,7 +1,6 @@
-
 apply from: '../gradle/shared.gradle'
-
 apply plugin: 'application'
+
 mainClassName = 'com.palantir.atlasdb.performance.cli.AtlasDbPerfCli'
 applicationName = 'atlasdb-perf'
 
@@ -62,6 +61,9 @@ dependencies {
     annotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess'
     compileOnly 'org.immutables:value::annotations'
     compileOnly 'org.openjdk.jmh:jmh-generator-annprocess'
+
+    /* TODO(boyoruk): Migrate to JUnit5 */
+    testImplementation 'junit:junit'
 }
 
 distZip {
