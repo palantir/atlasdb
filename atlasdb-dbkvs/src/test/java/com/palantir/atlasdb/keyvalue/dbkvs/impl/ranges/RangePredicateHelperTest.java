@@ -21,7 +21,7 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.FullQuery;
 import com.palantir.nexus.db.DBType;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class RangePredicateHelperTest {
     private static final byte[] ROW_NAME = {1, 2, 3};

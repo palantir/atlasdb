@@ -55,16 +55,16 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mock.Strictness;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.OngoingStubbing;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class OracleTableNameUnmapperTest {
 
     private static final String TEST_PREFIX = "a_";
@@ -89,10 +89,9 @@ public class OracleTableNameUnmapperTest {
     @Mock
     Connection connection;
 
-    @Before
+    @BeforeEach
     public void setup() {
         when(sqlConnection.getUnderlyingConnection()).thenReturn(connection);
-        when(connectionSupplier.get()).thenReturn(sqlConnection);
         when(sqlConnection.selectResultSetUnregisteredQuery(
                         startsWith("SELECT short_table_name FROM atlasdb_table_names WHERE table_name"), any()))
                 .thenReturn(shortNameResultSet);
@@ -100,6 +99,7 @@ public class OracleTableNameUnmapperTest {
 
     @Test
     public void shouldThrowIfTableMappingDoesNotExist() {
+        prepareConnectionSupplierInvocation();
         when(shortNameResultSet.size()).thenReturn(0);
         assertThatThrownBy(() -> oracleTableNameUnmapper.getShortTableNameFromMappingTable(
                         connectionSupplier, TEST_PREFIX, TABLE_REF))
@@ -118,6 +118,7 @@ public class OracleTableNameUnmapperTest {
 
     @Test
     public void shouldReturnIfTableMappingExists() throws TableMappingNotFoundException {
+        prepareConnectionSupplierInvocation();
         when(shortNameResultSet.size()).thenReturn(1);
 
         AgnosticResultRow row = mock(AgnosticResultRow.class);
@@ -131,6 +132,7 @@ public class OracleTableNameUnmapperTest {
 
     @Test
     public void cacheIsActuallyUsed() throws TableMappingNotFoundException {
+        prepareConnectionSupplierInvocation();
         // do a normal read
         when(shortNameResultSet.size()).thenReturn(1);
 
@@ -154,6 +156,7 @@ public class OracleTableNameUnmapperTest {
 
     @Test
     public void getShortToLongTableNamesFromMappingTableReturnsLongNames() {
+        prepareConnectionSupplierInvocation();
         ArgumentCaptor<Object[]> tableNameCaptor = ArgumentCaptor.forClass(Object[].class);
         Map<String, String> shortNamesToLongNames = ImmutableMap.<String, String>builder()
                 .put("shortNameOne", "superLongNameOne")
@@ -179,6 +182,7 @@ public class OracleTableNameUnmapperTest {
 
     @Test
     public void getShortToLongTableNamesFromMappingTableDoesMultipleQueriesIfMoreTablesThanThreshold() {
+        prepareConnectionSupplierInvocation();
         int numberOfEntries = AtlasDbConstants.MINIMUM_IN_CLAUSE_EXPRESSION_LIMIT + 100;
         Map<String, String> shortNamesToLongNames = IntStream.range(0, numberOfEntries)
                 .boxed()
@@ -208,6 +212,7 @@ public class OracleTableNameUnmapperTest {
 
     @Test
     public void getShortToLongTableNamesFromMappingTableCanReturnPartialResults() {
+        prepareConnectionSupplierInvocation();
         Map<String, String> shortNamesToLongNames = Map.of("short_test", "long_test");
         mockShortNamesToLongNamesQuery(shortNamesToLongNames);
 
@@ -218,6 +223,7 @@ public class OracleTableNameUnmapperTest {
 
     @Test
     public void getShortToLongTableNamesFromMappingTableThrowsIfTooManyResultsReturned() {
+        prepareConnectionSupplierInvocation();
         Map<String, String> nameMapping = Map.of("short_test", "long_test", "short_test_2", "long_test_2");
         mockShortNamesToLongNamesQuery(nameMapping);
 
@@ -262,5 +268,9 @@ public class OracleTableNameUnmapperTest {
 
     private String generatePlaceholders(int numberOfPlaceholders) {
         return String.join(",", Collections.nCopies(numberOfPlaceholders, "LOWER(?)"));
+    }
+
+    private void prepareConnectionSupplierInvocation() {
+        when(connectionSupplier.get()).thenReturn(sqlConnection);
     }
 }

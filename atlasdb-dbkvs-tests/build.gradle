@@ -1,4 +1,3 @@
-
 apply from: "../gradle/shared.gradle"
 
 versionsLock {
@@ -35,10 +34,12 @@ dependencies {
 
   testImplementation 'org.mockito:mockito-core'
   testImplementation 'com.palantir.docker.compose:docker-compose-rule-junit4'
-  testImplementation 'junit:junit'
 
   testAnnotationProcessor 'org.immutables:value'
   testCompileOnly 'org.immutables:value::annotations'
+
+  /* TODO(boyoruk): Migrate to JUnit5 */
+  testImplementation 'junit:junit'
 }
 
 task postgresTest(type: Test) {

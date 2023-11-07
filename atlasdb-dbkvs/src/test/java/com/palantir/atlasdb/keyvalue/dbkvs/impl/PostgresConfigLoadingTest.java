@@ -25,7 +25,7 @@ import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class PostgresConfigLoadingTest {
     @Test

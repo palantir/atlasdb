@@ -22,7 +22,7 @@ import static org.mockito.Mockito.when;
 
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.OverflowSequenceSupplier;
 import com.palantir.nexus.db.sql.SqlConnection;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class OverflowSequenceSupplierTest {
 

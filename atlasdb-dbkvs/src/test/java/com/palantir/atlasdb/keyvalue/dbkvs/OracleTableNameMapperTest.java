@@ -31,8 +31,8 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.PrimaryKeyConstraintNames
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class OracleTableNameMapperTest {
     private static final String TEST_PREFIX = "a_";
@@ -43,7 +43,7 @@ public class OracleTableNameMapperTest {
     private AgnosticResultSet resultSet;
     private ConnectionSupplier connectionSupplier;
 
-    @Before
+    @BeforeEach
     public void setup() {
         connectionSupplier = mock(ConnectionSupplier.class);
         oracleTableNameMapper = new OracleTableNameMapper();
