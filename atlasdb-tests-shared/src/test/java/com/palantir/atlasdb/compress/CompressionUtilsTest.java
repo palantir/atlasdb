@@ -21,6 +21,7 @@ import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression
 import java.util.Arrays;
 import org.junit.Test;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class CompressionUtilsTest {
     @Test
     public void testCompressAndDecompress() {

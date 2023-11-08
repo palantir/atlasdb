@@ -201,6 +201,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 @SuppressWarnings("checkstyle:all")
 @RunWith(Parameterized.class)
 public class SnapshotTransactionTest extends AtlasDbTestCase {

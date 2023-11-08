@@ -29,6 +29,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class TransactionSchemaManagerIntegrationTest {
     private static final long ONE_HUNDRED_MILLION = 100_000_000;
 

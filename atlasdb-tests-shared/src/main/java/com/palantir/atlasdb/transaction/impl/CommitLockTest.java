@@ -53,6 +53,7 @@ import org.junit.experimental.theories.Theories;
 import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 @RunWith(Theories.class)
 public class CommitLockTest extends TransactionTestSetup {
     @ClassRule

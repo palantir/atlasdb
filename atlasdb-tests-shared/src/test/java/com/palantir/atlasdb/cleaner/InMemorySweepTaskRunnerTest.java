@@ -27,6 +27,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class InMemorySweepTaskRunnerTest extends AbstractSweepTaskRunnerTest {
     @ClassRule
     public static final TestResourceManager TRM = TestResourceManager.inMemory();

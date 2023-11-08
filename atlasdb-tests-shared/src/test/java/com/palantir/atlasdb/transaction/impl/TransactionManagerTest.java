@@ -51,6 +51,7 @@ import java.util.UUID;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class TransactionManagerTest extends TransactionTestSetup {
     @ClassRule
     public static final TestResourceManager TRM = TestResourceManager.inMemory();

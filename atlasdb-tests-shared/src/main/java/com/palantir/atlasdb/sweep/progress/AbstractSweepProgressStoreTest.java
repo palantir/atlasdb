@@ -28,6 +28,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public abstract class AbstractSweepProgressStoreTest {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
     private static final TableReference OTHER_TABLE = TableReference.createFromFullyQualifiedName("qwe.rty");

@@ -48,6 +48,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class TargetedSweepTest extends AtlasDbTestCase {
     private static final TableReference TABLE_CONS = TableReference.createFromFullyQualifiedName("test.1");
     private static final TableReference TABLE_THOR = TableReference.createFromFullyQualifiedName("test.2");

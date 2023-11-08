@@ -64,6 +64,7 @@ import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public abstract class AbstractBackgroundSweeperIntegrationTest {
     static final TableReference TABLE_1 = TableReference.createFromFullyQualifiedName("foo.bar");
     private static final TableReference TABLE_2 = TableReference.createFromFullyQualifiedName("qwe.rty");

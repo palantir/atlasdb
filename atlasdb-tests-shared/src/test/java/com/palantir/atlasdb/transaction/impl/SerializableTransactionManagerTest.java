@@ -54,8 +54,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.awaitility.Awaitility;
 import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class SerializableTransactionManagerTest {
     private static final long THREE = 3L;
@@ -73,7 +73,7 @@ public class SerializableTransactionManagerTest {
     private MetricsManager metricsManager = MetricsManagers.createForTests();
     private TransactionKnowledgeComponents knowledge;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         nothingInitialized();
         executorService = new DeterministicSchedulerWithShutdownFlag();

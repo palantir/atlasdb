@@ -21,6 +21,7 @@ import com.palantir.timestamp.TimestampBoundStore;
 import org.junit.Before;
 import org.junit.Test;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public abstract class AbstractDbTimestampBoundStoreTest {
     protected TimestampBoundStore store;
 

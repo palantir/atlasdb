@@ -26,6 +26,7 @@ import java.util.Random;
 import org.junit.Before;
 import org.junit.Test;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
     protected AbstractTaskCheckpointer checkpointer;
 

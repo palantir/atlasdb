@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import org.junit.ClassRule;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class InMemoryKeyValueServiceTest extends AbstractKeyValueServiceTest {
     @ClassRule
     public static final TestResourceManager TRM = TestResourceManager.inMemory();

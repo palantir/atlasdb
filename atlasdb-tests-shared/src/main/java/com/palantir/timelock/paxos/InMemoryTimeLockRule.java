@@ -32,6 +32,7 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public final class InMemoryTimeLockRule extends ExternalResource implements TimeLockServices {
     private final TemporaryFolder tempFolder = new TemporaryFolder();
 

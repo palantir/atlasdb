@@ -33,6 +33,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.junit.ClassRule;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class TracingKvsTest extends AbstractKeyValueServiceTest {
     @ClassRule
     public static final TestResourceManager TRM =

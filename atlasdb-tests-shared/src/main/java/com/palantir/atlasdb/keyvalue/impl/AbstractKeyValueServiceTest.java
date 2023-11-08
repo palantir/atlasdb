@@ -86,6 +86,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.xnio.ByteString;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 @SuppressWarnings("MustBeClosedChecker")
 public abstract class AbstractKeyValueServiceTest {
     private final KvsManager kvsManager;

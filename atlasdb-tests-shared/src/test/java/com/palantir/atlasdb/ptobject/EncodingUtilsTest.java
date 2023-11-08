@@ -32,7 +32,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("checkstyle:all")
 public class EncodingUtilsTest {

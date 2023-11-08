@@ -27,7 +27,7 @@ import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
 import java.util.stream.IntStream;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class TransactionOutcomeMetricsTest {
     private static final Namespace NAMESPACE = Namespace.DEFAULT_NAMESPACE;
