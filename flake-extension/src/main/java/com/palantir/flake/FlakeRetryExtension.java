@@ -20,7 +20,7 @@ import static java.util.stream.StreamSupport.stream;
 import static org.junit.platform.commons.util.AnnotationUtils.findAnnotation;
 import static org.junit.platform.commons.util.AnnotationUtils.isAnnotated;
 
-import com.google.common.base.Preconditions;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -74,7 +74,7 @@ final class FlakeRetryExtension
     private int maxNumberOfRetriesUntilSuccess;
     private List<Class<? extends Throwable>> retryableExceptions;
 
-    private int numberOfRetriesSoFar = 1; // This is increased after each iteration. This is why it is initialized to 1
+    private int numberOfRetriesSoFar = 1; // Includes the initial attempt
     private boolean hasSucceeded = false;
     private boolean hasCompletelyFailed = false;
 
@@ -96,8 +96,8 @@ final class FlakeRetryExtension
         maxNumberOfRetriesUntilSuccess = testWithFlakeRetry.maxNumberOfRetriesUntilSuccess();
         Preconditions.checkArgument(
                 maxNumberOfRetriesUntilSuccess > 0,
-                "Number of retries until success should be positive, but found %s",
-                maxNumberOfRetriesUntilSuccess);
+                "Number of retries until success should be positive.",
+                SafeArg.of("maxNumberOfRetriesUntilSuccess", maxNumberOfRetriesUntilSuccess));
 
         return stream(spliteratorUnknownSize(new TestTemplateInvocationContextIterator(), Spliterator.NONNULL), false);
     }

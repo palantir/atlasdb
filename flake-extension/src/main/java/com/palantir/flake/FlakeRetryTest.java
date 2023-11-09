@@ -31,6 +31,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * <p>
  * Note that this annotation is already annotated with {@link TestTemplate}, so test methods shouldn't be annotated with
  * {@link TestTemplate} or {@link Test}.
+ * <p>
+ * Note that this annotation does not work with parameterized tests.
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
@@ -40,7 +42,7 @@ public @interface FlakeRetryTest {
     /**
      * The number of attempts to retry a test that fails, before declaring the test as failed.
      * This is useful for avoiding build failures whilst flaky tests still live in the codebase.
-     * Values provided should be strictly positive; behaviour when this value is zero or negative is undefined.
+     * Values provided should be strictly positive otherwise the test will fail.
      */
     int maxNumberOfRetriesUntilSuccess() default 5;
 

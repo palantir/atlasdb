@@ -5,11 +5,11 @@ versionsLock {
 }
 
 dependencies {
+  implementation 'org.junit.jupiter:junit-jupiter'
   implementation 'org.junit.jupiter:junit-jupiter-api'
   implementation 'org.junit.platform:junit-platform-commons'
+  implementation 'com.palantir.safe-logging:preconditions'
   implementation 'org.opentest4j:opentest4j'
-  implementation 'com.google.guava:guava'
-  implementation 'org.junit.jupiter:junit-jupiter'
 
   testImplementation 'org.assertj:assertj-core'
   testImplementation 'org.mockito:mockito-core'
