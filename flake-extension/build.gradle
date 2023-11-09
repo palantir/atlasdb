@@ -1,0 +1,17 @@
+apply from: "../gradle/shared.gradle"
+
+versionsLock {
+    testProject()
+}
+
+dependencies {
+  implementation 'org.junit.jupiter:junit-jupiter'
+  implementation 'org.junit.jupiter:junit-jupiter-api'
+  implementation 'org.junit.platform:junit-platform-commons'
+  implementation 'com.palantir.safe-logging:preconditions'
+  implementation 'org.opentest4j:opentest4j'
+
+  testImplementation 'org.assertj:assertj-core'
+  testImplementation 'org.mockito:mockito-core'
+  testImplementation 'org.junit.jupiter:junit-jupiter'
+}

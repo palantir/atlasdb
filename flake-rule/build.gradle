@@ -4,7 +4,6 @@ versionsLock {
     testProject()
 }
 
-/* TODO(boyoruk): Migrate all package to JUnit5 */
 dependencies {
   implementation 'junit:junit'
   implementation 'com.google.guava:guava'
