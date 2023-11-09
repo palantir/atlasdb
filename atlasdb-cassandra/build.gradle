@@ -81,6 +81,7 @@ dependencies {
   testImplementation 'org.mockito:mockito-core'
   testImplementation 'uk.org.lidalia:slf4j-test'
   testImplementation 'org.junit.jupiter:junit-jupiter'
+  testImplementation 'org.junit.jupiter:junit-jupiter-params'
   testImplementation 'org.mockito:mockito-junit-jupiter'
   testImplementation project(":atlasdb-config")
   testImplementation project(path: ":atlasdb-client", configuration: "testArtifacts")
