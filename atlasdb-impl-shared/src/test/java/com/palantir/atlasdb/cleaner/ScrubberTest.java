@@ -33,49 +33,34 @@ import com.palantir.atlasdb.transaction.service.SimpleTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.BatchingVisitables;
-import java.util.Collection;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.function.Function;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
-/* TODO(boyoruk): Migrate to JUnit5. */
-@RunWith(Parameterized.class)
 public class ScrubberTest {
     private KeyValueService kvs;
     private TransactionService transactions;
     private ScrubberStore scrubStore;
     private Scrubber scrubber;
 
-    @Parameterized.Parameter
-    public Function<KeyValueService, TransactionService> transactionServiceForKvs;
-
-    @Parameterized.Parameters
-    public static Collection<Function<KeyValueService, TransactionService>> parameters() {
-        return ImmutableList.of(SimpleTransactionService::createV1, SimpleTransactionService::createV2);
+    public static List<Function<KeyValueService, TransactionService>> getParameters() {
+        return List.of(SimpleTransactionService::createV1, SimpleTransactionService::createV2);
     }
 
-    @Before
-    public void before() {
-        kvs = new InMemoryKeyValueService(false, MoreExecutors.newDirectExecutorService());
-        TransactionTables.createTables(kvs);
-        transactions = transactionServiceForKvs.apply(kvs);
-        scrubStore = KeyValueServiceScrubberStore.create(kvs);
-        scrubber = getScrubber(kvs, scrubStore, transactions);
-    }
-
-    @After
+    @AfterEach
     public void after() {
         scrubber.shutdown();
         kvs.close();
     }
 
-    @Test
-    public void isInitializedWhenPrerequisitesAreInitialized() {
+    @ParameterizedTest
+    @MethodSource("getParameters")
+    public void isInitializedWhenPrerequisitesAreInitialized(
+            Function<KeyValueService, TransactionService> transactionServiceForKvs) {
+        setup(transactionServiceForKvs);
         KeyValueService mockKvs = mock(KeyValueService.class);
         ScrubberStore mockStore = mock(ScrubberStore.class);
         when(mockKvs.isInitialized()).thenReturn(true);
@@ -86,8 +71,11 @@ public class ScrubberTest {
         assertThat(theScrubber.isInitialized()).isTrue();
     }
 
-    @Test
-    public void isNotInitializedWhenKvsIsNotInitialized() {
+    @ParameterizedTest
+    @MethodSource("getParameters")
+    public void isNotInitializedWhenKvsIsNotInitialized(
+            Function<KeyValueService, TransactionService> transactionServiceForKvs) {
+        setup(transactionServiceForKvs);
         KeyValueService mockKvs = mock(KeyValueService.class);
         ScrubberStore mockStore = mock(ScrubberStore.class);
         when(mockKvs.isInitialized()).thenReturn(false);
@@ -98,8 +86,11 @@ public class ScrubberTest {
         assertThat(theScrubber.isInitialized()).isFalse();
     }
 
-    @Test
-    public void isNotInitializedWhenScrubberStoreIsNotInitialized() {
+    @ParameterizedTest
+    @MethodSource("getParameters")
+    public void isNotInitializedWhenScrubberStoreIsNotInitialized(
+            Function<KeyValueService, TransactionService> transactionServiceForKvs) {
+        setup(transactionServiceForKvs);
         KeyValueService mockKvs = mock(KeyValueService.class);
         ScrubberStore mockStore = mock(ScrubberStore.class);
         when(mockKvs.isInitialized()).thenReturn(true);
@@ -110,8 +101,10 @@ public class ScrubberTest {
         assertThat(theScrubber.isInitialized()).isFalse();
     }
 
-    @Test
-    public void testScrubQueueIsCleared() {
+    @ParameterizedTest
+    @MethodSource("getParameters")
+    public void testScrubQueueIsCleared(Function<KeyValueService, TransactionService> transactionServiceForKvs) {
+        setup(transactionServiceForKvs);
         Cell cell1 = Cell.create(new byte[] {1}, new byte[] {2});
         Cell cell2 = Cell.create(new byte[] {2}, new byte[] {3});
         Cell cell3 = Cell.create(new byte[] {3}, new byte[] {4});
@@ -130,8 +123,11 @@ public class ScrubberTest {
         assertThat(scrubQueue).isEmpty();
     }
 
-    @Test
-    public void scrubberIsResilientToTableDeletion() {
+    @ParameterizedTest
+    @MethodSource("getParameters")
+    public void scrubberIsResilientToTableDeletion(
+            Function<KeyValueService, TransactionService> transactionServiceForKvs) {
+        setup(transactionServiceForKvs);
         Cell cell1 = Cell.create(new byte[] {1}, new byte[] {2});
         Cell cell2 = Cell.create(new byte[] {2}, new byte[] {3});
         Cell cell3 = Cell.create(new byte[] {3}, new byte[] {4});
@@ -149,6 +145,14 @@ public class ScrubberTest {
         List<SortedMap<Long, Multimap<TableReference, Cell>>> scrubQueue =
                 BatchingVisitables.copyToList(scrubStore.getBatchingVisitableScrubQueue(Long.MAX_VALUE, null, null));
         assertThat(scrubQueue).isEmpty();
+    }
+
+    public void setup(Function<KeyValueService, TransactionService> transactionServiceForKvs) {
+        kvs = new InMemoryKeyValueService(false, MoreExecutors.newDirectExecutorService());
+        TransactionTables.createTables(kvs);
+        transactions = transactionServiceForKvs.apply(kvs);
+        scrubStore = KeyValueServiceScrubberStore.create(kvs);
+        scrubber = getScrubber(kvs, scrubStore, transactions);
     }
 
     private void putValues(TableReference tableRef, Cell cell1, Cell cell2, Cell cell3) {

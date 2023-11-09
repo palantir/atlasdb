@@ -47,8 +47,6 @@ import com.palantir.common.time.Clock;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -62,45 +60,26 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
-import org.junit.Assume;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
-/* TODO(boyoruk): Migrate to JUnit5. */
-@RunWith(Parameterized.class)
 public class ResilientCommitTimestampAtomicTableTest {
-    private static final String VALIDATING_STAGING_VALUES = "validating staging values";
-    private static final String NOT_VALIDATING_STAGING_VALUES = "not validating staging values";
 
     private final KeyValueService spiedKvs = spy(new InMemoryKeyValueService(true));
     private final UnreliablePueConsensusForgettingStore spiedStore = spy(new UnreliablePueConsensusForgettingStore(
             spiedKvs, TableReference.createFromFullyQualifiedName("test.table")));
 
-    private final boolean validating;
-    private final AtomicTable<Long, TransactionStatus> atomicTable;
+    private AtomicTable<Long, TransactionStatus> atomicTable;
     private final AtomicLong clockLong = new AtomicLong(1000);
     private final Clock clock = clockLong::get;
     private final TwoPhaseEncodingStrategy encodingStrategy =
             new TwoPhaseEncodingStrategy(BaseProgressEncodingStrategy.INSTANCE);
 
-    public ResilientCommitTimestampAtomicTableTest(String name, Object parameter) {
-        validating = (boolean) parameter;
-        atomicTable = new ResilientCommitTimestampAtomicTable(
-                spiedStore, encodingStrategy, () -> !validating, clock, new DefaultTaggedMetricRegistry());
-    }
-
-    @Parameterized.Parameters(name = "{0}")
-    public static Collection<Object[]> data() {
-        Object[][] data = new Object[][] {
-            {VALIDATING_STAGING_VALUES, true},
-            {NOT_VALIDATING_STAGING_VALUES, false}
-        };
-        return Arrays.asList(data);
-    }
-
-    @Test
-    public void canPutAndGet() throws ExecutionException, InterruptedException {
+    @ParameterizedTest(name = "validating staging values: {0}")
+    @ValueSource(booleans = {true, false})
+    public void canPutAndGet(boolean validating) throws ExecutionException, InterruptedException {
+        setup(validating);
         atomicTable.update(1L, TransactionStatus.committed(2L));
         assertThat(atomicTable.get(1L).get()).isEqualTo(TransactionStatus.committed(2L));
         verify(spiedStore).batchAtomicUpdate(anyMap());
@@ -108,26 +87,34 @@ public class ResilientCommitTimestampAtomicTableTest {
         verify(spiedStore).getMultiple(any());
     }
 
-    @Test
-    public void emptyReturnsInProgress() throws ExecutionException, InterruptedException {
+    @ParameterizedTest(name = "validating staging values: {0}")
+    @ValueSource(booleans = {true, false})
+    public void emptyReturnsInProgress(boolean validating) throws ExecutionException, InterruptedException {
+        setup(validating);
         assertThat(atomicTable.get(3L).get()).isEqualTo(TransactionStatus.inProgress());
     }
 
-    @Test
-    public void canPutAndGetAbortedTransactions() throws ExecutionException, InterruptedException {
+    @ParameterizedTest(name = "validating staging values: {0}")
+    @ValueSource(booleans = {true, false})
+    public void canPutAndGetAbortedTransactions(boolean validating) throws ExecutionException, InterruptedException {
+        setup(validating);
         atomicTable.update(1L, TransactionStatus.aborted());
         assertThat(atomicTable.get(1L).get()).isEqualTo(TransactionStatus.aborted());
     }
 
-    @Test
-    public void cannotPueTwice() {
+    @ParameterizedTest(name = "validating staging values: {0}")
+    @ValueSource(booleans = {true, false})
+    public void cannotPueTwice(boolean validating) {
+        setup(validating);
         atomicTable.update(1L, TransactionStatus.committed(2L));
         assertThatThrownBy(() -> atomicTable.update(1L, TransactionStatus.committed(2L)))
                 .isInstanceOf(KeyAlreadyExistsException.class);
     }
 
-    @Test
-    public void canPutAndGetMultiple() throws ExecutionException, InterruptedException {
+    @ParameterizedTest(name = "validating staging values: {0}")
+    @ValueSource(booleans = {true, false})
+    public void canPutAndGetMultiple(boolean validating) throws ExecutionException, InterruptedException {
+        setup(validating);
         ImmutableMap<Long, TransactionStatus> inputs = ImmutableMap.of(
                 1L,
                 TransactionStatus.committed(2L),
@@ -145,8 +132,10 @@ public class ResilientCommitTimestampAtomicTableTest {
         assertThat(result.get(7L)).isEqualTo(TransactionStatus.committed(8L));
     }
 
-    @Test
-    public void pueThatThrowsIsCorrectedOnGet() throws ExecutionException, InterruptedException {
+    @ParameterizedTest(name = "validating staging values: {0}")
+    @ValueSource(booleans = {true, false})
+    public void pueThatThrowsIsCorrectedOnGet(boolean validating) throws ExecutionException, InterruptedException {
+        setup(validating);
         spiedStore.startFailingPuts();
         assertThatThrownBy(() -> atomicTable.update(1L, TransactionStatus.committed(2L)))
                 .isInstanceOf(RuntimeException.class);
@@ -156,10 +145,11 @@ public class ResilientCommitTimestampAtomicTableTest {
         verify(spiedStore, times(2)).put(anyMap());
     }
 
-    @Test
-    public void getReturnsStagingValuesThatWereCommittedBySomeoneElse()
+    @ParameterizedTest(name = "validating staging values: {0}")
+    @ValueSource(booleans = {true, false})
+    public void getReturnsStagingValuesThatWereCommittedBySomeoneElse(boolean validating)
             throws ExecutionException, InterruptedException {
-
+        setup(validating);
         long startTimestamp = 1L;
         TransactionStatus commitStatus = TransactionStatus.committed(2L);
         Cell timestampAsCell = encodingStrategy.encodeStartTimestampAsCell(startTimestamp);
@@ -178,8 +168,10 @@ public class ResilientCommitTimestampAtomicTableTest {
         assertThat(atomicTable.get(startTimestamp).get()).isEqualTo(commitStatus);
     }
 
-    @Test
-    public void onceNonNullValueIsReturnedItIsAlwaysReturned() {
+    @ParameterizedTest(name = "validating staging values: {0}")
+    @ValueSource(booleans = {true, false})
+    public void onceNonNullValueIsReturnedItIsAlwaysReturned(boolean validating) {
+        setup(validating);
         AtomicTable<Long, TransactionStatus> putUnlessExistsTable = new ResilientCommitTimestampAtomicTable(
                 new PueCassImitatingConsensusForgettingStore(0.5d),
                 encodingStrategy,
@@ -210,8 +202,11 @@ public class ResilientCommitTimestampAtomicTableTest {
         }
     }
 
-    @Test
-    public void inAbsenceOfConcurrencyGetRetriesBothTouchAndPut() throws ExecutionException, InterruptedException {
+    @ParameterizedTest(name = "validating staging values: {0}")
+    @ValueSource(booleans = {true, false})
+    public void inAbsenceOfConcurrencyGetRetriesBothTouchAndPut(boolean validating)
+            throws ExecutionException, InterruptedException {
+        setup(validating);
         setupStagingValues(1);
 
         int numberOfReads = 100;
@@ -242,8 +237,10 @@ public class ResilientCommitTimestampAtomicTableTest {
         verify(spiedStore, times(102)).put(anyMap());
     }
 
-    @Test
-    public void noSuperfluousCasOrPuts() {
+    @ParameterizedTest(name = "validating staging values: {0}")
+    @ValueSource(booleans = {true, false})
+    public void noSuperfluousCasOrPuts(boolean validating) {
+        setup(validating);
         setupStagingValues(50);
 
         spiedStore.stopFailingPuts();
@@ -265,8 +262,10 @@ public class ResilientCommitTimestampAtomicTableTest {
         verify(spiedStore, times(1 + 50)).put(anyMap());
     }
 
-    @Test
-    public void touchesForSameRowAreSerial() {
+    @ParameterizedTest(name = "validating staging values: {0}")
+    @ValueSource(booleans = {true, false})
+    public void touchesForSameRowAreSerial(boolean validating) {
+        setup(validating);
         int rowsPerQuantum = TicketsEncodingStrategy.ROWS_PER_QUANTUM;
         int parallelism = 100;
         setupStagingValues(rowsPerQuantum * 10);
@@ -293,8 +292,10 @@ public class ResilientCommitTimestampAtomicTableTest {
         assertThat(spiedStore.maximumConcurrentTouches()).isEqualTo(validating ? 1 : 0);
     }
 
-    @Test
-    public void allowParallelTouchesForDifferentRows() {
+    @ParameterizedTest(name = "validating staging values: {0}")
+    @ValueSource(booleans = {true, false})
+    public void allowParallelTouchesForDifferentRows(boolean validating) {
+        setup(validating);
         int maximumParallelism = TicketsEncodingStrategy.ROWS_PER_QUANTUM;
         setupStagingValues(maximumParallelism * 2);
 
@@ -323,10 +324,12 @@ public class ResilientCommitTimestampAtomicTableTest {
         }
     }
 
-    @Test
-    public void doNotPutIfAlreadyCommitted() throws ExecutionException, InterruptedException {
+    @ParameterizedTest(name = "validating staging values: {0}")
+    @ValueSource(booleans = {true, false})
+    public void doNotPutIfAlreadyCommitted(boolean validating) throws ExecutionException, InterruptedException {
+        setup(validating);
         // not worth the effort to make this work
-        Assume.assumeTrue(validating);
+        Assumptions.assumeTrue(validating);
         setupStagingValues(1);
         spiedStore.enableCommittingUnderUs();
 
@@ -336,9 +339,12 @@ public class ResilientCommitTimestampAtomicTableTest {
         verify(spiedStore, times(1)).put(anyMap());
     }
 
-    @Test
-    public void acceptStagingAsCommittedWhenCommittingIsSlow() throws ExecutionException, InterruptedException {
-        Assume.assumeTrue(validating);
+    @ParameterizedTest(name = "validating staging values: {0}")
+    @ValueSource(booleans = {true, false})
+    public void acceptStagingAsCommittedWhenCommittingIsSlow(boolean validating)
+            throws ExecutionException, InterruptedException {
+        setup(validating);
+        Assumptions.assumeTrue(validating);
         setupStagingValues(5);
         spiedStore.stopFailingPuts();
         spiedStore.startSlowPue();
@@ -356,9 +362,12 @@ public class ResilientCommitTimestampAtomicTableTest {
         verify(spiedStore, times(1 + 3)).put(anyMap());
     }
 
-    @Test
-    public void acceptStagingAsCommittedWhenRetryingTooMuch() throws ExecutionException, InterruptedException {
-        Assume.assumeTrue(validating);
+    @ParameterizedTest(name = "validating staging values: {0}")
+    @ValueSource(booleans = {true, false})
+    public void acceptStagingAsCommittedWhenRetryingTooMuch(boolean validating)
+            throws ExecutionException, InterruptedException {
+        setup(validating);
+        Assumptions.assumeTrue(validating);
         setupStagingValues(5);
         spiedStore.failPutsWithAtlasdbDependencyException();
 
@@ -376,6 +385,11 @@ public class ResilientCommitTimestampAtomicTableTest {
         assertThat(atomicTable.get(2L).get()).isEqualTo(TransactionStatus.committed(2L));
         verify(spiedKvs, times(2)).checkAndSet(any());
         verify(spiedStore, times(1 + 3)).put(anyMap());
+    }
+
+    public void setup(boolean validating) {
+        atomicTable = new ResilientCommitTimestampAtomicTable(
+                spiedStore, encodingStrategy, () -> !validating, clock, new DefaultTaggedMetricRegistry());
     }
 
     private void setupStagingValues(int num) {
@@ -411,7 +425,7 @@ public class ResilientCommitTimestampAtomicTableTest {
     /**
      * An implementation of the consensus forgetting store that allows us to simulate failures after the atomic
      * operation in the resilient PUE table protocol, and inspect the concurrency guarantees for the touch method.
-     *
+     * <p>
      * WARNING: the usefulness of this store is coupled with the implementation of
      * {@link PueConsensusForgettingStore} and {@link ResilientCommitTimestampAtomicTable}. If implementation
      * details are changed, it may invalidate tests relying on this class.
