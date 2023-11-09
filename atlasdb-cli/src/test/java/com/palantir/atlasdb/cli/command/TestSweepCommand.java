@@ -44,18 +44,14 @@ import io.airlift.airline.Command;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
-@RunWith(Parameterized.class)
 public class TestSweepCommand {
 
     private static final Namespace NS1 = Namespace.create("test");
@@ -71,16 +67,8 @@ public class TestSweepCommand {
     private static AtomicLong sweepTimestamp;
     private static AtlasDbServicesFactory moduleFactory;
 
-    @Parameterized.Parameter
-    public boolean dryRun;
-
-    @Parameterized.Parameters
-    public static Collection<Boolean> parameters() {
-        return Arrays.asList(Boolean.FALSE, Boolean.TRUE);
-    }
-
-    @BeforeClass
-    public static void setup() throws Exception {
+    @BeforeAll
+    public static void setup() {
         sweepTimestamp = new AtomicLong();
         moduleFactory = new AtlasDbServicesFactory() {
             @Override
@@ -97,10 +85,11 @@ public class TestSweepCommand {
         return new InMemoryTestRunner(SweepCommand.class, args);
     }
 
-    @Test
-    public void testSweepTable() throws Exception {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testSweepTable(boolean dryRun) throws Exception {
         try (SingleBackendCliTestRunner runner =
-                makeRunner(paramsWithDryRunSet(SWEEP_COMMAND, "-t", TABLE_ONE.getQualifiedName()))) {
+                makeRunner(paramsWithDryRunSet(dryRun, SWEEP_COMMAND, "-t", TABLE_ONE.getQualifiedName()))) {
             TestAtlasDbServices services = (TestAtlasDbServices) runner.connect(moduleFactory);
             SerializableTransactionManager txm = services.getTransactionManager();
             TimestampService tss = services.getManagedTimestampService();
@@ -124,18 +113,19 @@ public class TestSweepCommand {
             assertThat(deletedCells).isEqualTo(1);
 
             assertThat(get(kvs, TABLE_ONE, "foo", ts5)).isEqualTo("baz");
-            assertThat(get(kvs, TABLE_ONE, "foo", mid(ts1, ts3))).isEqualTo(deletedValue("bar"));
-            assertThat(getAllTs(kvs, TABLE_ONE, "foo")).containsExactlyInAnyOrder(deletedTimestamp(ts1), ts3);
+            assertThat(get(kvs, TABLE_ONE, "foo", mid(ts1, ts3))).isEqualTo(deletedValue(dryRun, "bar"));
+            assertThat(getAllTs(kvs, TABLE_ONE, "foo")).containsExactlyInAnyOrder(deletedTimestamp(dryRun, ts1), ts3);
             assertThat(get(kvs, TABLE_TWO, "foo", ts5)).isEqualTo("taz");
             assertThat(get(kvs, TABLE_TWO, "foo", mid(ts3, ts4))).isEqualTo("tar");
             assertThat(getAllTs(kvs, TABLE_TWO, "foo")).containsExactlyInAnyOrder(ts2, ts4);
         }
     }
 
-    @Test
-    public void testSweepNonExistingTable() throws Exception {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testSweepNonExistingTable(boolean dryRun) throws Exception {
         try (SingleBackendCliTestRunner runner =
-                makeRunner(paramsWithDryRunSet(SWEEP_COMMAND, "-t", NON_EXISTING_TABLE.getQualifiedName()))) {
+                makeRunner(paramsWithDryRunSet(dryRun, SWEEP_COMMAND, "-t", NON_EXISTING_TABLE.getQualifiedName()))) {
             TestAtlasDbServices services = (TestAtlasDbServices) runner.connect(moduleFactory);
 
             long ts5 = services.getManagedTimestampService().getFreshTimestamp();
@@ -147,9 +137,11 @@ public class TestSweepCommand {
         }
     }
 
-    @Test
-    public void testSweepNamespace() throws Exception {
-        try (SingleBackendCliTestRunner runner = makeRunner(paramsWithDryRunSet(SWEEP_COMMAND, "-n", NS1.getName()))) {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testSweepNamespace(boolean dryRun) throws Exception {
+        try (SingleBackendCliTestRunner runner =
+                makeRunner(paramsWithDryRunSet(dryRun, SWEEP_COMMAND, "-n", NS1.getName()))) {
             TestAtlasDbServices services = (TestAtlasDbServices) runner.connect(moduleFactory);
             SerializableTransactionManager txm = services.getTransactionManager();
             TimestampService tss = services.getManagedTimestampService();
@@ -168,20 +160,21 @@ public class TestSweepCommand {
             sweep(runner, ts7);
 
             assertThat(get(kvs, TABLE_ONE, "foo", ts7)).isEqualTo("baz");
-            assertThat(get(kvs, TABLE_ONE, "foo", mid(ts1, ts2))).isEqualTo(deletedValue("bar"));
-            assertThat(getAllTs(kvs, TABLE_ONE, "foo")).containsExactlyInAnyOrder(deletedTimestamp(ts1), ts4);
+            assertThat(get(kvs, TABLE_ONE, "foo", mid(ts1, ts2))).isEqualTo(deletedValue(dryRun, "bar"));
+            assertThat(getAllTs(kvs, TABLE_ONE, "foo")).containsExactlyInAnyOrder(deletedTimestamp(dryRun, ts1), ts4);
             assertThat(get(kvs, TABLE_TWO, "foo", ts7)).isEqualTo("taz");
-            assertThat(get(kvs, TABLE_TWO, "foo", mid(ts4, ts6))).isEqualTo(deletedValue("tar"));
-            assertThat(getAllTs(kvs, TABLE_TWO, "foo")).containsExactlyInAnyOrder(deletedTimestamp(ts2), ts6);
+            assertThat(get(kvs, TABLE_TWO, "foo", mid(ts4, ts6))).isEqualTo(deletedValue(dryRun, "tar"));
+            assertThat(getAllTs(kvs, TABLE_TWO, "foo")).containsExactlyInAnyOrder(deletedTimestamp(dryRun, ts2), ts6);
             assertThat(get(kvs, TABLE_THREE, "foo", ts7)).isEqualTo("jaz");
             assertThat(get(kvs, TABLE_THREE, "foo", mid(ts3, ts5))).isEqualTo("jar");
             assertThat(getAllTs(kvs, TABLE_THREE, "foo")).containsExactlyInAnyOrder(ts3, ts5);
         }
     }
 
-    @Test
-    public void testSweepAll() throws Exception {
-        try (SingleBackendCliTestRunner runner = makeRunner(paramsWithDryRunSet(SWEEP_COMMAND, "-a"))) {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testSweepAll(boolean dryRun) throws Exception {
+        try (SingleBackendCliTestRunner runner = makeRunner(paramsWithDryRunSet(dryRun, SWEEP_COMMAND, "-a"))) {
             TestAtlasDbServices services = (TestAtlasDbServices) runner.connect(moduleFactory);
             SerializableTransactionManager txm = services.getTransactionManager();
             TimestampService tss = services.getManagedTimestampService();
@@ -200,20 +193,22 @@ public class TestSweepCommand {
             sweep(runner, ts7);
 
             assertThat(get(kvs, TABLE_ONE, "foo", ts7)).isEqualTo("baz");
-            assertThat(get(kvs, TABLE_ONE, "foo", mid(ts1, ts2))).isEqualTo(deletedValue("bar"));
-            assertThat(getAllTs(kvs, TABLE_ONE, "foo")).containsExactlyInAnyOrder(deletedTimestamp(ts1), ts4);
+            assertThat(get(kvs, TABLE_ONE, "foo", mid(ts1, ts2))).isEqualTo(deletedValue(dryRun, "bar"));
+            assertThat(getAllTs(kvs, TABLE_ONE, "foo")).containsExactlyInAnyOrder(deletedTimestamp(dryRun, ts1), ts4);
             assertThat(get(kvs, TABLE_TWO, "foo", ts7)).isEqualTo("taz");
-            assertThat(get(kvs, TABLE_TWO, "foo", mid(ts4, ts6))).isEqualTo(deletedValue("tar"));
-            assertThat(getAllTs(kvs, TABLE_TWO, "foo")).containsExactlyInAnyOrder(deletedTimestamp(ts2), ts6);
+            assertThat(get(kvs, TABLE_TWO, "foo", mid(ts4, ts6))).isEqualTo(deletedValue(dryRun, "tar"));
+            assertThat(getAllTs(kvs, TABLE_TWO, "foo")).containsExactlyInAnyOrder(deletedTimestamp(dryRun, ts2), ts6);
             assertThat(get(kvs, TABLE_THREE, "foo", ts7)).isEqualTo("jaz");
-            assertThat(get(kvs, TABLE_THREE, "foo", mid(ts3, ts5))).isEqualTo(deletedValue("jar"));
-            assertThat(getAllTs(kvs, TABLE_THREE, "foo")).containsExactlyInAnyOrder(deletedTimestamp(ts3), ts5);
+            assertThat(get(kvs, TABLE_THREE, "foo", mid(ts3, ts5))).isEqualTo(deletedValue(dryRun, "jar"));
+            assertThat(getAllTs(kvs, TABLE_THREE, "foo")).containsExactlyInAnyOrder(deletedTimestamp(dryRun, ts3), ts5);
         }
     }
 
-    @Test
-    public void testSweepStartRow() throws Exception {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testSweepStartRow(boolean dryRun) throws Exception {
         try (SingleBackendCliTestRunner runner = makeRunner(paramsWithDryRunSet(
+                dryRun,
                 SWEEP_COMMAND,
                 "-t",
                 TABLE_ONE.getQualifiedName(),
@@ -233,17 +228,17 @@ public class TestSweepCommand {
             sweep(runner, ts5);
 
             assertThat(get(kvs, TABLE_ONE, "foo", ts5)).isEqualTo("baz");
-            assertThat(get(kvs, TABLE_ONE, "foo", mid(ts1, ts3))).isEqualTo(deletedValue("bar"));
-            assertThat(get(kvs, TABLE_ONE, "foo", mid(ts2, ts4))).isEqualTo(deletedValue("biz"));
+            assertThat(get(kvs, TABLE_ONE, "foo", mid(ts1, ts3))).isEqualTo(deletedValue(dryRun, "bar"));
+            assertThat(get(kvs, TABLE_ONE, "foo", mid(ts2, ts4))).isEqualTo(deletedValue(dryRun, "biz"));
             assertThat(get(kvs, TABLE_ONE, "boo", mid(ts3, ts5))).isEqualTo("biz");
             assertThat(getAllTs(kvs, TABLE_ONE, "foo"))
                     .containsExactlyInAnyOrderElementsOf(
-                            ImmutableSet.of(deletedTimestamp(ts1), deletedTimestamp(ts2), ts4));
+                            ImmutableSet.of(deletedTimestamp(dryRun, ts1), deletedTimestamp(dryRun, ts2), ts4));
             assertThat(getAllTs(kvs, TABLE_ONE, "boo")).containsExactlyInAnyOrder(ts3);
         }
     }
 
-    private String[] paramsWithDryRunSet(String... params) {
+    private String[] paramsWithDryRunSet(boolean dryRun, String... params) {
         List<String> paramList = new ArrayList<>(Arrays.asList(params));
         if (dryRun) {
             paramList.add("--dry-run");
@@ -252,11 +247,11 @@ public class TestSweepCommand {
         return paramList.toArray(new String[0]);
     }
 
-    private String deletedValue(String oldValue) {
+    private String deletedValue(boolean dryRun, String oldValue) {
         return dryRun ? oldValue : "";
     }
 
-    private long deletedTimestamp(long ts) {
+    private long deletedTimestamp(boolean dryRun, long ts) {
         return dryRun ? ts : -1L;
     }
 

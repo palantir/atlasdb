@@ -21,14 +21,11 @@ import com.google.common.collect.Lists;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import java.util.List;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
-@RunWith(Parameterized.class)
 public class IterablePartitionerTest {
 
     // approx put size is intentionally larger than the max (this triggers logging)
@@ -36,24 +33,18 @@ public class IterablePartitionerTest {
     private static final long MAXIMUM_PUT_SIZE = 10L;
     private static final long SMALL_PUT_SIZE = 6L;
 
-    private final String tableName;
-
-    @Parameterized.Parameters(name = "tableName={0}")
-    public static Object[] data() {
-        return new Object[] {"test", "foo.bar", "[intentionally.invalid.table.name, foo.bar.baz]"};
-    }
-
-    public IterablePartitionerTest(String tableName) {
-        this.tableName = tableName;
+    public static List<String> getParameters() {
+        return List.of("test", "foo.bar", "[intentionally.invalid.table.name, foo.bar.baz]");
     }
 
     @SuppressWarnings("Slf4jConstantLogMessage")
-    @Test
-    public void testWithLogging() {
+    @ParameterizedTest(name = "tableName={0}")
+    @MethodSource("getParameters")
+    public void testWithLogging(String tableName) {
         Logger mockLogger = Mockito.mock(Logger.class);
         Mockito.when(mockLogger.isWarnEnabled()).thenReturn(true);
 
-        simplePartition(mockLogger, LARGE_PUT_SIZE);
+        simplePartition(mockLogger, LARGE_PUT_SIZE, tableName);
 
         // verify the correct log messages were sent
         Mockito.verify(mockLogger, Mockito.times(3)).isWarnEnabled();
@@ -66,30 +57,32 @@ public class IterablePartitionerTest {
         Mockito.verifyNoMoreInteractions(mockLogger);
     }
 
-    @Test
-    public void testWithoutLogging() {
+    @ParameterizedTest(name = "tableName={0}")
+    @MethodSource("getParameters")
+    public void testWithoutLogging(String tableName) {
         Logger mockLogger = Mockito.mock(Logger.class);
         Mockito.when(mockLogger.isWarnEnabled()).thenReturn(false);
 
-        simplePartition(mockLogger, LARGE_PUT_SIZE);
+        simplePartition(mockLogger, LARGE_PUT_SIZE, tableName);
 
         // warn isn't enabled, so it should check 3 times but not log anything
         Mockito.verify(mockLogger, Mockito.times(3)).isWarnEnabled();
         Mockito.verifyNoMoreInteractions(mockLogger);
     }
 
-    @Test
-    public void smallPutsDoNotLog() {
+    @ParameterizedTest(name = "tableName={0}")
+    @MethodSource("getParameters")
+    public void smallPutsDoNotLog(String tableName) {
         Logger mockLogger = Mockito.mock(Logger.class);
         Mockito.when(mockLogger.isWarnEnabled()).thenReturn(true);
 
-        simplePartition(mockLogger, SMALL_PUT_SIZE);
+        simplePartition(mockLogger, SMALL_PUT_SIZE, tableName);
 
         // verify the log messages were not sent
         Mockito.verifyNoMoreInteractions(mockLogger);
     }
 
-    private void simplePartition(Logger mockLogger, long approximatePutSize) {
+    private void simplePartition(Logger mockLogger, long approximatePutSize, String tableName) {
         Iterable<List<Integer>> partitions = IterablePartitioner.partitionByCountAndBytes(
                 Lists.newArrayList(1, 2, 3), 2, MAXIMUM_PUT_SIZE, tableName, foo -> approximatePutSize, mockLogger);
         int i = 1;

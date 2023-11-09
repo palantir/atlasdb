@@ -22,14 +22,13 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
-import org.junit.After;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
-@RunWith(Parameterized.class)
 public class StreamCompressionTests {
     private static final StreamCompression GZIP = StreamCompression.GZIP;
     private static final StreamCompression LZ4 = StreamCompression.LZ4;
@@ -41,18 +40,11 @@ public class StreamCompressionTests {
     private InputStream compressingStream;
     private InputStream decompressingStream;
 
-    private final StreamCompression compression;
-
-    public StreamCompressionTests(StreamCompression compression) {
-        this.compression = compression;
+    public static List<StreamCompression> getParameters() {
+        return Arrays.asList(StreamCompression.values());
     }
 
-    @Parameterized.Parameters(name = "{index} {0} compression")
-    public static Object[] parameters() {
-        return StreamCompression.values();
-    }
-
-    @After
+    @AfterEach
     public void close() throws IOException {
         if (decompressingStream != null) {
             decompressingStream.close();
@@ -78,52 +70,60 @@ public class StreamCompressionTests {
                 .isEqualTo(data);
     }
 
-    @Test
-    public void testEmptyStream() throws IOException {
-        initializeStreams(new byte[0]);
+    @ParameterizedTest(name = "{index} {0} compression")
+    @MethodSource("getParameters")
+    public void testEmptyStream(StreamCompression compression) throws IOException {
+        initializeStreams(new byte[0], compression);
         assertStreamIsEmpty(decompressingStream);
     }
 
-    @Test
-    public void testSingleCharacterStream() throws IOException {
-        testStream_incompressible(1); // 1 byte input will always be incompressible
+    @ParameterizedTest(name = "{index} {0} compression")
+    @MethodSource("getParameters")
+    public void testSingleCharacterStream(StreamCompression compression) throws IOException {
+        testStream_incompressible(1, compression); // 1 byte input will always be incompressible
     }
 
-    @Test
-    public void testSingleCharacterStream_singleByteRead() throws IOException {
+    @ParameterizedTest(name = "{index} {0} compression")
+    @MethodSource("getParameters")
+    public void testSingleCharacterStream_singleByteRead(StreamCompression compression) throws IOException {
         byte[] uncompressedData = new byte[] {SINGLE_VALUE};
-        initializeStreams(uncompressedData);
+        initializeStreams(uncompressedData, compression);
         int value = decompressingStream.read();
 
         assertThat(value).isEqualTo(uncompressedData[0] & 0xFF);
         assertStreamIsEmpty(decompressingStream);
     }
 
-    @Test
-    public void testSingleBlock_compressible() throws IOException {
-        testStream_compressible(BLOCK_SIZE);
+    @ParameterizedTest(name = "{index} {0} compression")
+    @MethodSource("getParameters")
+    public void testSingleBlock_compressible(StreamCompression compression) throws IOException {
+        testStream_compressible(BLOCK_SIZE, compression);
     }
 
-    @Test
-    public void testSingleBlock_incompressible() throws IOException {
-        testStream_incompressible(BLOCK_SIZE);
+    @ParameterizedTest(name = "{index} {0} compression")
+    @MethodSource("getParameters")
+    public void testSingleBlock_incompressible(StreamCompression compression) throws IOException {
+        testStream_incompressible(BLOCK_SIZE, compression);
     }
 
-    @Test
-    public void testMultiBlock_compressible() throws IOException {
-        testStream_compressible(16 * BLOCK_SIZE);
+    @ParameterizedTest(name = "{index} {0} compression")
+    @MethodSource("getParameters")
+    public void testMultiBlock_compressible(StreamCompression compression) throws IOException {
+        testStream_compressible(16 * BLOCK_SIZE, compression);
     }
 
-    @Test
-    public void testMultiBlock_incompressible() throws IOException {
-        testStream_incompressible(16 * BLOCK_SIZE);
+    @ParameterizedTest(name = "{index} {0} compression")
+    @MethodSource("getParameters")
+    public void testMultiBlock_incompressible(StreamCompression compression) throws IOException {
+        testStream_incompressible(16 * BLOCK_SIZE, compression);
     }
 
-    @Test
-    public void testMultiBlock_singleByteReads() throws IOException {
+    @ParameterizedTest(name = "{index} {0} compression")
+    @MethodSource("getParameters")
+    public void testMultiBlock_singleByteReads(StreamCompression compression) throws IOException {
         byte[] uncompressedData = new byte[16 * BLOCK_SIZE];
         fillWithIncompressibleData(uncompressedData);
-        initializeStreams(uncompressedData);
+        initializeStreams(uncompressedData, compression);
 
         for (byte uncompressedDatum : uncompressedData) {
             int value = decompressingStream.read();
@@ -132,11 +132,12 @@ public class StreamCompressionTests {
         assertStreamIsEmpty(decompressingStream);
     }
 
-    @Test
-    public void testMultiBlock_readPastEnd() throws IOException {
+    @ParameterizedTest(name = "{index} {0} compression")
+    @MethodSource("getParameters")
+    public void testMultiBlock_readPastEnd(StreamCompression compression) throws IOException {
         byte[] uncompressedData = new byte[16 * BLOCK_SIZE];
         fillWithCompressibleData(uncompressedData);
-        initializeStreams(uncompressedData);
+        initializeStreams(uncompressedData, compression);
 
         byte[] decompressedData = new byte[17 * BLOCK_SIZE];
         int bytesRead = ByteStreams.read(decompressingStream, decompressedData, 0, decompressedData.length);
@@ -144,21 +145,21 @@ public class StreamCompressionTests {
         assertThat(Arrays.copyOf(decompressedData, bytesRead)).isEqualTo(uncompressedData);
     }
 
-    private void testStream_compressible(int streamSize) throws IOException {
+    private void testStream_compressible(int streamSize, StreamCompression compression) throws IOException {
         byte[] uncompressedData = new byte[streamSize];
         fillWithCompressibleData(uncompressedData);
-        initializeStreams(uncompressedData);
+        initializeStreams(uncompressedData, compression);
         verifyStreamContents(uncompressedData);
     }
 
-    private void testStream_incompressible(int streamSize) throws IOException {
+    private void testStream_incompressible(int streamSize, StreamCompression compression) throws IOException {
         byte[] uncompressedData = new byte[streamSize];
         fillWithIncompressibleData(uncompressedData);
-        initializeStreams(uncompressedData);
+        initializeStreams(uncompressedData, compression);
         verifyStreamContents(uncompressedData);
     }
 
-    private void initializeStreams(byte[] uncompressedData) {
+    private void initializeStreams(byte[] uncompressedData, StreamCompression compression) {
         ByteArrayInputStream uncompressedStream = new ByteArrayInputStream(uncompressedData);
         compressingStream = compression.compress(uncompressedStream);
         decompressingStream = compression.decompress(compressingStream);

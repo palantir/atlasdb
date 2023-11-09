@@ -30,7 +30,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.util.List;
 import java.util.Map;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class AlterTableMetadataReferenceTest {
     private static final ObjectMapper OBJECT_MAPPER = AtlasDbConfigs.OBJECT_MAPPER;
