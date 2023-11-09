@@ -25,6 +25,7 @@ dependencies {
   testImplementation('org.jmock:jmock') {
     exclude group: 'org.hamcrest'
   }
+  testImplementation 'org.assertj:assertj-core'
   testImplementation 'org.mockito:mockito-core'
   testImplementation 'org.junit.jupiter:junit-jupiter'
 }
