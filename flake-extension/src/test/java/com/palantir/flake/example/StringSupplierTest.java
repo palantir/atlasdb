@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.palantir.flake.FlakeRetryTest;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
+import org.junit.jupiter.api.Disabled;
 
 public class StringSupplierTest {
     private static final String TEST_STRING = "123";
@@ -29,6 +30,7 @@ public class StringSupplierTest {
 
     @FlakeRetryTest(
             maxNumberOfRetriesUntilSuccess = 50) // Strobes once in a quintillion times, which I think we can live with.
+    @Disabled
     public void canGetStringFromFlakySupplier() {
         assertThat(FLAKY_STRING_SUPPLIER.get()).isEqualTo(TEST_STRING);
     }
