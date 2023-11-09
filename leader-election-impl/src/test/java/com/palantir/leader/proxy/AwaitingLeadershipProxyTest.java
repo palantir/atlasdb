@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
@@ -54,6 +55,8 @@ import java.util.function.Supplier;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.InOrder;
+import org.mockito.Mockito;
 
 /* TODO(boyoruk): Migrate to JUnit5 */
 public class AwaitingLeadershipProxyTest {
@@ -295,6 +298,66 @@ public class AwaitingLeadershipProxyTest {
                 .isInstanceOf(NotCurrentLeaderException.class)
                 .hasLogMessage("method invoked on a non-leader");
         verify(mockA).close();
+    }
+
+    @Test
+    public void explicitlyStepsDownFromLeadershipWhenDelegateThrowsNotCurrentLeaderExceptionButStillLeader()
+            throws InterruptedException {
+        LeadershipCoordinator leadershipCoordinator = LeadershipCoordinator.create(leaderElectionService);
+
+        MyCloseable mockCloseable = mock(MyCloseable.class);
+        MyCloseable proxyCloseable =
+                AwaitingLeadershipProxy.newProxyInstance(MyCloseable.class, () -> mockCloseable, leadershipCoordinator);
+
+        // Wait to gain leadership
+        Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
+
+        // In this section, we simulate always having leadership.
+        // However, to mimic behaviour in the underlying leader election service, a fresh invocation to
+        // getCurrentTokenIfLeading will return a new token, even though this is based upon the same Paxos value.
+        // TODO (jkong): Add a proper integration test for AwaitingLeadershipProxy.
+        PaxosLeadershipToken newLeadershipToken = mock(PaxosLeadershipToken.class);
+        when(leaderElectionService.getCurrentTokenIfLeading()).thenReturn(Optional.of(newLeadershipToken));
+        when(leaderElectionService.isStillLeading(newLeadershipToken))
+                .thenReturn(Futures.immediateFuture(StillLeadingStatus.LEADING));
+        when(newLeadershipToken.sameAs(leadershipToken)).thenReturn(true);
+        when(leadershipToken.sameAs(newLeadershipToken)).thenReturn(true);
+
+        doThrow(new NotCurrentLeaderException("Suspect someone else became the leader"))
+                .when(mockCloseable)
+                .val();
+
+        assertThatLoggableExceptionThrownBy(proxyCloseable::val)
+                .isInstanceOf(NotCurrentLeaderException.class)
+                .hasLogMessage("method invoked on a non-leader (leadership lost)");
+
+        // Verify that we're also able to become the leader again *after* stepping down, in the interest of liveness.
+        InOrder inOrder = Mockito.inOrder(leaderElectionService);
+        inOrder.verify(leaderElectionService).stepDown();
+        inOrder.verify(leaderElectionService).blockOnBecomingLeader();
+    }
+
+    @Test
+    public void
+            doesNotExplicitlyStepDownFromLeadershipWhenDelegateThrowsNotCurrentLeaderExceptionIfLeadershipActuallyLost()
+                    throws InterruptedException {
+        LeadershipCoordinator leadershipCoordinator = LeadershipCoordinator.create(leaderElectionService);
+
+        MyCloseable mockCloseable = mock(MyCloseable.class);
+        MyCloseable proxyCloseable =
+                AwaitingLeadershipProxy.newProxyInstance(MyCloseable.class, () -> mockCloseable, leadershipCoordinator);
+
+        // Wait to gain leadership
+        Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
+
+        doThrow(new NotCurrentLeaderException("Suspect someone else became the leader"))
+                .when(mockCloseable)
+                .val();
+        loseLeadership(() -> {
+            proxyCloseable.val();
+            return null;
+        });
+        verify(leaderElectionService, never()).stepDown();
     }
 
     @Test

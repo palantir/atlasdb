@@ -40,11 +40,11 @@ import javax.annotation.Nullable;
 /**
  * This is the component of TimeLock that is responsible for coordinating and maintaining a consistent leadership state
  * in the cluster. Each node keeps trying to gain leadership upon a) startup and b) loss of leadership, see
- * {@link #tryToGainLeadership()}
- *
+ * {@link #tryToGainLeadership(Optional)}
+ * <p>
  * {@link LeadershipCoordinator} is finally used by {@link AwaitingLeadershipProxy} instances to check if this node
- *  can service requests or not.
- *
+ * can service requests or not.
+ * <p>
  * {@link LeadershipCoordinator} relies on {@link LeaderElectionService} for the following -
  * 1. To get leadership token if we are already leading
  * 2. To block on becoming the leader if we not the leader anymore
@@ -75,7 +75,7 @@ public final class LeadershipCoordinator implements Closeable {
 
     public static LeadershipCoordinator create(LeaderElectionService leaderElectionService) {
         LeadershipCoordinator leadershipCoordinator = new LeadershipCoordinator(leaderElectionService);
-        leadershipCoordinator.tryToGainLeadership();
+        leadershipCoordinator.tryToGainLeadership(Optional.empty());
         return leadershipCoordinator;
     }
 
@@ -86,7 +86,7 @@ public final class LeadershipCoordinator implements Closeable {
     void markAsNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
         if (leadershipTokenRef.compareAndSet(leadershipToken, null)) {
             log.warn("Lost leadership", cause);
-            tryToGainLeadership();
+            tryToGainLeadership(Optional.of(leadershipToken));
         }
     }
 
@@ -134,10 +134,22 @@ public final class LeadershipCoordinator implements Closeable {
                 .orElseGet(() -> new NotCurrentLeaderException(message, cause, args));
     }
 
-    private void tryToGainLeadership() {
+    private void tryToGainLeadership(Optional<LeadershipToken> previousLeadershipToken) {
         Optional<LeadershipToken> currentToken = leaderElectionService.getCurrentTokenIfLeading();
         if (currentToken.isPresent()) {
-            onGainedLeadership(currentToken.get());
+            LeadershipToken presentCurrentToken = currentToken.get();
+            if (previousLeadershipToken.isPresent() && presentCurrentToken.sameAs(previousLeadershipToken.get())) {
+                log.info(
+                        "We seem to be attempting to gain leadership with the same token as before. This"
+                                + " is possible in situations where we lost leadership because a delegate suspected"
+                                + " we were no longer the leader, even though we actually were. In such cases, we"
+                                + " choose to abdicate leadership and start an election.",
+                        SafeArg.of("token", presentCurrentToken));
+                leaderElectionService.stepDown();
+                tryToGainLeadershipAsync();
+            } else {
+                onGainedLeadership(presentCurrentToken);
+            }
         } else {
             tryToGainLeadershipAsync();
         }
