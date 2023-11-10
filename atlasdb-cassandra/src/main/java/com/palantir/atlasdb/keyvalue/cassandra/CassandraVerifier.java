@@ -36,6 +36,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraC
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.DoNotLog;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -396,6 +397,7 @@ public final class CassandraVerifier {
         }
     }
 
+    @DoNotLog
     @Value.Immutable
     interface CassandraVerifierConfig {
         String keyspace();
