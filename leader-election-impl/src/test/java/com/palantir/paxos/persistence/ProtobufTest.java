@@ -27,9 +27,8 @@ import com.palantir.paxos.PaxosValue;
 import com.palantir.paxos.persistence.generated.PaxosPersistence;
 import com.palantir.paxos.persistence.generated.remoting.PaxosAcceptorPersistence;
 import com.palantir.paxos.persistence.generated.remoting.PaxosAcceptorPersistence.PaxosPromiseProto;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class ProtobufTest {
     @Test
     public void testPaxosValuePersistence() throws Exception {
@@ -49,7 +48,7 @@ public class ProtobufTest {
     }
 
     @Test
-    public void testPaxosProposalIdPersistence() throws Exception {
+    public void testPaxosProposalIdPersistence() {
         PaxosProposalId expected;
         PaxosPersistence.PaxosProposalId persisted;
         PaxosProposalId actual;
@@ -66,7 +65,7 @@ public class ProtobufTest {
     }
 
     @Test
-    public void testPaxosProposalPersistence() throws Exception {
+    public void testPaxosProposalPersistence() {
         PaxosProposal expected;
         PaxosAcceptorPersistence.PaxosProposal persisted;
         PaxosProposal actual;
@@ -83,7 +82,7 @@ public class ProtobufTest {
     }
 
     @Test
-    public void testPaxosPromisePersistence() throws Exception {
+    public void testPaxosPromisePersistence() {
         PaxosPromise expected;
         PaxosPromiseProto persisted;
         PaxosPromise actual;
@@ -114,7 +113,7 @@ public class ProtobufTest {
     }
 
     @Test
-    public void testPaxosResponsePersistence() throws Exception {
+    public void testPaxosResponsePersistence() {
         PaxosResponse expected;
         PaxosAcceptorPersistence.PaxosResponse persisted;
         PaxosResponse actual;

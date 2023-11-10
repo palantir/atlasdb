@@ -22,11 +22,10 @@ import java.util.concurrent.CompletionService;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.TimeUnit;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class PaxosConsensusSlowTest {
 
     Executor executor = PTExecutors.newCachedThreadPool();
@@ -36,12 +35,12 @@ public class PaxosConsensusSlowTest {
 
     private PaxosTestState state;
 
-    @Before
+    @BeforeEach
     public void setup() {
         state = PaxosConsensusTestUtils.setup(NUM_POTENTIAL_LEADERS, QUORUM_SIZE);
     }
 
-    @After
+    @AfterEach
     public void teardown() throws Exception {
         PaxosConsensusTestUtils.teardown(state);
     }
@@ -56,7 +55,7 @@ public class PaxosConsensusSlowTest {
             state.goDown(i);
         }
 
-        CompletionService<Void> leadershipCompletionService = new ExecutorCompletionService<Void>(executor);
+        CompletionService<Void> leadershipCompletionService = new ExecutorCompletionService<>(executor);
         leadershipCompletionService.submit(() -> {
             state.gainLeadership(NUM_POTENTIAL_LEADERS - 1);
             return null;
