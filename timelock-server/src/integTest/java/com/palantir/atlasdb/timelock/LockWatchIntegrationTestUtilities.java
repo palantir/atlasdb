@@ -51,6 +51,7 @@ public final class LockWatchIntegrationTestUtilities {
     private static final String TEST_PACKAGE = "package";
     static final String TABLE = "table";
     static final String TABLE_2 = "rowLevelTable";
+    static final String SERIALIZABLE_TABLE = "serializableTable";
 
     private LockWatchIntegrationTestUtilities() {
         // no-op
@@ -173,6 +174,16 @@ public final class LockWatchIntegrationTestUtilities {
             }
         };
         schema.addTableDefinition(TABLE_2, tableWithoutCaching);
+
+        TableDefinition tableWithRowConflictHandler = new TableDefinition() {
+            {
+                rowName();
+                rowComponent("key", ValueType.BLOB);
+                noColumns();
+                conflictHandler(ConflictHandler.SERIALIZABLE);
+            }
+        };
+        schema.addTableDefinition(SERIALIZABLE_TABLE, tableWithRowConflictHandler);
 
         return schema;
     }
