@@ -21,12 +21,12 @@ import static com.palantir.timelock.corruption.detection.LocalTimestampInvariant
 import com.palantir.timelock.corruption.detection.TimeLockCorruptionTestSetup.StateLogComponents;
 import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
 import java.util.stream.IntStream;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-/* TODO(boyoruk): Upgrade this to JUnit5 when TimeLockCorruptionDetectionHelper rule is implemented for JUnit5. */
 public class LocalTimestampInvariantsVerifierTest {
-    @Rule
+
+    @RegisterExtension
     public TimeLockCorruptionDetectionHelper helper = new TimeLockCorruptionDetectionHelper();
 
     @Test

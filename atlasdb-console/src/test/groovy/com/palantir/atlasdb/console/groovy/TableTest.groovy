@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.console.groovy
 
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+
 import static groovy.test.GroovyAssert.shouldFail
 import static org.assertj.core.api.Assertions.assertThatThrownBy
 
@@ -24,8 +27,6 @@ import com.palantir.atlasdb.console.exceptions.IllegalConsoleCommandException
 import com.palantir.atlasdb.console.module.Range
 import com.palantir.atlasdb.console.module.Table
 import org.gmock.WithGMock
-import org.junit.Before
-import org.junit.Test
 
 @WithGMock
 class TableTest {
@@ -51,7 +52,7 @@ class TableTest {
         (tableQuery4): serviceQuery4
     ]
 
-    @Before
+    @BeforeEach
     void setup() {
         service = mock(AtlasConsoleServiceWrapper)
         table = new Table(TABLE_NAME, service, true)

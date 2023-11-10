@@ -34,7 +34,7 @@ import com.github.tomakehurst.wiremock.http.HttpHeader;
 import com.github.tomakehurst.wiremock.http.HttpHeaders;
 import com.github.tomakehurst.wiremock.http.Request;
 import com.github.tomakehurst.wiremock.http.Response;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.matching.RequestPattern;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
@@ -62,11 +62,10 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class AtlasDbHttpClientsTest {
 
     private static final String LOCALHOST = "localhost";
@@ -112,18 +111,22 @@ public class AtlasDbHttpClientsTest {
     private int availablePort2;
     private int unavailablePort;
 
-    @Rule
-    public WireMockRule availableServer1 = new WireMockRule(WIRE_MOCK_CONFIGURATION);
+    @RegisterExtension
+    static WireMockExtension availableServer1 =
+            WireMockExtension.newInstance().options(WIRE_MOCK_CONFIGURATION).build();
 
-    @Rule
-    public WireMockRule availableServer2 = new WireMockRule(WIRE_MOCK_CONFIGURATION);
+    @RegisterExtension
+    static WireMockExtension availableServer2 =
+            WireMockExtension.newInstance().options(WIRE_MOCK_CONFIGURATION).build();
 
-    @Rule
-    public WireMockRule unavailableServer = new WireMockRule(WIRE_MOCK_CONFIGURATION);
+    @RegisterExtension
+    static WireMockExtension unavailableServer =
+            WireMockExtension.newInstance().options(WIRE_MOCK_CONFIGURATION).build();
 
-    @Rule
-    public WireMockRule proxyServer =
-            new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
+    @RegisterExtension
+    static WireMockExtension proxyServer = WireMockExtension.newInstance()
+            .options(WireMockConfiguration.wireMockConfig().dynamicPort())
+            .build();
 
     public interface TestResource {
         @GET
@@ -138,17 +141,14 @@ public class AtlasDbHttpClientsTest {
         boolean postRequest(byte[] content);
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
-        setupAvailableServer(Integer.toString(TEST_NUMBER_1), availableServer1);
-        setupAvailableServer(Integer.toString(TEST_NUMBER_2), availableServer2);
-
-        availablePort1 = availableServer1.httpsPort();
-        availablePort2 = availableServer2.httpsPort();
-        unavailablePort = unavailableServer.httpsPort();
+        availablePort1 = availableServer1.getHttpsPort();
+        availablePort2 = availableServer2.getHttpsPort();
+        unavailablePort = unavailableServer.getHttpsPort();
     }
 
-    private static void setupAvailableServer(String testNumberAsString, WireMockRule availableServer) {
+    private static void setupAvailableServer(String testNumberAsString, WireMockExtension availableServer) {
         availableServer.stubFor(
                 GET_MAPPING.willReturn(aResponse().withStatus(200).withBody(testNumberAsString)));
         availableServer.stubFor(
@@ -157,6 +157,8 @@ public class AtlasDbHttpClientsTest {
 
     @Test
     public void ifOneServerResponds503WithNoRetryHeaderTheRequestIsRerouted() {
+        setupAvailableServer(Integer.toString(TEST_NUMBER_1), availableServer1);
+        setupAvailableServer(Integer.toString(TEST_NUMBER_2), availableServer2);
         RETRY_OTHER_FIRST_RESPONSE_TRANSFORMER.registerUrl(getUriForPort(availablePort1));
         RETRY_OTHER_FIRST_RESPONSE_TRANSFORMER.registerUrl(getUriForPort(availablePort2));
 
@@ -183,6 +185,7 @@ public class AtlasDbHttpClientsTest {
 
     @Test
     public void userAgentIsPresentOnClientRequests() {
+        setupAvailableServer(Integer.toString(TEST_NUMBER_1), availableServer1);
         TestResource client = AtlasDbHttpClients.createProxy(
                 TRUST_CONTEXT, getUriForPort(availablePort1), TestResource.class, AUXILIARY_REMOTING_PARAMETERS);
         client.getTestNumber();
@@ -193,6 +196,7 @@ public class AtlasDbHttpClientsTest {
 
     @Test
     public void directProxyIsConfigurableOnClientRequests() {
+        setupAvailableServer(Integer.toString(TEST_NUMBER_1), availableServer1);
         TestResource clientWithDirectCall = AtlasDbHttpClients.createProxyWithFailover(
                 MetricsManagers.createForTests(),
                 ImmutableServerListConfig.builder()
@@ -211,7 +215,6 @@ public class AtlasDbHttpClientsTest {
     @Test
     public void canLiveReloadServersList() {
         unavailableServer.stubFor(GET_MAPPING.willReturn(aResponse().withStatus(503)));
-
         SettableRefreshable<ServerListConfig> serverListRefreshable =
                 Refreshable.create(ImmutableServerListConfig.builder()
                         .addServers(getUriForPort(unavailablePort))
@@ -226,12 +229,12 @@ public class AtlasDbHttpClientsTest {
         // actually a Feign RetryableException but that's not on our classpath
         assertThatThrownBy(client::getTestNumber).isInstanceOf(RuntimeException.class);
 
+        setupAvailableServer(Integer.toString(TEST_NUMBER_1), availableServer1);
         serverListRefreshable.update(ImmutableServerListConfig.builder()
                 .addServers(getUriForPort(unavailablePort))
                 .addServers(getUriForPort(availablePort1))
                 .sslConfiguration(SSL_CONFIG)
                 .build());
-
         int response = client.getTestNumber();
         assertThat(response).isEqualTo(TEST_NUMBER_1);
         unavailableServer.verify(getRequestedFor(urlMatching(GET_ENDPOINT)));
@@ -239,6 +242,7 @@ public class AtlasDbHttpClientsTest {
 
     @Test
     public void httpProxyCanBeCommissionedAndDecommissionedIfNodeAvailabilityChanges() {
+        setupAvailableServer(Integer.toString(TEST_NUMBER_1), availableServer1);
         SettableRefreshable<ServerListConfig> config = Refreshable.create(ImmutableServerListConfig.builder()
                 .addServers(getUriForPort(availablePort1))
                 .sslConfiguration(SSL_CONFIG)
@@ -249,6 +253,7 @@ public class AtlasDbHttpClientsTest {
 
         assertThat(testResource.getTestNumber()).isEqualTo(TEST_NUMBER_1);
 
+        setupAvailableServer(Integer.toString(TEST_NUMBER_2), availableServer2);
         config.update(ImmutableServerListConfig.builder()
                 .addServers(getUriForPort(availablePort2))
                 .sslConfiguration(SSL_CONFIG)
