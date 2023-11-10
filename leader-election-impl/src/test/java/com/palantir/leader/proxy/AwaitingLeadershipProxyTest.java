@@ -26,7 +26,9 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -113,7 +115,7 @@ public class AwaitingLeadershipProxyTest {
         inProgressCheck.set(StillLeadingStatus.NOT_LEADING);
 
         assertThatThrownBy(future::get).cause().satisfies(exc -> assertThatLoggableException(
-                        (Throwable & SafeLoggable) exc)
+                (Throwable & SafeLoggable) exc)
                 .isInstanceOf(NotCurrentLeaderException.class)
                 .hasLogMessage("method invoked on a non-leader (leadership lost)"));
     }
@@ -287,7 +289,7 @@ public class AwaitingLeadershipProxyTest {
                 MyCloseable.class, () -> mock(MyCloseable.class), leadershipCoordinator);
 
         // Wait to gain leadership
-        Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
+        waitForLeadershipToBeGained();
 
         proxyA.val();
         proxyB.val();
@@ -327,8 +329,7 @@ public class AwaitingLeadershipProxyTest {
         MyCloseable proxyB = AwaitingLeadershipProxy.newProxyInstance(
                 MyCloseable.class, () -> mock(MyCloseable.class), leadershipCoordinator);
 
-        // Wait to gain leadership
-        Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
+        waitForLeadershipToBeGained();
 
         proxyA.val();
         proxyB.val();
@@ -340,27 +341,46 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    public void shouldNotClearDelegateOnSuspectedNotCurrentLeaderFalseAlarm() throws InterruptedException, IOException {
+    public void clearsOnlyRelevantDelegateOnSuspectedNotCurrentLeaderFalseAlarm() throws IOException {
         MyCloseable mock = mock(MyCloseable.class);
-        MyCloseable proxy = AwaitingLeadershipProxy.newProxyInstance(
-                MyCloseable.class, () -> mock, LeadershipCoordinator.create(leaderElectionService));
-        waitForLeadershipToBeGained();
-
         Runnable callback = mock(Runnable.class);
-
         doThrow(new SuspectedNotCurrentLeaderException("There is one imposter among us", callback))
                 .doNothing()
                 .when(mock)
                 .val();
+        Supplier<MyCloseable> factory = createSpyableSupplier(mock);
+        LeadershipCoordinator coordinator = LeadershipCoordinator.create(leaderElectionService);
+        MyCloseable proxy = AwaitingLeadershipProxy.newProxyInstance(MyCloseable.class, factory, coordinator);
+
+        MyCloseable bystander = mock(MyCloseable.class);
+        Supplier<MyCloseable> bystanderFactory = createSpyableSupplier(bystander);
+        MyCloseable bystanderProxy =
+                AwaitingLeadershipProxy.newProxyInstance(MyCloseable.class, bystanderFactory, coordinator);
+
+        bystanderProxy.val();
+
         assertThatLoggableExceptionThrownBy(proxy::val)
                 .isInstanceOf(SuspectedNotCurrentLeaderException.class)
                 .hasMessage("There is one imposter among us");
-        verify(callback, never()).run();
 
         assertThatCode(proxy::val)
                 .as("the underlying mock can be called again, if we actually maintained leadership")
                 .doesNotThrowAnyException();
-        verify(mock, never()).close();
+
+        assertThatCode(() -> {
+            proxy.val();
+            bystanderProxy.val();
+            proxy.val();
+            bystanderProxy.val();
+            proxy.val();
+        })
+                .as("the proxies are still able to forward requests")
+                .doesNotThrowAnyException();
+
+        verify(factory, times(2)).get();
+        verify(bystanderFactory).get();
+        verify(mock).close();
+        verify(bystander, never()).close();
     }
 
     @Test
@@ -374,9 +394,9 @@ public class AwaitingLeadershipProxyTest {
         Runnable callback = mock(Runnable.class);
 
         doAnswer(_invocation -> {
-                    loseLeadershipOnLeaderElectionService(StillLeadingStatus.NOT_LEADING);
-                    throw new SuspectedNotCurrentLeaderException("There is one imposter among us", callback);
-                })
+            loseLeadershipOnLeaderElectionService(StillLeadingStatus.NOT_LEADING);
+            throw new SuspectedNotCurrentLeaderException("There is one imposter among us", callback);
+        })
                 .when(mock)
                 .val();
 
@@ -403,9 +423,9 @@ public class AwaitingLeadershipProxyTest {
         Runnable callback = mock(Runnable.class);
 
         doAnswer(_invocation -> {
-                    loseLeadershipOnLeaderElectionService(StillLeadingStatus.NO_QUORUM);
-                    throw new SuspectedNotCurrentLeaderException("There is one imposter among us", callback);
-                })
+            loseLeadershipOnLeaderElectionService(StillLeadingStatus.NO_QUORUM);
+            throw new SuspectedNotCurrentLeaderException("There is one imposter among us", callback);
+        })
                 .when(mock)
                 .val();
 
@@ -419,6 +439,16 @@ public class AwaitingLeadershipProxyTest {
                 .isInstanceOf(NotCurrentLeaderException.class)
                 .hasMessageContaining("method invoked on a non-leader");
         verify(mock).close();
+    }
+
+    private static Supplier<MyCloseable> createSpyableSupplier(MyCloseable mock) {
+        // Mockito is not able to spy lambdas, so this anonymous class must remain as such.
+        return spy(new Supplier<>() {
+            @Override
+            public MyCloseable get() {
+                return mock;
+            }
+        });
     }
 
     @SuppressWarnings("IllegalThrows")

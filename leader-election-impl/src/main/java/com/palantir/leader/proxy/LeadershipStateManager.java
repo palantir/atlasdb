@@ -37,7 +37,7 @@ public class LeadershipStateManager<T> {
 
     /**
      * delegate reference is atomic as {@link #clearDelegate()} can be accessed by multiple threads.
-     * */
+     */
     private final AtomicReference<T> delegateRef;
 
     private final AtomicReference<LeadershipToken> maybeValidLeadershipTokenRef;
@@ -90,6 +90,7 @@ public class LeadershipStateManager<T> {
     /**
      * This method refreshes the delegateRef which can be a very expensive operation. This should be executed exactly
      * once for one leadershipToken update.
+     *
      * @throws NotCurrentLeaderException if we do not have leadership anymore.
      */
     private void tryToUpdateLeadershipToken() {
@@ -133,6 +134,13 @@ public class LeadershipStateManager<T> {
                 log.warn("problem closing delegate", ex);
             }
         }
+    }
+
+    void handleDelegateNoLongerValid() {
+        // This looks janky af, but there are reasons. Essentially, this forces a recreation on the next call to
+        // getOrUpdateLeadershipToken. We can't just clear the delegate reference, because otherwise there is no impetus
+        // to recreate it.
+        maybeValidLeadershipTokenRef.set(null);
     }
 
     /**

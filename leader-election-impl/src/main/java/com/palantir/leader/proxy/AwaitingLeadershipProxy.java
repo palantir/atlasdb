@@ -163,7 +163,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             LeadershipToken leadershipToken, InvocationTargetException exception) throws Exception {
         Throwable cause = exception.getCause();
         if (cause instanceof SuspectedNotCurrentLeaderException) {
-            handleSuspectedNotCurrentLeader(leadershipToken, cause);
+            handleSuspectedNotCurrentLeader(leadershipToken, (SuspectedNotCurrentLeaderException) cause);
         }
         if (cause instanceof ServiceNotAvailableException || cause instanceof NotCurrentLeaderException) {
             leadershipStateManager.handleNotLeading(leadershipToken, cause);
@@ -178,17 +178,20 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         throw new RuntimeException(cause);
     }
 
-    private void handleSuspectedNotCurrentLeader(LeadershipToken leadershipToken, Throwable cause) throws Exception {
+    private void handleSuspectedNotCurrentLeader(
+            LeadershipToken leadershipToken, SuspectedNotCurrentLeaderException cause) throws Exception {
         StillLeadingStatus status =
                 leadershipCoordinator.isStillLeading(leadershipToken).get();
         switch (status) {
             case LEADING:
-                // We were actually the leader. We will fail this operation, but not actually mark ourselves as
-                // not leading.
+                // We were still the leader. Invalidate the relevant delegates, but don't generally get rid of our
+                // leadership (so this doesn't need to propagate to other delegates).
+                leadershipStateManager.handleDelegateNoLongerValid();
+                break;
             case NO_QUORUM:
                 // Treating as not leading is consistent with uses of ServiceNotAvailableException elsewhere.
             case NOT_LEADING:
-                ((SuspectedNotCurrentLeaderException) cause).runLostLeadershipCallback();
+                cause.runLostLeadershipCallback();
                 leadershipStateManager.handleNotLeading(leadershipToken, cause);
                 break;
             default:
