@@ -332,3 +332,14 @@ acceptedBreaks:
       old: "method java.util.Optional<com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.ConsistentClusterTopology>\
         \ com.palantir.atlasdb.keyvalue.cassandra.ImmutableClusterTopologyResult::agreedTopology()"
       justification: "Internal validator primitives"
+  "0.956.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.visibilityReduced"
+      old: "method void com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException::<init>(com.palantir.logsafe.Arg<java.lang.String>,\
+        \ byte[], java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, byte[]>, java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell,\
+        \ byte[]>)"
+      new: "method void com.palantir.atlasdb.keyvalue.api.MultiCheckAndSetException::<init>(byte[],\
+        \ java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, byte[]>, java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell,\
+        \ byte[]>, java.util.List<com.palantir.logsafe.Arg<?>>)"
+      justification: "Verified that internal consumers are using compiletimeconstant\
+        \ strings"
