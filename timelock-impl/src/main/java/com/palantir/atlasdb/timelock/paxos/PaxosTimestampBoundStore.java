@@ -22,6 +22,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.leader.SuspectedNotCurrentLeaderException;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -115,14 +116,14 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     /**
      * Obtains agreement for a given sequence number, pulling in values from previous sequence numbers
      * if needed.
-     *
+     * <p>
      * The semantics of this method are as follows:
-     *  - If any learner knows that a value has already been agreed for this sequence number, return said value.
-     *  - Otherwise, poll learners for the state of the previous sequence number.
-     *     - If this is unavailable, the cluster must have agreed on (seq - 2), so read it and then force (seq - 1)
-     *       to that value.
-     *  - Finally, force agreement for seq to be the same value as that agreed for (seq - 1).
-     *
+     * - If any learner knows that a value has already been agreed for this sequence number, return said value.
+     * - Otherwise, poll learners for the state of the previous sequence number.
+     * - If this is unavailable, the cluster must have agreed on (seq - 2), so read it and then force (seq - 1)
+     * to that value.
+     * - Finally, force agreement for seq to be the same value as that agreed for (seq - 1).
+     * <p>
      * This method has a precondition that (seq - 2) must be agreed upon; note that numbers up to and including
      * PaxosAcceptor.NO_LOG_ENTRY are always considered agreed upon.
      *
@@ -151,12 +152,12 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      * Forces agreement to be reached for a given sequence number; if the cluster hasn't reached agreement yet,
      * attempts to propose a given value. This method only returns when a value has been agreed upon for the provided
      * sequence number (though there are no guarantees as to whether said value is proposed by this node).
-     *
+     * <p>
      * The semantics of this method are as follows:
-     *  - If any learner knows that a value has already been agreed for this sequence number, return said value.
-     *  - Otherwise, propose the value oldState to the cluster. This call returns the value accepted by a
-     *    quorum of nodes; return that value.
-     *
+     * - If any learner knows that a value has already been agreed for this sequence number, return said value.
+     * - Otherwise, propose the value oldState to the cluster. This call returns the value accepted by a
+     * quorum of nodes; return that value.
+     * <p>
      * Callers of this method that supply a null oldState are responsible for ensuring that the cluster has already
      * agreed on a value with the provided sequence number.
      *
@@ -282,12 +283,14 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      */
     private void checkAgreedBoundIsOurs(long limit, long newSeq, PaxosValue value) throws NotCurrentLeaderException {
         if (!proposer.getUuid().equals(value.getLeaderUUID())) {
-            throwNotCurrentLeaderException(
-                    "Timestamp limit changed from under us for sequence {} (proposer with UUID '{}' changed"
-                            + " it, our UUID is '{}'). This suggests that we have lost leadership, and another timelock"
-                            + " server has gained leadership and updated the timestamp bound."
-                            + " The offending bound was '{}'; we tried to propose"
-                            + " a bound of '{}'. (The offending Paxos value was '{}'.)",
+            throwSuspectedNotCurrentLeaderException(
+                    "Timestamp limit changed from under us for sequence {} (proposer with UUID '{}' changed it, our"
+                            + " UUID is '{}'). This may have arisen because of a race condition in leadership:"
+                            + " we may have lost leadership and another node has gained leadership and updated the"
+                            + " timestamp bound, or we may be the leader, but at the underlying Paxos layer have "
+                            + " received a proposal from a node that was previously a leader."
+                            + " The offending bound was '{}'; we tried to propose  a bound of '{}'."
+                            + " (The offending Paxos value was '{}'.)",
                     SafeArg.of("sequence", newSeq),
                     SafeArg.of("offendingLimitProposerUUID", value.getLeaderUUID()),
                     SafeArg.of("ourUUID", proposer.getUuid()),
@@ -302,9 +305,17 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                 SafeArg.of("paxosValue", value));
     }
 
-    private synchronized void throwNotCurrentLeaderException(@CompileTimeConstant String message, Arg<?>... args) {
+    private synchronized void markLeadershipLost() {
         hasLostLeadership = true;
+    }
+
+    private synchronized void throwNotCurrentLeaderException(@CompileTimeConstant String message, Arg<?>... args) {
+        markLeadershipLost();
         throw new NotCurrentLeaderException(message, args);
+    }
+
+    private void throwSuspectedNotCurrentLeaderException(@CompileTimeConstant String message, Arg<?>... args) {
+        throw new SuspectedNotCurrentLeaderException(message, this::markLeadershipLost, args);
     }
 
     /**

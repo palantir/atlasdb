@@ -18,9 +18,12 @@ package com.palantir.leader.proxy;
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableException;
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
@@ -37,10 +40,13 @@ import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.PaxosLeadershipToken;
+import com.palantir.leader.SuspectedNotCurrentLeaderException;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.SafeLoggable;
 import com.palantir.tracing.RenderTracingRule;
 import java.io.Closeable;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -333,6 +339,88 @@ public class AwaitingLeadershipProxyTest {
         verify(mockA).close();
     }
 
+    @Test
+    public void shouldNotClearDelegateOnSuspectedNotCurrentLeaderFalseAlarm() throws InterruptedException, IOException {
+        MyCloseable mock = mock(MyCloseable.class);
+        MyCloseable proxy = AwaitingLeadershipProxy.newProxyInstance(
+                MyCloseable.class, () -> mock, LeadershipCoordinator.create(leaderElectionService));
+        waitForLeadershipToBeGained();
+
+        Runnable callback = mock(Runnable.class);
+
+        doThrow(new SuspectedNotCurrentLeaderException("There is one imposter among us", callback))
+                .doNothing()
+                .when(mock)
+                .val();
+        assertThatLoggableExceptionThrownBy(proxy::val)
+                .isInstanceOf(SuspectedNotCurrentLeaderException.class)
+                .hasMessage("There is one imposter among us");
+        verify(callback, never()).run();
+
+        assertThatCode(proxy::val)
+                .as("the underlying mock can be called again, if we actually maintained leadership")
+                .doesNotThrowAnyException();
+        verify(mock, never()).close();
+    }
+
+    @Test
+    public void shouldCallCallbackAndLoseLeadershipOnSuspectedNotCurrentLeaderWhenLeadershipGenuinelyLost()
+            throws InterruptedException, IOException {
+        MyCloseable mock = mock(MyCloseable.class);
+        MyCloseable proxy = AwaitingLeadershipProxy.newProxyInstance(
+                MyCloseable.class, () -> mock, LeadershipCoordinator.create(leaderElectionService));
+        waitForLeadershipToBeGained();
+
+        Runnable callback = mock(Runnable.class);
+
+        doAnswer(_invocation -> {
+                    loseLeadershipOnLeaderElectionService(StillLeadingStatus.NOT_LEADING);
+                    throw new SuspectedNotCurrentLeaderException("There is one imposter among us", callback);
+                })
+                .when(mock)
+                .val();
+
+        assertThatLoggableExceptionThrownBy(proxy::val)
+                .isInstanceOf(NotCurrentLeaderException.class)
+                .hasMessageContaining("method invoked on a non-leader (leadership lost)");
+        verify(callback).run();
+
+        // Another call is required before we clear existing resources.
+        assertThatLoggableExceptionThrownBy(proxy::val)
+                .isInstanceOf(NotCurrentLeaderException.class)
+                .hasMessageContaining("method invoked on a non-leader");
+        verify(mock).close();
+    }
+
+    @Test
+    public void shouldCallCallbackAndLoseLeadershipOnSuspectedNotCurrentLeaderWhenNoQuorum()
+            throws InterruptedException, IOException {
+        MyCloseable mock = mock(MyCloseable.class);
+        MyCloseable proxy = AwaitingLeadershipProxy.newProxyInstance(
+                MyCloseable.class, () -> mock, LeadershipCoordinator.create(leaderElectionService));
+        waitForLeadershipToBeGained();
+
+        Runnable callback = mock(Runnable.class);
+
+        doAnswer(_invocation -> {
+                    loseLeadershipOnLeaderElectionService(StillLeadingStatus.NO_QUORUM);
+                    throw new SuspectedNotCurrentLeaderException("There is one imposter among us", callback);
+                })
+                .when(mock)
+                .val();
+
+        assertThatLoggableExceptionThrownBy(proxy::val)
+                .isInstanceOf(NotCurrentLeaderException.class)
+                .hasMessageContaining("method invoked on a non-leader (leadership lost)");
+        verify(callback).run();
+
+        // Another call is required before we clear existing resources.
+        assertThatLoggableExceptionThrownBy(proxy::val)
+                .isInstanceOf(NotCurrentLeaderException.class)
+                .hasMessageContaining("method invoked on a non-leader");
+        verify(mock).close();
+    }
+
     @SuppressWarnings("IllegalThrows")
     private Void loseLeadershipDuringCallToProxyFor(Callable<Void> delegate) throws Throwable {
         CountDownLatch delegateCallStarted = new CountDownLatch(1);
@@ -361,18 +449,25 @@ public class AwaitingLeadershipProxyTest {
     }
 
     private void loseLeadership(Callable<?> proxy) throws InterruptedException {
-        when(leaderElectionService.isStillLeading(any()))
-                .thenReturn(Futures.immediateFuture(StillLeadingStatus.NOT_LEADING));
-        when(leaderElectionService.blockOnBecomingLeader()).thenAnswer(invocation -> {
-            // never return
-            LockSupport.park();
-            return null;
-        });
+        loseLeadershipOnLeaderElectionService(StillLeadingStatus.NOT_LEADING);
 
         // make a call so the proxy will realize that it has lost leadership
         assertThatLoggableExceptionThrownBy(proxy::call)
                 .isInstanceOf(NotCurrentLeaderException.class)
                 .hasLogMessage("method invoked on a non-leader (leadership lost)");
+    }
+
+    private void loseLeadershipOnLeaderElectionService(StillLeadingStatus leadingStatus) throws InterruptedException {
+        Preconditions.checkState(
+                leadingStatus != StillLeadingStatus.LEADING,
+                "Cannot lose leadership status and think that we are still leading");
+
+        when(leaderElectionService.isStillLeading(any())).thenReturn(Futures.immediateFuture(leadingStatus));
+        when(leaderElectionService.blockOnBecomingLeader()).thenAnswer(invocation -> {
+            // never return
+            LockSupport.park();
+            return null;
+        });
     }
 
     private void refreshLeadershipToken(MyCloseable proxy) throws InterruptedException {

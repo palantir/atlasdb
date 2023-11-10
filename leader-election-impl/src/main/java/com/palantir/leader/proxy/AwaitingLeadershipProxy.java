@@ -29,9 +29,11 @@ import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.leader.SuspectedNotCurrentLeaderException;
 import com.palantir.leader.proxy.LeadershipStateManager.LeadershipState;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.CloseableTracer;
@@ -159,18 +161,40 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     private RuntimeException handleDelegateThrewException(
             LeadershipToken leadershipToken, InvocationTargetException exception) throws Exception {
-        if (exception.getCause() instanceof ServiceNotAvailableException
-                || exception.getCause() instanceof NotCurrentLeaderException) {
-            leadershipStateManager.handleNotLeading(leadershipToken, exception.getCause());
+        Throwable cause = exception.getCause();
+        if (cause instanceof SuspectedNotCurrentLeaderException) {
+            handleSuspectedNotCurrentLeader(leadershipToken, cause);
+        }
+        if (cause instanceof ServiceNotAvailableException || cause instanceof NotCurrentLeaderException) {
+            leadershipStateManager.handleNotLeading(leadershipToken, cause);
         }
         // Prevent blocked lock requests from receiving a non-retryable 500 on interrupts
         // in case of a leader election.
-        if (exception.getCause() instanceof InterruptedException
-                && !leadershipCoordinator.isStillCurrentToken(leadershipToken)) {
+        if (cause instanceof InterruptedException && !leadershipCoordinator.isStillCurrentToken(leadershipToken)) {
             throw leadershipCoordinator.notCurrentLeaderException(
-                    "received an interrupt due to leader election.", exception.getCause());
+                    "received an interrupt due to leader election.", cause);
         }
-        Throwables.propagateIfPossible(exception.getCause(), Exception.class);
-        throw new RuntimeException(exception.getCause());
+        Throwables.propagateIfPossible(cause, Exception.class);
+        throw new RuntimeException(cause);
+    }
+
+    private void handleSuspectedNotCurrentLeader(LeadershipToken leadershipToken, Throwable cause) throws Exception {
+        StillLeadingStatus status =
+                leadershipCoordinator.isStillLeading(leadershipToken).get();
+        switch (status) {
+            case LEADING:
+                // We were actually the leader. We will fail this operation, but not actually mark ourselves as
+                // not leading.
+            case NO_QUORUM:
+                // Treating as not leading is consistent with uses of ServiceNotAvailableException elsewhere.
+            case NOT_LEADING:
+                ((SuspectedNotCurrentLeaderException) cause).runLostLeadershipCallback();
+                leadershipStateManager.handleNotLeading(leadershipToken, cause);
+                break;
+            default:
+                throw new SafeIllegalStateException("Unexpected StillLeadingStatus", SafeArg.of("status", status));
+        }
+        Throwables.propagateIfPossible(cause, Exception.class);
+        throw new RuntimeException(cause);
     }
 }
