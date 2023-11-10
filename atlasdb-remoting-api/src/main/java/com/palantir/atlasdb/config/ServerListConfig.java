@@ -21,10 +21,12 @@ import com.palantir.conjure.java.api.config.service.ProxyConfiguration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
+import com.palantir.logsafe.DoNotLog;
 import java.util.Optional;
 import java.util.Set;
 import org.immutables.value.Value;
 
+@DoNotLog
 @JsonDeserialize(as = ImmutableServerListConfig.class)
 @JsonSerialize(as = ImmutableServerListConfig.class)
 @Value.Immutable

@@ -22,12 +22,14 @@ import com.palantir.atlasdb.factory.ServiceDiscoveringAtlasSupplier;
 import com.palantir.atlasdb.factory.timestamp.FreshTimestampSupplierAdapter;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.logsafe.DoNotLog;
 import com.palantir.refreshable.Refreshable;
 import java.util.Optional;
 import java.util.Set;
 import javax.net.ssl.SSLSocketFactory;
 import org.immutables.value.Value;
 
+@DoNotLog
 @Value.Immutable
 public abstract class ServicesConfig {
 

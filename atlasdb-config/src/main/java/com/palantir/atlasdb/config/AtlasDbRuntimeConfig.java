@@ -27,9 +27,11 @@ import com.palantir.atlasdb.stream.StreamStorePersistenceConfigurations;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
+import com.palantir.logsafe.DoNotLog;
 import java.util.Optional;
 import org.immutables.value.Value;
 
+@DoNotLog
 @JsonDeserialize(as = ImmutableAtlasDbRuntimeConfig.class)
 @JsonSerialize(as = ImmutableAtlasDbRuntimeConfig.class)
 @Value.Immutable
