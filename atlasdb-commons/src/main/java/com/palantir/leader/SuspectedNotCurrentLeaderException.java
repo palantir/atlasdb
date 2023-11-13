@@ -45,8 +45,7 @@ public class SuspectedNotCurrentLeaderException extends RuntimeException impleme
     private final String logMessage;
     private final List<Arg<?>> args;
 
-    public SuspectedNotCurrentLeaderException(
-            @CompileTimeConstant String logMessage, Arg<?>... args) {
+    public SuspectedNotCurrentLeaderException(@CompileTimeConstant String logMessage, Arg<?>... args) {
         super(SafeExceptions.renderMessage(logMessage, args));
         this.logMessage = logMessage;
         this.args = List.of(args);
