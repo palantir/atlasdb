@@ -121,18 +121,28 @@ Otherwise, this can lead to serious data corruption.</p>
 <div class="admonition danger">
 <p class="admonition-title">Danger</p>
 <p>If your service is highly available, you MUST shut down ALL nodes of your service after step 2 before bringing up any
-nodes in step 4. Otherwise, there is a risk of <strong>SEVERE DATA CORRUPTION</strong> as timestamps may be given out of order.</p>
+nodes in step 5. Otherwise, there is a risk of <strong>SEVERE DATA CORRUPTION</strong> as timestamps may be given out of order.</p>
 </div>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
 <p>Automated migrations are only implemented for Cassandra, and from AtlasDB 0.253.2 onwards DbKVS.
 If you are using any other KVS, please follow the instructions at <a class="reference internal" href="manual-migration.html#manual-timelock-migration"><span class="std std-ref">Manual Migration to Timelock Server</span></a>.</p>
 </div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>If other services are dependent on the timestamp and lock service exposed by the AtlasDB client in question, steps
+should be taken to move them to timelock before this service is migrated to timelock, and for those services
+a manual migration will be necessary (seeing as they must be using remote timestamp blocks, and/or misusing timelock
+configuration to point to those services).</p>
+</div>
 <ol class="arabic simple">
 <li><p>Confirm that your AtlasDB installation is backed by Cassandra KVS, or you are using DbKVS and your version of AtlasDB
 is at least 0.253.2.</p></li>
 <li><p>(Optional) Take a fresh timestamp from your AtlasDB services, using the fresh timestamp CLI or the
 <code class="docutils literal notranslate"><span class="pre">/timestamp/fresh-timestamp</span></code> endpoint. This step is not strictly required, but may be useful for verification.</p></li>
+<li><p>Shut down all nodes of your service. These must
+remain shut until after step 4 is performed. Failure to do so incurs risks of <strong>SEVERE DATA CORRUPTION</strong> as
+timestamps may be given out of order.</p></li>
 <li><p>Add the <a class="reference internal" href="../../configuration/external_timelock_service_configs/timelock_client_config.html#timelock-client-configuration"><span class="std std-ref">Timelock client configuration</span></a> to your service.</p></li>
 <li><p>Starting/re-starting the service will automatically migrate the service.
 Note that the service may not elect a leader until a timestamp or lock request for some client is actually made.</p></li>
