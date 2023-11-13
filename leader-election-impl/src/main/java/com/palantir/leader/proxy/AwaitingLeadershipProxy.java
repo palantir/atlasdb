@@ -83,7 +83,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         AwaitingLeadershipProxy<U> proxy =
                 new AwaitingLeadershipProxy<>(awaitingLeadership, delegateSupplier, interfaceClass);
         return (U) Proxy.newProxyInstance(
-                interfaceClass.getClassLoader(), new Class<?>[]{interfaceClass, Closeable.class}, proxy);
+                interfaceClass.getClassLoader(), new Class<?>[] {interfaceClass, Closeable.class}, proxy);
     }
 
     @SuppressWarnings("ThrowError") // Possible legacy API
@@ -203,7 +203,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     }
 
     // Chosen to match past behaviour, where interruptions are propagated to the caller.
-    private StillLeadingStatus determineCurrentLeadershipStatus(LeadershipToken leadershipToken, SuspectedNotCurrentLeaderException cause) throws InterruptedException {
+    private StillLeadingStatus determineCurrentLeadershipStatus(
+            LeadershipToken leadershipToken, SuspectedNotCurrentLeaderException cause) throws InterruptedException {
         try {
             ListenableFuture<StillLeadingStatus> stillLeading = leadershipCoordinator.isStillLeading(leadershipToken);
             return stillLeading.get();
@@ -212,7 +213,10 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             cause.addSuppressed(e.getCause());
             return StillLeadingStatus.NOT_LEADING;
         } catch (CancellationException e) {
-            log.info("Attempt to check if we were still leading was cancelled. Being defensive, and saying we are not leading.", e);
+            log.info(
+                    "Attempt to check if we were still leading was cancelled. Being defensive, and saying we are not"
+                            + " leading.",
+                    e);
             cause.addSuppressed(e);
             return StillLeadingStatus.NOT_LEADING;
         } catch (Exception e) {

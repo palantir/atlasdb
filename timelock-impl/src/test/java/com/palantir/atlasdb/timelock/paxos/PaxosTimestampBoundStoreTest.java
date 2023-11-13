@@ -262,7 +262,8 @@ public class PaxosTimestampBoundStoreTest {
         assertThatThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2))
                 .as("no further requests should be permitted after a SuspectedNotCurrentLeaderException")
                 .isInstanceOf(SafeIllegalStateException.class)
-                .hasMessage("Cannot store upper limit as leadership has been lost, or this store is no longer current.");
+                .hasMessage(
+                        "Cannot store upper limit as leadership has been lost, or this store is no longer current.");
     }
 
     @Test

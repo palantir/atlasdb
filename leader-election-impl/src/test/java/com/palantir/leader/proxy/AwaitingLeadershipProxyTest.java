@@ -115,7 +115,7 @@ public class AwaitingLeadershipProxyTest {
         inProgressCheck.set(StillLeadingStatus.NOT_LEADING);
 
         assertThatThrownBy(future::get).cause().satisfies(exc -> assertThatLoggableException(
-                (Throwable & SafeLoggable) exc)
+                        (Throwable & SafeLoggable) exc)
                 .isInstanceOf(NotCurrentLeaderException.class)
                 .hasLogMessage("method invoked on a non-leader (leadership lost)"));
     }
@@ -366,12 +366,12 @@ public class AwaitingLeadershipProxyTest {
                 .doesNotThrowAnyException();
 
         assertThatCode(() -> {
-            proxy.val();
-            bystanderProxy.val();
-            proxy.val();
-            bystanderProxy.val();
-            proxy.val();
-        })
+                    proxy.val();
+                    bystanderProxy.val();
+                    proxy.val();
+                    bystanderProxy.val();
+                    proxy.val();
+                })
                 .as("the proxies are still able to forward requests")
                 .doesNotThrowAnyException();
 
@@ -390,9 +390,9 @@ public class AwaitingLeadershipProxyTest {
         waitForLeadershipToBeGained();
 
         doAnswer(_invocation -> {
-            loseLeadershipOnLeaderElectionService(StillLeadingStatus.NOT_LEADING);
-            throw new SuspectedNotCurrentLeaderException("There is one imposter among us");
-        })
+                    loseLeadershipOnLeaderElectionService(StillLeadingStatus.NOT_LEADING);
+                    throw new SuspectedNotCurrentLeaderException("There is one imposter among us");
+                })
                 .when(mock)
                 .val();
 
@@ -408,17 +408,16 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    public void shouldLoseLeadershipOnSuspectedNotCurrentLeaderWhenNoQuorum()
-            throws InterruptedException, IOException {
+    public void shouldLoseLeadershipOnSuspectedNotCurrentLeaderWhenNoQuorum() throws InterruptedException, IOException {
         MyCloseable mock = mock(MyCloseable.class);
         MyCloseable proxy = AwaitingLeadershipProxy.newProxyInstance(
                 MyCloseable.class, () -> mock, LeadershipCoordinator.create(leaderElectionService));
         waitForLeadershipToBeGained();
 
         doAnswer(_invocation -> {
-            loseLeadershipOnLeaderElectionService(StillLeadingStatus.NO_QUORUM);
-            throw new SuspectedNotCurrentLeaderException("There is one imposter among us");
-        })
+                    loseLeadershipOnLeaderElectionService(StillLeadingStatus.NO_QUORUM);
+                    throw new SuspectedNotCurrentLeaderException("There is one imposter among us");
+                })
                 .when(mock)
                 .val();
 
@@ -441,10 +440,9 @@ public class AwaitingLeadershipProxyTest {
                 MyCloseable.class, () -> mock, LeadershipCoordinator.create(leaderElectionService));
         waitForLeadershipToBeGained();
 
-
         doAnswer(_invocation -> {
-            throw new SuspectedNotCurrentLeaderException("There is one imposter among us");
-        })
+                    throw new SuspectedNotCurrentLeaderException("There is one imposter among us");
+                })
                 .when(mock)
                 .val();
 
