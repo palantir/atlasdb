@@ -212,7 +212,6 @@ public final class TableClearsTable implements
             return Objects.equals(table, other.table);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(table);
@@ -682,5 +681,5 @@ public final class TableClearsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "g9VvRKGTKPXfDJSGLE056Q==";
+    static String __CLASS_HASH = "pmBsh/iKlcRLxVKjwFzmog==";
 }

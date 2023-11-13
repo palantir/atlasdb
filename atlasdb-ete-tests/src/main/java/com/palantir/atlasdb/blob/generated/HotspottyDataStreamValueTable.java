@@ -223,7 +223,6 @@ public final class HotspottyDataStreamValueTable implements
             return Objects.equals(id, other.id) && Objects.equals(blockId, other.blockId);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ id, blockId });
@@ -694,5 +693,5 @@ public final class HotspottyDataStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "sfz69t78uujJz/42PiQM0g==";
+    static String __CLASS_HASH = "snS2Wbis0t2KM+IP7Vl5sg==";
 }

@@ -212,10 +212,9 @@ public final class StreamTestStreamMetadataTable implements
             return Objects.equals(id, other.id);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Objects.hashCode(id);
+            return Long.hashCode(id);
         }
 
         @Override
@@ -707,5 +706,5 @@ public final class StreamTestStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "N8Az5Pp05mvzafhLtq16mw==";
+    static String __CLASS_HASH = "UPctXhT2Qj8n8+XIXy0qYQ==";
 }

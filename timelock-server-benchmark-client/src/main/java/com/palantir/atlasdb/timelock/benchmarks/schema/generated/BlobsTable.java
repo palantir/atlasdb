@@ -212,10 +212,9 @@ public final class BlobsTable implements
             return Arrays.equals(key, other.key);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Objects.hashCode(key);
+            return Arrays.hashCode(key);
         }
 
         @Override
@@ -682,5 +681,5 @@ public final class BlobsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "8QBU7nHeHMWI4u84bl//Ng==";
+    static String __CLASS_HASH = "1Py+k/7B9WRYEcycjjlbAA==";
 }

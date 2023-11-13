@@ -253,7 +253,6 @@ public final class HashComponentsTestTable implements
             return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(component1, other.component1) && Objects.equals(component2, other.component2);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, component1, component2 });
@@ -787,5 +786,5 @@ public final class HashComponentsTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "JFCKFwjljsA/pF0RqDunaQ==";
+    static String __CLASS_HASH = "EZmcq98hdxSPN1D5CjrQfg==";
 }

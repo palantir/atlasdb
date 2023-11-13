@@ -223,7 +223,6 @@ public final class StreamTestMaxMemStreamValueTable implements
             return Objects.equals(id, other.id) && Objects.equals(blockId, other.blockId);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ id, blockId });
@@ -694,5 +693,5 @@ public final class StreamTestMaxMemStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "lLPuYDp2Vb/e+lYgjC9m/A==";
+    static String __CLASS_HASH = "PRyae8rnHWvtw2st3PT4Ew==";
 }
