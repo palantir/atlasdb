@@ -35,9 +35,8 @@ public class LeadershipStateManager<T> {
     private final CoalescingSupplier<LeadershipToken> leadershipTokenCoalescingSupplier;
     private final LeadershipCoordinator leadershipCoordinator;
 
-    /**
-     * delegate reference is atomic as {@link #clearDelegate()} can be accessed by multiple threads.
-     */
+    // Concurrency: we restrict the clearing of delegates to be performed either when the state manager as a whole is
+    // closed, OR if not then by the thread that is responsible for updating the leadership token.
     private final AtomicReference<T> delegateRef;
 
     private final AtomicReference<LeadershipToken> maybeValidLeadershipTokenRef;
@@ -137,9 +136,10 @@ public class LeadershipStateManager<T> {
     }
 
     void handleDelegateNoLongerValid() {
-        // This looks janky af, but there are reasons. Essentially, this forces a recreation on the next call to
-        // getOrUpdateLeadershipToken. We can't just clear the delegate reference, because otherwise there is no impetus
-        // to recreate it.
+        // This forces a re-creation of the delegate on the next call to getOrUpdateLeadershipToken. We cannot just
+        // clear the delegate reference and/or invoke the supplier here - doing the former will result in this not
+        // being reset, and doing the latter creates a race condition with tryToUpdateLeadershipToken where we could
+        // clear a delegate that wasn't actually the one the outside world told us was invalid.
         maybeValidLeadershipTokenRef.set(null);
     }
 

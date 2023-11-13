@@ -309,13 +309,14 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         hasLostLeadership = true;
     }
 
-    private synchronized void throwNotCurrentLeaderException(@CompileTimeConstant String message, Arg<?>... args) {
+    private void throwNotCurrentLeaderException(@CompileTimeConstant String message, Arg<?>... args) {
         markLeadershipLost();
         throw new NotCurrentLeaderException(message, args);
     }
 
     private void throwSuspectedNotCurrentLeaderException(@CompileTimeConstant String message, Arg<?>... args) {
-        throw new SuspectedNotCurrentLeaderException(message, this::markLeadershipLost, args);
+        markLeadershipLost();
+        throw new SuspectedNotCurrentLeaderException(message, args);
     }
 
     /**

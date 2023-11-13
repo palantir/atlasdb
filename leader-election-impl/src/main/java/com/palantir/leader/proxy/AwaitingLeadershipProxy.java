@@ -81,7 +81,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         AwaitingLeadershipProxy<U> proxy =
                 new AwaitingLeadershipProxy<>(awaitingLeadership, delegateSupplier, interfaceClass);
         return (U) Proxy.newProxyInstance(
-                interfaceClass.getClassLoader(), new Class<?>[] {interfaceClass, Closeable.class}, proxy);
+                interfaceClass.getClassLoader(), new Class<?>[]{interfaceClass, Closeable.class}, proxy);
     }
 
     @SuppressWarnings("ThrowError") // Possible legacy API
@@ -191,7 +191,6 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             case NO_QUORUM:
                 // Treating as not leading is consistent with uses of ServiceNotAvailableException elsewhere.
             case NOT_LEADING:
-                cause.runLostLeadershipCallback();
                 leadershipStateManager.handleNotLeading(leadershipToken, cause);
                 break;
             default:

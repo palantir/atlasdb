@@ -36,7 +36,7 @@ import java.util.List;
  * A precondition of this callback is that it does not throw exceptions. If it does, the behaviour of the system is
  * undefined.
  * <p>
- * If leadership was not actually lost, we assume that requests on throwers should be able to be retried without issue.
+ * If leadership was not actually lost,
  * Throwers which require availability must not throw this exception when they are in an irrecoverable state, even if
  * the source of that state is only a possible leadership loss. They should instead consider throwing
  * {@link NotCurrentLeaderException}.
@@ -44,13 +44,11 @@ import java.util.List;
 public class SuspectedNotCurrentLeaderException extends RuntimeException implements SafeLoggable {
     private final String logMessage;
     private final List<Arg<?>> args;
-    private final Runnable lostLeadershipCallback;
 
     public SuspectedNotCurrentLeaderException(
-            @CompileTimeConstant String logMessage, Runnable lostLeadershipCallback, Arg<?>... args) {
+            @CompileTimeConstant String logMessage, Arg<?>... args) {
         super(SafeExceptions.renderMessage(logMessage, args));
         this.logMessage = logMessage;
-        this.lostLeadershipCallback = lostLeadershipCallback;
         this.args = List.of(args);
     }
 
@@ -62,10 +60,5 @@ public class SuspectedNotCurrentLeaderException extends RuntimeException impleme
     @Override
     public List<Arg<?>> getArgs() {
         return args;
-    }
-
-    public void runLostLeadershipCallback() {
-        // Should only be called if we actually have lost leadership.
-        lostLeadershipCallback.run();
     }
 }
