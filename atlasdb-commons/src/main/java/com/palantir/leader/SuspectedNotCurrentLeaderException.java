@@ -27,19 +27,8 @@ import java.util.List;
  * This exception may be thrown when an operation that indicates a possible leadership loss has occurred. This does
  * not mean that leadership has been lost; the handler should check the leadership status and act accordingly.
  * <p>
- * This exception may additionally provide a callback that an external environment can use as a mechanism for feedback
- * to the original class, that leadership was indeed lost. This is slightly horrible, but the creation path of the
- * objects that might produce this exception is sufficiently complex that the architecturally preferable solution of
- * passing the leadership coordinator or mechanism for checking if we still have leadership to the relevant objects is
- * not feasible without invasive refactoring, which we don't have the resources for right now.
- * <p>
- * A precondition of this callback is that it does not throw exceptions. If it does, the behaviour of the system is
- * undefined.
- * <p>
- * If leadership was not actually lost,
- * Throwers which require availability must not throw this exception when they are in an irrecoverable state, even if
- * the source of that state is only a possible leadership loss. They should instead consider throwing
- * {@link NotCurrentLeaderException}.
+ * If leadership was not actually lost, the underlying object may be in an inconsistent state, and will be recreated
+ * before further requests are sent to it.
  */
 public class SuspectedNotCurrentLeaderException extends RuntimeException implements SafeLoggable {
     private final String logMessage;

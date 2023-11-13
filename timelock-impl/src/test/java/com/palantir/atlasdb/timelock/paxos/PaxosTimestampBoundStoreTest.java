@@ -15,10 +15,8 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
-import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -60,7 +58,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nullable;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -262,44 +259,10 @@ public class PaxosTimestampBoundStoreTest {
         additionalStore.storeUpperLimit(TIMESTAMP_1);
         assertThatThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2))
                 .isInstanceOf(SuspectedNotCurrentLeaderException.class);
-        assertThatThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2 + 123456789))
-                .isInstanceOf(SuspectedNotCurrentLeaderException.class);
-    }
-
-    @Test
-    public void leadershipLossCallbackOnBoundChangeDisablesFurtherOperations() {
-        PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(1);
-        additionalStore.storeUpperLimit(TIMESTAMP_1);
-        try {
-            store.storeUpperLimit(TIMESTAMP_2);
-            Assert.fail("Expected SuspectedNotCurrentLeaderException");
-        } catch (SuspectedNotCurrentLeaderException e) {
-            e.runLostLeadershipCallback();
-        }
-        assertThatLoggableExceptionThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2))
+        assertThatThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2))
+                .as("no further requests should be permitted after a SuspectedNotCurrentLeaderException")
                 .isInstanceOf(SafeIllegalStateException.class)
-                .hasMessageContaining("Cannot store upper limit as leadership has been lost.");
-    }
-
-    @Test
-    public void leadershipLossCallbackOnBoundChangeIsIdempotent() {
-        PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(1);
-        additionalStore.storeUpperLimit(TIMESTAMP_1);
-        try {
-            store.storeUpperLimit(TIMESTAMP_2);
-            Assert.fail("Expected SuspectedNotCurrentLeaderException");
-        } catch (SuspectedNotCurrentLeaderException e) {
-            e.runLostLeadershipCallback();
-            assertThatCode(e::runLostLeadershipCallback)
-                    .as("it should be allowed to run the lost leadership callback twice")
-                    .doesNotThrowAnyException();
-            assertThatCode(e::runLostLeadershipCallback)
-                    .as("it should be allowed to run the lost leadership callback three times")
-                    .doesNotThrowAnyException();
-        }
-        assertThatLoggableExceptionThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2))
-                .isInstanceOf(SafeIllegalStateException.class)
-                .hasMessageContaining("Cannot store upper limit as leadership has been lost.");
+                .hasMessage("Cannot store upper limit as leadership has been lost, or this store is no longer current.");
     }
 
     @Test

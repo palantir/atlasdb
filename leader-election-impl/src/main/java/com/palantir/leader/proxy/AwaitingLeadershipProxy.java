@@ -43,6 +43,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 
 @SuppressWarnings("ProxyNonConstantType")
@@ -81,7 +83,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         AwaitingLeadershipProxy<U> proxy =
                 new AwaitingLeadershipProxy<>(awaitingLeadership, delegateSupplier, interfaceClass);
         return (U) Proxy.newProxyInstance(
-                interfaceClass.getClassLoader(), new Class<?>[] {interfaceClass, Closeable.class}, proxy);
+                interfaceClass.getClassLoader(), new Class<?>[]{interfaceClass, Closeable.class}, proxy);
     }
 
     @SuppressWarnings("ThrowError") // Possible legacy API
@@ -180,8 +182,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
 
     private void handleSuspectedNotCurrentLeader(
             LeadershipToken leadershipToken, SuspectedNotCurrentLeaderException cause) throws Exception {
-        StillLeadingStatus status =
-                leadershipCoordinator.isStillLeading(leadershipToken).get();
+        StillLeadingStatus status = determineCurrentLeadershipStatus(leadershipToken, cause);
+
         switch (status) {
             case LEADING:
                 // We were still the leader. Invalidate the relevant delegates, but don't generally get rid of our
@@ -198,5 +200,24 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         }
         Throwables.propagateIfPossible(cause, Exception.class);
         throw new RuntimeException(cause);
+    }
+
+    // Chosen to match past behaviour, where interruptions are propagated to the caller.
+    private StillLeadingStatus determineCurrentLeadershipStatus(LeadershipToken leadershipToken, SuspectedNotCurrentLeaderException cause) throws InterruptedException {
+        try {
+            ListenableFuture<StillLeadingStatus> stillLeading = leadershipCoordinator.isStillLeading(leadershipToken);
+            return stillLeading.get();
+        } catch (ExecutionException e) {
+            log.info("Failed to check if we were still leading. Being defensive, and saying we are not leading.", e);
+            cause.addSuppressed(e.getCause());
+            return StillLeadingStatus.NOT_LEADING;
+        } catch (CancellationException e) {
+            log.info("Attempt to check if we were still leading was cancelled. Being defensive, and saying we are not leading.", e);
+            cause.addSuppressed(e);
+            return StillLeadingStatus.NOT_LEADING;
+        } catch (Exception e) {
+            log.info("Lol lol lol lol lol", e);
+            return StillLeadingStatus.NOT_LEADING;
+        }
     }
 }
