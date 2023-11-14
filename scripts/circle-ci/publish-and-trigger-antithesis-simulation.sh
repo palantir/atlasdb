@@ -20,6 +20,7 @@ printenv ANTITHESIS_LOGIN_JSON | base64 -d | docker login -u _json_key https://$
 ./gradlew --scan dockerTag
 
 VERSION=$(./gradlew -q printVersion)
+echo "My current version ${VERSION}"
 
 docker pull palantirtechnologies/cassandra:2.2.18-1.116.0
 docker tag palantirtechnologies/cassandra:2.2.18-1.116.0 ${ANTITHESIS_REPO_URL}/cassandra:2.2.18-1.116.0
