@@ -20,21 +20,21 @@ printenv ANTITHESIS_LOGIN_JSON | base64 -d | docker login -u _json_key https://$
 ./gradlew --scan dockerTag
 
 VERSION=$(./gradlew -q printVersion)
+WEBHOOK_NAME="smoketest"
 echo "My current version ${VERSION}"
 
 docker pull palantirtechnologies/cassandra:2.2.18-1.116.0
 docker tag palantirtechnologies/cassandra:2.2.18-1.116.0 ${ANTITHESIS_REPO_URL}/cassandra:2.2.18-1.116.0
 docker push ${ANTITHESIS_REPO_URL}/cassandra:2.2.18-1.116.0
 
-docker tag palantirtechnologies/timelock-server-distribution:${VERSION} ${ANTITHESIS_REPO_URL}/timelock-server-distribution:${1}
-docker push ${ANTITHESIS_REPO_URL}/timelock-server-distribution:${1}
+docker tag palantirtechnologies/timelock-server-distribution:${VERSION} ${ANTITHESIS_REPO_URL}/timelock-server-distribution:${WEBHOOK_NAME}
+docker push ${ANTITHESIS_REPO_URL}/timelock-server-distribution:${WEBHOOK_NAME}
 
-docker tag palantirtechnologies/atlasdb-workload-server-distribution:${VERSION} ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-distribution:${1}
-docker push ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-distribution:${1}
+docker tag palantirtechnologies/atlasdb-workload-server-distribution:${VERSION} ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-distribution:${WEBHOOK_NAME}
+docker push ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-distribution:${WEBHOOK_NAME}
 
-docker tag palantirtechnologies/atlasdb-workload-server-antithesis:${VERSION} ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-antithesis:${1}
-docker push ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-antithesis:${1}
+docker tag palantirtechnologies/atlasdb-workload-server-antithesis:${VERSION} ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-antithesis:${WEBHOOK_NAME}
+docker push ${ANTITHESIS_REPO_URL}/atlasdb-workload-server-antithesis:${WEBHOOK_NAME}
 
-WEBHOOK="palantir_atlasdb__smoketest__latest"
-echo "Triggering simulation on Antithesis via the ${WEBHOOK} webhook."
-curl -v -u "palantir:${ANTITHESIS_WEBHOOK_PASSWORD}" -X POST https://palantir.antithesis.com/api/v1/launch_experiment/${WEBHOOK}
+echo "Triggering simulation on Antithesis via the ${WEBHOOK_NAME} webhook."
+curl -v -u "palantir:${ANTITHESIS_WEBHOOK_PASSWORD}" -X POST https://palantir.antithesis.com/api/v1/launch_experiment/palantir_atlasdb__${WEBHOOK_NAME}__latest
