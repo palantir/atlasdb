@@ -49,7 +49,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
-import com.palantir.timelock.paxos.InMemoryTimeLockRule;
+import com.palantir.timelock.paxos.InMemoryTimelockExtension;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -59,12 +59,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.InOrder;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class SnapshotTransactionManagerTest {
     private static final String SETUP_TASK_METRIC_NAME =
             SnapshotTransactionManager.class.getCanonicalName() + ".setupTask";
@@ -78,8 +77,8 @@ public class SnapshotTransactionManagerTest {
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final ExecutorService deleteExecutor = Executors.newSingleThreadExecutor();
 
-    @ClassRule
-    public static InMemoryTimeLockRule services = new InMemoryTimeLockRule();
+    @RegisterExtension
+    public static InMemoryTimelockExtension inMemoryTimelockExtension = new InMemoryTimelockExtension();
 
     private ManagedTimestampService timestampService;
     private SnapshotTransactionManager snapshotTransactionManager;
@@ -87,13 +86,13 @@ public class SnapshotTransactionManagerTest {
     private final TransactionKnowledgeComponents knowledge =
             TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry());
 
-    @Before
+    @BeforeEach
     public void setUp() {
-        timestampService = services.getManagedTimestampService();
+        timestampService = inMemoryTimelockExtension.getManagedTimestampService();
         snapshotTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
                 keyValueService,
-                services.getLegacyTimelockService(),
+                inMemoryTimelockExtension.getLegacyTimelockService(),
                 NoOpLockWatchManager.create(),
                 timestampService,
                 closeableLockService,
@@ -150,9 +149,9 @@ public class SnapshotTransactionManagerTest {
         SnapshotTransactionManager newTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
                 keyValueService,
-                services.getLegacyTimelockService(),
+                inMemoryTimelockExtension.getLegacyTimelockService(),
                 NoOpLockWatchManager.create(),
-                services.getManagedTimestampService(),
+                inMemoryTimelockExtension.getManagedTimestampService(),
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),
                 null,
@@ -258,7 +257,7 @@ public class SnapshotTransactionManagerTest {
 
     @Test
     public void callsStartTransactionForReadOnlyTransactionsIfFlagIsSet() throws InterruptedException {
-        TimelockService timelockService = spy(services.getLegacyTimelockService());
+        TimelockService timelockService = spy(inMemoryTimelockExtension.getLegacyTimelockService());
         when(closeableLockService.lock(any(), any())).thenReturn(new LockRefreshToken(BigInteger.ONE, Long.MAX_VALUE));
         SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, true);
 
@@ -271,7 +270,7 @@ public class SnapshotTransactionManagerTest {
 
     @Test
     public void doesNotCallStartTransactionForReadOnlyTransactionsIfFlagIsNotSet() {
-        TimelockService timelockService = spy(services.getLegacyTimelockService());
+        TimelockService timelockService = spy(inMemoryTimelockExtension.getLegacyTimelockService());
         SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, false);
 
         transactionManager.runTaskReadOnly(tx -> "ignored");
@@ -281,7 +280,7 @@ public class SnapshotTransactionManagerTest {
 
     @Test
     public void startEmptyBatchOfTransactionsDoesNotCallTimelockService() {
-        TimelockService timelockService = spy(services.getLegacyTimelockService());
+        TimelockService timelockService = spy(inMemoryTimelockExtension.getLegacyTimelockService());
         SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, false);
         List<OpenTransaction> transactions = transactionManager.startTransactions(ImmutableList.of());
 

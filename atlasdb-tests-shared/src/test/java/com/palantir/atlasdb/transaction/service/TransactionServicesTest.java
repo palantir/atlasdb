@@ -49,19 +49,18 @@ import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timelock.paxos.InMemoryTimeLockRule;
+import com.palantir.timelock.paxos.InMemoryTimelockExtension;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Map;
 import org.awaitility.Awaitility;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.ArgumentCaptor;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class TransactionServicesTest {
     private final KeyValueService keyValueService = spy(new InMemoryKeyValueService(false));
 
@@ -74,15 +73,15 @@ public class TransactionServicesTest {
     private long startTs;
     private long commitTs;
 
-    @ClassRule
-    public static InMemoryTimeLockRule services = new InMemoryTimeLockRule();
+    @RegisterExtension
+    public static InMemoryTimelockExtension inMemoryTimelockExtension = new InMemoryTimelockExtension();
 
-    @Before
+    @BeforeEach
     public void setUp() {
         TransactionTables.createTables(keyValueService);
         MetricsManager metricsManager = MetricsManagers.createForTests();
 
-        timestampService = services.getTimestampService();
+        timestampService = inMemoryTimelockExtension.getTimestampService();
         coordinationService =
                 CoordinationServices.createDefault(keyValueService, timestampService, metricsManager, false);
         knowledge = TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry());

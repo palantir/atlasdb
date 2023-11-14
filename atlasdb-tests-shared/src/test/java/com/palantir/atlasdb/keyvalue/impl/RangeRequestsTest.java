@@ -20,9 +20,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import java.util.Random;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class RangeRequestsTest {
 
     private static final byte[] BYTES_1 = PtBytes.toBytes("apple");

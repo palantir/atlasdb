@@ -60,35 +60,32 @@ import com.palantir.timestamp.TimestampService;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.rules.ExternalResource;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
-/* TODO(boyoruk): Delete this when we complete the JUnit5 migration. */
-public final class InMemoryTimelockServices extends ExternalResource implements TimeLockServices, Closeable {
+public final class InMemoryTimelockExtension
+        implements BeforeEachCallback, AfterEachCallback, TimeLockServices, Closeable {
     private static final String USER_AGENT_NAME = "user-agent";
     private static final String USER_AGENT_VERSION = "3.1415926.5358979";
     private static final UserAgent USER_AGENT = UserAgent.of(UserAgent.Agent.of(USER_AGENT_NAME, USER_AGENT_VERSION));
     private static final int THREAD_POOL_SIZE = 128;
     private static final int BLOCKING_TIMEOUT_MS = 60 * 800; // 0.8 mins to ms
 
-    private final TemporaryFolder tempFolder;
-
     private String client;
     private TimeLockAgent timeLockAgent;
-
     private TimeLockServices delegate;
     private TimeLockHelperServices helperServices;
 
     private LockLeaseService lockLeaseService;
     private NamespacedConjureTimelockServiceImpl namespacedConjureTimelockService;
 
-    InMemoryTimelockServices(TemporaryFolder tempFolder) {
-        this.tempFolder = tempFolder;
+    public InMemoryTimelockExtension() {
         this.client = "client";
     }
 
@@ -97,12 +94,12 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     }
 
     @Override
-    protected void before() throws IOException {
+    public void beforeEach(ExtensionContext var1) {
         PaxosInstallConfiguration paxos = PaxosInstallConfiguration.builder()
-                .dataDirectory(tryCreateSubFolder(tempFolder))
+                .dataDirectory(tryCreateSubFolder())
                 .leaderMode(PaxosLeaderMode.SINGLE_LEADER)
                 .sqlitePersistence(ImmutableSqlitePaxosPersistenceConfiguration.builder()
-                        .dataDirectory(tryCreateSubFolder(tempFolder, client))
+                        .dataDirectory(tryCreateSubFolder())
                         .build())
                 .isNewService(false)
                 .build();
@@ -170,8 +167,7 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
     }
 
     @Override
-    @After
-    public void after() {
+    public void afterEach(ExtensionContext var1) {
         close();
     }
 
@@ -180,17 +176,12 @@ public final class InMemoryTimelockServices extends ExternalResource implements 
         timeLockAgent.shutdown();
     }
 
-    private static File tryCreateSubFolder(TemporaryFolder tempFolder) {
+    private static File tryCreateSubFolder() {
         try {
-            return tempFolder.newFolder();
-        } catch (IOException e) {
-            throw new SafeRuntimeException("Failed to create temporary folder", e);
-        }
-    }
-
-    private static File tryCreateSubFolder(TemporaryFolder tempFolder, String subFolderName) {
-        try {
-            return tempFolder.newFolder(subFolderName);
+            File file = Files.createTempDirectory("InMemoryTimelockServiceExtension")
+                    .toFile();
+            file.deleteOnExit();
+            return file;
         } catch (IOException e) {
             throw new SafeRuntimeException("Failed to create temporary folder", e);
         }

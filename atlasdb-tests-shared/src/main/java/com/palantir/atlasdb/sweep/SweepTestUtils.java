@@ -42,7 +42,7 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.timelock.paxos.InMemoryTimelockServices;
+import com.palantir.timelock.paxos.InMemoryTimelockExtension;
 import com.palantir.timestamp.TimestampManagementService;
 import java.time.Duration;
 import java.util.function.Supplier;
@@ -51,7 +51,7 @@ import org.awaitility.Awaitility;
 public final class SweepTestUtils {
     private SweepTestUtils() {}
 
-    public static TransactionManager setupTxManager(KeyValueService kvs, InMemoryTimelockServices timelock) {
+    public static TransactionManager setupTxManager(KeyValueService kvs, InMemoryTimelockExtension timelock) {
         return setupTxManager(
                 kvs,
                 timelock.getLegacyTimelockService(),

@@ -16,24 +16,23 @@
 
 package com.palantir.atlasdb.factory;
 
-import com.palantir.timelock.paxos.InMemoryTimelockServices;
+import com.palantir.timelock.paxos.InMemoryTimelockExtension;
 
-/* TODO(boyoruk): Delete this when we complete the JUnit5 migration. */
-public class InMemoryLockAndTimestampServiceFactory implements LockAndTimestampServiceFactory {
-    private final InMemoryTimelockServices services;
+public class InMemoryLockAndTimestampServiceFactoryV2 implements LockAndTimestampServiceFactory {
+    private final InMemoryTimelockExtension inMemoryTimelockExtension;
 
-    public InMemoryLockAndTimestampServiceFactory(InMemoryTimelockServices services) {
-        this.services = services;
+    public InMemoryLockAndTimestampServiceFactoryV2(InMemoryTimelockExtension inMemoryTimelockExtension) {
+        this.inMemoryTimelockExtension = inMemoryTimelockExtension;
     }
 
     @Override
     public LockAndTimestampServices createLockAndTimestampServices() {
         return ImmutableLockAndTimestampServices.builder()
-                .lock(services.getLockService())
-                .timestamp(services.getTimestampService())
-                .timestampManagement(services.getTimestampManagementService())
-                .timelock(services.getLegacyTimelockService())
-                .lockWatcher(services.getLockWatchManager())
+                .lock(inMemoryTimelockExtension.getLockService())
+                .timestamp(inMemoryTimelockExtension.getTimestampService())
+                .timestampManagement(inMemoryTimelockExtension.getTimestampManagementService())
+                .timelock(inMemoryTimelockExtension.getLegacyTimelockService())
+                .lockWatcher(inMemoryTimelockExtension.getLockWatchManager())
                 .build();
     }
 }

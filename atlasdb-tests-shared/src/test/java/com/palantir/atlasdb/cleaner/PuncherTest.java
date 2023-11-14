@@ -22,21 +22,16 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.common.time.Clock;
-import java.util.Collection;
+import java.util.List;
 import java.util.function.Supplier;
-import org.junit.After;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
-@RunWith(Parameterized.class)
 public class PuncherTest {
     private static final long GRANULARITY_MILLIS = 10;
 
-    @Parameters
-    public static Collection<Object[]> parameters() {
+    public static List<Arguments> getParameters() {
         InMemoryKeyValueService kvsPuncherStoreKvs = new InMemoryKeyValueService(false);
         InMemoryKeyValueService cachingKvsPuncherStoreKvs = new InMemoryKeyValueService(false);
 
@@ -46,28 +41,12 @@ public class PuncherTest {
                 CachingPuncherStore.create(InMemoryPuncherStore.create(), GRANULARITY_MILLIS);
         CachingPuncherStore cachingKeyValueServicePuncherStore = CachingPuncherStore.create(
                 KeyValueServicePuncherStore.create(cachingKvsPuncherStoreKvs), GRANULARITY_MILLIS);
-        Object[][] parameters = new Object[][] {
-            {inMemoryPuncherStore, null},
-            {puncherStore, kvsPuncherStoreKvs},
-            {cachingInMemoryPuncherStore, null},
-            {cachingKeyValueServicePuncherStore, cachingKvsPuncherStoreKvs}
-        };
+        List<Arguments> parameters = List.of(
+                Arguments.of(inMemoryPuncherStore, null),
+                Arguments.of(puncherStore, kvsPuncherStoreKvs),
+                Arguments.of(cachingInMemoryPuncherStore, null),
+                Arguments.of(cachingKeyValueServicePuncherStore, cachingKvsPuncherStoreKvs));
         return ImmutableList.copyOf(parameters);
-    }
-
-    private final PuncherStore puncherStore;
-    private final KeyValueService kvs;
-
-    public PuncherTest(PuncherStore puncherStore, KeyValueService kvs) {
-        this.puncherStore = puncherStore;
-        this.kvs = kvs;
-    }
-
-    @After
-    public void shutdownKvs() {
-        if (kvs != null) {
-            kvs.close();
-        }
     }
 
     long timeMillis = 0;
@@ -82,8 +61,9 @@ public class PuncherTest {
     final long secondTimestampToGetMillis = 35L;
     final long thirdTimestampToGetMillis = 36L;
 
-    @Test
-    public void test() {
+    @ParameterizedTest
+    @MethodSource("getParameters")
+    public void test(PuncherStore puncherStore, KeyValueService kvs) {
         Puncher puncher = SimplePuncher.create(puncherStore, clock, Suppliers.ofInstance(10000L));
         Supplier<Long> timestampSupplier = puncher.getTimestampSupplier();
 
@@ -120,12 +100,22 @@ public class PuncherTest {
                 .isEqualTo(secondExpectedMillis);
         assertThat(puncherStore.getMillisForTimestamp(thirdTimestampToGetMillis))
                 .isEqualTo(secondExpectedMillis);
+
+        shutdownKvs(kvs);
     }
 
-    @Test
-    public void testBigTimestamp() {
+    @ParameterizedTest
+    @MethodSource("getParameters")
+    public void testBigTimestamp(PuncherStore puncherStore, KeyValueService kvs) {
         Puncher puncher = SimplePuncher.create(puncherStore, clock, Suppliers.ofInstance(10000L));
         timeMillis = (1L << 60) - 3;
         puncher.punch(1L << 62);
+        shutdownKvs(kvs);
+    }
+
+    public void shutdownKvs(KeyValueService kvs) {
+        if (kvs != null) {
+            kvs.close();
+        }
     }
 }

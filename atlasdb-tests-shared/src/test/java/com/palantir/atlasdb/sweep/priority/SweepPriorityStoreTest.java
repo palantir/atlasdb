@@ -26,33 +26,32 @@ import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.sweep.SweepTestUtils;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.timelock.paxos.InMemoryTimeLockRule;
+import com.palantir.timelock.paxos.InMemoryTimelockExtension;
 import java.util.List;
 import java.util.OptionalLong;
 import java.util.concurrent.ExecutorService;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class SweepPriorityStoreTest {
     private ExecutorService exec;
     private TransactionManager txManager;
     private SweepPriorityStore priorityStore;
 
-    @Rule
-    public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
+    @RegisterExtension
+    public InMemoryTimelockExtension inMemoryTimelockExtension = new InMemoryTimelockExtension();
 
-    @Before
+    @BeforeEach
     public void setup() {
         exec = PTExecutors.newCachedThreadPool();
         KeyValueService kvs = new InMemoryKeyValueService(false, exec);
-        txManager = SweepTestUtils.setupTxManager(kvs, inMemoryTimeLockRule.get());
+        txManager = SweepTestUtils.setupTxManager(kvs, inMemoryTimelockExtension);
         priorityStore = SweepPriorityStoreImpl.create(kvs, SweepTableFactory.of(), false);
     }
 
-    @After
+    @AfterEach
     public void shutdownExec() {
         exec.shutdown();
     }
@@ -67,7 +66,7 @@ public class SweepPriorityStoreTest {
     }
 
     @Test
-    public void testStoreAndLoadNew() throws Exception {
+    public void testStoreAndLoadNew() {
         txManager.runTaskWithRetry(tx -> {
             priorityStore.update(tx, TableReference.createFromFullyQualifiedName("foo.bar"), fullUpdate(0));
             priorityStore.update(tx, TableReference.createFromFullyQualifiedName("qwe.rty"), fullUpdate(1));
@@ -79,7 +78,7 @@ public class SweepPriorityStoreTest {
 
     @Test
     public void testUpdateAndLoad() {
-        long oldTs = txManager.runTaskWithRetry(tx -> {
+        txManager.runTaskWithRetry(tx -> {
             priorityStore.update(tx, TableReference.createFromFullyQualifiedName("foo.bar"), fullUpdate(0));
             return tx.getTimestamp();
         });
@@ -96,7 +95,7 @@ public class SweepPriorityStoreTest {
     }
 
     @Test
-    public void testDelete() throws Exception {
+    public void testDelete() {
         txManager.runTaskWithRetry(tx -> {
             priorityStore.update(tx, TableReference.createFromFullyQualifiedName("foo.bar"), fullUpdate(0));
             priorityStore.update(tx, TableReference.createFromFullyQualifiedName("qwe.rty"), fullUpdate(1));
