@@ -119,9 +119,8 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      * <p>
      * The semantics of this method are as follows:
      * - If any learner knows that a value has already been agreed for this sequence number, return said value.
-     * - Otherwise, poll learners for the state of the previous sequence number.
-     * - If this is unavailable, the cluster must have agreed on (seq - 2), so read it and then force (seq - 1)
-     * to that value.
+     * - Otherwise, poll learners for the state of the previous sequence number. If this is unavailable, the cluster
+     * must have agreed on (seq - 2), so read it and then force (seq - 1) to that value.
      * - Finally, force agreement for seq to be the same value as that agreed for (seq - 1).
      * <p>
      * This method has a precondition that (seq - 2) must be agreed upon; note that numbers up to and including
@@ -224,7 +223,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      *
      * @param limit the new upper limit to be stored
      * @throws IllegalArgumentException if trying to persist a limit smaller than the agreed limit
-     * @throws NotCurrentLeaderException if the timestamp limit has changed out from under us
+     * @throws SuspectedNotCurrentLeaderException if the timestamp limit has changed out from under us
      */
     @Override
     public synchronized void storeUpperLimit(long limit) throws MultipleRunningTimestampServiceError {

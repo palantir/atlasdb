@@ -52,6 +52,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -358,7 +359,7 @@ public class AwaitingLeadershipProxyTest {
 
         waitForLeadershipToBeGained();
 
-        bystanderProxy.val();
+        assertThatCode(bystanderProxy::val).as("leadership could be gained").doesNotThrowAnyException();
 
         assertThatLoggableExceptionThrownBy(proxy::val)
                 .isInstanceOf(SuspectedNotCurrentLeaderException.class)
@@ -378,12 +379,15 @@ public class AwaitingLeadershipProxyTest {
                 .as("the proxies are still able to forward requests")
                 .doesNotThrowAnyException();
 
+        // We create once at the beginning, before we discover we will get a SuspectedNotCurrentLeaderException,
+        // and another time after we checked that we were still leading.
         verify(factory, times(2)).get();
         verify(bystanderFactory).get();
         verify(mock).close();
         verify(bystander, never()).close();
     }
 
+    // TODO (jkong): Collapse this test and the next into a single Parameterised one when we move to JUnit 5.
     @Test
     public void shouldLoseLeadershipOnSuspectedNotCurrentLeaderWhenLeadershipGenuinelyLost()
             throws InterruptedException, IOException {
@@ -450,9 +454,47 @@ public class AwaitingLeadershipProxyTest {
                 .val();
 
         RuntimeException underlyingError = new RuntimeException("Something went wrong");
+        // Need to eventually return a status, so we can check that we did lose leadership, and clear resources.
         when(leaderElectionService.isStillLeading(any()))
                 .thenReturn(Futures.immediateFuture(StillLeadingStatus.LEADING))
                 .thenReturn(Futures.immediateFailedFuture(underlyingError))
+                .thenReturn(Futures.immediateFuture(StillLeadingStatus.NOT_LEADING));
+
+        assertThatLoggableExceptionThrownBy(proxy::val)
+                .isInstanceOf(NotCurrentLeaderException.class)
+                .hasMessageContaining("method invoked on a non-leader (leadership lost)")
+                .cause()
+                .isInstanceOf(SuspectedNotCurrentLeaderException.class)
+                .hasMessage("There is one imposter among us")
+                .hasSuppressedException(underlyingError);
+
+        // Another call is required before we clear existing resources.
+        assertThatLoggableExceptionThrownBy(proxy::val)
+                .isInstanceOf(NotCurrentLeaderException.class)
+                .hasMessageContaining("method invoked on a non-leader");
+
+        verify(mock).close();
+    }
+
+    @Test
+    public void shouldLoseLeadershipOnSuspectedNotCurrentLeaderWhenLeadershipStateCheckCancelled()
+            throws InterruptedException, IOException {
+        MyCloseable mock = mock(MyCloseable.class);
+        MyCloseable proxy = AwaitingLeadershipProxy.newProxyInstance(
+                MyCloseable.class, () -> mock, LeadershipCoordinator.create(leaderElectionService));
+        waitForLeadershipToBeGained();
+
+        doAnswer(_invocation -> {
+                    throw new SuspectedNotCurrentLeaderException("There is one imposter among us");
+                })
+                .when(mock)
+                .val();
+
+        RuntimeException underlyingError = new CancellationException("I tried so hard, and got so far");
+        // Need to eventually return a status, so we can check that we did lose leadership, and clear resources.
+        when(leaderElectionService.isStillLeading(any()))
+                .thenReturn(Futures.immediateFuture(StillLeadingStatus.LEADING))
+                .thenThrow(underlyingError)
                 .thenReturn(Futures.immediateFuture(StillLeadingStatus.NOT_LEADING));
 
         assertThatLoggableExceptionThrownBy(proxy::val)

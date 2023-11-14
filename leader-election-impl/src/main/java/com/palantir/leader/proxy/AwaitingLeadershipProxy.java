@@ -116,7 +116,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                     if (leading == StillLeadingStatus.NOT_LEADING || leading == StillLeadingStatus.NO_QUORUM) {
                         return Futures.submitAsync(
                                 () -> {
-                                    leadershipStateManager.handleNotLeading(leadershipToken, null /* cause */);
+                                    leadershipStateManager.invalidateStateOnLostLeadership(
+                                            leadershipToken, null /* cause */);
                                     throw new AssertionError("should not reach here");
                                 },
                                 executionExecutor);
@@ -168,7 +169,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             handleSuspectedNotCurrentLeader(leadershipToken, (SuspectedNotCurrentLeaderException) cause);
         }
         if (cause instanceof ServiceNotAvailableException || cause instanceof NotCurrentLeaderException) {
-            leadershipStateManager.handleNotLeading(leadershipToken, cause);
+            leadershipStateManager.invalidateStateOnLostLeadership(leadershipToken, cause);
         }
         // Prevent blocked lock requests from receiving a non-retryable 500 on interrupts
         // in case of a leader election.
@@ -181,25 +182,23 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
     }
 
     private void handleSuspectedNotCurrentLeader(
-            LeadershipToken leadershipToken, SuspectedNotCurrentLeaderException cause) throws Exception {
+            LeadershipToken leadershipToken, SuspectedNotCurrentLeaderException cause) throws InterruptedException {
         StillLeadingStatus status = determineCurrentLeadershipStatus(leadershipToken, cause);
 
         switch (status) {
             case LEADING:
                 // We were still the leader. Invalidate the relevant delegates, but don't generally get rid of our
                 // leadership (so this doesn't need to propagate to other delegates).
-                leadershipStateManager.handleDelegateNoLongerValid();
+                leadershipStateManager.requestDelegateInvalidation();
                 break;
             case NO_QUORUM:
                 // Treating as not leading is consistent with uses of ServiceNotAvailableException elsewhere.
             case NOT_LEADING:
-                leadershipStateManager.handleNotLeading(leadershipToken, cause);
+                leadershipStateManager.invalidateStateOnLostLeadership(leadershipToken, cause);
                 break;
             default:
                 throw new SafeIllegalStateException("Unexpected StillLeadingStatus", SafeArg.of("status", status));
         }
-        Throwables.propagateIfPossible(cause, Exception.class);
-        throw new RuntimeException(cause);
     }
 
     // Chosen to match past behaviour, where interruptions are propagated to the caller.
