@@ -340,7 +340,8 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    public void clearsOnlyRelevantDelegateOnSuspectedNotCurrentLeaderFalseAlarm() throws IOException {
+    public void clearsOnlyRelevantDelegateOnSuspectedNotCurrentLeaderFalseAlarm()
+            throws IOException, InterruptedException {
         MyCloseable mock = mock(MyCloseable.class);
         doThrow(new SuspectedNotCurrentLeaderException("There is one imposter among us"))
                 .doNothing()
@@ -354,6 +355,8 @@ public class AwaitingLeadershipProxyTest {
         Supplier<MyCloseable> bystanderFactory = createSpyableSupplier(bystander);
         MyCloseable bystanderProxy =
                 AwaitingLeadershipProxy.newProxyInstance(MyCloseable.class, bystanderFactory, coordinator);
+
+        waitForLeadershipToBeGained();
 
         bystanderProxy.val();
 
