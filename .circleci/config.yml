@@ -164,6 +164,10 @@ workflows:
               only: develop
   check:
     jobs:
+      - publish-and-trigger-antithesis-simulation:
+          filters:
+            tags:
+              only: /.*/
       - build:
           filters:
             tags:
