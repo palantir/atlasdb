@@ -118,7 +118,7 @@ jobs:
     steps:
       - attach_workspace: { at: . }
       - run:
-        command: ./scripts/circle-ci/publish-and-trigger-antithesis-simulation.sh
+          command: ./scripts/circle-ci/publish-and-trigger-antithesis-simulation.sh
 
   deploy:
     docker:
