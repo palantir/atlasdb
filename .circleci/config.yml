@@ -110,6 +110,16 @@ jobs:
     steps:
       - run: {command: echo "Ran all required tests successfully"}
 
+  publish-and-trigger-antithesis-simulation:
+    machine:
+      image: ubuntu-2204:2023.10.1
+    resource_class: small
+
+    steps:
+      - attach_workspace: { at: . }
+      - run:
+        command: ./scripts/circle-ci/publish-and-trigger-antithesis-simulation.sh
+
   deploy:
     docker:
       - image: cimg/openjdk:11.0.10-node
@@ -143,6 +153,15 @@ jobs:
             fi
 
 workflows:
+  scheduled-antithesis-test:
+    jobs:
+      - publish-and-trigger-antithesis-simulation
+    triggers:
+      - schedule:
+          cron: "0 10 * * 1"
+          filters:
+            branches:
+              only: develop
   check:
     jobs:
       - build:
