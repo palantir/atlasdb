@@ -219,9 +219,6 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                     e);
             cause.addSuppressed(e);
             return StillLeadingStatus.NOT_LEADING;
-        } catch (Exception e) {
-            log.info("Lol lol lol lol lol", e);
-            return StillLeadingStatus.NOT_LEADING;
         }
     }
 }

@@ -517,7 +517,7 @@ public class AwaitingLeadershipProxyTest {
     private void loseLeadershipOnLeaderElectionService(StillLeadingStatus leadingStatus) throws InterruptedException {
         Preconditions.checkState(
                 leadingStatus != StillLeadingStatus.LEADING,
-                "Cannot lose leadership status and think that we are still leading");
+                "Cannot lose leadership and think that we are still leading");
 
         when(leaderElectionService.isStillLeading(any())).thenReturn(Futures.immediateFuture(leadingStatus));
         when(leaderElectionService.blockOnBecomingLeader()).thenAnswer(invocation -> {
