@@ -225,7 +225,6 @@ public final class SweepNameToIdTable implements
             return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(table, other.table);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, table });
@@ -696,5 +695,5 @@ public final class SweepNameToIdTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "/1iBN6AFRFn7Ox8jlME0uQ==";
+    static String __CLASS_HASH = "NWWwWl/G7W6EnTyvWmoGZw==";
 }

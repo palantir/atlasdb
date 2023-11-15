@@ -237,7 +237,6 @@ public final class KvDynamicColumnsTable implements
             return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(bucket, other.bucket);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, bucket });
@@ -329,10 +328,9 @@ public final class KvDynamicColumnsTable implements
             return Objects.equals(key, other.key);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Objects.hashCode(key);
+            return Long.hashCode(key);
         }
 
         @Override
@@ -833,5 +831,5 @@ public final class KvDynamicColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "6UeFiCrulg3zpuNAUCy5cg==";
+    static String __CLASS_HASH = "42XPQ9GhDE3fiNpcsQwfXQ==";
 }

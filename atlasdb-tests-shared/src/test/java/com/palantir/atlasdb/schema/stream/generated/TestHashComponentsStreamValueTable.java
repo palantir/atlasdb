@@ -237,7 +237,6 @@ public final class TestHashComponentsStreamValueTable implements
             return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(id, other.id) && Objects.equals(blockId, other.blockId);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, id, blockId });
@@ -709,5 +708,5 @@ public final class TestHashComponentsStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "7hsA1dNWx3h5PJxWO4cUIg==";
+    static String __CLASS_HASH = "iHQWi0m3Pf2ab1R4dBq1Aw==";
 }

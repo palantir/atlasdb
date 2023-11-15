@@ -24,8 +24,7 @@ import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
 import com.palantir.atlasdb.timelock.lockwatches.BufferMetrics;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.flake.FlakeRetryingRule;
-import com.palantir.flake.ShouldRetry;
+import com.palantir.flake.FlakeRetryTest;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
@@ -41,11 +40,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestRule;
+import org.junit.jupiter.api.Test;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class AsyncLockServiceEteTest {
 
     private static final UUID REQUEST_1 = UUID.randomUUID();
@@ -84,9 +80,6 @@ public class AsyncLockServiceEteTest {
             executor,
             clock,
             lockLog);
-
-    @Rule
-    public final TestRule flakeRetryingRule = new FlakeRetryingRule();
 
     @Test
     public void canLockAndUnlock() {
@@ -152,8 +145,7 @@ public class AsyncLockServiceEteTest {
         assertThat(token).isEqualTo(duplicate);
     }
 
-    @Test
-    @ShouldRetry
+    @FlakeRetryTest
     public void requestsAreIdempotentWithRespectToTimeout() {
         lockSynchronously(REQUEST_1, LOCK_A);
         service.lock(REQUEST_2, descriptors(LOCK_A), SHORT_TIMEOUT);
@@ -251,8 +243,7 @@ public class AsyncLockServiceEteTest {
         assertNotLocked(LOCK_C);
     }
 
-    @Test
-    @ShouldRetry
+    @FlakeRetryTest
     public void lockRequestTimesOutWhenTimeoutPasses() {
         lockSynchronously(REQUEST_1, LOCK_A);
         AsyncResult<Leased<LockToken>> result = service.lock(REQUEST_2, descriptors(LOCK_A), SHORT_TIMEOUT);
@@ -263,8 +254,7 @@ public class AsyncLockServiceEteTest {
         assertThat(result.isTimedOut()).isTrue();
     }
 
-    @Test
-    @ShouldRetry
+    @FlakeRetryTest
     public void waitForLocksRequestTimesOutWhenTimeoutPasses() {
         lockSynchronously(REQUEST_1, LOCK_A);
         AsyncResult<Void> result = service.waitForLocks(REQUEST_2, descriptors(LOCK_A), SHORT_TIMEOUT);
@@ -275,8 +265,7 @@ public class AsyncLockServiceEteTest {
         assertThat(result.isTimedOut()).isTrue();
     }
 
-    @Test
-    @ShouldRetry
+    @FlakeRetryTest
     public void timedOutRequestDoesNotHoldLocks() {
         LockToken lockBToken = lockSynchronously(REQUEST_1, LOCK_B);
         service.lock(REQUEST_2, descriptors(LOCK_A, LOCK_B), SHORT_TIMEOUT);
@@ -289,7 +278,7 @@ public class AsyncLockServiceEteTest {
     }
 
     @Test
-    public void outstandingRequestsReceiveNotCurrentLeaderExceptionOnClose() throws Exception {
+    public void outstandingRequestsReceiveNotCurrentLeaderExceptionOnClose() {
         lockSynchronously(REQUEST_1, LOCK_A);
         AsyncResult<Leased<LockToken>> request2 = lock(REQUEST_2, LOCK_A);
 

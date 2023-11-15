@@ -21,18 +21,27 @@ Automated Migration
 
 .. danger::
     If your service is highly available, you MUST shut down ALL nodes of your service after step 2 before bringing up any
-    nodes in step 4. Otherwise, there is a risk of **SEVERE DATA CORRUPTION** as timestamps may be given out of order.
+    nodes in step 5. Otherwise, there is a risk of **SEVERE DATA CORRUPTION** as timestamps may be given out of order.
 
 .. warning::
     Automated migrations are only implemented for Cassandra, and from AtlasDB 0.253.2 onwards DbKVS.
     If you are using any other KVS, please follow the instructions at :ref:`manual-timelock-migration`.
 
+.. warning::
+   If other services are dependent on the timestamp and lock service exposed by the AtlasDB client in question, steps
+   should be taken to move them to timelock before this service is migrated to timelock, and for those services
+   a manual migration will be necessary (seeing as they must be using remote timestamp blocks, and/or misusing timelock
+   configuration to point to those services).
+
 1. Confirm that your AtlasDB installation is backed by Cassandra KVS, or you are using DbKVS and your version of AtlasDB
    is at least 0.253.2.
 2. (Optional) Take a fresh timestamp from your AtlasDB services, using the fresh timestamp CLI or the
    ``/timestamp/fresh-timestamp`` endpoint. This step is not strictly required, but may be useful for verification.
-3. Add the :ref:`Timelock client configuration <timelock-client-configuration>` to your service.
-4. Starting/re-starting the service will automatically migrate the service.
+3. Shut down all nodes of your service. These must
+   remain shut until after step 4 is performed. Failure to do so incurs risks of **SEVERE DATA CORRUPTION** as
+   timestamps may be given out of order.
+4. Add the :ref:`Timelock client configuration <timelock-client-configuration>` to your service.
+5. Starting/re-starting the service will automatically migrate the service.
    Note that the service may not elect a leader until a timestamp or lock request for some client is actually made.
 
 Verification
