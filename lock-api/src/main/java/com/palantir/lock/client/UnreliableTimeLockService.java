@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.buggify.api.BuggifyFactory;
 import com.palantir.atlasdb.buggify.impl.DefaultBuggifyFactory;
+import com.palantir.atlasdb.buggify.impl.DefaultNativeSamplingSecureRandomFactory;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
@@ -31,7 +32,9 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
+import java.security.SecureRandom;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -41,19 +44,26 @@ import java.util.stream.Collectors;
  * acquiring. This is useful for testing the behavior of clients when locks are lost.
  */
 public final class UnreliableTimeLockService implements TimelockService {
+    private static final SecureRandom SECURE_RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();
 
     private static final SafeLogger log = SafeLoggerFactory.get(UnreliableTimeLockService.class);
 
     private final TimelockService delegate;
+    private final TimestampManagementService managementService;
     private final BuggifyFactory buggify;
 
-    public static UnreliableTimeLockService create(TimelockService timelockService) {
-        return new UnreliableTimeLockService(timelockService, DefaultBuggifyFactory.INSTANCE);
+    public static UnreliableTimeLockService create(
+            TimelockService timelockService, TimestampManagementService managementService) {
+        return new UnreliableTimeLockService(timelockService, managementService, DefaultBuggifyFactory.INSTANCE);
     }
 
     @VisibleForTesting
-    UnreliableTimeLockService(TimelockService delegate, BuggifyFactory buggifyFactory) {
+    UnreliableTimeLockService(
+            TimelockService delegate,
+            TimestampManagementService timeLockManagementService,
+            BuggifyFactory buggifyFactory) {
         this.delegate = delegate;
+        this.managementService = timeLockManagementService;
         this.buggify = buggifyFactory;
     }
 
@@ -64,16 +74,19 @@ public final class UnreliableTimeLockService implements TimelockService {
 
     @Override
     public long getFreshTimestamp() {
+        buggify.maybe(0.01).run(this::randomlyIncreaseTimestamp);
         return delegate.getFreshTimestamp();
     }
 
     @Override
     public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
+        buggify.maybe(0.01).run(this::randomlyIncreaseTimestamp);
         return delegate.getCommitTimestamp(startTs, commitLocksToken);
     }
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
+        buggify.maybe(0.01).run(this::randomlyIncreaseTimestamp);
         return delegate.getFreshTimestamps(numTimestampsRequested);
     }
 
@@ -143,5 +156,18 @@ public final class UnreliableTimeLockService implements TimelockService {
     @Override
     public long currentTimeMillis() {
         return delegate.currentTimeMillis();
+    }
+
+    private synchronized void randomlyIncreaseTimestamp() {
+        long currentTimestamp = delegate.getFreshTimestamp();
+        long newTimestamp = SECURE_RANDOM
+                .longs(1, currentTimestamp + 1, Long.MAX_VALUE)
+                .findFirst()
+                .getAsLong();
+        log.info(
+                "BUGGIFY: Increasing timestamp from {} to {}",
+                SafeArg.of("currentTimestamp", currentTimestamp),
+                SafeArg.of("newTimestamp", newTimestamp));
+        managementService.fastForwardTimestamp(newTimestamp);
     }
 }

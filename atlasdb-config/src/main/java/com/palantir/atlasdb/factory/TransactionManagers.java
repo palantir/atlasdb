@@ -136,6 +136,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.ManagedTimestampService;
+import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -144,6 +145,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -204,8 +206,8 @@ public abstract class TransactionManagers {
     }
 
     @Value.Default
-    Function<TimelockService, TimeLockClient> defaultTimelockClientFactory() {
-        return TimeLockClient::createDefault;
+    BiFunction<TimelockService, TimestampManagementService, TimeLockClient> defaultTimelockClientFactory() {
+        return (service, management) -> TimeLockClient.createDefault(service);
     }
 
     abstract Optional<LockAndTimestampServiceFactory> lockAndTimestampServiceFactory();

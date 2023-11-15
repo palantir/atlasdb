@@ -16,8 +16,10 @@
 
 package com.palantir.lock.client;
 
+import static com.palantir.logsafe.testing.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -32,13 +34,22 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.WaitForLocksRequest;
+import com.palantir.timestamp.TimestampManagementService;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -54,11 +65,14 @@ public final class UnreliableTimelockClientTest {
     @Mock
     private TimeLockClient timeLockClient;
 
+    @Mock
+    private TimestampManagementService timestampManagementService;
+
     private UnreliableTimeLockService unreliableTimeLockService;
 
     @BeforeEach
     public void before() {
-        unreliableTimeLockService = new UnreliableTimeLockService(timeLockClient, NoOpBuggifyFactory.INSTANCE);
+        unreliableTimeLockService = createTimelockService(NoOpBuggifyFactory.INSTANCE);
     }
 
     @Test
@@ -83,6 +97,25 @@ public final class UnreliableTimelockClientTest {
     public void verifyGetFreshTimestampsCallsDelegate() {
         unreliableTimeLockService.getFreshTimestamps(1);
         verify(timeLockClient).getFreshTimestamps(1);
+    }
+
+    @ParameterizedTest
+    @MethodSource("timestampMethods")
+    public void timestampMethodsMayRandomlyIncreaseTimestamp(Consumer<UnreliableTimeLockService> task) {
+        UnreliableTimeLockService service = createAlwaysBuggyTimelockService();
+        ArgumentCaptor<Long> argument = ArgumentCaptor.forClass(Long.class);
+
+        long nextValue = 0;
+        List<Long> allValues = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            when(timeLockClient.getFreshTimestamp()).thenReturn(nextValue);
+            task.accept(service);
+            verify(timestampManagementService, times(i + 1)).fastForwardTimestamp(argument.capture());
+            nextValue = argument.getValue();
+            allValues.add(argument.getValue());
+        }
+
+        assertListRandomlyIncreasesInValue(allValues);
     }
 
     @Test
@@ -112,7 +145,7 @@ public final class UnreliableTimelockClientTest {
     @Test
     public void lockMayUnlockImmediately() {
         when(timeLockClient.lock(LOCK_REQUEST)).thenReturn(LockResponse.successful(LOCK_TOKEN));
-        new UnreliableTimeLockService(timeLockClient, createAlwaysBuggyFactory()).lock(LOCK_REQUEST);
+        createAlwaysBuggyTimelockService().lock(LOCK_REQUEST);
         verify(timeLockClient).unlock(Set.of(LOCK_TOKEN));
     }
 
@@ -120,7 +153,7 @@ public final class UnreliableTimelockClientTest {
     public void lockWithOptionMayUnlockImmediately() {
         ClientLockingOptions lockingOptions = ClientLockingOptions.getDefault();
         when(timeLockClient.lock(LOCK_REQUEST, lockingOptions)).thenReturn(LockResponse.successful(LOCK_TOKEN));
-        new UnreliableTimeLockService(timeLockClient, createAlwaysBuggyFactory()).lock(LOCK_REQUEST, lockingOptions);
+        createAlwaysBuggyTimelockService().lock(LOCK_REQUEST, lockingOptions);
         verify(timeLockClient).unlock(Set.of(LOCK_TOKEN));
     }
 
@@ -141,8 +174,7 @@ public final class UnreliableTimelockClientTest {
     public void refreshLockLeasesMaybeUnlocksLocks() {
         BuggifyFactory factory = mock(BuggifyFactory.class);
         when(factory.maybe(anyDouble())).thenReturn(DefaultBuggify.INSTANCE, NoOpBuggify.INSTANCE);
-        new UnreliableTimeLockService(timeLockClient, factory)
-                .refreshLockLeases(new LinkedHashSet<>(List.of(LOCK_TOKEN, LOCK_TOKEN_2)));
+        createTimelockService(factory).refreshLockLeases(new LinkedHashSet<>(List.of(LOCK_TOKEN, LOCK_TOKEN_2)));
         verify(timeLockClient).refreshLockLeases(Set.of(LOCK_TOKEN_2));
         verify(timeLockClient).unlock(Set.of(LOCK_TOKEN));
     }
@@ -171,9 +203,44 @@ public final class UnreliableTimelockClientTest {
         verify(timeLockClient).currentTimeMillis();
     }
 
+    private UnreliableTimeLockService createAlwaysBuggyTimelockService() {
+        return createTimelockService(createAlwaysBuggyFactory());
+    }
+
+    private UnreliableTimeLockService createTimelockService(BuggifyFactory factory) {
+        return new UnreliableTimeLockService(timeLockClient, timestampManagementService, factory);
+    }
+
     private static BuggifyFactory createAlwaysBuggyFactory() {
         BuggifyFactory factory = mock(BuggifyFactory.class);
         when(factory.maybe(anyDouble())).thenReturn(DefaultBuggify.INSTANCE);
         return factory;
+    }
+
+    // Visible as it's used as a method source
+    static Stream<Named<Consumer<UnreliableTimeLockService>>> timestampMethods() {
+        return Stream.of(
+                namedTask("getFreshTimestamp", UnreliableTimeLockService::getFreshTimestamp),
+                namedTask("getCommitTimestamp", service -> service.getCommitTimestamp(1, LOCK_TOKEN)),
+                namedTask("getFreshTimestamps", service -> service.getFreshTimestamps(10)));
+    }
+
+    private static Named<Consumer<UnreliableTimeLockService>> namedTask(
+            String name, Consumer<UnreliableTimeLockService> task) {
+        return Named.of(name, task);
+    }
+
+    private static void assertListRandomlyIncreasesInValue(List<Long> list) {
+        assertThat(list).isSorted();
+        assertThat(new HashSet<>(list)).hasSameSizeAs(list);
+
+        List<Long> differencesBetweenValues = new ArrayList<>();
+        for (int i = list.size() - 1; i > 0; i--) {
+            differencesBetweenValues.add(list.get(i) - list.get(i - 1));
+        }
+
+        // Verifying things increase randomly. We can't assert that every delta is random, since it's possible that at
+        // least one delta is the same as another.
+        assertThat(new HashSet<>(differencesBetweenValues)).hasSizeGreaterThan(1);
     }
 }
