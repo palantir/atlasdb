@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.workload.store;
 
+import com.palantir.atlasdb.workload.workflow.TableConfiguration;
 import java.util.Map;
 import java.util.Set;
 
@@ -24,4 +25,6 @@ import java.util.Set;
  */
 public interface TransactionStoreFactory<T extends TransactionStore> {
     T create(Map<String, IsolationLevel> tables, Set<IndexTable> indexes);
+
+    T create(TableConfiguration tableConfiguration);
 }

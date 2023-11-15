@@ -225,7 +225,6 @@ public final class StreamTestWithHashStreamMetadataTable implements
             return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(id, other.id);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, id });
@@ -721,5 +720,5 @@ public final class StreamTestWithHashStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "8L5voEwOJhQutdhTcazkpA==";
+    static String __CLASS_HASH = "pxniYJ6UsDu13dhrU77lLw==";
 }

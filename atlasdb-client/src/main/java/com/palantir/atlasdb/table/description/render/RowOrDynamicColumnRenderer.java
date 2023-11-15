@@ -428,7 +428,6 @@ class RowOrDynamicColumnRenderer extends Renderer {
     }
 
     private void renderHashCode() {
-        line("@SuppressWarnings(\"ArrayHashCode\")");
         line("@Override");
         line("public int hashCode() {");
         {
@@ -441,7 +440,11 @@ class RowOrDynamicColumnRenderer extends Renderer {
         if (desc.getRowParts().size() > 1) {
             renderHashCodeMethodCall("return Arrays.deepHashCode(new Object[]{ ", " });");
         } else {
-            renderHashCodeMethodCall("return Objects.hashCode(", ");");
+            ValueType type = desc.getRowParts().get(0).getType();
+            String clazz = type.getJavaClass().isPrimitive()
+                    ? type.getJavaObjectClass().getSimpleName()
+                    : type.getJavaClass().isArray() ? "Arrays" : "Objects";
+            renderHashCodeMethodCall("return " + clazz + ".hashCode(", ");");
         }
     }
 

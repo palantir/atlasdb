@@ -332,3 +332,41 @@ acceptedBreaks:
       old: "method java.util.Optional<com.palantir.atlasdb.keyvalue.cassandra.CassandraTopologyValidator.ConsistentClusterTopology>\
         \ com.palantir.atlasdb.keyvalue.cassandra.ImmutableClusterTopologyResult::agreedTopology()"
       justification: "Internal validator primitives"
+  "0.956.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.numberOfParametersChanged"
+      old: "method void com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException::<init>(java.lang.String)"
+      new: "method void com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException::<init>(java.lang.String,\
+        \ com.palantir.logsafe.Arg<?>[])"
+      justification: "Verified that internal consumers are using compiletimeconstant\
+        \ strings"
+    - code: "java.method.numberOfParametersChanged"
+      old: "method void com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException::<init>(java.lang.String,\
+        \ java.lang.Iterable<com.palantir.atlasdb.keyvalue.api.Cell>)"
+      new: "method void com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException::<init>(java.lang.String,\
+        \ java.lang.Iterable<com.palantir.atlasdb.keyvalue.api.Cell>, com.palantir.logsafe.Arg<?>[])"
+      justification: "Verified that internal consumers are using compiletimeconstant\
+        \ strings"
+    - code: "java.method.numberOfParametersChanged"
+      old: "method void com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException::<init>(java.lang.String,\
+        \ java.lang.Iterable<com.palantir.atlasdb.keyvalue.api.Cell>, java.lang.Iterable<com.palantir.atlasdb.keyvalue.api.Cell>)"
+      new: "method void com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException::<init>(java.lang.String,\
+        \ java.lang.Iterable<com.palantir.atlasdb.keyvalue.api.Cell>, java.lang.Iterable<com.palantir.atlasdb.keyvalue.api.Cell>,\
+        \ com.palantir.logsafe.Arg<?>[])"
+      justification: "Verified that internal consumers are using compiletimeconstant\
+        \ strings"
+    - code: "java.method.numberOfParametersChanged"
+      old: "method void com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException::<init>(java.lang.String,\
+        \ java.lang.Throwable)"
+      new: "method void com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException::<init>(java.lang.String,\
+        \ java.lang.Throwable, com.palantir.logsafe.Arg<?>[])"
+      justification: "Verified that internal consumers are using compiletimeconstant\
+        \ strings"
+    - code: "java.method.numberOfParametersChanged"
+      old: "method void com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException::<init>(java.lang.String,\
+        \ java.lang.Throwable, java.lang.Iterable<com.palantir.atlasdb.keyvalue.api.Cell>)"
+      new: "method void com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException::<init>(java.lang.String,\
+        \ java.lang.Throwable, java.lang.Iterable<com.palantir.atlasdb.keyvalue.api.Cell>,\
+        \ com.palantir.logsafe.Arg<?>[])"
+      justification: "Verified that internal consumers are using compiletimeconstant\
+        \ strings"

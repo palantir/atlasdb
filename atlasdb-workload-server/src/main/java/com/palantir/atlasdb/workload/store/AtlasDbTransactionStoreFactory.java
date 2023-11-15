@@ -27,6 +27,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.workload.util.AtlasDbUtils;
+import com.palantir.atlasdb.workload.workflow.TableConfiguration;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.client.UnreliableTimeLockService;
@@ -61,6 +62,11 @@ public final class AtlasDbTransactionStoreFactory implements TransactionStoreFac
     @Override
     public InteractiveTransactionStore create(Map<String, IsolationLevel> tables, Set<IndexTable> indexes) {
         return AtlasDbTransactionStore.create(transactionManager, toAtlasTables(tables, indexes));
+    }
+
+    @Override
+    public InteractiveTransactionStore create(TableConfiguration tableConfiguration) {
+        return create(Map.of(tableConfiguration.tableName(), tableConfiguration.isolationLevel()), Set.of());
     }
 
     @VisibleForTesting

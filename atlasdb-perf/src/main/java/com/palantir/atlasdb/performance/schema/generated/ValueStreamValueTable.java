@@ -223,7 +223,6 @@ public final class ValueStreamValueTable implements
             return Objects.equals(id, other.id) && Objects.equals(blockId, other.blockId);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ id, blockId });
@@ -694,5 +693,5 @@ public final class ValueStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "NJNhS6PvLJS+wg86/MRGjA==";
+    static String __CLASS_HASH = "c7NSeJY7Uj1ofiP5mrEP9g==";
 }

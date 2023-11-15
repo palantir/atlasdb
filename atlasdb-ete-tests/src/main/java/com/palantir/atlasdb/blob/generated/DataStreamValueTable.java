@@ -237,7 +237,6 @@ public final class DataStreamValueTable implements
             return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(id, other.id) && Objects.equals(blockId, other.blockId);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, id, blockId });
@@ -709,5 +708,5 @@ public final class DataStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "uLIifazHIhaTNcmyxPSogw==";
+    static String __CLASS_HASH = "oCNOKqEkYEIQzVs15aHTkw==";
 }

@@ -235,7 +235,6 @@ public final class SweepableCellsTable implements
             return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(timestampPartition, other.timestampPartition) && Arrays.equals(metadata, other.metadata);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, timestampPartition, metadata });
@@ -349,7 +348,6 @@ public final class SweepableCellsTable implements
             return Objects.equals(timestampModulus, other.timestampModulus) && Objects.equals(writeIndex, other.writeIndex);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ timestampModulus, writeIndex });
@@ -789,5 +787,5 @@ public final class SweepableCellsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "6dECi+2I9ZH+Ov279pcYtQ==";
+    static String __CLASS_HASH = "cAp9GheyJ7/csnqt8nG3Vw==";
 }

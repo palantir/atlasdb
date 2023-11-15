@@ -210,10 +210,9 @@ public final class StreamTestMaxMemStreamIdxTable implements
             return Objects.equals(id, other.id);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Objects.hashCode(id);
+            return Long.hashCode(id);
         }
 
         @Override
@@ -301,10 +300,9 @@ public final class StreamTestMaxMemStreamIdxTable implements
             return Arrays.equals(reference, other.reference);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Objects.hashCode(reference);
+            return Arrays.hashCode(reference);
         }
 
         @Override
@@ -739,5 +737,5 @@ public final class StreamTestMaxMemStreamIdxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "FAkSXmHk8gPsoI+9LOB3uA==";
+    static String __CLASS_HASH = "pChLOwZaUyhvbzHUoTJDXw==";
 }

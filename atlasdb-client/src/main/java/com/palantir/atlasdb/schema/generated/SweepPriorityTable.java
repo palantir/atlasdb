@@ -212,7 +212,6 @@ public final class SweepPriorityTable implements
             return Objects.equals(fullTableName, other.fullTableName);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(fullTableName);
@@ -1252,5 +1251,5 @@ public final class SweepPriorityTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "jyafdmhR7jh18jwGpaXZSw==";
+    static String __CLASS_HASH = "IAiebMq5jfwyPxsQrq2Ddw==";
 }

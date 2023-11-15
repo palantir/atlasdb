@@ -212,10 +212,9 @@ public final class DataTable implements
             return Objects.equals(id, other.id);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Objects.hashCode(id);
+            return Long.hashCode(id);
         }
 
         @Override
@@ -949,10 +948,9 @@ public final class DataTable implements
                 return Objects.equals(value, other.value);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
-                return Objects.hashCode(value);
+                return Long.hashCode(value);
             }
 
             @Override
@@ -1093,7 +1091,6 @@ public final class DataTable implements
                 return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equals(id, other.id);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ rowName, columnName, id });
@@ -1662,7 +1659,6 @@ public final class DataTable implements
                 return Objects.equals(value, other.value) && Objects.equals(id, other.id);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ value, id });
@@ -1775,7 +1771,6 @@ public final class DataTable implements
                 return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ rowName, columnName });
@@ -2321,10 +2316,9 @@ public final class DataTable implements
                 return Objects.equals(value, other.value);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
-                return Objects.hashCode(value);
+                return Long.hashCode(value);
             }
 
             @Override
@@ -2433,7 +2427,6 @@ public final class DataTable implements
                 return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ rowName, columnName });
@@ -3000,7 +2993,6 @@ public final class DataTable implements
                 return Objects.equals(value1, other.value1) && Objects.equals(value2, other.value2);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ value1, value2 });
@@ -3113,7 +3105,6 @@ public final class DataTable implements
                 return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ rowName, columnName });
@@ -3621,5 +3612,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "3/I+XbButguZbFZ2R5qd5g==";
+    static String __CLASS_HASH = "rtiXo3Hl824pzqFW1ks9RA==";
 }

@@ -266,7 +266,6 @@ public final class KvRowsTable implements
             return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(bucket, other.bucket) && Objects.equals(key, other.key);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, bucket, key });
@@ -800,5 +799,5 @@ public final class KvRowsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "owA2qsWE9yiIOpBDbSVLzg==";
+    static String __CLASS_HASH = "H+isRziQbdDbvQHzC4HKRA==";
 }

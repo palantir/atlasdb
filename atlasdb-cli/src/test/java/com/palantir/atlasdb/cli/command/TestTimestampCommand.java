@@ -37,8 +37,7 @@ import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.atlasdb.services.test.DaggerTestAtlasDbServices;
 import com.palantir.atlasdb.services.test.TestAtlasDbServices;
 import com.palantir.common.time.Clock;
-import com.palantir.flake.FlakeRetryingRule;
-import com.palantir.flake.ShouldRetry;
+import com.palantir.flake.FlakeRetryTest;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.LockMode;
@@ -53,33 +52,24 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
 import java.time.Duration;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Scanner;
 import org.apache.commons.io.FileUtils;
 import org.joda.time.format.ISODateTimeFormat;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
-@RunWith(Parameterized.class)
 public class TestTimestampCommand {
 
     private static LockDescriptor lock;
     private static AtlasDbServicesFactory moduleFactory;
     private static List<String> cliArgs;
 
-    @Rule
-    public FlakeRetryingRule flakeRetryingRule = new FlakeRetryingRule();
-
-    @BeforeClass
-    public static void oneTimeSetup() throws Exception {
+    @BeforeAll
+    public static void oneTimeSetup() {
         lock = StringLockDescriptor.of("lock");
         moduleFactory = new AtlasDbServicesFactory() {
             @Override
@@ -91,13 +81,13 @@ public class TestTimestampCommand {
         };
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         cliArgs = Lists.newArrayList("timestamp");
         cleanup();
     }
 
-    @After
+    @AfterEach
     public void cleanup() throws IOException {
         Files.deleteIfExists(new File("test.timestamp").toPath());
         deleteDirectoryIfExists("existing-dir");
@@ -114,14 +104,6 @@ public class TestTimestampCommand {
             assertThat(dir.setWritable(true)).isTrue();
         }
         FileUtils.deleteDirectory(dir);
-    }
-
-    @Parameterized.Parameter(value = 0)
-    public boolean isImmutable;
-
-    @Parameterized.Parameters
-    public static Collection<Object[]> parameters() {
-        return Arrays.asList(new Object[][] {{false}, {true}});
     }
 
     private SingleBackendCliTestRunner makeRunner(String... args) {
@@ -152,8 +134,9 @@ public class TestTimestampCommand {
      * Additionally, check that the formatting of commands that are writing the timestamps
      * to a file for the purposes of scripting these commands is also correct.
      */
-    @Test
-    public void testWithoutFile() throws Exception {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testWithoutFile(boolean isImmutable) throws Exception {
         cliArgs.add("fetch");
         if (isImmutable) {
             cliArgs.add("-i");
@@ -180,38 +163,48 @@ public class TestTimestampCommand {
         });
     }
 
-    @Test
-    public void testWithFile() throws Exception {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testWithFile(boolean isImmutable) throws Exception {
         String inputFileString = "test.timestamp";
-        runAndVerifyCliForFile(inputFileString);
+        runAndVerifyCliForFile(inputFileString, isImmutable);
     }
 
-    @ShouldRetry
-    @Test
-    public void testWithFileWithDir() throws Exception {
+    // We cannot use @ParameterizedTest and @FlakeRetryTest together. Since we are using only two parameters, it is
+    // trivial to separate them to different test methods.
+    @FlakeRetryTest
+    public void testImmutableWithFileWithDir() throws Exception {
         String inputFileString = "existing-dir/test.timestamp";
-        runAndVerifyCliForFile(inputFileString);
+        runAndVerifyCliForFile(inputFileString, true);
     }
 
-    @Test
-    public void testWithFileWithMissingDir() throws Exception {
+    @FlakeRetryTest
+    public void testMutableWithFileWithDir() throws Exception {
+        String inputFileString = "existing-dir/test.timestamp";
+        runAndVerifyCliForFile(inputFileString, false);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testWithFileWithMissingDir(boolean isImmutable) throws Exception {
         String inputFileString = "missing-dir/test.timestamp";
-        runAndVerifyCliForFile(inputFileString);
+        runAndVerifyCliForFile(inputFileString, isImmutable);
     }
 
-    @Test
-    public void testWithFileWithInvalidMissingDir() throws Exception {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testWithFileWithInvalidMissingDir(boolean isImmutable) throws Exception {
         String inputFileString = "readonly-dir/missing-dir/test.timestamp";
         File inputFile = new File(inputFileString);
         File readOnlyDir = inputFile.getParentFile().getParentFile();
         Files.createDirectory(readOnlyDir.toPath());
         assertThat(readOnlyDir.setReadOnly()).isTrue();
-        assertThatThrownBy(() -> runAndVerifyCliForFile(inputFileString))
+        assertThatThrownBy(() -> runAndVerifyCliForFile(inputFileString, isImmutable))
                 .isInstanceOf(RuntimeException.class)
                 .hasCauseExactlyInstanceOf(AccessDeniedException.class);
     }
 
-    private void runAndVerifyCliForFile(String inputFileString) throws Exception {
+    private void runAndVerifyCliForFile(String inputFileString, boolean isImmutable) throws Exception {
         cliArgs.add("-f");
         cliArgs.add(inputFileString);
         cliArgs.add("fetch");
