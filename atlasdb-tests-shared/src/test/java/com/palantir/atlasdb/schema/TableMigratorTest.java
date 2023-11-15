@@ -22,7 +22,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.AtlasDbTestCase;
+import com.palantir.atlasdb.AtlasDbTestCaseV2;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -46,13 +46,11 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.common.exception.TableMappingNotFoundException;
 import java.util.Map;
 import org.apache.commons.lang3.mutable.MutableLong;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
-public class TableMigratorTest extends AtlasDbTestCase {
+public class TableMigratorTest extends AtlasDbTestCaseV2 {
     @Test
     public void testNeedArguments() {
         TableMigratorBuilder builder = new TableMigratorBuilder();
@@ -61,7 +59,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
 
     @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"}) // Table/IndexDefinition syntax
     @Test
-    public void testMigrationToDifferentKvs() throws TableMappingNotFoundException {
+    public void testMigrationToDifferentKvs() {
         final TableReference tableRef = TableReference.create(Namespace.DEFAULT_NAMESPACE, "table");
         final TableReference namespacedTableRef =
                 TableReference.createFromFullyQualifiedName("namespace." + tableRef.getTableName());
@@ -95,7 +93,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
         final TestTransactionManagerImpl txManager2 = new TestTransactionManagerImpl(
                 metricsManager,
                 kvs2,
-                inMemoryTimeLockRule.get(),
+                inMemoryTimelockExtension,
                 lockService,
                 transactionService,
                 cdm2,
@@ -133,7 +131,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
         final TestTransactionManagerImpl verifyTxManager = new TestTransactionManagerImpl(
                 metricsManager,
                 kvs2,
-                inMemoryTimeLockRule.get(),
+                inMemoryTimelockExtension,
                 lockService,
                 transactionService,
                 verifyCdm,
