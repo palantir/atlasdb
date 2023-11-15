@@ -28,7 +28,6 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
-import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.SuspectedNotCurrentLeaderException;
 import com.palantir.leader.proxy.LeadershipStateManager.LeadershipState;
 import com.palantir.logsafe.Preconditions;
@@ -83,7 +82,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         AwaitingLeadershipProxy<U> proxy =
                 new AwaitingLeadershipProxy<>(awaitingLeadership, delegateSupplier, interfaceClass);
         return (U) Proxy.newProxyInstance(
-                interfaceClass.getClassLoader(), new Class<?>[] {interfaceClass, Closeable.class}, proxy);
+                interfaceClass.getClassLoader(), new Class<?>[]{interfaceClass, Closeable.class}, proxy);
     }
 
     @SuppressWarnings("ThrowError") // Possible legacy API
