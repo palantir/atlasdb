@@ -39,7 +39,7 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers.CacheWarming;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
-import com.palantir.timelock.paxos.InMemoryTimelockExtension;
+import com.palantir.timelock.paxos.InMemoryTimelockClassExtension;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -82,7 +82,7 @@ public abstract class AbstractSweepTestV2 {
     protected ShardProgress shardProgress;
 
     @RegisterExtension
-    public static InMemoryTimelockExtension inMemoryTimelockExtension = new InMemoryTimelockExtension();
+    public static InMemoryTimelockClassExtension inMemoryTimelockClassExtension = new InMemoryTimelockClassExtension();
 
     protected AbstractSweepTestV2(KvsManager kvsManager, TransactionManagerManager tmManager) {
         this.kvsManager = kvsManager;
@@ -106,8 +106,8 @@ public abstract class AbstractSweepTestV2 {
     protected TransactionManager createAndRegisterManager() {
         TransactionManager manager = SweepTestUtils.setupTxManager(
                 kvs,
-                inMemoryTimelockExtension.getLegacyTimelockService(),
-                inMemoryTimelockExtension.getTimestampManagementService(),
+                inMemoryTimelockClassExtension.getLegacyTimelockService(),
+                inMemoryTimelockClassExtension.getTimestampManagementService(),
                 ssm,
                 txService);
         tmManager.registerTransactionManager(manager);

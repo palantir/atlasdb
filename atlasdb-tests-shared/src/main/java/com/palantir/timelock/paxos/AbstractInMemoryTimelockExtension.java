@@ -82,7 +82,11 @@ public abstract class AbstractInMemoryTimelockExtension implements TimeLockServi
     private NamespacedConjureTimelockServiceImpl namespacedConjureTimelockService;
 
     public AbstractInMemoryTimelockExtension() {
-        this.client = "client";
+        this("client");
+    }
+
+    public AbstractInMemoryTimelockExtension(String client) {
+        this.client = client;
     }
 
     void setClient(String client) {

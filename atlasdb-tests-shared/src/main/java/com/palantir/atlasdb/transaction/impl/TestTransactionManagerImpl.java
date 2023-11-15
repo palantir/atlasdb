@@ -42,7 +42,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.timelock.paxos.InMemoryTimelockExtension;
+import com.palantir.timelock.paxos.AbstractInMemoryTimelockExtension;
 import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import com.palantir.timestamp.TimestampManagementService;
 import java.util.HashMap;
@@ -92,7 +92,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     public TestTransactionManagerImpl(
             MetricsManager metricsManager,
             KeyValueService keyValueService,
-            InMemoryTimelockExtension inMemoryTimelockExtension,
+            AbstractInMemoryTimelockExtension abstractInMemoryTimelockExtension,
             LockService lockService,
             TransactionService transactionService,
             ConflictDetectionManager conflictDetectionManager,
@@ -104,7 +104,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
         this(
                 metricsManager,
                 keyValueService,
-                inMemoryTimelockExtension,
+                abstractInMemoryTimelockExtension,
                 lockService,
                 transactionService,
                 conflictDetectionManager,
@@ -202,7 +202,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     public TestTransactionManagerImpl(
             MetricsManager metricsManager,
             KeyValueService keyValueService,
-            InMemoryTimelockExtension services,
+            AbstractInMemoryTimelockExtension services,
             LockService lockService,
             TransactionService transactionService,
             ConflictDetectionManager conflictDetectionManager,

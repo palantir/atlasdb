@@ -23,10 +23,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
-import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-public class TestResourceManagerV2 implements AfterEachCallback, KvsManager, TransactionManagerManager {
+public class TestResourceManagerV2 implements AfterAllCallback, KvsManager, TransactionManagerManager {
     private final Supplier<KeyValueService> getKvsSupplier;
     private final List<AutoCloseable> closeableResources = new ArrayList<>();
 
@@ -70,7 +70,7 @@ public class TestResourceManagerV2 implements AfterEachCallback, KvsManager, Tra
     }
 
     @Override
-    public void afterEach(ExtensionContext var1) {
+    public void afterAll(ExtensionContext var1) {
         closeableResources.forEach(resource -> {
             try {
                 resource.close();
