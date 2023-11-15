@@ -30,6 +30,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 public class StreamCompressionTests {
+    private static final String PARAMETERIZED_TEST_NAME = "{index} {0} compression";
+
     private static final StreamCompression GZIP = StreamCompression.GZIP;
     private static final StreamCompression LZ4 = StreamCompression.LZ4;
     private static final StreamCompression NONE = StreamCompression.NONE;
@@ -40,7 +42,7 @@ public class StreamCompressionTests {
     private InputStream compressingStream;
     private InputStream decompressingStream;
 
-    public static List<StreamCompression> getParameters() {
+    public static List<StreamCompression> streamCompressionAlgorithms() {
         return Arrays.asList(StreamCompression.values());
     }
 
@@ -70,21 +72,21 @@ public class StreamCompressionTests {
                 .isEqualTo(data);
     }
 
-    @ParameterizedTest(name = "{index} {0} compression")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("streamCompressionAlgorithms")
     public void testEmptyStream(StreamCompression compression) throws IOException {
         initializeStreams(new byte[0], compression);
         assertStreamIsEmpty(decompressingStream);
     }
 
-    @ParameterizedTest(name = "{index} {0} compression")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("streamCompressionAlgorithms")
     public void testSingleCharacterStream(StreamCompression compression) throws IOException {
         testStream_incompressible(1, compression); // 1 byte input will always be incompressible
     }
 
-    @ParameterizedTest(name = "{index} {0} compression")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("streamCompressionAlgorithms")
     public void testSingleCharacterStream_singleByteRead(StreamCompression compression) throws IOException {
         byte[] uncompressedData = new byte[] {SINGLE_VALUE};
         initializeStreams(uncompressedData, compression);
@@ -94,32 +96,32 @@ public class StreamCompressionTests {
         assertStreamIsEmpty(decompressingStream);
     }
 
-    @ParameterizedTest(name = "{index} {0} compression")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("streamCompressionAlgorithms")
     public void testSingleBlock_compressible(StreamCompression compression) throws IOException {
         testStream_compressible(BLOCK_SIZE, compression);
     }
 
-    @ParameterizedTest(name = "{index} {0} compression")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("streamCompressionAlgorithms")
     public void testSingleBlock_incompressible(StreamCompression compression) throws IOException {
         testStream_incompressible(BLOCK_SIZE, compression);
     }
 
-    @ParameterizedTest(name = "{index} {0} compression")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("streamCompressionAlgorithms")
     public void testMultiBlock_compressible(StreamCompression compression) throws IOException {
         testStream_compressible(16 * BLOCK_SIZE, compression);
     }
 
-    @ParameterizedTest(name = "{index} {0} compression")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("streamCompressionAlgorithms")
     public void testMultiBlock_incompressible(StreamCompression compression) throws IOException {
         testStream_incompressible(16 * BLOCK_SIZE, compression);
     }
 
-    @ParameterizedTest(name = "{index} {0} compression")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("streamCompressionAlgorithms")
     public void testMultiBlock_singleByteReads(StreamCompression compression) throws IOException {
         byte[] uncompressedData = new byte[16 * BLOCK_SIZE];
         fillWithIncompressibleData(uncompressedData);
@@ -132,8 +134,8 @@ public class StreamCompressionTests {
         assertStreamIsEmpty(decompressingStream);
     }
 
-    @ParameterizedTest(name = "{index} {0} compression")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("streamCompressionAlgorithms")
     public void testMultiBlock_readPastEnd(StreamCompression compression) throws IOException {
         byte[] uncompressedData = new byte[16 * BLOCK_SIZE];
         fillWithCompressibleData(uncompressedData);

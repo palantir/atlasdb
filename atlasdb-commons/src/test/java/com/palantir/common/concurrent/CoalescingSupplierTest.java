@@ -47,12 +47,15 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.MockMakers;
 
 public class CoalescingSupplierTest {
+    private static final String PARAMETERIZED_TEST_NAME = "{0}";
+
     private static final int DEFAULT_VALUE = 123;
 
     private final Supplier<Integer> delegate =
@@ -60,14 +63,15 @@ public class CoalescingSupplierTest {
     private final FreezableSupplier freezableDelegate = new FreezableSupplier(delegate);
     private final CoalescingSupplier<Integer> coalescing = new CoalescingSupplier<>(freezableDelegate);
 
-    public static List<Arguments> getParameters() {
+    public static List<Arguments> namesAndFactories() {
         return List.of(
-                Arguments.of("blocking", (Function<CoalescingSupplierTest, Integer>) test -> test.coalescing.get()),
-                Arguments.of("async", (Function<CoalescingSupplierTest, Integer>)
-                        test -> unwrap(test.coalescing.getAsync())));
+                createArguments("blocking", test -> test.coalescing.get()),
+                createArguments("async", test -> unwrap(test.coalescing.getAsync())));
     }
 
-    private Supplier<Integer> supplier;
+    private static Arguments createArguments(String description, Function<CoalescingSupplierTest, Integer> function) {
+        return Arguments.of(description, function);
+    }
 
     private static <T> T unwrap(ListenableFuture<T> future) {
         return AtlasFutures.getUnchecked(future);
@@ -78,23 +82,23 @@ public class CoalescingSupplierTest {
         when(delegate.get()).thenReturn(DEFAULT_VALUE);
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("namesAndFactories")
     public void delegatesToDelegate(String name, Function<CoalescingSupplierTest, Integer> factory) {
-        supplier = () -> factory.apply(this);
+        Supplier<Integer> supplier = () -> factory.apply(this);
         assertThat(supplier.get()).isEqualTo(DEFAULT_VALUE);
 
         verify(delegate).get();
         verifyNoMoreInteractions(delegate);
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("namesAndFactories")
     public void batchesConcurrentRequests(String name, Function<CoalescingSupplierTest, Integer> factory) {
-        supplier = () -> factory.apply(this);
+        Supplier<Integer> supplier = () -> factory.apply(this);
         freezableDelegate.freeze();
-        getConcurrently(1);
-        AsyncTasks batch = getConcurrently(5);
+        getConcurrently(1, supplier);
+        AsyncTasks batch = getConcurrently(5, supplier);
         freezableDelegate.unfreeze();
 
         batch.await();
@@ -105,11 +109,11 @@ public class CoalescingSupplierTest {
         verify(delegate, atMost(5)).get();
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("namesAndFactories")
     @SuppressWarnings("ReturnValueIgnored") // Test relating to properties of a Supplier
     public void doesNotBatchSerialRequests(String name, Function<CoalescingSupplierTest, Integer> factory) {
-        supplier = () -> factory.apply(this);
+        Supplier<Integer> supplier = () -> factory.apply(this);
         supplier.get();
         supplier.get();
         supplier.get();
@@ -117,10 +121,10 @@ public class CoalescingSupplierTest {
         verify(delegate, times(3)).get();
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("namesAndFactories")
     public void requestsDoNotRecieveOldResults(String name, Function<CoalescingSupplierTest, Integer> factory) {
-        supplier = () -> factory.apply(this);
+        Supplier<Integer> supplier = () -> factory.apply(this);
         assertThat(supplier.get()).isEqualTo(DEFAULT_VALUE);
 
         int value2 = 2;
@@ -128,35 +132,33 @@ public class CoalescingSupplierTest {
         assertThat(supplier.get()).isEqualTo(value2);
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("namesAndFactories")
     public void exceptionsArePropagated(String name, Function<CoalescingSupplierTest, Integer> factory) {
-        supplier = () -> factory.apply(this);
+        Supplier<Integer> supplier = () -> factory.apply(this);
         RuntimeException expected = new RuntimeException("foo");
         when(delegate.get()).thenThrow(expected);
 
         assertThatThrownBy(supplier::get).hasMessage(expected.getMessage());
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("namesAndFactories")
     public void exceptionsArePropagatedForCoalescedCalls(
             String name, Function<CoalescingSupplierTest, Integer> factory) {
-        supplier = () -> factory.apply(this);
+        Supplier<Integer> supplier = () -> factory.apply(this);
         RuntimeException expected = new RuntimeException("foo");
         when(delegate.get()).thenThrow(expected);
 
         freezableDelegate.freeze();
-        AsyncTasks tasks = getConcurrently(5);
+        AsyncTasks tasks = getConcurrently(5, supplier);
         freezableDelegate.unfreeze();
 
         tasks.assertAllFailed(expected);
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("getParameters")
-    public void stressTest(String name, Function<CoalescingSupplierTest, Integer> factory) {
-        supplier = () -> factory.apply(this);
+    @Test
+    public void stressTest() {
         int poolSize = 1024;
         ListeningExecutorService executorService =
                 MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(poolSize));
@@ -172,10 +174,8 @@ public class CoalescingSupplierTest {
         Futures.getUnchecked(Futures.allAsList(futures));
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("getParameters")
-    public void canCancelReturnedFuture(String name, Function<CoalescingSupplierTest, Integer> factory) {
-        supplier = () -> factory.apply(this);
+    @Test
+    public void canCancelReturnedFuture() {
         SettableFuture<Long> future = SettableFuture.create();
         CoalescingSupplier<Long> supplier = new CoalescingSupplier<>(() -> Futures.getUnchecked(future));
         ListenableFuture<Long> returned = supplier.getAsync();
@@ -208,7 +208,7 @@ public class CoalescingSupplierTest {
     }
 
     @SuppressWarnings("ReturnValueIgnored") // Test relating to properties of a Supplier
-    private AsyncTasks getConcurrently(int count) {
+    private AsyncTasks getConcurrently(int count, Supplier<Integer> supplier) {
         return AsyncTasks.runInParallel(supplier::get, count);
     }
 

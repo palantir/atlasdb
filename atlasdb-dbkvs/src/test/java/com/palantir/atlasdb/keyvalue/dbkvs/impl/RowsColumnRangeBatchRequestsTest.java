@@ -29,7 +29,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 public class RowsColumnRangeBatchRequestsTest {
 
-    public static List<Arguments> getParameters() {
+    private static final String PARAMETERIZED_TEST_NAME = "Partial first row: {0}, partial last row: {1}";
+
+    public static List<Arguments> hasPartialFirstRowsAndHasPartialLastRows() {
         return List.of(
                 Arguments.of(false, false),
                 Arguments.of(false, true),
@@ -37,20 +39,20 @@ public class RowsColumnRangeBatchRequestsTest {
                 Arguments.of(true, true));
     }
 
-    @ParameterizedTest(name = "Partial first row: {0}, partial last row: {1}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("hasPartialFirstRowsAndHasPartialLastRows")
     public void testPartitionSimple(boolean hasPartialFirstRow, boolean hasPartialLastRow) {
         testPartition(createRequest(1000, hasPartialFirstRow, hasPartialLastRow), 100);
     }
 
-    @ParameterizedTest(name = "Partial first row: {0}, partial last row: {1}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("hasPartialFirstRowsAndHasPartialLastRows")
     public void testSinglePartition(boolean hasPartialFirstRow, boolean hasPartialLastRow) {
         testPartition(createRequest(10, hasPartialFirstRow, hasPartialLastRow), 100);
     }
 
-    @ParameterizedTest(name = "Partial first row: {0}, partial last row: {1}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("hasPartialFirstRowsAndHasPartialLastRows")
     public void testPartitionSizeDoesNotDivideNumberOfRows(boolean hasPartialFirstRow, boolean hasPartialLastRow) {
         testPartition(createRequest(100, hasPartialFirstRow, hasPartialLastRow), 23);
     }

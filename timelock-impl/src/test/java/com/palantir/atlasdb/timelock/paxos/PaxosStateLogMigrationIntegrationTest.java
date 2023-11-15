@@ -48,6 +48,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 public class PaxosStateLogMigrationIntegrationTest {
+    private static final String PARAMETERIZED_TEST_NAME = "Async migration completed {0}";
 
     private static final Client CLIENT = Client.of("test");
     private static final PaxosUseCase useCase = PaxosUseCase.LEADER_FOR_ALL_CLIENTS;
@@ -74,7 +75,7 @@ public class PaxosStateLogMigrationIntegrationTest {
         fileBasedLearnerLog = createFileSystemLearnerLog(CLIENT);
     }
 
-    @ParameterizedTest(name = "Async migration completed {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void canMigrateWithEmptyLegacy(boolean asyncMigrationCompleted) {
         LocalPaxosComponents paxosComponents = createPaxosComponentsAndMaybeMigrate(asyncMigrationCompleted);
@@ -89,7 +90,7 @@ public class PaxosStateLogMigrationIntegrationTest {
                 .isEqualTo(0L);
     }
 
-    @ParameterizedTest(name = "Async migration completed {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void learnerMigratesLogStateFromLatestIncludingBuffer(boolean asyncMigrationCompleted) throws IOException {
         fileBasedLearnerLog.writeRound(ROUND_BEFORE_CUTOFF, valueForRound(ROUND_BEFORE_CUTOFF));
@@ -114,7 +115,7 @@ public class PaxosStateLogMigrationIntegrationTest {
                 .isGreaterThanOrEqualTo(1L);
     }
 
-    @ParameterizedTest(name = "Async migration completed {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void legacyLogIsTheSourceOfTruthForValuesBelowCutoff(boolean asyncMigrationCompleted) throws IOException {
         fileBasedLearnerLog.writeRound(LATEST_ROUND_BEFORE_MIGRATING, valueForRound(LATEST_ROUND_BEFORE_MIGRATING));
@@ -138,7 +139,7 @@ public class PaxosStateLogMigrationIntegrationTest {
                 .isGreaterThanOrEqualTo(1L);
     }
 
-    @ParameterizedTest(name = "Async migration completed {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void currentLogIsTheSourceOfTruthForValuesAboveCutoff(boolean asyncMigrationCompleted) throws IOException {
         fileBasedLearnerLog.writeRound(LATEST_ROUND_BEFORE_MIGRATING, valueForRound(LATEST_ROUND_BEFORE_MIGRATING));
@@ -163,7 +164,7 @@ public class PaxosStateLogMigrationIntegrationTest {
                 .isGreaterThanOrEqualTo(1L);
     }
 
-    @ParameterizedTest(name = "Async migration completed {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void learningValuesBeforeCutoffPersistsToLegacyLog(boolean asyncMigrationCompleted) throws IOException {
         fileBasedLearnerLog.writeRound(LATEST_ROUND_BEFORE_MIGRATING, valueForRound(LATEST_ROUND_BEFORE_MIGRATING));
@@ -184,7 +185,7 @@ public class PaxosStateLogMigrationIntegrationTest {
                 .isEqualTo(0L);
     }
 
-    @ParameterizedTest(name = "Async migration completed {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void noCrossClientPollution(boolean asyncMigrationCompleted) {
         fileBasedLearnerLog.writeRound(LATEST_ROUND_BEFORE_MIGRATING, valueForRound(LATEST_ROUND_BEFORE_MIGRATING));
@@ -206,7 +207,7 @@ public class PaxosStateLogMigrationIntegrationTest {
         assertValueLearned(otherRound, otherLearner);
     }
 
-    @ParameterizedTest(name = "Async migration completed {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void migrationCutoffForAcceptorBasedOnLearnerWhenEntriesPresent(boolean asyncMigrationCompleted)
             throws IOException {
@@ -227,7 +228,7 @@ public class PaxosStateLogMigrationIntegrationTest {
         assertStatePresent(newRound, sqliteLog);
     }
 
-    @ParameterizedTest(name = "Async migration completed {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void migrationCutoffForAcceptorIncludesAtLeastOneEntry(boolean asyncMigrationCompleted) throws IOException {
         fileBasedLearnerLog.writeRound(LATEST_ROUND_BEFORE_MIGRATING, valueForRound(LATEST_ROUND_BEFORE_MIGRATING));
@@ -242,7 +243,7 @@ public class PaxosStateLogMigrationIntegrationTest {
         assertStatePresent(ROUND_BEFORE_CUTOFF, sqliteLog);
     }
 
-    @ParameterizedTest(name = "Async migration completed {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void failWhenOldLogWritesAtGreaterSequenceAfterMigrationAlreadyRan(boolean asyncMigrationCompleted) {
         fileBasedLearnerLog.writeRound(LATEST_ROUND_BEFORE_MIGRATING, valueForRound(LATEST_ROUND_BEFORE_MIGRATING));
@@ -259,7 +260,7 @@ public class PaxosStateLogMigrationIntegrationTest {
                 .isInstanceOf(IllegalStateException.class);
     }
 
-    @ParameterizedTest(name = "Async migration completed {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void learnerMigratesLogStateWhenValidationDisabledAndTruncates(boolean asyncMigrationCompleted)
             throws IOException {
@@ -290,7 +291,7 @@ public class PaxosStateLogMigrationIntegrationTest {
                 .isEqualTo(0L);
     }
 
-    @ParameterizedTest(name = "Async migration completed {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void doNotFailWhenOldLogWritesAtGreaterSequenceAfterMigrationAlreadyRanAndTruncate(
             boolean asyncMigrationCompleted) throws IOException {

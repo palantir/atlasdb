@@ -27,19 +27,20 @@ import org.mockito.Mockito;
 import org.slf4j.Logger;
 
 public class IterablePartitionerTest {
+    private static final String PARAMETERIZED_TEST_NAME = "tableName={0}";
 
     // approx put size is intentionally larger than the max (this triggers logging)
     private static final long LARGE_PUT_SIZE = 20L;
     private static final long MAXIMUM_PUT_SIZE = 10L;
     private static final long SMALL_PUT_SIZE = 6L;
 
-    public static List<String> getParameters() {
+    public static List<String> tableNames() {
         return List.of("test", "foo.bar", "[intentionally.invalid.table.name, foo.bar.baz]");
     }
 
     @SuppressWarnings("Slf4jConstantLogMessage")
-    @ParameterizedTest(name = "tableName={0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("tableNames")
     public void testWithLogging(String tableName) {
         Logger mockLogger = Mockito.mock(Logger.class);
         Mockito.when(mockLogger.isWarnEnabled()).thenReturn(true);
@@ -57,8 +58,8 @@ public class IterablePartitionerTest {
         Mockito.verifyNoMoreInteractions(mockLogger);
     }
 
-    @ParameterizedTest(name = "tableName={0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("tableNames")
     public void testWithoutLogging(String tableName) {
         Logger mockLogger = Mockito.mock(Logger.class);
         Mockito.when(mockLogger.isWarnEnabled()).thenReturn(false);
@@ -70,8 +71,8 @@ public class IterablePartitionerTest {
         Mockito.verifyNoMoreInteractions(mockLogger);
     }
 
-    @ParameterizedTest(name = "tableName={0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("tableNames")
     public void smallPutsDoNotLog(String tableName) {
         Logger mockLogger = Mockito.mock(Logger.class);
         Mockito.when(mockLogger.isWarnEnabled()).thenReturn(true);

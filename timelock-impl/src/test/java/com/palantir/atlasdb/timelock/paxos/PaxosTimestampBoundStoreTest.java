@@ -84,7 +84,7 @@ public class PaxosTimestampBoundStoreTest {
     private final List<AtomicBoolean> failureToggles = new ArrayList<>();
     private final Closer closer = Closer.create();
 
-    public static List<Boolean> getParameters() {
+    public static List<Boolean> useBatches() {
         return List.of(UNBATCHED, BATCHED);
     }
 
@@ -107,14 +107,14 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("useBatches")
     public void timestampsBeginFromZero(boolean useBatch) {
         setup(useBatch);
         assertThat(store.getUpperLimit()).isEqualTo(0L);
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("useBatches")
     public void canStoreUpperLimit(boolean useBatch) {
         setup(useBatch);
         store.storeUpperLimit(TIMESTAMP_1);
@@ -122,7 +122,7 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("useBatches")
     public void throwsIfStoringLimitLessThanUpperLimit(boolean useBatch) {
         setup(useBatch);
         store.storeUpperLimit(TIMESTAMP_2);
@@ -131,7 +131,7 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("useBatches")
     public void canOperateWithMinorityOfNodesDown(boolean useBatch) {
         setup(useBatch);
         failureToggles.get(1).set(true);
@@ -141,7 +141,7 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("useBatches")
     public void throwsIfCannotObtainQuorum(boolean useBatch) {
         setup(useBatch);
         failureToggles.get(1).set(true);
@@ -151,7 +151,7 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("useBatches")
     public void retriesProposeUntilSuccessful(boolean useBatch) throws Exception {
         setup(useBatch);
         PaxosProposer wrapper = spy(new OnceFailingPaxosProposer(createPaxosProposer(0)));
@@ -162,7 +162,7 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("useBatches")
     public void throwsNotCurrentLeaderExceptionIfBoundUnexpectedlyChangedUnderUs(boolean useBatch) {
         setup(useBatch);
         PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(1);
@@ -171,7 +171,7 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("useBatches")
     public void throwsSafeIllegalStateExceptionIfCalledAfterNotCurrentLeaderException(boolean useBatch) {
         setup(useBatch);
         PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(1);
@@ -183,7 +183,7 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("useBatches")
     public void canReadStateFromDistributedLogs(boolean useBatch) {
         setup(useBatch);
         PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(1);
@@ -194,7 +194,7 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("useBatches")
     public void canReadConsensusProposedByOtherNodes(boolean useBatch) {
         setup(useBatch);
         PaxosTimestampBoundStore additionalStore1 = createPaxosTimestampBoundStore(1);
@@ -211,7 +211,7 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("useBatches")
     public void canGetAgreedInitialState(boolean useBatch) {
         setup(useBatch);
         PaxosTimestampBoundStore.SequenceAndBound sequenceAndBound = store.getAgreedState(0);
@@ -220,7 +220,7 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("useBatches")
     public void canGetAgreedState(boolean useBatch) {
         setup(useBatch);
         store.storeUpperLimit(TIMESTAMP_1);
@@ -230,14 +230,14 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("useBatches")
     public void canSafelyGetAgreedStateFromPrehistory(boolean useBatch) {
         setup(useBatch);
         assertThat(store.getAgreedState(Long.MIN_VALUE).getBound()).isEqualTo(0);
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("useBatches")
     public void canGetAgreedStateAfterNodeDown(boolean useBatch) {
         setup(useBatch);
         int nodeId = 1;
@@ -250,14 +250,14 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("useBatches")
     public void cannotGetAgreedStateFromTheFuture(boolean useBatch) {
         setup(useBatch);
         assertThatThrownBy(() -> store.getAgreedState(Long.MAX_VALUE)).isInstanceOf(NullPointerException.class);
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("useBatches")
     public void canSafelyForceAgreedStateFromPrehistory(boolean useBatch) {
         setup(useBatch);
         assertThat(store.forceAgreedState(Long.MIN_VALUE, Long.MIN_VALUE).getBound())
@@ -265,7 +265,7 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("useBatches")
     public void canForceAgreedState(boolean useBatch) {
         setup(useBatch);
         assertThat(store.forceAgreedState(1, FORTY_TWO)).isEqualTo(ONE_AND_FORTY_TWO);
@@ -273,7 +273,7 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("useBatches")
     public void forceAgreedStateCanBeUsedToGainKnowledge(boolean useBatch) {
         setup(useBatch);
         assertThat(store.forceAgreedState(1, FORTY_TWO)).isEqualTo(ONE_AND_FORTY_TWO);
@@ -283,7 +283,7 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("useBatches")
     public void forceAgreedStateReturnsFirstForcedValue(boolean useBatch) {
         setup(useBatch);
         assertThat(store.forceAgreedState(1, FORTY_TWO)).isEqualTo(ONE_AND_FORTY_TWO);
@@ -292,7 +292,7 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("useBatches")
     public void forceAgreedStateOperatesAtSequenceNumberLevel(boolean useBatch) {
         setup(useBatch);
         long fortyThree = FORTY_TWO + 1;
@@ -303,14 +303,14 @@ public class PaxosTimestampBoundStoreTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("useBatches")
     public void forceAgreedStateThrowsIfNoStateWasAgreedUpon(boolean useBatch) {
         setup(useBatch);
         assertThatThrownBy(() -> store.forceAgreedState(1, null)).isInstanceOf(NullPointerException.class);
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("useBatches")
     public void retriesForceAgreedStateUntilSuccessful(boolean useBatch) throws Exception {
         setup(useBatch);
         PaxosProposer wrapper = spy(new OnceFailingPaxosProposer(createPaxosProposer(0)));
@@ -356,52 +356,56 @@ public class PaxosTimestampBoundStoreTest {
         }
 
         if (useBatch) {
-            AutobatchingPaxosAcceptorNetworkClientFactory acceptorNetworkClientFactory =
-                    AutobatchingPaxosAcceptorNetworkClientFactory.create(
-                            batchPaxosAcceptors,
-                            KeyedStream.of(batchPaxosAcceptors.stream())
-                                    .map($ -> new CheckedRejectionExecutorService(executor))
-                                    .collectToMap(),
-                            QUORUM_SIZE);
-            acceptorClient = acceptorNetworkClientFactory.paxosAcceptorForClient(CLIENT);
-
-            List<AutobatchingPaxosLearnerNetworkClientFactory> learnerNetworkClientFactories =
-                    batchPaxosLearners.stream()
-                            .map(localLearner -> LocalAndRemotes.of(
-                                    localLearner,
-                                    batchPaxosLearners.stream()
-                                            .filter(remoteLearners -> remoteLearners != localLearner)
-                                            .collect(toList())))
-                            .map(localAndRemotes -> AutobatchingPaxosLearnerNetworkClientFactory.createForTests(
-                                    localAndRemotes, executor, QUORUM_SIZE))
-                            .collect(toList());
-
-            learnerClientsByNode = learnerNetworkClientFactories.stream()
-                    .map(factory -> factory.paxosLearnerForClient(CLIENT))
-                    .collect(toList());
-
-            closer.register(acceptorNetworkClientFactory);
-            learnerNetworkClientFactories.forEach(closer::register);
+            setupAcceptorClientAndLearnerClientsByNodeUsingBatch(batchPaxosAcceptors, batchPaxosLearners);
         } else {
-            acceptorClient = SingleLeaderAcceptorNetworkClient.createLegacy(
-                    acceptors,
-                    QUORUM_SIZE,
-                    Maps.toMap(acceptors, $ -> executor),
-                    PaxosConstants.CANCEL_REMAINING_CALLS);
-
-            learnerClientsByNode = learners.stream()
-                    .map(learner -> SingleLeaderLearnerNetworkClient.createLegacy(
-                            learner,
-                            learners.stream()
-                                    .filter(otherLearners -> otherLearners != learner)
-                                    .collect(toList()),
-                            QUORUM_SIZE,
-                            Maps.toMap(learners, $ -> executor),
-                            PaxosConstants.CANCEL_REMAINING_CALLS))
-                    .collect(toList());
+            setupAcceptorClientAndLearnerClientsByNodeWithoutUsingBatch(acceptors);
         }
-
         store = createPaxosTimestampBoundStore(0);
+    }
+
+    public void setupAcceptorClientAndLearnerClientsByNodeUsingBatch(
+            List<BatchPaxosAcceptor> batchPaxosAcceptors, List<BatchPaxosLearner> batchPaxosLearners) {
+        AutobatchingPaxosAcceptorNetworkClientFactory acceptorNetworkClientFactory =
+                AutobatchingPaxosAcceptorNetworkClientFactory.create(
+                        batchPaxosAcceptors,
+                        KeyedStream.of(batchPaxosAcceptors.stream())
+                                .map($ -> new CheckedRejectionExecutorService(executor))
+                                .collectToMap(),
+                        QUORUM_SIZE);
+        acceptorClient = acceptorNetworkClientFactory.paxosAcceptorForClient(CLIENT);
+
+        List<AutobatchingPaxosLearnerNetworkClientFactory> learnerNetworkClientFactories = batchPaxosLearners.stream()
+                .map(localLearner -> LocalAndRemotes.of(
+                        localLearner,
+                        batchPaxosLearners.stream()
+                                .filter(remoteLearners -> remoteLearners != localLearner)
+                                .collect(toList())))
+                .map(localAndRemotes -> AutobatchingPaxosLearnerNetworkClientFactory.createForTests(
+                        localAndRemotes, executor, QUORUM_SIZE))
+                .collect(toList());
+
+        learnerClientsByNode = learnerNetworkClientFactories.stream()
+                .map(factory -> factory.paxosLearnerForClient(CLIENT))
+                .collect(toList());
+
+        closer.register(acceptorNetworkClientFactory);
+        learnerNetworkClientFactories.forEach(closer::register);
+    }
+
+    public void setupAcceptorClientAndLearnerClientsByNodeWithoutUsingBatch(List<PaxosAcceptor> acceptors) {
+        acceptorClient = SingleLeaderAcceptorNetworkClient.createLegacy(
+                acceptors, QUORUM_SIZE, Maps.toMap(acceptors, $ -> executor), PaxosConstants.CANCEL_REMAINING_CALLS);
+
+        learnerClientsByNode = learners.stream()
+                .map(learner -> SingleLeaderLearnerNetworkClient.createLegacy(
+                        learner,
+                        learners.stream()
+                                .filter(otherLearners -> otherLearners != learner)
+                                .collect(toList()),
+                        QUORUM_SIZE,
+                        Maps.toMap(learners, $ -> executor),
+                        PaxosConstants.CANCEL_REMAINING_CALLS))
+                .collect(toList());
     }
 
     private PaxosTimestampBoundStore createPaxosTimestampBoundStore(int nodeIndex) {

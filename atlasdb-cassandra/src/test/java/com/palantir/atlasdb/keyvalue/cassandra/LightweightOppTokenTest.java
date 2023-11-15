@@ -28,15 +28,16 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 public class LightweightOppTokenTest {
+    private static final String PARAMETERIZED_TEST_NAME = "{index}: input=\"{0}\"";
 
-    public static List<String> getParameters() {
+    public static List<String> inputs() {
         return TokensTest.generateTokens()
                 .flatMap(input -> Stream.of(input, input.toLowerCase(Locale.ROOT), input.toUpperCase(Locale.ROOT)))
                 .collect(Collectors.toList());
     }
 
-    @ParameterizedTest(name = "{index}: input=\"{0}\"")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("inputs")
     public void inputsAreValidBase16Strings(String input) {
         assertThat(input).matches("^[0-9a-fA-F]*$");
         assertThat(input.length() % 2)
@@ -45,8 +46,8 @@ public class LightweightOppTokenTest {
         assertThat(CassandraHex.hexToBytes(input)).hasSize(input.length() / 2);
     }
 
-    @ParameterizedTest(name = "{index}: input=\"{0}\"")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("inputs")
     public void createFromHexEncodedStringRegardlessOfCase(String input) {
         LightweightOppToken token = LightweightOppToken.fromHex(input);
         LightweightOppToken tokenFromLowerCase = LightweightOppToken.fromHex(input.toLowerCase(Locale.ROOT));
@@ -68,8 +69,8 @@ public class LightweightOppTokenTest {
                 .isEqualByComparingTo(tokenFromBytes);
     }
 
-    @ParameterizedTest(name = "{index}: input=\"{0}\"")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("inputs")
     public void fromHexCorrectlyDeserializesStrings(String input) throws Exception {
         LightweightOppToken token = LightweightOppToken.fromHex(input);
         Bytes expectedBytes = Bytes.from(org.apache.commons.codec.binary.Hex.decodeHex(input));
@@ -81,8 +82,8 @@ public class LightweightOppTokenTest {
         assertThat(token.toString()).isEqualToIgnoringCase(input);
     }
 
-    @ParameterizedTest(name = "{index}: input=\"{0}\"")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("inputs")
     public void tokenMatchesCassandraImplementation(String input) throws Exception {
         // Test compatibility with Cassandra hex conversions from:
         // https://github.com/palantir/cassandra/blob/palantir-cassandra-2.2.18/src/java/org/apache/cassandra/dht/ByteOrderedPartitioner.java#L74

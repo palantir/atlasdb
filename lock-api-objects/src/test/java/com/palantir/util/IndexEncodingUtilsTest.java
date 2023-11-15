@@ -45,8 +45,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 public class IndexEncodingUtilsTest {
+    private static final String PARAMETERIZED_TEST_NAME = "checksumType={0}";
 
-    public static List<ChecksumType> getParameters() {
+    public static List<ChecksumType> checksumTypes() {
         return Arrays.asList(ChecksumType.values());
     }
 
@@ -55,8 +56,8 @@ public class IndexEncodingUtilsTest {
     private static final Set<DeterministicHashableWrapper<String>> KEYS =
             ImmutableSet.of(wrap("key1"), wrap("key2"), wrap("anotherKey"));
 
-    @ParameterizedTest(name = "checksumType={0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("checksumTypes")
     public void canLookupValidChecksumType(ChecksumType checksumType) {
         assertThat(ChecksumType.valueOf(checksumType.getId())).isEqualTo(checksumType);
     }
@@ -69,30 +70,30 @@ public class IndexEncodingUtilsTest {
                 .hasExactlyArgs(SafeArg.of("checksumTypeId", -1));
     }
 
-    @ParameterizedTest(name = "checksumType={0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("checksumTypes")
     public void canEncodeSimpleData(ChecksumType checksumType) {
         assertThat(createIndexEncoding(checksumType).indexToValue())
                 .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(1, 1337L, 2, -10L, 0, 42L));
     }
 
-    @ParameterizedTest(name = "checksumType={0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("checksumTypes")
     public void canDecodeSimpleData(ChecksumType checksumType) {
         assertThat(IndexEncodingUtils.decode(createIndexEncoding(checksumType)))
                 .containsExactlyInAnyOrderEntriesOf(VALUES);
     }
 
-    @ParameterizedTest(name = "checksumType={0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("checksumTypes")
     public void canEncodeAndDecodeEmptyData(ChecksumType checksumType) {
         assertThat(IndexEncodingUtils.decode(
                         IndexEncodingUtils.encode(ImmutableSet.of(), ImmutableMap.of(), checksumType)))
                 .isEmpty();
     }
 
-    @ParameterizedTest(name = "checksumType={0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("checksumTypes")
     public void canEncodeWithCustomValueMapper(ChecksumType checksumType) {
         Map<Integer, String> expectedValues = ImmutableMap.of(1, "1327", 2, "-20", 0, "32");
         assertThat(IndexEncodingUtils.encode(KEYS, VALUES, value -> Long.toString(value - 10), checksumType)
@@ -100,8 +101,8 @@ public class IndexEncodingUtilsTest {
                 .containsExactlyInAnyOrderEntriesOf(expectedValues);
     }
 
-    @ParameterizedTest(name = "checksumType={0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("checksumTypes")
     public void canDecodeWithCustomValueMapper(ChecksumType checksumType) {
         assertThat(IndexEncodingUtils.decode(
                         IndexEncodingUtils.encode(KEYS, VALUES, value -> Long.toString(value - 10), checksumType),
@@ -109,8 +110,8 @@ public class IndexEncodingUtilsTest {
                 .containsExactlyInAnyOrderEntriesOf(VALUES);
     }
 
-    @ParameterizedTest(name = "checksumType={0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("checksumTypes")
     public void encodeFailsForUnknownKeysInValueMap(ChecksumType checksumType) {
         assertThatLoggableExceptionThrownBy(
                         () -> IndexEncodingUtils.encode(KEYS, ImmutableMap.of(wrap("unknown-key"), 0L), checksumType))
@@ -119,8 +120,8 @@ public class IndexEncodingUtilsTest {
                 .hasExactlyArgs(UnsafeArg.of("unknownKeys", ImmutableSet.of(wrap("unknown-key"))));
     }
 
-    @ParameterizedTest(name = "checksumType={0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("checksumTypes")
     public void decodeFailsForInvalidIndices(ChecksumType checksumType) {
         IndexEncodingResult<DeterministicHashableWrapper<String>, Long> encodedWithInvalidIndices =
                 ImmutableIndexEncodingResult.copyOf(createIndexEncoding(checksumType))
@@ -131,8 +132,8 @@ public class IndexEncodingUtilsTest {
                 .hasExactlyArgs(SafeArg.of("index", KEYS.size()), SafeArg.of("keyListSize", KEYS.size()));
     }
 
-    @ParameterizedTest(name = "checksumType={0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("checksumTypes")
     public void integrityCheckFailsForDifferentKeyList(ChecksumType checksumType) {
         IndexEncodingResult<DeterministicHashableWrapper<String>, Long> encoded = createIndexEncoding(checksumType);
         List<DeterministicHashableWrapper<String>> modifiedKeyList = new ArrayList<>(KEYS);
@@ -149,8 +150,8 @@ public class IndexEncodingUtilsTest {
                         SafeArg.of("expectedChecksum", encoded.keyListChecksum()));
     }
 
-    @ParameterizedTest(name = "checksumType={0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("checksumTypes")
     public void integrityCheckFailsForDifferentChecksum(ChecksumType checksumType) {
         IndexEncodingResult<DeterministicHashableWrapper<String>, Long> encoded = createIndexEncoding(checksumType);
         byte[] modifiedChecksum = encoded.keyListChecksum().value();
@@ -167,8 +168,8 @@ public class IndexEncodingUtilsTest {
                         SafeArg.of("expectedChecksum", encodedWithModifiedChecksum.keyListChecksum()));
     }
 
-    @ParameterizedTest(name = "checksumType={0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("checksumTypes")
     public void decodingEncodedDataYieldsOriginalForRandomData(ChecksumType checksumType) {
         int seed = (int) System.currentTimeMillis();
         Random rand = new Random(seed);

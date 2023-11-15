@@ -29,9 +29,11 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 public class TableNameTest {
+
+    private static final String PARAMETERIZED_TEST_NAME = "namespace={0}, tableName={1} = internalTableName={2}";
     private static final Pattern PERIOD_REGEX = Pattern.compile("\\.");
 
-    public static List<Arguments> getParameters() {
+    public static List<Arguments> namespacesAndTableNamesAndInternalTableNames() {
         return List.of(
                 Arguments.of(Namespace.DEFAULT_NAMESPACE, "_hidden", "default___hidden"),
                 Arguments.of(Namespace.DEFAULT_NAMESPACE, "foo_bar", "default__foo_bar"),
@@ -47,8 +49,8 @@ public class TableNameTest {
                 Arguments.of(Namespace.create("ns"), "", "ns__"));
     }
 
-    @ParameterizedTest(name = "namespace={0}, tableName={1} = internalTableName={2}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("namespacesAndTableNamesAndInternalTableNames")
     public void roundTrip(Namespace namespace, String tableName, String internalTableName) {
         Assumptions.assumeTrue(Schemas.isTableNameValid(tableName), "Table name must be valid: '" + tableName + "'");
         checkValidTableName(tableName);

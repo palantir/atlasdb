@@ -34,7 +34,7 @@ public class TableMetadataPersistenceTest {
     private static final int STREAM_STORE_BLOCK_SIZE_WITH_COMPRESS_IN_DB = 256;
     private static final int UNSET_BLOCK_SIZE = 0;
 
-    public static List<Arguments> getParameters() {
+    public static List<Arguments> tableDefinitions() {
         List<Arguments> params = new ArrayList<>();
 
         params.add(Arguments.of(getRangeScanWithoutCompression(), UNSET_BLOCK_SIZE));
@@ -51,7 +51,7 @@ public class TableMetadataPersistenceTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("tableDefinitions")
     public void testSerializeAndDeserialize(TableDefinition tableDefinition) {
         TableMetadata metadata = tableDefinition.toTableMetadata();
         byte[] metadataAsBytes = metadata.persistToBytes();
@@ -60,7 +60,7 @@ public class TableMetadataPersistenceTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("tableDefinitions")
     public void testMetadataHasExpectedCompressionBlockSize(
             TableDefinition tableDefinition, int compressionBlockSizeKB) {
         TableMetadata metadata = tableDefinition.toTableMetadata();
