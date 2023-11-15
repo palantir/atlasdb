@@ -40,13 +40,11 @@ public class SimpleCommitTimestampAtomicTableTest {
         return List.of(V1EncodingStrategy.INSTANCE, TicketsEncodingStrategy.INSTANCE);
     }
 
-    private AtomicTable<Long, TransactionStatus> atomicTable;
-
     @ParameterizedTest
     @MethodSource("encodingStrategies")
     public void canPutAndGet(TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy)
             throws ExecutionException, InterruptedException {
-        atomicTable = createPueTable(encodingStrategy);
+        AtomicTable<Long, TransactionStatus> atomicTable = createPueTable(encodingStrategy);
         atomicTable.update(1L, TransactionStatus.committed(2L));
         assertThat(atomicTable.get(1L).get()).isEqualTo(TransactionStatus.committed(2L));
     }
@@ -55,14 +53,14 @@ public class SimpleCommitTimestampAtomicTableTest {
     @MethodSource("encodingStrategies")
     public void emptyReturnsInProgress(TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy)
             throws ExecutionException, InterruptedException {
-        atomicTable = createPueTable(encodingStrategy);
+        AtomicTable<Long, TransactionStatus> atomicTable = createPueTable(encodingStrategy);
         assertThat(atomicTable.get(3L).get()).isEqualTo(TransactionStatus.inProgress());
     }
 
     @ParameterizedTest
     @MethodSource("encodingStrategies")
     public void cannotPueTwice(TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy) {
-        atomicTable = createPueTable(encodingStrategy);
+        AtomicTable<Long, TransactionStatus> atomicTable = createPueTable(encodingStrategy);
         atomicTable.update(1L, TransactionStatus.committed(2L));
         assertThatThrownBy(() -> atomicTable.update(1L, TransactionStatus.committed(2L)))
                 .isInstanceOf(KeyAlreadyExistsException.class);
@@ -72,7 +70,7 @@ public class SimpleCommitTimestampAtomicTableTest {
     @MethodSource("encodingStrategies")
     public void canPutAndGetMultiple(TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy)
             throws ExecutionException, InterruptedException {
-        atomicTable = createPueTable(encodingStrategy);
+        AtomicTable<Long, TransactionStatus> atomicTable = createPueTable(encodingStrategy);
         ImmutableMap<Long, TransactionStatus> inputs = ImmutableMap.of(
                 1L,
                 TransactionStatus.committed(2L),
@@ -93,7 +91,7 @@ public class SimpleCommitTimestampAtomicTableTest {
     @MethodSource("encodingStrategies")
     public void canPutAndGetAbortedTransactions(TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy)
             throws ExecutionException, InterruptedException {
-        atomicTable = createPueTable(encodingStrategy);
+        AtomicTable<Long, TransactionStatus> atomicTable = createPueTable(encodingStrategy);
         ImmutableMap<Long, TransactionStatus> inputs = ImmutableMap.of(1L, TransactionStatus.aborted());
         atomicTable.updateMultiple(inputs);
         Map<Long, TransactionStatus> result =
@@ -106,7 +104,7 @@ public class SimpleCommitTimestampAtomicTableTest {
     @MethodSource("encodingStrategies")
     public void getsAllTimestamps(TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy)
             throws ExecutionException, InterruptedException {
-        atomicTable = createPueTable(encodingStrategy);
+        AtomicTable<Long, TransactionStatus> atomicTable = createPueTable(encodingStrategy);
         ImmutableMap<Long, TransactionStatus> inputs = ImmutableMap.of(1L, TransactionStatus.committed(2L));
         atomicTable.updateMultiple(inputs);
         Map<Long, TransactionStatus> result =
@@ -121,7 +119,7 @@ public class SimpleCommitTimestampAtomicTableTest {
     @MethodSource("encodingStrategies")
     public void doesNotThrowForDuplicateValues(TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy)
             throws ExecutionException, InterruptedException {
-        atomicTable = createPueTable(encodingStrategy);
+        AtomicTable<Long, TransactionStatus> atomicTable = createPueTable(encodingStrategy);
         ImmutableMap<Long, TransactionStatus> inputs = ImmutableMap.of(1L, TransactionStatus.committed(2L));
         atomicTable.updateMultiple(inputs);
 
