@@ -31,19 +31,16 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
-@RunWith(Parameterized.class)
 public class SweepableCellFilterParametrizedTest {
+    private static final String PARAMETERIZED_TEST_NAME = "{0}, {1}, {2}";
     private static final ImmutableSet<Boolean> BOOLEANS = ImmutableSet.of(true, false);
 
     private static final Cell SINGLE_CELL =
@@ -58,54 +55,31 @@ public class SweepableCellFilterParametrizedTest {
     private final CommitTsCache commitTsCache = CommitTsCache.create(mockTransactionService);
     private List<CandidateCellForSweeping> candidate;
 
-    @Parameterized.Parameter
-    public boolean lastIsTombstone;
-
-    @Parameterized.Parameter(value = 1)
-    public Committed status;
-
-    @Parameterized.Parameter(value = 2)
-    public Sweeper sweeper;
-
-    @Parameterized.Parameters(name = "{0}, {1}, {2}")
-    public static Collection<Object[]> parameters() {
-        return Sets.<Object>cartesianProduct(
+    public static List<Arguments> lastIsTombstonesAndStatusesAndSweepers() {
+        return Sets.cartesianProduct(
                         BOOLEANS, ImmutableSet.copyOf(Committed.values()), ImmutableSet.copyOf(Sweeper.values()))
                 .stream()
                 .map(List::toArray)
+                .map(Arguments::of)
                 .collect(Collectors.toList());
-    }
-
-    @Before
-    @SuppressWarnings("unchecked")
-    public void setup() {
-        Map<Long, Long> startTsToCommitTs = new HashMap<>();
-        COMMITTED_BEFORE.forEach(startTs -> startTsToCommitTs.put(startTs, startTs));
-        COMMITTED_AFTER.forEach(startTs -> startTsToCommitTs.put(startTs, startTs + SWEEP_TS));
-        ABORTED_TS.forEach(startTs -> startTsToCommitTs.put(startTs, TransactionConstants.FAILED_COMMIT_TS));
-        startTsToCommitTs.put(LAST_TS, status.commitTs);
-        when(mockTransactionService.get(anyCollection())).thenReturn(startTsToCommitTs);
-        candidate = ImmutableList.of(ImmutableCandidateCellForSweeping.builder()
-                .cell(SINGLE_CELL)
-                .sortedTimestamps(ImmutableList.sortedCopyOf(startTsToCommitTs.keySet()))
-                .isLatestValueEmpty(lastIsTombstone)
-                .build());
     }
 
     /**
      * The following tests are testing all combinations of whether the last write with start timestamp before the sweep
      * timestamp was a tombstone; whether that last write was committed before, after sweep ts, or was aborted; and
      * sweep strategy.
-     *
+     * <p>
      * Writes that were aborted should always appear.
      * Writes that were committed after should never appear.
      * Writes that were committed before should appear, in sorted order. However, the greatest such write should appear
      * (if and) only if it is a tombstone (we only have this information for the greatest overall write), and sweep is
      * thorough.
      */
-    @Test
-    public void sweepableCellFilterTest() {
-        List<Long> timestamps = getCellsToSweepFor().sortedTimestamps();
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("lastIsTombstonesAndStatusesAndSweepers")
+    public void sweepableCellFilterTest(boolean lastIsTombstone, Committed status, Sweeper sweeper) {
+        setup(lastIsTombstone, status);
+        List<Long> timestamps = getCellsToSweepFor(sweeper).sortedTimestamps();
 
         assertThat(timestamps).doesNotContainAnyElementsOf(COMMITTED_AFTER);
 
@@ -130,7 +104,21 @@ public class SweepableCellFilterParametrizedTest {
         assertThat(timestamps.stream().filter(expectedCommitted::contains)).isSorted();
     }
 
-    private CellToSweep getCellsToSweepFor() {
+    public void setup(boolean lastIsTombstone, Committed status) {
+        Map<Long, Long> startTsToCommitTs = new HashMap<>();
+        COMMITTED_BEFORE.forEach(startTs -> startTsToCommitTs.put(startTs, startTs));
+        COMMITTED_AFTER.forEach(startTs -> startTsToCommitTs.put(startTs, startTs + SWEEP_TS));
+        ABORTED_TS.forEach(startTs -> startTsToCommitTs.put(startTs, TransactionConstants.FAILED_COMMIT_TS));
+        startTsToCommitTs.put(LAST_TS, status.commitTs);
+        when(mockTransactionService.get(anyCollection())).thenReturn(startTsToCommitTs);
+        candidate = ImmutableList.of(ImmutableCandidateCellForSweeping.builder()
+                .cell(SINGLE_CELL)
+                .sortedTimestamps(ImmutableList.sortedCopyOf(startTsToCommitTs.keySet()))
+                .isLatestValueEmpty(lastIsTombstone)
+                .build());
+    }
+
+    private CellToSweep getCellsToSweepFor(Sweeper sweeper) {
         SweepableCellFilter filter = new SweepableCellFilter(commitTsCache, sweeper, SWEEP_TS);
         List<CellToSweep> cells = filter.getCellsToSweep(candidate).cells();
         assertThat(cells).hasSize(1);
