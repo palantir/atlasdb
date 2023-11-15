@@ -346,7 +346,10 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
     protected FullQuery getRowsColumnRangeSubQuery(
             byte[] row, long ts, BatchColumnRangeSelection columnRangeSelection) {
         String query = " /* GET_ROWS_COLUMN_RANGE (" + tableName + ") */ "
-                + "SELECT s.row_name, s.col_name, s.ts" + getValueSubselect("s", true)
+                + "SELECT "
+                + "/*+ NO_INDEX_FFS(@SEL$2 M@SEL$2(" + tableName + ".row_name, " + tableName + ".col_name, "
+                + tableName + ".ts)) */"
+                + " s.row_name, s.col_name, s.ts" + getValueSubselect("s", true)
                 + " FROM ( SELECT m.row_name, m.col_name, max(m.ts) as ts"
                 + getValueSubselectForGroupBy("m")
                 + "   FROM " + tableName + " m"
