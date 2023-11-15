@@ -227,7 +227,7 @@ public final class UnreliableTimelockClientTest {
         assertThat(new HashSet<>(list)).hasSameSizeAs(list);
 
         List<Long> differencesBetweenValues = new ArrayList<>();
-        for (int i = list.size() - 1; i > 0; i--) {
+        for (int i = 1; i < list.size(); i++) {
             differencesBetweenValues.add(list.get(i) - list.get(i - 1));
         }
 
