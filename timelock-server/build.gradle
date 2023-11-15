@@ -90,6 +90,7 @@ dependencies {
     testImplementation project(':atlasdb-dbkvs')
     testImplementation project(':atlasdb-impl-shared')
     testImplementation project(':atlasdb-tests-shared')
+    testImplementation project(':flake-extension')
     testImplementation project(':flake-rule')
     testImplementation project(':lock-api-objects')
     testImplementation project(':timelock-impl')
