@@ -138,7 +138,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
 
         // In the common case seq - 1 will be agreed upon before seq is prepared.
         Optional<SequenceAndBound> lastState = getLearnedState(seq - 1);
-        if (!lastState.isPresent()) {
+        if (lastState.isEmpty()) {
             // We know that even in the case of a truncate, seq - 2 will always be agreed upon.
             SequenceAndBound forced = forceAgreedState(seq - 2, null);
             lastState = Optional.of(forceAgreedState(seq - 1, forced.getBound()));
@@ -150,7 +150,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     /**
      * Forces agreement to be reached for a given sequence number; if the cluster hasn't reached agreement yet,
      * attempts to propose a given value. This method only returns when a value has been agreed upon for the provided
-     * sequence number (though there are no guarantees as to whether said value is proposed by this node).
+     * sequence number (though there are no guarantees whether said value is proposed by this node).
      * <p>
      * The semantics of this method are as follows:
      * - If any learner knows that a value has already been agreed for this sequence number, return said value.
@@ -262,7 +262,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                             SafeArg.of("newLimit", newLimit),
                             SafeArg.of("target", limit));
 
-                    throwNotCurrentLeaderException(
+                    throw notCurrentLeaderException(
                             "We updated the timestamp limit to {}, which was less than our target {}",
                             SafeArg.of("newLimit", newLimit),
                             SafeArg.of("target", limit));
@@ -284,7 +284,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      */
     private void checkAgreedBoundIsOurs(long limit, long newSeq, PaxosValue value) throws NotCurrentLeaderException {
         if (!proposer.getUuid().equals(value.getLeaderUUID())) {
-            throwSuspectedNotCurrentLeaderException(
+            throw suspectedNotCurrentLeaderException(
                     "Timestamp limit changed from under us for sequence {} (proposer with UUID '{}' changed it, our"
                             + " UUID is '{}'). This may have arisen because of a race condition in leadership:"
                             + " we may have lost leadership and another node has gained leadership and updated the"
@@ -310,12 +310,13 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         hasLostLeadership = true;
     }
 
-    private void throwNotCurrentLeaderException(@CompileTimeConstant String message, Arg<?>... args) {
+    private NotCurrentLeaderException notCurrentLeaderException(@CompileTimeConstant String message, Arg<?>... args) {
         markLeadershipLost();
         throw new NotCurrentLeaderException(message, args);
     }
 
-    private void throwSuspectedNotCurrentLeaderException(@CompileTimeConstant String message, Arg<?>... args) {
+    private SuspectedNotCurrentLeaderException suspectedNotCurrentLeaderException(
+            @CompileTimeConstant String message, Arg<?>... args) {
         markLeadershipLost();
         throw new SuspectedNotCurrentLeaderException(message, args);
     }
