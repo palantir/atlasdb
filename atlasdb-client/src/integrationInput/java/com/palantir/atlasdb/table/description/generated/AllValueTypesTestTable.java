@@ -87,7 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings({"all", "deprecation"})
+@SuppressWarnings({"deprecation"})
 public final class AllValueTypesTestTable implements
         AtlasDbMutablePersistentTable<AllValueTypesTestTable.AllValueTypesTestRow,
                                          AllValueTypesTestTable.AllValueTypesTestNamedColumnValue<?>,
@@ -2131,5 +2131,5 @@ public final class AllValueTypesTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "odJrhwwyRmBb2H5ICOvKJw==";
+    static String __CLASS_HASH = "GNa7QR9a3hsUi6ceRV6hCw==";
 }

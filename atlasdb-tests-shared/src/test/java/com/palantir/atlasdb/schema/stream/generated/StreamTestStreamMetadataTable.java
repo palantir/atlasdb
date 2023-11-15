@@ -87,7 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings({"all", "deprecation"})
+@SuppressWarnings({"deprecation"})
 public final class StreamTestStreamMetadataTable implements
         AtlasDbMutablePersistentTable<StreamTestStreamMetadataTable.StreamTestStreamMetadataRow,
                                          StreamTestStreamMetadataTable.StreamTestStreamMetadataNamedColumnValue<?>,
@@ -706,5 +706,5 @@ public final class StreamTestStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "UPctXhT2Qj8n8+XIXy0qYQ==";
+    static String __CLASS_HASH = "ptDYB9XAm4Zy89sXMg7jPA==";
 }

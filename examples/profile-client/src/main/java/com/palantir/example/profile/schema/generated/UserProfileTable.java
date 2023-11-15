@@ -87,7 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings({"all", "deprecation"})
+@SuppressWarnings({"deprecation"})
 public final class UserProfileTable implements
         AtlasDbMutablePersistentTable<UserProfileTable.UserProfileRow,
                                          UserProfileTable.UserProfileNamedColumnValue<?>,
@@ -1173,7 +1173,7 @@ public final class UserProfileTable implements
     }
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-    @SuppressWarnings({"all", "deprecation"})
+    @SuppressWarnings({"deprecation"})
     public static final class CookiesIdxTable implements
             AtlasDbDynamicMutablePersistentTable<CookiesIdxTable.CookiesIdxRow,
                                                     CookiesIdxTable.CookiesIdxColumn,
@@ -1863,7 +1863,7 @@ public final class UserProfileTable implements
 
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-    @SuppressWarnings({"all", "deprecation"})
+    @SuppressWarnings({"deprecation"})
     public static final class CreatedIdxTable implements
             AtlasDbDynamicMutablePersistentTable<CreatedIdxTable.CreatedIdxRow,
                                                     CreatedIdxTable.CreatedIdxColumn,
@@ -2553,7 +2553,7 @@ public final class UserProfileTable implements
 
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-    @SuppressWarnings({"all", "deprecation"})
+    @SuppressWarnings({"deprecation"})
     public static final class UserBirthdaysIdxTable implements
             AtlasDbDynamicMutablePersistentTable<UserBirthdaysIdxTable.UserBirthdaysIdxRow,
                                                     UserBirthdaysIdxTable.UserBirthdaysIdxColumn,
@@ -3328,5 +3328,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "y9pLmff+0ggBwZZbcMXm3A==";
+    static String __CLASS_HASH = "ZqVKPIwC/mzGztf0d1MRgg==";
 }
