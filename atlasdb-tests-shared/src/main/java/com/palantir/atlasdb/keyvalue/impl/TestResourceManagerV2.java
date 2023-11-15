@@ -23,16 +23,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
-import org.junit.rules.ExternalResource;
+import org.junit.jupiter.api.extension.AfterEachCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
-/* TODO(boyoruk): Delete this when JUnit5 upgrade is done */
-public class TestResourceManager extends ExternalResource implements KvsManager, TransactionManagerManager {
+public class TestResourceManagerV2 implements AfterEachCallback, KvsManager, TransactionManagerManager {
     private final Supplier<KeyValueService> getKvsSupplier;
     private final List<AutoCloseable> closeableResources = new ArrayList<>();
 
     private TransactionManager transactionManager = null;
 
-    public TestResourceManager(Supplier<KeyValueService> kvsSupplier) {
+    public TestResourceManagerV2(Supplier<KeyValueService> kvsSupplier) {
         this.getKvsSupplier = Suppliers.memoize(() -> {
             KeyValueService kvs = kvsSupplier.get();
             registerCloseable(kvs);
@@ -40,8 +40,8 @@ public class TestResourceManager extends ExternalResource implements KvsManager,
         });
     }
 
-    public static TestResourceManager inMemory() {
-        return new TestResourceManager(() -> new InMemoryKeyValueService(false));
+    public static TestResourceManagerV2 inMemory() {
+        return new TestResourceManagerV2(() -> new InMemoryKeyValueService(false));
     }
 
     @Override
@@ -70,7 +70,7 @@ public class TestResourceManager extends ExternalResource implements KvsManager,
     }
 
     @Override
-    public void after() {
+    public void afterEach(ExtensionContext var1) {
         closeableResources.forEach(resource -> {
             try {
                 resource.close();

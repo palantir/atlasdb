@@ -42,6 +42,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.timelock.paxos.InMemoryTimelockExtension;
 import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import com.palantir.timestamp.TimestampManagementService;
 import java.util.HashMap;
@@ -76,6 +77,34 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 metricsManager,
                 keyValueService,
                 inMemoryTimelockServices,
+                lockService,
+                transactionService,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                timestampCache,
+                sweepQueue,
+                deleteExecutor,
+                WrapperWithTracker.TRANSACTION_NO_OP,
+                WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP,
+                knowledge);
+    }
+
+    public TestTransactionManagerImpl(
+            MetricsManager metricsManager,
+            KeyValueService keyValueService,
+            InMemoryTimelockExtension inMemoryTimelockExtension,
+            LockService lockService,
+            TransactionService transactionService,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            TimestampCache timestampCache,
+            MultiTableSweepQueueWriter sweepQueue,
+            TransactionKnowledgeComponents knowledge,
+            ExecutorService deleteExecutor) {
+        this(
+                metricsManager,
+                keyValueService,
+                inMemoryTimelockExtension,
                 lockService,
                 transactionService,
                 conflictDetectionManager,
@@ -132,6 +161,48 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             MetricsManager metricsManager,
             KeyValueService keyValueService,
             InMemoryTimelockServices services,
+            LockService lockService,
+            TransactionService transactionService,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            TimestampCache timestampCache,
+            MultiTableSweepQueueWriter sweepQueue,
+            ExecutorService deleteExecutor,
+            WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
+            WrapperWithTracker<KeyValueService> keyValueServiceWrapper,
+            TransactionKnowledgeComponents knowledge) {
+        super(
+                metricsManager,
+                createAssertKeyValue(keyValueService, lockService),
+                services.getLegacyTimelockService(),
+                services.getLockWatchManager(),
+                services.getTimestampManagementService(),
+                lockService,
+                transactionService,
+                Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
+                conflictDetectionManager,
+                sweepStrategyManager,
+                NoOpCleaner.INSTANCE,
+                timestampCache,
+                false,
+                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                sweepQueue,
+                deleteExecutor,
+                true,
+                () -> TRANSACTION_CONFIG,
+                ConflictTracer.NO_OP,
+                DefaultMetricsFilterEvaluationContext.createDefault(),
+                Optional.empty(),
+                knowledge);
+        this.transactionWrapper = transactionWrapper;
+        this.keyValueServiceWrapper = keyValueServiceWrapper;
+    }
+
+    public TestTransactionManagerImpl(
+            MetricsManager metricsManager,
+            KeyValueService keyValueService,
+            InMemoryTimelockExtension services,
             LockService lockService,
             TransactionService transactionService,
             ConflictDetectionManager conflictDetectionManager,

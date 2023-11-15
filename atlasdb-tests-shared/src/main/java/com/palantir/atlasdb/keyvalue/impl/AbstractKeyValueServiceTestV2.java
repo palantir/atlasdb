@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.assertj.core.api.InstanceOfAssertFactories.type;
 import static org.assertj.guava.api.Assertions.assertThat;
-import static org.junit.Assume.assumeTrue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -81,14 +80,14 @@ import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import org.apache.commons.lang3.ArrayUtils;
 import org.assertj.core.data.MapEntry;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.xnio.ByteString;
 
-/* TODO(boyoruk): Delete this when we complete the JUnit5 migration. */
 @SuppressWarnings("MustBeClosedChecker")
-public abstract class AbstractKeyValueServiceTest {
+public abstract class AbstractKeyValueServiceTestV2 {
     private final KvsManager kvsManager;
 
     protected static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.pt_kvs_test");
@@ -102,11 +101,11 @@ public abstract class AbstractKeyValueServiceTest {
 
     protected KeyValueService keyValueService;
 
-    protected AbstractKeyValueServiceTest(KvsManager kvsManager) {
+    protected AbstractKeyValueServiceTestV2(KvsManager kvsManager) {
         this(kvsManager, UnaryOperator.identity());
     }
 
-    public AbstractKeyValueServiceTest(KvsManager kvsManager, UnaryOperator<KeyValueService> keyValueServiceWrapper) {
+    public AbstractKeyValueServiceTestV2(KvsManager kvsManager, UnaryOperator<KeyValueService> keyValueServiceWrapper) {
         this.kvsManager = kvsManager;
         this.keyValueServiceWrapper = keyValueServiceWrapper;
     }
@@ -119,13 +118,15 @@ public abstract class AbstractKeyValueServiceTest {
         return true;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
+        System.out.println("setUp");
+
         keyValueService = keyValueServiceWrapper.apply(kvsManager.getDefaultKvs());
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         try {
             keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE));
@@ -1020,7 +1021,7 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void testDeleteRangeReverse() {
-        assumeTrue(reverseRangesSupported());
+        Assumptions.assumeTrue(reverseRangesSupported());
         // should delete only row1
         setupTestRowsZeroOneAndTwoAndDeleteFrom(PtBytes.toBytes("row1b"), row(0), true);
         checkThatTableIsNowOnly(row(0), row(2));
@@ -1509,7 +1510,7 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void putUnlessExistsDoesNotConflictForMultipleCellsSameRow() {
-        assumeTrue(checkAndSetSupported());
+        Assumptions.assumeTrue(checkAndSetSupported());
         Cell firstTestCell = Cell.create(row(0), column(0));
         Cell nextTestCell = Cell.create(row(0), column(1));
 
@@ -1520,7 +1521,7 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void putUnlessExistsDoesNotConflictForMultipleCellsSameColumn() {
-        assumeTrue(checkAndSetSupported());
+        Assumptions.assumeTrue(checkAndSetSupported());
         Cell firstTestCell = Cell.create(row(0), column(0));
         Cell nextTestCell = Cell.create(row(1), column(0));
 
@@ -1531,7 +1532,7 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void canPutUnlessExistsMultipleValuesInSameRow() {
-        assumeTrue(checkAndSetSupported());
+        Assumptions.assumeTrue(checkAndSetSupported());
         Cell firstTestCell = Cell.create(row(0), column(0));
         Cell nextTestCell = Cell.create(row(0), column(1));
 
@@ -1545,7 +1546,7 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void putUnlessExistsConflictsOnAnyColumnMismatch() {
-        assumeTrue(checkAndSetSupported());
+        Assumptions.assumeTrue(checkAndSetSupported());
         Cell firstTestCell = Cell.create(row(0), column(0));
         Cell nextTestCell = Cell.create(row(0), column(1));
 
@@ -1559,7 +1560,7 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void putUnlessExistsLargeValue() {
-        assumeTrue(checkAndSetSupported());
+        Assumptions.assumeTrue(checkAndSetSupported());
         byte[] megabyteValue = new byte[1048576];
 
         keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, megabyteValue));
@@ -1587,7 +1588,7 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void testCheckAndSetFromEmpty() {
-        assumeTrue(checkAndSetSupported());
+        Assumptions.assumeTrue(checkAndSetSupported());
 
         CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, TEST_CELL, val(0, 0));
         keyValueService.checkAndSet(request);
@@ -1597,7 +1598,7 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void testCheckAndSetFromOtherValue() {
-        assumeTrue(checkAndSetSupported());
+        Assumptions.assumeTrue(checkAndSetSupported());
 
         CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, TEST_CELL, val(0, 0));
         keyValueService.checkAndSet(request);
@@ -1620,7 +1621,7 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void testCheckAndSetLargeValue() {
-        assumeTrue(checkAndSetSupported());
+        Assumptions.assumeTrue(checkAndSetSupported());
         byte[] megabyteValue = new byte[1048576];
         CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, TEST_CELL, megabyteValue);
 
@@ -1653,7 +1654,7 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void testCheckAndSetFromWrongValue() {
-        assumeTrue(checkAndSetSupported());
+        Assumptions.assumeTrue(checkAndSetSupported());
 
         CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, TEST_CELL, val(0, 0));
         keyValueService.checkAndSet(request);
@@ -1670,7 +1671,7 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void testCheckAndSetFromValueWhenNoValue() {
-        assumeTrue(checkAndSetSupported());
+        Assumptions.assumeTrue(checkAndSetSupported());
 
         CheckAndSetRequest request = CheckAndSetRequest.singleCell(TEST_TABLE, TEST_CELL, val(0, 0), val(0, 1));
         assertThatThrownBy(() -> keyValueService.checkAndSet(request)).isInstanceOf(CheckAndSetException.class);
@@ -1678,7 +1679,7 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void testCheckAndSetFromNoValueWhenValueIsPresent() {
-        assumeTrue(checkAndSetSupported());
+        Assumptions.assumeTrue(checkAndSetSupported());
 
         CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, TEST_CELL, val(0, 0));
         keyValueService.checkAndSet(request);
@@ -1687,7 +1688,7 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void testCheckAndSetToNewCellsInDistinctRows() {
-        assumeTrue(checkAndSetSupported());
+        Assumptions.assumeTrue(checkAndSetSupported());
         Cell firstTestCell = Cell.create(row(0), column(0));
         Cell nextTestCell = Cell.create(row(0), column(1));
 
@@ -1700,7 +1701,7 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void testCheckAndSetIndependentlyWorks() {
-        assumeTrue(checkAndSetSupported());
+        Assumptions.assumeTrue(checkAndSetSupported());
         Cell firstTestCell = Cell.create(row(0), column(0));
         Cell nextTestCell = Cell.create(row(0), column(1));
 
@@ -1714,7 +1715,7 @@ public abstract class AbstractKeyValueServiceTest {
 
     @Test
     public void testCheckAndSetIndependentlyFails() {
-        assumeTrue(checkAndSetSupported());
+        Assumptions.assumeTrue(checkAndSetSupported());
         Cell firstTestCell = Cell.create(row(0), column(0));
         Cell nextTestCell = Cell.create(row(0), column(1));
 
@@ -1953,11 +1954,11 @@ public abstract class AbstractKeyValueServiceTest {
      */
     @Test
     public void multiCheckAndSetSuccessTest() {
-        assumeTrue(keyValueService.getCheckAndSetCompatibility().supportsMultiCheckAndSetOperations());
+        Assumptions.assumeTrue(keyValueService.getCheckAndSetCompatibility().supportsMultiCheckAndSetOperations());
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         List<Cell> cells = IntStream.range(0, 5)
-                .mapToObj(AbstractKeyValueServiceTest::cell)
+                .mapToObj(AbstractKeyValueServiceTestV2::cell)
                 .collect(Collectors.toList());
         byte[] update = PtBytes.toBytes("update");
         ImmutableMap<Cell, byte[]> actualMap = ImmutableMap.of(
@@ -1994,11 +1995,11 @@ public abstract class AbstractKeyValueServiceTest {
      */
     @Test
     public void multiCheckAndSetFailureOnMismatchTest() {
-        assumeTrue(keyValueService.getCheckAndSetCompatibility().supportsMultiCheckAndSetOperations());
+        Assumptions.assumeTrue(keyValueService.getCheckAndSetCompatibility().supportsMultiCheckAndSetOperations());
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         List<Cell> cells = IntStream.range(0, 5)
-                .mapToObj(AbstractKeyValueServiceTest::cell)
+                .mapToObj(AbstractKeyValueServiceTestV2::cell)
                 .collect(Collectors.toList());
         byte[] update = PtBytes.toBytes("update");
         ImmutableMap<Cell, byte[]> actualMap = ImmutableMap.of(
@@ -2039,11 +2040,12 @@ public abstract class AbstractKeyValueServiceTest {
      */
     @Test
     public void multiCheckAndSetFailureOnAbsentTest() {
-        assumeTrue(keyValueService.getCheckAndSetCompatibility().supportsMultiCheckAndSetOperations());
+        System.out.println("multiCheckAndSetFailureOnAbsentTest");
+        Assumptions.assumeTrue(keyValueService.getCheckAndSetCompatibility().supportsMultiCheckAndSetOperations());
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         List<Cell> cells = IntStream.range(0, 5)
-                .mapToObj(AbstractKeyValueServiceTest::cell)
+                .mapToObj(AbstractKeyValueServiceTestV2::cell)
                 .collect(Collectors.toList());
         byte[] update = PtBytes.toBytes("update");
         ImmutableMap<Cell, byte[]> actualMap = ImmutableMap.of(
@@ -2159,7 +2161,7 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     private void assumeDetailOnFailureSupported() {
-        assumeTrue(checkAndSetSupported());
-        assumeTrue(keyValueService.getCheckAndSetCompatibility().supportsDetailOnFailure());
+        Assumptions.assumeTrue(checkAndSetSupported());
+        Assumptions.assumeTrue(keyValueService.getCheckAndSetCompatibility().supportsDetailOnFailure());
     }
 }

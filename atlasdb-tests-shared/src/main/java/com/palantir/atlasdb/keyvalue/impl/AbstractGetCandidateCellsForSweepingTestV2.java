@@ -36,22 +36,21 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-/* TODO(boyoruk): Delete this when we complete the JUnit5 migration. */
-public abstract class AbstractGetCandidateCellsForSweepingTest {
+public abstract class AbstractGetCandidateCellsForSweepingTestV2 {
     private final KvsManager kvsManager;
     protected static final TableReference TEST_TABLE =
             TableReference.createFromFullyQualifiedName("get_candidate_cells_for_sweeping.test_table");
 
     private KeyValueService kvs;
 
-    protected AbstractGetCandidateCellsForSweepingTest(KvsManager kvsManager) {
+    protected AbstractGetCandidateCellsForSweepingTestV2(KvsManager kvsManager) {
         this.kvsManager = kvsManager;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         kvs = kvsManager.getDefaultKvs();
         kvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
@@ -230,7 +229,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
                 kvs.getCandidateCellsForSweeping(TEST_TABLE, request)) {
             return ImmutableList.copyOf(Iterators.filter(
                     Iterators.concat(Iterators.transform(iter, List::iterator)),
-                    list -> list.sortedTimestamps().size() > 0));
+                    list -> !list.sortedTimestamps().isEmpty()));
         }
     }
 
@@ -256,7 +255,7 @@ public abstract class AbstractGetCandidateCellsForSweepingTest {
     }
 
     public class TestDataBuilder {
-        private Map<Long, Map<Cell, byte[]>> cellsByTimestamp = new HashMap<>();
+        private final Map<Long, Map<Cell, byte[]>> cellsByTimestamp = new HashMap<>();
 
         public TestDataBuilder put(int row, int col, long ts) {
             return put(row, col, ts, new byte[] {1, 2, 3});

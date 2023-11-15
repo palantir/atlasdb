@@ -54,44 +54,43 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.timelock.paxos.InMemoryTimeLockRule;
+import com.palantir.test.utils.SubdirectoryCreator;
+import com.palantir.timelock.paxos.InMemoryTimelockExtension;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.Pair;
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.io.TempDir;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
-/* TODO(boyoruk): Delete this when we complete the JUnit5 migration. */
 /**
  * Expectations for semantics of tests that are run as part of this class (not that the author thinks these
  * assumptions are ideal, but this is documentation of the current state):
  * - The timestamp and lock services are disjoint across individual tests.
  * - The key value services may not be disjoint across individual tests.
  */
-public abstract class TransactionTestSetup {
-    @ClassRule
-    public static final TemporaryFolder PERSISTENT_STORAGE_FOLDER = new TemporaryFolder();
+public abstract class TransactionTestSetupV2 {
+    @TempDir
+    public static File persistentStorageFolder;
 
     private static PersistentStore persistentStore;
 
-    @BeforeClass
-    public static void storageSetUp() throws IOException, RocksDBException {
-        File storageDirectory = PERSISTENT_STORAGE_FOLDER.newFolder();
+    @BeforeAll
+    public static void storageSetUp() throws RocksDBException {
+        File storageDirectory =
+                SubdirectoryCreator.createAndGetSubdirectory(persistentStorageFolder, "TransactionTestSetupV2");
         RocksDB rocksDb = RocksDB.open(storageDirectory.getAbsolutePath());
         persistentStore = new RocksDbPersistentStore(rocksDb, storageDirectory);
     }
 
-    @AfterClass
+    @AfterAll
     public static void storageTearDown() throws Exception {
         persistentStore.close();
     }
@@ -125,15 +124,15 @@ public abstract class TransactionTestSetup {
 
     protected TransactionKnowledgeComponents knowledge;
 
-    @Rule
-    public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
+    @RegisterExtension
+    public InMemoryTimelockExtension inMemoryTimelockExtension = new InMemoryTimelockExtension();
 
-    protected TransactionTestSetup(KvsManager kvsManager, TransactionManagerManager tmManager) {
+    protected TransactionTestSetupV2(KvsManager kvsManager, TransactionManagerManager tmManager) {
         this.kvsManager = kvsManager;
         this.tmManager = tmManager;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         timestampCache = ComparingTimestampCache.comparingOffHeapForTests(metricsManager, persistentStore);
 
@@ -173,10 +172,10 @@ public abstract class TransactionTestSetup {
         keyValueService.truncateTable(TEST_TABLE);
         keyValueService.truncateTable(TEST_TABLE_SERIALIZABLE);
 
-        timestampService = inMemoryTimeLockRule.getTimestampService();
-        timestampManagementService = inMemoryTimeLockRule.getTimestampManagementService();
-        timelockService = inMemoryTimeLockRule.getLegacyTimelockService();
-        lockWatchManager = inMemoryTimeLockRule.getLockWatchManager();
+        timestampService = inMemoryTimelockExtension.getTimestampService();
+        timestampManagementService = inMemoryTimelockExtension.getTimestampManagementService();
+        timelockService = inMemoryTimelockExtension.getLegacyTimelockService();
+        lockWatchManager = inMemoryTimelockExtension.getLockWatchManager();
 
         CoordinationService<InternalSchemaMetadata> coordinationService =
                 CoordinationServices.createDefault(keyValueService, timestampService, metricsManager, false);
@@ -210,7 +209,7 @@ public abstract class TransactionTestSetup {
         return new TestTransactionManagerImpl(
                 MetricsManagers.createForTests(),
                 keyValueService,
-                inMemoryTimeLockRule.get(),
+                inMemoryTimelockExtension,
                 lockService,
                 transactionService,
                 conflictDetectionManager,
