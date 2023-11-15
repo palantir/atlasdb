@@ -26,8 +26,7 @@ import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.flake.FlakeRetryingRule;
-import com.palantir.flake.ShouldRetry;
+import com.palantir.flake.FlakeRetryTest;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.LockToken;
@@ -49,11 +48,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestRule;
+import org.junit.jupiter.api.Test;
 
-/* TODO(boyoruk): Migrate to JUnit5*/
 public final class LockWatchEventLogTest {
     private static final int MIN_EVENTS = 1;
     private static final int MAX_EVENTS = 25;
@@ -143,9 +139,6 @@ public final class LockWatchEventLogTest {
 
     private final LockWatchEventLog eventLog =
             LockWatchEventLog.create(CacheMetrics.create(MetricsManagers.createForTests()), MIN_EVENTS, MAX_EVENTS);
-
-    @Rule
-    public final TestRule flakeRetryingRule = new FlakeRetryingRule();
 
     @Test
     public void doesNotHaveInitialVersion() {
@@ -498,8 +491,7 @@ public final class LockWatchEventLogTest {
         assertThat(events.events().events()).containsExactly(CREATED_UP_TO_VERSION_4);
     }
 
-    @Test
-    @ShouldRetry
+    @FlakeRetryTest
     public void eventLogDoesNotDeadlockUnderConcurrentLoad() throws InterruptedException {
         eventLog.processUpdate(INITIAL_SNAPSHOT_VERSION_1);
 

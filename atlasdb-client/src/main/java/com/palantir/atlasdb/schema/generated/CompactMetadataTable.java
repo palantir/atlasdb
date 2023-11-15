@@ -212,7 +212,6 @@ public final class CompactMetadataTable implements
             return Objects.equals(fullTableName, other.fullTableName);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(fullTableName);
@@ -682,5 +681,5 @@ public final class CompactMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "QQRKeGa7eTFjhIPgfjpHCw==";
+    static String __CLASS_HASH = "Y/Sstly9g2yTztZOVHEbkg==";
 }

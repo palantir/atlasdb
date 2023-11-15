@@ -236,7 +236,6 @@ public final class SweepShardProgressTable implements
             return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(shard, other.shard) && Arrays.equals(sweepConservative, other.sweepConservative);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, shard, sweepConservative });
@@ -708,5 +707,5 @@ public final class SweepShardProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "SvNu5DSDRhu6PrqJw5CVSA==";
+    static String __CLASS_HASH = "XVjeSk48z1yhodAQP8wW2Q==";
 }

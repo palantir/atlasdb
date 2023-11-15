@@ -28,53 +28,49 @@ import com.palantir.atlasdb.transaction.encoding.TicketsEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.TransactionStatusEncodingStrategy;
 import com.palantir.atlasdb.transaction.encoding.V1EncodingStrategy;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
-import java.util.Arrays;
-import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
-/* TODO(boyoruk): Migrate to JUnit5. */
-@RunWith(Parameterized.class)
 public class SimpleCommitTimestampAtomicTableTest {
-    @Parameterized.Parameter
-    public TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy;
 
-    @Parameterized.Parameters
-    public static Collection<Object[]> parameters() {
-        return Arrays.asList(new Object[][] {{V1EncodingStrategy.INSTANCE}, {TicketsEncodingStrategy.INSTANCE}});
+    public static List<TransactionStatusEncodingStrategy<TransactionStatus>> encodingStrategies() {
+        return List.of(V1EncodingStrategy.INSTANCE, TicketsEncodingStrategy.INSTANCE);
     }
 
-    private AtomicTable<Long, TransactionStatus> atomicTable;
-
-    @Before
-    public void setup() {
-        atomicTable = createPueTable();
-    }
-
-    @Test
-    public void canPutAndGet() throws ExecutionException, InterruptedException {
+    @ParameterizedTest
+    @MethodSource("encodingStrategies")
+    public void canPutAndGet(TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy)
+            throws ExecutionException, InterruptedException {
+        AtomicTable<Long, TransactionStatus> atomicTable = createPueTable(encodingStrategy);
         atomicTable.update(1L, TransactionStatus.committed(2L));
         assertThat(atomicTable.get(1L).get()).isEqualTo(TransactionStatus.committed(2L));
     }
 
-    @Test
-    public void emptyReturnsInProgress() throws ExecutionException, InterruptedException {
+    @ParameterizedTest
+    @MethodSource("encodingStrategies")
+    public void emptyReturnsInProgress(TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy)
+            throws ExecutionException, InterruptedException {
+        AtomicTable<Long, TransactionStatus> atomicTable = createPueTable(encodingStrategy);
         assertThat(atomicTable.get(3L).get()).isEqualTo(TransactionStatus.inProgress());
     }
 
-    @Test
-    public void cannotPueTwice() {
+    @ParameterizedTest
+    @MethodSource("encodingStrategies")
+    public void cannotPueTwice(TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy) {
+        AtomicTable<Long, TransactionStatus> atomicTable = createPueTable(encodingStrategy);
         atomicTable.update(1L, TransactionStatus.committed(2L));
         assertThatThrownBy(() -> atomicTable.update(1L, TransactionStatus.committed(2L)))
                 .isInstanceOf(KeyAlreadyExistsException.class);
     }
 
-    @Test
-    public void canPutAndGetMultiple() throws ExecutionException, InterruptedException {
+    @ParameterizedTest
+    @MethodSource("encodingStrategies")
+    public void canPutAndGetMultiple(TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy)
+            throws ExecutionException, InterruptedException {
+        AtomicTable<Long, TransactionStatus> atomicTable = createPueTable(encodingStrategy);
         ImmutableMap<Long, TransactionStatus> inputs = ImmutableMap.of(
                 1L,
                 TransactionStatus.committed(2L),
@@ -91,8 +87,11 @@ public class SimpleCommitTimestampAtomicTableTest {
         assertThat(result.get(7L)).isEqualTo(TransactionStatus.committed(8L));
     }
 
-    @Test
-    public void canPutAndGetAbortedTransactions() throws ExecutionException, InterruptedException {
+    @ParameterizedTest
+    @MethodSource("encodingStrategies")
+    public void canPutAndGetAbortedTransactions(TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy)
+            throws ExecutionException, InterruptedException {
+        AtomicTable<Long, TransactionStatus> atomicTable = createPueTable(encodingStrategy);
         ImmutableMap<Long, TransactionStatus> inputs = ImmutableMap.of(1L, TransactionStatus.aborted());
         atomicTable.updateMultiple(inputs);
         Map<Long, TransactionStatus> result =
@@ -101,8 +100,11 @@ public class SimpleCommitTimestampAtomicTableTest {
         assertThat(result).containsEntry(1L, TransactionStatus.aborted());
     }
 
-    @Test
-    public void getsAllTimestamps() throws ExecutionException, InterruptedException {
+    @ParameterizedTest
+    @MethodSource("encodingStrategies")
+    public void getsAllTimestamps(TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy)
+            throws ExecutionException, InterruptedException {
+        AtomicTable<Long, TransactionStatus> atomicTable = createPueTable(encodingStrategy);
         ImmutableMap<Long, TransactionStatus> inputs = ImmutableMap.of(1L, TransactionStatus.committed(2L));
         atomicTable.updateMultiple(inputs);
         Map<Long, TransactionStatus> result =
@@ -113,8 +115,11 @@ public class SimpleCommitTimestampAtomicTableTest {
                 .containsEntry(3L, TransactionStatus.inProgress());
     }
 
-    @Test
-    public void doesNotThrowForDuplicateValues() throws ExecutionException, InterruptedException {
+    @ParameterizedTest
+    @MethodSource("encodingStrategies")
+    public void doesNotThrowForDuplicateValues(TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy)
+            throws ExecutionException, InterruptedException {
+        AtomicTable<Long, TransactionStatus> atomicTable = createPueTable(encodingStrategy);
         ImmutableMap<Long, TransactionStatus> inputs = ImmutableMap.of(1L, TransactionStatus.committed(2L));
         atomicTable.updateMultiple(inputs);
 
@@ -128,7 +133,8 @@ public class SimpleCommitTimestampAtomicTableTest {
                 .containsEntry(3L, TransactionStatus.inProgress());
     }
 
-    private AtomicTable<Long, TransactionStatus> createPueTable() {
+    private AtomicTable<Long, TransactionStatus> createPueTable(
+            TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy) {
         return new SimpleCommitTimestampAtomicTable(
                 new InMemoryKeyValueService(true),
                 TableReference.createFromFullyQualifiedName("test.table"),

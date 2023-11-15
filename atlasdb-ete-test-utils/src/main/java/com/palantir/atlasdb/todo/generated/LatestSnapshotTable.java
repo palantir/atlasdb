@@ -212,10 +212,9 @@ public final class LatestSnapshotTable implements
             return Objects.equals(key, other.key);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Objects.hashCode(key);
+            return Long.hashCode(key);
         }
 
         @Override
@@ -682,5 +681,5 @@ public final class LatestSnapshotTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "6HLCCFK0eks9tZjKEzusHg==";
+    static String __CLASS_HASH = "WNEA7IFAXIjKm8xc9++MZA==";
 }

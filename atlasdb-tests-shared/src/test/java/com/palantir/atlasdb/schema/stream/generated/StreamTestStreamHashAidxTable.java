@@ -210,7 +210,6 @@ public final class StreamTestStreamHashAidxTable implements
             return Objects.equals(hash, other.hash);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(hash);
@@ -301,10 +300,9 @@ public final class StreamTestStreamHashAidxTable implements
             return Objects.equals(streamId, other.streamId);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Objects.hashCode(streamId);
+            return Long.hashCode(streamId);
         }
 
         @Override
@@ -739,5 +737,5 @@ public final class StreamTestStreamHashAidxTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "Q4gpslGRh0a0XXgMSMihOw==";
+    static String __CLASS_HASH = "XZKoXRZpx3vS+BXs0d1jvg==";
 }

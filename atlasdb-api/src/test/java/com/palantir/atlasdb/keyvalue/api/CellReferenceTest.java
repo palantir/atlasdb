@@ -21,25 +21,19 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.math.IntMath;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.flake.FlakeRetryingRule;
-import com.palantir.flake.ShouldRetry;
+import com.palantir.flake.FlakeRetryTest;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.assertj.core.data.Percentage;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-/* TODO(boyoruk): Do not forget to upgrade this to JUnit5 once we implemented new com.palantir.flake package.  */
 public class CellReferenceTest {
     private static final TableReference TABLE = createFromFullyQualifiedName("fixed.table");
     private static final byte[] ROW = PtBytes.toBytes("row");
     private static final byte[] COL = PtBytes.toBytes("col");
-
-    @Rule
-    public final FlakeRetryingRule retryingRule = new FlakeRetryingRule();
 
     @Test
     public void dynamicSequentialColumns() {
@@ -51,8 +45,7 @@ public class CellReferenceTest {
         assertDistributionUniform(hashes, totalCount);
     }
 
-    @ShouldRetry
-    @Test
+    @FlakeRetryTest
     public void dynamicRandomColumns() {
         ThreadLocalRandom random = ThreadLocalRandom.current();
         int totalCount = 50_000;

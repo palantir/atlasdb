@@ -212,10 +212,9 @@ public final class HotspottyDataStreamMetadataTable implements
             return Objects.equals(id, other.id);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Objects.hashCode(id);
+            return Long.hashCode(id);
         }
 
         @Override
@@ -707,5 +706,5 @@ public final class HotspottyDataStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "HCyOLwlDFw+vVVcDaLLuhQ==";
+    static String __CLASS_HASH = "7lyAtdzyxdOuWruycLRKuA==";
 }
