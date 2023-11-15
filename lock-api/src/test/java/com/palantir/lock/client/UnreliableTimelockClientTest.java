@@ -217,14 +217,6 @@ public final class UnreliableTimelockClientTest {
         return factory;
     }
 
-    // Visible as it's used as a method source
-    static Stream<Named<Consumer<UnreliableTimeLockService>>> timestampMethods() {
-        return Stream.of(
-                namedTask("getFreshTimestamp", UnreliableTimeLockService::getFreshTimestamp),
-                namedTask("getCommitTimestamp", service -> service.getCommitTimestamp(1, LOCK_TOKEN)),
-                namedTask("getFreshTimestamps", service -> service.getFreshTimestamps(10)));
-    }
-
     private static Named<Consumer<UnreliableTimeLockService>> namedTask(
             String name, Consumer<UnreliableTimeLockService> task) {
         return Named.of(name, task);
@@ -242,5 +234,13 @@ public final class UnreliableTimelockClientTest {
         // Verifying things increase randomly. We can't assert that every delta is random, since it's possible that at
         // least one delta is the same as another.
         assertThat(new HashSet<>(differencesBetweenValues)).hasSizeGreaterThan(1);
+    }
+
+    // Visible as it's used as a method source
+    static Stream<Named<Consumer<UnreliableTimeLockService>>> timestampMethods() {
+        return Stream.of(
+                namedTask("getFreshTimestamp", UnreliableTimeLockService::getFreshTimestamp),
+                namedTask("getCommitTimestamp", service -> service.getCommitTimestamp(1, LOCK_TOKEN)),
+                namedTask("getFreshTimestamps", service -> service.getFreshTimestamps(10)));
     }
 }
