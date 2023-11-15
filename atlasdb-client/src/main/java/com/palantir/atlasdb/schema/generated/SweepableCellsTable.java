@@ -87,7 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings({"all", "deprecation"})
+@SuppressWarnings({"deprecation"})
 public final class SweepableCellsTable implements
         AtlasDbDynamicMutablePersistentTable<SweepableCellsTable.SweepableCellsRow,
                                                 SweepableCellsTable.SweepableCellsColumn,
@@ -787,5 +787,5 @@ public final class SweepableCellsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "cAp9GheyJ7/csnqt8nG3Vw==";
+    static String __CLASS_HASH = "QUAJiphFgxZxOhUKQLMgjQ==";
 }

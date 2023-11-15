@@ -87,7 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings({"all", "deprecation"})
+@SuppressWarnings({"deprecation"})
 public final class HotspottyDataStreamMetadataTable implements
         AtlasDbMutablePersistentTable<HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataRow,
                                          HotspottyDataStreamMetadataTable.HotspottyDataStreamMetadataNamedColumnValue<?>,
@@ -706,5 +706,5 @@ public final class HotspottyDataStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "7lyAtdzyxdOuWruycLRKuA==";
+    static String __CLASS_HASH = "9oSKYCaS++pwnQveWEhJbw==";
 }
