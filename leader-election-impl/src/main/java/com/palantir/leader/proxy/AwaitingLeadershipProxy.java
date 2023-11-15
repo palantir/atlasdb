@@ -168,7 +168,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         if (cause instanceof SuspectedNotCurrentLeaderException) {
             handleSuspectedNotCurrentLeader(leadershipToken, (SuspectedNotCurrentLeaderException) cause);
         }
-        if (cause instanceof ServiceNotAvailableException || cause instanceof NotCurrentLeaderException) {
+        if (cause instanceof ServiceNotAvailableException) {
             leadershipStateManager.invalidateStateOnLostLeadership(leadershipToken, cause);
         }
         // Prevent blocked lock requests from receiving a non-retryable 500 on interrupts
