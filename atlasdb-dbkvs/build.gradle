@@ -50,9 +50,4 @@ dependencies {
   annotationProcessor 'com.google.auto.service:auto-service'
   annotationProcessor project(":atlasdb-processors")
   compileOnly project(":atlasdb-processors")
-
-  testImplementation 'junit:junit'
-  testRuntimeOnly 'org.junit.vintage:junit-vintage-engine', {
-    because 'allows JUnit 3 and JUnit 4 tests to run'
-  }
 }

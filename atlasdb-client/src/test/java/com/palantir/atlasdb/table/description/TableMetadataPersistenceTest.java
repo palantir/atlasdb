@@ -22,14 +22,11 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.schema.stream.StreamStoreDefinitionBuilder;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import java.util.ArrayList;
-import java.util.Collection;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import java.util.List;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
-@RunWith(Parameterized.class)
 @SuppressWarnings("checkstyle:all") // too many warnings to fix
 public class TableMetadataPersistenceTest {
 
@@ -37,41 +34,35 @@ public class TableMetadataPersistenceTest {
     private static final int STREAM_STORE_BLOCK_SIZE_WITH_COMPRESS_IN_DB = 256;
     private static final int UNSET_BLOCK_SIZE = 0;
 
-    private final TableDefinition tableDefinition;
-    private final int compressionBlockSizeKB;
+    public static List<Arguments> tableDefinitions() {
+        List<Arguments> params = new ArrayList<>();
 
-    @Parameters
-    public static Collection<Object[]> testCases() {
-        Collection<Object[]> params = new ArrayList<>();
-
-        params.add(new Object[] {getRangeScanWithoutCompression(), UNSET_BLOCK_SIZE});
-        params.add(new Object[] {getDefaultExplicit(), AtlasDbConstants.DEFAULT_TABLE_COMPRESSION_BLOCK_SIZE_KB});
-        params.add(new Object[] {
-            getDefaultRangeScanExplicit(), AtlasDbConstants.DEFAULT_TABLE_WITH_RANGESCANS_COMPRESSION_BLOCK_SIZE_KB
-        });
-        params.add(new Object[] {getCustomExplicitCompression(), CUSTOM_COMPRESSION_BLOCK_SIZE});
-        params.add(new Object[] {getCustomTable(), CUSTOM_COMPRESSION_BLOCK_SIZE});
-        params.add(new Object[] {getStreamStoreTableWithCompressInDb(), STREAM_STORE_BLOCK_SIZE_WITH_COMPRESS_IN_DB});
-        params.add(new Object[] {getStreamStoreTableDefault(), UNSET_BLOCK_SIZE});
+        params.add(Arguments.of(getRangeScanWithoutCompression(), UNSET_BLOCK_SIZE));
+        params.add(Arguments.of(getDefaultExplicit(), AtlasDbConstants.DEFAULT_TABLE_COMPRESSION_BLOCK_SIZE_KB));
+        params.add(Arguments.of(
+                getDefaultRangeScanExplicit(),
+                AtlasDbConstants.DEFAULT_TABLE_WITH_RANGESCANS_COMPRESSION_BLOCK_SIZE_KB));
+        params.add(Arguments.of(getCustomExplicitCompression(), CUSTOM_COMPRESSION_BLOCK_SIZE));
+        params.add(Arguments.of(getCustomTable(), CUSTOM_COMPRESSION_BLOCK_SIZE));
+        params.add(Arguments.of(getStreamStoreTableWithCompressInDb(), STREAM_STORE_BLOCK_SIZE_WITH_COMPRESS_IN_DB));
+        params.add(Arguments.of(getStreamStoreTableDefault(), UNSET_BLOCK_SIZE));
 
         return params;
     }
 
-    public TableMetadataPersistenceTest(TableDefinition tableDefinition, int compressionBlockSizeKB) {
-        this.tableDefinition = tableDefinition;
-        this.compressionBlockSizeKB = compressionBlockSizeKB;
-    }
-
-    @Test
-    public void testSerializeAndDeserialize() {
+    @ParameterizedTest
+    @MethodSource("tableDefinitions")
+    public void testSerializeAndDeserialize(TableDefinition tableDefinition) {
         TableMetadata metadata = tableDefinition.toTableMetadata();
         byte[] metadataAsBytes = metadata.persistToBytes();
         TableMetadata metadataFromBytes = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadataAsBytes);
         assertThat(metadataFromBytes).isEqualTo(metadata);
     }
 
-    @Test
-    public void testMetadataHasExpectedCompressionBlockSize() {
+    @ParameterizedTest
+    @MethodSource("tableDefinitions")
+    public void testMetadataHasExpectedCompressionBlockSize(
+            TableDefinition tableDefinition, int compressionBlockSizeKB) {
         TableMetadata metadata = tableDefinition.toTableMetadata();
         assertThat(metadata.getExplicitCompressionBlockSizeKB()).isEqualTo(compressionBlockSizeKB);
     }
