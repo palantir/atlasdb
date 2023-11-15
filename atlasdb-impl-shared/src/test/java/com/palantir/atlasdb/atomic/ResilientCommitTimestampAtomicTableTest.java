@@ -65,6 +65,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 public class ResilientCommitTimestampAtomicTableTest {
+    private static final String PARAMETERIZED_TEST_NAME = "validating staging values: {0}";
 
     private final KeyValueService spiedKvs = spy(new InMemoryKeyValueService(true));
     private final UnreliablePueConsensusForgettingStore spiedStore = spy(new UnreliablePueConsensusForgettingStore(
@@ -76,7 +77,7 @@ public class ResilientCommitTimestampAtomicTableTest {
     private final TwoPhaseEncodingStrategy encodingStrategy =
             new TwoPhaseEncodingStrategy(BaseProgressEncodingStrategy.INSTANCE);
 
-    @ParameterizedTest(name = "validating staging values: {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void canPutAndGet(boolean validating) throws ExecutionException, InterruptedException {
         setup(validating);
@@ -87,14 +88,14 @@ public class ResilientCommitTimestampAtomicTableTest {
         verify(spiedStore).getMultiple(any());
     }
 
-    @ParameterizedTest(name = "validating staging values: {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void emptyReturnsInProgress(boolean validating) throws ExecutionException, InterruptedException {
         setup(validating);
         assertThat(atomicTable.get(3L).get()).isEqualTo(TransactionStatus.inProgress());
     }
 
-    @ParameterizedTest(name = "validating staging values: {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void canPutAndGetAbortedTransactions(boolean validating) throws ExecutionException, InterruptedException {
         setup(validating);
@@ -102,7 +103,7 @@ public class ResilientCommitTimestampAtomicTableTest {
         assertThat(atomicTable.get(1L).get()).isEqualTo(TransactionStatus.aborted());
     }
 
-    @ParameterizedTest(name = "validating staging values: {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void cannotPueTwice(boolean validating) {
         setup(validating);
@@ -111,7 +112,7 @@ public class ResilientCommitTimestampAtomicTableTest {
                 .isInstanceOf(KeyAlreadyExistsException.class);
     }
 
-    @ParameterizedTest(name = "validating staging values: {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void canPutAndGetMultiple(boolean validating) throws ExecutionException, InterruptedException {
         setup(validating);
@@ -132,7 +133,7 @@ public class ResilientCommitTimestampAtomicTableTest {
         assertThat(result.get(7L)).isEqualTo(TransactionStatus.committed(8L));
     }
 
-    @ParameterizedTest(name = "validating staging values: {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void pueThatThrowsIsCorrectedOnGet(boolean validating) throws ExecutionException, InterruptedException {
         setup(validating);
@@ -145,7 +146,7 @@ public class ResilientCommitTimestampAtomicTableTest {
         verify(spiedStore, times(2)).put(anyMap());
     }
 
-    @ParameterizedTest(name = "validating staging values: {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void getReturnsStagingValuesThatWereCommittedBySomeoneElse(boolean validating)
             throws ExecutionException, InterruptedException {
@@ -168,7 +169,7 @@ public class ResilientCommitTimestampAtomicTableTest {
         assertThat(atomicTable.get(startTimestamp).get()).isEqualTo(commitStatus);
     }
 
-    @ParameterizedTest(name = "validating staging values: {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void onceNonNullValueIsReturnedItIsAlwaysReturned(boolean validating) {
         setup(validating);
@@ -202,7 +203,7 @@ public class ResilientCommitTimestampAtomicTableTest {
         }
     }
 
-    @ParameterizedTest(name = "validating staging values: {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void inAbsenceOfConcurrencyGetRetriesBothTouchAndPut(boolean validating)
             throws ExecutionException, InterruptedException {
@@ -237,7 +238,7 @@ public class ResilientCommitTimestampAtomicTableTest {
         verify(spiedStore, times(102)).put(anyMap());
     }
 
-    @ParameterizedTest(name = "validating staging values: {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void noSuperfluousCasOrPuts(boolean validating) {
         setup(validating);
@@ -262,7 +263,7 @@ public class ResilientCommitTimestampAtomicTableTest {
         verify(spiedStore, times(1 + 50)).put(anyMap());
     }
 
-    @ParameterizedTest(name = "validating staging values: {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void touchesForSameRowAreSerial(boolean validating) {
         setup(validating);
@@ -292,7 +293,7 @@ public class ResilientCommitTimestampAtomicTableTest {
         assertThat(spiedStore.maximumConcurrentTouches()).isEqualTo(validating ? 1 : 0);
     }
 
-    @ParameterizedTest(name = "validating staging values: {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void allowParallelTouchesForDifferentRows(boolean validating) {
         setup(validating);
@@ -324,7 +325,7 @@ public class ResilientCommitTimestampAtomicTableTest {
         }
     }
 
-    @ParameterizedTest(name = "validating staging values: {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void doNotPutIfAlreadyCommitted(boolean validating) throws ExecutionException, InterruptedException {
         setup(validating);
@@ -339,7 +340,7 @@ public class ResilientCommitTimestampAtomicTableTest {
         verify(spiedStore, times(1)).put(anyMap());
     }
 
-    @ParameterizedTest(name = "validating staging values: {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void acceptStagingAsCommittedWhenCommittingIsSlow(boolean validating)
             throws ExecutionException, InterruptedException {
@@ -362,7 +363,7 @@ public class ResilientCommitTimestampAtomicTableTest {
         verify(spiedStore, times(1 + 3)).put(anyMap());
     }
 
-    @ParameterizedTest(name = "validating staging values: {0}")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @ValueSource(booleans = {true, false})
     public void acceptStagingAsCommittedWhenRetryingTooMuch(boolean validating)
             throws ExecutionException, InterruptedException {

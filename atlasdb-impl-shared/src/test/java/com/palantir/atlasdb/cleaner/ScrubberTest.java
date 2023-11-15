@@ -46,7 +46,7 @@ public class ScrubberTest {
     private ScrubberStore scrubStore;
     private Scrubber scrubber;
 
-    public static List<Function<KeyValueService, TransactionService>> getParameters() {
+    public static List<Function<KeyValueService, TransactionService>> transactionServices() {
         return List.of(SimpleTransactionService::createV1, SimpleTransactionService::createV2);
     }
 
@@ -57,7 +57,7 @@ public class ScrubberTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("transactionServices")
     public void isInitializedWhenPrerequisitesAreInitialized(
             Function<KeyValueService, TransactionService> transactionServiceForKvs) {
         setup(transactionServiceForKvs);
@@ -72,7 +72,7 @@ public class ScrubberTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("transactionServices")
     public void isNotInitializedWhenKvsIsNotInitialized(
             Function<KeyValueService, TransactionService> transactionServiceForKvs) {
         setup(transactionServiceForKvs);
@@ -87,7 +87,7 @@ public class ScrubberTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("transactionServices")
     public void isNotInitializedWhenScrubberStoreIsNotInitialized(
             Function<KeyValueService, TransactionService> transactionServiceForKvs) {
         setup(transactionServiceForKvs);
@@ -102,7 +102,7 @@ public class ScrubberTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("transactionServices")
     public void testScrubQueueIsCleared(Function<KeyValueService, TransactionService> transactionServiceForKvs) {
         setup(transactionServiceForKvs);
         Cell cell1 = Cell.create(new byte[] {1}, new byte[] {2});
@@ -124,7 +124,7 @@ public class ScrubberTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("transactionServices")
     public void scrubberIsResilientToTableDeletion(
             Function<KeyValueService, TransactionService> transactionServiceForKvs) {
         setup(transactionServiceForKvs);

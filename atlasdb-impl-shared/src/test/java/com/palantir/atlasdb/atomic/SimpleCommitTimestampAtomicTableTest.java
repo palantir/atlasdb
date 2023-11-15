@@ -36,14 +36,14 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 public class SimpleCommitTimestampAtomicTableTest {
 
-    public static List<TransactionStatusEncodingStrategy<TransactionStatus>> getParameters() {
+    public static List<TransactionStatusEncodingStrategy<TransactionStatus>> encodingStrategies() {
         return List.of(V1EncodingStrategy.INSTANCE, TicketsEncodingStrategy.INSTANCE);
     }
 
     private AtomicTable<Long, TransactionStatus> atomicTable;
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("encodingStrategies")
     public void canPutAndGet(TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy)
             throws ExecutionException, InterruptedException {
         atomicTable = createPueTable(encodingStrategy);
@@ -52,7 +52,7 @@ public class SimpleCommitTimestampAtomicTableTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("encodingStrategies")
     public void emptyReturnsInProgress(TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy)
             throws ExecutionException, InterruptedException {
         atomicTable = createPueTable(encodingStrategy);
@@ -60,7 +60,7 @@ public class SimpleCommitTimestampAtomicTableTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("encodingStrategies")
     public void cannotPueTwice(TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy) {
         atomicTable = createPueTable(encodingStrategy);
         atomicTable.update(1L, TransactionStatus.committed(2L));
@@ -69,7 +69,7 @@ public class SimpleCommitTimestampAtomicTableTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("encodingStrategies")
     public void canPutAndGetMultiple(TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy)
             throws ExecutionException, InterruptedException {
         atomicTable = createPueTable(encodingStrategy);
@@ -90,7 +90,7 @@ public class SimpleCommitTimestampAtomicTableTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("encodingStrategies")
     public void canPutAndGetAbortedTransactions(TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy)
             throws ExecutionException, InterruptedException {
         atomicTable = createPueTable(encodingStrategy);
@@ -103,7 +103,7 @@ public class SimpleCommitTimestampAtomicTableTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("encodingStrategies")
     public void getsAllTimestamps(TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy)
             throws ExecutionException, InterruptedException {
         atomicTable = createPueTable(encodingStrategy);
@@ -118,7 +118,7 @@ public class SimpleCommitTimestampAtomicTableTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("encodingStrategies")
     public void doesNotThrowForDuplicateValues(TransactionStatusEncodingStrategy<TransactionStatus> encodingStrategy)
             throws ExecutionException, InterruptedException {
         atomicTable = createPueTable(encodingStrategy);

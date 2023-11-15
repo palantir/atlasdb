@@ -40,6 +40,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 public class SweepableCellFilterParametrizedTest {
+    private static final String PARAMETERIZED_TEST_NAME = "{0}, {1}, {2}";
     private static final ImmutableSet<Boolean> BOOLEANS = ImmutableSet.of(true, false);
 
     private static final Cell SINGLE_CELL =
@@ -54,7 +55,7 @@ public class SweepableCellFilterParametrizedTest {
     private final CommitTsCache commitTsCache = CommitTsCache.create(mockTransactionService);
     private List<CandidateCellForSweeping> candidate;
 
-    public static List<Arguments> getParameters() {
+    public static List<Arguments> lastIsTombstonesAndStatusesAndSweepers() {
         return Sets.cartesianProduct(
                         BOOLEANS, ImmutableSet.copyOf(Committed.values()), ImmutableSet.copyOf(Sweeper.values()))
                 .stream()
@@ -74,8 +75,8 @@ public class SweepableCellFilterParametrizedTest {
      * (if and) only if it is a tombstone (we only have this information for the greatest overall write), and sweep is
      * thorough.
      */
-    @ParameterizedTest(name = "{0}, {1}, {2}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("lastIsTombstonesAndStatusesAndSweepers")
     public void sweepableCellFilterTest(boolean lastIsTombstone, Committed status, Sweeper sweeper) {
         setup(lastIsTombstone, status);
         List<Long> timestamps = getCellsToSweepFor(sweeper).sortedTimestamps();

@@ -104,7 +104,9 @@ import org.mockito.ArgumentCaptor;
 
 @SuppressWarnings("MustBeClosedChecker")
 public class TargetedSweeperTest extends AbstractSweepQueueTest {
-    public static List<Integer> getParameters() {
+    private static final String PARAMETERIZED_TEST_NAME = "{index}: input=\"{0}\"";
+
+    public static List<Integer> readBatchSizes() {
         // Tests have an assumption that the read batch size is less than half of the number of coarse
         // partitions (SweepQueueUtils.TS_COARSE_GRANULARITY / SweepQueueUtils.TS_FINE_GRANULARITY / 2).
         return List.of(1, 8, 99);
@@ -150,8 +152,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         puncherStore = null;
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void secondaryQueueReadsFirstQueueLastSweptTimestamp(int readBatchSize) {
         setup(readBatchSize);
         MetricsManager secondQueueManager = MetricsManagers.createForTests();
@@ -171,8 +173,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         await(() -> assertThat(secondQueueManager).hasLastSweptTimestampConservativeEqualTo(maxTsForFinePartition(0)));
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void increaseInShardsReflectedOnLastSweptTimestamp(int readBatchSize) {
         setup(readBatchSize);
         sweepQueue.runInBackground();
@@ -198,8 +200,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         await(() -> assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(-1L));
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void callingEnqueueAndSweepOnUninitializedSweeperThrows(int readBatchSize) {
         setup(readBatchSize);
         SafeArg<String> objectNameSafeArg = SafeArg.of("objectName", "Targeted Sweeper");
@@ -213,8 +215,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .hasExactlyArgs(objectNameSafeArg);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void initializingWithUninitializedKvsThrows(int readBatchSize) {
         setup(readBatchSize);
         KeyValueService uninitializedKvs = mock(KeyValueService.class);
@@ -229,8 +231,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .isInstanceOf(IllegalStateException.class);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void enqueueUpdatesNumberOfShards(int readBatchSize) {
         setup(readBatchSize);
         assertThat(AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS).isLessThan(DEFAULT_SHARDS);
@@ -239,8 +241,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(progress.getNumberOfShards()).isEqualTo(DEFAULT_SHARDS);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void sweepStrategyNothingDoesNotPersistAnything(int readBatchSize) {
         setup(readBatchSize);
         enqueueWriteCommitted(TABLE_NOTH, LOW_TS);
@@ -249,8 +251,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         verify(spiedKvs, times(2)).put(any(TableReference.class), anyMap(), anyLong());
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void sweepStrategyNothingDoesNotUpdateMetrics(int readBatchSize) {
         setup(readBatchSize);
         enqueueWriteCommitted(TABLE_NOTH, LOW_TS);
@@ -259,8 +261,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(metricsManager).hasEnqueuedWritesThoroughEqualTo(0);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void conservativeSweepAddsSentinelAndLeavesSingleValue(int readBatchSize) {
         setup(readBatchSize);
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
@@ -271,8 +273,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, LOW_TS);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void sweepsThoroughMigrationAsConservative(int readBatchSize) {
         setup(readBatchSize);
         enqueueWriteCommitted(TABLE_THOR_MIGRATION, LOW_TS);
@@ -283,8 +285,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_THOR_MIGRATION, LOW_TS);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void sweepWithSingleEntryUpdatesMetrics(int readBatchSize) {
         setup(readBatchSize);
         sweepQueue.runInBackground();
@@ -303,8 +305,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(metricsManager).hasNotRegisteredTargetedOutcome(THOROUGH, SweepOutcome.SUCCESS);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void sweepWithNoCandidatesBeforeSweepTimestampReportsNothingToSweep(int readBatchSize) {
         setup(readBatchSize);
         enqueueWriteCommitted(TABLE_CONS, getSweepTsCons());
@@ -314,8 +316,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(metricsManager).hasNotRegisteredTargetedOutcome(THOROUGH, SweepOutcome.NOTHING_TO_SWEEP);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void thoroughSweepDoesNotAddSentinelAndLeavesSingleValue(int readBatchSize) {
         setup(readBatchSize);
         enqueueWriteCommitted(TABLE_THOR, LOW_TS);
@@ -326,8 +328,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_THOR, LOW_TS);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void thoroughSweepDeletesExistingSentinel(int readBatchSize) {
         setup(readBatchSize);
         spiedKvs.addGarbageCollectionSentinelValues(TABLE_THOR, ImmutableList.of(DEFAULT_CELL));
@@ -337,8 +339,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertReadAtTimestampReturnsNothing(TABLE_THOR, 0L);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void conservativeSweepDeletesLowerValue(int readBatchSize) {
         setup(readBatchSize);
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
@@ -351,8 +353,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, LOW_TS2);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void thoroughSweepDeletesLowerValue(int readBatchSize) {
         setup(readBatchSize);
         enqueueWriteCommitted(TABLE_THOR, LOW_TS);
@@ -365,8 +367,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_THOR, LOW_TS2);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void conservativeSweepCallsFollower(int readBatchSize) {
         setup(readBatchSize);
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
@@ -378,8 +380,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(Iterables.getOnlyElement(captor.getAllValues())).containsExactly(DEFAULT_CELL);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void thoroughSweepCallsFollower(int readBatchSize) {
         setup(readBatchSize);
         enqueueWriteCommitted(TABLE_THOR, LOW_TS);
@@ -391,8 +393,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(Iterables.getOnlyElement(captor.getAllValues())).containsExactly(DEFAULT_CELL);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void conservativeSweepDeletesAllButLatestWithSingleDeleteAllTimestamps(int readBatchSize) {
         setup(readBatchSize);
         long lastWriteTs = 5000;
@@ -405,8 +407,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         verify(spiedKvs, times(1)).deleteAllTimestamps(any(TableReference.class), anyMap());
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void thoroughSweepDeletesAllButLatestWithSingleDeleteAllTimestampsIncludingSentinels(int readBatchSize) {
         setup(readBatchSize);
         long lastWriteTs = 5000;
@@ -419,8 +421,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         verify(spiedKvs, times(1)).deleteAllTimestamps(any(TableReference.class), anyMap());
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void sweepsOnlyThePrescribedNumberOfBatchesAtATime(int readBatchSize) {
         setup(readBatchSize);
         for (int partition = 0; partition <= readBatchSize; partition++) {
@@ -442,8 +444,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(metricsManager).hasEntriesReadInBatchMeanThoroughEqualTo(0.0);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void sweepDeletesWritesWhenTombstoneHasHigherTimestamp(int readBatchSize) {
         setup(readBatchSize);
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
@@ -456,8 +458,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertReadAtTimestampReturnsTombstoneAtTimestamp(TABLE_CONS, LOW_TS2 + 1, LOW_TS2);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void thoroughSweepDeletesTombstoneIfLatestWrite(int readBatchSize) {
         setup(readBatchSize);
         enqueueTombstone(TABLE_THOR, LOW_TS);
@@ -470,8 +472,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertReadAtTimestampReturnsNothing(TABLE_THOR, LOW_TS2 + 1);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void sweepDeletesTombstonesWhenWriteHasHigherTimestamp(int readBatchSize) {
         setup(readBatchSize);
         enqueueTombstone(TABLE_CONS, LOW_TS);
@@ -484,8 +486,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, LOW_TS2);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void sweepHandlesSequencesOfDeletesAndReadditionsInOneShot(int readBatchSize) {
         setup(readBatchSize);
         sweepQueue.runInBackground();
@@ -520,8 +522,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(10_000L - 5000L);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void enableAutoTuningOverridesEffectivelySetsLargeReadBatchSize(int readBatchSize) {
         setup(readBatchSize);
         runtimeSupplier.set(ImmutableTargetedSweepRuntimeConfig.builder()
@@ -542,8 +544,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         verify(spiedKvs, times(1)).deleteAllTimestamps(any(), any());
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void sweepProgressesAndSkipsEmptyFinePartitions(int readBatchSize) {
         setup(readBatchSize);
         sweepQueue.runInBackground();
@@ -600,8 +602,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 assertThat(metricsManager).hasMillisSinceLastSweptConservativeEqualTo(finalValueWallClockTime * 2L));
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void sweepProgressesAcrossCoarsePartitions(int readBatchSize) {
         setup(readBatchSize);
         setSweepTimestamp(Long.MAX_VALUE);
@@ -634,16 +636,16 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 TABLE_CONS, LOW_TS + minTsForCoarsePartition(permittedPartitions.get(3 * readBatchSize)));
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void sweepProgressesToJustBeforeSweepTsWhenNothingToSweep(int readBatchSize) {
         setup(readBatchSize);
         sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
         assertProgressUpdatedToTimestamp(getSweepTsCons() - 1L);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void sweepProgressesToEndOfPartitionWhenFewValuesAndSweepTsLarge(int readBatchSize) {
         setup(readBatchSize);
         long writeTs = getSweepTsCons() - 3 * TS_FINE_GRANULARITY;
@@ -657,8 +659,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertProgressUpdatedToTimestamp(getSweepTsCons() - 1L);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void sweepCellOnlyOnceWhenInLastPartitionBeforeSweepTs(int readBatchSize) {
         setup(readBatchSize);
         immutableTs = 2 * TS_COARSE_GRANULARITY - TS_FINE_GRANULARITY;
@@ -672,8 +674,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         verify(spiedKvs, times(1)).deleteAllTimestamps(any(TableReference.class), anyMap());
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void sweepableTimestampsGetsScrubbedWhenNoMoreToSweepButSweepTsInNewCoarsePartition(int readBatchSize) {
         setup(readBatchSize);
         long largestFirstPartitionCoarse = TS_COARSE_GRANULARITY - 1L;
@@ -692,8 +694,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertNoEntriesInSweepableTimestampsBeforeSweepTimestamp();
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void sweepableTimestampsGetsScrubbedWhenLastSweptProgressesInNewCoarsePartition(int readBatchSize) {
         setup(readBatchSize);
         for (int i = 0; i < 2 * readBatchSize; i++) {
@@ -712,8 +714,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertLowestFinePartitionInSweepableTimestampsEquals(tsPartitionFine(2 * TS_COARSE_GRANULARITY));
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void sweepableCellsGetsScrubbedWheneverPartitionIsCompletelySwept(int readBatchSize) {
         setup(readBatchSize);
         for (int i = 0; i < readBatchSize; i++) {
@@ -751,15 +753,15 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertSweepableCellsHasNoDedicatedRowsForShard(CONS_SHARD);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void doesNotSweepBeyondSweepTimestamp(int readBatchSize) {
         setup(readBatchSize);
         writeValuesAroundSweepTimestampAndSweepAndCheck(getSweepTsCons(), 1);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void doesNotTransitivelyRetainWritesFromBeforeSweepTimestamp(int readBatchSize) {
         setup(readBatchSize);
         sweepQueue.runInBackground();
@@ -776,16 +778,16 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         await(() -> assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(sweepTimestamp - 1));
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void sweepsOnlySweepableSegmentOfFinePartitions(int readBatchSize) {
         setup(readBatchSize);
         long sweepTs = TS_FINE_GRANULARITY + 1337;
         runWithConservativeSweepTimestamp(() -> writeValuesAroundSweepTimestampAndSweepAndCheck(sweepTs, 1), sweepTs);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void sweepsOnlySweepableSegmentAcrossFinePartitionBoundary(int readBatchSize) {
         setup(readBatchSize);
         long sweepTs = TS_FINE_GRANULARITY + 7;
@@ -794,8 +796,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         runWithConservativeSweepTimestamp(() -> writeValuesAroundSweepTimestampAndSweepAndCheck(sweepTs, 2), sweepTs);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void sweepsOnlySweepableSegmentAcrossCoarsePartitionBoundary(int readBatchSize) {
         setup(readBatchSize);
         long sweepTs = TS_COARSE_GRANULARITY + 7;
@@ -804,8 +806,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         runWithConservativeSweepTimestamp(() -> writeValuesAroundSweepTimestampAndSweepAndCheck(sweepTs, 2), sweepTs);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void remembersProgressWhenSweepTimestampAdvances(int readBatchSize) {
         setup(readBatchSize);
         long baseSweepTs = getSweepTsCons();
@@ -830,8 +832,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, newPartitionSecondTs);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void doesNotGoBackwardsEvenIfSweepTimestampRegressesWithinBucket(int readBatchSize) {
         setup(readBatchSize);
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
@@ -849,16 +851,16 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertProgressUpdatedToTimestamp(LOW_TS2 + 5 - 1);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void canSweepAtMinimumTimeWithNoWrites(int readBatchSize) {
         setup(readBatchSize);
         runConservativeSweepAtTimestamp(Long.MIN_VALUE);
         assertProgressUpdatedToTimestamp(SweepQueueUtils.INITIAL_TIMESTAMP);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void canSweepAtMinimumTime(int readBatchSize) {
         setup(readBatchSize);
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
@@ -870,8 +872,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertProgressUpdatedToTimestamp(SweepQueueUtils.INITIAL_TIMESTAMP);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void doesNotGoBackwardsEvenIfSweepTimestampRegressesAcrossBoundary(int readBatchSize) {
         setup(readBatchSize);
         long coarseBoundary = TS_COARSE_GRANULARITY;
@@ -899,8 +901,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, coarseBoundary + 15);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void testSweepTimestampMetric(int readBatchSize) {
         setup(readBatchSize);
         unreadableTs = 17;
@@ -919,8 +921,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(metricsManager).hasSweepTimestampThoroughEqualTo(5);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void doNotSweepAnythingAfterEntryWithCommitTsAfterSweepTs(int readBatchSize) {
         setup(readBatchSize);
         immutableTs = 1000L;
@@ -962,8 +964,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                         .build());
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void doNotDeleteAnythingAfterEntryWithCommitTsAfterSweepTs(int readBatchSize) {
         setup(readBatchSize);
         immutableTs = 1000L;
@@ -1006,8 +1008,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertReadAtTimestampReturnsValue(TABLE_CONS, 1500L, 950L);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void stopReadingEarlyWhenEncounteringEntryKnownToBeCommittedAfterSweepTs(int readBatchSize) {
         setup(readBatchSize);
         immutableTs = 100L;
@@ -1043,8 +1045,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(metricsManager).hasEntriesReadConservativeEqualTo(4 + writesInDedicated + 3 + writesInDedicated + 2);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void stopReadingEarlyInOtherShardWhenEncounteringEntryKnownToBeCommittedAfterSweepTs(int readBatchSize) {
         setup(readBatchSize);
         immutableTs = 100L;
@@ -1072,8 +1074,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(metricsManager).hasEntriesReadConservativeEqualTo(writesInDedicated + 1 + writesInOther);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void batchIncludesAllWritesWithTheSameTimestampAndDoesNotSkipOrRepeatAnyWritesInNextIteration(
             int readBatchSize) {
         setup(readBatchSize);
@@ -1106,8 +1108,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .isEqualTo(maxTsForFinePartition(0));
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void doNotMissSingleWriteInNextIteration(int readBatchSize) {
         setup(readBatchSize);
         TargetedSweeper sweeperConservative = getSingleShardSweeper();
@@ -1138,8 +1140,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .isEqualTo(maxTsForFinePartition(0));
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void deletesGetBatched(int readBatchSize) {
         setup(readBatchSize);
         TargetedSweeper sweeperConservative = getSingleShardSweeper();
@@ -1156,8 +1158,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .isEqualTo(maxTsForFinePartition(0));
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void multipleSweepersSweepDifferentShardsAndCallUnlockAfterwards(int readBatchSize)
             throws InterruptedException {
         setup(readBatchSize);
@@ -1183,8 +1185,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .lock(any(LockRequest.class));
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void extraSweepersGiveUpAfterFailingToAcquireEnoughTimes(int readBatchSize) throws InterruptedException {
         setup(readBatchSize);
         int shards = 16;
@@ -1218,8 +1220,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertThat(requestedLockIds).hasSameElementsAs(expectedLockIds);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void doesNotLeaveSentinelsIfTableDestroyed(int readBatchSize) {
         setup(readBatchSize);
         enqueueWriteCommitted(TABLE_CONS, 10);
@@ -1233,8 +1235,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .isExhausted();
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void sweepOnlyOneFinePartitionByDefault(int readBatchSize) {
         setup(readBatchSize);
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
@@ -1250,8 +1252,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, maxTsForFinePartition(0) + 1);
     }
 
-    @ParameterizedTest(name = "readBatchSize = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("readBatchSizes")
     public void enableAutoTuningSweepsMultipleFinePartitions(int readBatchSize) {
         setup(readBatchSize);
         runtimeSupplier.set(ImmutableTargetedSweepRuntimeConfig.builder()
