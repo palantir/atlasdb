@@ -19,51 +19,33 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
-import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
+import com.palantir.atlasdb.transaction.impl.AbstractTransactionTestV2;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.TransactionSchemaVersionEnforcement;
-import java.util.Arrays;
-import java.util.Collection;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
-@RunWith(Parameterized.class)
-public class MemoryTransactionTest extends AbstractTransactionTest {
-    @ClassRule
-    public static final TestResourceManager TRM = TestResourceManager.inMemory();
+public class DirectEncodingMemoryTransactionTest extends AbstractTransactionTestV2 {
+    @RegisterExtension
+    public static final TestResourceManagerV2 TRM = TestResourceManagerV2.inMemory();
 
     private static final byte[] ROW_1 = PtBytes.toBytes("row1");
     private static final byte[] ZERO = new byte[0];
 
-    private static final String TRANSACTIONS_1 = "transactions1";
-    private static final String TRANSACTIONS_3 = "transactions3";
-
-    @Parameterized.Parameters(name = "{0}")
-    public static Collection<Object[]> data() {
-        Object[][] data = new Object[][] {
-            {TRANSACTIONS_1, TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION},
-            {TRANSACTIONS_3, TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION}
-        };
-        return Arrays.asList(data);
-    }
-
-    private final int transactionsSchemaVersion;
-
-    public MemoryTransactionTest(String name, int transactionsSchemaVersion) {
+    public DirectEncodingMemoryTransactionTest() {
         super(TRM, TRM);
-        this.transactionsSchemaVersion = transactionsSchemaVersion;
     }
 
-    @Before
-    public void before() {
+    @BeforeEach
+    public void beforeEach() {
         keyValueService.truncateTable(AtlasDbConstants.COORDINATION_TABLE);
         TransactionSchemaVersionEnforcement.ensureTransactionsGoingForwardHaveSchemaVersion(
-                transactionSchemaManager, timestampService, timestampManagementService, transactionsSchemaVersion);
+                transactionSchemaManager,
+                timestampService,
+                timestampManagementService,
+                TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
     }
 
     @Test
