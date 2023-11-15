@@ -37,7 +37,8 @@ import java.util.Optional;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
-@DoNotLog @JsonDeserialize(as = ImmutableAtlasDbConfig.class)
+@DoNotLog
+@JsonDeserialize(as = ImmutableAtlasDbConfig.class)
 @JsonSerialize(as = ImmutableAtlasDbConfig.class)
 @JsonIgnoreProperties(value = {"enableSweep", "persistentStorage"})
 @Value.Immutable

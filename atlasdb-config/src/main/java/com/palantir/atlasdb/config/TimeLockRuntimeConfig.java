@@ -20,7 +20,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.logsafe.DoNotLog;
 import org.immutables.value.Value;
 
-@DoNotLog @JsonSerialize(as = ImmutableTimeLockRuntimeConfig.class)
+@DoNotLog
+@JsonSerialize(as = ImmutableTimeLockRuntimeConfig.class)
 @JsonDeserialize(as = ImmutableTimeLockRuntimeConfig.class)
 @Value.Immutable
 public abstract class TimeLockRuntimeConfig {

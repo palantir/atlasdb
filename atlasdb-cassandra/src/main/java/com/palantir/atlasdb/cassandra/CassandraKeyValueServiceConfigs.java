@@ -26,7 +26,8 @@ import com.palantir.util.OptionalResolver;
 import java.util.Optional;
 import org.immutables.value.Value;
 
-@DoNotLog @Value.Immutable
+@DoNotLog
+@Value.Immutable
 public interface CassandraKeyValueServiceConfigs {
     CassandraKeyValueServiceConfig installConfig();
 

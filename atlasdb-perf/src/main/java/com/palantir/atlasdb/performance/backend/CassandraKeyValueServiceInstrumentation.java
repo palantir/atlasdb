@@ -35,7 +35,8 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
         super(9160, "cassandra-docker-compose.yml");
     }
 
-    @DoNotLog @Override
+    @DoNotLog
+    @Override
     public KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr) {
         return ImmutableCassandraKeyValueServiceConfig.builder()
                 .poolSize(20)

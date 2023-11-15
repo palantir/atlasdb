@@ -397,7 +397,8 @@ public final class CassandraVerifier {
         }
     }
 
-    @DoNotLog @Value.Immutable
+    @DoNotLog
+    @Value.Immutable
     interface CassandraVerifierConfig {
         String keyspace();
 

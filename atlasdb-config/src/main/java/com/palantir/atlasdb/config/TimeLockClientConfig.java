@@ -24,7 +24,8 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
 import org.immutables.value.Value;
 
-@DoNotLog @JsonSerialize(as = ImmutableTimeLockClientConfig.class)
+@DoNotLog
+@JsonSerialize(as = ImmutableTimeLockClientConfig.class)
 @JsonDeserialize(as = ImmutableTimeLockClientConfig.class)
 @Value.Immutable
 public abstract class TimeLockClientConfig {
