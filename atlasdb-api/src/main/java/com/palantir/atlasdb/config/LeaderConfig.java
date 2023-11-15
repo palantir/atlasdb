@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.logsafe.DoNotLog;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import java.io.File;
@@ -27,7 +28,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.immutables.value.Value;
 
-@JsonDeserialize(as = ImmutableLeaderConfig.class)
+@DoNotLog @JsonDeserialize(as = ImmutableLeaderConfig.class)
 @JsonSerialize(as = ImmutableLeaderConfig.class)
 @Value.Immutable
 @SuppressWarnings("DesignForExtension")

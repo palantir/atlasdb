@@ -29,6 +29,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.logsafe.DoNotLog;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.net.InetSocketAddress;
@@ -40,7 +41,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 import org.immutables.value.Value;
 
-@AutoService(KeyValueServiceConfig.class)
+@DoNotLog @AutoService(KeyValueServiceConfig.class)
 @JsonDeserialize(as = ImmutableCassandraKeyValueServiceConfig.class)
 @JsonSerialize(as = ImmutableCassandraKeyValueServiceConfig.class)
 @JsonTypeName(CassandraKeyValueServiceConfig.TYPE)
