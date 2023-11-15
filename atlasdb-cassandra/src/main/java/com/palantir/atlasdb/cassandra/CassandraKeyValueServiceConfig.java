@@ -41,7 +41,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 import org.immutables.value.Value;
 
-@DoNotLog @AutoService(KeyValueServiceConfig.class)
+@DoNotLog
+@AutoService(KeyValueServiceConfig.class)
 @JsonDeserialize(as = ImmutableCassandraKeyValueServiceConfig.class)
 @JsonSerialize(as = ImmutableCassandraKeyValueServiceConfig.class)
 @JsonTypeName(CassandraKeyValueServiceConfig.TYPE)

@@ -26,7 +26,8 @@ import java.util.Optional;
 import java.util.Set;
 import org.immutables.value.Value;
 
-@DoNotLog @JsonDeserialize(as = ImmutableServerListConfig.class)
+@DoNotLog
+@JsonDeserialize(as = ImmutableServerListConfig.class)
 @JsonSerialize(as = ImmutableServerListConfig.class)
 @Value.Immutable
 public interface ServerListConfig {

@@ -326,7 +326,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         void accept(TSocket value) throws SocketException;
     }
 
-    @DoNotLog @Value.Immutable
+    @DoNotLog
+    @Value.Immutable
     @StagedBuilderStyle
     interface CassandraClientConfig {
         int socketTimeoutMillis();

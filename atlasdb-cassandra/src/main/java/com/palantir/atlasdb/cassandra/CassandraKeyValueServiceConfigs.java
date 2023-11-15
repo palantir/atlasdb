@@ -18,6 +18,7 @@ package com.palantir.atlasdb.cassandra;
 import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.logsafe.DoNotLog;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.refreshable.Refreshable;
@@ -25,7 +26,7 @@ import com.palantir.util.OptionalResolver;
 import java.util.Optional;
 import org.immutables.value.Value;
 
-@Value.Immutable
+@DoNotLog @Value.Immutable
 public interface CassandraKeyValueServiceConfigs {
     CassandraKeyValueServiceConfig installConfig();
 

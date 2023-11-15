@@ -22,7 +22,8 @@ import java.util.List;
 import org.immutables.value.Value;
 
 /** Generates cluster membership based upon pre-populated values. */
-@DoNotLog @Value.Immutable
+@DoNotLog
+@Value.Immutable
 @JsonSerialize(as = ImmutableDefaultClusterConfiguration.class)
 @JsonDeserialize(as = ImmutableDefaultClusterConfiguration.class)
 public interface DefaultClusterConfiguration extends ClusterConfiguration {

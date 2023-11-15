@@ -28,7 +28,8 @@ import java.util.Optional;
 import java.util.Set;
 import org.immutables.value.Value;
 
-@DoNotLog @JsonDeserialize(as = ImmutableLeaderConfig.class)
+@DoNotLog
+@JsonDeserialize(as = ImmutableLeaderConfig.class)
 @JsonSerialize(as = ImmutableLeaderConfig.class)
 @Value.Immutable
 @SuppressWarnings("DesignForExtension")

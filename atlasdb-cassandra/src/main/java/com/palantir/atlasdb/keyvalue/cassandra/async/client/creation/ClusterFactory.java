@@ -139,7 +139,8 @@ public class ClusterFactory {
         return builder.withLoadBalancingPolicy(new TokenAwarePolicy(policy));
     }
 
-    @DoNotLog @Value.Immutable
+    @DoNotLog
+    @Value.Immutable
     public interface CassandraClusterConfig {
         CassandraCredentialsConfig credentials();
 
