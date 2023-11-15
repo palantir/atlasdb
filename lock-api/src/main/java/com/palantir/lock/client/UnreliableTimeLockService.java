@@ -37,6 +37,10 @@ import com.palantir.timestamp.TimestampRange;
 import java.security.SecureRandom;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -51,6 +55,7 @@ public final class UnreliableTimeLockService implements TimelockService {
     private final TimelockService delegate;
     private final TimestampManagementService managementService;
     private final BuggifyFactory buggify;
+    private final ReadWriteLock timestampLock;
 
     public static UnreliableTimeLockService create(
             TimelockService timelockService, TimestampManagementService managementService) {
@@ -65,6 +70,12 @@ public final class UnreliableTimeLockService implements TimelockService {
         this.delegate = delegate;
         this.managementService = timeLockManagementService;
         this.buggify = buggifyFactory;
+
+        // Fast forward doesn't actually verify it's going forward, so we need to make sure we don't end up
+        // with a situation where we buggify -> getFreshTimestamp -> calculate next timestamp -> get stuck
+        // while the timestamp progresses, then the original thread then fast forwards (but actually goes back in time)
+        // It's an unfair lock to add more chaos to the buggified requests.
+        timestampLock = new ReentrantReadWriteLock(false);
     }
 
     @Override
@@ -75,19 +86,19 @@ public final class UnreliableTimeLockService implements TimelockService {
     @Override
     public long getFreshTimestamp() {
         buggify.maybe(0.01).run(this::randomlyIncreaseTimestamp);
-        return delegate.getFreshTimestamp();
+        return runWithReadLock(delegate::getFreshTimestamp);
     }
 
     @Override
     public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
         buggify.maybe(0.01).run(this::randomlyIncreaseTimestamp);
-        return delegate.getCommitTimestamp(startTs, commitLocksToken);
+        return runWithReadLock(() -> delegate.getCommitTimestamp(startTs, commitLocksToken));
     }
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
         buggify.maybe(0.01).run(this::randomlyIncreaseTimestamp);
-        return delegate.getFreshTimestamps(numTimestampsRequested);
+        return runWithReadLock(() -> delegate.getFreshTimestamps(numTimestampsRequested));
     }
 
     @Override
@@ -158,16 +169,40 @@ public final class UnreliableTimeLockService implements TimelockService {
         return delegate.currentTimeMillis();
     }
 
-    private synchronized void randomlyIncreaseTimestamp() {
-        long currentTimestamp = delegate.getFreshTimestamp();
-        long newTimestamp = SECURE_RANDOM
-                .longs(1, currentTimestamp + 1, Long.MAX_VALUE)
-                .findFirst()
-                .getAsLong();
-        log.info(
-                "BUGGIFY: Increasing timestamp from {} to {}",
-                SafeArg.of("currentTimestamp", currentTimestamp),
-                SafeArg.of("newTimestamp", newTimestamp));
-        managementService.fastForwardTimestamp(newTimestamp);
+    private void randomlyIncreaseTimestamp() {
+        runWithWriteLock(() -> {
+            long currentTimestamp = delegate.getFreshTimestamp();
+            long newTimestamp = SECURE_RANDOM
+                    .longs(1, currentTimestamp + 1, Long.MAX_VALUE)
+                    .findFirst()
+                    .getAsLong();
+            log.info(
+                    "BUGGIFY: Increasing timestamp from {} to {}",
+                    SafeArg.of("currentTimestamp", currentTimestamp),
+                    SafeArg.of("newTimestamp", newTimestamp));
+            managementService.fastForwardTimestamp(newTimestamp);
+            return null;
+        });
+    }
+
+    private <T> T runWithReadLock(Supplier<T> task) {
+        Lock lock = timestampLock.readLock();
+        lock.lock();
+        try {
+            return task.get();
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private <T> T runWithWriteLock(Supplier<T> task) {
+        Lock lock = timestampLock.writeLock();
+        lock.lock();
+
+        try {
+            return task.get();
+        } finally {
+            lock.unlock();
+        }
     }
 }
