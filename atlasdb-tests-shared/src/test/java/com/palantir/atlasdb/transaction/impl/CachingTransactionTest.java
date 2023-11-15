@@ -43,11 +43,14 @@ import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 public class CachingTransactionTest {
+    private static final String PARAMETERIZED_TEST_NAME = "{0}";
+
     private static final byte[] ROW_BYTES = "row".getBytes(StandardCharsets.UTF_8);
     private static final byte[] COL_BYTES = "col".getBytes(StandardCharsets.UTF_8);
     private static final byte[] VALUE_BYTES = "value".getBytes(StandardCharsets.UTF_8);
@@ -59,7 +62,7 @@ public class CachingTransactionTest {
     private static final String SYNC = "sync";
     private static final String ASYNC = "async";
 
-    public static List<Arguments> getParameters() {
+    public static List<Arguments> namesAndTransactionWrappers() {
         return List.of(Arguments.of(SYNC, UnaryOperator.identity()), Arguments.of(ASYNC, (UnaryOperator<Transaction>)
                 GetAsyncDelegate::new));
     }
@@ -67,17 +70,16 @@ public class CachingTransactionTest {
     private final TableReference table = TableReference.createWithEmptyNamespace("table");
     private final Mockery mockery = new Mockery();
     private final Transaction transaction = mockery.mock(Transaction.class);
-    private Transaction cachingTransaction;
     private final Map<String, BiFunction<Set<Cell>, Map<Cell, byte[]>, Expectations>> expectationsMapping =
             ImmutableMap.<String, BiFunction<Set<Cell>, Map<Cell, byte[]>, Expectations>>builder()
                     .put(SYNC, CachingTransactionTest.this::syncGetExpectation)
                     .put(ASYNC, CachingTransactionTest.this::asyncGetExpectation)
                     .buildOrThrow();
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("namesAndTransactionWrappers")
     public void testCacheEmptyGets(String name, Function<Transaction, Transaction> transactionWrapper) {
-        cachingTransaction = transactionWrapper.apply(new CachingTransaction(transaction));
+        Transaction cachingTransaction = transactionWrapper.apply(new CachingTransaction(transaction));
         final Set<byte[]> oneRow = ImmutableSortedSet.orderedBy(PtBytes.BYTES_COMPARATOR)
                 .add(ROW_BYTES)
                 .build();
@@ -107,10 +109,10 @@ public class CachingTransactionTest {
         mockery.assertIsSatisfied();
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("namesAndTransactionWrappers")
     public void testGetRows(String name, Function<Transaction, Transaction> transactionWrapper) {
-        cachingTransaction = transactionWrapper.apply(new CachingTransaction(transaction));
+        Transaction cachingTransaction = transactionWrapper.apply(new CachingTransaction(transaction));
         final Set<byte[]> oneRow = ImmutableSortedSet.orderedBy(PtBytes.BYTES_COMPARATOR)
                 .add(ROW_BYTES)
                 .build();
@@ -145,34 +147,31 @@ public class CachingTransactionTest {
         mockery.assertIsSatisfied();
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("namesAndTransactionWrappers")
     public void testGetCell(String name, Function<Transaction, Transaction> transactionWrapper) {
-        cachingTransaction = transactionWrapper.apply(new CachingTransaction(transaction));
+        Transaction cachingTransaction = transactionWrapper.apply(new CachingTransaction(transaction));
         final Cell cell = Cell.create(ROW_BYTES, COL_BYTES);
         final Map<Cell, byte[]> cellValueMap =
                 ImmutableMap.<Cell, byte[]>builder().put(cell, VALUE_BYTES).buildOrThrow();
 
         // cell is cached after first call, so second call requests no cells
-        testGetCellResults(cell, cellValueMap, name);
+        testGetCellResults(cell, cellValueMap, name, cachingTransaction);
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("namesAndTransactionWrappers")
     public void testGetEmptyCell(String name, Function<Transaction, Transaction> transactionWrapper) {
-        cachingTransaction = transactionWrapper.apply(new CachingTransaction(transaction));
+        Transaction cachingTransaction = transactionWrapper.apply(new CachingTransaction(transaction));
         final Cell cell = Cell.create(ROW_BYTES, COL_BYTES);
         final Map<Cell, byte[]> emptyCellValueMap = ImmutableMap.of();
 
         // empty result is cached in this case (second call requests no cells)
-        testGetCellResults(cell, emptyCellValueMap, name);
+        testGetCellResults(cell, emptyCellValueMap, name, cachingTransaction);
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("getParameters")
-    public void metadataIsForwardedForPutWithMetadata(
-            String name, Function<Transaction, Transaction> transactionWrapper) {
-        cachingTransaction = transactionWrapper.apply(new CachingTransaction(transaction));
+    @Test
+    public void metadataIsForwardedForPutWithMetadata() {
         Transaction txn = mock(Transaction.class);
         CachingTransaction cachingTransaction = new CachingTransaction(txn);
         cachingTransaction.putWithMetadata(
@@ -192,11 +191,8 @@ public class CachingTransactionTest {
                                 ValueAndChangeMetadata.of(VALUE_BYTES, CHANGE_METADATA_2)));
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("getParameters")
-    public void metadataIsForwardedForDeleteWithMetadata(
-            String name, Function<Transaction, Transaction> transactionWrapper) {
-        cachingTransaction = transactionWrapper.apply(new CachingTransaction(transaction));
+    @Test
+    public void metadataIsForwardedForDeleteWithMetadata() {
         Transaction txn = mock(Transaction.class);
         CachingTransaction cachingTransaction = new CachingTransaction(txn);
         cachingTransaction.deleteWithMetadata(
@@ -204,7 +200,8 @@ public class CachingTransactionTest {
         verify(txn).deleteWithMetadata(table, ImmutableMap.of(CELL_1, CHANGE_METADATA_1, CELL_2, CHANGE_METADATA_2));
     }
 
-    private void testGetCellResults(Cell cell, Map<Cell, byte[]> cellValueMap, String name) {
+    private void testGetCellResults(
+            Cell cell, Map<Cell, byte[]> cellValueMap, String name, Transaction cachingTransaction) {
         final Set<Cell> cellSet = ImmutableSet.of(cell);
         mockery.checking(expectationsMapping.get(name).apply(cellSet, cellValueMap));
 

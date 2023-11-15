@@ -16,20 +16,19 @@
 
 package com.palantir.timelock.paxos;
 
-import org.junit.jupiter.api.extension.AfterEachCallback;
-import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-public final class InMemoryTimelockExtension extends AbstractInMemoryTimelockExtension
-        implements BeforeEachCallback, AfterEachCallback {
-
+public final class InMemoryTimelockClassExtension extends AbstractInMemoryTimelockExtension
+        implements BeforeAllCallback, AfterAllCallback {
     @Override
-    public void beforeEach(ExtensionContext var1) {
+    public void beforeAll(ExtensionContext var1) {
         setup();
     }
 
     @Override
-    public void afterEach(ExtensionContext var1) {
+    public void afterAll(ExtensionContext var1) {
         tearDown();
     }
 }

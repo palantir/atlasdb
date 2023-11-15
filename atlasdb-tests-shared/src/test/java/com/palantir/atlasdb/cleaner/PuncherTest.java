@@ -31,7 +31,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 public class PuncherTest {
     private static final long GRANULARITY_MILLIS = 10;
 
-    public static List<Arguments> getParameters() {
+    public static List<Arguments> puncherStoresAndKvs() {
         InMemoryKeyValueService kvsPuncherStoreKvs = new InMemoryKeyValueService(false);
         InMemoryKeyValueService cachingKvsPuncherStoreKvs = new InMemoryKeyValueService(false);
 
@@ -62,7 +62,7 @@ public class PuncherTest {
     final long thirdTimestampToGetMillis = 36L;
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("puncherStoresAndKvs")
     public void test(PuncherStore puncherStore, KeyValueService kvs) {
         Puncher puncher = SimplePuncher.create(puncherStore, clock, Suppliers.ofInstance(10000L));
         Supplier<Long> timestampSupplier = puncher.getTimestampSupplier();
@@ -105,7 +105,7 @@ public class PuncherTest {
     }
 
     @ParameterizedTest
-    @MethodSource("getParameters")
+    @MethodSource("puncherStoresAndKvs")
     public void testBigTimestamp(PuncherStore puncherStore, KeyValueService kvs) {
         Puncher puncher = SimplePuncher.create(puncherStore, clock, Suppliers.ofInstance(10000L));
         timeMillis = (1L << 60) - 3;

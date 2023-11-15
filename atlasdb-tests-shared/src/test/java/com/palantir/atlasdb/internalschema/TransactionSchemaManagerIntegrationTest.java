@@ -23,7 +23,7 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timelock.paxos.InMemoryTimelockExtension;
+import com.palantir.timelock.paxos.InMemoryTimelockClassExtension;
 import com.palantir.timestamp.ManagedTimestampService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,11 +36,11 @@ public class TransactionSchemaManagerIntegrationTest {
     private TransactionSchemaManager manager;
 
     @RegisterExtension
-    public static InMemoryTimelockExtension inMemoryTimelockExtension = new InMemoryTimelockExtension();
+    public static InMemoryTimelockClassExtension inMemoryTimelockClassExtension = new InMemoryTimelockClassExtension();
 
     @BeforeEach
     public void setUp() {
-        timestamps = inMemoryTimelockExtension.getManagedTimestampService();
+        timestamps = inMemoryTimelockClassExtension.getManagedTimestampService();
         manager = createTransactionSchemaManager();
         assertThat(manager.tryInstallNewTransactionsSchemaVersion(1)).isTrue();
     }

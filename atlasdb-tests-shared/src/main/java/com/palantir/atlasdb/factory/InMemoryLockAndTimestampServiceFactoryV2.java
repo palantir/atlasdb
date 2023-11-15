@@ -16,23 +16,24 @@
 
 package com.palantir.atlasdb.factory;
 
-import com.palantir.timelock.paxos.InMemoryTimelockExtension;
+import com.palantir.timelock.paxos.AbstractInMemoryTimelockExtension;
 
 public class InMemoryLockAndTimestampServiceFactoryV2 implements LockAndTimestampServiceFactory {
-    private final InMemoryTimelockExtension inMemoryTimelockExtension;
+    private final AbstractInMemoryTimelockExtension abstractInMemoryTimelockExtension;
 
-    public InMemoryLockAndTimestampServiceFactoryV2(InMemoryTimelockExtension inMemoryTimelockExtension) {
-        this.inMemoryTimelockExtension = inMemoryTimelockExtension;
+    public InMemoryLockAndTimestampServiceFactoryV2(
+            AbstractInMemoryTimelockExtension abstractInMemoryTimelockExtension) {
+        this.abstractInMemoryTimelockExtension = abstractInMemoryTimelockExtension;
     }
 
     @Override
     public LockAndTimestampServices createLockAndTimestampServices() {
         return ImmutableLockAndTimestampServices.builder()
-                .lock(inMemoryTimelockExtension.getLockService())
-                .timestamp(inMemoryTimelockExtension.getTimestampService())
-                .timestampManagement(inMemoryTimelockExtension.getTimestampManagementService())
-                .timelock(inMemoryTimelockExtension.getLegacyTimelockService())
-                .lockWatcher(inMemoryTimelockExtension.getLockWatchManager())
+                .lock(abstractInMemoryTimelockExtension.getLockService())
+                .timestamp(abstractInMemoryTimelockExtension.getTimestampService())
+                .timestampManagement(abstractInMemoryTimelockExtension.getTimestampManagementService())
+                .timelock(abstractInMemoryTimelockExtension.getLegacyTimelockService())
+                .lockWatcher(abstractInMemoryTimelockExtension.getLockWatchManager())
                 .build();
     }
 }

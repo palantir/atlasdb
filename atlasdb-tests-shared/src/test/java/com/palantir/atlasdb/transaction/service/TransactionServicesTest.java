@@ -49,7 +49,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timelock.paxos.InMemoryTimelockExtension;
+import com.palantir.timelock.paxos.InMemoryTimelockClassExtension;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import java.nio.ByteBuffer;
@@ -74,14 +74,14 @@ public class TransactionServicesTest {
     private long commitTs;
 
     @RegisterExtension
-    public static InMemoryTimelockExtension inMemoryTimelockExtension = new InMemoryTimelockExtension();
+    public static InMemoryTimelockClassExtension inMemoryTimelockClassExtension = new InMemoryTimelockClassExtension();
 
     @BeforeEach
     public void setUp() {
         TransactionTables.createTables(keyValueService);
         MetricsManager metricsManager = MetricsManagers.createForTests();
 
-        timestampService = inMemoryTimelockExtension.getTimestampService();
+        timestampService = inMemoryTimelockClassExtension.getTimestampService();
         coordinationService =
                 CoordinationServices.createDefault(keyValueService, timestampService, metricsManager, false);
         knowledge = TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry());

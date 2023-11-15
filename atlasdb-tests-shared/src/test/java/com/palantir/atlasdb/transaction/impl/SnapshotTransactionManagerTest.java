@@ -49,7 +49,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
-import com.palantir.timelock.paxos.InMemoryTimelockExtension;
+import com.palantir.timelock.paxos.InMemoryTimelockClassExtension;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
@@ -78,7 +78,7 @@ public class SnapshotTransactionManagerTest {
     private final ExecutorService deleteExecutor = Executors.newSingleThreadExecutor();
 
     @RegisterExtension
-    public static InMemoryTimelockExtension inMemoryTimelockExtension = new InMemoryTimelockExtension();
+    public static InMemoryTimelockClassExtension inMemoryTimelockClassExtension = new InMemoryTimelockClassExtension();
 
     private ManagedTimestampService timestampService;
     private SnapshotTransactionManager snapshotTransactionManager;
@@ -88,11 +88,11 @@ public class SnapshotTransactionManagerTest {
 
     @BeforeEach
     public void setUp() {
-        timestampService = inMemoryTimelockExtension.getManagedTimestampService();
+        timestampService = inMemoryTimelockClassExtension.getManagedTimestampService();
         snapshotTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
                 keyValueService,
-                inMemoryTimelockExtension.getLegacyTimelockService(),
+                inMemoryTimelockClassExtension.getLegacyTimelockService(),
                 NoOpLockWatchManager.create(),
                 timestampService,
                 closeableLockService,
@@ -149,9 +149,9 @@ public class SnapshotTransactionManagerTest {
         SnapshotTransactionManager newTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
                 keyValueService,
-                inMemoryTimelockExtension.getLegacyTimelockService(),
+                inMemoryTimelockClassExtension.getLegacyTimelockService(),
                 NoOpLockWatchManager.create(),
-                inMemoryTimelockExtension.getManagedTimestampService(),
+                inMemoryTimelockClassExtension.getManagedTimestampService(),
                 mock(LockService.class), // not closeable
                 mock(TransactionService.class),
                 null,
@@ -257,7 +257,7 @@ public class SnapshotTransactionManagerTest {
 
     @Test
     public void callsStartTransactionForReadOnlyTransactionsIfFlagIsSet() throws InterruptedException {
-        TimelockService timelockService = spy(inMemoryTimelockExtension.getLegacyTimelockService());
+        TimelockService timelockService = spy(inMemoryTimelockClassExtension.getLegacyTimelockService());
         when(closeableLockService.lock(any(), any())).thenReturn(new LockRefreshToken(BigInteger.ONE, Long.MAX_VALUE));
         SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, true);
 
@@ -270,7 +270,7 @@ public class SnapshotTransactionManagerTest {
 
     @Test
     public void doesNotCallStartTransactionForReadOnlyTransactionsIfFlagIsNotSet() {
-        TimelockService timelockService = spy(inMemoryTimelockExtension.getLegacyTimelockService());
+        TimelockService timelockService = spy(inMemoryTimelockClassExtension.getLegacyTimelockService());
         SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, false);
 
         transactionManager.runTaskReadOnly(tx -> "ignored");
@@ -280,7 +280,7 @@ public class SnapshotTransactionManagerTest {
 
     @Test
     public void startEmptyBatchOfTransactionsDoesNotCallTimelockService() {
-        TimelockService timelockService = spy(inMemoryTimelockExtension.getLegacyTimelockService());
+        TimelockService timelockService = spy(inMemoryTimelockClassExtension.getLegacyTimelockService());
         SnapshotTransactionManager transactionManager = createSnapshotTransactionManager(timelockService, false);
         List<OpenTransaction> transactions = transactionManager.startTransactions(ImmutableList.of());
 
