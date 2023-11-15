@@ -62,8 +62,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
  */
 @ExtendWith(MockitoExtension.class)
 public final class TrackingKeyValueServiceReadInfoTest {
+    private static final String PARAMETERIZED_TEST_NAME = "size = {0}";
 
-    public static List<Integer> getParameters() {
+    public static List<Integer> sizes() {
         return List.of(12 * 129, 12 * 365, 12 * 411);
     }
 
@@ -92,8 +93,8 @@ public final class TrackingKeyValueServiceReadInfoTest {
     @Mock
     private Map<Cell, Long> timestampByCellMap;
 
-    @ParameterizedTest(name = "size = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
     public void readInfoIsCorrectAfterGetAsyncCallAndFutureConsumption(int size) {
         setup(size);
         when(kvs.getAsync(tableReference, timestampByCellMap))
@@ -104,8 +105,8 @@ public final class TrackingKeyValueServiceReadInfoTest {
         validateReadInfoForReadForTable("getAsync", size);
     }
 
-    @ParameterizedTest(name = "size = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
     public void getAsyncTracksNothingBeforeDelegateResultCompletionAndTracksReadsAfterCompletion(int size) {
         setup(size);
         SettableFuture<Map<Cell, Value>> delegateFuture = SettableFuture.create();
@@ -126,8 +127,8 @@ public final class TrackingKeyValueServiceReadInfoTest {
         validateReadInfoForReadForTable("getAsync", size);
     }
 
-    @ParameterizedTest(name = "size = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
     public void throwingGetAsyncResultTracksNothing(int size) {
         setup(size);
         when(kvs.getAsync(tableReference, timestampByCellMap))
@@ -145,8 +146,8 @@ public final class TrackingKeyValueServiceReadInfoTest {
         assertThat(trackingKvs.getReadInfoByTable()).isEmpty();
     }
 
-    @ParameterizedTest(name = "size = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
     public void readInfoIsCorrectAfterGetRowsCall(int size) {
         setup(size);
         ColumnSelection columnSelection = mock(ColumnSelection.class);
@@ -157,8 +158,8 @@ public final class TrackingKeyValueServiceReadInfoTest {
         validateReadInfoForReadForTable("getRows", size);
     }
 
-    @ParameterizedTest(name = "size = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
     public void readInfoIsCorrectAfterGetRowsBatchColumnRangeCallAndIteratorsConsumption(int size) {
         setup(size);
         BatchColumnRangeSelection batchColumnRangeSelection = mock(BatchColumnRangeSelection.class);
@@ -174,8 +175,8 @@ public final class TrackingKeyValueServiceReadInfoTest {
         validateReadInfoForLazyRead(size);
     }
 
-    @ParameterizedTest(name = "size = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
     public void readInfoIsCorrectAfterGetRowsColumnRangeCallAndIteratorConsumption(int size) {
         setup(size);
         int cellBatchHint = 17;
@@ -191,8 +192,8 @@ public final class TrackingKeyValueServiceReadInfoTest {
         validateReadInfoForLazyRead(size);
     }
 
-    @ParameterizedTest(name = "size = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
     public void readInfoIsCorrectAfterGetCall(int size) {
         setup(size);
         when(kvs.get(tableReference, timestampByCellMap)).thenReturn(valueByCellMapOfSize);
@@ -202,8 +203,8 @@ public final class TrackingKeyValueServiceReadInfoTest {
         validateReadInfoForReadForTable("get", size);
     }
 
-    @ParameterizedTest(name = "size = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
     public void readInfoIsCorrectAfterGetLatestTimestampsCall(int size) {
         setup(size);
         Map<Cell, Long> timestampByCellMapOfSize = TrackingKeyValueServiceTestUtils.createLongByCellMapWithSize(size);
@@ -215,8 +216,8 @@ public final class TrackingKeyValueServiceReadInfoTest {
     }
 
     @SuppressWarnings("MustBeClosedChecker")
-    @ParameterizedTest(name = "size = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
     public void readInfoIsCorrectAfterGetRangeCallAndIteratorConsumption(int size) {
         setup(size);
         List<RowResult<Value>> backingValueRowResultListOfSize =
@@ -231,8 +232,8 @@ public final class TrackingKeyValueServiceReadInfoTest {
     }
 
     @SuppressWarnings("MustBeClosedChecker")
-    @ParameterizedTest(name = "size = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
     public void readInfoIsCorrectAfterGetRangeOfTimestampsCallAndIteratorConsumption(int size) {
         setup(size);
         List<RowResult<Set<Long>>> backingLongSetRowResultListOfSize =
@@ -249,8 +250,8 @@ public final class TrackingKeyValueServiceReadInfoTest {
     }
 
     @SuppressWarnings("MustBeClosedChecker")
-    @ParameterizedTest(name = "size = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
     public void readInfoIsCorrectAfterGetCandidateCellsForSweepingCallAndIteratorConsumption(int size) {
         setup(size);
         CandidateCellForSweepingRequest candidateCellForSweepingRequest = mock(CandidateCellForSweepingRequest.class);
@@ -268,8 +269,8 @@ public final class TrackingKeyValueServiceReadInfoTest {
         validateReadInfoForLazyRead(size);
     }
 
-    @ParameterizedTest(name = "size = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
     public void readInfoIsCorrectAfterGetFirstBatchForRangesCall(int size) {
         setup(size);
         Iterable<RangeRequest> rangeRequests = mock(Iterable.class);
@@ -284,8 +285,8 @@ public final class TrackingKeyValueServiceReadInfoTest {
         validateReadInfoForReadForTable("getFirstBatchForRanges", size);
     }
 
-    @ParameterizedTest(name = "size = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
     public void readInfoIsCorrectAfterGetAllTableNamesCall(int size) {
         setup(size);
         when(kvs.getAllTableNames()).thenReturn(TrackingKeyValueServiceTestUtils.createTableReferenceSetWithSize(size));
@@ -295,8 +296,8 @@ public final class TrackingKeyValueServiceReadInfoTest {
         validateReadInfoForTableAgnosticRead("getAllTableNames", size);
     }
 
-    @ParameterizedTest(name = "size = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
     public void readInfoIsCorrectAfterGetMetadataForTableCall(int size) {
         setup(size);
         when(kvs.getMetadataForTable(tableReference)).thenReturn(new byte[size]);
@@ -306,8 +307,8 @@ public final class TrackingKeyValueServiceReadInfoTest {
         validateReadInfoForTableAgnosticRead("getMetadataForTable", size);
     }
 
-    @ParameterizedTest(name = "size = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
     public void readInfoIsCorrectAfterGetMetadataForTablesCall(int size) {
         setup(size);
         Map<TableReference, byte[]> metadataForTablesOfSize =
@@ -320,8 +321,8 @@ public final class TrackingKeyValueServiceReadInfoTest {
         validateReadInfoForTableAgnosticRead("getMetadataForTables", size);
     }
 
-    @ParameterizedTest(name = "size = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
     public void readInfoIsCorrectAfterGetAllTimestampsCall(int size) {
         setup(size);
         Set<Cell> cells = mock(Set.class);
@@ -334,8 +335,8 @@ public final class TrackingKeyValueServiceReadInfoTest {
         validateReadInfoForReadForTable("getAllTimestamps", size);
     }
 
-    @ParameterizedTest(name = "size = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
     public void readInfoIsCorrectAfterGetRowsKeysInRangeCall(int size) {
         setup(size);
         int maxResults = 13;

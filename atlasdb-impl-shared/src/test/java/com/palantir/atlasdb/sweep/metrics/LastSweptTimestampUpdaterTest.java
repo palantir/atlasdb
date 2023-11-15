@@ -54,13 +54,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 public class LastSweptTimestampUpdaterTest {
+    private static final String PARAMETERIZED_TEST_NAME = "shards = {0}";
+
     private static final long REFRESH_MILLIS = 10L;
     private static final int TICK_COUNT = 5;
     private static final long CONS_TS = 100L;
     private static final long THOR_TS = 200L;
     private static final ShardAndStrategy CONS_SHARD = ShardAndStrategy.conservative(0);
 
-    public static List<Integer> getParameters() {
+    public static List<Integer> numberOfShards() {
         return List.of(1, 8, 16);
     }
 
@@ -87,23 +89,23 @@ public class LastSweptTimestampUpdaterTest {
         lastSweptTimestampUpdater = new LastSweptTimestampUpdater(queue, metrics, executorService);
     }
 
-    @ParameterizedTest(name = "shards = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("numberOfShards")
     public void unscheduledTaskDoesNotInteractWithExecutorService(int shards) {
         setup(shards);
         verifyNoInteractions(executorService);
     }
 
-    @ParameterizedTest(name = "shards = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("numberOfShards")
     public void taskThrowsOnInvalidRefreshMillis(int shards) {
         setup(shards);
         assertThrows(SafeIllegalArgumentException.class, () -> lastSweptTimestampUpdater.schedule(0L));
         assertThrows(SafeIllegalArgumentException.class, () -> lastSweptTimestampUpdater.schedule(-REFRESH_MILLIS));
     }
 
-    @ParameterizedTest(name = "shards = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("numberOfShards")
     public void scheduleCallSubmitsRunnableToExecutorServiceOnce(int shards) {
         setup(shards);
         lastSweptTimestampUpdater.schedule(REFRESH_MILLIS);
@@ -113,8 +115,8 @@ public class LastSweptTimestampUpdaterTest {
                 .scheduleWithFixedDelay(any(), eq(REFRESH_MILLIS), eq(REFRESH_MILLIS), eq(TimeUnit.MILLISECONDS));
     }
 
-    @ParameterizedTest(name = "shards = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("numberOfShards")
     public void scheduledTaskDoesNotInteractWithMetricsOrQueueBeforeDelayIsElapsed(int shards) {
         setup(shards);
         lastSweptTimestampUpdater.schedule(REFRESH_MILLIS);
@@ -122,8 +124,8 @@ public class LastSweptTimestampUpdaterTest {
         verifyNoMoreInteractions(queue, metrics);
     }
 
-    @ParameterizedTest(name = "shards = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("numberOfShards")
     public void scheduledTaskUpdatesProgressForShardsOnceAfterOneDelay(int shards) {
         setup(shards);
         stubWithRealisticReturnValues(shards);
@@ -143,8 +145,8 @@ public class LastSweptTimestampUpdaterTest {
         verifyNoMoreInteractions(queue, metrics);
     }
 
-    @ParameterizedTest(name = "shards = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("numberOfShards")
     public void scheduledTaskInteractsWithMetricsAndQueueAsExpectedAfterMultipleDelays(int shards) {
         setup(shards);
         stubWithRealisticReturnValues(shards);
@@ -165,8 +167,8 @@ public class LastSweptTimestampUpdaterTest {
         verifyNoMoreInteractions(queue, metrics);
     }
 
-    @ParameterizedTest(name = "shards = {0}")
-    @MethodSource("getParameters")
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("numberOfShards")
     public void scheduledTaskKeepsRunningAfterUpdateProgressForShardFails(int shards) {
         setup(shards);
         setNumShardsMock(1);
