@@ -46,34 +46,29 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 /**
- * {@link #size} must be divisible by 12 due to
+ * size must be divisible by 12 due to
  * {@link TrackingKeyValueServiceTestUtils#createByteArrayByTableReferenceMapWithSize}.
  * Refer to {@link TrackingKeyValueServiceTestUtils} javadoc.
  * Also, the range of permitted sizes is constrained as some objects have size bounds.
  * Note that the range of possible sizes will be larger if we use different sizes for different tests.
  */
-@RunWith(Parameterized.class)
+@ExtendWith(MockitoExtension.class)
 public final class TrackingKeyValueServiceReadInfoTest {
-    @Parameterized.Parameters(name = "size = {0}")
-    public static Object[] size() {
-        return new Object[] {12 * 129, 12 * 365, 12 * 411};
+    private static final String PARAMETERIZED_TEST_NAME = "size = {0}";
+
+    public static List<Integer> sizes() {
+        return List.of(12 * 129, 12 * 365, 12 * 411);
     }
 
     private static final long TIMESTAMP = 14L;
-
-    @Rule
-    public MockitoRule rule = MockitoJUnit.rule();
 
     @Mock
     private List<byte[]> rows;
@@ -84,17 +79,11 @@ public final class TrackingKeyValueServiceReadInfoTest {
     @Mock
     private KeyValueService kvs;
 
-    private final int size;
     private TrackingKeyValueService trackingKvs;
-    private final ImmutableMap<Cell, Value> valueByCellMapOfSize;
+    private ImmutableMap<Cell, Value> valueByCellMapOfSize;
 
-    public TrackingKeyValueServiceReadInfoTest(int size) {
-        this.size = size;
-        this.valueByCellMapOfSize = TrackingKeyValueServiceTestUtils.createValueByCellMapWithSize(size);
-    }
-
-    @Before
-    public void setUp() {
+    @BeforeEach
+    public void beforeEach() {
         this.trackingKvs = new TrackingKeyValueServiceImpl(kvs);
     }
 
@@ -104,18 +93,22 @@ public final class TrackingKeyValueServiceReadInfoTest {
     @Mock
     private Map<Cell, Long> timestampByCellMap;
 
-    @Test
-    public void readInfoIsCorrectAfterGetAsyncCallAndFutureConsumption() {
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
+    public void readInfoIsCorrectAfterGetAsyncCallAndFutureConsumption(int size) {
+        setup(size);
         when(kvs.getAsync(tableReference, timestampByCellMap))
                 .thenReturn(Futures.immediateFuture(valueByCellMapOfSize));
 
         trackingKvs.getAsync(tableReference, timestampByCellMap);
 
-        validateReadInfoForReadForTable("getAsync");
+        validateReadInfoForReadForTable("getAsync", size);
     }
 
-    @Test
-    public void getAsyncTracksNothingBeforeDelegateResultCompletionAndTracksReadsAfterCompletion() {
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
+    public void getAsyncTracksNothingBeforeDelegateResultCompletionAndTracksReadsAfterCompletion(int size) {
+        setup(size);
         SettableFuture<Map<Cell, Value>> delegateFuture = SettableFuture.create();
         when(kvs.getAsync(tableReference, timestampByCellMap)).thenReturn(delegateFuture);
         trackingKvs.getAsync(tableReference, timestampByCellMap);
@@ -131,11 +124,13 @@ public final class TrackingKeyValueServiceReadInfoTest {
         // completes the future
         delegateFuture.set(valueByCellMapOfSize);
 
-        validateReadInfoForReadForTable("getAsync");
+        validateReadInfoForReadForTable("getAsync", size);
     }
 
-    @Test
-    public void throwingGetAsyncResultTracksNothing() {
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
+    public void throwingGetAsyncResultTracksNothing(int size) {
+        setup(size);
         when(kvs.getAsync(tableReference, timestampByCellMap))
                 .thenReturn(Futures.immediateFailedFuture(new RuntimeException()));
 
@@ -151,18 +146,22 @@ public final class TrackingKeyValueServiceReadInfoTest {
         assertThat(trackingKvs.getReadInfoByTable()).isEmpty();
     }
 
-    @Test
-    public void readInfoIsCorrectAfterGetRowsCall() {
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
+    public void readInfoIsCorrectAfterGetRowsCall(int size) {
+        setup(size);
         ColumnSelection columnSelection = mock(ColumnSelection.class);
         when(kvs.getRows(tableReference, rows, columnSelection, TIMESTAMP)).thenReturn(valueByCellMapOfSize);
 
         trackingKvs.getRows(tableReference, rows, columnSelection, TIMESTAMP);
 
-        validateReadInfoForReadForTable("getRows");
+        validateReadInfoForReadForTable("getRows", size);
     }
 
-    @Test
-    public void readInfoIsCorrectAfterGetRowsBatchColumnRangeCallAndIteratorsConsumption() {
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
+    public void readInfoIsCorrectAfterGetRowsBatchColumnRangeCallAndIteratorsConsumption(int size) {
+        setup(size);
         BatchColumnRangeSelection batchColumnRangeSelection = mock(BatchColumnRangeSelection.class);
         when(kvs.getRowsColumnRange(tableReference, rows, batchColumnRangeSelection, TIMESTAMP))
                 .thenReturn(TrackingKeyValueServiceTestUtils.createRowColumnRangeIteratorByByteArrayMutableMapWithSize(
@@ -173,11 +172,13 @@ public final class TrackingKeyValueServiceReadInfoTest {
                 .values()
                 .forEach(iterator -> iterator.forEachRemaining(_unused -> {}));
 
-        validateReadInfoForLazyRead();
+        validateReadInfoForLazyRead(size);
     }
 
-    @Test
-    public void readInfoIsCorrectAfterGetRowsColumnRangeCallAndIteratorConsumption() {
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
+    public void readInfoIsCorrectAfterGetRowsColumnRangeCallAndIteratorConsumption(int size) {
+        setup(size);
         int cellBatchHint = 17;
         ColumnRangeSelection columnRangeSelection = mock(ColumnRangeSelection.class);
         when(kvs.getRowsColumnRange(tableReference, rows, columnRangeSelection, cellBatchHint, TIMESTAMP))
@@ -188,31 +189,37 @@ public final class TrackingKeyValueServiceReadInfoTest {
                 .getRowsColumnRange(tableReference, rows, columnRangeSelection, cellBatchHint, TIMESTAMP)
                 .forEachRemaining(_unused -> {});
 
-        validateReadInfoForLazyRead();
+        validateReadInfoForLazyRead(size);
     }
 
-    @Test
-    public void readInfoIsCorrectAfterGetCall() {
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
+    public void readInfoIsCorrectAfterGetCall(int size) {
+        setup(size);
         when(kvs.get(tableReference, timestampByCellMap)).thenReturn(valueByCellMapOfSize);
 
         trackingKvs.get(tableReference, timestampByCellMap);
 
-        validateReadInfoForReadForTable("get");
+        validateReadInfoForReadForTable("get", size);
     }
 
-    @Test
-    public void readInfoIsCorrectAfterGetLatestTimestampsCall() {
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
+    public void readInfoIsCorrectAfterGetLatestTimestampsCall(int size) {
+        setup(size);
         Map<Cell, Long> timestampByCellMapOfSize = TrackingKeyValueServiceTestUtils.createLongByCellMapWithSize(size);
         when(kvs.getLatestTimestamps(tableReference, timestampByCellMap)).thenReturn(timestampByCellMapOfSize);
 
         trackingKvs.getLatestTimestamps(tableReference, timestampByCellMap);
 
-        validateReadInfoForReadForTable("getLatestTimestamps");
+        validateReadInfoForReadForTable("getLatestTimestamps", size);
     }
 
     @SuppressWarnings("MustBeClosedChecker")
-    @Test
-    public void readInfoIsCorrectAfterGetRangeCallAndIteratorConsumption() {
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
+    public void readInfoIsCorrectAfterGetRangeCallAndIteratorConsumption(int size) {
+        setup(size);
         List<RowResult<Value>> backingValueRowResultListOfSize =
                 TrackingKeyValueServiceTestUtils.createValueRowResultListWithSize(size);
 
@@ -221,12 +228,14 @@ public final class TrackingKeyValueServiceReadInfoTest {
 
         trackingKvs.getRange(tableReference, rangeRequest, TIMESTAMP).forEachRemaining(_unused -> {});
 
-        validateReadInfoForLazyRead();
+        validateReadInfoForLazyRead(size);
     }
 
     @SuppressWarnings("MustBeClosedChecker")
-    @Test
-    public void readInfoIsCorrectAfterGetRangeOfTimestampsCallAndIteratorConsumption() {
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
+    public void readInfoIsCorrectAfterGetRangeOfTimestampsCallAndIteratorConsumption(int size) {
+        setup(size);
         List<RowResult<Set<Long>>> backingLongSetRowResultListOfSize =
                 TrackingKeyValueServiceTestUtils.createLongSetRowResultListWithSize(size);
 
@@ -237,12 +246,14 @@ public final class TrackingKeyValueServiceReadInfoTest {
                 .getRangeOfTimestamps(tableReference, rangeRequest, TIMESTAMP)
                 .forEachRemaining(_unused -> {});
 
-        validateReadInfoForLazyRead();
+        validateReadInfoForLazyRead(size);
     }
 
     @SuppressWarnings("MustBeClosedChecker")
-    @Test
-    public void readInfoIsCorrectAfterGetCandidateCellsForSweepingCallAndIteratorConsumption() {
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
+    public void readInfoIsCorrectAfterGetCandidateCellsForSweepingCallAndIteratorConsumption(int size) {
+        setup(size);
         CandidateCellForSweepingRequest candidateCellForSweepingRequest = mock(CandidateCellForSweepingRequest.class);
 
         ImmutableList<ImmutableList<CandidateCellForSweeping>> backingCandidateForSweepingTableOfSize =
@@ -255,11 +266,13 @@ public final class TrackingKeyValueServiceReadInfoTest {
                 .getCandidateCellsForSweeping(tableReference, candidateCellForSweepingRequest)
                 .forEachRemaining(_unused -> {});
 
-        validateReadInfoForLazyRead();
+        validateReadInfoForLazyRead(size);
     }
 
-    @Test
-    public void readInfoIsCorrectAfterGetFirstBatchForRangesCall() {
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
+    public void readInfoIsCorrectAfterGetFirstBatchForRangesCall(int size) {
+        setup(size);
         Iterable<RangeRequest> rangeRequests = mock(Iterable.class);
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> pageByRangeRequestMapOfSize =
                 TrackingKeyValueServiceTestUtils.createPageByRangeRequestMapWithSize(size);
@@ -269,29 +282,35 @@ public final class TrackingKeyValueServiceReadInfoTest {
 
         trackingKvs.getFirstBatchForRanges(tableReference, rangeRequests, TIMESTAMP);
 
-        validateReadInfoForReadForTable("getFirstBatchForRanges");
+        validateReadInfoForReadForTable("getFirstBatchForRanges", size);
     }
 
-    @Test
-    public void readInfoIsCorrectAfterGetAllTableNamesCall() {
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
+    public void readInfoIsCorrectAfterGetAllTableNamesCall(int size) {
+        setup(size);
         when(kvs.getAllTableNames()).thenReturn(TrackingKeyValueServiceTestUtils.createTableReferenceSetWithSize(size));
 
         trackingKvs.getAllTableNames();
 
-        validateReadInfoForTableAgnosticRead("getAllTableNames");
+        validateReadInfoForTableAgnosticRead("getAllTableNames", size);
     }
 
-    @Test
-    public void readInfoIsCorrectAfterGetMetadataForTableCall() {
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
+    public void readInfoIsCorrectAfterGetMetadataForTableCall(int size) {
+        setup(size);
         when(kvs.getMetadataForTable(tableReference)).thenReturn(new byte[size]);
 
         trackingKvs.getMetadataForTable(tableReference);
 
-        validateReadInfoForTableAgnosticRead("getMetadataForTable");
+        validateReadInfoForTableAgnosticRead("getMetadataForTable", size);
     }
 
-    @Test
-    public void readInfoIsCorrectAfterGetMetadataForTablesCall() {
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
+    public void readInfoIsCorrectAfterGetMetadataForTablesCall(int size) {
+        setup(size);
         Map<TableReference, byte[]> metadataForTablesOfSize =
                 TrackingKeyValueServiceTestUtils.createByteArrayByTableReferenceMapWithSize(size);
 
@@ -299,24 +318,27 @@ public final class TrackingKeyValueServiceReadInfoTest {
 
         trackingKvs.getMetadataForTables();
 
-        validateReadInfoForTableAgnosticRead("getMetadataForTables");
+        validateReadInfoForTableAgnosticRead("getMetadataForTables", size);
     }
 
-    @Test
-    public void readInfoIsCorrectAfterGetAllTimestampsCall() {
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
+    public void readInfoIsCorrectAfterGetAllTimestampsCall(int size) {
+        setup(size);
         Set<Cell> cells = mock(Set.class);
         Multimap<Cell, Long> longByCellMultimapOfSize =
                 TrackingKeyValueServiceTestUtils.createLongByCellMultimapWithSize(size);
 
         when(kvs.getAllTimestamps(tableReference, cells, TIMESTAMP)).thenReturn(longByCellMultimapOfSize);
-
         trackingKvs.getAllTimestamps(tableReference, cells, TIMESTAMP);
 
-        validateReadInfoForReadForTable("getAllTimestamps");
+        validateReadInfoForReadForTable("getAllTimestamps", size);
     }
 
-    @Test
-    public void readInfoIsCorrectAfterGetRowsKeysInRangeCall() {
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("sizes")
+    public void readInfoIsCorrectAfterGetRowsKeysInRangeCall(int size) {
+        setup(size);
         int maxResults = 13;
         byte[] startRow = new byte[1];
         byte[] endRow = new byte[3];
@@ -328,10 +350,14 @@ public final class TrackingKeyValueServiceReadInfoTest {
 
         trackingKvs.getRowKeysInRange(tableReference, startRow, endRow, maxResults);
 
-        validateReadInfoForReadForTable("getRowKeysInRange");
+        validateReadInfoForReadForTable("getRowKeysInRange", size);
     }
 
-    private void validateReadInfoForReadForTable(String methodName) {
+    private void setup(int size) {
+        valueByCellMapOfSize = TrackingKeyValueServiceTestUtils.createValueByCellMapWithSize(size);
+    }
+
+    private void validateReadInfoForReadForTable(String methodName, int size) {
         TransactionReadInfo readInfo = ImmutableTransactionReadInfo.builder()
                 .bytesRead(size)
                 .kvsCalls(1)
@@ -341,7 +367,7 @@ public final class TrackingKeyValueServiceReadInfoTest {
         assertThat(trackingKvs.getReadInfoByTable()).containsOnlyKeys(ImmutableList.of(tableReference));
     }
 
-    private void validateReadInfoForLazyRead() {
+    private void validateReadInfoForLazyRead(int size) {
         TransactionReadInfo readInfo = ImmutableTransactionReadInfo.builder()
                 .bytesRead(size)
                 .kvsCalls(1)
@@ -350,7 +376,7 @@ public final class TrackingKeyValueServiceReadInfoTest {
         assertThat(trackingKvs.getReadInfoByTable()).containsOnlyKeys(ImmutableList.of(tableReference));
     }
 
-    private void validateReadInfoForTableAgnosticRead(String methodName) {
+    private void validateReadInfoForTableAgnosticRead(String methodName, int size) {
         TransactionReadInfo readInfo = ImmutableTransactionReadInfo.builder()
                 .bytesRead(size)
                 .kvsCalls(1)
