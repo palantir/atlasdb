@@ -95,12 +95,11 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-/* TODO(boyoruk): Delete this when we complete the JUnit5 migration. */
 @SuppressWarnings("CheckReturnValue")
-public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
+public abstract class AbstractSerializableTransactionTestV2 extends AbstractTransactionTestV2 {
     private static final int DEFAULT_COL_COUNT = 101;
     private static final int DEFAULT_BATCH_HINT = 100;
     private static final String DEFAULT_ROW_PREFIX = "row";
@@ -112,7 +111,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     private static final byte[] BYTES_ONE = PtBytes.toBytes("a");
     private static final byte[] BYTES_TWO = PtBytes.toBytes("b");
 
-    public AbstractSerializableTransactionTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
+    public AbstractSerializableTransactionTestV2(KvsManager kvsManager, TransactionManagerManager tmManager) {
         super(kvsManager, tmManager);
     }
 

@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.ImmutableSet;
@@ -27,7 +26,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.Futures;
 import com.google.protobuf.ByteString;
-import com.palantir.atlasdb.AtlasDbTestCase;
+import com.palantir.atlasdb.AtlasDbTestCaseV2;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
@@ -65,7 +64,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
@@ -78,55 +76,40 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
-@RunWith(Parameterized.class)
-public class StreamTest extends AtlasDbTestCase {
+public class StreamTest extends AtlasDbTestCaseV2 {
     public static final long TEST_ID = 5L;
     public static final long TEST_BLOCK_ID = 5L;
     private PersistentStreamStore defaultStore;
     private PersistentStreamStore compressedStore;
     private PersistentStreamStore maxMemStore;
 
-    @Parameterized.Parameter
-    public boolean useStoreWithHashedComponents;
+    @TempDir
+    public File temporaryFolder;
 
-    @Parameterized.Parameters
-    public static Collection<Boolean> options() {
-        return ImmutableList.of(true, false);
-    }
-
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
-
-    @Before
-    public void createSchema() {
+    @BeforeEach
+    public void beforeEach() {
         Schemas.deleteTablesAndIndexes(StreamTestSchema.getSchema(), keyValueService);
         Schemas.createTablesAndIndexes(StreamTestSchema.getSchema(), keyValueService);
-
-        if (!useStoreWithHashedComponents) {
-            defaultStore = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
-        } else {
-            defaultStore = TestHashComponentsStreamStore.of(txManager, StreamTestTableFactory.of());
-        }
-
         compressedStore = StreamTestWithHashStreamStore.of(txManager, StreamTestTableFactory.of());
         maxMemStore = StreamTestMaxMemStreamStore.of(txManager, StreamTestTableFactory.of());
     }
 
-    @Test
-    public void testRender() throws IOException {
-        StreamTestSchema.getSchema().renderTables(temporaryFolder.getRoot());
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testRender(boolean useStoreWithHashedComponents) throws IOException {
+        setup(useStoreWithHashedComponents);
+        StreamTestSchema.getSchema().renderTables(temporaryFolder);
     }
 
-    @Test
-    public void testAddDelete() throws Exception {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testAddDelete(boolean useStoreWithHashedComponents) throws Exception {
+        setup(useStoreWithHashedComponents);
         final byte[] data = PtBytes.toBytes("streamed");
         final long streamId = txManager.runTaskWithRetry(t -> {
             Sha256Hash hash = Sha256Hash.computeHash(data);
@@ -144,8 +127,10 @@ public class StreamTest extends AtlasDbTestCase {
         });
     }
 
-    @Test
-    public void testLoadStreamWithWrongId() throws Exception {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testLoadStreamWithWrongId(boolean useStoreWithHashedComponents) throws Exception {
+        setup(useStoreWithHashedComponents);
         final byte[] data = PtBytes.toBytes("streamed");
         long streamId = txManager.runTaskWithRetry(t -> {
             Sha256Hash hash = Sha256Hash.computeHash(data);
@@ -159,8 +144,10 @@ public class StreamTest extends AtlasDbTestCase {
         });
     }
 
-    @Test
-    public void testStreamStoreWithHashValueRowPersistToBytesAndHydrateSucceeds() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testStreamStoreWithHashValueRowPersistToBytesAndHydrateSucceeds(boolean useStoreWithHashedComponents) {
+        setup(useStoreWithHashedComponents);
         StreamTestWithHashStreamValueRow row = StreamTestWithHashStreamValueRow.of(5L, 5L);
         byte[] persistedRow = row.persistToBytes();
         StreamTestWithHashStreamValueRow hydratedRow =
@@ -168,8 +155,11 @@ public class StreamTest extends AtlasDbTestCase {
         assertThat(hydratedRow).isEqualTo(row);
     }
 
-    @Test
-    public void testStreamStoreWithHashMetadataRowPersistToBytesAndHydrateSucceeds() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testStreamStoreWithHashMetadataRowPersistToBytesAndHydrateSucceeds(
+            boolean useStoreWithHashedComponents) {
+        setup(useStoreWithHashedComponents);
         StreamTestWithHashStreamMetadataRow row = StreamTestWithHashStreamMetadataRow.of(5L);
         byte[] persistedRow = row.persistToBytes();
         StreamTestWithHashStreamMetadataRow hydratedRow =
@@ -177,8 +167,10 @@ public class StreamTest extends AtlasDbTestCase {
         assertThat(hydratedRow).isEqualTo(row);
     }
 
-    @Test
-    public void testStreamStoreWithHashIdxRowPersistToBytesAndHydrateSucceeds() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testStreamStoreWithHashIdxRowPersistToBytesAndHydrateSucceeds(boolean useStoreWithHashedComponents) {
+        setup(useStoreWithHashedComponents);
         StreamTestWithHashStreamIdxRow row = StreamTestWithHashStreamIdxRow.of(5L);
         byte[] persistedRow = row.persistToBytes();
         StreamTestWithHashStreamIdxRow hydratedRow =
@@ -186,8 +178,10 @@ public class StreamTest extends AtlasDbTestCase {
         assertThat(hydratedRow).isEqualTo(row);
     }
 
-    @Test
-    public void testHashRowComponentsValueTable() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testHashRowComponentsValueTable(boolean useStoreWithHashedComponents) {
+        setup(useStoreWithHashedComponents);
         TestHashComponentsStreamValueRow row = TestHashComponentsStreamValueRow.of(TEST_ID, TEST_BLOCK_ID);
         byte[] persistedRow = row.persistToBytes();
         TestHashComponentsStreamValueRow hydratedRow =
@@ -195,8 +189,10 @@ public class StreamTest extends AtlasDbTestCase {
         assertThat(hydratedRow).isEqualTo(row);
     }
 
-    @Test
-    public void testHashRowComponentsMetadataTable() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testHashRowComponentsMetadataTable(boolean useStoreWithHashedComponents) {
+        setup(useStoreWithHashedComponents);
         TestHashComponentsStreamMetadataRow row = TestHashComponentsStreamMetadataRow.of(TEST_ID);
         byte[] persistedRow = row.persistToBytes();
         TestHashComponentsStreamMetadataRow hydratedRow =
@@ -204,8 +200,10 @@ public class StreamTest extends AtlasDbTestCase {
         assertThat(hydratedRow).isEqualTo(row);
     }
 
-    @Test
-    public void testHashRowComponentsIdxTable() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testHashRowComponentsIdxTable(boolean useStoreWithHashedComponents) {
+        setup(useStoreWithHashedComponents);
         TestHashComponentsStreamIdxRow row = TestHashComponentsStreamIdxRow.of(TEST_ID);
         byte[] persistedRow = row.persistToBytes();
         TestHashComponentsStreamIdxRow hydratedRow =
@@ -213,80 +211,117 @@ public class StreamTest extends AtlasDbTestCase {
         assertThat(hydratedRow).isEqualTo(row);
     }
 
-    @Test
-    public void testStoreEmptyByteStream_defaultStream() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testStoreEmptyByteStream_defaultStream(boolean useStoreWithHashedComponents) throws IOException {
+        setup(useStoreWithHashedComponents);
         storeAndCheckByteStreams(defaultStore, getIncompressibleBytes(0));
     }
 
-    @Test
-    public void testStoreEmptyByteStream_compressedStream() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testStoreEmptyByteStream_compressedStream(boolean useStoreWithHashedComponents) throws IOException {
+        setup(useStoreWithHashedComponents);
         storeAndCheckByteStreams(compressedStore, getIncompressibleBytes(0));
     }
 
-    @Test
-    public void testStoreSmallByteStream_defaultStream() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testStoreSmallByteStream_defaultStream(boolean useStoreWithHashedComponents) throws IOException {
+        setup(useStoreWithHashedComponents);
         storeAndCheckByteStreams(defaultStore, getIncompressibleBytes(100));
     }
 
-    @Test
-    public void testStoreByteStreamExactlyAtInMemoryThreshold() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testStoreByteStreamExactlyAtInMemoryThreshold(boolean useStoreWithHashedComponents) throws IOException {
+        setup(useStoreWithHashedComponents);
         storeAndCheckByteStreams(defaultStore, getIncompressibleBytes(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 4));
     }
 
-    @Test
-    public void testStoreByteStreamJustAboveInMemoryThreshold() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testStoreByteStreamJustAboveInMemoryThreshold(boolean useStoreWithHashedComponents) throws IOException {
+        setup(useStoreWithHashedComponents);
         storeAndCheckByteStreams(
                 defaultStore, getIncompressibleBytes(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 4 + 1));
     }
 
-    @Test
-    public void testStoreSmallByteStream_compressedStream() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testStoreSmallByteStream_compressedStream(boolean useStoreWithHashedComponents) throws IOException {
+        setup(useStoreWithHashedComponents);
         storeAndCheckByteStreams(compressedStore, getCompressibleBytes(100));
     }
 
-    @Test
-    public void testStoreByteStreamJustBiggerThanOneBlock_defaultStream() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testStoreByteStreamJustBiggerThanOneBlock_defaultStream(boolean useStoreWithHashedComponents)
+            throws IOException {
+        setup(useStoreWithHashedComponents);
         storeAndCheckByteStreams(defaultStore, getIncompressibleBytes(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES + 500));
     }
 
-    @Test
-    public void testStoreByteStreamJustBiggerThanOneBlock_compressedStream() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testStoreByteStreamJustBiggerThanOneBlock_compressedStream(boolean useStoreWithHashedComponents)
+            throws IOException {
+        setup(useStoreWithHashedComponents);
         storeAndCheckByteStreams(
                 compressedStore, getCompressibleBytes(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES + 500));
     }
 
-    @Test
-    public void testStoreByteStreamThreeBlocksLong_defaultStream() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testStoreByteStreamThreeBlocksLong_defaultStream(boolean useStoreWithHashedComponents)
+            throws IOException {
+        setup(useStoreWithHashedComponents);
         storeAndCheckByteStreams(defaultStore, getIncompressibleBytes(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 3));
     }
 
-    @Test
-    public void testStoreByteStreamThreeBlocksLong_compressedStream() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testStoreByteStreamThreeBlocksLong_compressedStream(boolean useStoreWithHashedComponents)
+            throws IOException {
+        setup(useStoreWithHashedComponents);
         storeAndCheckByteStreams(compressedStore, getCompressibleBytes(StreamTestStreamStore.BLOCK_SIZE_IN_BYTES * 3));
     }
 
-    @Test
-    public void testStoreByteStreamFiveMegaBytes_defaultStream() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testStoreByteStreamFiveMegaBytes_defaultStream(boolean useStoreWithHashedComponents)
+            throws IOException {
+        setup(useStoreWithHashedComponents);
         storeAndCheckByteStreams(defaultStore, getIncompressibleBytes(5_000_000));
     }
 
-    @Test
-    public void testStoreByteStreamFiveMegaBytes_compressedStream_compressible() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testStoreByteStreamFiveMegaBytes_compressedStream_compressible(boolean useStoreWithHashedComponents)
+            throws IOException {
+        setup(useStoreWithHashedComponents);
         storeAndCheckByteStreams(compressedStore, getCompressibleBytes(5_000_000));
     }
 
-    @Test
-    public void testStoreByteStreamFiveMegaBytes_compressedStream_incompressible() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testStoreByteStreamFiveMegaBytes_compressedStream_incompressible(boolean useStoreWithHashedComponents)
+            throws IOException {
+        setup(useStoreWithHashedComponents);
         storeAndCheckByteStreams(compressedStore, getIncompressibleBytes(5_000_000));
     }
 
-    @Test
-    public void testStoreToMaxMemStream() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testStoreToMaxMemStream(boolean useStoreWithHashedComponents) throws IOException {
+        setup(useStoreWithHashedComponents);
         storeAndCheckByteStreams(maxMemStore, getIncompressibleBytes(100));
     }
 
-    @Test
-    public void testStoreHugeToMaxMemStream() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testStoreHugeToMaxMemStream(boolean useStoreWithHashedComponents) throws IOException {
+        setup(useStoreWithHashedComponents);
         storeAndCheckByteStreams(maxMemStore, getIncompressibleBytes(20_000_000));
     }
 
@@ -350,13 +385,17 @@ public class StreamTest extends AtlasDbTestCase {
         stream.close();
     }
 
-    @Test
-    public void readFromStreamWhenTransactionOpen() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void readFromStreamWhenTransactionOpen(boolean useStoreWithHashedComponents) throws IOException {
+        setup(useStoreWithHashedComponents);
         readFromGivenStreamWhenTransactionOpen(defaultStore);
     }
 
-    @Test
-    public void readFromCompressedStreamWhenTransactionOpen() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void readFromCompressedStreamWhenTransactionOpen(boolean useStoreWithHashedComponents) throws IOException {
+        setup(useStoreWithHashedComponents);
         readFromGivenStreamWhenTransactionOpen(compressedStore);
     }
 
@@ -375,8 +414,10 @@ public class StreamTest extends AtlasDbTestCase {
         });
     }
 
-    @Test
-    public void testOverwrite() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testOverwrite(boolean useStoreWithHashedComponents) throws IOException {
+        setup(useStoreWithHashedComponents);
         Random rand = new Random();
         StreamTestTableFactory tableFactory = StreamTestTableFactory.of();
 
@@ -416,8 +457,10 @@ public class StreamTest extends AtlasDbTestCase {
         });
     }
 
-    @Test
-    public void testConcurrentDelete() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testConcurrentDelete(boolean useStoreWithHashedComponents) throws IOException {
+        setup(useStoreWithHashedComponents);
         Random rand = new Random();
         StreamTestTableFactory tableFactory = StreamTestTableFactory.of();
 
@@ -442,7 +485,7 @@ public class StreamTest extends AtlasDbTestCase {
         txManager.runTaskWithRetry(tx -> {
             KeyValueTable keyValueTable = tableFactory.getKeyValueTable(tx);
             keyValueTable.delete(keyValueRow);
-            deleteStream(tableFactory, tx, streamId);
+            deleteStream(tableFactory, tx, streamId, useStoreWithHashedComponents);
             return null;
         });
 
@@ -450,7 +493,8 @@ public class StreamTest extends AtlasDbTestCase {
         assertThatThrownBy(() -> assertStreamHasBytes(stream, bytes1)).isInstanceOf(NullPointerException.class);
     }
 
-    private void deleteStream(StreamTestTableFactory tableFactory, Transaction tx, Long streamId) {
+    private void deleteStream(
+            StreamTestTableFactory tableFactory, Transaction tx, Long streamId, boolean useStoreWithHashedComponents) {
         StreamPersistence.StreamMetadata metadata;
         if (useStoreWithHashedComponents) {
             metadata = getMetadataHashedComponentsStream(tableFactory, tx, streamId);
@@ -543,8 +587,10 @@ public class StreamTest extends AtlasDbTestCase {
         tableFactory.getTestHashComponentsStreamValueTable(tx).delete(streamValueToDelete);
     }
 
-    @Test
-    public void testLookupStreamIdsByHash() throws Exception {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testLookupStreamIdsByHash(boolean useStoreWithHashedComponents) throws Exception {
+        setup(useStoreWithHashedComponents);
         final byte[] bytes1 = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
         final byte[] bytes2 = new byte[2 * StreamTestStreamStore.BLOCK_SIZE_IN_BYTES];
 
@@ -572,8 +618,11 @@ public class StreamTest extends AtlasDbTestCase {
         assertThat(sha256HashLongMap.get(hash3)).isNull();
     }
 
-    @Test
-    public void readingStreamIdsByHashInTheSameTransactionIsPermitted() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void readingStreamIdsByHashInTheSameTransactionIsPermitted(boolean useStoreWithHashedComponents)
+            throws IOException {
+        setup(useStoreWithHashedComponents);
         long id = timestampService.getFreshTimestamp();
 
         byte[] bytes = generateRandomTwoBlockStream();
@@ -586,8 +635,10 @@ public class StreamTest extends AtlasDbTestCase {
         assertThat(bytes).isEqualTo(bytesInKvs);
     }
 
-    @Test
-    public void streamsAreNotReused() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void streamsAreNotReused(boolean useStoreWithHashedComponents) throws IOException {
+        setup(useStoreWithHashedComponents);
         long id = timestampService.getFreshTimestamp();
 
         byte[] bytes = generateRandomTwoBlockStream();
@@ -601,8 +652,10 @@ public class StreamTest extends AtlasDbTestCase {
         assertThat(bytes).isEqualTo(bytesInKvs);
     }
 
-    @Test
-    public void testStoreCopy() {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testStoreCopy(boolean useStoreWithHashedComponents) {
+        setup(useStoreWithHashedComponents);
         byte[] bytes = generateRandomTwoBlockStream();
 
         long id1 = timestampService.getFreshTimestamp();
@@ -621,8 +674,10 @@ public class StreamTest extends AtlasDbTestCase {
         assertThat(idAndHash1.getLhSide()).isNotEqualTo(idAndHash2.getLhSide()); // verify ids are different
     }
 
-    @Test
-    public void testStreamMetadataConflictDeleteFirst() throws Exception {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testStreamMetadataConflictDeleteFirst(boolean useStoreWithHashedComponents) throws Exception {
+        setup(useStoreWithHashedComponents);
         long streamId = timestampService.getFreshTimestamp();
 
         runConflictingTasksConcurrently(streamId, new TwoConflictingTasks() {
@@ -643,8 +698,10 @@ public class StreamTest extends AtlasDbTestCase {
         assertStreamDoesNotExist(streamId);
     }
 
-    @Test
-    public void testStreamMetadataConflictWriteFirst() throws Exception {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testStreamMetadataConflictWriteFirst(boolean useStoreWithHashedComponents) throws Exception {
+        setup(useStoreWithHashedComponents);
         long streamId = timestampService.getFreshTimestamp();
 
         runConflictingTasksConcurrently(streamId, new TwoConflictingTasks() {
@@ -669,8 +726,10 @@ public class StreamTest extends AtlasDbTestCase {
         }
     }
 
-    @Test
-    public void testStreamCompression() throws IOException {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void testStreamCompression(boolean useStoreWithHashedComponents) throws IOException {
+        setup(useStoreWithHashedComponents);
         int inputBlocks = 4;
         int expectedBlocksUsed = 1;
         byte[] input = getCompressibleBytes(inputBlocks * StreamTestWithHashStreamStore.BLOCK_SIZE_IN_BYTES);
@@ -679,6 +738,14 @@ public class StreamTest extends AtlasDbTestCase {
         long numBlocksUsed = getStreamBlockSize(getStreamMetadata(id));
 
         assertThat(numBlocksUsed).isEqualTo(expectedBlocksUsed);
+    }
+
+    public void setup(boolean useStoreWithHashedComponents) {
+        if (!useStoreWithHashedComponents) {
+            defaultStore = StreamTestStreamStore.of(txManager, StreamTestTableFactory.of());
+        } else {
+            defaultStore = TestHashComponentsStreamStore.of(txManager, StreamTestTableFactory.of());
+        }
     }
 
     private byte[] generateRandomTwoBlockStream() {

@@ -47,16 +47,15 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.timelock.paxos.InMemoryTimeLockRule;
+import com.palantir.timelock.paxos.InMemoryTimelockExtension;
 import com.palantir.timestamp.TimestampService;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-/* TODO(boyoruk): Delete this when JUnit5 upgrade is done */
-public class AtlasDbTestCase {
+public class AtlasDbTestCaseV2 {
     private static final String CLIENT = "fake lock client";
 
     protected final MetricsManager metricsManager = MetricsManagers.createForTests();
@@ -79,16 +78,16 @@ public class AtlasDbTestCase {
 
     protected ExecutorService deleteExecutor;
 
-    @Rule
-    public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule(CLIENT);
+    @RegisterExtension
+    public InMemoryTimelockExtension inMemoryTimelockExtension = new InMemoryTimelockExtension(CLIENT);
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         deleteExecutor = MoreExecutors.newDirectExecutorService();
         lockClient = LockClient.of(CLIENT);
-        lockService = inMemoryTimeLockRule.getLockService();
-        timelockService = inMemoryTimeLockRule.getLegacyTimelockService();
-        timestampService = inMemoryTimeLockRule.getTimestampService();
+        lockService = inMemoryTimelockExtension.getLockService();
+        timelockService = inMemoryTimelockExtension.getLegacyTimelockService();
+        timestampService = inMemoryTimelockExtension.getTimestampService();
         keyValueService = trackingKeyValueService(getBaseKeyValueService());
         TransactionTables.createTables(keyValueService);
         transactionService = spy(TransactionServices.createRaw(keyValueService, timestampService, false));
@@ -116,7 +115,7 @@ public class AtlasDbTestCase {
         return new TestTransactionManagerImpl(
                 metricsManager,
                 keyValueService,
-                inMemoryTimeLockRule.get(),
+                inMemoryTimelockExtension,
                 lockService,
                 transactionService,
                 conflictDetectionManager,
@@ -134,8 +133,8 @@ public class AtlasDbTestCase {
         return AtlasDbMetrics.instrument(metricsManager.getRegistry(), KeyValueService.class, tracingKvs);
     }
 
-    @After
-    public void tearDown() throws Exception {
+    @AfterEach
+    public void tearDown() {
         // JUnit keeps instantiated test cases in memory, so we need to null out
         // some fields to prevent OOMs.
         keyValueService.close();
@@ -157,10 +156,10 @@ public class AtlasDbTestCase {
         txManager = new TestTransactionManagerImpl(
                 metricsManager,
                 keyValueService,
-                inMemoryTimeLockRule.getTimestampManagementService(),
-                inMemoryTimeLockRule.getLegacyTimelockService(),
+                inMemoryTimelockExtension.getTimestampManagementService(),
+                inMemoryTimelockExtension.getLegacyTimelockService(),
                 lockService,
-                inMemoryTimeLockRule.getLockWatchManager(),
+                inMemoryTimelockExtension.getLockWatchManager(),
                 transactionService,
                 mode,
                 TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry()));

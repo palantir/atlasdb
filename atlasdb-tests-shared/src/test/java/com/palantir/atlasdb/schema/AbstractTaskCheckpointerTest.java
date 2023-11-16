@@ -17,22 +17,21 @@ package com.palantir.atlasdb.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.palantir.atlasdb.AtlasDbTestCase;
+import com.palantir.atlasdb.AtlasDbTestCaseV2;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
-public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
+public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCaseV2 {
     protected AbstractTaskCheckpointer checkpointer;
 
     protected abstract AbstractTaskCheckpointer getCheckpointer();
 
-    @Before
+    @BeforeEach
     public void createCheckpointer() {
         checkpointer = getCheckpointer();
     }

@@ -21,7 +21,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.hash.Hashing;
-import com.palantir.atlasdb.AtlasDbTestCase;
+import com.palantir.atlasdb.AtlasDbTestCaseV2;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.schema.indexing.generated.DataTable;
@@ -39,13 +39,12 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.RuntimeTransactionTask;
 import java.util.Arrays;
 import java.util.List;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
-public class IndexTest extends AtlasDbTestCase {
+public class IndexTest extends AtlasDbTestCaseV2 {
 
-    @Before
+    @BeforeEach
     public void createSchema() {
         Schemas.truncateTablesAndIndexes(IndexTestSchema.getSchema(), keyValueService);
         Schemas.createTablesAndIndexes(IndexTestSchema.getSchema(), keyValueService);
