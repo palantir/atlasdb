@@ -54,6 +54,7 @@ task postgresTest(type: Test) {
 task oracleTest(type: Test) {
     maxHeapSize = "1024m"
     include '**/DbKvsOracleTestSuite.class'
+    include '**/OracleNamespaceDeleterTests.class'
     maxParallelForks 2
 }
 
