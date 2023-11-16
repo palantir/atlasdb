@@ -23,25 +23,24 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timelock.paxos.InMemoryTimeLockRule;
+import com.palantir.timelock.paxos.InMemoryTimelockClassExtension;
 import com.palantir.timestamp.ManagedTimestampService;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class TransactionSchemaManagerIntegrationTest {
     private static final long ONE_HUNDRED_MILLION = 100_000_000;
 
     private ManagedTimestampService timestamps;
     private TransactionSchemaManager manager;
 
-    @ClassRule
-    public static InMemoryTimeLockRule services = new InMemoryTimeLockRule();
+    @RegisterExtension
+    public static InMemoryTimelockClassExtension inMemoryTimelockClassExtension = new InMemoryTimelockClassExtension();
 
-    @Before
+    @BeforeEach
     public void setUp() {
-        timestamps = services.getManagedTimestampService();
+        timestamps = inMemoryTimelockClassExtension.getManagedTimestampService();
         manager = createTransactionSchemaManager();
         assertThat(manager.tryInstallNewTransactionsSchemaVersion(1)).isTrue();
     }

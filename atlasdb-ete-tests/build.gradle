@@ -86,6 +86,9 @@ dependencies {
 
     /* TODO(boyoruk): Migrate to JUnit5 */
     testImplementation 'junit:junit'
+    testRuntimeOnly 'org.junit.vintage:junit-vintage-engine', {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
 }
 
 // ETE Test Wiring

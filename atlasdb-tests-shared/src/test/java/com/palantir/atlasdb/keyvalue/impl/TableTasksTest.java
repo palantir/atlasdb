@@ -47,18 +47,17 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.impl.LockServiceImpl;
-import com.palantir.timelock.paxos.InMemoryTimeLockRule;
+import com.palantir.timelock.paxos.InMemoryTimelockExtension;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class TableTasksTest {
     private MetricsManager metricsManager;
     private KeyValueService kvs;
@@ -68,10 +67,10 @@ public class TableTasksTest {
 
     private TransactionKnowledgeComponents knowledge;
 
-    @Rule
-    public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
+    @RegisterExtension
+    public InMemoryTimelockExtension inMemoryTimelockExtension = new InMemoryTimelockExtension();
 
-    @Before
+    @BeforeEach
     public void setup() {
         kvs = new InMemoryKeyValueService(true);
         metricsManager = MetricsManagers.createForTests();
@@ -80,7 +79,7 @@ public class TableTasksTest {
         LockClient lockClient = LockClient.of("sweep client");
         lockService = LockServiceImpl.create(
                 LockServerOptions.builder().isStandaloneServer(false).build());
-        txService = TransactionServices.createRaw(kvs, inMemoryTimeLockRule.getTimestampService(), false);
+        txService = TransactionServices.createRaw(kvs, inMemoryTimelockExtension.getTimestampService(), false);
         Supplier<AtlasDbConstraintCheckingMode> constraints =
                 Suppliers.ofInstance(AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING);
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
@@ -89,10 +88,10 @@ public class TableTasksTest {
         txManager = SerializableTransactionManager.createForTest(
                 metricsManager,
                 kvs,
-                inMemoryTimeLockRule.getLegacyTimelockService(),
-                inMemoryTimeLockRule.getTimestampManagementService(),
+                inMemoryTimelockExtension.getLegacyTimelockService(),
+                inMemoryTimelockExtension.getTimestampManagementService(),
                 lockService,
-                inMemoryTimeLockRule.getLockWatchManager(),
+                inMemoryTimelockExtension.getLockWatchManager(),
                 txService,
                 constraints,
                 cdm,
@@ -104,7 +103,7 @@ public class TableTasksTest {
                 knowledge);
     }
 
-    @After
+    @AfterEach
     public void teardown() {
         lockService.close();
         kvs.close();

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.factory;
 
 import com.palantir.timelock.paxos.InMemoryTimelockServices;
 
+/* TODO(boyoruk): Delete this when we complete the JUnit5 migration. */
 public class InMemoryLockAndTimestampServiceFactory implements LockAndTimestampServiceFactory {
     private final InMemoryTimelockServices services;
 

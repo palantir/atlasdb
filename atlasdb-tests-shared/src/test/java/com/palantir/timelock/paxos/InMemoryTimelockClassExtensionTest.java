@@ -23,24 +23,24 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.TimestampService;
 import java.time.Duration;
 import org.awaitility.Awaitility;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-/* TODO(boyoruk): Delete this when we complete the JUnit5 migration. */
-public class InMemoryTimelockServicesTest {
-    @Rule
-    public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
+public class InMemoryTimelockClassExtensionTest {
+
+    @RegisterExtension
+    public static InMemoryTimelockClassExtension inMemoryTimelockClassExtension = new InMemoryTimelockClassExtension();
 
     private TimestampService timestampService;
     private AsyncTimelockService timelockService;
     private TimelockService delegatingTimelockService;
 
-    @Before
+    @BeforeEach
     public void setup() {
-        timestampService = inMemoryTimeLockRule.getTimestampService();
-        timelockService = inMemoryTimeLockRule.getTimelockService();
-        delegatingTimelockService = inMemoryTimeLockRule.getLegacyTimelockService();
+        timestampService = inMemoryTimelockClassExtension.getTimestampService();
+        timelockService = inMemoryTimelockClassExtension.getTimelockService();
+        delegatingTimelockService = inMemoryTimelockClassExtension.getLegacyTimelockService();
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(10L))
