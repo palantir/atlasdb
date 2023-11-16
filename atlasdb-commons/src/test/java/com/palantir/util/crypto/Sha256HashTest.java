@@ -20,13 +20,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
 import java.security.MessageDigest;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class Sha256HashTest {
 
     @Test
-    public void testSha256() throws Exception {
+    public void testSha256() {
         MessageDigest digest = Sha256Hash.getMessageDigest();
         assertThat(digest.getAlgorithm()).isEqualTo("SHA-256");
         assertThat(digest).isNotSameAs(Sha256Hash.getMessageDigest());

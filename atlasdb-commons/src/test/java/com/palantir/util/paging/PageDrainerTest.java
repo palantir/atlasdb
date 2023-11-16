@@ -21,9 +21,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.collect.Iterables;
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class PageDrainerTest {
     private static final int PAGE_SIZE = 10;
     private static final int INCOMPLETE_PAGE_SIZE = 5;
@@ -87,7 +86,7 @@ public class PageDrainerTest {
     }
 
     private void assertGetsResultsUpTo(int limit) {
-        PageDrainer<Integer> pageDrainer = new PageDrainer<Integer>(new SimplePager(PAGE_SIZE, limit));
+        PageDrainer<Integer> pageDrainer = new PageDrainer<>(new SimplePager(PAGE_SIZE, limit));
         List<Integer> pages = pageDrainer.drainAllPages();
         assertThat(pages).hasSize(limit);
     }
