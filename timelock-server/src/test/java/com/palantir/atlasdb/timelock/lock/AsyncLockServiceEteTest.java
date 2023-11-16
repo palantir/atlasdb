@@ -81,7 +81,7 @@ public class AsyncLockServiceEteTest {
             clock,
             lockLog);
 
-    @Test
+    @FlakeRetryTest
     public void canLockAndUnlock() {
         LockToken token = lockSynchronously(REQUEST_1, LOCK_A);
         assertLocked(LOCK_A);

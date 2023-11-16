@@ -23,21 +23,21 @@ import com.palantir.atlasdb.workload.config.WorkloadServerConfiguration;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import io.dropwizard.testing.ResourceHelpers;
-import io.dropwizard.testing.junit.DropwizardAppRule;
+import io.dropwizard.testing.junit5.DropwizardAppExtension;
+import io.dropwizard.testing.junit5.DropwizardExtensionsSupport;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
+@ExtendWith(DropwizardExtensionsSupport.class)
 public class WorkloadServerLauncherTest {
-    @ClassRule
-    public static final DropwizardAppRule<WorkloadServerConfiguration> RULE = new DropwizardAppRule<>(
+    public static final DropwizardAppExtension<WorkloadServerConfiguration> APP = new DropwizardAppExtension<>(
             WorkloadServerLauncher.class, ResourceHelpers.resourceFilePath("workload-server.yml"));
 
     @Test
     public void runsWorkflow() throws InterruptedException {
-        WorkloadServerLauncher workloadServerLauncher = RULE.getApplication();
+        WorkloadServerLauncher workloadServerLauncher = APP.getApplication();
         workloadServerLauncher.workflowsRanLatch().await(20, TimeUnit.SECONDS);
         TaggedMetricRegistry metricRegistry = workloadServerLauncher.getTaggedMetricRegistry();
         MetricName metricName = MetricName.builder()

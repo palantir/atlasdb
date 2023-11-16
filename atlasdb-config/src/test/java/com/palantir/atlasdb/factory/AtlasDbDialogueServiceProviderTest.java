@@ -21,13 +21,14 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.google.common.net.HttpHeaders;
 import com.google.common.primitives.Ints;
 import com.google.common.util.concurrent.Uninterruptibles;
@@ -57,11 +58,10 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import javax.ws.rs.core.MediaType;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class AtlasDbDialogueServiceProviderTest {
     private static final SslConfiguration SSL_CONFIGURATION =
             SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
@@ -87,20 +87,22 @@ public class AtlasDbDialogueServiceProviderTest {
     private AtlasDbDialogueServiceProvider provider;
     private ConjureTimelockService conjureTimelockService;
 
-    @Rule
-    public WireMockRule server =
-            new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
+    @RegisterExtension
+    static WireMockExtension server = WireMockExtension.newInstance()
+            .options(wireMockConfig().dynamicPort())
+            .build();
 
-    @Rule
-    public WireMockRule secondServer =
-            new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
+    @RegisterExtension
+    static WireMockExtension secondServer = WireMockExtension.newInstance()
+            .options(wireMockConfig().dynamicPort())
+            .build();
 
-    @Before
+    @BeforeEach
     public void setup() {
         setupServersToGiveOutTimestamps();
 
-        serverPort = server.port();
-        secondServerPort = secondServer.port();
+        serverPort = server.getPort();
+        secondServerPort = secondServer.getPort();
 
         provider = getAtlasDbDialogueServiceProvider(serverPort);
         conjureTimelockService = provider.getConjureTimelockService();

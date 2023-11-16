@@ -76,12 +76,6 @@ dependencies {
     }
     runtimeOnly project(':atlasdb-dbkvs')
 
-    testImplementation 'com.github.tomakehurst:wiremock-standalone'
-    testImplementation 'com.google.guava:guava'
-    testImplementation 'com.palantir.conjure.java.runtime:client-config'
-    testImplementation 'com.palantir.docker.compose:docker-compose-rule-core'
-    testImplementation 'com.palantir.docker.compose:docker-compose-rule-junit4'
-    testImplementation 'io.dropwizard.metrics:metrics-core'
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'org.junit.jupiter:junit-jupiter'
@@ -91,7 +85,6 @@ dependencies {
     testImplementation project(':atlasdb-impl-shared')
     testImplementation project(':atlasdb-tests-shared')
     testImplementation project(':flake-extension')
-    testImplementation project(':flake-rule')
     testImplementation project(':lock-api-objects')
     testImplementation project(':timelock-impl')
     testImplementation (project(':atlasdb-tests-shared')) {
@@ -106,14 +99,13 @@ dependencies {
         exclude group: 'org.ow2.asm'
     }
 
-    testImplementation 'junit:junit'
-    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
-        because 'allows JUnit 3 and JUnit 4 tests to run'
-    }
-
     testCommonAnnotationProcessor 'org.immutables:value'
     testCommonCompileOnly 'org.immutables:value::annotations'
 
+    testCommonImplementation 'com.github.tomakehurst:wiremock-standalone'
+    testCommonImplementation 'com.palantir.conjure.java.runtime:client-config'
+    testCommonImplementation 'com.palantir.docker.compose:docker-compose-rule-core'
+    testCommonImplementation 'com.palantir.docker.compose:docker-compose-rule-junit4'
     testCommonImplementation 'com.ea.agentloader:ea-agent-loader'
     testCommonImplementation 'com.fasterxml.jackson.core:jackson-core'
     testCommonImplementation 'com.fasterxml.jackson.core:jackson-databind'
@@ -183,6 +175,7 @@ dependencies {
 
     stressTestImplementation 'com.google.guava:guava'
     stressTestImplementation 'com.palantir.tokens:auth-tokens'
+    stressTestImplementation 'com.github.tomakehurst:wiremock-standalone'
     stressTestImplementation project(':timelock-api:timelock-api-jersey')
     stressTestRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
         because 'allows JUnit 3 and JUnit 4 tests to run'
@@ -209,6 +202,7 @@ dependencies {
     integTestImplementation project(':atlasdb-config')
     integTestImplementation project(':atlasdb-impl-shared')
     integTestImplementation project(':commons-executors')
+    integTestImplementation project(':flake-rule')
     integTestImplementation project(':leader-election-api')
     integTestImplementation project(':lock-api')
     integTestImplementation project(':lock-api-objects')

@@ -46,7 +46,6 @@ import com.palantir.leader.SuspectedNotCurrentLeaderException;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.SafeLoggable;
-import com.palantir.tracing.RenderTracingRule;
 import java.io.Closeable;
 import java.io.IOException;
 import java.time.Duration;
@@ -60,11 +59,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Supplier;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class AwaitingLeadershipProxyTest {
     private static final String TEST_MESSAGE = "test_message";
 
@@ -74,10 +71,7 @@ public class AwaitingLeadershipProxyTest {
     private final Runnable mockRunnable = mock(Runnable.class);
     private final Supplier<Runnable> delegateSupplier = Suppliers.ofInstance(mockRunnable);
 
-    @Rule
-    public final RenderTracingRule rule = new RenderTracingRule();
-
-    @Before
+    @BeforeEach
     public void before() throws InterruptedException {
         when(leaderElectionService.blockOnBecomingLeader()).thenReturn(leadershipToken);
         when(leaderElectionService.getCurrentTokenIfLeading()).thenReturn(Optional.empty());
@@ -100,7 +94,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    public void listenableFutureMethodsDoNotBlockWhenNotLeading() throws ExecutionException, InterruptedException {
+    public void listenableFutureMethodsDoNotBlockWhenNotLeading() throws InterruptedException {
         ReturnsListenableFutureImpl listenableFuture = new ReturnsListenableFutureImpl();
         ReturnsListenableFuture proxy = AwaitingLeadershipProxy.newProxyInstance(
                 ReturnsListenableFuture.class,
