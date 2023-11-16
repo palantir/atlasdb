@@ -15,12 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import org.junit.ClassRule;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
-public class InMemoryKeyValueServiceTest extends AbstractKeyValueServiceTest {
-    @ClassRule
-    public static final TestResourceManager TRM = TestResourceManager.inMemory();
+public class InMemoryKeyValueServiceTest extends AbstractKeyValueServiceTestV2 {
+
+    @RegisterExtension
+    public static final TestResourceManagerV2 TRM = TestResourceManagerV2.inMemory();
 
     public InMemoryKeyValueServiceTest() {
         super(TRM);
