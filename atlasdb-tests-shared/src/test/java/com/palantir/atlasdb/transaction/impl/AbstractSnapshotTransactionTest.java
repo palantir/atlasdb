@@ -200,7 +200,7 @@ import org.mockito.InOrder;
 import org.mockito.Mockito;
 
 @SuppressWarnings("checkstyle:all")
-public class AbstractSnapshotTransactionTest extends AtlasDbTestCaseV2 {
+public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCaseV2 {
     static final String SYNC = "sync";
     static final String ASYNC = "async";
     private static final Consumer<Long> NO_OP_THROW_IF_CONDITION_INVALID = _timestamp -> {};
