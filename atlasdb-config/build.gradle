@@ -83,9 +83,4 @@ dependencies {
     testImplementation 'org.glassfish.jersey.core:jersey-common'
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation 'org.mockito:mockito-junit-jupiter'
-
-    testImplementation 'junit:junit'
-    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
-        because 'allows JUnit 3 and JUnit 4 tests to run'
-    }
 }

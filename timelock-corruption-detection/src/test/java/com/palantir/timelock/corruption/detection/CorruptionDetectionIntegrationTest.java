@@ -25,16 +25,15 @@ import com.palantir.paxos.NamespaceAndUseCase;
 import com.palantir.timelock.corruption.detection.TimeLockCorruptionTestSetup.StateLogComponents;
 import java.util.List;
 import java.util.stream.IntStream;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-/* TODO(boyoruk): Upgrade this to JUnit5 when TimeLockCorruptionDetectionHelper rule is implemented for JUnit5. */
 /**
  * This class performs integration tests by inducing and detecting corruption in one or more series.
  * All tests only induce and detect ACCEPTED_VALUE_GREATER_THAN_LEARNED corruption.
  */
 public final class CorruptionDetectionIntegrationTest {
-    @Rule
+    @RegisterExtension
     public TimeLockCorruptionDetectionHelper helper = new TimeLockCorruptionDetectionHelper();
 
     @Test

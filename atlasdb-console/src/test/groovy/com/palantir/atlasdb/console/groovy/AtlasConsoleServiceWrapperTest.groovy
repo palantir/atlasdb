@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.console.groovy
 
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+
 import static groovy.test.GroovyAssert.assertEquals
 import static groovy.test.GroovyAssert.shouldFail
 
@@ -23,8 +26,6 @@ import com.palantir.atlasdb.console.AtlasConsoleService
 import com.palantir.atlasdb.console.AtlasConsoleServiceWrapper
 import groovy.json.JsonSlurper
 import org.gmock.WithGMock
-import org.junit.Before
-import org.junit.Test
 
 @WithGMock
 class AtlasConsoleServiceWrapperTest {
@@ -39,7 +40,7 @@ class AtlasConsoleServiceWrapperTest {
     def final RESULT = [c: 'd']
     def final EXCEPTION = new RuntimeException('error')
 
-    @Before
+    @BeforeEach
     void setup() {
         service = mock(AtlasConsoleService)
         slurper = mock(JsonSlurper)

@@ -29,11 +29,13 @@ import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.immutables.value.Value;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-/* TODO(boyoruk): Migrate to JUnit5. (Second iteration, Mockito breaks when we bump JUnit) */
+@ExtendWith(MockitoExtension.class)
 public class CallChainTest {
     private static final String TEST_STRING = "abc";
 

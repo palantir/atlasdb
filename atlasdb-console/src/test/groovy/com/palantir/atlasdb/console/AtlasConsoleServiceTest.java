@@ -37,8 +37,8 @@ import java.util.Set;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.jmock.lib.legacy.ClassImposteriser;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class AtlasConsoleServiceTest {
     private final Mockery context = new Mockery();
@@ -50,7 +50,7 @@ public class AtlasConsoleServiceTest {
     final String QUERY = "{'a': 'b'}";
     final String RESULT = "{'c': 'd'}";
 
-    @Before
+    @BeforeEach
     public void setup() {
         context.setImposteriser(ClassImposteriser.INSTANCE);
         delegate = context.mock(AtlasDbService.class);

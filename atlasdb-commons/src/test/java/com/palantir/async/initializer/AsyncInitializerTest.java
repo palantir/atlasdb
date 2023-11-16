@@ -34,10 +34,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.assertj.core.api.AbstractObjectAssert;
 import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-/* TODO(boyoruk): Migrate to JUnit5. (Second iteration, Mockito breaks when we bump JUnit) */
+@ExtendWith(MockitoExtension.class)
 public class AsyncInitializerTest {
     private static final int ASYNC_INIT_DELAY = 10;
 
@@ -105,6 +109,7 @@ public class AsyncInitializerTest {
     }
 
     @Test
+    @MockitoSettings(strictness = Strictness.LENIENT)
     public void synchronousInitializationPropagatesExceptionsCleansUpAndDoesNotRetry() {
         AsyncInitializer initializer = getMockedInitializer();
 
@@ -117,6 +122,7 @@ public class AsyncInitializerTest {
     }
 
     @Test
+    @MockitoSettings(strictness = Strictness.LENIENT)
     public void synchronousInitializationPropagatesCleanupFailuresAsSuppressedExceptions() {
         AsyncInitializer initializer = getMockedInitializer();
         RuntimeException cleanupFailure = new RuntimeException("cleanup");
@@ -132,6 +138,7 @@ public class AsyncInitializerTest {
     }
 
     @Test
+    @MockitoSettings(strictness = Strictness.LENIENT)
     public void asyncInitializationCatchesExceptionAndRetries() {
         AsyncInitializer initializer = getMockedInitializer();
 

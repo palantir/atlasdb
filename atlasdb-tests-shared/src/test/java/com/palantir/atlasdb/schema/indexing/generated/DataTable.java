@@ -87,7 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings({"all", "deprecation"})
+@SuppressWarnings({"deprecation"})
 public final class DataTable implements
         AtlasDbMutablePersistentTable<DataTable.DataRow,
                                          DataTable.DataNamedColumnValue<?>,
@@ -825,7 +825,7 @@ public final class DataTable implements
     }
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-    @SuppressWarnings({"all", "deprecation"})
+    @SuppressWarnings({"deprecation"})
     public static final class Index1IdxTable implements
             AtlasDbDynamicMutablePersistentTable<Index1IdxTable.Index1IdxRow,
                                                     Index1IdxTable.Index1IdxColumn,
@@ -1515,7 +1515,7 @@ public final class DataTable implements
 
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-    @SuppressWarnings({"all", "deprecation"})
+    @SuppressWarnings({"deprecation"})
     public static final class Index2IdxTable implements
             AtlasDbDynamicMutablePersistentTable<Index2IdxTable.Index2IdxRow,
                                                     Index2IdxTable.Index2IdxColumn,
@@ -2193,7 +2193,7 @@ public final class DataTable implements
 
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-    @SuppressWarnings({"all", "deprecation"})
+    @SuppressWarnings({"deprecation"})
     public static final class Index3IdxTable implements
             AtlasDbDynamicMutablePersistentTable<Index3IdxTable.Index3IdxRow,
                                                     Index3IdxTable.Index3IdxColumn,
@@ -2849,7 +2849,7 @@ public final class DataTable implements
 
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-    @SuppressWarnings({"all", "deprecation"})
+    @SuppressWarnings({"deprecation"})
     public static final class Index4IdxTable implements
             AtlasDbDynamicMutablePersistentTable<Index4IdxTable.Index4IdxRow,
                                                     Index4IdxTable.Index4IdxColumn,
@@ -3612,5 +3612,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "rtiXo3Hl824pzqFW1ks9RA==";
+    static String __CLASS_HASH = "/7V/mxEXeeAaUxrpahPmtw==";
 }

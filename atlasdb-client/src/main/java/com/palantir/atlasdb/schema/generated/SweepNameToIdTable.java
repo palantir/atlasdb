@@ -87,7 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings({"all", "deprecation"})
+@SuppressWarnings({"deprecation"})
 public final class SweepNameToIdTable implements
         AtlasDbMutablePersistentTable<SweepNameToIdTable.SweepNameToIdRow,
                                          SweepNameToIdTable.SweepNameToIdNamedColumnValue<?>,
@@ -695,5 +695,5 @@ public final class SweepNameToIdTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "NWWwWl/G7W6EnTyvWmoGZw==";
+    static String __CLASS_HASH = "ENj1Zm59fKVdM2Br0sphwA==";
 }
