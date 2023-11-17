@@ -18,7 +18,7 @@ package com.palantir.example.profile;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.palantir.atlasdb.factory.InMemoryLockAndTimestampServiceFactoryV2;
+import com.palantir.atlasdb.factory.InMemoryLockAndTimestampServiceFactory;
 import com.palantir.atlasdb.factory.TransactionManagers;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -55,7 +55,7 @@ public class ProfileStoreTest {
     public void before() {
         txnMgr = TransactionManagers.createInMemory(
                 ProfileSchema.INSTANCE.getLatestSchema(),
-                new InMemoryLockAndTimestampServiceFactoryV2(inMemoryTimelockExtension));
+                new InMemoryLockAndTimestampServiceFactory(inMemoryTimelockExtension));
     }
 
     @AfterEach

@@ -22,7 +22,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.AtlasDbTestCaseV2;
+import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -50,7 +50,7 @@ import java.util.Map;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.junit.jupiter.api.Test;
 
-public class TableMigratorTest extends AtlasDbTestCaseV2 {
+public class TableMigratorTest extends AtlasDbTestCase {
     @Test
     public void testNeedArguments() {
         TableMigratorBuilder builder = new TableMigratorBuilder();

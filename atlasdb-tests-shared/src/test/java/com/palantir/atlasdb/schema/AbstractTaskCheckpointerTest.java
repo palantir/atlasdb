@@ -17,7 +17,7 @@ package com.palantir.atlasdb.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.palantir.atlasdb.AtlasDbTestCaseV2;
+import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import java.util.HashMap;
@@ -26,7 +26,7 @@ import java.util.Random;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCaseV2 {
+public abstract class AbstractTaskCheckpointerTest extends AtlasDbTestCase {
     protected AbstractTaskCheckpointer checkpointer;
 
     protected abstract AbstractTaskCheckpointer getCheckpointer();

@@ -30,14 +30,12 @@ import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.atlasdb.services.test.DaggerTestAtlasDbServices;
 import com.palantir.atlasdb.services.test.TestAtlasDbServices;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.timelock.paxos.InMemoryTimeLockRule;
-import com.palantir.timelock.paxos.InMemoryTimelockServices;
+import com.palantir.timelock.paxos.InMemoryTimelockClassExtension;
 import io.airlift.airline.Command;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class TestFastForwardTimestampCommand {
     private static final String TIMESTAMP_GROUP = "timestamp";
     private static final String FETCH_COMMAND =
@@ -49,12 +47,12 @@ public class TestFastForwardTimestampCommand {
 
     private AtlasDbServicesFactory moduleFactory;
 
-    @ClassRule
-    public static InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
+    @RegisterExtension
+    public static InMemoryTimelockClassExtension inMemoryTimelockClassExtension = new InMemoryTimelockClassExtension();
 
-    @Before
+    @BeforeEach
     public void setUp() {
-        moduleFactory = createModuleFactory(inMemoryTimeLockRule.get());
+        moduleFactory = createModuleFactory(inMemoryTimelockClassExtension);
     }
 
     @Test
@@ -100,29 +98,31 @@ public class TestFastForwardTimestampCommand {
         return new InMemoryTestRunner(FastForwardTimestamp.class, args);
     }
 
-    private static AtlasDbServicesFactory createModuleFactory(InMemoryTimelockServices services) {
+    private static AtlasDbServicesFactory createModuleFactory(
+            InMemoryTimelockClassExtension inMemoryTimelockClassExtension) {
         return new AtlasDbServicesFactory() {
             @Override
             public TestAtlasDbServices connect(ServicesConfigModule servicesConfigModule) {
                 return DaggerTestAtlasDbServices.builder()
                         .servicesConfigModule(servicesConfigModule)
-                        .lockAndTimestampModule(new FakeLockAndTimestampModule(services))
+                        .lockAndTimestampModule(new FakeLockAndTimestampModule(inMemoryTimelockClassExtension))
                         .build();
             }
         };
     }
 
     private static final class FakeLockAndTimestampModule extends LockAndTimestampModule {
-        private final InMemoryTimelockServices services;
+        private final InMemoryTimelockClassExtension inMemoryTimelockClassExtension;
 
-        public FakeLockAndTimestampModule(InMemoryTimelockServices services) {
-            this.services = services;
+        public FakeLockAndTimestampModule(InMemoryTimelockClassExtension inMemoryTimelockClassExtension) {
+            this.inMemoryTimelockClassExtension = inMemoryTimelockClassExtension;
         }
 
         @Override
         public LockAndTimestampServices provideLockAndTimestampServices(
                 MetricsManager _metricsManager, ServicesConfig _config) {
-            return new InMemoryLockAndTimestampServiceFactory(services).createLockAndTimestampServices();
+            return new InMemoryLockAndTimestampServiceFactory(inMemoryTimelockClassExtension)
+                    .createLockAndTimestampServices();
         }
     }
 }

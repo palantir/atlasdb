@@ -53,7 +53,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbTestCase;
-import com.palantir.atlasdb.AtlasDbTestCaseV2;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
@@ -200,7 +199,7 @@ import org.mockito.InOrder;
 import org.mockito.Mockito;
 
 @SuppressWarnings("checkstyle:all")
-public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCaseV2 {
+public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
     static final String SYNC = "sync";
     static final String ASYNC = "async";
     private static final Consumer<Long> NO_OP_THROW_IF_CONDITION_INVALID = _timestamp -> {};
