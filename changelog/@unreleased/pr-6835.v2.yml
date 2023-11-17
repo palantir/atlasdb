@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Whenever a new version is published, we also tag our container images
+    to antithesis reposity. And schedule an experiment to run regularly now.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6835
