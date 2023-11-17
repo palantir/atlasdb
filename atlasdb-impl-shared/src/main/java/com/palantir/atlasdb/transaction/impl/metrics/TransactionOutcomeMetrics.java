@@ -35,6 +35,7 @@ public class TransactionOutcomeMetrics {
     private final Predicate<TableReference> safeForLogging;
     private final TransactionMetrics metrics;
 
+    // This is exposed for TransactionOutcomeMetricsAssert
     @VisibleForTesting
     final TaggedMetricRegistry metricRegistry;
 
