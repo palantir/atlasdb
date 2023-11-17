@@ -54,11 +54,6 @@ public class TransactionOutcomeMetricsAssert
         return this;
     }
 
-    public TransactionOutcomeMetricsAssert hasRollbackOther(long count) {
-        checkPresentAndCheckCount(TransactionOutcome.ROLLBACK_OTHER, count);
-        return this;
-    }
-
     public TransactionOutcomeMetricsAssert hasCommitLockAcquisitionFailures(long count) {
         checkPresentAndCheckCount(TransactionOutcome.COMMIT_LOCK_ACQUISITION_FAILED, count);
         return this;

@@ -111,6 +111,7 @@ import com.palantir.atlasdb.transaction.impl.expectations.CellCountValidator;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceImpl;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
+import com.palantir.atlasdb.transaction.impl.metrics.TransactionMetrics;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
@@ -285,6 +286,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TableLevelMetricsController tableLevelMetricsController;
     protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
     private final CommitTimestampLoader commitTimestampLoader;
+    private final TransactionMetrics transactionMetrics;
     private final ExpectationsMetrics expectationsDataCollectionMetrics;
     private volatile long cellCommitLocksRequested = 0L;
     private volatile long rowCommitLocksRequested = 0L;
@@ -361,7 +363,6 @@ public class SnapshotTransaction extends AbstractTransaction
         this.deleteExecutor = deleteExecutor;
         this.hasReads = false;
         this.hasPossiblyUnvalidatedReads = false;
-        this.transactionOutcomeMetrics = TransactionOutcomeMetrics.create(metricsManager.getTaggedRegistry());
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
         this.tableLevelMetricsController = tableLevelMetricsController;
@@ -376,6 +377,8 @@ public class SnapshotTransaction extends AbstractTransaction
                 timelockService,
                 immutableTimestamp,
                 knowledge);
+        this.transactionMetrics = TransactionMetrics.of(metricsManager.getTaggedRegistry());
+        this.transactionOutcomeMetrics = TransactionOutcomeMetrics.create(metricsManager.getTaggedRegistry());
         this.expectationsDataCollectionMetrics = ExpectationsMetrics.of(metricsManager.getTaggedRegistry());
     }
 
@@ -2512,7 +2515,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private boolean rollbackOtherTransaction(long startTs, TransactionService transactionService) {
         try {
             transactionService.putUnlessExists(startTs, TransactionConstants.FAILED_COMMIT_TS);
-            transactionOutcomeMetrics.markRollbackOtherTransaction();
+            transactionMetrics.rolledBackOtherTransaction().mark();
             return true;
         } catch (KeyAlreadyExistsException e) {
             log.debug(

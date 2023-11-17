@@ -81,10 +81,6 @@ public class TransactionOutcomeMetrics {
         getMeter(TransactionOutcome.PUT_UNLESS_EXISTS_FAILED).mark();
     }
 
-    public void markRollbackOtherTransaction() {
-        getMeter(TransactionOutcome.ROLLBACK_OTHER).mark();
-    }
-
     public void markCommitLockAcquisitionFailed() {
         getMeter(TransactionOutcome.COMMIT_LOCK_ACQUISITION_FAILED).mark();
     }
@@ -124,7 +120,6 @@ public class TransactionOutcomeMetrics {
             case LOCKS_EXPIRED:
             case PRE_COMMIT_CHECK_FAILED:
             case PUT_UNLESS_EXISTS_FAILED:
-            case ROLLBACK_OTHER:
             case COMMIT_LOCK_ACQUISITION_FAILED:
                 return Outcome_Category.FAIL;
             default:

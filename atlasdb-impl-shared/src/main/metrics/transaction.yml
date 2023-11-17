@@ -1,6 +1,5 @@
 options:
   javaPackage: 'com.palantir.atlasdb.transaction.impl.metrics'
-  javaVisibility: packagePrivate
 
 namespaces:
   transaction:
@@ -24,4 +23,7 @@ namespaces:
 
       rolledBackOtherTransaction:
         type: meter
-        docs: The number of transactions that were rolled back by another transaction
+        docs: | 
+          The number of times a transaction has rolled back another transaction (for example, if we read a value from a transaction
+          that started before our start timestamp and hasn't committed). This will be logged at most once for a given
+          transaction being rolled back, even if multiple transactions aim to rollback the same transaction.
