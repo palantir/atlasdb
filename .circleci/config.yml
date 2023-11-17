@@ -164,7 +164,7 @@ workflows:
       - trigger-antithesis-simulation
     triggers:
       - schedule:
-          cron: "0 10 * * 1"
+          cron: "0 10 * * *"
           filters:
             branches:
               only: develop
