@@ -236,7 +236,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     private final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(8);
     private final int defaultGetRangesConcurrency = 2;
     private final TransactionOutcomeMetrics transactionOutcomeMetrics =
-            TransactionOutcomeMetrics.create(metricsManager);
+            TransactionOutcomeMetrics.create(metricsManager.getTaggedRegistry());
     private final TableLevelMetricsController tableLevelMetricsController =
             ToplistDeltaFilteringTableLevelMetricsController.create(
                     metricsManager, DefaultMetricsFilterEvaluationContext.createDefault());

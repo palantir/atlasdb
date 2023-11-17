@@ -361,7 +361,7 @@ public class SnapshotTransaction extends AbstractTransaction
         this.deleteExecutor = deleteExecutor;
         this.hasReads = false;
         this.hasPossiblyUnvalidatedReads = false;
-        this.transactionOutcomeMetrics = TransactionOutcomeMetrics.create(metricsManager);
+        this.transactionOutcomeMetrics = TransactionOutcomeMetrics.create(metricsManager.getTaggedRegistry());
         this.validateLocksOnReads = validateLocksOnReads;
         this.transactionConfig = transactionConfig;
         this.tableLevelMetricsController = tableLevelMetricsController;
