@@ -18,13 +18,17 @@ package com.palantir.atlasdb.containers;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.contrib.java.lang.system.EnvironmentVariables;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
+import uk.org.webcompere.systemstubs.jupiter.SystemStub;
+import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
 
+@ExtendWith(SystemStubsExtension.class)
 public class CassandraEnvironmentTest {
-    @Rule
-    public final EnvironmentVariables environment = new EnvironmentVariables();
+
+    @SystemStub
+    public EnvironmentVariables environment = new EnvironmentVariables();
 
     @Test
     public void testDefaults() {

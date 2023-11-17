@@ -28,6 +28,7 @@ import java.net.Proxy;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.rules.ExternalResource;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class UninitializedCassandraResource extends ExternalResource {
     private final CassandraContainer containerInstance = CassandraContainer.throwawayContainer();
     private final Containers containers;

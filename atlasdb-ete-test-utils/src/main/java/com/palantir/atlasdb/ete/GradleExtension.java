@@ -21,23 +21,23 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import org.junit.rules.ExternalResource;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
-/* TODO(boyoruk): Delete this when JUnit5 upgrade is done */
-public final class Gradle extends ExternalResource {
+public final class GradleExtension implements BeforeAllCallback {
 
     private final String command;
 
-    private Gradle(String command) {
+    private GradleExtension(String command) {
         this.command = command;
     }
 
-    public static Gradle ensureTaskHasRun(String command) {
-        return new Gradle(command);
+    public static GradleExtension ensureTaskHasRun(String command) {
+        return new GradleExtension(command);
     }
 
     @Override
-    protected void before() throws Throwable {
+    public void beforeAll(ExtensionContext var1) {
         if (isRunningOutsideOfGradle()) {
             System.out.println("It looks like you are not running in gradle,"
                     + " performing the required gradle command: " + command); // (authorized)

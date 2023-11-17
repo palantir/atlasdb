@@ -29,11 +29,11 @@ dependencies {
     annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'
 
-    testImplementation 'com.github.stefanbirkner:system-rules'
+    testImplementation 'uk.org.webcompere:system-stubs-jupiter'
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
 
-    /* TODO(boyoruk): Migrate to JUnit5 */
     testImplementation 'junit:junit'
     testRuntimeOnly 'org.junit.vintage:junit-vintage-engine', {
         because 'allows JUnit 3 and JUnit 4 tests to run'
