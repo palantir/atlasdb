@@ -27,8 +27,8 @@ import org.assertj.core.api.WritableAssertionInfo;
 
 public class TransactionOutcomeMetricsAssert
         extends AbstractAssert<TransactionOutcomeMetricsAssert, TransactionOutcomeMetrics> {
-    private final WritableAssertionInfo writableAssertionInfo = new WritableAssertionInfo();
     private final TaggedMetricRegistry taggedMetricRegistry;
+    private final WritableAssertionInfo writableAssertionInfo = new WritableAssertionInfo();
 
     public TransactionOutcomeMetricsAssert(TransactionOutcomeMetrics actual) {
         super(actual, TransactionOutcomeMetricsAssert.class);
