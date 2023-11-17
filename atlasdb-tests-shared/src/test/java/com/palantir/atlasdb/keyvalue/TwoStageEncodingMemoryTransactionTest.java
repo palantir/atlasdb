@@ -15,77 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
-import com.palantir.atlasdb.transaction.impl.AbstractTransactionTestV2;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.atlasdb.transaction.impl.TransactionSchemaVersionEnforcement;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class TwoStageEncodingMemoryTransactionTest extends AbstractTransactionTestV2 {
-
-    @RegisterExtension
-    public static final TestResourceManagerV2 TRM = TestResourceManagerV2.inMemory();
-
-    private static final byte[] ROW_1 = PtBytes.toBytes("row1");
-    private static final byte[] ZERO = new byte[0];
-
+public class TwoStageEncodingMemoryTransactionTest extends AbstractMemoryTransactionTest {
     public TwoStageEncodingMemoryTransactionTest() {
-        super(TRM, TRM);
-    }
-
-    @BeforeEach
-    public void before() {
-        keyValueService.truncateTable(AtlasDbConstants.COORDINATION_TABLE);
-        TransactionSchemaVersionEnforcement.ensureTransactionsGoingForwardHaveSchemaVersion(
-                transactionSchemaManager,
-                timestampService,
-                timestampManagementService,
-                TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
-    }
-
-    @Test
-    public void testKeyValueRangeColumnSelectionEndInclusive() {
-        setup();
-        assertThat(keyValueService.getRowKeysInRange(TEST_TABLE, ZERO, ROW_1, 9))
-                .containsExactly(ROW_1);
-    }
-
-    @Test
-    public void testKeyValueRangeColumnSelectionEntireTable() {
-        setup();
-        byte[] row1 = PtBytes.toBytes("row1");
-        assertThat(keyValueService.getRowKeysInRange(TEST_TABLE, ZERO, ZERO, 9))
-                .containsExactly(row1, PtBytes.toBytes("row1a"), PtBytes.toBytes("row2"));
-    }
-
-    @Test
-    public void testKeyValueRangeColumnSelectionStartInclusive() {
-        setup();
-        byte[] row1 = PtBytes.toBytes("row1");
-        assertThat(keyValueService.getRowKeysInRange(TEST_TABLE, ROW_1, ZERO, 9))
-                .containsExactly(row1, PtBytes.toBytes("row1a"), PtBytes.toBytes("row2"));
-    }
-
-    @Test
-    public void testKeyValueRangeColumnSelectionMaxResults() {
-        setup();
-        byte[] row1 = PtBytes.toBytes("row1");
-        assertThat(keyValueService.getRowKeysInRange(TEST_TABLE, ZERO, ZERO, 2))
-                .containsExactly(row1, PtBytes.toBytes("row1a"));
-    }
-
-    private void setup() {
-        putDirect("row1", "col1", "v1", 0);
-        putDirect("row1", "col2", "v2", 2);
-        putDirect("row1", "col4", "v5", 3);
-        putDirect("row1a", "col4", "v5", 100);
-        putDirect("row2", "col2", "v3", 1);
-        putDirect("row2", "col4", "v4", 6);
+        super(TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
     }
 }

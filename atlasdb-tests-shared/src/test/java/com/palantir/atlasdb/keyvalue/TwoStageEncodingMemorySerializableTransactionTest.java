@@ -15,29 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue;
 
-import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
-import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTestV2;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-import com.palantir.atlasdb.transaction.impl.TransactionSchemaVersionEnforcement;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class TwoStageEncodingMemorySerializableTransactionTest extends AbstractSerializableTransactionTestV2 {
-    @RegisterExtension
-    public static final TestResourceManagerV2 TRM = TestResourceManagerV2.inMemory();
-
+public class TwoStageEncodingMemorySerializableTransactionTest extends AbstractMemorySerializableTransactionTest {
     public TwoStageEncodingMemorySerializableTransactionTest() {
-        super(TRM, TRM);
-    }
-
-    @BeforeEach
-    public void before() {
-        keyValueService.truncateTable(AtlasDbConstants.COORDINATION_TABLE);
-        TransactionSchemaVersionEnforcement.ensureTransactionsGoingForwardHaveSchemaVersion(
-                transactionSchemaManager,
-                timestampService,
-                timestampManagementService,
-                TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
+        super(TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
     }
 }
