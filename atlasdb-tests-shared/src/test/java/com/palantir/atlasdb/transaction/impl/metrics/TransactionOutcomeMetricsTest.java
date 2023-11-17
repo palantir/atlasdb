@@ -45,8 +45,10 @@ public class TransactionOutcomeMetricsTest {
 
     private final MetricsManager metricsManager =
             new MetricsManager(metricRegistry, taggedMetricRegistry, SAFE_REFERENCES::contains);
-    private final TransactionOutcomeMetrics transactionOutcomeMetrics =
-            new TransactionOutcomeMetrics(metricsManager.getTaggedRegistry(), SAFE_REFERENCES::contains);
+    private final TransactionOutcomeMetrics transactionOutcomeMetrics = new TransactionOutcomeMetrics(
+            TransactionMetrics.of(metricsManager.getTaggedRegistry()),
+            metricsManager.getTaggedRegistry(),
+            SAFE_REFERENCES::contains);
 
     @Test
     public void canMarkOneSuccessfulCommit() {

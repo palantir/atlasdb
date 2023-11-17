@@ -36,17 +36,18 @@ public class TransactionOutcomeMetrics {
     private final TransactionMetrics metrics;
 
     @VisibleForTesting
-    final TaggedMetricRegistry registry;
+    final TaggedMetricRegistry metricRegistry;
 
     @VisibleForTesting
-    TransactionOutcomeMetrics(TaggedMetricRegistry metricRegistry, Predicate<TableReference> safeForLogging) {
+    TransactionOutcomeMetrics(
+            TransactionMetrics metrics, TaggedMetricRegistry metricRegistry, Predicate<TableReference> safeForLogging) {
         this.safeForLogging = safeForLogging;
-        this.metrics = TransactionMetrics.of(metricRegistry);
-        this.registry = metricRegistry;
+        this.metrics = metrics;
+        this.metricRegistry = metricRegistry;
     }
 
-    public static TransactionOutcomeMetrics create(TaggedMetricRegistry metricRegistry) {
-        return new TransactionOutcomeMetrics(metricRegistry, LoggingArgs::isSafe);
+    public static TransactionOutcomeMetrics create(TransactionMetrics metrics, TaggedMetricRegistry metricRegistry) {
+        return new TransactionOutcomeMetrics(metrics, metricRegistry, LoggingArgs::isSafe);
     }
 
     public void markSuccessfulCommit() {

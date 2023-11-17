@@ -378,7 +378,8 @@ public class SnapshotTransaction extends AbstractTransaction
                 immutableTimestamp,
                 knowledge);
         this.transactionMetrics = TransactionMetrics.of(metricsManager.getTaggedRegistry());
-        this.transactionOutcomeMetrics = TransactionOutcomeMetrics.create(metricsManager.getTaggedRegistry());
+        this.transactionOutcomeMetrics =
+                TransactionOutcomeMetrics.create(transactionMetrics, metricsManager.getTaggedRegistry());
         this.expectationsDataCollectionMetrics = ExpectationsMetrics.of(metricsManager.getTaggedRegistry());
     }
 

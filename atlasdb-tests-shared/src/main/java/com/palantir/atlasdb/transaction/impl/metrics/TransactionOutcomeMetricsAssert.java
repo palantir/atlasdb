@@ -32,7 +32,7 @@ public class TransactionOutcomeMetricsAssert
 
     public TransactionOutcomeMetricsAssert(TransactionOutcomeMetrics actual) {
         super(actual, TransactionOutcomeMetricsAssert.class);
-        this.taggedMetricRegistry = actual.registry;
+        this.taggedMetricRegistry = actual.metricRegistry;
     }
 
     public static TransactionOutcomeMetricsAssert assertThat(TransactionOutcomeMetrics actual) {
