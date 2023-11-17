@@ -32,8 +32,9 @@ import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.MetricRegistry;
 import com.github.tomakehurst.wiremock.client.MappingBuilder;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -75,7 +76,6 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
-import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.TimeDuration;
@@ -83,13 +83,15 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.refreshable.SettableRefreshable;
+import com.palantir.test.utils.SubdirectoryCreator;
 import com.palantir.timelock.feedback.ConjureTimeLockClientFeedback;
-import com.palantir.timelock.paxos.InMemoryTimeLockRule;
+import com.palantir.timelock.paxos.InMemoryTimelockClassExtension;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
@@ -101,16 +103,13 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import org.assertj.core.util.Files;
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.io.TempDir;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class TransactionManagersTest {
     private static final String USER_AGENT_NAME = "user-agent";
     private static final String USER_AGENT_VERSION = "3.1415926.5358979";
@@ -123,8 +122,6 @@ public class TransactionManagersTest {
     private static final String CURRENT_TIME_MILLIS = "currentTimeMillis";
     private static final String LOCK_SERVICE_CURRENT_TIME_METRIC =
             MetricRegistry.name(LockService.class, CURRENT_TIME_MILLIS);
-    private static final String NAMESPACE_AGNOSTIC_LOCK_RPC_CLIENT_CURRENT_TIME_METRIC =
-            MetricRegistry.name(NamespaceAgnosticLockRpcClient.class, CURRENT_TIME_MILLIS);
     private static final String TIMESTAMP_SERVICE_FRESH_TIMESTAMP_METRIC =
             MetricRegistry.name(TimestampService.class, "getFreshTimestamp");
 
@@ -157,17 +154,18 @@ public class TransactionManagersTest {
     private TimestampStoreInvalidator invalidator;
     private Consumer<Runnable> originalAsyncMethod;
 
-    @ClassRule
-    public static final TemporaryFolder temporaryFolder = new TemporaryFolder(Files.currentFolder());
+    @TempDir
+    File temporaryFolder;
 
-    @Rule
-    public WireMockRule availableServer =
-            new WireMockRule(WireMockConfiguration.wireMockConfig().dynamicPort());
+    @RegisterExtension
+    public static WireMockExtension availableServer = WireMockExtension.newInstance()
+            .options(WireMockConfiguration.wireMockConfig().dynamicPort())
+            .build();
 
-    @ClassRule
-    public static InMemoryTimeLockRule services = new InMemoryTimeLockRule();
+    @RegisterExtension
+    public static InMemoryTimelockClassExtension inMemoryTimeLockClassExtension = new InMemoryTimelockClassExtension();
 
-    @Before
+    @BeforeEach
     public void setUp() {
         // Change code to run synchronously, but with a timeout in case something's gone horribly wrong
         originalAsyncMethod = TransactionManagers.runAsync;
@@ -199,7 +197,8 @@ public class TransactionManagersTest {
         invalidator = mock(TimestampStoreInvalidator.class);
         when(invalidator.backupAndInvalidate()).thenReturn(EMBEDDED_BOUND);
 
-        availablePort = availableServer.port();
+        availablePort = availableServer.getPort();
+        WireMock.configureFor(availablePort);
 
         rawRemoteServerConfig = ImmutableServerListConfig.builder()
                 .addServers(getUriForPort(availablePort))
@@ -207,7 +206,7 @@ public class TransactionManagersTest {
                 .build();
     }
 
-    @After
+    @AfterEach
     public void restoreAsyncExecution() {
         TransactionManagers.runAsync = originalAsyncMethod;
     }
@@ -336,7 +335,7 @@ public class TransactionManagersTest {
     }
 
     @Test
-    public void runsClosingCallbackOnShutdown() throws Exception {
+    public void runsClosingCallbackOnShutdown() {
         AtlasDbConfig atlasDbConfig = ImmutableAtlasDbConfig.builder()
                 .keyValueService(new InMemoryAtlasDbConfig())
                 .defaultLockTimeoutSeconds(120)
@@ -632,13 +631,13 @@ public class TransactionManagersTest {
         when(config.remoteTimestampAndLockOrLeaderBlocksPresent()).thenReturn(true);
     }
 
-    private void setUpLeaderBlockInConfig() throws IOException {
+    private void setUpLeaderBlockInConfig() {
         when(config.leader())
                 .thenReturn(Optional.of(ImmutableLeaderConfig.builder()
                         .localServer(getUriForPort(availablePort))
                         .addLeaders(getUriForPort(availablePort))
-                        .acceptorLogDir(temporaryFolder.newFolder())
-                        .learnerLogDir(temporaryFolder.newFolder())
+                        .acceptorLogDir(SubdirectoryCreator.createAndGetSubdirectory(temporaryFolder, "acceptor"))
+                        .learnerLogDir(SubdirectoryCreator.createAndGetSubdirectory(temporaryFolder, "learner"))
                         .quorumSize(1)
                         .sslConfiguration(SSL_CONFIGURATION)
                         .build()));
@@ -646,7 +645,7 @@ public class TransactionManagersTest {
     }
 
     private LockAndTimestampServices getLockAndTimestampServices() {
-        ManagedTimestampService ts = services.getManagedTimestampService();
+        ManagedTimestampService ts = inMemoryTimeLockClassExtension.getManagedTimestampService();
         return new DefaultLockAndTimestampServiceFactory(
                         metricsManager,
                         config,

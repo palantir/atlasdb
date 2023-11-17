@@ -32,10 +32,6 @@ dependencies {
 
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'io.dropwizard:dropwizard-testing'
-    testImplementation 'junit:junit'
-    testRuntimeOnly 'org.junit.vintage:junit-vintage-engine', {
-        because 'allows JUnit 3 and JUnit 4 tests to run'
-    }
 }
 
 

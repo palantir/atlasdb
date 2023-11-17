@@ -56,14 +56,12 @@ dependencies {
     testImplementation 'org.apache.commons:commons-math3'
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
 
     annotationProcessor 'org.immutables:value'
     annotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess'
     compileOnly 'org.immutables:value::annotations'
     compileOnly 'org.openjdk.jmh:jmh-generator-annprocess'
-
-    /* TODO(boyoruk): Migrate to JUnit5 */
-    testImplementation 'junit:junit'
 }
 
 distZip {

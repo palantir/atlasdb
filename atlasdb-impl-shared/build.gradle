@@ -85,7 +85,7 @@ dependencies {
   testImplementation project(':atlasdb-client-protobufs')
   testImplementation project(':commons-annotations')
   testImplementation project(':commons-executors')
-  testImplementation project(':flake-rule')
+  testImplementation project(':flake-extension')
   testImplementation project(':lock-api')
   testImplementation project(':lock-api-objects')
   testImplementation project(':timelock-api:timelock-api-objects')
@@ -117,11 +117,6 @@ dependencies {
   }
   testImplementation 'one.util:streamex'
   testRuntimeOnly 'ch.qos.logback:logback-classic'
-
-  testImplementation 'junit:junit'
-  testRuntimeOnly 'org.junit.vintage:junit-vintage-engine', {
-    because 'allows JUnit 3 and JUnit 4 tests to run'
-  }
 }
 
 configurations.testImplementation {

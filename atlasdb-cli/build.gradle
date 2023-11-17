@@ -7,7 +7,7 @@ dependencies {
     api project(':atlasdb-client')
     api project(':atlasdb-config')
     api project(':timestamp-api')
-    testImplementation project(path: ':flake-rule')
+    testImplementation project(path: ':flake-extension')
 
     compileOnly 'com.google.dagger:dagger'
     implementation 'io.airlift:airline'
@@ -50,9 +50,4 @@ dependencies {
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'org.junit.jupiter:junit-jupiter'
-
-    testImplementation 'junit:junit'
-    testRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
-        because 'allows JUnit 3 and JUnit 4 tests to run'
-    }
 }

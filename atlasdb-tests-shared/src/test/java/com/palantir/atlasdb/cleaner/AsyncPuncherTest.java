@@ -22,14 +22,13 @@ import static org.mockito.Mockito.when;
 import com.google.common.base.Suppliers;
 import com.palantir.common.time.Clock;
 import com.palantir.common.time.SystemClock;
-import com.palantir.timelock.paxos.InMemoryTimeLockRule;
+import com.palantir.timelock.paxos.InMemoryTimelockExtension;
 import com.palantir.timestamp.TimestampService;
 import java.util.function.LongSupplier;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class AsyncPuncherTest {
 
     private static final long TRANSACTION_TIMEOUT = 10;
@@ -42,12 +41,12 @@ public class AsyncPuncherTest {
 
     private TimestampService timestampService;
 
-    @Rule
-    public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
+    @RegisterExtension
+    public InMemoryTimelockExtension inMemoryTimelockExtension = new InMemoryTimelockExtension();
 
-    @Before
+    @BeforeEach
     public void setup() {
-        timestampService = inMemoryTimeLockRule.getTimestampService();
+        timestampService = inMemoryTimelockExtension.getTimestampService();
     }
 
     private AsyncPuncher setupPuncher(LongSupplier backupTimestampSupplier) {

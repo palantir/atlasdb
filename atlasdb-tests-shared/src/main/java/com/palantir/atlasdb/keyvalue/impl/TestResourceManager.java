@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import org.junit.rules.ExternalResource;
 
+/* TODO(boyoruk): Delete this when JUnit5 upgrade is done */
 public class TestResourceManager extends ExternalResource implements KvsManager, TransactionManagerManager {
     private final Supplier<KeyValueService> getKvsSupplier;
     private final List<AutoCloseable> closeableResources = new ArrayList<>();

@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Hint Oracle GET_ROWS_COLUMN_RANGE to avoid bad plan where stats are
+    out of date.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6825

@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: Fixed a TimeLock race condition where it can enter a probabilistic
+    livelock state where a node remains the leader but fails the majority of its requests
+    with 503s.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6824

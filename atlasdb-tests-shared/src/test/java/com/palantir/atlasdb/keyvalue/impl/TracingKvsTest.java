@@ -31,13 +31,15 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.junit.ClassRule;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
-public class TracingKvsTest extends AbstractKeyValueServiceTest {
-    @ClassRule
-    public static final TestResourceManager TRM =
-            new TestResourceManager(() -> TracingKeyValueService.create(new InMemoryKeyValueService(false)));
+public class TracingKvsTest extends AbstractKeyValueServiceTestV2 {
+
+    @RegisterExtension
+    public static final TestResourceManagerV2 TRM =
+            new TestResourceManagerV2(() -> TracingKeyValueService.create(new InMemoryKeyValueService(false)));
 
     private static final SafeLogger log = SafeLoggerFactory.get(TracingKvsTest.class);
     private static final String TEST_OBSERVER_NAME = TracingKvsTest.class.getName();
@@ -47,6 +49,7 @@ public class TracingKvsTest extends AbstractKeyValueServiceTest {
     }
 
     @Override
+    @BeforeEach
     public void setUp() throws Exception {
         Tracer.initTrace(Optional.of(true), getClass().getSimpleName() + "." + Math.random());
         Tracer.subscribe(TEST_OBSERVER_NAME, new TestSpanObserver());
@@ -55,6 +58,7 @@ public class TracingKvsTest extends AbstractKeyValueServiceTest {
     }
 
     @Override
+    @AfterEach
     public void tearDown() throws Exception {
         try {
             Optional<Span> finishedSpan = Tracer.completeSpan();

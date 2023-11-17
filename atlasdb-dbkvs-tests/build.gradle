@@ -40,6 +40,9 @@ dependencies {
 
   /* TODO(boyoruk): Migrate to JUnit5 */
   testImplementation 'junit:junit'
+  testRuntimeOnly 'org.junit.vintage:junit-vintage-engine', {
+    because 'allows JUnit 3 and JUnit 4 tests to run'
+  }
 }
 
 task postgresTest(type: Test) {
@@ -51,6 +54,7 @@ task postgresTest(type: Test) {
 task oracleTest(type: Test) {
     maxHeapSize = "1024m"
     include '**/DbKvsOracleTestSuite.class'
+    include '**/OracleNamespaceDeleterTests.class'
     maxParallelForks 2
 }
 

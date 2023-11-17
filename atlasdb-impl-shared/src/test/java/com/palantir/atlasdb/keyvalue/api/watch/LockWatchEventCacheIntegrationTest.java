@@ -62,12 +62,10 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class LockWatchEventCacheIntegrationTest {
     private static final String TABLE = "table";
     // Serializes as "dGFibGUAAQ=="
@@ -129,22 +127,19 @@ public class LockWatchEventCacheIntegrationTest {
     private LockWatchEventCache eventCache;
     private int part;
 
-    @Rule
-    public TestName name = new TestName();
-
-    @Before
+    @BeforeEach
     public void before() {
         createEventCache(5);
         part = 1;
     }
 
-    private void verifyStage() {
+    private void verifyStage(TestInfo testInfo) {
         ObjectMapper mapper = new ObjectMapper()
                 .enable(SerializationFeature.INDENT_OUTPUT)
                 .registerModule(new Jdk8Module())
                 .registerModule(new GuavaModule());
         try {
-            Path path = Paths.get(BASE + name.getMethodName() + "/event-cache-" + part + ".json");
+            Path path = Paths.get(BASE + testInfo.getTestMethod().get().getName() + "/event-cache-" + part + ".json");
             LockWatchEventCacheState eventCacheState = realEventCache.getStateForTesting();
 
             if (MODE.isDev()) {
@@ -172,7 +167,7 @@ public class LockWatchEventCacheIntegrationTest {
     }
 
     @Test
-    public void emptySuccessesFollowingSnapshotsDoNotCauseAdditionalCacheClearance() {
+    public void emptySuccessesFollowingSnapshotsDoNotCauseAdditionalCacheClearance(TestInfo testInfo) {
         LockWatchStateUpdate snapshot =
                 LockWatchStateUpdate.snapshot(LEADER, 3L, ImmutableSet.of(DESCRIPTOR_2), ImmutableSet.of());
         LockWatchStateUpdate emptySuccess = LockWatchStateUpdate.success(LEADER, 3L, ImmutableList.of());
@@ -181,10 +176,10 @@ public class LockWatchEventCacheIntegrationTest {
         LockWatchStateUpdate success = LockWatchStateUpdate.success(LEADER, 4L, ImmutableList.of(lockEvent));
 
         setupInitialState();
-        verifyStage();
+        verifyStage(testInfo);
 
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(1L), snapshot);
-        verifyStage();
+        verifyStage(testInfo);
 
         assertThat(eventCache
                         .getUpdateForTransactions(ImmutableSet.of(1L), Optional.of(LockWatchVersion.of(LEADER, 2L)))
@@ -196,7 +191,7 @@ public class LockWatchEventCacheIntegrationTest {
                 .isFalse();
 
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(2L), emptySuccess);
-        verifyStage();
+        verifyStage(testInfo);
 
         assertThat(eventCache
                         .getUpdateForTransactions(ImmutableSet.of(2L), Optional.of(LockWatchVersion.of(LEADER, 3L)))
@@ -204,7 +199,7 @@ public class LockWatchEventCacheIntegrationTest {
                 .isFalse();
 
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(3L), emptySuccess);
-        verifyStage();
+        verifyStage(testInfo);
 
         assertThat(eventCache
                         .getUpdateForTransactions(ImmutableSet.of(3L), Optional.of(LockWatchVersion.of(LEADER, 3L)))
@@ -212,7 +207,7 @@ public class LockWatchEventCacheIntegrationTest {
                 .isFalse();
 
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(99L), success);
-        verifyStage();
+        verifyStage(testInfo);
 
         assertThat(eventCache
                         .getUpdateForTransactions(ImmutableSet.of(99L), Optional.of(LockWatchVersion.of(LEADER, 3L)))
@@ -225,34 +220,34 @@ public class LockWatchEventCacheIntegrationTest {
     }
 
     @Test
-    public void processStartTimestampUpdateOnMultipleBatches() {
+    public void processStartTimestampUpdateOnMultipleBatches(TestInfo testInfo) {
         setupInitialState();
-        verifyStage();
+        verifyStage(testInfo);
 
         Set<Long> secondTimestamps = ImmutableSet.of(5L, 123L);
         eventCache.processStartTransactionsUpdate(secondTimestamps, SUCCESS);
-        verifyStage();
+        verifyStage(testInfo);
 
         Set<Long> thirdTimestamps = ImmutableSet.of(6677L, 8888L);
         eventCache.processStartTransactionsUpdate(thirdTimestamps, SUCCESS_2);
-        verifyStage();
+        verifyStage(testInfo);
     }
 
     @Test
-    public void sameUpdateTwiceButDifferentTimestamps() {
+    public void sameUpdateTwiceButDifferentTimestamps(TestInfo testInfo) {
         setupInitialState();
         Set<Long> secondTimestamps = ImmutableSet.of(11L, 12L);
         Set<Long> thirdTimestamps = ImmutableSet.of(91L, 92L, 93L);
 
         eventCache.processStartTransactionsUpdate(secondTimestamps, SUCCESS);
-        verifyStage();
+        verifyStage(testInfo);
 
         eventCache.processStartTransactionsUpdate(thirdTimestamps, SUCCESS);
-        verifyStage();
+        verifyStage(testInfo);
     }
 
     @Test
-    public void smallerUpdateAfterLargeUpdateDoesNotAffectCache() {
+    public void smallerUpdateAfterLargeUpdateDoesNotAffectCache(TestInfo testInfo) {
         setupInitialState();
         Set<Long> secondTimestamps = ImmutableSet.of(11L, 12L);
         Set<Long> thirdTimestamps = ImmutableSet.of(91L, 92L, 93L);
@@ -261,15 +256,15 @@ public class LockWatchEventCacheIntegrationTest {
                 secondTimestamps,
                 LockWatchStateUpdate.success(
                         LEADER, 7L, ImmutableList.of(WATCH_EVENT, UNLOCK_EVENT, LOCK_EVENT, LOCK_EVENT_2)));
-        verifyStage();
+        verifyStage(testInfo);
 
         eventCache.processStartTransactionsUpdate(
                 thirdTimestamps, LockWatchStateUpdate.success(LEADER, 5L, ImmutableList.of(WATCH_EVENT, UNLOCK_EVENT)));
-        verifyStage();
+        verifyStage(testInfo);
     }
 
     @Test
-    public void largerUpdateAfterSmallUpdateOnlyPicksUpNewEvents() {
+    public void largerUpdateAfterSmallUpdateOnlyPicksUpNewEvents(TestInfo testInfo) {
         setupInitialState();
         Set<Long> secondTimestamps = ImmutableSet.of(11L, 12L);
         Set<Long> thirdTimestamps = ImmutableSet.of(91L, 92L, 93L);
@@ -277,49 +272,49 @@ public class LockWatchEventCacheIntegrationTest {
         eventCache.processStartTransactionsUpdate(
                 secondTimestamps,
                 LockWatchStateUpdate.success(LEADER, 5L, ImmutableList.of(WATCH_EVENT, UNLOCK_EVENT)));
-        verifyStage();
+        verifyStage(testInfo);
 
         eventCache.processStartTransactionsUpdate(
                 thirdTimestamps,
                 LockWatchStateUpdate.success(
                         LEADER, 7L, ImmutableList.of(WATCH_EVENT, UNLOCK_EVENT, LOCK_EVENT, LOCK_EVENT_2)));
-        verifyStage();
+        verifyStage(testInfo);
     }
 
     @Test
-    public void getCommitUpdateIsInvalidateSomeAsEventsAreRetained() {
+    public void getCommitUpdateIsInvalidateSomeAsEventsAreRetained(TestInfo testInfo) {
         createEventCache(2);
         setupInitialState();
         eventCache.processGetCommitTimestampsUpdate(COMMIT_UPDATE, SUCCESS);
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS_2);
-        verifyStage();
+        verifyStage(testInfo);
 
         CommitUpdate commitUpdate = eventCache.getCommitUpdate(START_TS_1);
         assertThat(commitUpdate.accept(new CommitUpdateVisitor())).containsExactlyInAnyOrder(DESCRIPTOR, DESCRIPTOR_3);
 
         eventCache.removeTransactionStateFromCache(START_TS_1);
-        verifyStage();
+        verifyStage(testInfo);
     }
 
     @Test
-    public void cacheClearedOnSnapshotUpdate() {
+    public void cacheClearedOnSnapshotUpdate(TestInfo testInfo) {
         setupInitialState();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
-        verifyStage();
+        verifyStage(testInfo);
 
         LockWatchStateUpdate snapshot2 =
                 LockWatchStateUpdate.snapshot(LEADER, 7L, ImmutableSet.of(DESCRIPTOR), ImmutableSet.of());
         Set<Long> timestamps3 = ImmutableSet.of(123L, 1255L);
         eventCache.processStartTransactionsUpdate(timestamps3, snapshot2);
-        verifyStage();
+        verifyStage(testInfo);
     }
 
     @Test
-    public void getEventsForTransactionsNoCondensing() {
+    public void getEventsForTransactionsNoCondensing(TestInfo testInfo) {
         setupInitialState();
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS);
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS_2);
-        verifyStage();
+        verifyStage(testInfo);
 
         // Client is behind and needs a snapshot, but no compression can be done as the first transaction is at the
         // first version
@@ -340,13 +335,13 @@ public class LockWatchEventCacheIntegrationTest {
     }
 
     @Test
-    public void getEventsForTransactionsSomeCondensing() {
+    public void getEventsForTransactionsSomeCondensing(TestInfo testInfo) {
         setupInitialState();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
-        verifyStage();
+        verifyStage(testInfo);
 
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(START_TS_3), SUCCESS_2);
-        verifyStage();
+        verifyStage(testInfo);
 
         // Client is behind and needs a snapshot, and some but not all events will be condensed
         TransactionsLockWatchUpdate results =
@@ -364,11 +359,11 @@ public class LockWatchEventCacheIntegrationTest {
     }
 
     @Test
-    public void getEventsForTransactionsMaxCondensing() {
+    public void getEventsForTransactionsMaxCondensing(TestInfo testInfo) {
         setupInitialState();
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS);
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS_2);
-        verifyStage();
+        verifyStage(testInfo);
 
         // Client is behind, and all events will be condensed into a single snapshot and no other events
         TransactionsLockWatchUpdate results = eventCache.getUpdateForTransactions(TIMESTAMPS_2, Optional.empty());
@@ -397,21 +392,21 @@ public class LockWatchEventCacheIntegrationTest {
     }
 
     @Test
-    public void leaderChangeClearsCaches() {
+    public void leaderChangeClearsCaches(TestInfo testInfo) {
         setupInitialState();
         eventCache.processStartTransactionsUpdate(
                 TIMESTAMPS_2, LockWatchStateUpdate.success(EVENT2_UUID, 4L, ImmutableList.of()));
-        verifyStage();
+        verifyStage(testInfo);
     }
 
     @Test
-    public void removingEntriesDoesNotRetentionVersions() {
+    public void removingEntriesDoesNotRetentionVersions(TestInfo testInfo) {
         setupInitialState();
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS);
-        verifyStage();
+        verifyStage(testInfo);
 
         eventCache.removeTransactionStateFromCache(START_TS_1);
-        verifyStage();
+        verifyStage(testInfo);
     }
 
     @Test
@@ -568,16 +563,16 @@ public class LockWatchEventCacheIntegrationTest {
     }
 
     @Test
-    public void newEventsCauseOldEventsToBeDeletedOnceTransactionsRemoved() {
+    public void newEventsCauseOldEventsToBeDeletedOnceTransactionsRemoved(TestInfo testInfo) {
         createEventCache(3);
         setupInitialState();
         eventCache.processStartTransactionsUpdate(ImmutableSet.of(), SUCCESS);
-        verifyStage();
+        verifyStage(testInfo);
         eventCache.processStartTransactionsUpdate(TIMESTAMPS_2, SUCCESS_2);
-        verifyStage();
+        verifyStage(testInfo);
         eventCache.removeTransactionStateFromCache(START_TS_1);
         eventCache.removeTransactionStateFromCache(START_TS_2);
-        verifyStage();
+        verifyStage(testInfo);
     }
 
     @Test

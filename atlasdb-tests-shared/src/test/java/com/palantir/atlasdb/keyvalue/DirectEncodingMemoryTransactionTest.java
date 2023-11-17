@@ -13,14 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.paxos;
+package com.palantir.atlasdb.keyvalue;
 
-import com.palantir.paxos.persistence.ProtobufTest;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
-@RunWith(Suite.class)
-@SuiteClasses({ProtobufTest.class, PaxosConsensusFastTest.class, PaxosConsensusSlowTest.class})
-public class AllLeaderElectionTests {}
+public class DirectEncodingMemoryTransactionTest extends AbstractMemoryTransactionTest {
+    public DirectEncodingMemoryTransactionTest() {
+        super(TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
+    }
+}

@@ -13,22 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.util;
+package com.palantir.atlasdb.keyvalue;
 
-import com.palantir.common.base.ThrowablesTest;
-import com.palantir.util.crypto.Sha256HashTest;
-import com.palantir.util.paging.PageDrainerTest;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
-@RunWith(Suite.class)
-@SuiteClasses({
-    ThrowablesTest.class,
-    Sha256HashTest.class,
-    PageDrainerTest.class,
-})
-public class AllAtlasCommonsTests {
-    // blank
+public class DirectEncodingMemorySerializableTransactionTest extends AbstractMemorySerializableTransactionTest {
+    public DirectEncodingMemorySerializableTransactionTest() {
+        super(TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
+    }
 }

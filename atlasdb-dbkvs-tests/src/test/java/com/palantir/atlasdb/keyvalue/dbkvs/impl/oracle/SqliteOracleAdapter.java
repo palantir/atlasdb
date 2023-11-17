@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.endsWith;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.doAnswer;
@@ -356,8 +355,7 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
                         return null;
                     })
                     .when(spy)
-                    .executeUnregisteredQuery(
-                            AdditionalMatchers.and(startsWith("DROP TABLE"), endsWith("PURGE")), any());
+                    .executeUnregisteredQuery(AdditionalMatchers.and(startsWith("DROP TABLE"), endsWith("PURGE")));
             return spy;
         }
     }

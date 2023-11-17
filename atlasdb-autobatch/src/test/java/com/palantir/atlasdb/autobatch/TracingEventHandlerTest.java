@@ -18,19 +18,13 @@ package com.palantir.atlasdb.autobatch;
 
 import com.lmax.disruptor.EventHandler;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher.DisruptorFuture;
-import com.palantir.tracing.RenderTracingRule;
 import com.palantir.tracing.Tracers;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-/* TODO(boyoruk): Do not forget to upgrade this to JUnit5. */
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class TracingEventHandlerTest {
-
-    @Rule
-    public RenderTracingRule renderTracingRule = new RenderTracingRule();
 
     private final EventHandler<BatchElement<Integer, Long>> delegate = new FutureCompletingEventHandler();
 

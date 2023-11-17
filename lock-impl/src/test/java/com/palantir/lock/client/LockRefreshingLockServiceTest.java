@@ -33,23 +33,22 @@ import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class LockRefreshingLockServiceTest {
     private LockRefreshingLockService server;
     private LockDescriptor lock1;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         server = LockRefreshingLockService.create(LockServiceImpl.create(
                 LockServerOptions.builder().isStandaloneServer(false).build()));
         lock1 = StringLockDescriptor.of("lock1");
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (server != null) {
             server.close();

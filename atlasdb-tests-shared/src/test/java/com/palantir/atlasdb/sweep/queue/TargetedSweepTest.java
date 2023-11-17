@@ -44,11 +44,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.awaitility.Awaitility;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class TargetedSweepTest extends AtlasDbTestCase {
     private static final TableReference TABLE_CONS = TableReference.createFromFullyQualifiedName("test.1");
     private static final TableReference TABLE_THOR = TableReference.createFromFullyQualifiedName("test.2");
@@ -59,7 +58,7 @@ public class TargetedSweepTest extends AtlasDbTestCase {
     private static final WriteReference SINGLE_DELETE = WriteReference.tombstone(TABLE_CONS, TEST_CELL);
 
     @Override
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
         keyValueService.createTable(TABLE_CONS, AtlasDbConstants.GENERIC_TABLE_METADATA);
@@ -325,15 +324,15 @@ public class TargetedSweepTest extends AtlasDbTestCase {
      * greater than the timestamp parameter in the presence of concurrent transaction starts. This is because it may
      * go backwards under certain (non-deterministic) scheduling conditions. Writers of sweep tests must ensure that
      * this is the case when writing their tests.
-     *
+     * <p>
      * In the absence of concurrent transaction starts, however, this does guarantee that the immutable timestamp
      * will be strictly greater than the timestamp parameter going forward. Test writers must ensure this is the case
      * if they wish to meaningfully use this method.
-     *
+     * <p>
      * Some tests assert that Sweep has deleted values written by a given transaction. This requires the immutable
      * timestamp to have progressed past the start timestamp of said transaction, which in turn requires that that
      * transaction has released its immutable timestamp lock. Releasing this lock happens asynchronously.
-     *
+     * <p>
      * We thus perform an explicit wait before any iterations of Sweep which change state in a way that assertions
      * depend on.
      */

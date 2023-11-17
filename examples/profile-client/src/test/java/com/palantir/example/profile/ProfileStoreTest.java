@@ -28,7 +28,7 @@ import com.palantir.example.profile.protos.generated.ProfilePersistence.UserProf
 import com.palantir.example.profile.schema.ProfileSchema;
 import com.palantir.example.profile.schema.generated.ProfileTableFactory;
 import com.palantir.example.profile.schema.generated.UserPhotosStreamValueTable;
-import com.palantir.timelock.paxos.InMemoryTimeLockRule;
+import com.palantir.timelock.paxos.InMemoryTimelockExtension;
 import com.palantir.util.crypto.Sha256Hash;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -36,30 +36,29 @@ import java.io.InputStream;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-/* TODO(boyoruk): Migrate to Junit5. */
 public class ProfileStoreTest {
     private static final byte[] IMAGE = new byte[] {0, 1, 2, 3};
     private static final UserProfile USER =
             UserProfile.newBuilder().setBirthEpochDay(0).setName("first last").build();
 
-    @Rule
-    public InMemoryTimeLockRule inMemoryTimeLockRule = new InMemoryTimeLockRule();
+    @RegisterExtension
+    public InMemoryTimelockExtension inMemoryTimelockExtension = new InMemoryTimelockExtension();
 
     private TransactionManager txnMgr;
 
-    @Before
+    @BeforeEach
     public void before() {
         txnMgr = TransactionManagers.createInMemory(
                 ProfileSchema.INSTANCE.getLatestSchema(),
-                new InMemoryLockAndTimestampServiceFactory(inMemoryTimeLockRule.get()));
+                new InMemoryLockAndTimestampServiceFactory(inMemoryTimelockExtension));
     }
 
-    @After
+    @AfterEach
     public void after() {
         txnMgr.close();
     }

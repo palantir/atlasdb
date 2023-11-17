@@ -98,7 +98,7 @@ import java.util.stream.IntStream;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
+/* TODO(boyoruk): Delete this when we complete the JUnit5 migration. */
 @SuppressWarnings("CheckReturnValue")
 public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
     private static final int DEFAULT_COL_COUNT = 101;

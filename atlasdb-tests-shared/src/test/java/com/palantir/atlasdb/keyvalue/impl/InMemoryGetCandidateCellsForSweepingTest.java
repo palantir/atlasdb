@@ -15,12 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.impl;
 
-import org.junit.ClassRule;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
-public class InMemoryGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
-    @ClassRule
-    public static final TestResourceManager TRM = TestResourceManager.inMemory();
+public class InMemoryGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTestV2 {
+    @RegisterExtension
+    public static final TestResourceManagerV2 TRM = TestResourceManagerV2.inMemory();
 
     public InMemoryGetCandidateCellsForSweepingTest() {
         super(TRM);

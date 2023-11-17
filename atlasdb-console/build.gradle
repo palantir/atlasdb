@@ -27,6 +27,7 @@ dependencies {
     testImplementation 'com.fasterxml.jackson.core:jackson-databind'
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.codehaus.groovy:groovy-test'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation project(':atlasdb-client')
 
     testImplementation('org.jmock:jmock-legacy') {
@@ -36,9 +37,6 @@ dependencies {
       exclude group: 'org.hamcrest'
     }
     testImplementation 'org.gmock:gmock'
-
-    /* TODO(boyoruk): Migrate package to JUnit5 */
-    testImplementation 'junit:junit'
 }
 
 tasks.checkImplicitDependenciesMain.enabled = false

@@ -22,7 +22,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import java.net.InetSocketAddress;
 import java.util.Optional;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class KeyValueServiceInstrumentationTest {
 

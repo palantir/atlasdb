@@ -17,53 +17,48 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
-/* TODO(boyoruk): Upgrade to JUnit5 */
-@RunWith(Parameterized.class)
 public class RowsColumnRangeBatchRequestsTest {
-    private final boolean hasPartialFirstRow;
-    private final boolean hasPartialLastRow;
 
-    public RowsColumnRangeBatchRequestsTest(boolean hasPartialFirstRow, boolean hasPartialLastRow) {
-        this.hasPartialFirstRow = hasPartialFirstRow;
-        this.hasPartialLastRow = hasPartialLastRow;
+    private static final String PARAMETERIZED_TEST_NAME = "Partial first row: {0}, partial last row: {1}";
+
+    public static List<Arguments> hasPartialFirstRowsAndHasPartialLastRows() {
+        return List.of(
+                Arguments.of(false, false),
+                Arguments.of(false, true),
+                Arguments.of(true, false),
+                Arguments.of(true, true));
     }
 
-    @Parameters(name = "Partial first row: {0}, partial last row: {1}")
-    public static List<Object[]> getParameters() {
-        return ImmutableList.of(
-                new Object[] {false, false}, new Object[] {false, true}, new Object[] {true, false}, new Object[] {
-                    true, true
-                });
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("hasPartialFirstRowsAndHasPartialLastRows")
+    public void testPartitionSimple(boolean hasPartialFirstRow, boolean hasPartialLastRow) {
+        testPartition(createRequest(1000, hasPartialFirstRow, hasPartialLastRow), 100);
     }
 
-    @Test
-    public void testPartitionSimple() {
-        testPartition(createRequest(1000), 100);
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("hasPartialFirstRowsAndHasPartialLastRows")
+    public void testSinglePartition(boolean hasPartialFirstRow, boolean hasPartialLastRow) {
+        testPartition(createRequest(10, hasPartialFirstRow, hasPartialLastRow), 100);
     }
 
-    @Test
-    public void testSinglePartition() {
-        testPartition(createRequest(10), 100);
+    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
+    @MethodSource("hasPartialFirstRowsAndHasPartialLastRows")
+    public void testPartitionSizeDoesNotDivideNumberOfRows(boolean hasPartialFirstRow, boolean hasPartialLastRow) {
+        testPartition(createRequest(100, hasPartialFirstRow, hasPartialLastRow), 23);
     }
 
-    @Test
-    public void testPartitionSizeDoesNotDivideNumberOfRows() {
-        testPartition(createRequest(100), 23);
-    }
-
-    private RowsColumnRangeBatchRequest createRequest(int numTotalRows) {
+    private RowsColumnRangeBatchRequest createRequest(
+            int numTotalRows, boolean hasPartialFirstRow, boolean hasPartialLastRow) {
         ColumnRangeSelection fullColumnRange = new ColumnRangeSelection(col(0), col(5));
         ImmutableRowsColumnRangeBatchRequest.Builder request =
                 ImmutableRowsColumnRangeBatchRequest.builder().columnRangeSelection(fullColumnRange);

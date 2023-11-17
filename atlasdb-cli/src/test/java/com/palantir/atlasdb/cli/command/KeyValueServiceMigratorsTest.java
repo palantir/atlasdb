@@ -55,15 +55,14 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.timelock.paxos.InMemoryTimeLockRule;
+import com.palantir.timelock.paxos.InMemoryTimelockExtension;
 import com.palantir.timestamp.ManagedTimestampService;
 import java.util.Map;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.ArgumentCaptor;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class KeyValueServiceMigratorsTest {
     private static final long FUTURE_TIMESTAMP = 3141592653589L;
     private static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("test.table");
@@ -81,11 +80,11 @@ public class KeyValueServiceMigratorsTest {
     private static final byte[] TEST_VALUE1 = {2};
     private static final byte[] TEST_VALUE2 = {3};
 
-    @Rule
-    public InMemoryTimeLockRule fromTimeLock = new InMemoryTimeLockRule("fromClient");
+    @RegisterExtension
+    public InMemoryTimelockExtension fromTimeLock = new InMemoryTimelockExtension("fromClient");
 
-    @Rule
-    public InMemoryTimeLockRule toTimeLock = new InMemoryTimeLockRule("toClient");
+    @RegisterExtension
+    public InMemoryTimelockExtension toTimeLock = new InMemoryTimelockExtension("toClient");
 
     private AtlasDbServices fromServices;
     private AtlasDbServices toServices;
@@ -95,7 +94,7 @@ public class KeyValueServiceMigratorsTest {
     private TransactionManager toTxManager;
     private ImmutableMigratorSpec migratorSpec;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         fromServices = createMock(spy(new InMemoryKeyValueService(false)), fromTimeLock);
         toServices = createMock(spy(new InMemoryKeyValueService(false)), toTimeLock);
@@ -346,7 +345,7 @@ public class KeyValueServiceMigratorsTest {
         assertThat(toSplittingServices.getTransactionService().get(100_000)).isEqualTo(100_001L);
     }
 
-    private static AtlasDbServices createMock(KeyValueService kvs, InMemoryTimeLockRule timeLock) {
+    private static AtlasDbServices createMock(KeyValueService kvs, InMemoryTimelockExtension timeLock) {
         ManagedTimestampService timestampService = timeLock.getManagedTimestampService();
         MetricsManager metricsManager = MetricsManagers.createForTests();
 
