@@ -29,7 +29,6 @@ dependencies {
     annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'
 
-    testImplementation 'uk.org.webcompere:system-stubs-jupiter'
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'org.junit.jupiter:junit-jupiter'

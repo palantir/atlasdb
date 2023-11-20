@@ -17,18 +17,15 @@ package com.palantir.atlasdb.containers;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.test.utils.EnvironmentVariablesExtension;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import uk.org.webcompere.systemstubs.environment.EnvironmentVariables;
-import uk.org.webcompere.systemstubs.jupiter.SystemStub;
-import uk.org.webcompere.systemstubs.jupiter.SystemStubsExtension;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-@ExtendWith(SystemStubsExtension.class)
 public class CassandraEnvironmentTest {
 
-    @SystemStub
-    public EnvironmentVariables environment = new EnvironmentVariables();
+    @RegisterExtension
+    public final EnvironmentVariablesExtension environment = new EnvironmentVariablesExtension();
 
     @Test
     public void testDefaults() {
