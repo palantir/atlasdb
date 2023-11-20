@@ -118,7 +118,7 @@ jobs:
     steps:
       - checkout
       - run:
-          command: ./scripts/circle-ci/publish-images-to-antithesis.sh
+          command: ./scripts/circle-ci/trigger-antithesis-simulation.sh
 
   deploy:
     docker:
