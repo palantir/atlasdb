@@ -18,7 +18,7 @@ package com.palantir.atlasdb.containers;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class CassandraCliParserTest {
     private static final String CORRUPT_STRING = "sodu89sydihusd:KSDNLSA";

@@ -5,7 +5,6 @@ com.fasterxml.jackson.core:jackson-databind = 2.15.3
 com.github.ben-manes.caffeine:caffeine = 3.1.8
 com.github.peterwippermann.junit4:parameterized-suite = 1.1.0
 com.github.rholder:guava-retrying = 2.0.0
-com.github.stefanbirkner:system-rules = 1.19.0
 com.github.tomakehurst:wiremock-standalone = 3.0.1
 com.google.auto.service:auto-service = 1.0.1
 com.google.auto.service:auto-service-annotations = 1.0

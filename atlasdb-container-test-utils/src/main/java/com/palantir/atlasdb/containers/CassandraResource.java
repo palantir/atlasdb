@@ -34,6 +34,7 @@ import org.junit.rules.ExternalResource;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class CassandraResource extends ExternalResource implements KvsManager, TransactionManagerManager {
     private final CassandraContainer containerInstance = new CassandraContainer();
     private final Supplier<KeyValueService> supplier;

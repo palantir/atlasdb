@@ -40,23 +40,24 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyleCacheImpl;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.SqliteOracleAdapter.TableDetails;
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleter;
+import com.palantir.test.utils.SubdirectoryCreator;
+import java.io.File;
 import java.io.IOException;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public final class OracleNamespaceDeleterTests {
-    @Rule
-    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+    @TempDir
+    public File temporaryFolder;
 
     private static final String TABLE_PREFIX = "a_";
     private static final String OVERFLOW_TABLE_PREFIX = "ao_";
@@ -70,13 +71,14 @@ public final class OracleNamespaceDeleterTests {
 
     private SqliteOracleAdapter sqliteOracleAdapter;
 
-    @Before
+    @BeforeEach
     public void before() throws IOException {
-        sqliteOracleAdapter = new SqliteOracleAdapter(temporaryFolder.newFile());
+        sqliteOracleAdapter = new SqliteOracleAdapter(
+                SubdirectoryCreator.createAndGetFile(temporaryFolder, "OracleNamespaceDeleterTests"));
         sqliteOracleAdapter.initializeMetadataAndMappingTables();
     }
 
-    @After
+    @AfterEach
     public void after() {
         sqliteOracleAdapter.close();
     }
@@ -437,7 +439,7 @@ public final class OracleNamespaceDeleterTests {
 
     /**
      * An OracleDdlTable factory that throws an exception every 5 + (2^32)n calls.
-     *
+     * <p>
      * This is intended to be used for testing resilience to failures for operations that work across multiple
      * OracleDDLTables.
      */

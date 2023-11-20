@@ -78,7 +78,6 @@ dependencies {
     testImplementation 'com.github.tomakehurst:wiremock-standalone'
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.awaitility:awaitility'
-    testImplementation 'com.github.stefanbirkner:system-rules'
     // Needed for Jersey Response-based tests
     testImplementation 'org.glassfish.jersey.core:jersey-common'
     testImplementation 'org.junit.jupiter:junit-jupiter'
