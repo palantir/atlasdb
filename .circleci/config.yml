@@ -164,6 +164,7 @@ workflows:
       - trigger-antithesis-simulation
     triggers:
       - schedule:
+          # TODO(lmeireles): Temporarily setting this to every day 10am to test. Should change to once a week.
           cron: "0 10 * * *"
           filters:
             branches:
