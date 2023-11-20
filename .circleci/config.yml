@@ -110,6 +110,16 @@ jobs:
     steps:
       - run: {command: echo "Ran all required tests successfully"}
 
+  trigger-antithesis-simulation:
+    machine:
+      image: ubuntu-2204:2023.10.1
+    resource_class: small
+
+    steps:
+      - checkout
+      - run:
+          command: ./scripts/circle-ci/trigger-antithesis-simulation.sh
+
   deploy:
     docker:
       - image: cimg/openjdk:11.0.10-node
@@ -141,8 +151,24 @@ jobs:
               # Internal publishing from an external CircleCI is... not a thing.
               # curl -s --fail $DOCS_URL | bash -s -- -r docs/requirements.txt $CIRCLE_BRANCH
             fi
+      - run:
+          command: |
+            # hack - notion of "owners" isn't supported in Circle 2
+            if [ $CIRCLE_PROJECT_USERNAME = 'palantir' ] && [ -z $CIRCLE_PR_NUMBER ] && [ -z $CIRCLE_TAG ]; then
+              ./scripts/circle-ci/publish-images-to-antithesis.sh
+            fi
 
 workflows:
+  scheduled-antithesis-simulation:
+    jobs:
+      - trigger-antithesis-simulation
+    triggers:
+      - schedule:
+          # TODO(lmeireles): Temporarily setting this to every day 10am to test. Should change to once a week.
+          cron: "0 10 * * *"
+          filters:
+            branches:
+              only: develop
   check:
     jobs:
       - build:
