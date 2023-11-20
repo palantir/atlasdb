@@ -18,38 +18,44 @@ package com.palantir.test.utils;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.extension.AfterEachCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 /** Assumes the given key will be set once. */
 public class EnvironmentVariablesExtension implements AfterEachCallback {
 
-    private final Map<String, String> testValues = new HashMap<>();
+    private final Set<String> testKeys = new HashSet<>();
     private final Map<String, String> originalValues = new HashMap<>();
 
     public void set(String key, String value) {
-        testValues.put(key, value);
-        if (System.getenv().containsKey(key)) {
-            originalValues.put(key, System.getenv(key));
-        }
+        updateTestKeysAndOriginalValues(key);
+        setEnvironmentVariable(key, value);
+    }
 
-        if (value == null) {
-            removeEnvironmentVariable(key);
-        } else {
-            setEnvironmentVariable(key, value);
-        }
+    public void remove(String key) {
+        updateTestKeysAndOriginalValues(key);
+        removeEnvironmentVariable(key);
     }
 
     @Override
     public void afterEach(ExtensionContext context) {
-        testValues.forEach((key, value) -> {
+        testKeys.forEach(key -> {
             if (originalValues.containsKey(key)) {
                 setEnvironmentVariable(key, originalValues.get(key));
             } else {
                 removeEnvironmentVariable(key);
             }
         });
+    }
+
+    private void updateTestKeysAndOriginalValues(String key) {
+        testKeys.add(key);
+        if (System.getenv().containsKey(key)) {
+            originalValues.put(key, System.getenv(key));
+        }
     }
 
     private void setEnvironmentVariable(String key, String value) {

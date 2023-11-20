@@ -29,9 +29,9 @@ public class CassandraEnvironmentTest {
 
     @Test
     public void testDefaults() {
-        environment.set(CassandraEnvironment.CASSANDRA_VERSION, null);
-        environment.set(CassandraEnvironment.CASSANDRA_MAX_HEAP_SIZE, null);
-        environment.set(CassandraEnvironment.CASSANDRA_HEAP_NEWSIZE, null);
+        environment.remove(CassandraEnvironment.CASSANDRA_VERSION);
+        environment.remove(CassandraEnvironment.CASSANDRA_MAX_HEAP_SIZE);
+        environment.remove(CassandraEnvironment.CASSANDRA_HEAP_NEWSIZE);
 
         assertCassandraEnvironmentContains(
                 CassandraEnvironment.DEFAULT_VERSION,
@@ -62,7 +62,7 @@ public class CassandraEnvironmentTest {
 
     @Test
     public void testGetVersionWhenEnvironmentNotSet() {
-        environment.set(CassandraEnvironment.CASSANDRA_VERSION, null);
+        environment.remove(CassandraEnvironment.CASSANDRA_VERSION);
         String version = CassandraEnvironment.getVersion();
         assertThat(version).isEqualTo(CassandraEnvironment.DEFAULT_VERSION);
     }
