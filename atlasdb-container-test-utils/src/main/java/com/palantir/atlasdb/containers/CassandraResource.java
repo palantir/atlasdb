@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2023 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,23 +23,22 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.refreshable.Refreshable;
 import java.net.Proxy;
 import java.util.Optional;
 import java.util.function.Supplier;
-import org.junit.rules.ExternalResource;
-import org.junit.runner.Description;
-import org.junit.runners.model.Statement;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
-public class CassandraResource extends ExternalResource implements KvsManager, TransactionManagerManager {
-    private final CassandraContainer containerInstance = new CassandraContainer();
+public class CassandraResource implements BeforeAllCallback, AfterAllCallback, KvsManager, TransactionManagerManager {
+    private final CassandraContainerV2 containerInstance = new CassandraContainerV2();
     private final Supplier<KeyValueService> supplier;
-    private Containers containers;
-    private TestResourceManager testResourceManager;
+    private ContainersV2 containers;
+    private TestResourceManagerV2 testResourceManager;
     private Proxy socksProxy;
 
     public CassandraResource() {
@@ -51,21 +50,16 @@ public class CassandraResource extends ExternalResource implements KvsManager, T
     }
 
     @Override
-    public Statement apply(Statement base, Description description) {
-        containers = new Containers(description.getTestClass()).with(containerInstance);
-        testResourceManager = new TestResourceManager(supplier);
-        return super.apply(base, description);
-    }
-
-    @Override
-    public void before() throws Throwable {
-        containers.before();
+    public void beforeAll(ExtensionContext var1) throws Exception {
+        containers = new ContainersV2(var1.getRequiredTestClass()).with(containerInstance);
+        testResourceManager = new TestResourceManagerV2(supplier);
+        containers.beforeAll(var1);
         socksProxy = Containers.getSocksProxy(containerInstance.getServiceName());
     }
 
     @Override
-    public void after() {
-        testResourceManager.after();
+    public void afterAll(ExtensionContext var1) {
+        testResourceManager.afterAll(var1);
     }
 
     /**

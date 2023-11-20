@@ -31,9 +31,9 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.util.stream.Collectors;
-import org.junit.After;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 public class CassandraKeyValueServiceTableManipulationIntegrationTest {
     private static final TableReference UPPER_UPPER = TableReference.createFromFullyQualifiedName("TEST.TABLE");
@@ -44,12 +44,12 @@ public class CassandraKeyValueServiceTableManipulationIntegrationTest {
     private static final byte[] SECOND_BYTE_ARRAY = new byte[] {2};
     private static final Cell CELL = Cell.create(BYTE_ARRAY, BYTE_ARRAY);
 
-    private KeyValueService kvs = CASSANDRA.getDefaultKvs();
+    private final KeyValueService kvs = CASSANDRA.getDefaultKvs();
 
-    @ClassRule
+    @RegisterExtension
     public static final CassandraResource CASSANDRA = new CassandraResource();
 
-    @After
+    @AfterEach
     public void cleanup() {
         kvs.dropTables(kvs.getAllTableNames());
         kvs.truncateTable(AtlasDbConstants.DEFAULT_METADATA_TABLE);
