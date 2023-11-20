@@ -29,8 +29,17 @@ dependencies {
     testImplementation 'org.assertj:assertj-core'
 
     test {
-        include '**/CassandraSchemaLockTest.class'
-        include '**/OneNodeDownTestSuite.class'
+        exclude "**/LessThanQuorumNodeAvailabilityTest.class"
+        exclude "**/TwoNodesDownGetTest.class"
+        exclude "**/TwoNodesDownMetadataTest.class"
+        exclude "**/TwoNodesDownPutTest.class"
+        exclude "**/TwoNodesDownTableManipulationTest.class"
+        exclude "**/OneNodeDownGetTest.class"
+        exclude "**/OneNodeDownPutTest.class"
+        exclude "**/OneNodeDownMetadataTest.class"
+        exclude "**/OneNodeDownDeleteTest.class"
+        exclude "**/OneNodeDownTableManipulationTest.class"
+        exclude "**/OneNodeDownNodeAvailabilityTest.class"
     }
 
     /* TODO(boyoruk): Upgrade all package to JUnit5. */

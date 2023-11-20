@@ -58,10 +58,21 @@ public abstract class AbstractDegradedClusterTest {
             new HashMap<>();
 
     private String schemaAtStart;
+    private final boolean withSchemaVersionRecording;
+
+    public AbstractDegradedClusterTest(boolean withSchemaVersionRecording) {
+        this.withSchemaVersionRecording = withSchemaVersionRecording;
+    }
+
+    public AbstractDegradedClusterTest() {
+        this(true);
+    }
 
     @Before
     public void recordSchemaVersion() throws TException {
-        schemaAtStart = getUniqueReachableSchemaVersionOrThrow();
+        if (withSchemaVersionRecording) {
+            schemaAtStart = getUniqueReachableSchemaVersionOrThrow();
+        }
     }
 
     /**
@@ -101,6 +112,9 @@ public abstract class AbstractDegradedClusterTest {
     }
 
     void assertCassandraSchemaChanged() {
+        if (!withSchemaVersionRecording) {
+            throw new IllegalStateException("Cannot assert schema changed without schema version recording");
+        }
         try {
             assertThat(getUniqueReachableSchemaVersionOrThrow()).isNotEqualTo(schemaAtStart);
         } catch (TException e) {
@@ -109,6 +123,9 @@ public abstract class AbstractDegradedClusterTest {
     }
 
     private void assertCassandraSchemaUnchanged() {
+        if (!withSchemaVersionRecording) {
+            throw new IllegalStateException("Cannot assert schema unchanged without schema version recording");
+        }
         try {
             assertThat(getUniqueReachableSchemaVersionOrThrow()).isEqualTo(schemaAtStart);
         } catch (TException e) {

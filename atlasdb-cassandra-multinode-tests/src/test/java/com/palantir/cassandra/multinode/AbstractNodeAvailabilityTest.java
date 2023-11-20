@@ -23,6 +23,10 @@ import org.junit.Test;
 
 public abstract class AbstractNodeAvailabilityTest extends AbstractDegradedClusterTest {
 
+    public AbstractNodeAvailabilityTest() {
+        super(false);
+    }
+
     @Override
     void testSetup(CassandraKeyValueService kvs) {
         // noop
