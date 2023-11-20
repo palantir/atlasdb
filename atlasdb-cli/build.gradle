@@ -56,3 +56,5 @@ dependencies {
         because 'allows JUnit 3 and JUnit 4 tests to run'
     }
 }
+tasks.checkUnusedDependenciesMain.enabled = false
+tasks.checkUnusedDependenciesTest.enabled = false
