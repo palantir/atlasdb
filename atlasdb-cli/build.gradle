@@ -11,7 +11,7 @@ dependencies {
 
     compileOnly 'com.google.dagger:dagger'
     implementation 'io.airlift:airline'
-
+    implementation 'ch.qos.logback:logback-classic'
     implementation 'com.google.errorprone:error_prone_annotations'
     implementation 'com.google.guava:guava'
     implementation 'com.palantir.safe-logging:preconditions'
