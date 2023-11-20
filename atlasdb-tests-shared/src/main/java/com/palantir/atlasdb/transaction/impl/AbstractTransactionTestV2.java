@@ -93,7 +93,6 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 @SuppressWarnings("MustBeClosedChecker")
 public abstract class AbstractTransactionTestV2 extends TransactionTestSetupV2 {
     private static final BatchColumnRangeSelection ALL_COLUMNS =

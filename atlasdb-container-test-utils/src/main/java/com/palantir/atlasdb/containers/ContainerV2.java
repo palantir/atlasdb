@@ -15,27 +15,27 @@
  */
 package com.palantir.atlasdb.containers;
 
-import com.palantir.docker.compose.DockerComposeRule;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.docker.compose.DockerComposeExtension;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.util.Map;
 
-/* TODO(boyoruk): Delete when JUnit5 upgrade is over. */
-public class SecondNginxContainer extends Container {
-    @Override
-    public String getDockerComposeFile() {
-        return "/docker-compose-nginx2.yml";
+public abstract class ContainerV2 {
+    public abstract String getDockerComposeFile();
+
+    public abstract SuccessOrFailure isReady(DockerComposeExtension extension);
+
+    public Map<String, String> getEnvironment() {
+        return ImmutableMap.of();
     }
 
     @Override
-    public SuccessOrFailure isReady(DockerComposeRule rule) {
-        return SuccessOrFailure.onResultOf(() -> {
-            URL url = new URL("http://nginx2");
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
-            connection.connect();
+    public boolean equals(Object obj) {
+        return obj != null && this.getClass() == obj.getClass();
+    }
 
-            return connection.getResponseCode() == 200;
-        });
+    @Override
+    public int hashCode() {
+        return this.getClass().getName().hashCode();
     }
 }

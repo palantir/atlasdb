@@ -24,12 +24,11 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-/* TODO(boyoruk): Delete this when JUnit5 upgrade is done */
-public abstract class AbstractSweepProgressStoreTest {
+public abstract class AbstractSweepProgressStoreTestV2 {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
     private static final TableReference OTHER_TABLE = TableReference.createFromFullyQualifiedName("qwe.rty");
 
@@ -61,17 +60,17 @@ public abstract class AbstractSweepProgressStoreTest {
     private KeyValueService kvs;
     private SweepProgressStore progressStore;
 
-    protected AbstractSweepProgressStoreTest(KvsManager kvsManager) {
+    protected AbstractSweepProgressStoreTestV2(KvsManager kvsManager) {
         this.kvsManager = kvsManager;
     }
 
-    @Before
+    @BeforeEach
     public void setup() {
         kvs = kvsManager.getDefaultKvs();
         progressStore = SweepProgressStoreImpl.create(kvs, false);
     }
 
-    @After
+    @AfterEach
     public void clearKvs() {
         kvs.truncateTable(AtlasDbConstants.SWEEP_PROGRESS_TABLE);
     }
