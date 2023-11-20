@@ -51,3 +51,5 @@ dependencies {
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'org.junit.jupiter:junit-jupiter'
 }
+tasks.checkUnusedDependenciesMain.enabled = false
+tasks.checkUnusedDependenciesTest.enabled = false
