@@ -17,10 +17,12 @@ package com.palantir.timelock.config;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.logsafe.DoNotLog;
 import java.util.List;
 import org.immutables.value.Value;
 
 /** Generates cluster membership based upon pre-populated values. */
+@DoNotLog
 @Value.Immutable
 @JsonSerialize(as = ImmutableDefaultClusterConfiguration.class)
 @JsonDeserialize(as = ImmutableDefaultClusterConfiguration.class)

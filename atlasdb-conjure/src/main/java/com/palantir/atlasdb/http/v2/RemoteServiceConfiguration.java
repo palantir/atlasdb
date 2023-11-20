@@ -18,8 +18,10 @@ package com.palantir.atlasdb.http.v2;
 
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
+import com.palantir.logsafe.DoNotLog;
 import org.immutables.value.Value;
 
+@DoNotLog
 @Value.Immutable
 public interface RemoteServiceConfiguration {
     ServerListConfig serverList();

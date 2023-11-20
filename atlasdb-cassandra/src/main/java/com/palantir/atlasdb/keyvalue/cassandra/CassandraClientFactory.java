@@ -31,6 +31,7 @@ import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.exception.SafeSSLPeerUnverifiedException;
+import com.palantir.logsafe.DoNotLog;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
@@ -325,6 +326,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         void accept(TSocket value) throws SocketException;
     }
 
+    @DoNotLog
     @Value.Immutable
     @StagedBuilderStyle
     interface CassandraClientConfig {

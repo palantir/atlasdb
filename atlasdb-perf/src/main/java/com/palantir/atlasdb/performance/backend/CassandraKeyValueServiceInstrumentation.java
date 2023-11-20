@@ -24,6 +24,7 @@ import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.logsafe.DoNotLog;
 import com.palantir.refreshable.Refreshable;
 import java.net.InetSocketAddress;
 import java.util.Optional;
@@ -34,6 +35,7 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
         super(9160, "cassandra-docker-compose.yml");
     }
 
+    @DoNotLog
     @Override
     public KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr) {
         return ImmutableCassandraKeyValueServiceConfig.builder()
