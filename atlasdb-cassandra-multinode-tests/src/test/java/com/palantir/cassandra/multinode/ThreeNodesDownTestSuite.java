@@ -19,16 +19,19 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import java.util.Arrays;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses(LessThanQuorumNodeAvailabilityTest.class)
-public final class ThreeNodesDownTestSuite extends NodesDownTestSetup {
+public final class ThreeNodesDownTestSuite {
+    @ClassRule
+    public static final NodesDownTestSetup setup = new NodesDownTestSetup();
 
     @BeforeClass
     public static void setup() throws Exception {
-        initializeKvsAndDegradeCluster(
+        setup.initializeKvsAndDegradeCluster(
                 Arrays.asList(ThreeNodesDownTestSuite.class
                         .getAnnotation(Suite.SuiteClasses.class)
                         .value()),

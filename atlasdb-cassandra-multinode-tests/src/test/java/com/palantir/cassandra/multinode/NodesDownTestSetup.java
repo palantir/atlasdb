@@ -29,10 +29,9 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import org.awaitility.Awaitility;
-import org.junit.AfterClass;
-import org.junit.ClassRule;
+import org.junit.rules.ExternalResource;
 
-public abstract class NodesDownTestSetup {
+public class NodesDownTestSetup extends ExternalResource {
     private static final int CASSANDRA_THRIFT_PORT = 9160;
     private static final CassandraKeyValueServiceConfig CONFIG = ImmutableCassandraKeyValueServiceConfig.copyOf(
                     ThreeNodeCassandraCluster.KVS_CONFIG)
@@ -40,16 +39,20 @@ public abstract class NodesDownTestSetup {
     private static final Refreshable<CassandraKeyValueServiceRuntimeConfig> RUNTIME_CONFIG =
             ThreeNodeCassandraCluster.KVS_RUNTIME_CONFIG;
 
-    @ClassRule
-    public static final Containers CONTAINERS =
-            new Containers(NodesDownTestSetup.class).with(new ThreeNodeCassandraCluster());
+    public final Containers CONTAINERS = new Containers(NodesDownTestSetup.class).with(new ThreeNodeCassandraCluster());
 
-    @AfterClass
-    public static void closeKvs() {
-        AbstractDegradedClusterTest.closeAll();
+    @Override
+    protected void before() throws Throwable {
+        CONTAINERS.before();
     }
 
-    static void initializeKvsAndDegradeCluster(List<Class<?>> tests, List<String> nodesToKill) throws Exception {
+    @Override
+    protected void after() {
+        AbstractDegradedClusterTest.closeAll();
+        CONTAINERS.after();
+    }
+
+    void initializeKvsAndDegradeCluster(List<Class<?>> tests, List<String> nodesToKill) throws Exception {
         for (Class<?> test : tests) {
             test.getMethod("initialize", CassandraKeyValueService.class)
                     .invoke(test.getDeclaredConstructor().newInstance(), createKvs(test));
@@ -68,7 +71,7 @@ public abstract class NodesDownTestSetup {
                 .build();
     }
 
-    private static void degradeCassandraCluster(List<String> nodesToKill) {
+    private void degradeCassandraCluster(List<String> nodesToKill) {
         nodesToKill.forEach(containerName -> {
             try {
                 killCassandraContainer(containerName);
@@ -78,7 +81,7 @@ public abstract class NodesDownTestSetup {
         });
     }
 
-    private static void killCassandraContainer(String containerName) throws IOException, InterruptedException {
+    private void killCassandraContainer(String containerName) throws IOException, InterruptedException {
         CONTAINERS.getContainer(containerName).kill();
         DockerPort containerPort = new DockerPort(containerName, CASSANDRA_THRIFT_PORT, CASSANDRA_THRIFT_PORT);
         Awaitility.waitAtMost(Duration.ofSeconds(10))

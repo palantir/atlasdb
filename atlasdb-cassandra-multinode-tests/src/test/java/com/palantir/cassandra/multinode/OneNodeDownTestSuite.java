@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import java.util.Arrays;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -31,11 +32,14 @@ import org.junit.runners.Suite;
     OneNodeDownTableManipulationTest.class,
     OneNodeDownNodeAvailabilityTest.class
 })
-public final class OneNodeDownTestSuite extends NodesDownTestSetup {
+public final class OneNodeDownTestSuite {
+
+    @ClassRule
+    public static final NodesDownTestSetup setup = new NodesDownTestSetup();
 
     @BeforeClass
     public static void setup() throws Exception {
-        initializeKvsAndDegradeCluster(
+        setup.initializeKvsAndDegradeCluster(
                 Arrays.asList(OneNodeDownTestSuite.class
                         .getAnnotation(Suite.SuiteClasses.class)
                         .value()),

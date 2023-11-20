@@ -103,7 +103,7 @@ public class Containers extends ExternalResource {
     }
 
     @Override
-    protected void after() {
+    public void after() {
         currentLogCollector.stopExecutor();
     }
 
