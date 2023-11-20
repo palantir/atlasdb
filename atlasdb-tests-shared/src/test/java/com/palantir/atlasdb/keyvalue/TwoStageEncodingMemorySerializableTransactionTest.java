@@ -13,20 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.config;
+package com.palantir.atlasdb.keyvalue;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.logsafe.DoNotLog;
-import org.immutables.value.Value;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
-@DoNotLog
-@JsonSerialize(as = ImmutableTimeLockRuntimeConfig.class)
-@JsonDeserialize(as = ImmutableTimeLockRuntimeConfig.class)
-@Value.Immutable
-public abstract class TimeLockRuntimeConfig {
-    @Value.Default
-    public ServerListConfig serversList() {
-        return ImmutableServerListConfig.builder().build();
+public class TwoStageEncodingMemorySerializableTransactionTest extends AbstractMemorySerializableTransactionTest {
+    public TwoStageEncodingMemorySerializableTransactionTest() {
+        super(TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
     }
 }

@@ -26,7 +26,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.Futures;
 import com.google.protobuf.ByteString;
-import com.palantir.atlasdb.AtlasDbTestCaseV2;
+import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.protos.generated.StreamPersistence;
 import com.palantir.atlasdb.protos.generated.StreamPersistence.StreamMetadata;
@@ -81,7 +81,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-public class StreamTest extends AtlasDbTestCaseV2 {
+public class StreamTest extends AtlasDbTestCase {
     public static final long TEST_ID = 5L;
     public static final long TEST_BLOCK_ID = 5L;
     private PersistentStreamStore defaultStore;

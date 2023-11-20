@@ -130,6 +130,7 @@ import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.client.metrics.TimeLockFeedbackBackgroundTask;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.DoNotLog;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -152,6 +153,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.immutables.value.Value;
 
+@DoNotLog
 @Value.Immutable
 @StagedBuilderStyle
 public abstract class TransactionManagers {

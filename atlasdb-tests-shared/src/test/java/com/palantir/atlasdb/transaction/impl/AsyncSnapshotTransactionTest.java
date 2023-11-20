@@ -13,20 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.config;
+package com.palantir.atlasdb.transaction.impl;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.logsafe.DoNotLog;
-import org.immutables.value.Value;
-
-@DoNotLog
-@JsonSerialize(as = ImmutableTimeLockRuntimeConfig.class)
-@JsonDeserialize(as = ImmutableTimeLockRuntimeConfig.class)
-@Value.Immutable
-public abstract class TimeLockRuntimeConfig {
-    @Value.Default
-    public ServerListConfig serversList() {
-        return ImmutableServerListConfig.builder().build();
+public class AsyncSnapshotTransactionTest extends AbstractSnapshotTransactionTest {
+    public AsyncSnapshotTransactionTest() {
+        super(ASYNC, GetAsyncCallbackAwareDelegate::new, VerifyingKeyValueServiceDelegate::new);
     }
 }

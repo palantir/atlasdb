@@ -150,7 +150,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -193,43 +192,26 @@ import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.jmock.lib.concurrent.Synchroniser;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 @SuppressWarnings("checkstyle:all")
-@RunWith(Parameterized.class)
-public class SnapshotTransactionTest extends AtlasDbTestCase {
-    private static final String SYNC = "sync";
-    private static final String ASYNC = "async";
-
+public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
+    static final String SYNC = "sync";
+    static final String ASYNC = "async";
     private static final Consumer<Long> NO_OP_THROW_IF_CONDITION_INVALID = _timestamp -> {};
-
-    @Parameterized.Parameters(name = "{0}")
-    public static Collection<Object[]> data() {
-        Object[][] data = new Object[][] {
-            {SYNC, WrapperWithTracker.TRANSACTION_NO_OP, WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP},
-            {
-                ASYNC,
-                (WrapperWithTracker<CallbackAwareTransaction>) GetAsyncCallbackAwareDelegate::new,
-                (WrapperWithTracker<KeyValueService>) VerifyingKeyValueServiceDelegate::new
-            }
-        };
-        return Arrays.asList(data);
-    }
 
     private final String name;
     private final WrapperWithTracker<CallbackAwareTransaction> transactionWrapper;
     private final WrapperWithTracker<KeyValueService> keyValueServiceWrapper;
+
     private final Map<String, ExpectationFactory> expectationsMapping =
             ImmutableMap.<String, ExpectationFactory>builder()
-                    .put(SYNC, SnapshotTransactionTest.this::syncGetExpectation)
-                    .put(ASYNC, SnapshotTransactionTest.this::asyncGetExpectation)
+                    .put(SYNC, AbstractSnapshotTransactionTest.this::syncGetExpectation)
+                    .put(ASYNC, AbstractSnapshotTransactionTest.this::asyncGetExpectation)
                     .buildOrThrow();
     private final TimestampCache timestampCache = new DefaultTimestampCache(
             metricsManager.getRegistry(), () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
@@ -245,7 +227,6 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     @FunctionalInterface
     interface ExpectationFactory {
-
         Expectations apply(KeyValueService keyValueService, Cell cell, long transactionTs, LockService lockService)
                 throws InterruptedException;
     }
@@ -270,7 +251,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         };
     }
 
-    public SnapshotTransactionTest(
+    public AbstractSnapshotTransactionTest(
             String name,
             WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
             WrapperWithTracker<KeyValueService> keyValueServiceWrapper) {
@@ -362,7 +343,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     private static final ChangeMetadata UNCHANGED_CHANGE_METADATA = ChangeMetadata.unchanged();
 
     @Override
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
 
@@ -391,7 +372,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         return new TestTransactionManagerImpl(
                 metricsManager,
                 keyValueService,
-                inMemoryTimeLockRule.get(),
+                inMemoryTimelockExtension,
                 lockService,
                 transactionService,
                 conflictDetectionManager,
@@ -428,7 +409,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
-    public void testImmutableTs() throws Exception {
+    public void testImmutableTs() {
         final long firstTs = timestampService.getFreshTimestamp();
         long startTs = txManager.runTaskThrowOnConflict(t -> {
             assertThat(firstTs).isLessThan(txManager.getImmutableTimestamp());
@@ -474,7 +455,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 new SnapshotTransaction(
                         metricsManager,
                         kvs,
-                        inMemoryTimeLockRule.getLegacyTimelockService(),
+                        inMemoryTimelockExtension.getLegacyTimelockService(),
                         NoOpLockWatchManager.create(),
                         transactionService,
                         NoOpCleaner.INSTANCE,
@@ -519,7 +500,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         final TestTransactionManager unstableTransactionManager = new TestTransactionManagerImpl(
                 metricsManager,
                 unstableKvs,
-                inMemoryTimeLockRule.get(),
+                inMemoryTimelockExtension,
                 lockService,
                 transactionService,
                 conflictDetectionManager,
@@ -1006,7 +987,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         TestTransactionManager deleteTxManager = new TestTransactionManagerImpl(
                 metricsManager,
                 keyValueService,
-                inMemoryTimeLockRule.get(),
+                inMemoryTimelockExtension,
                 lockService,
                 transactionService,
                 conflictDetectionManager,
@@ -1500,7 +1481,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void commitThrowsIfRolledBackAtCommitTime_expiredLocks() {
         final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
 
-        TimelockService timelockService = spy(inMemoryTimeLockRule.getLegacyTimelockService());
+        TimelockService timelockService = spy(inMemoryTimelockExtension.getLegacyTimelockService());
 
         // expire the locks when the pre-commit check happens - this is guaranteed to be after we've written the data
         PreCommitCondition condition =
@@ -1547,7 +1528,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     public void commitThrowsIfRolledBackAtCommitTime_alreadyAborted() {
         final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
 
-        TimelockService timelockService = inMemoryTimeLockRule.getLegacyTimelockService();
+        TimelockService timelockService = inMemoryTimelockExtension.getLegacyTimelockService();
         ConjureStartTransactionsResponse conjureResponse = startTransactionWithWatches();
         LockImmutableTimestampResponse res = conjureResponse.getImmutableTimestamp();
         long transactionTs = conjureResponse.getTimestamps().start();
@@ -2634,7 +2615,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
         PreCommitCondition preCommitCondition =
                 preCommitConditionFactory(NO_OP_THROW_IF_CONDITION_INVALID, () -> hasRun.set(true));
 
-        inMemoryTimeLockRule.close();
+        inMemoryTimelockExtension.close();
 
         assertThatThrownBy(() -> txManager.runTaskWithConditionThrowOnConflict(preCommitCondition, (txn, condition) -> {
             txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("tom")));
@@ -3151,10 +3132,10 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
 
     private ConjureStartTransactionsResponse startTransactionWithWatches() {
         ConjureStartTransactionsResponse conjureResponse =
-                inMemoryTimeLockRule.get().getLockLeaseService().startTransactionsWithWatches(Optional.empty(), 1);
+                inMemoryTimelockExtension.getLockLeaseService().startTransactionsWithWatches(Optional.empty(), 1);
         Set<Long> startTimestamps =
                 conjureResponse.getTimestamps().stream().boxed().collect(Collectors.toSet());
-        inMemoryTimeLockRule
+        inMemoryTimelockExtension
                 .getLockWatchManager()
                 .getCache()
                 .processStartTransactionsUpdate(startTimestamps, conjureResponse.getLockWatchUpdate());
@@ -3318,7 +3299,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 metricsManager,
                 keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
                 timelockService,
-                inMemoryTimeLockRule.getLockWatchManager(),
+                inMemoryTimelockExtension.getLockWatchManager(),
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 startTs,
@@ -3384,7 +3365,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     private long concurrentlyIncrementValueThousandTimesAndGet() throws InterruptedException, ExecutionException {
-        CompletionService<Void> executor = new ExecutorCompletionService<Void>(PTExecutors.newFixedThreadPool(8));
+        CompletionService<Void> executor = new ExecutorCompletionService<>(PTExecutors.newFixedThreadPool(8));
         final Cell cell = Cell.create(PtBytes.toBytes("row1"), PtBytes.toBytes("column1"));
         Transaction t1 = txManager.createNewTransaction();
         t1.put(TABLE, ImmutableMap.of(cell, EncodingUtils.encodeVarLong(0L)));
@@ -3512,7 +3493,7 @@ public class SnapshotTransactionTest extends AtlasDbTestCase {
                 .collect(Collectors.toUnmodifiableList());
     }
 
-    private static class VerifyingKeyValueServiceDelegate extends ForwardingKeyValueService {
+    static class VerifyingKeyValueServiceDelegate extends ForwardingKeyValueService {
         private final KeyValueService delegate;
         private final PathTypeTracker pathTypeTracker;
 

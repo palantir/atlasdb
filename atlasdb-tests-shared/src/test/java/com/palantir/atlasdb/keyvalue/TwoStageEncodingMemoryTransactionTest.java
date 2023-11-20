@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2023 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,18 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.palantir.atlasdb.keyvalue;
 
-package com.palantir.atlasdb.http.v2;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
-import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
-import com.palantir.atlasdb.config.ServerListConfig;
-import com.palantir.logsafe.DoNotLog;
-import org.immutables.value.Value;
-
-@DoNotLog
-@Value.Immutable
-public interface RemoteServiceConfiguration {
-    ServerListConfig serverList();
-
-    AuxiliaryRemotingParameters remotingParameters();
+public class TwoStageEncodingMemoryTransactionTest extends AbstractMemoryTransactionTest {
+    public TwoStageEncodingMemoryTransactionTest() {
+        super(TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
+    }
 }
