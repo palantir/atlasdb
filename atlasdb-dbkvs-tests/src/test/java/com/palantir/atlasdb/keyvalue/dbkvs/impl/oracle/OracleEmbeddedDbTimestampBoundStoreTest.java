@@ -20,24 +20,29 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
-import com.palantir.atlasdb.timestamp.AbstractDbTimestampBoundStoreTest;
+import com.palantir.atlasdb.timestamp.AbstractDbTimestampBoundStoreTestV2;
 import com.palantir.timestamp.TimestampBoundStore;
-import org.junit.After;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class OracleEmbeddedDbTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTest {
+public class OracleEmbeddedDbTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTestV2 {
+
+    @RegisterExtension
+    public static final DbKvsOracleExtension dbKvsOracleExtension = new DbKvsOracleExtension();
+
     private KeyValueService kvs;
 
-    @After
+    @AfterEach
     public void tearDown() {
         kvs.close();
     }
 
     @Override
     protected TimestampBoundStore createTimestampBoundStore() {
-        kvs = DbKvsOracleTestSuite.createKvs();
+        kvs = dbKvsOracleExtension.createKvs();
         return InDbTimestampBoundStore.create(
                 ((ConnectionManagerAwareDbKvs) kvs).getConnectionManager(),
                 AtlasDbConstants.TIMESTAMP_TABLE,
-                DbKvsOracleTestSuite.getKvsConfig().ddl().tablePrefix());
+                dbKvsOracleExtension.getKvsConfig().ddl().tablePrefix());
     }
 }

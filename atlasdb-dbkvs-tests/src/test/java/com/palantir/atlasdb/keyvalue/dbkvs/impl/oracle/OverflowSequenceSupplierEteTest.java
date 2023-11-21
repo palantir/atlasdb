@@ -20,33 +20,36 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 public class OverflowSequenceSupplierEteTest {
-    @ClassRule
-    public static final TestResourceManager TRM =
-            new TestResourceManager(() -> ConnectionManagerAwareDbKvs.create(DbKvsOracleTestSuite.getKvsConfig()));
+    @RegisterExtension
+    public static final DbKvsOracleExtension dbKvsOracleExtension = new DbKvsOracleExtension();
 
-    private ExecutorService executor = Executors.newFixedThreadPool(4);
+    @RegisterExtension
+    public static final TestResourceManagerV2 TRM =
+            new TestResourceManagerV2(() -> ConnectionManagerAwareDbKvs.create(dbKvsOracleExtension.getKvsConfig()));
+
+    private final ExecutorService executor = Executors.newFixedThreadPool(4);
     private static final int THREAD_COUNT = 3;
     private static final int OVERFLOW_IDS_PER_THREAD = 1020;
     private ConnectionSupplier connectionSupplier;
 
-    @Before
+    @BeforeEach
     public void setUp() {
-        connectionSupplier = DbKvsOracleTestSuite.getConnectionSupplier(TRM.getDefaultKvs());
+        connectionSupplier = dbKvsOracleExtension.getConnectionSupplier(TRM.getDefaultKvs());
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         connectionSupplier.close();
     }
@@ -63,7 +66,7 @@ public class OverflowSequenceSupplierEteTest {
 
     private void getMultipleOverflowIds(Set<Long> overflowIds) {
         final OverflowSequenceSupplier sequenceSupplier = OverflowSequenceSupplier.create(
-                connectionSupplier, DbKvsOracleTestSuite.getKvsConfig().ddl().tablePrefix());
+                connectionSupplier, dbKvsOracleExtension.getKvsConfig().ddl().tablePrefix());
 
         long previousOverflowId = -1;
         for (int j = 0; j < OVERFLOW_IDS_PER_THREAD; j++) {

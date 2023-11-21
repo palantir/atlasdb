@@ -23,20 +23,24 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.dbkvs.AbstractDbKvsKeyValueServiceTest;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.keyvalue.dbkvs.AbstractDbKvsKeyValueServiceTestV2;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
-import org.junit.After;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class DbKvsOracleKeyValueServiceTest extends AbstractDbKvsKeyValueServiceTest {
-    @ClassRule
-    public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleTestSuite::createKvs);
+public class DbKvsOracleKeyValueServiceTest extends AbstractDbKvsKeyValueServiceTestV2 {
+
+    @RegisterExtension
+    public static final DbKvsOracleExtension dbKvsOracleExtension = new DbKvsOracleExtension();
+
+    @RegisterExtension
+    public static final TestResourceManagerV2 TRM = new TestResourceManagerV2(dbKvsOracleExtension::createKvs);
 
     private static final TableReference TABLE_1 =
             TableReference.createFromFullyQualifiedName("multipass.providerGroupIdAndRealmToPrincipalId");
@@ -61,14 +65,13 @@ public class DbKvsOracleKeyValueServiceTest extends AbstractDbKvsKeyValueService
         super(TRM);
     }
 
-    @After
+    @AfterEach
     public void after() {
         keyValueService.dropTables(ImmutableSet.of(TABLE_1, TABLE_2));
     }
 
     @Override
-    @Ignore
-    @Test
+    @Disabled
     public void testGetAllTableNames() {
         // we reuse the KVS, so this test is no longer deterministic
     }

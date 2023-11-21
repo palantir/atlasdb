@@ -23,18 +23,19 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameMapper;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 public class OracleTableNameMapperEteTest {
-    @ClassRule
-    public static final TestResourceManager TRM =
-            new TestResourceManager(() -> ConnectionManagerAwareDbKvs.create(DbKvsOracleTestSuite.getKvsConfig()));
+    @RegisterExtension
+    public static final DbKvsOracleExtension dbKvsOracleExtension = new DbKvsOracleExtension();
+
+    @RegisterExtension
+    public static final TestResourceManagerV2 TRM = new TestResourceManagerV2(dbKvsOracleExtension::createKvs);
 
     private KeyValueService kvs;
     private ConnectionSupplier connectionSupplier;
@@ -50,13 +51,13 @@ public class OracleTableNameMapperEteTest {
     private static final Namespace TEST_NAMESPACE = Namespace.create("test_namespace");
     private static final String LONG_TABLE_NAME = "ThisIsAVeryLongTableNameThatWillExceed";
 
-    @Before
+    @BeforeEach
     public void setup() {
         kvs = TRM.getDefaultKvs();
-        connectionSupplier = DbKvsOracleTestSuite.getConnectionSupplier(kvs);
+        connectionSupplier = dbKvsOracleExtension.getConnectionSupplier(kvs);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         kvs.dropTables(kvs.getAllTableNames());
         connectionSupplier.close();

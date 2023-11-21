@@ -34,14 +34,14 @@ import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.cleaner.DbKvsNamespaceDeleterFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.LegacyPhysicalBoundStoreStrategy;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleter;
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleterFactory;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.transaction.impl.TransactionTestSetup;
+import com.palantir.atlasdb.transaction.impl.TransactionTestSetupV2;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.nexus.db.DBType;
@@ -57,15 +57,18 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-public final class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetup {
+public final class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetupV2 {
 
-    @ClassRule
-    public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleTestSuite::createKvs);
+    @RegisterExtension
+    public static final DbKvsOracleExtension dbKvsOracleExtension = new DbKvsOracleExtension();
+
+    @RegisterExtension
+    public static final TestResourceManagerV2 TRM = new TestResourceManagerV2(dbKvsOracleExtension::createKvs);
 
     private static final Refreshable<Optional<KeyValueServiceRuntimeConfig>> RUNTIME_CONFIG =
             Refreshable.only(Optional.empty());
@@ -92,12 +95,12 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
         super(TRM, TRM);
     }
 
-    @Before
+    @BeforeEach
     public void before() {
         NamespaceDeleterFactory factory = new DbKvsNamespaceDeleterFactory();
-        dbKeyValueServiceConfig = DbKvsOracleTestSuite.getKvsConfig();
+        dbKeyValueServiceConfig = dbKvsOracleExtension.getKvsConfig();
         oracleDdlConfig = (OracleDdlConfig) dbKeyValueServiceConfig.ddl();
-        connectionManager = DbKvsOracleTestSuite.getConnectionManager(keyValueService);
+        connectionManager = dbKvsOracleExtension.getConnectionManager(keyValueService);
         namespaceDeleter = factory.createNamespaceDeleter(dbKeyValueServiceConfig, RUNTIME_CONFIG);
 
         DbKeyValueServiceConfig kvsConfigWithNonDefaultPrefix = ImmutableDbKeyValueServiceConfig.builder()
@@ -131,7 +134,7 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
         timestampTableName = oracleDdlConfig.tablePrefix() + AtlasDbConstants.TIMESTAMP_TABLE.getQualifiedName();
     }
 
-    @After
+    @AfterEach
     public void after() throws IOException, SQLException {
         namespaceDeleter.deleteAllDataFromNamespace();
         namespaceDeleterWithNonDefaultPrefix.deleteAllDataFromNamespace();
