@@ -154,7 +154,7 @@ jobs:
       - run:
           command: |
             # hack - notion of "owners" isn't supported in Circle 2
-            if [ $CIRCLE_PROJECT_USERNAME = 'palantir' ] && [ -z $CIRCLE_PR_NUMBER ] && [ -z $CIRCLE_TAG ]; then
+            if [ $CIRCLE_PROJECT_USERNAME = 'palantir' ] && [ -z $CIRCLE_PR_NUMBER ] && [ $CIRCLE_TAG ]; then
               ./scripts/circle-ci/publish-images-to-antithesis.sh
             fi
 
