@@ -15,10 +15,12 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.common.base.Suppliers;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.impl.AbstractTransactionTestV2;
 import com.palantir.atlasdb.transaction.impl.TransactionSchemaVersionEnforcement;
@@ -31,6 +33,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
@@ -39,8 +42,11 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 
 public abstract class AbstractCassandraKeyValueServiceTransactionIntegrationTest extends AbstractTransactionTestV2 {
 
+    private static final Supplier<KeyValueService> KVS_SUPPLIER = Suppliers.memoize(
+            AbstractCassandraKeyValueServiceTransactionIntegrationTest::createAndRegisterKeyValueService);
+
     @RegisterExtension
-    public static final CassandraResource CASSANDRA = new CassandraResource();
+    public static final CassandraResource CASSANDRA = new CassandraResource(KVS_SUPPLIER);
 
     // This constant exists so that fresh timestamps are always greater than the write timestamps of values used in the
     // test.
@@ -96,6 +102,13 @@ public abstract class AbstractCassandraKeyValueServiceTransactionIntegrationTest
         } catch (KeyAlreadyExistsException ex) {
             // OK
         }
+    }
+
+    private static KeyValueService createAndRegisterKeyValueService() {
+        CassandraKeyValueService kvs =
+                CassandraKeyValueServiceImpl.createForTesting(CASSANDRA.getConfig(), CASSANDRA.getRuntimeConfig());
+        CASSANDRA.registerKvs(kvs);
+        return kvs;
     }
 
     @Override
