@@ -2,7 +2,7 @@ options:
   javaPackage: 'com.palantir.atlasdb.transaction.impl.metrics'
 
 namespaces:
-  transaction:
+  atlasdb.transaction:
     shortName: Transaction
     docs: Metrics for tracking information around transactions, such as success rate.
     metrics:
