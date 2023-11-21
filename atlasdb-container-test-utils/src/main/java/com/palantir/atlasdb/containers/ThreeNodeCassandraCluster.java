@@ -31,6 +31,7 @@ import com.palantir.refreshable.Refreshable;
 import java.net.InetSocketAddress;
 import java.util.Map;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class ThreeNodeCassandraCluster extends Container {
     private static final SafeLogger log = SafeLoggerFactory.get(ThreeNodeCassandraCluster.class);
 

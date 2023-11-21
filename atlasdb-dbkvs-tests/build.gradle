@@ -33,6 +33,8 @@ dependencies {
   testImplementation project(':timestamp-api')
 
   testImplementation 'org.mockito:mockito-core'
+  testImplementation 'org.junit.jupiter:junit-jupiter'
+  testImplementation 'org.mockito:mockito-junit-jupiter'
   testImplementation 'com.palantir.docker.compose:docker-compose-rule-junit4'
 
   testAnnotationProcessor 'org.immutables:value'
@@ -56,6 +58,7 @@ task oracleTest(type: Test) {
     include '**/DbKvsOracleTestSuite.class'
     include '**/OracleNamespaceDeleterTests.class'
     maxParallelForks 2
+    useJUnitPlatform()
 }
 
 test {

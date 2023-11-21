@@ -23,6 +23,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.IOException;
 
+/* TODO(boyoruk): Migrate to JUnit5 */
 public class ThreeNodeCassandraClusterOperations {
     private static final SafeLogger log = SafeLoggerFactory.get(ThreeNodeCassandraClusterOperations.class);
     private static final int NODETOOL_STATUS_TIMEOUT_SECONDS = 10;

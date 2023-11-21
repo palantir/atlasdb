@@ -38,6 +38,7 @@ import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersCo
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraConstants;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
+import com.palantir.logsafe.DoNotLog;
 import java.net.InetSocketAddress;
 import java.util.Optional;
 import java.util.Set;
@@ -138,6 +139,7 @@ public class ClusterFactory {
         return builder.withLoadBalancingPolicy(new TokenAwarePolicy(policy));
     }
 
+    @DoNotLog
     @Value.Immutable
     public interface CassandraClusterConfig {
         CassandraCredentialsConfig credentials();
