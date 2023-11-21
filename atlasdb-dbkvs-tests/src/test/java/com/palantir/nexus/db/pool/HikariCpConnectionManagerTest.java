@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
 import com.google.common.base.Throwables;
-import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.DbKvsPostgresTestSuite;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres.DbKvsPostgresExtension;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
@@ -35,20 +35,21 @@ import java.sql.Statement;
 import java.time.Duration;
 import java.util.Random;
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+@ExtendWith(DbKvsPostgresExtension.class)
 public class HikariCpConnectionManagerTest {
-
     private ConnectionManager manager;
 
-    @Before
+    @BeforeEach
     public void initConnectionManager() {
         manager = new HikariCPConnectionManager(createConnectionConfig(3));
     }
 
-    @After
+    @AfterEach
     public void closeConnectionManager() throws SQLException {
         manager.close();
     }
@@ -253,7 +254,7 @@ public class HikariCpConnectionManagerTest {
 
     private static PostgresConnectionConfig createConnectionConfig(
             String username, String password, int minConnections, int maxConnections) {
-        PostgresConnectionConfig suiteConfig = DbKvsPostgresTestSuite.getConnectionConfig();
+        PostgresConnectionConfig suiteConfig = DbKvsPostgresExtension.getConnectionConfig();
         return ImmutablePostgresConnectionConfig.builder()
                 .dbName(suiteConfig.getDbName())
                 .host(suiteConfig.getHost())

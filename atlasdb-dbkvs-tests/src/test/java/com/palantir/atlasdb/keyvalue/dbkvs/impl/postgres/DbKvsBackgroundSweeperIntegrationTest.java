@@ -16,11 +16,13 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.sweep.AbstractBackgroundSweeperIntegrationTest;
+import com.palantir.atlasdb.sweep.AbstractBackgroundSweeperIntegrationTestV2;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-public class DbKvsBackgroundSweeperIntegrationTest extends AbstractBackgroundSweeperIntegrationTest {
+@ExtendWith(DbKvsPostgresExtension.class)
+public class DbKvsBackgroundSweeperIntegrationTest extends AbstractBackgroundSweeperIntegrationTestV2 {
     @Override
     protected KeyValueService getKeyValueService() {
-        return DbKvsPostgresTestSuite.createKvs();
+        return DbKvsPostgresExtension.createKvs();
     }
 }

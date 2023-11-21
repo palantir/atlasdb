@@ -15,13 +15,15 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
-import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
-import org.junit.ClassRule;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
+import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTestV2;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class DbKvsPostgresSerializableTransactionTest extends AbstractSerializableTransactionTest {
-    @ClassRule
-    public static final TestResourceManager TRM = new TestResourceManager(DbKvsPostgresTestSuite::createKvs);
+@ExtendWith(DbKvsPostgresExtension.class)
+public class DbKvsPostgresSerializableTransactionTest extends AbstractSerializableTransactionTestV2 {
+    @RegisterExtension
+    public static final TestResourceManagerV2 TRM = new TestResourceManagerV2(DbKvsPostgresExtension::createKvs);
 
     public DbKvsPostgresSerializableTransactionTest() {
         super(TRM, TRM);

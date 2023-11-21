@@ -15,67 +15,59 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
+import static org.junit.jupiter.api.extension.ExtensionContext.Namespace.GLOBAL;
+
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutablePostgresDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
-import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.DockerComposeExtension;
 import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.logging.LogDirectory;
-import com.palantir.nexus.db.pool.HikariCpConnectionManagerTest;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
 import com.palantir.nexus.db.pool.config.PostgresConnectionConfig;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.concurrent.Callable;
 import org.awaitility.Awaitility;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
-@RunWith(Suite.class)
-@SuiteClasses({
-    DbKvsPostgresTargetedSweepIntegrationTest.class,
-    DbKvsPostgresKeyValueServiceTest.class,
-    DbKvsPostgresSerializableTransactionTest.class,
-    DbKvsPostgresSweepTaskRunnerTest.class,
-    DbKvsBackgroundSweeperIntegrationTest.class,
-    PostgresEmbeddedDbTimestampBoundStoreTest.class,
-    PostgresMultiSeriesDbTimestampBoundStoreTest.class,
-    PostgresMultiSequenceTimestampSeriesProviderTest.class,
-    DbKvsPostgresGetCandidateCellsForSweepingTest.class,
-    DbKvsSweepProgressStoreIntegrationTest.class,
-    DbKvsPostgresInvalidationRunnerTest.class,
-    DbTimestampStoreInvalidatorCreationTest.class,
-    HikariCpConnectionManagerTest.class,
-})
-public final class DbKvsPostgresTestSuite {
+public final class DbKvsPostgresExtension implements BeforeAllCallback, ExtensionContext.Store.CloseableResource {
     private static final int POSTGRES_PORT_NUMBER = 5432;
 
-    private DbKvsPostgresTestSuite() {
-        // Test suite
-    }
+    private static volatile boolean isInitialized = false;
 
-    @ClassRule
-    public static final DockerComposeRule docker = DockerComposeRule.builder()
+    public static final DockerComposeExtension docker = DockerComposeExtension.builder()
             .file("src/test/resources/docker-compose.postgres.yml")
             .waitingForService("postgres-dbkvs", Container::areAllPortsOpen)
-            .saveLogsTo(LogDirectory.circleAwareLogDirectory(DbKvsPostgresTestSuite.class))
+            .saveLogsTo(LogDirectory.circleAwareLogDirectory(DbKvsPostgresExtension.class))
             .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
             .build();
 
-    @BeforeClass
-    public static void waitUntilDbkvsIsUp() throws InterruptedException {
-        Awaitility.await()
-                .atMost(Duration.ofMinutes(1))
-                .pollInterval(Duration.ofSeconds(1))
-                .until(canCreateKeyValueService());
+    @Override
+    public void beforeAll(ExtensionContext extensionContext) throws InterruptedException, IOException {
+        synchronized (DbKvsPostgresExtension.class) {
+            if (!isInitialized) {
+                isInitialized = true;
+                docker.beforeAll(extensionContext);
+                Awaitility.await()
+                        .atMost(Duration.ofMinutes(1))
+                        .pollInterval(Duration.ofSeconds(1))
+                        .until(canCreateKeyValueService());
+                extensionContext.getRoot().getStore(GLOBAL).put("DbKvsOracleExtension", this);
+            }
+        }
+    }
+
+    @Override
+    public void close() {
+        docker.after();
     }
 
     public static PostgresConnectionConfig getConnectionConfig() {
