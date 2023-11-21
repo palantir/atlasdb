@@ -13,6 +13,7 @@ license {
   exclude '**/TimestampCorrectnessMetrics.java'
   exclude '**/ExpectationsMetrics.java'
   exclude '**/VerificationModeMetrics.java'
+  exclude '**/TransactionMetrics.java'
 }
 
 dependencies {

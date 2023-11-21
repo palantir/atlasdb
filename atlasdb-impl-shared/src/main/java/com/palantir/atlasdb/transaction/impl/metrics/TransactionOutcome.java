@@ -58,13 +58,6 @@ public enum TransactionOutcome {
     PUT_UNLESS_EXISTS_FAILED,
 
     /**
-     * Our transaction has rolled back another transaction (for example, if we read a value from a transaction
-     * that started before our start timestamp and hasn't committed). This will be logged at most once for a given
-     * transaction being rolled back, even if multiple transactions aim to rollback the same transaction.
-     */
-    ROLLBACK_OTHER,
-
-    /**
      * The transaction failed to acquire commit locks at the beginning of the AtlasDB commit protocol.
      */
     COMMIT_LOCK_ACQUISITION_FAILED,

@@ -45,8 +45,10 @@ public class TransactionOutcomeMetricsTest {
 
     private final MetricsManager metricsManager =
             new MetricsManager(metricRegistry, taggedMetricRegistry, SAFE_REFERENCES::contains);
-    private final TransactionOutcomeMetrics transactionOutcomeMetrics =
-            new TransactionOutcomeMetrics(metricsManager, SAFE_REFERENCES::contains);
+    private final TransactionOutcomeMetrics transactionOutcomeMetrics = new TransactionOutcomeMetrics(
+            TransactionMetrics.of(metricsManager.getTaggedRegistry()),
+            metricsManager.getTaggedRegistry(),
+            SAFE_REFERENCES::contains);
 
     @Test
     public void canMarkOneSuccessfulCommit() {
@@ -70,9 +72,8 @@ public class TransactionOutcomeMetricsTest {
                 .put(2, transactionOutcomeMetrics::markSuccessfulCommit)
                 .put(3, transactionOutcomeMetrics::markLocksExpired)
                 .put(4, transactionOutcomeMetrics::markPutUnlessExistsFailed)
-                .put(5, transactionOutcomeMetrics::markRollbackOtherTransaction)
-                .put(6, transactionOutcomeMetrics::markPreCommitCheckFailed)
-                .put(7, transactionOutcomeMetrics::markCommitLockAcquisitionFailed)
+                .put(5, transactionOutcomeMetrics::markPreCommitCheckFailed)
+                .put(6, transactionOutcomeMetrics::markCommitLockAcquisitionFailed)
                 .buildOrThrow();
 
         tasks.entrySet().forEach(entry -> IntStream.range(0, entry.getKey())
@@ -83,9 +84,8 @@ public class TransactionOutcomeMetricsTest {
                 .hasSuccessfulCommits(2)
                 .hasLocksExpired(3)
                 .hasPutUnlessExistsFailures(4)
-                .hasRollbackOther(5)
-                .hasPreCommitCheckFailures(6)
-                .hasCommitLockAcquisitionFailures(7);
+                .hasPreCommitCheckFailures(5)
+                .hasCommitLockAcquisitionFailures(6);
     }
 
     @Test
