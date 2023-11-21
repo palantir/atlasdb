@@ -48,6 +48,8 @@ import java.util.stream.Collectors;
  * acquiring. This is useful for testing the behavior of clients when locks are lost.
  */
 public final class UnreliableTimeLockService implements TimelockService {
+    // A partition is sized at 2^23 timestamps, and we want to skip through potentially many at a time.
+    private static final long THOUSAND_COARSE_PARTITIONS_SIZE = 1000 * (1L << 23);
     private static final SecureRandom SECURE_RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();
 
     private static final SafeLogger log = SafeLoggerFactory.get(UnreliableTimeLockService.class);
@@ -85,19 +87,19 @@ public final class UnreliableTimeLockService implements TimelockService {
 
     @Override
     public long getFreshTimestamp() {
-        buggify.maybe(0.01).run(this::randomlyIncreaseTimestamp);
+        maybeRandomlyIncreaseTimestamp();
         return runWithReadLock(delegate::getFreshTimestamp);
     }
 
     @Override
     public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
-        buggify.maybe(0.01).run(this::randomlyIncreaseTimestamp);
+        maybeRandomlyIncreaseTimestamp();
         return runWithReadLock(() -> delegate.getCommitTimestamp(startTs, commitLocksToken));
     }
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        buggify.maybe(0.01).run(this::randomlyIncreaseTimestamp);
+        maybeRandomlyIncreaseTimestamp();
         return runWithReadLock(() -> delegate.getFreshTimestamps(numTimestampsRequested));
     }
 
@@ -169,11 +171,15 @@ public final class UnreliableTimeLockService implements TimelockService {
         return delegate.currentTimeMillis();
     }
 
+    private void maybeRandomlyIncreaseTimestamp() {
+        buggify.maybe(0.1).run(this::randomlyIncreaseTimestamp);
+    }
+
     private void randomlyIncreaseTimestamp() {
         runWithWriteLock(() -> {
             long currentTimestamp = delegate.getFreshTimestamp();
             long newTimestamp = SECURE_RANDOM
-                    .longs(1, currentTimestamp + 1, Long.MAX_VALUE)
+                    .longs(1, currentTimestamp + 1, currentTimestamp + THOUSAND_COARSE_PARTITIONS_SIZE)
                     .findFirst()
                     .getAsLong();
             log.info(
