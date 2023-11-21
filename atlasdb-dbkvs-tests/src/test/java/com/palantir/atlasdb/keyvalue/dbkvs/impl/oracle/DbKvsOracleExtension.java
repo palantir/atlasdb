@@ -24,7 +24,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.SimpleTimedSqlConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
-import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.DockerComposeExtension;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.nexus.db.pool.ConnectionManager;
@@ -32,52 +32,39 @@ import com.palantir.nexus.db.pool.ReentrantManagedConnectionSupplier;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.OracleConnectionConfig;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.sql.Connection;
 import java.time.Duration;
 import java.util.concurrent.Callable;
 import org.awaitility.Awaitility;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
-@RunWith(Suite.class)
-@SuiteClasses({
-    DbKvsOracleTargetedSweepIntegrationTest.class,
-    DbKvsOracleKeyValueServiceTest.class,
-    DbKvsOracleSerializableTransactionTest.class,
-    DbKvsOracleSweepTaskRunnerTest.class,
-    DbKvsOracleGetCandidateCellsForSweepingTest.class,
-    OverflowSequenceSupplierEteTest.class,
-    OracleTableNameMapperEteTest.class,
-    OracleEmbeddedDbTimestampBoundStoreTest.class,
-    OracleNamespaceDeleterIntegrationTest.class,
-    OracleAlterTableIntegrationTest.class
-})
-public final class DbKvsOracleTestSuite {
+public final class DbKvsOracleExtension implements BeforeAllCallback, AfterAllCallback {
     private static final String LOCALHOST = "0.0.0.0";
     private static final int ORACLE_PORT_NUMBER = 1521;
 
-    private DbKvsOracleTestSuite() {
-        // Test suite
-    }
-
-    @ClassRule
-    public static final DockerComposeRule docker = DockerComposeRule.builder()
+    public static final DockerComposeExtension docker = DockerComposeExtension.builder()
             .file("src/test/resources/docker-compose.oracle.yml")
             .waitingForService("oracle", Container::areAllPortsOpen)
             .nativeServiceHealthCheckTimeout(org.joda.time.Duration.standardMinutes(5))
             .saveLogsTo("container-logs")
             .build();
 
-    @BeforeClass
-    public static void waitUntilDbKvsIsUp() {
+    @Override
+    public void beforeAll(ExtensionContext var1) throws IOException, InterruptedException {
+        docker.beforeAll(var1);
         Awaitility.await()
                 .atMost(Duration.ofMinutes(5))
                 .pollInterval(Duration.ofSeconds(1))
                 .until(canCreateKeyValueService());
+    }
+
+    @Override
+    public void afterAll(ExtensionContext var1) {
+        docker.afterAll(var1);
     }
 
     public static KeyValueService createKvs() {

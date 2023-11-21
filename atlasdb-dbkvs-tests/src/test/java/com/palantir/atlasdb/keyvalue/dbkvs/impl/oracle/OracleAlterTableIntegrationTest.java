@@ -37,26 +37,28 @@ import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetterImpl;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
 import com.palantir.atlasdb.logging.KvsProfilingLogger.CallableCheckedException;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import java.util.Locale;
 import java.util.Map;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
+@ExtendWith(DbKvsOracleExtension.class)
 public final class OracleAlterTableIntegrationTest {
-    @ClassRule
-    public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleTestSuite::createKvs);
+    @RegisterExtension
+    public static final TestResourceManagerV2 TRM = new TestResourceManagerV2(DbKvsOracleExtension::createKvs);
 
     private static final Namespace NAMESPACE = Namespace.create("test_namespace");
     private static final TableReference TABLE_REFERENCE = TableReference.create(NAMESPACE, "foo");
     private static final DbKeyValueServiceConfig CONFIG_WITH_ALTER = ImmutableDbKeyValueServiceConfig.builder()
-            .from(DbKvsOracleTestSuite.getKvsConfig())
+            .from(DbKvsOracleExtension.getKvsConfig())
             .ddl(ImmutableOracleDdlConfig.builder()
                     .overflowMigrationState(OverflowMigrationState.FINISHED)
                     .addAlterTablesOrMetadataToMatch(ImmutableTableReferenceWrapper.of(TABLE_REFERENCE))
@@ -90,18 +92,18 @@ public final class OracleAlterTableIntegrationTest {
     private ConnectionSupplier connectionSupplier;
     private OracleTableNameGetter oracleTableNameGetter;
 
-    @Before
+    @BeforeEach
     public void before() {
         defaultKvs = TRM.getDefaultKvs();
-        connectionSupplier = DbKvsOracleTestSuite.getConnectionSupplier(defaultKvs);
+        connectionSupplier = DbKvsOracleExtension.getConnectionSupplier(defaultKvs);
         oracleTableNameGetter = OracleTableNameGetterImpl.createDefault(
-                (OracleDdlConfig) DbKvsOracleTestSuite.getKvsConfig().ddl());
+                (OracleDdlConfig) DbKvsOracleExtension.getKvsConfig().ddl());
     }
 
-    @After
+    @AfterEach
     public void after() {
         defaultKvs.dropTables(defaultKvs.getAllTableNames());
-        defaultKvs.dropTable(DbKvsOracleTestSuite.getKvsConfig().ddl().metadataTable());
+        defaultKvs.dropTable(DbKvsOracleExtension.getKvsConfig().ddl().metadataTable());
         connectionSupplier.close();
     }
 
