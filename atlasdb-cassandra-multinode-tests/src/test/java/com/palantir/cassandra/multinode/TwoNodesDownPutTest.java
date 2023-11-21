@@ -23,8 +23,12 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import java.util.Map;
-import org.junit.Test;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+@Order(5)
+@ExtendWith(NodesDownTestSetup.class)
 public class TwoNodesDownPutTest extends AbstractDegradedClusterTest {
     private static final Cell EMPTY_CELL = Cell.create(PtBytes.toBytes("empty"), FIRST_COLUMN);
     private static final Cell NONEMPTY_CELL = Cell.create(PtBytes.toBytes("nonempty"), FIRST_COLUMN);

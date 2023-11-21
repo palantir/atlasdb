@@ -15,12 +15,23 @@
  */
 package com.palantir.cassandra.multinode;
 
+import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-public class OneNodeDownNodeAvailabilityTest extends AbstractNodeAvailabilityTest {
+@Order(6)
+@ExtendWith(NodesDownTestSetup.class)
+public class ThreeNodesDownAvailabilityTest extends AbstractNodeAvailabilityTest {
+
+    @BeforeAll
+    public static void beforeAll() {
+        NodesDownTestSetup.degradeCassandraCluster(ThreeNodeCassandraCluster.THIRD_CASSANDRA_CONTAINER_NAME);
+    }
 
     @Override
     protected ClusterAvailabilityStatus expectedNodeAvailabilityStatus() {
-        return ClusterAvailabilityStatus.QUORUM_AVAILABLE;
+        return ClusterAvailabilityStatus.NO_QUORUM_AVAILABLE;
     }
 }

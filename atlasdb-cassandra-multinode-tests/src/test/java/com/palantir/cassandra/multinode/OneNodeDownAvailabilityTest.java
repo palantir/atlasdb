@@ -15,26 +15,23 @@
  */
 package com.palantir.cassandra.multinode;
 
-import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
+import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
+import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-@Order(5)
+@Order(2)
 @ExtendWith(NodesDownTestSetup.class)
-public class TwoNodesDownTableManipulationTest extends AbstractDegradedClusterTest {
+public class OneNodeDownAvailabilityTest extends AbstractNodeAvailabilityTest {
 
-    @Override
-    void testSetup(CassandraKeyValueService kvs) {
-        kvs.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
+    @BeforeAll
+    public static void beforeAll() {
+        NodesDownTestSetup.degradeCassandraCluster(ThreeNodeCassandraCluster.FIRST_CASSANDRA_CONTAINER_NAME);
     }
 
-    @Test
-    public void createTableThrowsAndDoesNotChangeCassandraSchema() {
-        TableReference tableToCreate = TableReference.createWithEmptyNamespace("new_table");
-        assertThrowsAtlasDbDependencyExceptionAndDoesNotChangeCassandraSchema(
-                () -> getTestKvs().createTable(tableToCreate, AtlasDbConstants.GENERIC_TABLE_METADATA));
+    @Override
+    protected ClusterAvailabilityStatus expectedNodeAvailabilityStatus() {
+        return ClusterAvailabilityStatus.QUORUM_AVAILABLE;
     }
 }

@@ -38,8 +38,12 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import java.util.Map;
 import java.util.Set;
-import org.junit.Test;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+@Order(3)
+@ExtendWith(NodesDownTestSetup.class)
 @SuppressWarnings("MustBeClosedChecker")
 public class OneNodeDownGetTest extends AbstractDegradedClusterTest {
     private static final Set<Map.Entry<Cell, Value>> expectedRowEntries =

@@ -20,20 +20,20 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import java.io.IOException;
 import java.util.Optional;
 import java.util.function.Supplier;
-import org.junit.rules.ExternalResource;
-import org.junit.runner.Description;
-import org.junit.runners.model.Statement;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
-public class ThreeNodeCassandraResource extends ExternalResource implements KvsManager, TransactionManagerManager {
+public class ThreeNodeCassandraResource
+        implements BeforeAllCallback, AfterAllCallback, KvsManager, TransactionManagerManager {
     private final Supplier<KeyValueService> supplier;
-    private Containers containers;
-    private TestResourceManager testResourceManager;
+    private TestResourceManagerV2 testResourceManager;
 
     public ThreeNodeCassandraResource() {
         this.supplier = () -> CassandraKeyValueServiceImpl.createForTesting(
@@ -41,20 +41,15 @@ public class ThreeNodeCassandraResource extends ExternalResource implements KvsM
     }
 
     @Override
-    public Statement apply(Statement base, Description description) {
-        containers = new Containers(description.getTestClass()).with(new ThreeNodeCassandraCluster());
-        testResourceManager = new TestResourceManager(supplier);
-        return super.apply(base, description);
+    public void beforeAll(ExtensionContext var1) throws IOException, InterruptedException {
+        ContainersV2 containers = new ContainersV2(var1.getRequiredTestClass()).with(new ThreeNodeCassandraCluster());
+        testResourceManager = new TestResourceManagerV2(supplier);
+        containers.beforeAll(var1);
     }
 
     @Override
-    public void before() throws Throwable {
-        containers.before();
-    }
-
-    @Override
-    public void after() {
-        testResourceManager.after();
+    public void afterAll(ExtensionContext var1) {
+        testResourceManager.afterAll(var1);
     }
 
     /**

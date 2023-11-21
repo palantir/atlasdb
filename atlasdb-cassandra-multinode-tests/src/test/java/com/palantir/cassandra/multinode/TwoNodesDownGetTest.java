@@ -26,8 +26,12 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.common.base.ClosableIterator;
-import org.junit.Test;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+@Order(5)
+@ExtendWith(NodesDownTestSetup.class)
 @SuppressWarnings("MustBeClosedChecker")
 public class TwoNodesDownGetTest extends AbstractDegradedClusterTest {
 

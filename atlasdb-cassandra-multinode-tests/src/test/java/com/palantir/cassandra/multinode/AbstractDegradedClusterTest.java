@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.thrift.TException;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 
 public abstract class AbstractDegradedClusterTest {
     static final TableReference TEST_TABLE = TableReference.createWithEmptyNamespace("test_table");
@@ -58,14 +58,25 @@ public abstract class AbstractDegradedClusterTest {
             new HashMap<>();
 
     private String schemaAtStart;
+    private final boolean withSchemaVersionRecording;
 
-    @Before
+    public AbstractDegradedClusterTest(boolean withSchemaVersionRecording) {
+        this.withSchemaVersionRecording = withSchemaVersionRecording;
+    }
+
+    public AbstractDegradedClusterTest() {
+        this(true);
+    }
+
+    @BeforeEach
     public void recordSchemaVersion() throws TException {
-        schemaAtStart = getUniqueReachableSchemaVersionOrThrow();
+        if (withSchemaVersionRecording) {
+            schemaAtStart = getUniqueReachableSchemaVersionOrThrow();
+        }
     }
 
     /**
-     * Used in {@link NodesDownTestSetup#initializeKvsAndDegradeCluster(List, List)} using reflection to perform any
+     * Used in {@link NodesDownTestSetup#initializeKvsAndDegradeCluster(Class, List)} using reflection to perform any
      * necessary initialization before degrading the cluster.
      *
      * @param kvs a dedicated instance of CKVs keyed to a specific namespace to be used with this test only
@@ -101,6 +112,9 @@ public abstract class AbstractDegradedClusterTest {
     }
 
     void assertCassandraSchemaChanged() {
+        if (!withSchemaVersionRecording) {
+            throw new IllegalStateException("Cannot assert schema changed without schema version recording");
+        }
         try {
             assertThat(getUniqueReachableSchemaVersionOrThrow()).isNotEqualTo(schemaAtStart);
         } catch (TException e) {
@@ -109,6 +123,9 @@ public abstract class AbstractDegradedClusterTest {
     }
 
     private void assertCassandraSchemaUnchanged() {
+        if (!withSchemaVersionRecording) {
+            throw new IllegalStateException("Cannot assert schema unchanged without schema version recording");
+        }
         try {
             assertThat(getUniqueReachableSchemaVersionOrThrow()).isEqualTo(schemaAtStart);
         } catch (TException e) {
