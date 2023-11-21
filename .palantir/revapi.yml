@@ -370,3 +370,47 @@ acceptedBreaks:
         \ com.palantir.logsafe.Arg<?>[])"
       justification: "Verified that internal consumers are using compiletimeconstant\
         \ strings"
+  "0.977.0":
+    com.palantir.atlasdb:atlasdb-config:
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter com.palantir.atlasdb.factory.ImmutableTransactionManagers com.palantir.atlasdb.factory.ImmutableTransactionManagers::withDefaultTimelockClientFactory(===java.util.function.Function<com.palantir.lock.v2.TimelockService,\
+        \ com.palantir.lock.client.TimeLockClient>===)"
+      new: "parameter com.palantir.atlasdb.factory.ImmutableTransactionManagers com.palantir.atlasdb.factory.ImmutableTransactionManagers::withDefaultTimelockClientFactory(===java.util.function.BiFunction<com.palantir.lock.v2.TimelockService,\
+        \ com.palantir.timestamp.TimestampManagementService, com.palantir.lock.client.TimeLockClient>===)"
+      justification: "This is only used for antithesis tests"
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter com.palantir.atlasdb.factory.ImmutableTransactionManagers.BuildFinal\
+        \ com.palantir.atlasdb.factory.ImmutableTransactionManagers.BuildFinal::defaultTimelockClientFactory(===java.util.function.Function<com.palantir.lock.v2.TimelockService,\
+        \ com.palantir.lock.client.TimeLockClient>===)"
+      new: "parameter com.palantir.atlasdb.factory.ImmutableTransactionManagers.BuildFinal\
+        \ com.palantir.atlasdb.factory.ImmutableTransactionManagers.BuildFinal::defaultTimelockClientFactory(===java.util.function.BiFunction<com.palantir.lock.v2.TimelockService,\
+        \ com.palantir.timestamp.TimestampManagementService, com.palantir.lock.client.TimeLockClient>===)"
+      justification: "This is only used for antithesis tests"
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter com.palantir.atlasdb.factory.ImmutableTransactionManagers.Builder\
+        \ com.palantir.atlasdb.factory.ImmutableTransactionManagers.Builder::defaultTimelockClientFactory(===java.util.function.Function<com.palantir.lock.v2.TimelockService,\
+        \ com.palantir.lock.client.TimeLockClient>===)"
+      new: "parameter com.palantir.atlasdb.factory.ImmutableTransactionManagers.Builder\
+        \ com.palantir.atlasdb.factory.ImmutableTransactionManagers.Builder::defaultTimelockClientFactory(===java.util.function.BiFunction<com.palantir.lock.v2.TimelockService,\
+        \ com.palantir.timestamp.TimestampManagementService, com.palantir.lock.client.TimeLockClient>===)"
+      justification: "This is only used for antithesis tests"
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter void com.palantir.atlasdb.factory.DefaultLockAndTimestampServiceFactory::<init>(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.config.AtlasDbConfig, com.palantir.refreshable.Refreshable<com.palantir.atlasdb.config.AtlasDbRuntimeConfig>,\
+        \ java.util.function.Supplier<com.palantir.lock.LockService>, java.util.function.Supplier<com.palantir.timestamp.ManagedTimestampService>,\
+        \ com.palantir.timestamp.TimestampStoreInvalidator, com.palantir.conjure.java.api.config.service.UserAgent,\
+        \ java.util.Optional<com.palantir.atlasdb.debug.LockDiagnosticComponents>,\
+        \ com.palantir.dialogue.clients.DialogueClients.ReloadingFactory, java.util.Optional<com.palantir.lock.client.metrics.TimeLockFeedbackBackgroundTask>,\
+        \ java.util.Optional<com.palantir.atlasdb.config.TimeLockRequestBatcherProviders>,\
+        \ java.util.Set<com.palantir.atlasdb.table.description.Schema>, ===java.util.function.Function<com.palantir.lock.v2.TimelockService,\
+        \ com.palantir.lock.client.TimeLockClient>===)"
+      new: "parameter void com.palantir.atlasdb.factory.DefaultLockAndTimestampServiceFactory::<init>(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.config.AtlasDbConfig, com.palantir.refreshable.Refreshable<com.palantir.atlasdb.config.AtlasDbRuntimeConfig>,\
+        \ java.util.function.Supplier<com.palantir.lock.LockService>, java.util.function.Supplier<com.palantir.timestamp.ManagedTimestampService>,\
+        \ com.palantir.timestamp.TimestampStoreInvalidator, com.palantir.conjure.java.api.config.service.UserAgent,\
+        \ java.util.Optional<com.palantir.atlasdb.debug.LockDiagnosticComponents>,\
+        \ com.palantir.dialogue.clients.DialogueClients.ReloadingFactory, java.util.Optional<com.palantir.lock.client.metrics.TimeLockFeedbackBackgroundTask>,\
+        \ java.util.Optional<com.palantir.atlasdb.config.TimeLockRequestBatcherProviders>,\
+        \ java.util.Set<com.palantir.atlasdb.table.description.Schema>, ===java.util.function.BiFunction<com.palantir.lock.v2.TimelockService,\
+        \ com.palantir.timestamp.TimestampManagementService, com.palantir.lock.client.TimeLockClient>===)"
+      justification: "This is only used for antithesis tests"
