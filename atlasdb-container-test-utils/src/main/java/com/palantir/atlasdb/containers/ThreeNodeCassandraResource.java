@@ -41,15 +41,16 @@ public class ThreeNodeCassandraResource
     }
 
     @Override
-    public void beforeAll(ExtensionContext var1) throws IOException, InterruptedException {
-        ContainersV2 containers = new ContainersV2(var1.getRequiredTestClass()).with(new ThreeNodeCassandraCluster());
+    public void beforeAll(ExtensionContext extensionContext) throws IOException, InterruptedException {
+        ContainersV2 containers =
+                new ContainersV2(extensionContext.getRequiredTestClass()).with(new ThreeNodeCassandraCluster());
         testResourceManager = new TestResourceManagerV2(supplier);
-        containers.beforeAll(var1);
+        containers.beforeAll(extensionContext);
     }
 
     @Override
-    public void afterAll(ExtensionContext var1) {
-        testResourceManager.afterAll(var1);
+    public void afterAll(ExtensionContext extensionContext) {
+        testResourceManager.afterAll(extensionContext);
     }
 
     /**

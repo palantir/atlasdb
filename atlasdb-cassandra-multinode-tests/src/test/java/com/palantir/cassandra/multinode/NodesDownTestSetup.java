@@ -48,17 +48,15 @@ public class NodesDownTestSetup implements BeforeAllCallback, ExtensionContext.S
             new ContainersV2(NodesDownTestSetup.class).with(new ThreeNodeCassandraCluster());
 
     @Override
-    public void beforeAll(ExtensionContext context) throws Exception {
-        synchronized (NodesDownTestSetup.class) {
-            if (!started) {
-                started = true;
-                CONTAINERS.beforeAll(context);
-                for (Class<?> test : getNodesDownTestClasses()) {
-                    test.getMethod("initialize", CassandraKeyValueService.class)
-                            .invoke(test.getDeclaredConstructor().newInstance(), createKvs(test));
-                }
-                context.getRoot().getStore(GLOBAL).put("NodesDownTestSetup", this);
+    public synchronized void beforeAll(ExtensionContext context) throws Exception {
+        if (!started) {
+            started = true;
+            CONTAINERS.beforeAll(context);
+            for (Class<?> test : getNodesDownTestClasses()) {
+                test.getMethod("initialize", CassandraKeyValueService.class)
+                        .invoke(test.getDeclaredConstructor().newInstance(), createKvs(test));
             }
+            context.getRoot().getStore(GLOBAL).put("NodesDownTestSetup", this);
         }
     }
 
