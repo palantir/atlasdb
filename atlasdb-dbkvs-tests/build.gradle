@@ -1,5 +1,9 @@
 apply from: "../gradle/shared.gradle"
 
+versionsLock {
+    testProject()
+}
+
 dependencies {
     implementation project(':atlasdb-api')
     implementation project(':atlasdb-client')

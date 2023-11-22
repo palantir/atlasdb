@@ -59,16 +59,17 @@ import java.util.stream.Collectors;
 import org.immutables.value.Value;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
+@ExtendWith(DbKvsOracleExtension.class)
+@Order(1)
 public final class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetupV2 {
-    @RegisterExtension
-    public static final DbKvsOracleExtensionV2 dbKvsOracleExtension = new DbKvsOracleExtensionV2();
 
     @RegisterExtension
-    public static final TestResourceManagerV2 TRM = new TestResourceManagerV2(DbKvsOracleExtensionV2::createKvs);
+    public static final TestResourceManagerV2 TRM = new TestResourceManagerV2(DbKvsOracleExtension::createKvs);
 
     private static final Refreshable<Optional<KeyValueServiceRuntimeConfig>> RUNTIME_CONFIG =
             Refreshable.only(Optional.empty());
@@ -98,9 +99,9 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
     @BeforeEach
     public void before() {
         NamespaceDeleterFactory factory = new DbKvsNamespaceDeleterFactory();
-        dbKeyValueServiceConfig = DbKvsOracleExtensionV2.getKvsConfig();
+        dbKeyValueServiceConfig = DbKvsOracleExtension.getKvsConfig();
         oracleDdlConfig = (OracleDdlConfig) dbKeyValueServiceConfig.ddl();
-        connectionManager = DbKvsOracleExtensionV2.getConnectionManager(keyValueService);
+        connectionManager = DbKvsOracleExtension.getConnectionManager(keyValueService);
         namespaceDeleter = factory.createNamespaceDeleter(dbKeyValueServiceConfig, RUNTIME_CONFIG);
 
         DbKeyValueServiceConfig kvsConfigWithNonDefaultPrefix = ImmutableDbKeyValueServiceConfig.builder()
@@ -218,7 +219,6 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
     }
 
     @Test
-    @Disabled
     public void deleteAllDataFromNamespaceDoesNotDropTimestampTable() throws SQLException {
         new LegacyPhysicalBoundStoreStrategy(AtlasDbConstants.TIMESTAMP_TABLE, oracleDdlConfig.tablePrefix())
                 .createTimestampTable(connectionManager.getConnection(), _conn -> DBType.ORACLE);

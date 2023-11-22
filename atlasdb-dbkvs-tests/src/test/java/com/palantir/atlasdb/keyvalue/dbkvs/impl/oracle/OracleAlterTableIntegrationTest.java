@@ -203,7 +203,7 @@ public final class OracleAlterTableIntegrationTest {
         return Cell.create(PtBytes.toBytes(row), PtBytes.toBytes(columnValue));
     }
 
-    private DbKeyValueServiceConfig getConfigWithAlterTableFromPhysicalTableName(String physicalTableName) {
+    private static DbKeyValueServiceConfig getConfigWithAlterTableFromPhysicalTableName(String physicalTableName) {
         return ImmutableDbKeyValueServiceConfig.builder()
                 .from(CONFIG_WITH_ALTER)
                 .ddl(ImmutableOracleDdlConfig.builder()
