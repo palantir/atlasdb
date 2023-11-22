@@ -21,7 +21,7 @@ import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTe
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
@@ -54,7 +54,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTestV2;
 import com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
@@ -70,11 +70,9 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.refreshable.Refreshable;
-import com.palantir.timelock.paxos.InMemoryTimeLockRule;
+import com.palantir.timelock.paxos.InMemoryTimelockClassExtension;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -88,15 +86,12 @@ import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.thrift.TException;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;
 
-@RunWith(Parameterized.class)
-public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTest {
+public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTestV2 {
     private static final Logger logger = mock(Logger.class);
     private static final MetricsManager metricsManager = MetricsManagers.createForTests();
     private static final int FOUR_DAYS_IN_SECONDS = 4 * 24 * 60 * 60;
@@ -104,26 +99,15 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     private static final int ONE_HOUR_IN_SECONDS = 60 * 60;
     private static final TableReference NEVER_SEEN = TableReference.createFromFullyQualifiedName("ns.never_seen");
     private static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
-    private static final String ASYNC = "async";
-    private static final String SYNC = "sync";
     private static final TableReference ATLAS_DEFAULT_TABLE_REFERENCE =
             TableReference.createFromFullyQualifiedName("ns.default_table");
     private static final String CASSANDRA_DEFAULT_TABLE_NAME =
             AbstractKeyValueService.internalTableName(ATLAS_DEFAULT_TABLE_REFERENCE);
 
-    @Parameterized.Parameters(name = "{0}")
-    public static Collection<Object[]> data() {
-        Object[][] data = new Object[][] {
-            {SYNC, UnaryOperator.identity()},
-            {ASYNC, (UnaryOperator<CassandraKeyValueService>) AsyncDelegate::new}
-        };
-        return Arrays.asList(data);
-    }
+    @RegisterExtension
+    public static final InMemoryTimelockClassExtension services = new InMemoryTimelockClassExtension();
 
-    @ClassRule
-    public static final InMemoryTimeLockRule services = new InMemoryTimeLockRule();
-
-    @ClassRule
+    @RegisterExtension
     public static final CassandraResource CASSANDRA = new CassandraResource(() -> {
         return CassandraKeyValueServiceImpl.create(
                 MetricsManagers.createForTests(),
@@ -134,8 +118,9 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     });
 
-    public CassandraKeyValueServiceIntegrationTest(String name, UnaryOperator<KeyValueService> keyValueServiceWrapper) {
-        super(CASSANDRA, keyValueServiceWrapper);
+    public AbstractCassandraKeyValueServiceIntegrationTest(
+            UnaryOperator<CassandraKeyValueService> keyValueServiceWrapper) {
+        super(CASSANDRA, kvs -> keyValueServiceWrapper.apply((CassandraKeyValueService) kvs));
     }
 
     @Override
@@ -144,7 +129,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
     }
 
     @Override
-    @Ignore
+    @Disabled
     public void testGetAllTableNames() {
         // this test class creates a number of tables
     }
@@ -847,7 +832,7 @@ public class CassandraKeyValueServiceIntegrationTest extends AbstractKeyValueSer
                 .setMax_index_interval(2048);
     }
 
-    private static class AsyncDelegate implements AutoDelegate_CassandraKeyValueService {
+    static class AsyncDelegate implements AutoDelegate_CassandraKeyValueService {
         private final CassandraKeyValueService delegate;
 
         AsyncDelegate(CassandraKeyValueService cassandraKeyValueService) {

@@ -16,14 +16,13 @@
 package com.palantir.atlasdb.transaction.impl.metrics;
 
 import com.codahale.metrics.Meter;
-import com.codahale.metrics.MetricRegistry;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.transaction.impl.metrics.TransactionMetrics.OutcomeBuildStage;
+import com.palantir.atlasdb.transaction.impl.metrics.TransactionMetrics.Outcome_Category;
 import com.palantir.atlasdb.util.MetricsManager;
-import com.palantir.tritium.metrics.registry.MetricName;
-import java.util.Map;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.function.Predicate;
 
 /**
@@ -33,19 +32,23 @@ import java.util.function.Predicate;
  * outcomes.
  */
 public class TransactionOutcomeMetrics {
-    @VisibleForTesting
-    final MetricsManager metricsManager;
-
     private final Predicate<TableReference> safeForLogging;
+    private final TransactionMetrics metrics;
+
+    // This is exposed for TransactionOutcomeMetricsAssert
+    @VisibleForTesting
+    final TaggedMetricRegistry metricRegistry;
 
     @VisibleForTesting
-    TransactionOutcomeMetrics(MetricsManager metricsManager, Predicate<TableReference> safeForLogging) {
-        this.metricsManager = metricsManager;
+    TransactionOutcomeMetrics(
+            TransactionMetrics metrics, TaggedMetricRegistry metricRegistry, Predicate<TableReference> safeForLogging) {
         this.safeForLogging = safeForLogging;
+        this.metrics = metrics;
+        this.metricRegistry = metricRegistry;
     }
 
-    public static TransactionOutcomeMetrics create(MetricsManager metricsManager) {
-        return new TransactionOutcomeMetrics(metricsManager, LoggingArgs::isSafe);
+    public static TransactionOutcomeMetrics create(TransactionMetrics metrics, TaggedMetricRegistry metricRegistry) {
+        return new TransactionOutcomeMetrics(metrics, metricRegistry, LoggingArgs::isSafe);
     }
 
     public void markSuccessfulCommit() {
@@ -61,12 +64,11 @@ public class TransactionOutcomeMetrics {
     }
 
     public void markWriteWriteConflict(TableReference tableReference) {
-        getMeterForTable(TransactionOutcome.WRITE_WRITE_CONFLICT, tableReference)
-                .mark();
+        getMeter(TransactionOutcome.WRITE_WRITE_CONFLICT, tableReference).mark();
     }
 
     public void markReadWriteConflict(TableReference tableReference) {
-        getMeterForTable(TransactionOutcome.READ_WRITE_CONFLICT, tableReference).mark();
+        getMeter(TransactionOutcome.READ_WRITE_CONFLICT, tableReference).mark();
     }
 
     public void markLocksExpired() {
@@ -81,34 +83,52 @@ public class TransactionOutcomeMetrics {
         getMeter(TransactionOutcome.PUT_UNLESS_EXISTS_FAILED).mark();
     }
 
-    public void markRollbackOtherTransaction() {
-        getMeter(TransactionOutcome.ROLLBACK_OTHER).mark();
-    }
-
     public void markCommitLockAcquisitionFailed() {
         getMeter(TransactionOutcome.COMMIT_LOCK_ACQUISITION_FAILED).mark();
     }
 
     @VisibleForTesting
     Meter getMeter(TransactionOutcome outcome) {
-        return getMeter(outcome, ImmutableMap.of());
-    }
-
-    private Meter getMeter(TransactionOutcome outcome, Map<String, String> safeTags) {
-        return metricsManager.getTaggedRegistry().meter(getMetricName(outcome, safeTags));
-    }
-
-    private Meter getMeterForTable(TransactionOutcome outcome, TableReference tableReference) {
-        TableReference safeTableReference =
-                safeForLogging.test(tableReference) ? tableReference : LoggingArgs.PLACEHOLDER_TABLE_REFERENCE;
-        return getMeter(outcome, ImmutableMap.of("tableReference", safeTableReference.getQualifiedName()));
+        return getMeter(outcome, "");
     }
 
     @VisibleForTesting
-    MetricName getMetricName(TransactionOutcome outcome, Map<String, String> safeTags) {
-        return MetricName.builder()
-                .safeName(MetricRegistry.name(TransactionOutcomeMetrics.class, outcome.name()))
-                .putAllSafeTags(safeTags)
-                .build();
+    Meter getMeter(TransactionOutcome outcome, TableReference tableReference) {
+        TableReference safeTableReference =
+                safeForLogging.test(tableReference) ? tableReference : LoggingArgs.PLACEHOLDER_TABLE_REFERENCE;
+        return getMeter(outcome, safeTableReference.getQualifiedName());
+    }
+
+    private Meter getMeter(TransactionOutcome outcome, String tableReference) {
+        return getMetric(outcome, tableReference).build();
+    }
+
+    @VisibleForTesting
+    OutcomeBuildStage getMetric(TransactionOutcome outcome, String tableReference) {
+        return metrics.outcome()
+                .category(mapToMetricOutcome(outcome))
+                .outcome(outcome.name())
+                .tableReference(tableReference);
+    }
+
+    static TransactionMetrics.Outcome_Category mapToMetricOutcome(TransactionOutcome outcome) {
+        switch (outcome) {
+            case SUCCESSFUL_COMMIT:
+                return Outcome_Category.SUCCESS;
+            case FAILED_COMMIT:
+            case ABORT:
+            case WRITE_WRITE_CONFLICT:
+            case READ_WRITE_CONFLICT:
+            case LOCKS_EXPIRED:
+            case PRE_COMMIT_CHECK_FAILED:
+            case PUT_UNLESS_EXISTS_FAILED:
+            case COMMIT_LOCK_ACQUISITION_FAILED:
+                return Outcome_Category.FAIL;
+            default:
+                // To avoid throwing exceptions unnecessarily, we map all other unknown outcomes to UNKNOWN.
+                // An unknown outcome should be added here as soon as possible. This won't be necessary when we have
+                // covered switches from Java 17
+                return Outcome_Category.UNKNOWN;
+        }
     }
 }

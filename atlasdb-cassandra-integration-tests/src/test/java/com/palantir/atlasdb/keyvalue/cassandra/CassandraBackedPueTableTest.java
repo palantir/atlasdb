@@ -45,10 +45,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 public class CassandraBackedPueTableTest {
     private final KeyValueService kvs = CASSANDRA.getDefaultKvs();
@@ -62,17 +62,17 @@ public class CassandraBackedPueTableTest {
     private final ListeningExecutorService readExecutors =
             MoreExecutors.listeningDecorator(PTExecutors.newFixedThreadPool(10));
 
-    @ClassRule
+    @RegisterExtension
     public static final CassandraResource CASSANDRA = new CassandraResource();
 
-    @Before
+    @BeforeEach
     public void setup() {
         kvs.createTable(
                 TransactionConstants.TRANSACTIONS2_TABLE,
                 TableMetadata.allDefault().persistToBytes());
     }
 
-    @After
+    @AfterEach
     public void cleanup() {
         writeExecutor.shutdownNow();
         readExecutors.shutdownNow();

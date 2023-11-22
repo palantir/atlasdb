@@ -24,13 +24,13 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.sweep.AbstractTargetedSweepTest;
+import com.palantir.atlasdb.sweep.AbstractTargetedSweepTestV2;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class CassandraTargetedSweepIntegrationTest extends AbstractTargetedSweepTest {
-    @ClassRule
+public class CassandraTargetedSweepIntegrationTest extends AbstractTargetedSweepTestV2 {
+    @RegisterExtension
     public static final CassandraResource CASSANDRA = new CassandraResource();
 
     public CassandraTargetedSweepIntegrationTest() {

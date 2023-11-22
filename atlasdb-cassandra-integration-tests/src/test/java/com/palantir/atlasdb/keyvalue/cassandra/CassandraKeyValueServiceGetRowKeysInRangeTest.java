@@ -33,10 +33,10 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 public class CassandraKeyValueServiceGetRowKeysInRangeTest {
     private static final TableReference GET_ROW_KEYS_TABLE = TableReference.createFromFullyQualifiedName("test.rows");
@@ -47,16 +47,16 @@ public class CassandraKeyValueServiceGetRowKeysInRangeTest {
 
     private CassandraKeyValueService kvs;
 
-    @ClassRule
+    @RegisterExtension
     public static final CassandraResource CASSANDRA = new CassandraResource();
 
-    @Before
+    @BeforeEach
     public void initialize() {
         kvs = CASSANDRA.getDefaultKvs();
         kvs.createTable(GET_ROW_KEYS_TABLE, NO_SWEEP_METADATA);
     }
 
-    @After
+    @AfterEach
     public void cleanup() {
         kvs.truncateTable(GET_ROW_KEYS_TABLE);
     }

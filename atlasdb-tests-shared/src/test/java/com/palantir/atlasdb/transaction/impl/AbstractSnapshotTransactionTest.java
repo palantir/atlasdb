@@ -114,6 +114,7 @@ import com.palantir.atlasdb.transaction.api.expectations.TransactionWriteMetadat
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.ToplistDeltaFilteringTableLevelMetricsController;
+import com.palantir.atlasdb.transaction.impl.metrics.TransactionMetrics;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetricsAssert;
 import com.palantir.common.base.AbortingVisitor;
@@ -217,8 +218,8 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
             metricsManager.getRegistry(), () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     private final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(8);
     private final int defaultGetRangesConcurrency = 2;
-    private final TransactionOutcomeMetrics transactionOutcomeMetrics =
-            TransactionOutcomeMetrics.create(metricsManager);
+    private final TransactionOutcomeMetrics transactionOutcomeMetrics = TransactionOutcomeMetrics.create(
+            TransactionMetrics.of(metricsManager.getTaggedRegistry()), metricsManager.getTaggedRegistry());
     private final TableLevelMetricsController tableLevelMetricsController =
             ToplistDeltaFilteringTableLevelMetricsController.create(
                     metricsManager, DefaultMetricsFilterEvaluationContext.createDefault());
