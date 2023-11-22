@@ -25,7 +25,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-@Order(3)
+@NodesDownTestClass
+@Order(3) // One node is down.
 @ExtendWith(NodesDownTestSetup.class)
 public class OneNodeDownMetadataTest extends AbstractDegradedClusterTest {
     private static final TableReference TEST_TABLE_2 = TableReference.createWithEmptyNamespace("test_table_2");

@@ -29,13 +29,14 @@ import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.refreshable.Refreshable;
 import java.io.IOException;
 import java.time.Duration;
-import java.util.List;
+import java.util.Set;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
+import org.reflections.Reflections;
 
 public class NodesDownTestSetup implements BeforeAllCallback, ExtensionContext.Store.CloseableResource {
-    private static boolean started = false;
+    private static volatile boolean started = false;
     private static final int CASSANDRA_THRIFT_PORT = 9160;
     private static final CassandraKeyValueServiceConfig CONFIG = ImmutableCassandraKeyValueServiceConfig.copyOf(
                     ThreeNodeCassandraCluster.KVS_CONFIG)
@@ -48,26 +49,16 @@ public class NodesDownTestSetup implements BeforeAllCallback, ExtensionContext.S
 
     @Override
     public void beforeAll(ExtensionContext context) throws Exception {
-        if (!started) {
-            CONTAINERS.beforeAll(context);
-            started = true;
-            for (Class<?> test : List.of(
-                    OneNodeDownAvailabilityTest.class,
-                    OneNodeDownDeleteTest.class,
-                    OneNodeDownGetTest.class,
-                    OneNodeDownMetadataTest.class,
-                    OneNodeDownPutTest.class,
-                    OneNodeDownTableManipulationTest.class,
-                    ThreeNodesDownAvailabilityTest.class,
-                    TwoNodesDownAvailabilityTest.class,
-                    TwoNodesDownGetTest.class,
-                    TwoNodesDownMetadataTest.class,
-                    TwoNodesDownPutTest.class,
-                    TwoNodesDownTableManipulationTest.class)) {
-                test.getMethod("initialize", CassandraKeyValueService.class)
-                        .invoke(test.getDeclaredConstructor().newInstance(), createKvs(test));
+        synchronized (NodesDownTestSetup.class) {
+            if (!started) {
+                started = true;
+                CONTAINERS.beforeAll(context);
+                for (Class<?> test : getNodesDownTestClasses()) {
+                    test.getMethod("initialize", CassandraKeyValueService.class)
+                            .invoke(test.getDeclaredConstructor().newInstance(), createKvs(test));
+                }
+                context.getRoot().getStore(GLOBAL).put("NodesDownTestSetup", this);
             }
-            context.getRoot().getStore(GLOBAL).put("NodesDownTestSetup", this);
         }
     }
 
@@ -75,6 +66,11 @@ public class NodesDownTestSetup implements BeforeAllCallback, ExtensionContext.S
     public void close() {
         AbstractDegradedClusterTest.closeAll();
         CONTAINERS.afterAll();
+    }
+
+    private static Set<Class<?>> getNodesDownTestClasses() {
+        Reflections reflections = new Reflections("com.palantir.cassandra.multinode");
+        return reflections.getTypesAnnotatedWith(NodesDownTestClass.class);
     }
 
     private static CassandraKeyValueService createKvs(Class<?> testClass) {

@@ -23,7 +23,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-@Order(5)
+@NodesDownTestClass
+@Order(5) // Two nodes are down.
 @ExtendWith(NodesDownTestSetup.class)
 public class TwoNodesDownMetadataTest extends AbstractDegradedClusterTest {
 

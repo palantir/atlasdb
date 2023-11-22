@@ -32,7 +32,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-@Order(3)
+@NodesDownTestClass
+@Order(3) // One node is down.
 @ExtendWith(NodesDownTestSetup.class)
 public class OneNodeDownPutTest extends AbstractDegradedClusterTest {
     private static final Cell EMPTY_CELL = Cell.create(PtBytes.toBytes("empty"), FIRST_COLUMN);

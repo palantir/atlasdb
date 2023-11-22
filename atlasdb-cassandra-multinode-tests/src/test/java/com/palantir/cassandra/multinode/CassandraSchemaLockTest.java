@@ -46,7 +46,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-@Order(1)
+@Order(1) // No node is down.
 public class CassandraSchemaLockTest {
     private static final int THREAD_COUNT = 4;
 

@@ -21,7 +21,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-@Order(6)
+@NodesDownTestClass
+@Order(6) // Take the third node down and continue.
 @ExtendWith(NodesDownTestSetup.class)
 public class ThreeNodesDownAvailabilityTest extends AbstractNodeAvailabilityTest {
 

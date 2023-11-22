@@ -1,5 +1,9 @@
 apply from: "../gradle/shared.gradle"
 
+versionsLock {
+    testProject()
+}
+
 dependencies {
     testImplementation 'com.google.guava:guava'
     testImplementation 'org.apache.thrift:libthrift'
@@ -7,6 +11,7 @@ dependencies {
     testImplementation 'com.palantir.refreshable:refreshable'
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'com.datastax.cassandra:cassandra-driver-core'
+    testImplementation 'org.reflections:reflections'
     testImplementation 'com.palantir.docker.compose:docker-compose-junit-jupiter'
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation 'org.junit.jupiter:junit-jupiter-api'
