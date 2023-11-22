@@ -37,7 +37,7 @@ public final class GradleExtension implements BeforeAllCallback {
     }
 
     @Override
-    public void beforeAll(ExtensionContext var1) {
+    public void beforeAll(ExtensionContext extensionContext) {
         if (isRunningOutsideOfGradle()) {
             System.out.println("It looks like you are not running in gradle,"
                     + " performing the required gradle command: " + command); // (authorized)

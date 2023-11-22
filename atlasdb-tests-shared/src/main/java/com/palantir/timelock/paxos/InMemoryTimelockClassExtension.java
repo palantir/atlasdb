@@ -23,12 +23,12 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 public final class InMemoryTimelockClassExtension extends AbstractInMemoryTimelockExtension
         implements BeforeAllCallback, AfterAllCallback {
     @Override
-    public void beforeAll(ExtensionContext var1) {
+    public void beforeAll(ExtensionContext extensionContext) {
         setup();
     }
 
     @Override
-    public void afterAll(ExtensionContext var1) {
+    public void afterAll(ExtensionContext extensionContext) {
         tearDown();
     }
 }

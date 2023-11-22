@@ -50,16 +50,16 @@ public class CassandraResource implements BeforeAllCallback, AfterAllCallback, K
     }
 
     @Override
-    public void beforeAll(ExtensionContext var1) throws Exception {
-        containers = new ContainersV2(var1.getRequiredTestClass()).with(containerInstance);
+    public void beforeAll(ExtensionContext extensionContext) throws Exception {
+        containers = new ContainersV2(extensionContext.getRequiredTestClass()).with(containerInstance);
         testResourceManager = new TestResourceManagerV2(supplier);
-        containers.beforeAll(var1);
+        containers.beforeAll(extensionContext);
         socksProxy = Containers.getSocksProxy(containerInstance.getServiceName());
     }
 
     @Override
-    public void afterAll(ExtensionContext var1) {
-        testResourceManager.afterAll(var1);
+    public void afterAll(ExtensionContext extensionContext) {
+        testResourceManager.afterAll(extensionContext);
     }
 
     /**

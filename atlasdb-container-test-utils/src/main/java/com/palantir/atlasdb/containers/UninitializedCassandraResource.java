@@ -54,8 +54,8 @@ public class UninitializedCassandraResource implements BeforeAllCallback, AfterA
     }
 
     @Override
-    public void beforeAll(ExtensionContext var1) throws IOException, InterruptedException {
-        containers.beforeAll(var1);
+    public void beforeAll(ExtensionContext extensionContext) throws IOException, InterruptedException {
+        containers.beforeAll(extensionContext);
         socksProxy = ContainersV2.getSocksProxy(containerInstance.getServiceName());
         containers.getContainer(containerInstance.getServiceName()).kill();
         containers.getDockerCompose().rm();
@@ -63,7 +63,7 @@ public class UninitializedCassandraResource implements BeforeAllCallback, AfterA
     }
 
     @Override
-    public void afterAll(ExtensionContext var1) {
+    public void afterAll(ExtensionContext extensionContext) {
         if (!initialized.get()) {
             return;
         }

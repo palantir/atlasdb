@@ -70,7 +70,7 @@ public class TestResourceManagerV2 implements AfterAllCallback, KvsManager, Tran
     }
 
     @Override
-    public void afterAll(ExtensionContext var1) {
+    public void afterAll(ExtensionContext extensionContext) {
         closeableResources.forEach(resource -> {
             try {
                 resource.close();
