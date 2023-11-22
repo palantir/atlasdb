@@ -27,7 +27,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.async.DefaultCassandraAsyncKeyValueServiceFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.DefaultCqlClientFactory;
-import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.DockerComposeExtension;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.refreshable.Refreshable;
@@ -37,8 +37,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
 
-/* TODO(boyoruk): Delete when JUnit5 upgrade is over. */
-public class CassandraContainer extends Container {
+public class CassandraContainerV2 extends ContainerV2 {
     static final int CASSANDRA_CQL_PORT = 9042;
     static final int CASSANDRA_THRIFT_PORT = 9160;
     static final String USERNAME = "cassandra";
@@ -51,11 +50,11 @@ public class CassandraContainer extends Container {
     private final String name;
     private final Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig;
 
-    public CassandraContainer() {
+    public CassandraContainerV2() {
         this("/docker-compose-cassandra.yml", CONTAINER_NAME);
     }
 
-    private CassandraContainer(String dockerComposeFile, String name) {
+    private CassandraContainerV2(String dockerComposeFile, String name) {
         String keyspace = UUID.randomUUID().toString().replace("-", "_");
         this.config = ImmutableCassandraKeyValueServiceConfig.builder()
                 .keyspace(keyspace)
@@ -80,8 +79,8 @@ public class CassandraContainer extends Container {
         this.name = name;
     }
 
-    public static CassandraContainer throwawayContainer() {
-        return new CassandraContainer("/docker-compose-cassandra2.yml", THROWAWAY_CONTAINER_NAME);
+    public static CassandraContainerV2 throwawayContainer() {
+        return new CassandraContainerV2("/docker-compose-cassandra2.yml", THROWAWAY_CONTAINER_NAME);
     }
 
     @Override
@@ -95,7 +94,7 @@ public class CassandraContainer extends Container {
     }
 
     @Override
-    public SuccessOrFailure isReady(DockerComposeRule rule) {
+    public SuccessOrFailure isReady(DockerComposeExtension extension) {
         try (CassandraKeyValueService cassandraKeyValueService = CassandraKeyValueServiceImpl.createForTesting(
                 getConfigWithProxy(Containers.getSocksProxy(name).address()), getRuntimeConfig())) {
             return SuccessOrFailure.onResultOf(cassandraKeyValueService::isInitialized);
@@ -106,7 +105,7 @@ public class CassandraContainer extends Container {
 
     @Override
     public boolean equals(Object other) {
-        return other instanceof CassandraContainer && name.equals(((CassandraContainer) other).getServiceName());
+        return other instanceof CassandraContainerV2 && name.equals(((CassandraContainerV2) other).getServiceName());
     }
 
     @Override

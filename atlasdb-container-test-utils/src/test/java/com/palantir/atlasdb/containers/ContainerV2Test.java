@@ -17,29 +17,19 @@ package com.palantir.atlasdb.containers;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Arrays;
-import java.util.Collection;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import java.util.List;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
-/* TODO(boyoruk): Delete when JUnit5 upgrade is over. */
-@RunWith(Parameterized.class)
-public class ContainerTest {
-    @Parameterized.Parameters(name = "With container {0}")
-    public static Collection<Object[]> parameters() {
-        return Arrays.asList(new Object[][] {{new CassandraContainer()}, {new ThreeNodeCassandraCluster()}});
+public class ContainerV2Test {
+    public static List<ContainerV2> containers() {
+        return List.of(new CassandraContainerV2());
     }
 
-    private final Container container;
-
-    public ContainerTest(Container container) {
-        this.container = container;
-    }
-
-    @Test
-    public void dockerComposeFileShouldExist() {
-        assertThat(ContainerTest.class.getResource(container.getDockerComposeFile()))
+    @ParameterizedTest
+    @MethodSource("containers")
+    public void dockerComposeFileShouldExist(ContainerV2 container) {
+        assertThat(ContainerV2Test.class.getResource(container.getDockerComposeFile()))
                 .isNotNull();
     }
 }

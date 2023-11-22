@@ -15,16 +15,10 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.palantir.atlasdb.containers.CassandraResource;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
+import java.util.function.UnaryOperator;
 
-public class CassandraConnectionIntegrationTest {
-    @RegisterExtension
-    public static final CassandraResource CASSANDRA = new CassandraResource();
-
-    @Test
-    public void testAuthProvided() {
-        CASSANDRA.getDefaultKvs();
+public class SyncCassandraKeyValueServiceIntegrationTest extends AbstractCassandraKeyValueServiceIntegrationTest {
+    public SyncCassandraKeyValueServiceIntegrationTest() {
+        super(UnaryOperator.identity());
     }
 }

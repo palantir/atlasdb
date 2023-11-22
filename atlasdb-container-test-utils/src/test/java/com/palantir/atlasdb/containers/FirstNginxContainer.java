@@ -20,7 +20,7 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
+/* TODO(boyoruk): Delete when JUnit5 upgrade is over. */
 public class FirstNginxContainer extends Container {
     @Override
     public String getDockerComposeFile() {

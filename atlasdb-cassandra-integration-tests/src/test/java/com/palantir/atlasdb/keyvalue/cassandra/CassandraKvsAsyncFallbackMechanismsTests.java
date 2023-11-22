@@ -57,20 +57,20 @@ import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import org.junit.After;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class CassandraKvsAsyncFallbackMechanismsTests {
     private static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.pt_kvs_test");
     private static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
     private static final Map<Cell, Long> TIMESTAMP_BY_CELL = ImmutableMap.of(CELL, 3L);
 
-    @ClassRule
+    @RegisterExtension
     public static final CassandraResource CASSANDRA_RESOURCE = new CassandraResource();
 
     private static final Refreshable<CassandraKeyValueServiceRuntimeConfig> RUNTIME_CONFIG =
@@ -87,7 +87,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
     @Mock
     private CassandraAsyncKeyValueServiceFactory factory;
 
-    @After
+    @AfterEach
     public void tearDown() {
         try {
             keyValueService.truncateTables(ImmutableSet.of(TEST_TABLE));

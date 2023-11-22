@@ -26,12 +26,13 @@ import com.palantir.logsafe.Preconditions;
 import java.io.IOException;
 import java.net.Proxy;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.junit.rules.ExternalResource;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
-public class UninitializedCassandraResource extends ExternalResource {
-    private final CassandraContainer containerInstance = CassandraContainer.throwawayContainer();
-    private final Containers containers;
+public class UninitializedCassandraResource implements BeforeAllCallback, AfterAllCallback {
+    private final CassandraContainerV2 containerInstance = CassandraContainerV2.throwawayContainer();
+    private final ContainersV2 containers;
 
     private KeyValueService kvs;
 
@@ -40,7 +41,7 @@ public class UninitializedCassandraResource extends ExternalResource {
     private Proxy socksProxy;
 
     public UninitializedCassandraResource(Class<?> classToSaveLogsFor) {
-        containers = new Containers(classToSaveLogsFor).with(containerInstance);
+        containers = new ContainersV2(classToSaveLogsFor).with(containerInstance);
     }
 
     public void initialize() {
@@ -53,16 +54,16 @@ public class UninitializedCassandraResource extends ExternalResource {
     }
 
     @Override
-    protected void before() throws Throwable {
-        containers.before();
-        socksProxy = Containers.getSocksProxy(containerInstance.getServiceName());
+    public void beforeAll(ExtensionContext extensionContext) throws IOException, InterruptedException {
+        containers.beforeAll(extensionContext);
+        socksProxy = ContainersV2.getSocksProxy(containerInstance.getServiceName());
         containers.getContainer(containerInstance.getServiceName()).kill();
         containers.getDockerCompose().rm();
         kvs = createKvs();
     }
 
     @Override
-    public void after() {
+    public void afterAll(ExtensionContext extensionContext) {
         if (!initialized.get()) {
             return;
         }

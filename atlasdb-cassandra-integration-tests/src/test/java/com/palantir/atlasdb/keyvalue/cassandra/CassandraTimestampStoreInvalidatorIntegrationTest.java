@@ -20,20 +20,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.containers.CassandraResource;
-import com.palantir.flake.ShouldRetry;
+import com.palantir.flake.FlakeRetryTest;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-@ShouldRetry
 public class CassandraTimestampStoreInvalidatorIntegrationTest {
-    @ClassRule
+    @RegisterExtension
     public static final CassandraResource CASSANDRA = new CassandraResource();
 
     private static final long ONE_MILLION = 1_000_000;
@@ -42,7 +40,7 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
 
     private final CassandraTimestampStoreInvalidator invalidator = CassandraTimestampStoreInvalidator.create(kv);
 
-    @Before
+    @BeforeEach
     public void setUp() {
         kv.createTable(
                 AtlasDbConstants.TIMESTAMP_TABLE,
@@ -50,30 +48,30 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
         kv.truncateTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }
 
-    @Test
+    @FlakeRetryTest
     public void canBackupTimestampTableIfItDoesNotExist() {
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
         assertThat(invalidator.backupAndInvalidate()).isEqualTo(CassandraTimestampUtils.INITIAL_VALUE);
     }
 
-    @Test
+    @FlakeRetryTest
     public void canBackupTimestampTableIfItExistsWithNoData() {
         assertThat(invalidator.backupAndInvalidate()).isEqualTo(CassandraTimestampUtils.INITIAL_VALUE);
     }
 
-    @Test
+    @FlakeRetryTest
     public void canBackupTwice() {
         assertThat(invalidator.backupAndInvalidate()).isEqualTo(CassandraTimestampUtils.INITIAL_VALUE);
         assertThat(invalidator.backupAndInvalidate()).isEqualTo(CassandraTimestampUtils.INITIAL_VALUE);
     }
 
-    @Test
+    @FlakeRetryTest
     public void canBackupTimestampTableIfItExistsWithData() {
         long limit = getBoundAfterTakingOutOneMillionTimestamps();
         assertThat(invalidator.backupAndInvalidate()).isEqualTo(limit);
     }
 
-    @Test
+    @FlakeRetryTest
     public void canBackupAndRestoreTimestampTable() {
         TimestampBoundStore timestampBoundStore = CassandraTimestampBoundStore.create(kv);
         long limit = timestampBoundStore.getUpperLimit();
@@ -83,7 +81,7 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
         assertThat(timestampBoundStore.getUpperLimit()).isEqualTo(limit + ONE_MILLION);
     }
 
-    @Test
+    @FlakeRetryTest
     public void restoringValidTimestampTableIsANoOp() {
         assertWeCanReadInitialValue();
         invalidator.revalidateFromBackup();
@@ -92,20 +90,20 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
         assertWeCanReadInitialValue();
     }
 
-    @Test
+    @FlakeRetryTest
     public void restoringTimestampTableIfItDoesNotExistIsANoOp() {
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
         invalidator.revalidateFromBackup();
         assertWeCanReadInitialValue();
     }
 
-    @Test
+    @FlakeRetryTest
     public void restoringTimestampTableWithNoDataIsANoOp() {
         invalidator.revalidateFromBackup();
         assertWeCanReadInitialValue();
     }
 
-    @Test
+    @FlakeRetryTest
     public void multipleInvalidatorsForSameKeyValueServiceAllReturnSameResults() {
         long limit = getBoundAfterTakingOutOneMillionTimestamps();
         CassandraTestTools.executeInParallelOnExecutorService(
@@ -118,7 +116,7 @@ public class CassandraTimestampStoreInvalidatorIntegrationTest {
      *   (1) all calls to backupAndInvalidate() return the same value V, and
      *   (2) this value V is the maximum of all successfully stored timestamp bounds.
      */
-    @Test
+    @FlakeRetryTest
     public void invalidationDuringTimestampIssuanceYieldsConsistentResults() {
         Set<Long> backedUpValues = ConcurrentHashMap.newKeySet();
         AtomicLong maxSuccessfulBound = new AtomicLong(CassandraTimestampUtils.INITIAL_VALUE);

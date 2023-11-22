@@ -15,22 +15,21 @@
  */
 package com.palantir.atlasdb.containers;
 
-import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.DockerComposeExtension;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-/* TODO(boyoruk): Delete when JUnit5 upgrade is over. */
-public class SecondNginxContainer extends Container {
+public class FirstNginxContainerV2 extends ContainerV2 {
     @Override
     public String getDockerComposeFile() {
-        return "/docker-compose-nginx2.yml";
+        return "/docker-compose-nginx1.yml";
     }
 
     @Override
-    public SuccessOrFailure isReady(DockerComposeRule rule) {
+    public SuccessOrFailure isReady(DockerComposeExtension extension) {
         return SuccessOrFailure.onResultOf(() -> {
-            URL url = new URL("http://nginx2");
+            URL url = new URL("http://nginx1/");
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
             connection.connect();

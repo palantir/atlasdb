@@ -21,14 +21,14 @@ import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
+import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTestV2;
 import com.palantir.atlasdb.util.MetricsManagers;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends AbstractSweepTaskRunnerTest {
-    @ClassRule
+public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends AbstractSweepTaskRunnerTestV2 {
+    @RegisterExtension
     public static final CassandraResource CASSANDRA =
             new CassandraResource(CassandraKeyValueServiceSweepTaskRunnerIntegrationTest::createKeyValueService);
 
@@ -53,7 +53,7 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
                 MetricsManagers.createForTests(),
                 CASSANDRA.getConfig(),
                 CASSANDRA.getRuntimeConfig(),
-                CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000, services));
+                CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000, inMemoryTimelockClassExtension));
     }
 
     private void insertMultipleValues(long numInsertions) {

@@ -50,7 +50,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.lock.SingleLockService;
-import com.palantir.timelock.paxos.InMemoryTimeLockRule;
+import com.palantir.timelock.paxos.InMemoryTimelockClassExtension;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
@@ -59,13 +59,12 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BooleanSupplier;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-/* TODO(boyoruk): Delete this when JUnit5 upgrade is done */
-public abstract class AbstractBackgroundSweeperIntegrationTest {
+public abstract class AbstractBackgroundSweeperIntegrationTestV2 {
     static final TableReference TABLE_1 = TableReference.createFromFullyQualifiedName("foo.bar");
     private static final TableReference TABLE_2 = TableReference.createFromFullyQualifiedName("qwe.rty");
     private static final TableReference TABLE_3 = TableReference.createFromFullyQualifiedName("baz.qux");
@@ -74,7 +73,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     protected KeyValueService kvs;
     protected TransactionManager txManager;
     private BackgroundSweepThread backgroundSweeper;
-    private SweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
+    private final SweepBatchConfig sweepBatchConfig = ImmutableSweepBatchConfig.builder()
             .deleteBatchSize(8)
             .candidateBatchSize(15)
             .maxCellTsPairsToExamine(1000)
@@ -85,10 +84,10 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
     AdjustableSweepBatchConfigSource sweepBatchConfigSource;
     PeriodicTrueSupplier skipCellVersion = new PeriodicTrueSupplier();
 
-    @ClassRule
-    public static InMemoryTimeLockRule services = new InMemoryTimeLockRule();
+    @RegisterExtension
+    public static InMemoryTimelockClassExtension services = new InMemoryTimelockClassExtension();
 
-    @Before
+    @BeforeEach
     public void setup() {
         kvs = SweepStatsKeyValueService.create(
                 getKeyValueService(),
@@ -103,8 +102,8 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, ImmutableList.of());
         SweepTaskRunner sweepRunner = new SweepTaskRunner(
                 kvs,
-                AbstractBackgroundSweeperIntegrationTest::getTimestamp,
-                AbstractBackgroundSweeperIntegrationTest::getTimestamp,
+                AbstractBackgroundSweeperIntegrationTestV2::getTimestamp,
+                AbstractBackgroundSweeperIntegrationTestV2::getTimestamp,
                 txService,
                 cellsSweeper,
                 null);
@@ -135,7 +134,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
         when(txSchemaManager.getTransactionsSchemaVersion(anyLong())).thenReturn(1);
     }
 
-    @After
+    @AfterEach
     public void closeTransactionManager() {
         txManager.close();
     }
