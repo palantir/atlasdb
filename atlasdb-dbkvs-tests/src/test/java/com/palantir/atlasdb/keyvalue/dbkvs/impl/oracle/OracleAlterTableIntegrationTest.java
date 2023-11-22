@@ -45,20 +45,26 @@ import com.palantir.common.exception.TableMappingNotFoundException;
 import java.util.Locale;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
+@ExtendWith(DbKvsOracleExtension.class)
 public final class OracleAlterTableIntegrationTest {
-    @RegisterExtension
-    public static final DbKvsOracleExtension dbKvsOracleExtension = new DbKvsOracleExtension();
 
     @RegisterExtension
-    public static final TestResourceManagerV2 TRM = new TestResourceManagerV2(dbKvsOracleExtension::createKvs);
+    public static final TestResourceManagerV2 TRM = new TestResourceManagerV2(DbKvsOracleExtension::createKvs);
 
     private static final Namespace NAMESPACE = Namespace.create("test_namespace");
     private static final TableReference TABLE_REFERENCE = TableReference.create(NAMESPACE, "foo");
+    private static final DbKeyValueServiceConfig CONFIG_WITH_ALTER = ImmutableDbKeyValueServiceConfig.builder()
+            .from(DbKvsOracleExtension.getKvsConfig())
+            .ddl(ImmutableOracleDdlConfig.builder()
+                    .overflowMigrationState(OverflowMigrationState.FINISHED)
+                    .addAlterTablesOrMetadataToMatch(ImmutableTableReferenceWrapper.of(TABLE_REFERENCE))
+                    .build())
+            .build();
     private static final String COLUMN_NAME = "variable";
 
     private static final TableMetadata EXPECTED_TABLE_METADATA = TableMetadata.builder()
@@ -82,40 +88,28 @@ public final class OracleAlterTableIntegrationTest {
     private static final Map<Cell, byte[]> ROW_1 = Map.of(DEFAULT_CELL_1, DEFAULT_VALUE_1);
     private static final Map<Cell, byte[]> ROW_2 = Map.of(DEFAULT_CELL_2, DEFAULT_VALUE_2);
 
-    private static DbKeyValueServiceConfig configWithAlter;
     private KeyValueService defaultKvs;
     private ConnectionSupplier connectionSupplier;
     private OracleTableNameGetter oracleTableNameGetter;
 
-    @BeforeAll
-    public static void beforeAll() {
-        configWithAlter = ImmutableDbKeyValueServiceConfig.builder()
-                .from(dbKvsOracleExtension.getKvsConfig())
-                .ddl(ImmutableOracleDdlConfig.builder()
-                        .overflowMigrationState(OverflowMigrationState.FINISHED)
-                        .addAlterTablesOrMetadataToMatch(ImmutableTableReferenceWrapper.of(TABLE_REFERENCE))
-                        .build())
-                .build();
-    }
-
     @BeforeEach
     public void before() {
         defaultKvs = TRM.getDefaultKvs();
-        connectionSupplier = dbKvsOracleExtension.getConnectionSupplier(defaultKvs);
+        connectionSupplier = DbKvsOracleExtension.getConnectionSupplier(defaultKvs);
         oracleTableNameGetter = OracleTableNameGetterImpl.createDefault(
-                (OracleDdlConfig) dbKvsOracleExtension.getKvsConfig().ddl());
+                (OracleDdlConfig) DbKvsOracleExtension.getKvsConfig().ddl());
     }
 
     @AfterEach
     public void after() {
         defaultKvs.dropTables(defaultKvs.getAllTableNames());
-        defaultKvs.dropTable(dbKvsOracleExtension.getKvsConfig().ddl().metadataTable());
+        defaultKvs.dropTable(DbKvsOracleExtension.getKvsConfig().ddl().metadataTable());
         connectionSupplier.close();
     }
 
     @Test
     public void whenConfiguredWithTableReferenceAlterTableToMatchMetadataAndOldDataIsStillReadable() {
-        whenConfiguredAlterTableToMatchMetadataAndOldDataIsStillReadable(() -> createKvs(configWithAlter));
+        whenConfiguredAlterTableToMatchMetadataAndOldDataIsStillReadable(() -> createKvs(CONFIG_WITH_ALTER));
     }
 
     @Test
@@ -131,7 +125,7 @@ public final class OracleAlterTableIntegrationTest {
 
     @Test
     public void whenConfiguredAlterTableDoesNothingWhenMatching() {
-        KeyValueService kvsWithAlter = createKvs(configWithAlter);
+        KeyValueService kvsWithAlter = createKvs(CONFIG_WITH_ALTER);
         kvsWithAlter.createTable(TABLE_REFERENCE, EXPECTED_TABLE_METADATA.persistToBytes());
         writeData(defaultKvs, ROW_1, TIMESTAMP_1);
         assertThatDataCanBeRead(defaultKvs, DEFAULT_CELL_1, TIMESTAMP_1, DEFAULT_VALUE_1);
@@ -211,9 +205,9 @@ public final class OracleAlterTableIntegrationTest {
 
     private DbKeyValueServiceConfig getConfigWithAlterTableFromPhysicalTableName(String physicalTableName) {
         return ImmutableDbKeyValueServiceConfig.builder()
-                .from(configWithAlter)
+                .from(CONFIG_WITH_ALTER)
                 .ddl(ImmutableOracleDdlConfig.builder()
-                        .from(configWithAlter.ddl())
+                        .from(CONFIG_WITH_ALTER.ddl())
                         .addAlterTablesOrMetadataToMatch(AlterTableMetadataReference.of(physicalTableName))
                         .build())
                 .build();

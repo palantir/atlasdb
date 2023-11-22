@@ -28,14 +28,13 @@ import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
+@ExtendWith(DbKvsOracleExtension.class)
 public class OracleTableNameMapperEteTest {
     @RegisterExtension
-    public static final DbKvsOracleExtension dbKvsOracleExtension = new DbKvsOracleExtension();
-
-    @RegisterExtension
-    public static final TestResourceManagerV2 TRM = new TestResourceManagerV2(dbKvsOracleExtension::createKvs);
+    public static final TestResourceManagerV2 TRM = new TestResourceManagerV2(DbKvsOracleExtension::createKvs);
 
     private KeyValueService kvs;
     private ConnectionSupplier connectionSupplier;
@@ -54,7 +53,7 @@ public class OracleTableNameMapperEteTest {
     @BeforeEach
     public void setup() {
         kvs = TRM.getDefaultKvs();
-        connectionSupplier = dbKvsOracleExtension.getConnectionSupplier(kvs);
+        connectionSupplier = DbKvsOracleExtension.getConnectionSupplier(kvs);
     }
 
     @AfterEach

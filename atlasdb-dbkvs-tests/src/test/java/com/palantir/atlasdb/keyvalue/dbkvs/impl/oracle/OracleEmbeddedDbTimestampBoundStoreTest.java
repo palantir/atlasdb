@@ -23,12 +23,10 @@ import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.timestamp.AbstractDbTimestampBoundStoreTestV2;
 import com.palantir.timestamp.TimestampBoundStore;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+@ExtendWith(DbKvsOracleExtension.class)
 public class OracleEmbeddedDbTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTestV2 {
-
-    @RegisterExtension
-    public static final DbKvsOracleExtension dbKvsOracleExtension = new DbKvsOracleExtension();
 
     private KeyValueService kvs;
 
@@ -39,10 +37,10 @@ public class OracleEmbeddedDbTimestampBoundStoreTest extends AbstractDbTimestamp
 
     @Override
     protected TimestampBoundStore createTimestampBoundStore() {
-        kvs = dbKvsOracleExtension.createKvs();
+        kvs = DbKvsOracleExtension.createKvs();
         return InDbTimestampBoundStore.create(
                 ((ConnectionManagerAwareDbKvs) kvs).getConnectionManager(),
                 AtlasDbConstants.TIMESTAMP_TABLE,
-                dbKvsOracleExtension.getKvsConfig().ddl().tablePrefix());
+                DbKvsOracleExtension.getKvsConfig().ddl().tablePrefix());
     }
 }

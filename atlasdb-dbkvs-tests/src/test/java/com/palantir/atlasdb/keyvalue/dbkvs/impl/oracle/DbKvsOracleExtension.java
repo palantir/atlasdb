@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
+import static org.junit.jupiter.api.extension.ExtensionContext.Namespace.GLOBAL;
+
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
@@ -38,15 +40,16 @@ import java.sql.Connection;
 import java.time.Duration;
 import java.util.concurrent.Callable;
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-public final class DbKvsOracleExtension implements BeforeAllCallback, AfterAllCallback {
+public final class DbKvsOracleExtension implements BeforeAllCallback, ExtensionContext.Store.CloseableResource {
     private static final String LOCALHOST = "0.0.0.0";
     private static final int ORACLE_PORT_NUMBER = 1521;
 
-    public final DockerComposeExtension docker = DockerComposeExtension.builder()
+    private static volatile boolean isInitialized = false;
+
+    public static final DockerComposeExtension docker = DockerComposeExtension.builder()
             .file("src/test/resources/docker-compose.oracle.yml")
             .waitingForService("oracle", Container::areAllPortsOpen)
             .nativeServiceHealthCheckTimeout(org.joda.time.Duration.standardMinutes(5))
@@ -54,24 +57,30 @@ public final class DbKvsOracleExtension implements BeforeAllCallback, AfterAllCa
             .build();
 
     @Override
-    public void beforeAll(ExtensionContext var1) throws IOException, InterruptedException {
-        docker.beforeAll(var1);
-        Awaitility.await()
-                .atMost(Duration.ofMinutes(5))
-                .pollInterval(Duration.ofSeconds(1))
-                .until(canCreateKeyValueService());
+    public void beforeAll(ExtensionContext extensionContext) throws IOException, InterruptedException {
+        synchronized (DbKvsOracleExtension.class) {
+            if (!isInitialized) {
+                isInitialized = true;
+                docker.beforeAll(extensionContext);
+                extensionContext.getRoot().getStore(GLOBAL).put("DbKvsOracleExtension", this);
+                Awaitility.await()
+                        .atMost(Duration.ofMinutes(5))
+                        .pollInterval(Duration.ofSeconds(1))
+                        .until(canCreateKeyValueService());
+            }
+        }
     }
 
     @Override
-    public void afterAll(ExtensionContext var1) {
-        docker.afterAll(var1);
+    public void close() {
+        docker.after();
     }
 
-    public KeyValueService createKvs() {
+    public static KeyValueService createKvs() {
         return ConnectionManagerAwareDbKvs.create(getKvsConfig());
     }
 
-    public DbKeyValueServiceConfig getKvsConfig() {
+    public static DbKeyValueServiceConfig getKvsConfig() {
         DockerPort port = docker.containers().container("oracle").port(ORACLE_PORT_NUMBER);
 
         InetSocketAddress oracleAddress = InetSocketAddress.createUnresolved(LOCALHOST, port.getExternalPort());
@@ -92,23 +101,23 @@ public final class DbKvsOracleExtension implements BeforeAllCallback, AfterAllCa
                 .build();
     }
 
-    public ConnectionSupplier getConnectionSupplier(KeyValueService kvs) {
+    public static ConnectionSupplier getConnectionSupplier(KeyValueService kvs) {
         ReentrantManagedConnectionSupplier connSupplier =
                 new ReentrantManagedConnectionSupplier(getConnectionManager(kvs));
         return new ConnectionSupplier(getSimpleTimedSqlConnectionSupplier(connSupplier));
     }
 
-    public ConnectionManager getConnectionManager(KeyValueService kvs) {
+    public static ConnectionManager getConnectionManager(KeyValueService kvs) {
         ConnectionManagerAwareDbKvs castKvs = (ConnectionManagerAwareDbKvs) kvs;
         return castKvs.getConnectionManager();
     }
 
-    private SqlConnectionSupplier getSimpleTimedSqlConnectionSupplier(
+    private static SqlConnectionSupplier getSimpleTimedSqlConnectionSupplier(
             ReentrantManagedConnectionSupplier connectionSupplier) {
         return new SimpleTimedSqlConnectionSupplier(connectionSupplier);
     }
 
-    private Callable<Boolean> canCreateKeyValueService() {
+    private static Callable<Boolean> canCreateKeyValueService() {
         return () -> {
             try (ConnectionManagerAwareDbKvs kvs = ConnectionManagerAwareDbKvs.create(getKvsConfig());
                     Connection conn = kvs.getConnectionManager().getConnection()) {

@@ -60,15 +60,14 @@ import org.immutables.value.Value;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
+@ExtendWith(DbKvsOracleExtension.class)
 public final class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetupV2 {
 
     @RegisterExtension
-    public static final DbKvsOracleExtension dbKvsOracleExtension = new DbKvsOracleExtension();
-
-    @RegisterExtension
-    public static final TestResourceManagerV2 TRM = new TestResourceManagerV2(dbKvsOracleExtension::createKvs);
+    public static final TestResourceManagerV2 TRM = new TestResourceManagerV2(DbKvsOracleExtension::createKvs);
 
     private static final Refreshable<Optional<KeyValueServiceRuntimeConfig>> RUNTIME_CONFIG =
             Refreshable.only(Optional.empty());
@@ -98,9 +97,9 @@ public final class OracleNamespaceDeleterIntegrationTest extends TransactionTest
     @BeforeEach
     public void before() {
         NamespaceDeleterFactory factory = new DbKvsNamespaceDeleterFactory();
-        dbKeyValueServiceConfig = dbKvsOracleExtension.getKvsConfig();
+        dbKeyValueServiceConfig = DbKvsOracleExtension.getKvsConfig();
         oracleDdlConfig = (OracleDdlConfig) dbKeyValueServiceConfig.ddl();
-        connectionManager = dbKvsOracleExtension.getConnectionManager(keyValueService);
+        connectionManager = DbKvsOracleExtension.getConnectionManager(keyValueService);
         namespaceDeleter = factory.createNamespaceDeleter(dbKeyValueServiceConfig, RUNTIME_CONFIG);
 
         DbKeyValueServiceConfig kvsConfigWithNonDefaultPrefix = ImmutableDbKeyValueServiceConfig.builder()

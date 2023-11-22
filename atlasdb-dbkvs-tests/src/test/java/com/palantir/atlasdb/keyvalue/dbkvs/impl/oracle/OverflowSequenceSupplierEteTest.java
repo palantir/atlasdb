@@ -29,15 +29,14 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
+@ExtendWith(DbKvsOracleExtension.class)
 public class OverflowSequenceSupplierEteTest {
     @RegisterExtension
-    public static final DbKvsOracleExtension dbKvsOracleExtension = new DbKvsOracleExtension();
-
-    @RegisterExtension
     public static final TestResourceManagerV2 TRM =
-            new TestResourceManagerV2(() -> ConnectionManagerAwareDbKvs.create(dbKvsOracleExtension.getKvsConfig()));
+            new TestResourceManagerV2(() -> ConnectionManagerAwareDbKvs.create(DbKvsOracleExtension.getKvsConfig()));
 
     private final ExecutorService executor = Executors.newFixedThreadPool(4);
     private static final int THREAD_COUNT = 3;
@@ -46,7 +45,7 @@ public class OverflowSequenceSupplierEteTest {
 
     @BeforeEach
     public void setUp() {
-        connectionSupplier = dbKvsOracleExtension.getConnectionSupplier(TRM.getDefaultKvs());
+        connectionSupplier = DbKvsOracleExtension.getConnectionSupplier(TRM.getDefaultKvs());
     }
 
     @AfterEach
@@ -66,7 +65,7 @@ public class OverflowSequenceSupplierEteTest {
 
     private void getMultipleOverflowIds(Set<Long> overflowIds) {
         final OverflowSequenceSupplier sequenceSupplier = OverflowSequenceSupplier.create(
-                connectionSupplier, dbKvsOracleExtension.getKvsConfig().ddl().tablePrefix());
+                connectionSupplier, DbKvsOracleExtension.getKvsConfig().ddl().tablePrefix());
 
         long previousOverflowId = -1;
         for (int j = 0; j < OVERFLOW_IDS_PER_THREAD; j++) {
