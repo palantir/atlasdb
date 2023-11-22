@@ -18,10 +18,10 @@ package com.palantir.atlasdb.ete.standalone;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
 import com.google.common.util.concurrent.Uninterruptibles;
-import com.palantir.atlasdb.ete.Gradle;
-import com.palantir.atlasdb.ete.utilities.DockerClientOrchestrationRule;
-import com.palantir.atlasdb.ete.utilities.DockerClientOrchestrationRule.DockerClientConfiguration;
-import com.palantir.atlasdb.ete.utilities.ImmutableDockerClientConfiguration;
+import com.palantir.atlasdb.ete.GradleExtension;
+import com.palantir.atlasdb.ete.utilities.DockerClientOrchestrationExtension;
+import com.palantir.atlasdb.ete.utilities.DockerClientOrchestrationExtension.DockerClientConfigurationV2;
+import com.palantir.atlasdb.ete.utilities.ImmutableDockerClientConfigurationV2;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.todo.ImmutableTodo;
@@ -33,36 +33,45 @@ import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.timestamp.TimestampService;
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.Callable;
-import org.assertj.core.api.JUnitSoftAssertions;
+import org.assertj.core.api.SoftAssertions;
+import org.assertj.core.api.junit.jupiter.InjectSoftAssertions;
+import org.assertj.core.api.junit.jupiter.SoftAssertionsExtension;
 import org.awaitility.Awaitility;
 import org.immutables.value.Value;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 // We don't use EteSetup because we need much finer-grained control of the orchestration here, compared to the other
 // ETE tests where the general idea is "set up all the containers, and fire".
+@ExtendWith(SoftAssertionsExtension.class)
 public class TimeLockMigrationEteTest {
-    private static final Gradle GRADLE_PREPARE_TASK = Gradle.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
-    private static final Gradle DOCKER_TASK = Gradle.ensureTaskHasRun(":timelock-server-distribution:dockerTag");
+
+    @RegisterExtension
+    public static final GradleExtension GRADLE_PREPARE_TASK =
+            GradleExtension.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
+
+    @RegisterExtension
+    public static final GradleExtension DOCKER_TASK =
+            GradleExtension.ensureTaskHasRun(":timelock-server-distribution:dockerTag");
 
     private static final TimeLockMigrationTestCase TEST_CASE = TimeLockMigrationTestCase.CASSANDRA_PAXOS;
     private static final TimeLockMigrationTestContext TEST_CONTEXT;
 
     static {
         File embeddedConfig;
-        DockerClientConfiguration dockerClientConfiguration;
+        DockerClientConfigurationV2 dockerClientConfiguration;
         switch (TEST_CASE) {
             case CASSANDRA_PAXOS:
                 embeddedConfig = new File("docker/conf/atlasdb-ete.no-leader.cassandra.yml");
-                dockerClientConfiguration = ImmutableDockerClientConfiguration.builder()
+                dockerClientConfiguration = ImmutableDockerClientConfigurationV2.builder()
                         .initialConfigFile(embeddedConfig)
                         .dockerComposeYmlFile(new File("docker-compose.timelock-migration.cassandra.yml"))
                         .databaseServiceName("cassandra")
@@ -75,7 +84,7 @@ public class TimeLockMigrationEteTest {
                 break;
             case POSTGRES_DB_TIMELOCK:
                 embeddedConfig = new File("docker/conf/atlasdb-ete.no-leader.dbkvs.yml");
-                dockerClientConfiguration = ImmutableDockerClientConfiguration.builder()
+                dockerClientConfiguration = ImmutableDockerClientConfigurationV2.builder()
                         .initialConfigFile(embeddedConfig)
                         .dockerComposeYmlFile(new File("docker-compose.timelock-migration.dbkvs.yml"))
                         .databaseServiceName("postgres")
@@ -93,11 +102,21 @@ public class TimeLockMigrationEteTest {
 
     // Docker Engine daemon only has limited access to the filesystem, if the user is using Docker-Machine
     // Thus ensure the temporary folder is a subdirectory of the user's home directory
-    private static final TemporaryFolder TEMPORARY_FOLDER =
-            new TemporaryFolder(new File(System.getProperty("user.home")));
+    private static final File TEMPORARY_FOLDER;
 
-    private static final DockerClientOrchestrationRule CLIENT_ORCHESTRATION_RULE =
-            new DockerClientOrchestrationRule(TEST_CONTEXT.dockerClientConfiguration(), TEMPORARY_FOLDER);
+    static {
+        try {
+            TEMPORARY_FOLDER = Files.createTempDirectory(
+                            new File(System.getProperty("user.home")).toPath(), "TimeLockMigrationEteTest")
+                    .toFile();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @RegisterExtension
+    public static final DockerClientOrchestrationExtension CLIENT_ORCHESTRATION_RULE =
+            new DockerClientOrchestrationExtension(TEST_CONTEXT.dockerClientConfiguration(), TEMPORARY_FOLDER);
 
     private static final SslConfiguration SSL_CONFIGURATION =
             SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
@@ -114,16 +133,10 @@ public class TimeLockMigrationEteTest {
     private static final int TIMELOCK_PORT = 8421;
     private static final String TEST_CLIENT = "atlasete";
 
-    @ClassRule
-    public static final RuleChain RULE_CHAIN = RuleChain.outerRule(GRADLE_PREPARE_TASK)
-            .around(DOCKER_TASK)
-            .around(TEMPORARY_FOLDER)
-            .around(CLIENT_ORCHESTRATION_RULE);
+    @InjectSoftAssertions
+    private SoftAssertions softAssertions;
 
-    @Rule
-    public final JUnitSoftAssertions softAssertions = new JUnitSoftAssertions();
-
-    @BeforeClass
+    @BeforeAll
     public static void setUp() {
         CLIENT_ORCHESTRATION_RULE.updateProcessLivenessScript();
         waitUntil(serversAreReady());
@@ -263,7 +276,7 @@ public class TimeLockMigrationEteTest {
 
     @Value.Immutable
     interface TimeLockMigrationTestContext {
-        DockerClientConfiguration dockerClientConfiguration();
+        DockerClientConfigurationV2 dockerClientConfiguration();
 
         File eteConfigWithEmbedded();
 
@@ -272,6 +285,6 @@ public class TimeLockMigrationEteTest {
 
     private enum TimeLockMigrationTestCase {
         CASSANDRA_PAXOS,
-        POSTGRES_DB_TIMELOCK;
+        POSTGRES_DB_TIMELOCK
     }
 }
