@@ -15,16 +15,11 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.palantir.atlasdb.containers.CassandraResource;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
+import com.palantir.atlasdb.transaction.impl.GetAsyncDelegate;
+import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 
-public class CassandraConnectionIntegrationTest {
-    @RegisterExtension
-    public static final CassandraResource CASSANDRA = new CassandraResource();
-
-    @Test
-    public void testAuthProvided() {
-        CASSANDRA.getDefaultKvs();
+public class AsyncCassandraKvsSerializableTransactionTest extends AbstractCassandraKvsSerializableTransactionTest {
+    public AsyncCassandraKvsSerializableTransactionTest() {
+        super(GetAsyncDelegate::new, TransactionConstants.TWO_STAGE_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
     }
 }

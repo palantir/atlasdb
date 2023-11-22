@@ -130,6 +130,7 @@ jobs:
       CIRCLE_TEST_REPORTS: /tmp/test-reports
       CIRCLE_ARTIFACTS: /tmp/artifacts
     steps:
+      - setup_remote_docker # required for using docker commands: https://circleci.com/docs/building-docker-images/#introduction
       - attach_workspace: { at: . }
       - add_ssh_keys:
           fingerprints:
@@ -154,7 +155,7 @@ jobs:
       - run:
           command: |
             # hack - notion of "owners" isn't supported in Circle 2
-            if [ $CIRCLE_PROJECT_USERNAME = 'palantir' ] && [ -z $CIRCLE_PR_NUMBER ] && [ -z $CIRCLE_TAG ]; then
+            if [ $CIRCLE_PROJECT_USERNAME = 'palantir' ] && [ -z $CIRCLE_PR_NUMBER ] && [ $CIRCLE_TAG ]; then
               ./scripts/circle-ci/publish-images-to-antithesis.sh
             fi
 
@@ -164,8 +165,7 @@ workflows:
       - trigger-antithesis-simulation
     triggers:
       - schedule:
-          # TODO(lmeireles): Temporarily setting this to every day 10am to test. Should change to once a week.
-          cron: "0 10 * * *"
+          cron: "0 10 * * 1" # Every Monday 10am
           filters:
             branches:
               only: develop

@@ -1,0 +1,29 @@
+options:
+  javaPackage: 'com.palantir.atlasdb.transaction.impl.metrics'
+
+namespaces:
+  atlasdb.transaction:
+    shortName: Transaction
+    docs: Metrics for tracking information around transactions, such as success rate.
+    metrics:
+      outcome:
+        type: meter
+        docs: The number of transactions that completed, classified as a `success` or `failure`, with `outcome` representing more granular explanations for each classification. Note that in rare cases, a transaction may complete but not record its outcome.
+        tags:
+          - name: category
+            docs: Records whether the transaction succeeded (`success`) or failed (`fail`). If a new outcome is added without a mapping to a category, the value will be `unknown`.
+            values: [success, fail, unknown]
+          - name: outcome
+            docs: The granular outcome that led to the transaction succeeding or failing. See the TransactionOutcome enum for more details
+          - name: tableReference
+            docs: |
+              The table reference, if the outcome relates to a given table (e.g., a conflict), and the table reference is safe to log.
+              If the outcome relates to a given table but the table reference is not safe to log, the value will be `{table}`
+              If the outcome does not relate to a given table, the value will be the empty string.
+
+      rolledBackOtherTransaction:
+        type: meter
+        docs: | 
+          The number of times a transaction has rolled back another transaction (for example, if we read a value from a transaction
+          that started before our start timestamp and hasn't committed). This will be logged at most once for a given
+          transaction being rolled back, even if multiple transactions aim to rollback the same transaction.

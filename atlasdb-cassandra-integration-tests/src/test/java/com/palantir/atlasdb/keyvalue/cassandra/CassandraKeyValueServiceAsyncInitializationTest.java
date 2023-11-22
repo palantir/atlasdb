@@ -19,19 +19,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.containers.UninitializedCassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import java.io.IOException;
 import java.time.Duration;
 import org.awaitility.Awaitility;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 public class CassandraKeyValueServiceAsyncInitializationTest {
-    @ClassRule
+    @RegisterExtension
     public static final UninitializedCassandraResource CASSANDRA =
             new UninitializedCassandraResource(CassandraKeyValueServiceAsyncInitializationTest.class);
 
     @Test
-    public void cassandraKvsInitializesAsynchronously() throws IOException, InterruptedException {
+    public void cassandraKvsInitializesAsynchronously() {
         KeyValueService asyncInitializedKvs = CASSANDRA.getAsyncInitializeableKvs();
         assertThat(asyncInitializedKvs.isInitialized()).isFalse();
 

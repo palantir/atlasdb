@@ -36,7 +36,7 @@ public final class TimeLockCorruptionDetectionHelper implements BeforeEachCallba
     private final TimeLockCorruptionTestSetup timeLockCorruptionTestSetup = new TimeLockCorruptionTestSetup();
 
     @Override
-    public void beforeEach(ExtensionContext var1) {
+    public void beforeEach(ExtensionContext extensionContext) {
         timeLockCorruptionTestSetup.setup();
     }
 
