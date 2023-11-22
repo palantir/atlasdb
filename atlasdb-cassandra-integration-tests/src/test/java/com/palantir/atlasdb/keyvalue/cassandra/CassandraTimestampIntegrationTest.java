@@ -20,26 +20,24 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.containers.CassandraResource;
-import com.palantir.flake.ShouldRetry;
+import com.palantir.flake.FlakeRetryTest;
 import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-@ShouldRetry
 public class CassandraTimestampIntegrationTest {
-    @ClassRule
+    @RegisterExtension
     public static final CassandraResource CASSANDRA = new CassandraResource();
 
-    private CassandraKeyValueService kv = CASSANDRA.getDefaultKvs();
+    private final CassandraKeyValueService kv = CASSANDRA.getDefaultKvs();
 
-    @Before
+    @BeforeEach
     public void setUp() {
         kv.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
     }
 
-    @Test
+    @FlakeRetryTest
     public void testBounds() {
         TimestampBoundStore ts = CassandraTimestampBoundStore.create(kv);
         long limit = ts.getUpperLimit();
@@ -51,7 +49,7 @@ public class CassandraTimestampIntegrationTest {
         assertThat(ts.getUpperLimit()).isEqualTo(limit + 30);
     }
 
-    @Test
+    @FlakeRetryTest
     public void resilientToMultipleStoreUpperLimitBeforeGet() {
         TimestampBoundStore ts = CassandraTimestampBoundStore.create(kv);
         long limit = ts.getUpperLimit();
@@ -60,7 +58,7 @@ public class CassandraTimestampIntegrationTest {
         assertThat(ts.getUpperLimit()).isEqualTo(limit + 20);
     }
 
-    @Test
+    @FlakeRetryTest
     public void testMultipleThrows() {
         TimestampBoundStore ts = CassandraTimestampBoundStore.create(kv);
         TimestampBoundStore ts2 = CassandraTimestampBoundStore.create(kv);

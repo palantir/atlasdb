@@ -14,46 +14,36 @@ dependencies {
     testImplementation 'org.awaitility:awaitility'
     testImplementation 'org.slf4j:slf4j-api'
     testImplementation 'org.apache.commons:commons-pool2'
+    testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
 
     testImplementation project(':atlasdb-api')
+    testImplementation project(":atlasdb-cassandra")
+    testImplementation project(":atlasdb-cli")
     testImplementation project(':atlasdb-client')
     testImplementation project(':atlasdb-client-protobufs')
     testImplementation project(':atlasdb-commons')
+    testImplementation project(":atlasdb-container-test-utils")
+    testImplementation project(":atlasdb-ete-test-utils")
     testImplementation project(':atlasdb-impl-shared')
+    testImplementation project(":atlasdb-tests-shared")
+    testImplementation project(':flake-extension')
+    testImplementation project(":timelock-impl")
     testImplementation project(':timestamp-api')
     testImplementation project(':commons-executors')
 
-    testImplementation project(":atlasdb-cassandra")
-    testImplementation project(":atlasdb-cli")
-    testImplementation project(":atlasdb-tests-shared")
-    testImplementation project(":atlasdb-container-test-utils")
-    testImplementation project(":atlasdb-ete-test-utils")
-    testImplementation project(":timelock-impl")
-
     testImplementation('com.palantir.cassandra:cassandra-all') {
         exclude module: 'junit'
-
-      exclude group: 'org.apache.httpcomponents'
-  }
-  testImplementation ('com.palantir.cassandra:cassandra-thrift') {
-    exclude module: 'junit'
-
-    exclude group: 'org.apache.httpcomponents'
-  }
-
-    testImplementation project(':flake-rule')
-
+        exclude group: 'org.apache.httpcomponents'
+    }
+    testImplementation ('com.palantir.cassandra:cassandra-thrift') {
+        exclude module: 'junit'
+        exclude group: 'org.apache.httpcomponents'
+    }
     testImplementation('com.datastax.cassandra:cassandra-driver-core') {
         exclude(group: 'com.codahale.metrics', module: 'metrics-core')
-    }
-
-    testImplementation 'org.mockito:mockito-core'
-    testImplementation 'com.palantir.docker.compose:docker-compose-rule-core'
-
-    /* TODO(boyoruk): Upgrade all package to JUnit5. */
-    testImplementation 'junit:junit'
-    testRuntimeOnly 'org.junit.vintage:junit-vintage-engine', {
-        because 'allows JUnit 3 and JUnit 4 tests to run'
     }
 }
 
@@ -68,9 +58,12 @@ test {
 task testSubset1(type: Test) {
     include '**/CassandraKeyValueServiceTableCreationIntegrationTest.class'
     include '**/CassandraKeyValueServiceTableManipulationIntegrationTest.class'
-    include '**/CassandraKeyValueServiceTransactionIntegrationTest.class'
+    include '**/TicketsEncodingCassandraKeyValueServiceTransactionIntegrationTest.class'
+    include '**/DirectEncodingCassandraKeyValueServiceTransactionIntegrationTest.class'
+    include '**/TwoStageEncodingCassandraKeyValueServiceTransactionIntegrationTest.class'
     include '**/CassandraKvsAsyncFallbackMechanismsTests.class'
-    include '**/CassandraKvsSerializableTransactionTest.class'
+    include '**/AsyncCassandraKvsSerializableTransactionTest.class'
+    include '**/SyncCassandraKvsSerializableTransactionTest.class'
 }
 
 task testSubset2(type: Test) {
@@ -78,12 +71,16 @@ task testSubset2(type: Test) {
     include '**/*Tests.class'
     exclude '**/CassandraKeyValueServiceTableCreationIntegrationTest.class'
     exclude '**/CassandraKeyValueServiceTableManipulationIntegrationTest.class'
-    exclude '**/CassandraKeyValueServiceTransactionIntegrationTest.class'
+    exclude '**/TicketsEncodingCassandraKeyValueServiceTransactionIntegrationTest.class'
+    exclude '**/DirectEncodingCassandraKeyValueServiceTransactionIntegrationTest.class'
+    exclude '**/TwoStageEncodingCassandraKeyValueServiceTransactionIntegrationTest.class'
     exclude '**/CassandraKvsAsyncFallbackMechanismsTests.class'
-    exclude '**/CassandraKvsSerializableTransactionTest.class'
+    exclude '**/AsyncCassandraKvsSerializableTransactionTest.class'
+    exclude '**/SyncCassandraKvsSerializableTransactionTest.class'
 }
 
 tasks.withType(Test) {
+    useJUnitPlatform()
     testLogging {
         // set options for log level LIFECYCLE
         events "passed", "skipped", "failed"

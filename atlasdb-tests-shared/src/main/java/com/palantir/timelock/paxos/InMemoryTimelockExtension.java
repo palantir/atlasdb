@@ -32,12 +32,12 @@ public final class InMemoryTimelockExtension extends AbstractInMemoryTimelockExt
     }
 
     @Override
-    public void beforeEach(ExtensionContext var1) {
+    public void beforeEach(ExtensionContext extensionContext) {
         setup();
     }
 
     @Override
-    public void afterEach(ExtensionContext var1) {
+    public void afterEach(ExtensionContext extensionContext) {
         tearDown();
     }
 }

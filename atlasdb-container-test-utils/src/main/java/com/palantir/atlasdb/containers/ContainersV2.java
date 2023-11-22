@@ -90,7 +90,7 @@ public class ContainersV2 implements BeforeAllCallback, AfterAllCallback {
     }
 
     @Override
-    public void beforeAll(ExtensionContext var1) throws IOException, InterruptedException {
+    public void beforeAll(ExtensionContext extensionContext) throws IOException, InterruptedException {
         synchronized (ContainersV2.class) {
             setupShutdownHook();
 
@@ -106,7 +106,7 @@ public class ContainersV2 implements BeforeAllCallback, AfterAllCallback {
     }
 
     @Override
-    public void afterAll(ExtensionContext var1) {
+    public void afterAll(ExtensionContext extensionContext) {
         currentLogCollector.stopExecutor();
     }
 
