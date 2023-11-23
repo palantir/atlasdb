@@ -104,6 +104,42 @@ public class RangeRequestsTest {
         assertThat(RangeRequests.isExactlyEmptyRange(BYTES_2, BYTES_2)).isTrue();
     }
 
+    @Test
+    public void endNameForPrefixScanOfEmptyByteArrayIsEmpty() {
+        assertThat(RangeRequests.createEndNameForPrefixScan(new byte[] {})).isEmpty();
+    }
+
+    @Test
+    public void endNameForPrefixScanOfSingleByteArraysIncrementsTheByte() {
+        assertThat(RangeRequests.createEndNameForPrefixScan(new byte[] {0})).isEqualTo(new byte[] {1});
+        assertThat(RangeRequests.createEndNameForPrefixScan(new byte[] {42})).isEqualTo(new byte[] {43});
+        assertThat(RangeRequests.createEndNameForPrefixScan(new byte[] {127})).isEqualTo(new byte[] {-128});
+    }
+
+    @Test
+    public void endNameForPrefixScanOfMultiByteArraysIncrementsTheLeastSignificantByte() {
+        assertThat(RangeRequests.createEndNameForPrefixScan(new byte[] {0, 1, 2}))
+                .isEqualTo(new byte[] {0, 1, 3});
+        assertThat(RangeRequests.createEndNameForPrefixScan(new byte[] {9, 8, 88}))
+                .isEqualTo(new byte[] {9, 8, 89});
+    }
+
+    @Test
+    public void endNameForPrefixScanOfArrayOfMaximalValuedBytesIsEmpty() {
+        assertThat(RangeRequests.createEndNameForPrefixScan(new byte[] {(byte) 0xff}))
+                .isEmpty();
+        assertThat(RangeRequests.createEndNameForPrefixScan(new byte[] {(byte) 0xff, (byte) 0xff, (byte) 0xff}))
+                .isEmpty();
+    }
+
+    @Test
+    public void endNameForPrefixScanOfArrayEndingInMaximalValuedBytesIncrementsAndCollapses() {
+        assertThat(RangeRequests.createEndNameForPrefixScan(new byte[] {2, 3, (byte) 0xff}))
+                .isEqualTo(new byte[] {2, 4});
+        assertThat(RangeRequests.createEndNameForPrefixScan(new byte[] {2, 3, (byte) 0xff, (byte) 0xff}))
+                .isEqualTo(new byte[] {2, 4});
+    }
+
     private byte[] generateRandomWithFreqLogLen() {
         long randomLong = random.nextLong();
         // lg(n) distribution of len
