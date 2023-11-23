@@ -107,6 +107,10 @@ public class ContainersV2 implements BeforeAllCallback, AfterAllCallback {
 
     @Override
     public void afterAll(ExtensionContext extensionContext) {
+        afterAll();
+    }
+
+    public void afterAll() {
         currentLogCollector.stopExecutor();
     }
 

@@ -23,7 +23,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 public class ContainerV2Test {
     public static List<ContainerV2> containers() {
-        return List.of(new CassandraContainerV2());
+        return List.of(new CassandraContainerV2(), new ThreeNodeCassandraCluster());
     }
 
     @ParameterizedTest
