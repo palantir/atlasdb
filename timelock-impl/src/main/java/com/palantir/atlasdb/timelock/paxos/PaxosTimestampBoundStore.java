@@ -247,6 +247,7 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                         .orElseThrow(() -> new SafeIllegalStateException("Timestamp bound store: Paxos proposal"
                                 + " returned without learning a value. This is unexpected and would suggest a bug in"
                                 + " AtlasDB code. Please contact support."));
+                wait(1000);
                 checkAgreedBoundIsOurs(limit, newSeq, value);
                 long newLimit = PtBytes.toLong(value.getData());
                 agreedState = ImmutableSequenceAndBound.of(newSeq, newLimit);
@@ -270,6 +271,8 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                 return;
             } catch (PaxosRoundFailureException e) {
                 waitForRandomBackoff(e, this::wait);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
         }
     }
