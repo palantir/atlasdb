@@ -19,6 +19,9 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraTracingConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.nio.ByteBuffer;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
@@ -29,11 +32,12 @@ import org.apache.thrift.TException;
 import org.slf4j.Logger;
 
 public class TracingQueryRunner {
-    private final Logger log;
+    private final Logger log2;
+    private static final SafeLogger log = SafeLoggerFactory.get(TracingQueryRunner.class);
     private final Supplier<CassandraTracingConfig> tracingPrefs;
 
     public TracingQueryRunner(Logger log, Supplier<CassandraTracingConfig> tracingPrefs) {
-        this.log = log;
+        this.log2 = log;
         this.tracingPrefs = tracingPrefs;
     }
 
@@ -92,19 +96,24 @@ public class TracingQueryRunner {
     }
 
     private void logFailedCall(Set<TableReference> tableRefs) {
-        log.warn(
+        log2.warn(
                 "A call to table(s) {} failed with an exception.",
                 tableRefs.stream().map(TableReference::getQualifiedName).collect(Collectors.joining(", ")));
     }
 
     private void logTraceResults(long duration, Set<TableReference> tableRefs, ByteBuffer recvTrace, boolean failed) {
         if (failed || duration > tracingPrefs.get().minDurationToLog().toMilliseconds()) {
-            log.info(
+            log2.info(
                     "Traced a call to {} that {}took {} ms. It will appear in system_traces with UUID={}",
                     tableRefs.stream().map(TableReference::getQualifiedName).collect(Collectors.joining(", ")),
                     failed ? "failed and " : "",
                     duration,
                     CassandraKeyValueServices.convertCassandraByteBufferUuidToString(recvTrace));
+            log.info(
+                    "Traced a Cassandra call. It will appear in system_traces with UUID",
+                    SafeArg.of("isFailed", failed),
+                    SafeArg.of("duration ms", duration),
+                    SafeArg.of("UUID", CassandraKeyValueServices.convertCassandraByteBufferUuidToString(recvTrace)));
         }
     }
 }
