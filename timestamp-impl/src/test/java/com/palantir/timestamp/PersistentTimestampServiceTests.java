@@ -18,7 +18,12 @@ package com.palantir.timestamp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.net.HostAndPort;
 import com.palantir.common.remoting.ServiceNotAvailableException;
+import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.leader.SuspectedNotCurrentLeaderException;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import org.junit.jupiter.api.Test;
 
 // Test PersistentTimestampServiceImpl by fully instantiating it with an InMemoryTimestampBoundStore.
@@ -47,7 +52,7 @@ public class PersistentTimestampServiceTests extends AbstractTimestampServiceTes
     }
 
     @Test
-    public void shouldLimitRequestsForMoreThanTenThousandTimestamps() {
+    public void limitsRequestsForMoreThanTenThousandTimestamps() {
         assertThat(getTimestampService().getFreshTimestamps(100_000).size()).isEqualTo(10_000L);
     }
 
@@ -59,7 +64,25 @@ public class PersistentTimestampServiceTests extends AbstractTimestampServiceTes
     }
 
     @Test
-    public void shouldRethrowAllocationExceptions() {
+    public void rethrowsBoundStoreNotCurrentLeaderExceptions() {
+        NotCurrentLeaderException notCurrentLeaderException = new NotCurrentLeaderException("foo",
+                HostAndPort.fromString("abc:1234"),
+                SafeArg.of("arg", "because"));
+        timestampBoundStore.failWith(notCurrentLeaderException);
+        assertThatThrownBy(() -> getTimestampService().getFreshTimestamp())
+                .isEqualTo(notCurrentLeaderException);
+    }
+
+    @Test
+    public void rethrowsBoundStoreSuspectedNotCurrentLeaderExceptions() {
+        SuspectedNotCurrentLeaderException suspectedNotCurrentLeaderException = new SuspectedNotCurrentLeaderException("foo", UnsafeArg.of("pii", "123123123"));
+        timestampBoundStore.failWith(suspectedNotCurrentLeaderException);
+        assertThatThrownBy(() -> getTimestampService().getFreshTimestamp())
+                .isEqualTo(suspectedNotCurrentLeaderException);
+    }
+
+    @Test
+    public void wrapsAndRethrowsBoundStoreAllocationExceptions() {
         final IllegalArgumentException failure = new IllegalArgumentException();
         timestampBoundStore.failWith(failure);
         assertThatThrownBy(() -> getTimestampService().getFreshTimestamp())
@@ -68,7 +91,7 @@ public class PersistentTimestampServiceTests extends AbstractTimestampServiceTes
     }
 
     @Test
-    public void shouldNotTryToStoreANewBoundIfMultipleServicesAreRunning() {
+    public void doesNotTryToStoreANewBoundIfMultipleServicesAreRunning() {
         timestampBoundStore.pretendMultipleServersAreRunning();
 
         getTimestampAndIgnoreErrors();
@@ -78,9 +101,9 @@ public class PersistentTimestampServiceTests extends AbstractTimestampServiceTes
     }
 
     @Test
-    public void shouldRejectFastForwardToTheSentinelValue() {
+    public void rejectsFastForwardToTheSentinelValue() {
         assertThatThrownBy(() -> getTimestampManagementService()
-                        .fastForwardTimestamp(TimestampManagementService.SENTINEL_TIMESTAMP))
+                .fastForwardTimestamp(TimestampManagementService.SENTINEL_TIMESTAMP))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
