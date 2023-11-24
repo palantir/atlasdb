@@ -188,11 +188,22 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             case LEADING:
                 // We were still the leader. Invalidate the relevant delegates, but don't generally get rid of our
                 // leadership (so this doesn't need to propagate to other delegates).
+                log.info(
+                        "Encountered a suspected not current leader exception, but determined we are still the"
+                                + " leader. Invalidating delegates.",
+                        SafeArg.of("leadershipToken", leadershipToken),
+                        cause);
                 leadershipStateManager.requestDelegateInvalidation();
                 break;
             case NO_QUORUM:
                 // Treating as not leading is consistent with uses of ServiceNotAvailableException elsewhere.
             case NOT_LEADING:
+                log.info(
+                        "Encountered a suspected not current leader exception, but was not able to determine that we"
+                                + " are still the leader. Marking ourselves as having lost leadership.",
+                        SafeArg.of("leadershipToken", leadershipToken),
+                        SafeArg.of("leadershipStatus", status),
+                        cause);
                 leadershipStateManager.invalidateStateOnLostLeadership(leadershipToken, cause);
                 break;
             default:

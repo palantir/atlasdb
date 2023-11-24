@@ -65,17 +65,16 @@ public class PersistentTimestampServiceTests extends AbstractTimestampServiceTes
 
     @Test
     public void rethrowsBoundStoreNotCurrentLeaderExceptions() {
-        NotCurrentLeaderException notCurrentLeaderException = new NotCurrentLeaderException("foo",
-                HostAndPort.fromString("abc:1234"),
-                SafeArg.of("arg", "because"));
+        NotCurrentLeaderException notCurrentLeaderException =
+                new NotCurrentLeaderException("foo", HostAndPort.fromString("abc:1234"), SafeArg.of("arg", "because"));
         timestampBoundStore.failWith(notCurrentLeaderException);
-        assertThatThrownBy(() -> getTimestampService().getFreshTimestamp())
-                .isEqualTo(notCurrentLeaderException);
+        assertThatThrownBy(() -> getTimestampService().getFreshTimestamp()).isEqualTo(notCurrentLeaderException);
     }
 
     @Test
     public void rethrowsBoundStoreSuspectedNotCurrentLeaderExceptions() {
-        SuspectedNotCurrentLeaderException suspectedNotCurrentLeaderException = new SuspectedNotCurrentLeaderException("foo", UnsafeArg.of("pii", "123123123"));
+        SuspectedNotCurrentLeaderException suspectedNotCurrentLeaderException =
+                new SuspectedNotCurrentLeaderException("foo", UnsafeArg.of("pii", "123123123"));
         timestampBoundStore.failWith(suspectedNotCurrentLeaderException);
         assertThatThrownBy(() -> getTimestampService().getFreshTimestamp())
                 .isEqualTo(suspectedNotCurrentLeaderException);
@@ -103,7 +102,7 @@ public class PersistentTimestampServiceTests extends AbstractTimestampServiceTes
     @Test
     public void rejectsFastForwardToTheSentinelValue() {
         assertThatThrownBy(() -> getTimestampManagementService()
-                .fastForwardTimestamp(TimestampManagementService.SENTINEL_TIMESTAMP))
+                        .fastForwardTimestamp(TimestampManagementService.SENTINEL_TIMESTAMP))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
