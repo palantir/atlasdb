@@ -33,14 +33,14 @@ public abstract class AbstractMultipleSchemaVersionsCoordinationTest {
     @Test
     public void transactionFailsUnderUnknownSchemaVersion() {
         coordinationResource.forceInstallNewTransactionsSchemaVersion(NEW_VERSION);
-        CoordinationEteTest.assertTransactionsSchemaVersionIsNow(NEW_VERSION, coordinationResource);
+        AbstractCoordinationTest.assertTransactionsSchemaVersionIsNow(NEW_VERSION, coordinationResource);
         assertThat(coordinationResource.doTransactionAndReportOutcome()).isFalse();
     }
 
     @Test
     public void transactionOnKnownVersionFailsOnValueWithUnknownVersion() {
         coordinationResource.forceInstallNewTransactionsSchemaVersion(NEW_VERSION);
-        CoordinationEteTest.assertTransactionsSchemaVersionIsNow(NEW_VERSION, coordinationResource);
+        AbstractCoordinationTest.assertTransactionsSchemaVersionIsNow(NEW_VERSION, coordinationResource);
 
         // writes to kvs via txn are blocked as transaction on NEW_VERSION will not be able to mark itself in
         // progress.
@@ -48,7 +48,7 @@ public abstract class AbstractMultipleSchemaVersionsCoordinationTest {
                 .doesNotThrowAnyException();
 
         coordinationResource.forceInstallNewTransactionsSchemaVersion(VERSION_ONE);
-        CoordinationEteTest.assertTransactionsSchemaVersionIsNow(VERSION_ONE, coordinationResource);
+        AbstractCoordinationTest.assertTransactionsSchemaVersionIsNow(VERSION_ONE, coordinationResource);
 
         // This must still determine whether the transaction that started under a NEW_VERSION regime committed
         // or not, when performing conflict checking. We can't tell, hence we must fail.

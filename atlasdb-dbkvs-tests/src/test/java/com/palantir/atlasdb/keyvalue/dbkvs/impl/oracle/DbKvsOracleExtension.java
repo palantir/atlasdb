@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
+import static org.junit.jupiter.api.extension.ExtensionContext.Namespace.GLOBAL;
+
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.DbKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
@@ -24,7 +26,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.SimpleTimedSqlConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.SqlConnectionSupplier;
-import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.DockerComposeExtension;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.nexus.db.pool.ConnectionManager;
@@ -32,52 +34,44 @@ import com.palantir.nexus.db.pool.ReentrantManagedConnectionSupplier;
 import com.palantir.nexus.db.pool.config.ConnectionConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
 import com.palantir.nexus.db.pool.config.OracleConnectionConfig;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.sql.Connection;
 import java.time.Duration;
 import java.util.concurrent.Callable;
 import org.awaitility.Awaitility;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.junit.runners.Suite.SuiteClasses;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
-@RunWith(Suite.class)
-@SuiteClasses({
-    DbKvsOracleTargetedSweepIntegrationTest.class,
-    DbKvsOracleKeyValueServiceTest.class,
-    DbKvsOracleSerializableTransactionTest.class,
-    DbKvsOracleSweepTaskRunnerTest.class,
-    DbKvsOracleGetCandidateCellsForSweepingTest.class,
-    OverflowSequenceSupplierEteTest.class,
-    OracleTableNameMapperEteTest.class,
-    OracleEmbeddedDbTimestampBoundStoreTest.class,
-    OracleNamespaceDeleterIntegrationTest.class,
-    OracleAlterTableIntegrationTest.class
-})
-public final class DbKvsOracleTestSuite {
+public final class DbKvsOracleExtension implements BeforeAllCallback, ExtensionContext.Store.CloseableResource {
     private static final String LOCALHOST = "0.0.0.0";
     private static final int ORACLE_PORT_NUMBER = 1521;
 
-    private DbKvsOracleTestSuite() {
-        // Test suite
-    }
+    private static volatile boolean isInitialized = false;
 
-    @ClassRule
-    public static final DockerComposeRule docker = DockerComposeRule.builder()
+    public static final DockerComposeExtension docker = DockerComposeExtension.builder()
             .file("src/test/resources/docker-compose.oracle.yml")
             .waitingForService("oracle", Container::areAllPortsOpen)
             .nativeServiceHealthCheckTimeout(org.joda.time.Duration.standardMinutes(5))
             .saveLogsTo("container-logs")
             .build();
 
-    @BeforeClass
-    public static void waitUntilDbKvsIsUp() {
-        Awaitility.await()
-                .atMost(Duration.ofMinutes(5))
-                .pollInterval(Duration.ofSeconds(1))
-                .until(canCreateKeyValueService());
+    @Override
+    public synchronized void beforeAll(ExtensionContext extensionContext) throws IOException, InterruptedException {
+        if (!isInitialized) {
+            isInitialized = true;
+            docker.beforeAll(extensionContext);
+            extensionContext.getRoot().getStore(GLOBAL).put("DbKvsOracleExtension", this);
+            Awaitility.await()
+                    .atMost(Duration.ofMinutes(5))
+                    .pollInterval(Duration.ofSeconds(1))
+                    .until(canCreateKeyValueService());
+        }
+    }
+
+    @Override
+    public void close() {
+        docker.after();
     }
 
     public static KeyValueService createKvs() {
@@ -103,11 +97,6 @@ public final class DbKvsOracleTestSuite {
                         .overflowMigrationState(OverflowMigrationState.FINISHED)
                         .build())
                 .build();
-    }
-
-    public static ConnectionSupplier getConnectionSupplier() {
-        KeyValueService kvs = ConnectionManagerAwareDbKvs.create(getKvsConfig());
-        return getConnectionSupplier(kvs);
     }
 
     public static ConnectionSupplier getConnectionSupplier(KeyValueService kvs) {

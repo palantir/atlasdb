@@ -37,7 +37,6 @@ import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.docker.compose.DockerComposeExtension;
-import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.Container;
 import com.palantir.docker.compose.connection.DockerMachine;
 import com.palantir.docker.compose.execution.DockerComposeExecArgument;
@@ -57,17 +56,14 @@ import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.Extension;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-// Important: Some internal tests depend on this class.
-// Please recompile Oracle internal tests if any breaking changes are made to the setup.
-// Please don't make the setup methods private.
-public class EteExtension implements BeforeAllCallback, ExtensionContext.Store.CloseableResource {
+public final class EteExtension implements BeforeAllCallback, ExtensionContext.Store.CloseableResource {
     private static final GradleExtension GRADLE_PREPARE_TASK =
             GradleExtension.ensureTaskHasRun(":atlasdb-ete-tests:prepareForEteTests");
     private static final GradleExtension TIMELOCK_TASK =
             GradleExtension.ensureTaskHasRun(":timelock-server-distribution:dockerTag");
     private static final SslConfiguration SSL_CONFIGURATION =
             SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
-    public static final TrustContext TRUST_CONTEXT = SslSocketFactories.createTrustContext(SSL_CONFIGURATION);
+    private static final TrustContext TRUST_CONTEXT = SslSocketFactories.createTrustContext(SSL_CONFIGURATION);
     private static final short SERVER_PORT = 3828;
 
     private static final List<Extension> extensions = new ArrayList<>();
@@ -75,9 +71,48 @@ public class EteExtension implements BeforeAllCallback, ExtensionContext.Store.C
     private static DockerComposeExtension docker;
     private static Duration waitDuration;
     private static List<String> availableClients;
-    private static volatile boolean isInitialised = false;
 
-    public static EteExtension initializeForMultiClientWithPostgresTimelockAndPostgres() {
+    private static volatile EteExtension instance;
+    private static volatile InitializationMode initializationMode;
+    private static volatile boolean isBeforeAllCalled = false;
+
+    private EteExtension() {}
+
+    public static synchronized EteExtension getInstance(InitializationMode initializationMode) {
+        if (instance == null) {
+            switch (initializationMode) {
+                case MultiClientWithPostgresTimelockAndPostgres:
+                    initializeForMultiClientWithPostgresTimelockAndPostgres();
+                    break;
+                case MultiClientWithTimelockAndCassandra:
+                    initializeForMultiClientWithTimelockAndCassandra();
+                    break;
+                case SingleClientWithEmbeddedAndCassandra:
+                    initializeForSingleClientWithEmbeddedAndCassandra();
+                    break;
+                case SingleClientWithEmbeddedAndOracle:
+                    initializeForSingleClientWithEmbeddedAndOracle();
+                    break;
+                case SingleClientWithEmbeddedAndPostgres:
+                    initializeForSingleClientWithEmbeddedAndPostgres();
+                    break;
+                case SingleClientWithEmbeddedAndThreeNodeCassandra:
+                    initializeForSingleClientWithEmbeddedAndThreeNodeCassandra();
+                    break;
+            }
+            EteExtension.initializationMode = initializationMode;
+            instance = new EteExtension();
+        }
+        if (initializationMode != EteExtension.initializationMode) {
+            throw new IllegalStateException(
+                    "EteExtension has already been initialized with mode " + EteExtension.initializationMode
+                            + ". You cannot initialize it again with another mode. Please use correct gradle task to"
+                            + " run your tests. There is a separate task for each mode.");
+        }
+        return instance;
+    }
+
+    private static void initializeForMultiClientWithPostgresTimelockAndPostgres() {
         waitDuration = Duration.ofMinutes(2);
         setup(
                 MultiClientWithPostgresTimelockAndPostgresTestSuite.class,
@@ -85,10 +120,9 @@ public class EteExtension implements BeforeAllCallback, ExtensionContext.Store.C
                 EteExtension.Clients.MULTI,
                 ImmutableMap.of(),
                 true);
-        return new EteExtension();
     }
 
-    public static EteExtension initializeForMultiClientWithTimelockAndCassandra() {
+    private static void initializeForMultiClientWithTimelockAndCassandra() {
         waitDuration = Duration.ofMinutes(2);
         setup(
                 MultiClientWithTimelockAndCassandraTestSuite.class,
@@ -96,10 +130,9 @@ public class EteExtension implements BeforeAllCallback, ExtensionContext.Store.C
                 EteExtension.Clients.MULTI,
                 CassandraEnvironment.get(),
                 true);
-        return new EteExtension();
     }
 
-    public static EteExtension initializeForSingleClientWithEmbeddedAndCassandra() {
+    private static void initializeForSingleClientWithEmbeddedAndCassandra() {
         waitDuration = Duration.ofMinutes(2);
         setup(
                 SingleClientWithEmbeddedAndCassandraTestSuite.class,
@@ -107,10 +140,9 @@ public class EteExtension implements BeforeAllCallback, ExtensionContext.Store.C
                 EteExtension.Clients.SINGLE,
                 CassandraEnvironment.get(),
                 false);
-        return new EteExtension();
     }
 
-    public static EteExtension initializeForSingleClientWithEmbeddedAndOracle() {
+    private static void initializeForSingleClientWithEmbeddedAndOracle() {
         waitDuration = Duration.ofMinutes(10);
         setup(
                 SingleClientWithEmbeddedAndOracleTestSuite.class,
@@ -118,10 +150,9 @@ public class EteExtension implements BeforeAllCallback, ExtensionContext.Store.C
                 EteExtension.Clients.SINGLE,
                 ImmutableMap.of(),
                 false);
-        return new EteExtension();
     }
 
-    public static EteExtension initializeForSingleClientWithEmbeddedAndPostgres() {
+    private static void initializeForSingleClientWithEmbeddedAndPostgres() {
         waitDuration = Duration.ofMinutes(2);
         setup(
                 SingleClientWithEmbeddedAndPostgresTestSuite.class,
@@ -129,10 +160,9 @@ public class EteExtension implements BeforeAllCallback, ExtensionContext.Store.C
                 EteExtension.Clients.SINGLE,
                 ImmutableMap.of(),
                 false);
-        return new EteExtension();
     }
 
-    public static EteExtension initializeForSingleClientWithEmbeddedAndThreeNodeCassandra() {
+    private static void initializeForSingleClientWithEmbeddedAndThreeNodeCassandra() {
         waitDuration = Duration.ofMinutes(2);
         setup(
                 SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite.class,
@@ -140,10 +170,9 @@ public class EteExtension implements BeforeAllCallback, ExtensionContext.Store.C
                 EteExtension.Clients.SINGLE,
                 CassandraEnvironment.get(),
                 false);
-        return new EteExtension();
     }
 
-    public static void setup(
+    private static void setup(
             Class<?> eteClass,
             String composeFile,
             Clients clients,
@@ -159,7 +188,6 @@ public class EteExtension implements BeforeAllCallback, ExtensionContext.Store.C
                 .file(composeFile)
                 .machine(machine)
                 .saveLogsTo(LogDirectory.circleAwareLogDirectory(logDirectory))
-                .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
                 .nativeServiceHealthCheckTimeout(org.joda.time.Duration.standardSeconds(
                         AtlasDbEteServer.CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS))
                 .build();
@@ -178,8 +206,8 @@ public class EteExtension implements BeforeAllCallback, ExtensionContext.Store.C
 
     @Override
     public synchronized void beforeAll(ExtensionContext extensionContext) throws Exception {
-        if (!isInitialised) {
-            isInitialised = true;
+        if (!isBeforeAllCalled) {
+            isBeforeAllCalled = true;
             for (Extension extension : extensions) {
                 if (extension instanceof BeforeAllCallback) {
                     ((BeforeAllCallback) extension).beforeAll(extensionContext);
@@ -264,5 +292,14 @@ public class EteExtension implements BeforeAllCallback, ExtensionContext.Store.C
         List<String> getClients() {
             return clients;
         }
+    }
+
+    public enum InitializationMode {
+        MultiClientWithPostgresTimelockAndPostgres,
+        MultiClientWithTimelockAndCassandra,
+        SingleClientWithEmbeddedAndCassandra,
+        SingleClientWithEmbeddedAndOracle,
+        SingleClientWithEmbeddedAndPostgres,
+        SingleClientWithEmbeddedAndThreeNodeCassandra
     }
 }
