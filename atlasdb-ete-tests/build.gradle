@@ -58,6 +58,7 @@ dependencies {
     testImplementation 'org.slf4j:slf4j-api'
     testImplementation 'io.dropwizard:dropwizard-testing'
     testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.junit.platform:junit-platform-suite'
     testImplementation project(':atlasdb-api')
     testImplementation project(':atlasdb-cassandra')
     testImplementation project(':atlasdb-cassandra').sourceSets.test.output
@@ -67,6 +68,7 @@ dependencies {
     testImplementation project(':atlasdb-impl-shared')
     testImplementation project(':atlasdb-remoting-api')
     testImplementation project(':atlasdb-tests-shared')
+    testImplementation project(':flake-extension')
     testImplementation project(':flake-rule')
     testImplementation project(':lock-api-objects')
     testImplementation project(':timestamp-api')
@@ -191,6 +193,7 @@ test {
 
         // suite classes that should not be run outside of suites
         excludeTestsMatching 'com.palantir.atlasdb.ete.suiteclasses.*'
+        excludeTestsMatching 'com.palantir.atlasdb.ete.tests.*'
 
         // tests with 1-off tasks
         excludeTestsMatching 'com.palantir.atlasdb.ete.standalone.TimeLockMigrationEteTest'
