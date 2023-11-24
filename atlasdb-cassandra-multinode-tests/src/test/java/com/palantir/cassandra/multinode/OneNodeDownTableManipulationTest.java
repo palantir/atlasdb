@@ -22,8 +22,13 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
-import org.junit.Test;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+@NodesDownTestClass
+@Order(3) // One node is down.
+@ExtendWith(NodesDownTestSetup.class)
 public class OneNodeDownTableManipulationTest extends AbstractDegradedClusterTest {
     private static final TableReference TABLE_TO_DROP = TableReference.createWithEmptyNamespace("table_to_drop");
     private static final TableReference TABLE_TO_DROP_2 = TableReference.createWithEmptyNamespace("table_to_drop_2");

@@ -28,7 +28,7 @@ import org.junit.runners.Parameterized;
 public class ContainerTest {
     @Parameterized.Parameters(name = "With container {0}")
     public static Collection<Object[]> parameters() {
-        return Arrays.asList(new Object[][] {{new CassandraContainer()}, {new ThreeNodeCassandraCluster()}});
+        return Arrays.asList(new Object[][] {{new CassandraContainer()}});
     }
 
     private final Container container;
