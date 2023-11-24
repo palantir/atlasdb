@@ -57,17 +57,15 @@ public final class DbKvsOracleExtension implements BeforeAllCallback, ExtensionC
             .build();
 
     @Override
-    public void beforeAll(ExtensionContext extensionContext) throws IOException, InterruptedException {
-        synchronized (DbKvsOracleExtension.class) {
-            if (!isInitialized) {
-                isInitialized = true;
-                docker.beforeAll(extensionContext);
-                extensionContext.getRoot().getStore(GLOBAL).put("DbKvsOracleExtension", this);
-                Awaitility.await()
-                        .atMost(Duration.ofMinutes(5))
-                        .pollInterval(Duration.ofSeconds(1))
-                        .until(canCreateKeyValueService());
-            }
+    public synchronized void beforeAll(ExtensionContext extensionContext) throws IOException, InterruptedException {
+        if (!isInitialized) {
+            isInitialized = true;
+            docker.beforeAll(extensionContext);
+            extensionContext.getRoot().getStore(GLOBAL).put("DbKvsOracleExtension", this);
+            Awaitility.await()
+                    .atMost(Duration.ofMinutes(5))
+                    .pollInterval(Duration.ofSeconds(1))
+                    .until(canCreateKeyValueService());
         }
     }
 

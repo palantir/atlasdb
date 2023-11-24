@@ -65,6 +65,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 @ExtendWith(DbKvsOracleExtension.class)
+/* TODO(boyoruk): Investigate why this is needed. If this class does not run first, then some of its methods fail.
+ * Although this solution works, we should find the root cause. */
 @Order(1)
 public final class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetupV2 {
 
