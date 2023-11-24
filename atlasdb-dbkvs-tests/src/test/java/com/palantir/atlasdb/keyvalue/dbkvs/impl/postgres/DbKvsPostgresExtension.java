@@ -51,17 +51,15 @@ public final class DbKvsPostgresExtension implements BeforeAllCallback, Extensio
             .build();
 
     @Override
-    public void beforeAll(ExtensionContext extensionContext) throws InterruptedException, IOException {
-        synchronized (DbKvsPostgresExtension.class) {
-            if (!isInitialized) {
-                isInitialized = true;
-                docker.beforeAll(extensionContext);
-                Awaitility.await()
-                        .atMost(Duration.ofMinutes(1))
-                        .pollInterval(Duration.ofSeconds(1))
-                        .until(canCreateKeyValueService());
-                extensionContext.getRoot().getStore(GLOBAL).put("DbKvsOracleExtension", this);
-            }
+    public synchronized void beforeAll(ExtensionContext extensionContext) throws InterruptedException, IOException {
+        if (!isInitialized) {
+            isInitialized = true;
+            docker.beforeAll(extensionContext);
+            Awaitility.await()
+                    .atMost(Duration.ofMinutes(1))
+                    .pollInterval(Duration.ofSeconds(1))
+                    .until(canCreateKeyValueService());
+            extensionContext.getRoot().getStore(GLOBAL).put("DbKvsOracleExtension", this);
         }
     }
 
