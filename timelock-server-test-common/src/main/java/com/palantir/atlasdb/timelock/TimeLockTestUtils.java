@@ -30,6 +30,7 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.logsafe.DoNotLog;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.nio.file.Paths;
 import java.util.List;
@@ -73,7 +74,8 @@ public final class TimeLockTestUtils {
                 .timelock(ImmutableTimeLockClientConfig.builder()
                         .serversList(ImmutableServerListConfig.builder()
                                 .servers(serverUris)
-                                .sslConfiguration(SslConfiguration.of(Paths.get("var/security/trustStore.jks")))
+                                .sslConfiguration(
+                                        SslConfiguration.of(Paths.get("timelock-server/var/security/trustStore.jks")))
                                 .build())
                         .build())
                 .build();
@@ -99,6 +101,7 @@ public final class TimeLockTestUtils {
                 .build();
     }
 
+    @DoNotLog
     @Value.Immutable
     interface TransactionManagerContext {
         AtlasDbConfig install();

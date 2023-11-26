@@ -1,0 +1,56 @@
+apply from: "../gradle/shared.gradle"
+
+dependencies {
+    implementation 'com.github.tomakehurst:wiremock-standalone'
+    implementation 'com.fasterxml.jackson.core:jackson-core'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml'
+    implementation 'com.github.peterwippermann.junit4:parameterized-suite'
+    implementation 'com.google.errorprone:error_prone_annotations'
+    implementation 'com.google.guava:guava'
+    implementation 'io.dropwizard.metrics:metrics-core'
+    implementation 'io.dropwizard:dropwizard-testing'
+    implementation 'org.awaitility:awaitility'
+    implementation 'org.assertj:assertj-core'
+    implementation 'org.freemarker:freemarker'
+
+    implementation 'com.palantir.conjure.java.runtime:client-config'
+    implementation 'com.palantir.conjure.java.runtime:keystores'
+    implementation 'com.palantir.docker.compose:docker-compose-rule-core'
+    implementation 'com.palantir.docker.compose:docker-compose-rule-junit4'
+    implementation 'com.palantir.common:streams'
+    implementation 'com.palantir.conjure.java.api:errors'
+    implementation 'com.palantir.conjure.java.api:service-config'
+    implementation 'com.palantir.safe-logging:preconditions'
+    implementation 'com.palantir.safe-logging:safe-logging'
+    implementation 'com.palantir.tokens:auth-tokens'
+    implementation 'com.palantir.tritium:tritium-registry'
+
+    implementation project(':atlasdb-api')
+    implementation project(':atlasdb-client')
+    implementation project(':atlasdb-commons')
+    implementation project(':atlasdb-config')
+    implementation project(':atlasdb-dbkvs')
+    implementation project(':atlasdb-dbkvs-hikari')
+    implementation project(':atlasdb-impl-shared')
+    implementation project(':atlasdb-remoting-api')
+    implementation project(':commons-db')
+    implementation project(':leader-election-api')
+    implementation project(':leader-election-impl')
+    implementation project(':lock-api')
+    implementation project(':lock-api-objects')
+    implementation project(':lock-conjure-api:lock-conjure-api-jersey')
+    implementation project(':timelock-agent')
+    implementation project(':timelock-api:timelock-api-jersey')
+    implementation project(':timelock-api:timelock-api-objects')
+    implementation project(':timelock-impl')
+    implementation project(':timelock-server')
+    implementation project(':timestamp-api')
+
+    implementation (project(':atlasdb-tests-shared')) {
+        exclude group: 'com.fasterxml.jackson.jaxrs'
+    }
+
+    annotationProcessor 'org.immutables:value'
+    compileOnly 'org.immutables:value::annotations'
+}

@@ -87,6 +87,7 @@ dependencies {
     testImplementation project(':flake-extension')
     testImplementation project(':lock-api-objects')
     testImplementation project(':timelock-impl')
+    testImplementation project(':timelock-server-test-common')
     testImplementation (project(':atlasdb-tests-shared')) {
         exclude group: 'com.fasterxml.jackson.jaxrs'
     }

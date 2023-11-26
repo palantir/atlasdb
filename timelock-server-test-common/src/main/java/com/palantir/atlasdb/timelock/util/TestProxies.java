@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 public class TestProxies {
 
     private static final SslConfiguration SSL_CONFIGURATION =
-            SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
+            SslConfiguration.of(Paths.get("timelock-server/var/security/trustStore.jks"));
     public static final TrustContext TRUST_CONTEXT = SslSocketFactories.createTrustContext(SSL_CONFIGURATION);
 
     private final String baseUri;

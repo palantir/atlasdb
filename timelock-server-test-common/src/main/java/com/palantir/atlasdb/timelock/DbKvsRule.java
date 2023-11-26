@@ -45,7 +45,7 @@ public class DbKvsRule implements TestRule {
     private static final int FIVE_SECONDS = 5;
 
     private final DockerComposeRule docker = DockerComposeRule.builder()
-            .file("src/testCommon/resources/docker-compose.yml")
+            .file("src/main/resources/docker-compose.yml")
             .waitingForService("postgres", Container::areAllPortsOpen)
             .saveLogsTo(LogDirectory.circleAwareLogDirectory(DbKvsRule.class))
             .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
