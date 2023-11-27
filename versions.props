@@ -26,7 +26,6 @@ com.palantir.conjure.java.runtime:* = 7.68.0
 com.palantir.conjure.java:* = 8.0.0
 com.palantir.conjure:conjure = 4.38.0
 com.palantir.dialogue:* = 3.100.0
-com.palantir.docker.compose:docker-compose-rule* = 2.0.0
 com.palantir.docker.proxy:* = 1.6.0
 com.palantir.goethe:* = 0.12.0
 com.palantir.nylon:* = 0.4.0
@@ -87,6 +86,10 @@ uk.org.lidalia:slf4j-test = 1.1.0
 
 # Manually upgraded versions
 # dependency-upgrader:OFF
+
+# 2.0.0 uses docker compose v2. Docker compose rule doesn't play nicely with the project-name parameter
+# In the short term, before that gets fixed, we pin to 1.8.0 to enable excavators to bump other dependencies properly
+com.palantir.docker.compose:* = 1.8.0
 
 # Pinning Dropwizard 2.1.x until we can upgrade tests
 io.dropwizard:* = 2.1.7
