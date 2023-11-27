@@ -35,6 +35,8 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.concurrent.InitializeableScheduledExecutorServiceSupplier;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.exception.CassandraAllHostsUnresponsiveException;
+import com.palantir.exception.CassandraInvalidPartitionerException;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -429,9 +431,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Preconditions.checkState(
                 !getCurrentPools().isEmpty() || serversToAdd.isEmpty(),
                 "No servers were successfully added to the pool. This means we could not come to a consensus on"
-                    + " cluster topology, and the client cannot connect as there are no valid hosts. This state should"
-                    + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
-                    + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
+                        + " cluster topology, and the client cannot connect as there are no valid hosts. This state should"
+                        + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
+                        + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
                 SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())));
 
         logRefreshedHosts(validatedServersToAdd, serversToShutdown, absentServers);
@@ -579,6 +581,10 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                             exception.toString())));
         }
 
+        if (!atLeastOneHostResponded) {
+            throw new CassandraAllHostsUnresponsiveException(errorBuilderForEntireCluster.toString());
+        }
+
         if (aliveButInvalidPartitionerNodes.size() > 0) {
             errorBuilderForEntireCluster
                     .append("Performing routine startup checks,")
@@ -588,12 +594,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                     (host, exception) -> errorBuilderForEntireCluster.append(String.format(
                             "\tHost: %s was marked as invalid partitioner" + " via exception: %s%n",
                             host.cassandraHostName(), exception.toString())));
-        }
-
-        if (atLeastOneHostResponded && aliveButInvalidPartitionerNodes.size() == 0) {
-            return;
-        } else {
-            throw new RuntimeException(errorBuilderForEntireCluster.toString());
+            throw new CassandraInvalidPartitionerException(errorBuilderForEntireCluster.toString());
         }
     }
 
