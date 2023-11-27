@@ -114,6 +114,8 @@ public class RangeRequestsTest {
     public void endNameForPrefixScanOfSingleByteArraysIncrementsTheByte() {
         assertThat(RangeRequests.createEndNameForPrefixScan(new byte[] {0})).isEqualTo(new byte[] {1});
         assertThat(RangeRequests.createEndNameForPrefixScan(new byte[] {42})).isEqualTo(new byte[] {43});
+
+        // Note: We treat bytes as unsigned, so 127 (0x7f) is followed by -128 (0x80).
         assertThat(RangeRequests.createEndNameForPrefixScan(new byte[] {127})).isEqualTo(new byte[] {-128});
     }
 

@@ -27,7 +27,7 @@ public final class ColumnRangeSelections implements Serializable {
     }
 
     /**
-     * Returns a {@link BatchColumnRangeSelection} that can be used with {@link KeyValueService#getRowsColumnRange(TableReference, Iterable, BatchColumnRangeSelection, long)} or
+     * Returns a {@link BatchColumnRangeSelection} that can be used with {@link KeyValueService#getRowsColumnRange(TableReference, Iterable, BatchColumnRangeSelection, long)}
      * to return the columns that have values beginning with the provided prefix.
      */
     public static BatchColumnRangeSelection createPrefixRange(byte[] prefix, int batchSize) {
