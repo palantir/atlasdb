@@ -36,23 +36,22 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.io.FileUtils;
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class PaxosConsensusFastTest {
     private PaxosTestState state;
 
     private static final int NUM_POTENTIAL_LEADERS = 6;
     private static final int QUORUM_SIZE = 4;
 
-    @Before
+    @BeforeEach
     public void setup() {
         state = PaxosConsensusTestUtils.setup(NUM_POTENTIAL_LEADERS, QUORUM_SIZE);
     }
 
-    @After
+    @AfterEach
     public void teardown() throws Exception {
         PaxosConsensusTestUtils.teardown(state);
     }
@@ -157,7 +156,7 @@ public class PaxosConsensusFastTest {
         long seq = 0;
 
         // write to log
-        PaxosStateLog<PaxosValue> learnerStateLog = new PaxosStateLogImpl<PaxosValue>(dir);
+        PaxosStateLog<PaxosValue> learnerStateLog = new PaxosStateLogImpl<>(dir);
         learnerStateLog.writeRound(seq, new PaxosValue(leaderUuid, 0, null));
 
         // read back from log

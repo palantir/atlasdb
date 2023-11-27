@@ -25,13 +25,12 @@ import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionRea
 import com.palantir.atlasdb.transaction.api.expectations.KvsCallReadInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.flake.ShouldRetry;
+import com.palantir.flake.FlakeRetryTest;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public final class KeyValueServiceDataTrackerTest {
     private static final TableReference TABLE_1 = TableReference.createWithEmptyNamespace("Table1");
     private static final TableReference TABLE_2 = TableReference.createWithEmptyNamespace("Table2");
@@ -172,8 +171,7 @@ public final class KeyValueServiceDataTrackerTest {
                                 ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_1, SMALL_BYTES_READ))));
     }
 
-    @Test
-    @ShouldRetry
+    @FlakeRetryTest
     public void interleavedMethodCallsAreTracked() throws InterruptedException {
         ExecutorService executor = PTExecutors.newFixedThreadPool(100);
         int concurrencyRounds = 20_000;

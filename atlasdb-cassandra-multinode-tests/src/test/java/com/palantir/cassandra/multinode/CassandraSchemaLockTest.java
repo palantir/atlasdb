@@ -21,7 +21,7 @@ import com.google.common.base.Throwables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
-import com.palantir.atlasdb.containers.Containers;
+import com.palantir.atlasdb.containers.ContainersV2;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
@@ -42,15 +42,17 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
+@Order(1) // No node is down.
 public class CassandraSchemaLockTest {
     private static final int THREAD_COUNT = 4;
 
-    @ClassRule
-    public static final Containers CONTAINERS =
-            new Containers(CassandraSchemaLockTest.class).with(new ThreeNodeCassandraCluster());
+    @RegisterExtension
+    public static final ContainersV2 CONTAINERS =
+            new ContainersV2(CassandraSchemaLockTest.class).with(new ThreeNodeCassandraCluster());
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(THREAD_COUNT);
 

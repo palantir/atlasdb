@@ -87,7 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings({"all", "deprecation"})
+@SuppressWarnings({"deprecation"})
 public final class DataTable implements
         AtlasDbMutablePersistentTable<DataTable.DataRow,
                                          DataTable.DataNamedColumnValue<?>,
@@ -212,10 +212,9 @@ public final class DataTable implements
             return Objects.equals(id, other.id);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Objects.hashCode(id);
+            return Long.hashCode(id);
         }
 
         @Override
@@ -826,7 +825,7 @@ public final class DataTable implements
     }
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-    @SuppressWarnings({"all", "deprecation"})
+    @SuppressWarnings({"deprecation"})
     public static final class Index1IdxTable implements
             AtlasDbDynamicMutablePersistentTable<Index1IdxTable.Index1IdxRow,
                                                     Index1IdxTable.Index1IdxColumn,
@@ -949,10 +948,9 @@ public final class DataTable implements
                 return Objects.equals(value, other.value);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
-                return Objects.hashCode(value);
+                return Long.hashCode(value);
             }
 
             @Override
@@ -1093,7 +1091,6 @@ public final class DataTable implements
                 return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equals(id, other.id);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ rowName, columnName, id });
@@ -1518,7 +1515,7 @@ public final class DataTable implements
 
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-    @SuppressWarnings({"all", "deprecation"})
+    @SuppressWarnings({"deprecation"})
     public static final class Index2IdxTable implements
             AtlasDbDynamicMutablePersistentTable<Index2IdxTable.Index2IdxRow,
                                                     Index2IdxTable.Index2IdxColumn,
@@ -1662,7 +1659,6 @@ public final class DataTable implements
                 return Objects.equals(value, other.value) && Objects.equals(id, other.id);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ value, id });
@@ -1775,7 +1771,6 @@ public final class DataTable implements
                 return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ rowName, columnName });
@@ -2198,7 +2193,7 @@ public final class DataTable implements
 
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-    @SuppressWarnings({"all", "deprecation"})
+    @SuppressWarnings({"deprecation"})
     public static final class Index3IdxTable implements
             AtlasDbDynamicMutablePersistentTable<Index3IdxTable.Index3IdxRow,
                                                     Index3IdxTable.Index3IdxColumn,
@@ -2321,10 +2316,9 @@ public final class DataTable implements
                 return Objects.equals(value, other.value);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
-                return Objects.hashCode(value);
+                return Long.hashCode(value);
             }
 
             @Override
@@ -2433,7 +2427,6 @@ public final class DataTable implements
                 return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ rowName, columnName });
@@ -2856,7 +2849,7 @@ public final class DataTable implements
 
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-    @SuppressWarnings({"all", "deprecation"})
+    @SuppressWarnings({"deprecation"})
     public static final class Index4IdxTable implements
             AtlasDbDynamicMutablePersistentTable<Index4IdxTable.Index4IdxRow,
                                                     Index4IdxTable.Index4IdxColumn,
@@ -3000,7 +2993,6 @@ public final class DataTable implements
                 return Objects.equals(value1, other.value1) && Objects.equals(value2, other.value2);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ value1, value2 });
@@ -3113,7 +3105,6 @@ public final class DataTable implements
                 return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ rowName, columnName });
@@ -3621,5 +3612,5 @@ public final class DataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "3/I+XbButguZbFZ2R5qd5g==";
+    static String __CLASS_HASH = "/7V/mxEXeeAaUxrpahPmtw==";
 }

@@ -87,7 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings({"all", "deprecation"})
+@SuppressWarnings({"deprecation"})
 public final class TwoColumnsTable implements
         AtlasDbMutablePersistentTable<TwoColumnsTable.TwoColumnsRow,
                                          TwoColumnsTable.TwoColumnsNamedColumnValue<?>,
@@ -212,10 +212,9 @@ public final class TwoColumnsTable implements
             return Objects.equals(id, other.id);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Objects.hashCode(id);
+            return Long.hashCode(id);
         }
 
         @Override
@@ -844,7 +843,7 @@ public final class TwoColumnsTable implements
     }
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-    @SuppressWarnings({"all", "deprecation"})
+    @SuppressWarnings({"deprecation"})
     public static final class FooToIdCondIdxTable implements
             AtlasDbDynamicMutablePersistentTable<FooToIdCondIdxTable.FooToIdCondIdxRow,
                                                     FooToIdCondIdxTable.FooToIdCondIdxColumn,
@@ -967,10 +966,9 @@ public final class TwoColumnsTable implements
                 return Objects.equals(foo, other.foo);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
-                return Objects.hashCode(foo);
+                return Long.hashCode(foo);
             }
 
             @Override
@@ -1111,7 +1109,6 @@ public final class TwoColumnsTable implements
                 return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equals(id, other.id);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ rowName, columnName, id });
@@ -1470,7 +1467,7 @@ public final class TwoColumnsTable implements
 
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-    @SuppressWarnings({"all", "deprecation"})
+    @SuppressWarnings({"deprecation"})
     public static final class FooToIdIdxTable implements
             AtlasDbDynamicMutablePersistentTable<FooToIdIdxTable.FooToIdIdxRow,
                                                     FooToIdIdxTable.FooToIdIdxColumn,
@@ -1606,7 +1603,6 @@ public final class TwoColumnsTable implements
                 return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(foo, other.foo);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, foo });
@@ -1751,7 +1747,6 @@ public final class TwoColumnsTable implements
                 return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equals(id, other.id);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ rowName, columnName, id });
@@ -2195,5 +2190,5 @@ public final class TwoColumnsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "FETKveB3dAVBAvG0TlmsZA==";
+    static String __CLASS_HASH = "pAsGGRHTYhHRY58MdyOkCg==";
 }

@@ -15,13 +15,12 @@
  */
 package com.palantir.atlasdb.sweep.progress;
 
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
-import org.junit.ClassRule;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class SweepProgressStoreTest extends AbstractSweepProgressStoreTest {
-    @ClassRule
-    public static final TestResourceManager TRM = TestResourceManager.inMemory();
+    @RegisterExtension
+    public static final TestResourceManagerV2 TRM = TestResourceManagerV2.inMemory();
 
     public SweepProgressStoreTest() {
         super(TRM);

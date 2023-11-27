@@ -44,6 +44,7 @@ import java.util.stream.Collectors;
 import org.awaitility.Awaitility;
 import org.junit.rules.ExternalResource;
 
+/* TODO(boyoruk): Delete when JUnit5 upgrade is over. */
 @SuppressWarnings("ShutdownHook")
 public class Containers extends ExternalResource {
     private static final ProjectName PROJECT_NAME = ProjectName.fromString("atlasdbcontainers");

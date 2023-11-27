@@ -16,23 +16,23 @@
 
 package com.palantir.atlasdb.factory;
 
-import com.palantir.timelock.paxos.InMemoryTimelockServices;
+import com.palantir.timelock.paxos.AbstractInMemoryTimelockExtension;
 
 public class InMemoryLockAndTimestampServiceFactory implements LockAndTimestampServiceFactory {
-    private final InMemoryTimelockServices services;
+    private final AbstractInMemoryTimelockExtension abstractInMemoryTimelockExtension;
 
-    public InMemoryLockAndTimestampServiceFactory(InMemoryTimelockServices services) {
-        this.services = services;
+    public InMemoryLockAndTimestampServiceFactory(AbstractInMemoryTimelockExtension abstractInMemoryTimelockExtension) {
+        this.abstractInMemoryTimelockExtension = abstractInMemoryTimelockExtension;
     }
 
     @Override
     public LockAndTimestampServices createLockAndTimestampServices() {
         return ImmutableLockAndTimestampServices.builder()
-                .lock(services.getLockService())
-                .timestamp(services.getTimestampService())
-                .timestampManagement(services.getTimestampManagementService())
-                .timelock(services.getLegacyTimelockService())
-                .lockWatcher(services.getLockWatchManager())
+                .lock(abstractInMemoryTimelockExtension.getLockService())
+                .timestamp(abstractInMemoryTimelockExtension.getTimestampService())
+                .timestampManagement(abstractInMemoryTimelockExtension.getTimestampManagementService())
+                .timelock(abstractInMemoryTimelockExtension.getLegacyTimelockService())
+                .lockWatcher(abstractInMemoryTimelockExtension.getLockWatchManager())
                 .build();
     }
 }

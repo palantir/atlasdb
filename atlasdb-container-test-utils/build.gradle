@@ -7,6 +7,8 @@ versionsLock {
 dependencies {
     implementation project(':atlasdb-api')
     implementation project(':atlasdb-cassandra')
+    implementation project(':atlasdb-client')
+    implementation project(':atlasdb-commons')
     implementation project(':atlasdb-tests-shared')
 
     implementation 'com.github.ben-manes.caffeine:caffeine'
@@ -14,25 +16,28 @@ dependencies {
     implementation 'com.palantir.docker.compose:docker-compose-rule-core'
     implementation 'com.palantir.docker.compose:docker-compose-rule-junit4'
     implementation 'com.palantir.docker.proxy:docker-proxy-rule-junit4'
+    implementation 'com.palantir.docker.compose:docker-compose-junit-jupiter'
+    implementation 'com.palantir.docker.proxy:docker-proxy-junit-jupiter'
     implementation 'org.awaitility:awaitility'
     implementation 'io.netty:netty-handler-proxy'
-
     implementation 'com.datastax.cassandra:cassandra-driver-core'
     implementation 'com.palantir.refreshable:refreshable'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'io.netty:netty-transport'
     implementation 'junit:junit'
-    implementation project(':atlasdb-client')
-    implementation project(':atlasdb-commons')
+    implementation 'org.junit.jupiter:junit-jupiter'
+    implementation 'org.junit.jupiter:junit-jupiter-api'
 
     annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'
 
-    testImplementation 'com.github.stefanbirkner:system-rules'
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
 
-    /* TODO(boyoruk): Migrate to JUnit5 */
     testImplementation 'junit:junit'
+    testRuntimeOnly 'org.junit.vintage:junit-vintage-engine', {
+        because 'allows JUnit 3 and JUnit 4 tests to run'
+    }
 }

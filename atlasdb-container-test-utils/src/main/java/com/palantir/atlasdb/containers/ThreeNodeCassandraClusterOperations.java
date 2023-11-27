@@ -16,7 +16,7 @@
 package com.palantir.atlasdb.containers;
 
 import com.google.common.collect.ImmutableList;
-import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.DockerComposeExtension;
 import com.palantir.docker.compose.execution.DockerComposeRunArgument;
 import com.palantir.docker.compose.execution.ImmutableDockerComposeRunOption;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -27,11 +27,12 @@ public class ThreeNodeCassandraClusterOperations {
     private static final SafeLogger log = SafeLoggerFactory.get(ThreeNodeCassandraClusterOperations.class);
     private static final int NODETOOL_STATUS_TIMEOUT_SECONDS = 10;
 
-    private final DockerComposeRule dockerComposeRule;
+    private final DockerComposeExtension dockerComposeExtension;
     private final CassandraCliParser cassandraCliParser;
 
-    public ThreeNodeCassandraClusterOperations(DockerComposeRule dockerComposeRule, CassandraVersion version) {
-        this.dockerComposeRule = dockerComposeRule;
+    public ThreeNodeCassandraClusterOperations(
+            DockerComposeExtension dockerComposeExtension, CassandraVersion version) {
+        this.dockerComposeExtension = dockerComposeExtension;
         this.cassandraCliParser = new CassandraCliParser(version);
     }
 
@@ -58,7 +59,7 @@ public class ThreeNodeCassandraClusterOperations {
     }
 
     private String runCommandInCliContainer(String... arguments) throws IOException, InterruptedException {
-        return dockerComposeRule.run(
+        return dockerComposeExtension.run(
                 ImmutableDockerComposeRunOption.of(ImmutableList.of()),
                 ThreeNodeCassandraCluster.CLI_CONTAINER_NAME,
                 DockerComposeRunArgument.arguments(arguments));

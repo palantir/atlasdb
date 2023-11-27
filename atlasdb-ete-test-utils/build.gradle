@@ -13,6 +13,8 @@ dependencies {
     implementation project(':atlasdb-client')
 
     implementation 'junit:junit'
+    implementation 'org.junit.jupiter:junit-jupiter'
+    implementation 'org.junit.jupiter:junit-jupiter-api'
     implementation 'org.assertj:assertj-core'
     implementation 'com.google.guava:guava'
     implementation 'com.google.protobuf:protobuf-java'
@@ -20,7 +22,5 @@ dependencies {
     implementation 'com.palantir.safe-logging:preconditions'
     implementation project(':atlasdb-client-protobufs')
     implementation project(':atlasdb-commons')
-
-    /* TODO(boyoruk): Migrate to JUnit5 */
 }
 

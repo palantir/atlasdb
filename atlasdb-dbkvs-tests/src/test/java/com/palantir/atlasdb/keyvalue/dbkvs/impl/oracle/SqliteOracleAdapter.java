@@ -16,10 +16,9 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.endsWith;
 import static org.mockito.ArgumentMatchers.startsWith;
-import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.spy;
 
 import com.google.common.collect.ImmutableSet;
@@ -349,15 +348,15 @@ final class SqliteOracleAdapter implements ConnectionSupplier {
 
         private SqlConnection marshalOracleQueryToSqlite(SqlConnection sqlConnection) {
             SqlConnection spy = spy(sqlConnection);
-            doAnswer(invocation -> {
+            lenient()
+                    .doAnswer(invocation -> {
                         String sql = invocation.getArgument(0);
                         String strippedSql = StringUtils.removeEnd(sql, "PURGE");
                         sqlConnection.executeUnregisteredQuery(strippedSql);
                         return null;
                     })
                     .when(spy)
-                    .executeUnregisteredQuery(
-                            AdditionalMatchers.and(startsWith("DROP TABLE"), endsWith("PURGE")), any());
+                    .executeUnregisteredQuery(AdditionalMatchers.and(startsWith("DROP TABLE"), endsWith("PURGE")));
             return spy;
         }
     }

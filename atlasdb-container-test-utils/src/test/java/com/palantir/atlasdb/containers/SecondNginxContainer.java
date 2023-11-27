@@ -20,6 +20,7 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+/* TODO(boyoruk): Delete when JUnit5 upgrade is over. */
 public class SecondNginxContainer extends Container {
     @Override
     public String getDockerComposeFile() {

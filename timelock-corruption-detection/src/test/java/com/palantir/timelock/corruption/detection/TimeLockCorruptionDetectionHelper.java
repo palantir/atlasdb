@@ -28,17 +28,16 @@ import com.palantir.timelock.history.utils.PaxosSerializationTestUtils;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import org.junit.rules.TestRule;
-import org.junit.runner.Description;
-import org.junit.runners.model.Statement;
+import org.junit.jupiter.api.extension.BeforeEachCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
-/* TODO(boyoruk): Find a way to implement this in JUnit5. */
-public final class TimeLockCorruptionDetectionHelper implements TestRule {
-    private TimeLockCorruptionTestSetup timeLockCorruptionTestSetup = new TimeLockCorruptionTestSetup();
+public final class TimeLockCorruptionDetectionHelper implements BeforeEachCallback {
+
+    private final TimeLockCorruptionTestSetup timeLockCorruptionTestSetup = new TimeLockCorruptionTestSetup();
 
     @Override
-    public Statement apply(Statement base, Description description) {
-        return timeLockCorruptionTestSetup.apply(base, description);
+    public void beforeEach(ExtensionContext extensionContext) {
+        timeLockCorruptionTestSetup.setup();
     }
 
     void writeLogsOnDefaultLocalServer(int startInclusive, int endInclusive) {

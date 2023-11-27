@@ -20,20 +20,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import java.util.Random;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 public class RangeRequestsTest {
 
     private static final byte[] BYTES_1 = PtBytes.toBytes("apple");
     private static final byte[] BYTES_2 = PtBytes.toBytes("banana");
+    private static final byte MAXIMAL_BYTE = (byte) 0xff;
 
     private Random random = new Random();
 
     @Test
     public void testNextAndPrev() {
         assertNextPrevEqualsOrig(new byte[] {0});
-        assertNextPrevEqualsOrig(new byte[] {(byte) 0xff});
+        assertNextPrevEqualsOrig(new byte[] {MAXIMAL_BYTE});
 
         for (int i = 0; i < 100000; i++) {
             assertNextPrevEqualsOrig(generateRandomWithFreqLogLen());
@@ -102,6 +102,47 @@ public class RangeRequestsTest {
     public void rangeWithSameBoundIsEmpty() {
         assertThat(RangeRequests.isExactlyEmptyRange(BYTES_1, BYTES_1)).isTrue();
         assertThat(RangeRequests.isExactlyEmptyRange(BYTES_2, BYTES_2)).isTrue();
+    }
+
+    @Test
+    public void endNameForPrefixScanOfEmptyByteArrayIsEmpty() {
+        assertThat(RangeRequests.createEndNameForPrefixScan(new byte[] {})).isEmpty();
+    }
+
+    @Test
+    public void endNameForPrefixScanOfSingleByteArraysIncrementsTheByte() {
+        assertThat(RangeRequests.createEndNameForPrefixScan(new byte[] {0})).isEqualTo(new byte[] {1});
+        assertThat(RangeRequests.createEndNameForPrefixScan(new byte[] {42})).isEqualTo(new byte[] {43});
+
+        // Note: We treat bytes as unsigned, so 127 (0x7f) is followed by -128 (0x80).
+        assertThat(RangeRequests.createEndNameForPrefixScan(new byte[] {127})).isEqualTo(new byte[] {-128});
+    }
+
+    @Test
+    public void endNameForPrefixScanOfMultiByteArraysWithoutOverflowIncrementsTheLeastSignificantByte() {
+        assertThat(RangeRequests.createEndNameForPrefixScan(new byte[] {0, 1, 2}))
+                .isEqualTo(new byte[] {0, 1, 3});
+        assertThat(RangeRequests.createEndNameForPrefixScan(new byte[] {9, 8, 88}))
+                .isEqualTo(new byte[] {9, 8, 89});
+    }
+
+    @Test
+    public void endNameForPrefixScanOfArrayOfMaximalValuedBytesIsEmpty() {
+        assertThat(RangeRequests.createEndNameForPrefixScan(new byte[] {MAXIMAL_BYTE}))
+                .isEmpty();
+        assertThat(RangeRequests.createEndNameForPrefixScan(new byte[] {MAXIMAL_BYTE, MAXIMAL_BYTE, MAXIMAL_BYTE}))
+                .isEmpty();
+    }
+
+    @Test
+    public void endNameForPrefixScanOfArrayEndingInMaximalValuedBytesIncrementsLastNonMaximalByteAndCollapses() {
+        assertThat(RangeRequests.createEndNameForPrefixScan(new byte[] {2, 3, MAXIMAL_BYTE}))
+                .isEqualTo(new byte[] {2, 4});
+        assertThat(RangeRequests.createEndNameForPrefixScan(new byte[] {MAXIMAL_BYTE, 3, MAXIMAL_BYTE, MAXIMAL_BYTE}))
+                .isEqualTo(new byte[] {MAXIMAL_BYTE, 4});
+        assertThat(RangeRequests.createEndNameForPrefixScan(
+                        new byte[] {2, MAXIMAL_BYTE, MAXIMAL_BYTE, 3, MAXIMAL_BYTE, MAXIMAL_BYTE}))
+                .isEqualTo(new byte[] {2, MAXIMAL_BYTE, MAXIMAL_BYTE, 4});
     }
 
     private byte[] generateRandomWithFreqLogLen() {

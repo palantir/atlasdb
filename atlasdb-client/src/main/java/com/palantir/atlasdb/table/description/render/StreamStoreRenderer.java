@@ -154,7 +154,7 @@ public class StreamStoreRenderer {
                 line();
                 importRenderer.renderImports();
                 line("@Generated(\"", StreamStoreRenderer.class.getName(), "\")");
-                line("@SuppressWarnings({\"all\", \"deprecation\"})");
+                line("@SuppressWarnings({\"deprecation\"})");
                 line("public final class ", StreamStore, " extends AbstractPersistentStreamStore", " {");
                 {
                     fields();

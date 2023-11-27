@@ -87,7 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings({"all", "deprecation"})
+@SuppressWarnings({"deprecation"})
 public final class SweepShardProgressTable implements
         AtlasDbMutablePersistentTable<SweepShardProgressTable.SweepShardProgressRow,
                                          SweepShardProgressTable.SweepShardProgressNamedColumnValue<?>,
@@ -236,7 +236,6 @@ public final class SweepShardProgressTable implements
             return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(shard, other.shard) && Arrays.equals(sweepConservative, other.sweepConservative);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, shard, sweepConservative });
@@ -708,5 +707,5 @@ public final class SweepShardProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "SvNu5DSDRhu6PrqJw5CVSA==";
+    static String __CLASS_HASH = "LQb4poOkFvQ6Edoug+BHlw==";
 }

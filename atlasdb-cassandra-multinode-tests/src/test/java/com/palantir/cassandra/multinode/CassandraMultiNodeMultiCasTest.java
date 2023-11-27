@@ -17,11 +17,13 @@
 package com.palantir.cassandra.multinode;
 
 import com.palantir.atlasdb.containers.ThreeNodeCassandraResource;
-import com.palantir.atlasdb.keyvalue.impl.AbstractMultiCasTest;
-import org.junit.ClassRule;
+import com.palantir.atlasdb.keyvalue.impl.AbstractMultiCasTestV2;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class CassandraMultiNodeMultiCasTest extends AbstractMultiCasTest {
-    @ClassRule
+@Order(1) // No node is down.
+public class CassandraMultiNodeMultiCasTest extends AbstractMultiCasTestV2 {
+    @RegisterExtension
     public static final ThreeNodeCassandraResource CASSANDRA = new ThreeNodeCassandraResource();
 
     public CassandraMultiNodeMultiCasTest() {

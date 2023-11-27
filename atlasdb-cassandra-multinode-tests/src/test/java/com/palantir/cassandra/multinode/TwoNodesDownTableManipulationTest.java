@@ -18,8 +18,13 @@ package com.palantir.cassandra.multinode;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
-import org.junit.Test;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+@NodesDownTestClass
+@Order(5) // Two nodes are down.
+@ExtendWith(NodesDownTestSetup.class)
 public class TwoNodesDownTableManipulationTest extends AbstractDegradedClusterTest {
 
     @Override

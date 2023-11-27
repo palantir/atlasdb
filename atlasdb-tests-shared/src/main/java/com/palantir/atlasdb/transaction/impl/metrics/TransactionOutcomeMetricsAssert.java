@@ -15,8 +15,8 @@
  */
 package com.palantir.atlasdb.transaction.impl.metrics;
 
+import com.codahale.metrics.Meter;
 import com.codahale.metrics.Metric;
-import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.tritium.metrics.registry.MetricName;
@@ -32,7 +32,7 @@ public class TransactionOutcomeMetricsAssert
 
     public TransactionOutcomeMetricsAssert(TransactionOutcomeMetrics actual) {
         super(actual, TransactionOutcomeMetricsAssert.class);
-        taggedMetricRegistry = actual.metricsManager.getTaggedRegistry();
+        this.taggedMetricRegistry = actual.metricRegistry;
     }
 
     public static TransactionOutcomeMetricsAssert assertThat(TransactionOutcomeMetrics actual) {
@@ -51,11 +51,6 @@ public class TransactionOutcomeMetricsAssert
 
     public TransactionOutcomeMetricsAssert hasAborts(long count) {
         checkPresentAndCheckCount(TransactionOutcome.ABORT, count);
-        return this;
-    }
-
-    public TransactionOutcomeMetricsAssert hasRollbackOther(long count) {
-        checkPresentAndCheckCount(TransactionOutcome.ROLLBACK_OTHER, count);
         return this;
     }
 
@@ -102,32 +97,29 @@ public class TransactionOutcomeMetricsAssert
     }
 
     public TransactionOutcomeMetricsAssert hasPlaceholderWriteWriteConflictsSatisfying(LongConsumer assertion) {
-        MetricName metricName = actual.getMetricName(
-                TransactionOutcome.WRITE_WRITE_CONFLICT,
-                getTableReferenceTags(LoggingArgs.PLACEHOLDER_TABLE_REFERENCE));
-        assertion.accept(taggedMetricRegistry.meter(metricName).getCount());
+        Meter meter = actual.getMeter(TransactionOutcome.WRITE_WRITE_CONFLICT, LoggingArgs.PLACEHOLDER_TABLE_REFERENCE);
+        assertion.accept(meter.getCount());
         return this;
     }
 
     public TransactionOutcomeMetricsAssert hasNoKnowledgeOf(TableReference tableReference) {
         assertMetricNotExists(
-                actual.getMetricName(TransactionOutcome.READ_WRITE_CONFLICT, getTableReferenceTags(tableReference)));
+                actual.getMetric(TransactionOutcome.READ_WRITE_CONFLICT, tableReference.getQualifiedName())
+                        .buildMetricName());
         assertMetricNotExists(
-                actual.getMetricName(TransactionOutcome.WRITE_WRITE_CONFLICT, getTableReferenceTags(tableReference)));
+                actual.getMetric(TransactionOutcome.WRITE_WRITE_CONFLICT, tableReference.getQualifiedName())
+                        .buildMetricName());
         return this;
     }
 
-    private ImmutableMap<String, String> getTableReferenceTags(TableReference tableReference) {
-        return ImmutableMap.of("tableReference", tableReference.getQualifiedName());
-    }
-
     private void checkPresentAndCheckCount(TransactionOutcome outcome, long count) {
-        MetricName metricName = actual.getMetricName(outcome, ImmutableMap.of());
+        MetricName metricName = actual.getMetric(outcome, "").buildMetricName();
         checkPresentAndCheckCount(metricName, count);
     }
 
     private void checkPresentAndCheckCount(TransactionOutcome outcome, long count, TableReference tableReference) {
-        MetricName metricName = actual.getMetricName(outcome, getTableReferenceTags(tableReference));
+        MetricName metricName =
+                actual.getMetric(outcome, tableReference.getQualifiedName()).buildMetricName();
         checkPresentAndCheckCount(metricName, count);
     }
 

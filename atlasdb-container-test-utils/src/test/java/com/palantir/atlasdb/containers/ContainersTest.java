@@ -17,6 +17,7 @@ package com.palantir.atlasdb.containers;
 
 import org.junit.Test;
 
+/* TODO(boyoruk): Delete when JUnit5 upgrade is over. */
 @SuppressWarnings("checkstyle:IllegalThrows")
 public class ContainersTest {
     @Test

@@ -87,7 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings({"all", "deprecation"})
+@SuppressWarnings({"deprecation"})
 public final class SweepIdToNameTable implements
         AtlasDbDynamicMutablePersistentTable<SweepIdToNameTable.SweepIdToNameRow,
                                                 SweepIdToNameTable.SweepIdToNameColumn,
@@ -223,7 +223,6 @@ public final class SweepIdToNameTable implements
             return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(singleton, other.singleton);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, singleton });
@@ -316,10 +315,9 @@ public final class SweepIdToNameTable implements
             return Objects.equals(tableId, other.tableId);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Objects.hashCode(tableId);
+            return Long.hashCode(tableId);
         }
 
         @Override
@@ -754,5 +752,5 @@ public final class SweepIdToNameTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "cwSaXwKpPy2D0gsQd248bA==";
+    static String __CLASS_HASH = "kKmJH7Qta5gkuDueIjiSNg==";
 }

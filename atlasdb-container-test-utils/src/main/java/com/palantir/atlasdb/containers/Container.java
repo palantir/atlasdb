@@ -20,6 +20,7 @@ import com.palantir.docker.compose.DockerComposeRule;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import java.util.Map;
 
+/* TODO(boyoruk): Delete when JUnit5 upgrade is over. */
 public abstract class Container {
     public abstract String getDockerComposeFile();
 

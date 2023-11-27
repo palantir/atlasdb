@@ -23,6 +23,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.junit.rules.ExternalResource;
 
+/* TODO(boyoruk): Delete this when JUnit5 upgrade is done */
 public final class Gradle extends ExternalResource {
 
     private final String command;

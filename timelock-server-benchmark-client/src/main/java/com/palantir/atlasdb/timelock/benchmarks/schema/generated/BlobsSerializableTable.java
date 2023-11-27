@@ -87,7 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings({"all", "deprecation"})
+@SuppressWarnings({"deprecation"})
 public final class BlobsSerializableTable implements
         AtlasDbMutablePersistentTable<BlobsSerializableTable.BlobsSerializableRow,
                                          BlobsSerializableTable.BlobsSerializableNamedColumnValue<?>,
@@ -212,10 +212,9 @@ public final class BlobsSerializableTable implements
             return Arrays.equals(key, other.key);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Objects.hashCode(key);
+            return Arrays.hashCode(key);
         }
 
         @Override
@@ -682,5 +681,5 @@ public final class BlobsSerializableTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "M0xZYbNR/OGopUZSedxAuA==";
+    static String __CLASS_HASH = "jEd8DUZwV7divgqvnlHuDw==";
 }

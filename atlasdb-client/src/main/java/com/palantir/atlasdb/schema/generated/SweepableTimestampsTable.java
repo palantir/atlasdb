@@ -87,7 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings({"all", "deprecation"})
+@SuppressWarnings({"deprecation"})
 public final class SweepableTimestampsTable implements
         AtlasDbDynamicMutablePersistentTable<SweepableTimestampsTable.SweepableTimestampsRow,
                                                 SweepableTimestampsTable.SweepableTimestampsColumn,
@@ -254,7 +254,6 @@ public final class SweepableTimestampsTable implements
             return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(shard, other.shard) && Objects.equals(timestampPartition, other.timestampPartition) && Arrays.equals(sweepConservative, other.sweepConservative);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, shard, timestampPartition, sweepConservative });
@@ -348,10 +347,9 @@ public final class SweepableTimestampsTable implements
             return Objects.equals(timestampModulus, other.timestampModulus);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Objects.hashCode(timestampModulus);
+            return Long.hashCode(timestampModulus);
         }
 
         @Override
@@ -786,5 +784,5 @@ public final class SweepableTimestampsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "XqySBVqRPmKhMv7rQgdCuw==";
+    static String __CLASS_HASH = "BvrxixBYQ/k7NpfKiZKA/Q==";
 }

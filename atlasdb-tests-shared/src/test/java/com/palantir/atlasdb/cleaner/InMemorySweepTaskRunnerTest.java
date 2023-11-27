@@ -18,26 +18,27 @@ package com.palantir.atlasdb.cleaner;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
+import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTestV2;
 import java.util.Optional;
 import java.util.stream.IntStream;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
-public class InMemorySweepTaskRunnerTest extends AbstractSweepTaskRunnerTest {
-    @ClassRule
-    public static final TestResourceManager TRM = TestResourceManager.inMemory();
+public class InMemorySweepTaskRunnerTest extends AbstractSweepTaskRunnerTestV2 {
+    @RegisterExtension
+    public static final TestResourceManagerV2 TRM = TestResourceManagerV2.inMemory();
 
     public InMemorySweepTaskRunnerTest() {
         super(TRM, TRM);
     }
 
     // This test exists because doing this many writes to a real KVS will likely take too long for tests.
-    @Test(timeout = 50000)
+    @Test
+    @Timeout(50)
     public void testSweepVeryHighlyVersionedCell() {
         createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
 

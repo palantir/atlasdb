@@ -87,7 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings({"all", "deprecation"})
+@SuppressWarnings({"deprecation"})
 public final class KvRowsTable implements
         AtlasDbMutablePersistentTable<KvRowsTable.KvRowsRow,
                                          KvRowsTable.KvRowsNamedColumnValue<?>,
@@ -266,7 +266,6 @@ public final class KvRowsTable implements
             return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(bucket, other.bucket) && Objects.equals(key, other.key);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, bucket, key });
@@ -800,5 +799,5 @@ public final class KvRowsTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "owA2qsWE9yiIOpBDbSVLzg==";
+    static String __CLASS_HASH = "rBtewF58Box2P+8JZtBfnw==";
 }

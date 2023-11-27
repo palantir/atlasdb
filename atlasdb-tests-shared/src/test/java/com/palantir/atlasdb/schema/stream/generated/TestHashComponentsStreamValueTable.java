@@ -87,7 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings({"all", "deprecation"})
+@SuppressWarnings({"deprecation"})
 public final class TestHashComponentsStreamValueTable implements
         AtlasDbMutablePersistentTable<TestHashComponentsStreamValueTable.TestHashComponentsStreamValueRow,
                                          TestHashComponentsStreamValueTable.TestHashComponentsStreamValueNamedColumnValue<?>,
@@ -237,7 +237,6 @@ public final class TestHashComponentsStreamValueTable implements
             return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(id, other.id) && Objects.equals(blockId, other.blockId);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, id, blockId });
@@ -709,5 +708,5 @@ public final class TestHashComponentsStreamValueTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "7hsA1dNWx3h5PJxWO4cUIg==";
+    static String __CLASS_HASH = "p3aDyVHlkNB3s4pFL7vIow==";
 }

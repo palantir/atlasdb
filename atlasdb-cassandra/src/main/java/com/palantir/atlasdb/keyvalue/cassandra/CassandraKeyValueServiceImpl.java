@@ -1849,13 +1849,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                             putUnlessExistsSinglePartition(tableRef, client, partition.getKey(), partition.getValue());
                     if (!casResult.isSuccess()) {
                         return Optional.of(new KeyAlreadyExistsException(
-                                String.format("The cells in table %s already exist.", tableRef.getQualifiedName()),
+                                "The cells in the table already exist.",
                                 casResult.getCurrent_values().stream()
                                         .map(column -> Cell.create(
                                                 partition.getKey().toByteArray(),
                                                 CassandraKeyValueServices.decomposeColumn(column.bufferForName())
                                                         .columnName()))
-                                        .collect(Collectors.toList())));
+                                        .collect(Collectors.toList()),
+                                LoggingArgs.tableRef(tableRef)));
                     }
                 }
                 return Optional.empty();

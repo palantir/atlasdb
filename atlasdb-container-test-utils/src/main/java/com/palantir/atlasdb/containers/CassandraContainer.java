@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
 
+/* TODO(boyoruk): Delete when JUnit5 upgrade is over. */
 public class CassandraContainer extends Container {
     static final int CASSANDRA_CQL_PORT = 9042;
     static final int CASSANDRA_THRIFT_PORT = 9160;

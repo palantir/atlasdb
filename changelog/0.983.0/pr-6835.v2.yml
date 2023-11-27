@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: We now tag our container images to the Antithesis repository whenever a new version of AtlasDB is published. Additionally, CI now schedules an Antithesis experiment at 10am each day.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6835

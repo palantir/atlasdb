@@ -9,30 +9,23 @@ dependencies {
     testImplementation 'org.apache.thrift:libthrift'
     testImplementation 'org.awaitility:awaitility'
     testImplementation 'com.palantir.refreshable:refreshable'
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation 'com.datastax.cassandra:cassandra-driver-core'
+    testImplementation 'org.reflections:reflections'
+    testImplementation 'com.palantir.docker.compose:docker-compose-junit-jupiter'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api'
+
     testImplementation project(':atlasdb-api')
+    testImplementation project(":atlasdb-cassandra")
     testImplementation project(':atlasdb-client')
     testImplementation project(':atlasdb-commons')
-
-    testImplementation project(":atlasdb-cassandra")
-    testImplementation project(":atlasdb-tests-shared")
     testImplementation project(":atlasdb-container-test-utils")
     testImplementation project(":atlasdb-ete-test-utils")
-    testImplementation project(":flake-rule")
+    testImplementation project(":atlasdb-tests-shared")
 
     testImplementation ('com.palantir.cassandra:cassandra-thrift') {
        exclude module: 'junit'
        exclude group: 'org.apache.httpcomponents'
     }
-    testImplementation 'com.datastax.cassandra:cassandra-driver-core'
-
-    testImplementation 'com.palantir.docker.compose:docker-compose-rule-core'
-    testImplementation 'org.assertj:assertj-core'
-
-    test {
-        include '**/CassandraSchemaLockTest.class'
-        include '**/OneNodeDownTestSuite.class'
-    }
-
-    /* TODO(boyoruk): Upgrade all package to JUnit5. */
-    testImplementation 'junit:junit'
 }

@@ -43,9 +43,10 @@ import java.util.stream.IntStream;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.thrift.TException;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 public class CassandraKeyValueServiceTableCreationIntegrationTest {
     private static final TableReference GOOD_TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
@@ -54,10 +55,10 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
     private static CassandraKeyValueService kvs;
     private static CassandraKeyValueService slowTimeoutKvs;
 
-    @ClassRule
+    @RegisterExtension
     public static final CassandraResource CASSANDRA = new CassandraResource();
 
-    @BeforeClass
+    @BeforeAll
     public static void initializeKvs() {
         kvs = kvsWithSchemaMutationTimeout(500);
         CASSANDRA.registerKvs(kvs);
@@ -65,7 +66,8 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
         CASSANDRA.registerKvs(slowTimeoutKvs);
     }
 
-    @Test(timeout = 10 * 1000)
+    @Test
+    @Timeout(10)
     public void testTableCreationCanOccurAfterError() {
         try {
             kvs.createTable(BAD_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);

@@ -23,7 +23,7 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCqlCapableConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
-import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.DockerComposeExtension;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -31,7 +31,7 @@ import com.palantir.refreshable.Refreshable;
 import java.net.InetSocketAddress;
 import java.util.Map;
 
-public class ThreeNodeCassandraCluster extends Container {
+public class ThreeNodeCassandraCluster extends ContainerV2 {
     private static final SafeLogger log = SafeLoggerFactory.get(ThreeNodeCassandraCluster.class);
 
     private static final CassandraVersion CASSANDRA_VERSION = CassandraVersion.fromEnvironment();
@@ -66,18 +66,18 @@ public class ThreeNodeCassandraCluster extends Container {
                 .servers(ImmutableCqlCapableConfig.builder()
                         .addThriftHosts(
                                 new InetSocketAddress(
-                                        FIRST_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT),
+                                        FIRST_CASSANDRA_CONTAINER_NAME, CassandraContainerV2.CASSANDRA_THRIFT_PORT),
                                 new InetSocketAddress(
-                                        SECOND_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT),
+                                        SECOND_CASSANDRA_CONTAINER_NAME, CassandraContainerV2.CASSANDRA_THRIFT_PORT),
                                 new InetSocketAddress(
-                                        THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT))
+                                        THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainerV2.CASSANDRA_THRIFT_PORT))
                         .addCqlHosts(
                                 new InetSocketAddress(
-                                        FIRST_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_CQL_PORT),
+                                        FIRST_CASSANDRA_CONTAINER_NAME, CassandraContainerV2.CASSANDRA_CQL_PORT),
                                 new InetSocketAddress(
-                                        SECOND_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_CQL_PORT),
+                                        SECOND_CASSANDRA_CONTAINER_NAME, CassandraContainerV2.CASSANDRA_CQL_PORT),
                                 new InetSocketAddress(
-                                        THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_CQL_PORT))
+                                        THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainerV2.CASSANDRA_CQL_PORT))
                         .build())
                 .mutationBatchCount(10000)
                 .mutationBatchSizeBytes(10000000)
@@ -97,10 +97,10 @@ public class ThreeNodeCassandraCluster extends Container {
     }
 
     @Override
-    public SuccessOrFailure isReady(DockerComposeRule rule) {
+    public SuccessOrFailure isReady(DockerComposeExtension extension) {
         return SuccessOrFailure.onResultOf(() -> {
             try {
-                return new ThreeNodeCassandraClusterOperations(rule, CASSANDRA_VERSION)
+                return new ThreeNodeCassandraClusterOperations(extension, CASSANDRA_VERSION)
                                 .nodetoolShowsThreeCassandraNodesUp()
                         && canCreateCassandraKeyValueService();
 

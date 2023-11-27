@@ -23,11 +23,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+/* TODO(boyoruk): Delete when JUnit5 upgrade is over. */
 @RunWith(Parameterized.class)
 public class ContainerTest {
     @Parameterized.Parameters(name = "With container {0}")
     public static Collection<Object[]> parameters() {
-        return Arrays.asList(new Object[][] {{new CassandraContainer()}, {new ThreeNodeCassandraCluster()}});
+        return Arrays.asList(new Object[][] {{new CassandraContainer()}});
     }
 
     private final Container container;

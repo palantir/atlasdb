@@ -87,7 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings({"all", "deprecation"})
+@SuppressWarnings({"deprecation"})
 public final class UserProfileTable implements
         AtlasDbMutablePersistentTable<UserProfileTable.UserProfileRow,
                                          UserProfileTable.UserProfileNamedColumnValue<?>,
@@ -212,7 +212,6 @@ public final class UserProfileTable implements
             return Objects.equals(id, other.id);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(id);
@@ -1174,7 +1173,7 @@ public final class UserProfileTable implements
     }
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-    @SuppressWarnings({"all", "deprecation"})
+    @SuppressWarnings({"deprecation"})
     public static final class CookiesIdxTable implements
             AtlasDbDynamicMutablePersistentTable<CookiesIdxTable.CookiesIdxRow,
                                                     CookiesIdxTable.CookiesIdxColumn,
@@ -1297,7 +1296,6 @@ public final class UserProfileTable implements
                 return Objects.equals(cookie, other.cookie);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Objects.hashCode(cookie);
@@ -1441,7 +1439,6 @@ public final class UserProfileTable implements
                 return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equals(id, other.id);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ rowName, columnName, id });
@@ -1866,7 +1863,7 @@ public final class UserProfileTable implements
 
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-    @SuppressWarnings({"all", "deprecation"})
+    @SuppressWarnings({"deprecation"})
     public static final class CreatedIdxTable implements
             AtlasDbDynamicMutablePersistentTable<CreatedIdxTable.CreatedIdxRow,
                                                     CreatedIdxTable.CreatedIdxColumn,
@@ -1989,10 +1986,9 @@ public final class UserProfileTable implements
                 return Objects.equals(time, other.time);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
-                return Objects.hashCode(time);
+                return Long.hashCode(time);
             }
 
             @Override
@@ -2133,7 +2129,6 @@ public final class UserProfileTable implements
                 return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equals(id, other.id);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ rowName, columnName, id });
@@ -2558,7 +2553,7 @@ public final class UserProfileTable implements
 
 
     @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-    @SuppressWarnings({"all", "deprecation"})
+    @SuppressWarnings({"deprecation"})
     public static final class UserBirthdaysIdxTable implements
             AtlasDbDynamicMutablePersistentTable<UserBirthdaysIdxTable.UserBirthdaysIdxRow,
                                                     UserBirthdaysIdxTable.UserBirthdaysIdxColumn,
@@ -2681,10 +2676,9 @@ public final class UserProfileTable implements
                 return Objects.equals(birthday, other.birthday);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
-                return Objects.hashCode(birthday);
+                return Long.hashCode(birthday);
             }
 
             @Override
@@ -2825,7 +2819,6 @@ public final class UserProfileTable implements
                 return Arrays.equals(rowName, other.rowName) && Arrays.equals(columnName, other.columnName) && Objects.equals(id, other.id);
             }
 
-            @SuppressWarnings("ArrayHashCode")
             @Override
             public int hashCode() {
                 return Arrays.deepHashCode(new Object[]{ rowName, columnName, id });
@@ -3335,5 +3328,5 @@ public final class UserProfileTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "dBpLe0vVyWJzQunILdUN2g==";
+    static String __CLASS_HASH = "ZqVKPIwC/mzGztf0d1MRgg==";
 }

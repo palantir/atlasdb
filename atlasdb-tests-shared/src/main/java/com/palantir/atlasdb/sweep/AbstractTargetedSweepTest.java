@@ -41,7 +41,7 @@ import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
+/* TODO(boyoruk): Delete this when JUnit5 upgrade is done */
 public class AbstractTargetedSweepTest extends AbstractSweepTest {
     protected static final TableReference TABLE_TO_BE_DROPPED = TableReference.createFromFullyQualifiedName("ts.drop");
     protected static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c"));

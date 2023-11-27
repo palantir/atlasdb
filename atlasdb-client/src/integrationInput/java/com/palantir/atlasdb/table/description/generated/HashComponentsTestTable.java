@@ -87,7 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings({"all", "deprecation"})
+@SuppressWarnings({"deprecation"})
 public final class HashComponentsTestTable implements
         AtlasDbMutablePersistentTable<HashComponentsTestTable.HashComponentsTestRow,
                                          HashComponentsTestTable.HashComponentsTestNamedColumnValue<?>,
@@ -253,7 +253,6 @@ public final class HashComponentsTestTable implements
             return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(component1, other.component1) && Objects.equals(component2, other.component2);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, component1, component2 });
@@ -787,5 +786,5 @@ public final class HashComponentsTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "JFCKFwjljsA/pF0RqDunaQ==";
+    static String __CLASS_HASH = "IEj/DehT35HEtRqbJxY66g==";
 }

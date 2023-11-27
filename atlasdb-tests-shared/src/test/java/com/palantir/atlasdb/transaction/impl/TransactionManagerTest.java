@@ -30,7 +30,7 @@ import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -48,13 +48,13 @@ import com.palantir.lock.v2.TimestampAndPartition;
 import com.palantir.timestamp.TimestampManagementService;
 import java.util.Optional;
 import java.util.UUID;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
-public class TransactionManagerTest extends TransactionTestSetup {
-    @ClassRule
-    public static final TestResourceManager TRM = TestResourceManager.inMemory();
+public class TransactionManagerTest extends TransactionTestSetupV2 {
+
+    @RegisterExtension
+    public static final TestResourceManagerV2 TRM = TestResourceManagerV2.inMemory();
 
     public TransactionManagerTest() {
         super(TRM, TRM);

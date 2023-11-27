@@ -87,7 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings({"all", "deprecation"})
+@SuppressWarnings({"deprecation"})
 public final class GenericRangeScanTestTable implements
         AtlasDbDynamicMutablePersistentTable<GenericRangeScanTestTable.GenericRangeScanTestRow,
                                                 GenericRangeScanTestTable.GenericRangeScanTestColumn,
@@ -210,7 +210,6 @@ public final class GenericRangeScanTestTable implements
             return Objects.equals(component1, other.component1);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(component1);
@@ -301,7 +300,6 @@ public final class GenericRangeScanTestTable implements
             return Objects.equals(component2, other.component2);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(component2);
@@ -805,5 +803,5 @@ public final class GenericRangeScanTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "CrHC8CYd3pN7BfEmkYogJg==";
+    static String __CLASS_HASH = "3F96VXBbTSTmxJbpBO66aA==";
 }

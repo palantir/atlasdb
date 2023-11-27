@@ -87,7 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings({"all", "deprecation"})
+@SuppressWarnings({"deprecation"})
 public final class SnapshotsStreamMetadataTable implements
         AtlasDbMutablePersistentTable<SnapshotsStreamMetadataTable.SnapshotsStreamMetadataRow,
                                          SnapshotsStreamMetadataTable.SnapshotsStreamMetadataNamedColumnValue<?>,
@@ -212,10 +212,9 @@ public final class SnapshotsStreamMetadataTable implements
             return Objects.equals(id, other.id);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Objects.hashCode(id);
+            return Long.hashCode(id);
         }
 
         @Override
@@ -707,5 +706,5 @@ public final class SnapshotsStreamMetadataTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "X1A0s/Ak7gFq6exUuTBR2g==";
+    static String __CLASS_HASH = "M1L8PN7uYvWavQ8xicbMYQ==";
 }

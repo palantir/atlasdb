@@ -87,7 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings({"all", "deprecation"})
+@SuppressWarnings({"deprecation"})
 public final class SchemaApiTestTable implements
         AtlasDbMutablePersistentTable<SchemaApiTestTable.SchemaApiTestRow,
                                          SchemaApiTestTable.SchemaApiTestNamedColumnValue<?>,
@@ -212,7 +212,6 @@ public final class SchemaApiTestTable implements
             return Objects.equals(component1, other.component1);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(component1);
@@ -873,5 +872,5 @@ public final class SchemaApiTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "6T4/KZlHu1MZtFWb6dFK5w==";
+    static String __CLASS_HASH = "LihK6BMRtB9fQR/7Nj5AJQ==";
 }

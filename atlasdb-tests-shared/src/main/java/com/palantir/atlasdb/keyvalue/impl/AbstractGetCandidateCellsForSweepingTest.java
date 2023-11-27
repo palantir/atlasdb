@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Test;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
+/* TODO(boyoruk): Delete this when we complete the JUnit5 migration. */
 public abstract class AbstractGetCandidateCellsForSweepingTest {
     private final KvsManager kvsManager;
     protected static final TableReference TEST_TABLE =

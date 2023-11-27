@@ -87,7 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings({"all", "deprecation"})
+@SuppressWarnings({"deprecation"})
 public final class AllValueTypesTestTable implements
         AtlasDbMutablePersistentTable<AllValueTypesTestTable.AllValueTypesTestRow,
                                          AllValueTypesTestTable.AllValueTypesTestNamedColumnValue<?>,
@@ -383,7 +383,6 @@ public final class AllValueTypesTestTable implements
             return Objects.equals(component0, other.component0) && Objects.equals(component1, other.component1) && Objects.equals(component2, other.component2) && Objects.equals(component3, other.component3) && Objects.equals(component4, other.component4) && Objects.equals(component5, other.component5) && Arrays.equals(component8, other.component8) && Objects.equals(component9, other.component9) && Objects.equals(component10, other.component10) && Arrays.equals(blobComponent, other.blobComponent);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Arrays.deepHashCode(new Object[]{ component0, component1, component2, component3, component4, component5, component8, component9, component10, blobComponent });
@@ -2132,5 +2131,5 @@ public final class AllValueTypesTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "IdCniyyd2ANmSMlwF1CWNQ==";
+    static String __CLASS_HASH = "GNa7QR9a3hsUi6ceRV6hCw==";
 }

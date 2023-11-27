@@ -87,7 +87,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
-@SuppressWarnings({"all", "deprecation"})
+@SuppressWarnings({"deprecation"})
 public final class NamespacedTodoTable implements
         AtlasDbDynamicMutablePersistentTable<NamespacedTodoTable.NamespacedTodoRow,
                                                 NamespacedTodoTable.NamespacedTodoColumn,
@@ -210,7 +210,6 @@ public final class NamespacedTodoTable implements
             return Objects.equals(namespace, other.namespace);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
             return Objects.hashCode(namespace);
@@ -301,10 +300,9 @@ public final class NamespacedTodoTable implements
             return Objects.equals(todoId, other.todoId);
         }
 
-        @SuppressWarnings("ArrayHashCode")
         @Override
         public int hashCode() {
-            return Objects.hashCode(todoId);
+            return Long.hashCode(todoId);
         }
 
         @Override
@@ -739,5 +737,5 @@ public final class NamespacedTodoTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "0KMTkWzIpSNPRHUjaRS78Q==";
+    static String __CLASS_HASH = "3bvXnOPEJM0+rBdtjjKSkg==";
 }
