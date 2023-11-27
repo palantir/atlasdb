@@ -63,9 +63,7 @@ public class SchemaApiTestV2Table {
         return tableRef.getNamespace();
     }
 
-    /**
-     * Returns the value for column Column1 and specified row components.
-     */
+    /** Returns the value for column Column1 and specified row components. */
     public Optional<Long> getColumn1(String component1) {
         SchemaApiTestTable.SchemaApiTestRow row = SchemaApiTestTable.SchemaApiTestRow.of(component1);
         byte[] bytes = row.persistToBytes();
@@ -82,9 +80,9 @@ public class SchemaApiTestV2Table {
     }
 
     /**
-     * Returns a mapping from the specified row keys to their value at column Column1.
-     * As the Column1 values are all loaded in memory, do not use for large amounts of data.
-     * If the column does not exist for a key, the entry will be omitted from the map.
+     * Returns a mapping from the specified row keys to their value at column Column1. As the Column1 values are all
+     * loaded in memory, do not use for large amounts of data. If the column does not exist for a key, the entry will be
+     * omitted from the map.
      */
     public Map<String, Long> getColumn1(Iterable<String> rowKeys) {
         ColumnSelection colSelection = ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("c")));
@@ -102,9 +100,9 @@ public class SchemaApiTestV2Table {
     }
 
     /**
-     * Returns a mapping from all the row keys in a rangeRequest to their value at column Column1
-     * (if that column exists for the row-key). As the Column1 values are all loaded in memory,
-     * do not use for large amounts of data. The order of results is preserved in the map.
+     * Returns a mapping from all the row keys in a rangeRequest to their value at column Column1 (if that column exists
+     * for the row-key). As the Column1 values are all loaded in memory, do not use for large amounts of data. The order
+     * of results is preserved in the map.
      */
     public LinkedHashMap<String, Long> getSmallRowRangeColumn1(RangeRequest rangeRequest) {
         ColumnSelection colSelection = ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("c")));
@@ -124,9 +122,9 @@ public class SchemaApiTestV2Table {
     }
 
     /**
-     * Returns a mapping from all the row keys in a range to their value at column Column1
-     * (if that column exists for the row-key). As the Column1 values are all loaded in memory,
-     * do not use for large amounts of data. The order of results is preserved in the map.
+     * Returns a mapping from all the row keys in a range to their value at column Column1 (if that column exists for
+     * the row-key). As the Column1 values are all loaded in memory, do not use for large amounts of data. The order of
+     * results is preserved in the map.
      */
     public LinkedHashMap<String, Long> getSmallRowRangeColumn1(String startInclusive, String endExclusive) {
         RangeRequest rangeRequest = RangeRequest.builder()
@@ -139,9 +137,9 @@ public class SchemaApiTestV2Table {
     }
 
     /**
-     * Returns a mapping from the first sizeLimit row keys in a rangeRequest to their value
-     * at column Column1 (if that column exists). As the Column1 entries are all loaded in memory,
-     * do not use for large values of sizeLimit. The order of results is preserved in the map.
+     * Returns a mapping from the first sizeLimit row keys in a rangeRequest to their value at column Column1 (if that
+     * column exists). As the Column1 entries are all loaded in memory, do not use for large values of sizeLimit. The
+     * order of results is preserved in the map.
      */
     public LinkedHashMap<String, Long> getSmallRowRangeColumn1(RangeRequest rangeRequest, int sizeLimit) {
         ColumnSelection colSelection = ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("c")));
@@ -165,9 +163,7 @@ public class SchemaApiTestV2Table {
         return resultsMap;
     }
 
-    /**
-     * Returns the value for column Column2 and specified row components.
-     */
+    /** Returns the value for column Column2 and specified row components. */
     public Optional<StringValue> getColumn2(String component1) {
         SchemaApiTestTable.SchemaApiTestRow row = SchemaApiTestTable.SchemaApiTestRow.of(component1);
         byte[] bytes = row.persistToBytes();
@@ -184,9 +180,9 @@ public class SchemaApiTestV2Table {
     }
 
     /**
-     * Returns a mapping from the specified row keys to their value at column Column2.
-     * As the Column2 values are all loaded in memory, do not use for large amounts of data.
-     * If the column does not exist for a key, the entry will be omitted from the map.
+     * Returns a mapping from the specified row keys to their value at column Column2. As the Column2 values are all
+     * loaded in memory, do not use for large amounts of data. If the column does not exist for a key, the entry will be
+     * omitted from the map.
      */
     public Map<String, StringValue> getColumn2(Iterable<String> rowKeys) {
         ColumnSelection colSelection = ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("d")));
@@ -204,9 +200,9 @@ public class SchemaApiTestV2Table {
     }
 
     /**
-     * Returns a mapping from all the row keys in a rangeRequest to their value at column Column2
-     * (if that column exists for the row-key). As the Column2 values are all loaded in memory,
-     * do not use for large amounts of data. The order of results is preserved in the map.
+     * Returns a mapping from all the row keys in a rangeRequest to their value at column Column2 (if that column exists
+     * for the row-key). As the Column2 values are all loaded in memory, do not use for large amounts of data. The order
+     * of results is preserved in the map.
      */
     public LinkedHashMap<String, StringValue> getSmallRowRangeColumn2(RangeRequest rangeRequest) {
         ColumnSelection colSelection = ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("d")));
@@ -226,9 +222,9 @@ public class SchemaApiTestV2Table {
     }
 
     /**
-     * Returns a mapping from all the row keys in a range to their value at column Column2
-     * (if that column exists for the row-key). As the Column2 values are all loaded in memory,
-     * do not use for large amounts of data. The order of results is preserved in the map.
+     * Returns a mapping from all the row keys in a range to their value at column Column2 (if that column exists for
+     * the row-key). As the Column2 values are all loaded in memory, do not use for large amounts of data. The order of
+     * results is preserved in the map.
      */
     public LinkedHashMap<String, StringValue> getSmallRowRangeColumn2(String startInclusive, String endExclusive) {
         RangeRequest rangeRequest = RangeRequest.builder()
@@ -241,9 +237,9 @@ public class SchemaApiTestV2Table {
     }
 
     /**
-     * Returns a mapping from the first sizeLimit row keys in a rangeRequest to their value
-     * at column Column2 (if that column exists). As the Column2 entries are all loaded in memory,
-     * do not use for large values of sizeLimit. The order of results is preserved in the map.
+     * Returns a mapping from the first sizeLimit row keys in a rangeRequest to their value at column Column2 (if that
+     * column exists). As the Column2 entries are all loaded in memory, do not use for large values of sizeLimit. The
+     * order of results is preserved in the map.
      */
     public LinkedHashMap<String, StringValue> getSmallRowRangeColumn2(RangeRequest rangeRequest, int sizeLimit) {
         ColumnSelection colSelection = ColumnSelection.create(ImmutableList.of(PtBytes.toCachedBytes("d")));
@@ -267,9 +263,7 @@ public class SchemaApiTestV2Table {
         return resultsMap;
     }
 
-    /**
-     * Delete all columns for specified row components.
-     */
+    /** Delete all columns for specified row components. */
     public void deleteRow(String component1) {
         SchemaApiTestTable.SchemaApiTestRow row = SchemaApiTestTable.SchemaApiTestRow.of(component1);
         byte[] rowBytes = row.persistToBytes();
@@ -279,9 +273,7 @@ public class SchemaApiTestV2Table {
         t.delete(tableRef, cells);
     }
 
-    /**
-     * Delete the value at column Column1 (if it exists) for the specified row-key.
-     */
+    /** Delete the value at column Column1 (if it exists) for the specified row-key. */
     public void deleteColumn1(String component1) {
         SchemaApiTestTable.SchemaApiTestRow row = SchemaApiTestTable.SchemaApiTestRow.of(component1);
         byte[] rowBytes = row.persistToBytes();
@@ -289,9 +281,7 @@ public class SchemaApiTestV2Table {
         t.delete(tableRef, cells);
     }
 
-    /**
-     * Delete the value at column Column2 (if it exists) for the specified row-key.
-     */
+    /** Delete the value at column Column2 (if it exists) for the specified row-key. */
     public void deleteColumn2(String component1) {
         SchemaApiTestTable.SchemaApiTestRow row = SchemaApiTestTable.SchemaApiTestRow.of(component1);
         byte[] rowBytes = row.persistToBytes();
@@ -299,18 +289,15 @@ public class SchemaApiTestV2Table {
         t.delete(tableRef, cells);
     }
 
-    /**
-     * Takes the row-keys and a value to be inserted at column Column1.
-     */
+    /** Takes the row-keys and a value to be inserted at column Column1. */
     public void putColumn1(String component1, long column1) {
         SchemaApiTestTable.SchemaApiTestRow row = SchemaApiTestTable.SchemaApiTestRow.of(component1);
         t.put(tableRef, ColumnValues.toCellValues(ImmutableMultimap.of(row, SchemaApiTestTable.Column1.of(column1))));
     }
 
     /**
-     * Takes a function that would update the value at column Column1, for the specified row
-     * components. No effect if there is no value at that column. Doesn't do an additional
-     * write if the new value is the same as the old one.
+     * Takes a function that would update the value at column Column1, for the specified row components. No effect if
+     * there is no value at that column. Doesn't do an additional write if the new value is the same as the old one.
      */
     public void updateColumn1(String component1, Function<Long, Long> processor) {
         Optional<Long> result = getColumn1(component1);
@@ -322,18 +309,15 @@ public class SchemaApiTestV2Table {
         }
     }
 
-    /**
-     * Takes the row-keys and a value to be inserted at column Column2.
-     */
+    /** Takes the row-keys and a value to be inserted at column Column2. */
     public void putColumn2(String component1, StringValue column2) {
         SchemaApiTestTable.SchemaApiTestRow row = SchemaApiTestTable.SchemaApiTestRow.of(component1);
         t.put(tableRef, ColumnValues.toCellValues(ImmutableMultimap.of(row, SchemaApiTestTable.Column2.of(column2))));
     }
 
     /**
-     * Takes a function that would update the value at column Column2, for the specified row
-     * components. No effect if there is no value at that column. Doesn't do an additional
-     * write if the new value is the same as the old one.
+     * Takes a function that would update the value at column Column2, for the specified row components. No effect if
+     * there is no value at that column. Doesn't do an additional write if the new value is the same as the old one.
      */
     public void updateColumn2(String component1, Function<StringValue, StringValue> processor) {
         Optional<StringValue> result = getColumn2(component1);
