@@ -16,7 +16,7 @@ testSets {
         imports 'testCommon'
     }
 
-    suiteTest {
+    integ2Test {
         imports 'testCommon'
     }
 }
@@ -28,7 +28,7 @@ stressTest {
 }
 
 check.dependsOn integTest
-check.dependsOn suiteTest
+check.dependsOn integ2Test
 check.dependsOn stressTest
 
 dependencies {
@@ -154,33 +154,33 @@ dependencies {
     testCommonAnnotationProcessor 'org.immutables:value'
     testCommonCompileOnly 'org.immutables:value::annotations'
 
-    suiteTestImplementation 'com.google.guava:guava'
-    suiteTestImplementation 'com.palantir.common:streams'
-    suiteTestImplementation 'com.palantir.conjure.java.api:errors'
-    suiteTestImplementation 'com.palantir.conjure.java.api:service-config'
-    suiteTestImplementation 'com.palantir.safe-logging:preconditions'
-    suiteTestImplementation 'com.palantir.tokens:auth-tokens'
+    integ2TestImplementation 'com.google.guava:guava'
+    integ2TestImplementation 'com.palantir.common:streams'
+    integ2TestImplementation 'com.palantir.conjure.java.api:errors'
+    integ2TestImplementation 'com.palantir.conjure.java.api:service-config'
+    integ2TestImplementation 'com.palantir.safe-logging:preconditions'
+    integ2TestImplementation 'com.palantir.tokens:auth-tokens'
     stressTestImplementation 'com.google.guava:guava'
     stressTestImplementation 'com.palantir.tokens:auth-tokens'
     stressTestImplementation 'com.github.tomakehurst:wiremock-standalone'
 
-    suiteTestImplementation project(':atlasdb-conjure')
-    suiteTestImplementation project(':leader-election-api')
-    suiteTestImplementation project(':lock-api')
-    suiteTestImplementation project(':lock-api-objects')
-    suiteTestImplementation project(':lock-conjure-api:lock-conjure-api-jersey')
-    suiteTestImplementation project(':lock-conjure-api:lock-conjure-api-objects')
-    suiteTestImplementation project(':timelock-api:timelock-api-jersey')
-    suiteTestImplementation project(':timelock-api:timelock-api-objects')
-    suiteTestImplementation project(':timelock-impl')
-    suiteTestImplementation project(':timestamp-api')
+    integ2TestImplementation project(':atlasdb-conjure')
+    integ2TestImplementation project(':leader-election-api')
+    integ2TestImplementation project(':lock-api')
+    integ2TestImplementation project(':lock-api-objects')
+    integ2TestImplementation project(':lock-conjure-api:lock-conjure-api-jersey')
+    integ2TestImplementation project(':lock-conjure-api:lock-conjure-api-objects')
+    integ2TestImplementation project(':timelock-api:timelock-api-jersey')
+    integ2TestImplementation project(':timelock-api:timelock-api-objects')
+    integ2TestImplementation project(':timelock-impl')
+    integ2TestImplementation project(':timestamp-api')
 
     stressTestImplementation project(':timelock-api:timelock-api-jersey')
 
     stressTestRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
         because 'allows JUnit 3 and JUnit 4 tests to run'
     }
-    suiteTestRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
+    integ2TestRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
         because 'allows JUnit 3 and JUnit 4 tests to run'
     }
 
