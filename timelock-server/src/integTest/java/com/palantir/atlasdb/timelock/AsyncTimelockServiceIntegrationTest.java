@@ -72,9 +72,10 @@ import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.assertj.core.api.Condition;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockServiceIntegrationTest {
 
@@ -90,14 +91,18 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     private final ExecutorService executor = PTExecutors.newCachedThreadPool();
 
-    private NamespacedClients namespace;
+    private NamespacedClientsV2 namespace;
 
-    @Before
+    @RegisterExtension
+    public static final TestableTimelockClusterV2 cluster =
+            new TestableTimelockClusterV2("paxosSingleServer.ftl", DEFAULT_SINGLE_SERVER);
+
+    @BeforeEach
     public void setUp() {
         namespace = cluster.clientForRandomNamespace();
     }
 
-    @After
+    @AfterEach
     public void after() {
         assertThat(namespace.legacyLockService().getTokens(TEST_CLIENT)).isEmpty();
         executor.shutdown();
@@ -191,7 +196,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void taggedMetricsCanBeIteratedThrough() {
-        NamespacedClients randomNamespace = cluster.clientForRandomNamespace();
+        NamespacedClientsV2 randomNamespace = cluster.clientForRandomNamespace();
         randomNamespace.getFreshTimestamp();
         Map<MetricName, Metric> metrics = cluster.currentLeaderFor(randomNamespace.namespace())
                 .taggedMetricRegistry()
@@ -206,21 +211,8 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void cannotRetrieveImmutableTimestampViaSyncApiForAsyncService() {
-        if (cluster != CLUSTER_WITH_ASYNC) {
-            // safety check only applies if the cluster is indeed async
-            return;
-        }
         assertThatRemoteExceptionThrownBy(() -> namespace.legacyLockService().getMinLockedInVersionId("foo"))
                 .isGeneratedFromErrorType(ErrorType.INVALID_ARGUMENT);
-    }
-
-    @Test
-    public void canRetrieveImmutableTimestampViaSyncApiForSyncServiceOrAsyncWithoutSafetyCheck() {
-        if (cluster == CLUSTER_WITH_ASYNC) {
-            // will fail - ensuring this fails is covered by cannotRetrieveImmutableTimestampViaSyncApiForAsyncService
-            return;
-        }
-        namespace.legacyLockService().getMinLockedInVersionId("foo");
     }
 
     @Test

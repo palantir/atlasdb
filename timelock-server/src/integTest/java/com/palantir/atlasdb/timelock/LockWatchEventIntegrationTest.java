@@ -71,10 +71,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 public final class LockWatchEventIntegrationTest {
     private static final byte[] DATA_1 = "snooping".getBytes(StandardCharsets.UTF_8);
@@ -100,7 +99,9 @@ public final class LockWatchEventIntegrationTest {
             TableReference.create(Namespace.DEFAULT_NAMESPACE, LockWatchIntegrationTestUtilities.TABLE_2);
     private static final String NAMESPACE =
             String.valueOf(ThreadLocalRandom.current().nextLong());
-    private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
+
+    @RegisterExtension
+    public static final TestableTimelockClusterV2 CLUSTER = new TestableTimelockClusterV2(
             "non-batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
             generateThreeNodeTimelockCluster(
@@ -109,12 +110,9 @@ public final class LockWatchEventIntegrationTest {
                                     builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
                             .leaderMode(PaxosInstallConfiguration.PaxosLeaderMode.SINGLE_LEADER)));
 
-    @ClassRule
-    public static final RuleChain ruleChain = CLUSTER.getRuleChain();
-
     private TransactionManager txnManager;
 
-    @Before
+    @BeforeEach
     public void setUpAndAwaitTableWatched() {
         txnManager = LockWatchIntegrationTestUtilities.createTransactionManager(0.0, CLUSTER, NAMESPACE);
         LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager, TABLE_REF);

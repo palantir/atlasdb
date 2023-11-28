@@ -22,48 +22,30 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.Ints;
-import com.palantir.atlasdb.timelock.stress.DbTimeLockSingleLeaderPaxosStressTests;
-import com.palantir.atlasdb.timelock.util.ParameterInjector;
 import com.palantir.tokens.auth.AuthHeader;
 import java.lang.management.ManagementFactory;
 import java.time.Duration;
-import org.junit.Assume;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-@RunWith(Parameterized.class)
-public class MultiNodePaxosTimeLockServerStressTest {
+public abstract class AbstractPaxosStressTest {
 
-    @ClassRule
-    public static ParameterInjector<TestableTimelockCluster> injector = ParameterInjector.withFallBackConfiguration(
-            () -> DbTimeLockSingleLeaderPaxosStressTests.DB_TIMELOCK_CLUSTER);
+    private final TestableTimelockClusterV2 cluster;
+    private NamespacedClientsV2 client;
 
-    @Parameterized.Parameter
-    public TestableTimelockCluster cluster;
-
-    @Parameterized.Parameters(name = "{0}")
-    public static Iterable<TestableTimelockCluster> params() {
-        return injector.getParameter();
+    public AbstractPaxosStressTest(TestableTimelockClusterV2 cluster) {
+        this.cluster = cluster;
     }
 
-    private static final TestableTimelockCluster FIRST_CLUSTER =
-            params().iterator().next();
-
-    private NamespacedClients client;
-
-    @Before
-    public void bringAllNodesOnline() {
+    @BeforeEach
+    public void beforeEach() {
         client = cluster.clientForRandomNamespace().throughWireMockProxy();
         cluster.waitUntilAllServersOnlineAndReadyToServeNamespaces(ImmutableList.of(client.namespace()));
     }
 
     @Test
     public void stressTest() {
-        abandonLeadershipPaxosModeAgnosticTestIfRunElsewhere();
-        TestableTimelockServer nonLeader =
+        TestableTimelockServerV2 nonLeader =
                 Iterables.getFirst(cluster.nonLeaders(client.namespace()).values(), null);
         int startingNumThreads = ManagementFactory.getThreadMXBean().getThreadCount();
         boolean isNonLeaderTakenOut = false;
@@ -84,8 +66,7 @@ public class MultiNodePaxosTimeLockServerStressTest {
 
     @Test
     public void stressTestForPaxosEndpoints() {
-        abandonLeadershipPaxosModeAgnosticTestIfRunElsewhere();
-        TestableTimelockServer nonLeader =
+        TestableTimelockServerV2 nonLeader =
                 Iterables.getFirst(cluster.nonLeaders(client.namespace()).values(), null);
         int startingNumThreads = ManagementFactory.getThreadMXBean().getThreadCount();
         boolean isNonLeaderTakenOut = false;
@@ -119,12 +100,7 @@ public class MultiNodePaxosTimeLockServerStressTest {
         }
     }
 
-    private void abandonLeadershipPaxosModeAgnosticTestIfRunElsewhere() {
-        Assume.assumeTrue(cluster == FIRST_CLUSTER);
-        Assume.assumeFalse(cluster.isDbTimelock()); // We will never test only DB timelock when releasing.
-    }
-
-    private void makeServerWaitTwoSecondsAndThenReturn503s(TestableTimelockServer nonLeader) {
+    private void makeServerWaitTwoSecondsAndThenReturn503s(TestableTimelockServerV2 nonLeader) {
         nonLeader
                 .serverHolder()
                 .wireMock()

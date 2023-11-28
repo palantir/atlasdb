@@ -43,8 +43,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.util.ByteArrayUtilities;
-import com.palantir.flake.FlakeRetryingRule;
-import com.palantir.flake.ShouldRetry;
+import com.palantir.flake.FlakeRetryTest;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockEvent;
@@ -69,15 +68,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 // Occasionally there are timeouts when talking to Timelock, which cause a bunch of tests to flake
-@ShouldRetry(numAttempts = 15)
 public final class LockWatchValueIntegrationTest {
     private static final byte[] DATA_1 = "foo".getBytes(StandardCharsets.UTF_8);
     private static final byte[] DATA_2 = "Caecilius est in horto".getBytes(StandardCharsets.UTF_8);
@@ -97,7 +92,9 @@ public final class LockWatchValueIntegrationTest {
     private static final CellReference TABLE_CELL_2 = CellReference.of(TABLE_REF, CELL_2);
     private static final CellReference TABLE_CELL_3 = CellReference.of(TABLE_REF, CELL_3);
     private static final CellReference TABLE_CELL_4 = CellReference.of(TABLE_REF, CELL_4);
-    private static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
+
+    @RegisterExtension
+    public static final TestableTimelockClusterV2 CLUSTER = new TestableTimelockClusterV2(
             "non-batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
             generateThreeNodeTimelockCluster(
@@ -105,6 +102,7 @@ public final class LockWatchValueIntegrationTest {
                     builder -> builder.clientPaxosBuilder(
                                     builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
                             .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
+
     private static final String NAMESPACE =
             String.valueOf(ThreadLocalRandom.current().nextLong());
     private static final byte[] ROW_1 = PtBytes.toBytes("final");
@@ -116,21 +114,15 @@ public final class LockWatchValueIntegrationTest {
     private static final byte[] COL_3 = PtBytes.toBytes("columns");
     private static final ImmutableList<byte[]> COLS = ImmutableList.of(COL_1, COL_2, COL_3);
 
-    public static final TestRule flakeRetryingRule = new FlakeRetryingRule();
-
-    @ClassRule // Ordered such that we retry _after_ resetting any temporary state
-    public static final RuleChain ruleChain =
-            RuleChain.outerRule(flakeRetryingRule).around(CLUSTER.getRuleChain());
-
     private TransactionManager txnManager;
 
-    @Before
+    @BeforeEach
     public void before() {
         createTransactionManager(0.0);
         LockWatchIntegrationTestUtilities.awaitTableWatched(txnManager, TABLE_REF);
     }
 
-    @Test
+    @FlakeRetryTest
     public void readOnlyTransactionsDoNotUseCaching() {
         putValue();
         readValueAndAssertLoadedFromRemote();
@@ -144,7 +136,7 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
-    @Test
+    @FlakeRetryTest
     public void effectivelyReadOnlyTransactionsPublishValuesToCentralCache() {
         putValue();
 
@@ -172,7 +164,7 @@ public final class LockWatchValueIntegrationTest {
         assertThat(result).containsExactlyInAnyOrderEntriesOf(result2);
     }
 
-    @Test
+    @FlakeRetryTest
     public void readWriteTransactionsPublishValuesToCentralCache() {
         putValue();
 
@@ -198,7 +190,7 @@ public final class LockWatchValueIntegrationTest {
         assertThat(result).containsExactlyInAnyOrderEntriesOf(result2);
     }
 
-    @Test
+    @FlakeRetryTest
     public void serializableTransactionsThrowOnCachedReadWriteConflicts() {
         putValue();
 
@@ -219,7 +211,7 @@ public final class LockWatchValueIntegrationTest {
                 .hasMessageContaining("There was a read-write conflict on table");
     }
 
-    @Test
+    @FlakeRetryTest
     public void serializableTransactionsDoNotThrowWhenOverwritingAPreviouslyCachedValue() {
         putValue();
         readValueAndAssertLoadedFromRemote();
@@ -232,7 +224,7 @@ public final class LockWatchValueIntegrationTest {
                 .doesNotThrowAnyException();
     }
 
-    @Test
+    @FlakeRetryTest
     public void serializableTransactionsReadViaTheCacheForConflictChecking() {
         putValue();
 
@@ -247,7 +239,7 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
-    @Test
+    @FlakeRetryTest
     public void putsCauseInvalidationsInSubsequentTransactions() {
         putValue();
         readValueAndAssertLoadedFromRemote();
@@ -276,7 +268,7 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
-    @Test
+    @FlakeRetryTest
     public void leaderElectionFlushesCache() {
         putValue();
         readValueAndAssertLoadedFromRemote();
@@ -287,7 +279,7 @@ public final class LockWatchValueIntegrationTest {
         readValueAndAssertLoadedFromRemote();
     }
 
-    @Test
+    @FlakeRetryTest
     public void leaderElectionDuringReadOnlyTransactionDoesNotCauseItToFail() {
         putValue();
         readValueAndAssertLoadedFromRemote();
@@ -323,7 +315,7 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
-    @Test
+    @FlakeRetryTest
     public void leaderElectionDuringWriteTransactionCausesTransactionToRetry() {
         putValue();
         readValueAndAssertLoadedFromRemote();
@@ -351,7 +343,7 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
-    @Test
+    @FlakeRetryTest
     public void failedValidationCausesNoOpCacheToBeUsed() {
         createTransactionManager(1.0);
 
@@ -374,7 +366,7 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
-    @Test
+    @FlakeRetryTest
     public void getRowsCachedValidatesCorrectly() {
         createTransactionManager(1.0);
 
@@ -422,7 +414,7 @@ public final class LockWatchValueIntegrationTest {
         assertThat(ByteArrayUtilities.areRowResultsEqual(remoteRead, cacheRead)).isTrue();
     }
 
-    @Test
+    @FlakeRetryTest
     public void getRowsUsesCacheAsExpected() {
         txnManager.runTaskThrowOnConflict(txn -> {
             txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1, CELL_2, DATA_2, CELL_3, DATA_3));
@@ -470,7 +462,7 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
-    @Test
+    @FlakeRetryTest
     public void nearbyCommitsDoNotAffectResultsPresentInCache() {
         createTransactionManager(1.0);
         txnManager.runTaskThrowOnConflict(txn -> {
@@ -500,7 +492,7 @@ public final class LockWatchValueIntegrationTest {
                 .doesNotThrowAnyException();
     }
 
-    @Test
+    @FlakeRetryTest
     public void lateAbortingTransactionDoesNotFlushValuesToCentralCache() {
         txnManager.runTaskThrowOnConflict(txn -> {
             txn.put(TABLE_REF, ImmutableMap.of(CELL_1, DATA_1, CELL_2, DATA_2, CELL_3, DATA_3));
@@ -546,9 +538,9 @@ public final class LockWatchValueIntegrationTest {
         });
     }
 
-    @Ignore
+    @Disabled
     // TODO(#6699): make this test less flakey before re-enabling
-    @Test
+    @FlakeRetryTest
     // The test fails when trying to cache a value that is currently locked.
     // The open question is whether this _should_ fail when there is a locked value being cached on top of, or if
     // there is a better way to handle this.

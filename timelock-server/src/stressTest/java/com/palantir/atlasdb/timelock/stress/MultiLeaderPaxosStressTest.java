@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2023 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,27 +14,19 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.suite;
+package com.palantir.atlasdb.timelock.stress;
 
 import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeTimelockCluster;
 
-import com.github.peterwippermann.junit4.parameterizedsuite.ParameterizedSuite;
-import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.timelock.MultiNodePaxosTimeLockServerStressTest;
-import com.palantir.atlasdb.timelock.TestableTimelockCluster;
+import com.palantir.atlasdb.timelock.AbstractPaxosStressTest;
+import com.palantir.atlasdb.timelock.TestableTimelockClusterV2;
 import com.palantir.atlasdb.timelock.util.TestableTimeLockClusterPorts;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
-import java.util.Collection;
-import org.junit.Rule;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Suite;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-@RunWith(ParameterizedSuite.class)
-@Suite.SuiteClasses(MultiNodePaxosTimeLockServerStressTest.class)
-public final class MultiLeaderPaxosStressTests {
-
-    public static final TestableTimelockCluster MULTI_LEADER_PAXOS = new TestableTimelockCluster(
+public class MultiLeaderPaxosStressTest extends AbstractPaxosStressTest {
+    @RegisterExtension
+    public static final TestableTimelockClusterV2 MULTI_LEADER_PAXOS = new TestableTimelockClusterV2(
             "batched timestamp paxos multi leader",
             "paxosMultiServer.ftl",
             generateThreeNodeTimelockCluster(
@@ -42,12 +34,7 @@ public final class MultiLeaderPaxosStressTests {
                                     builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(true))
                             .leaderMode(PaxosLeaderMode.LEADER_PER_CLIENT)));
 
-    @Parameterized.Parameters(name = "{0}")
-    public static Collection<TestableTimelockCluster> params() {
-        return ImmutableSet.of(MULTI_LEADER_PAXOS);
+    public MultiLeaderPaxosStressTest() {
+        super(MULTI_LEADER_PAXOS);
     }
-
-    @Rule
-    @Parameterized.Parameter
-    public TestableTimelockCluster cluster;
 }

@@ -52,7 +52,8 @@ dependencies {
 
 task postgresTest(type: Test) {
     maxHeapSize = "1024m"
-    include '**/DbKvsPostgresTestSuite.class'
+    include '**/postgres/'
+    include '**/HikariCpConnectionManagerTest.class'
     maxParallelForks 2
 }
 

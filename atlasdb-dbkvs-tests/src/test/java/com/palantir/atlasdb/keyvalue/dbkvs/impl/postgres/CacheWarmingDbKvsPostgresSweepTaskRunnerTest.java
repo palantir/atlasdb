@@ -15,14 +15,18 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.sweep.AbstractBackgroundSweeperIntegrationTestV2;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
+import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers.CacheWarming;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 @ExtendWith(DbKvsPostgresExtension.class)
-public class DbKvsBackgroundSweeperIntegrationTest extends AbstractBackgroundSweeperIntegrationTestV2 {
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return DbKvsPostgresExtension.createKvs();
+public class CacheWarmingDbKvsPostgresSweepTaskRunnerTest extends AbstractDbKvsPostgresSweepTaskRunnerTest {
+
+    @RegisterExtension
+    public static final TestResourceManagerV2 TRM = new TestResourceManagerV2(DbKvsPostgresExtension::createKvs);
+
+    public CacheWarmingDbKvsPostgresSweepTaskRunnerTest() {
+        super(TRM, TRM, CacheWarming.FULL);
     }
 }
