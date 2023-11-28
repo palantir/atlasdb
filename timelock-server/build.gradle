@@ -27,12 +27,6 @@ stressTest {
     }
 }
 
-suiteTest {
-    filter {
-        includeTestsMatching "com.palantir.atlasdb.timelock.suite.*"
-    }
-}
-
 check.dependsOn integTest
 check.dependsOn suiteTest
 check.dependsOn stressTest
