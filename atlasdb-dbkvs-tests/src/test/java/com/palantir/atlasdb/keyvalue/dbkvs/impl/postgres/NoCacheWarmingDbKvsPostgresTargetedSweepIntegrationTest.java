@@ -22,12 +22,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 @ExtendWith(DbKvsPostgresExtension.class)
-public class DbKvsPostgresTargetedSweepIntegrationTest extends AbstractDbKvsPostgresTargetedSweepIntegrationTest {
+public class NoCacheWarmingDbKvsPostgresTargetedSweepIntegrationTest
+        extends AbstractDbKvsPostgresTargetedSweepIntegrationTest {
 
     @RegisterExtension
     public static final TestResourceManagerV2 TRM = new TestResourceManagerV2(DbKvsPostgresExtension::createKvs);
 
-    public DbKvsPostgresTargetedSweepIntegrationTest() {
+    public NoCacheWarmingDbKvsPostgresTargetedSweepIntegrationTest() {
         super(TRM, TRM, CacheWarming.NONE);
     }
 }
