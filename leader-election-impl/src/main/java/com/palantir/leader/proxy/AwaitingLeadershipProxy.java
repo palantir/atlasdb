@@ -161,7 +161,7 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         Throwable cause = exception.getCause();
         if (cause instanceof SuspectedNotCurrentLeaderException) {
             handleSuspectedNotCurrentLeader(leadershipToken, (SuspectedNotCurrentLeaderException) cause);
-        } else if (cause instanceof ServiceNotAvailableException) {
+        } else if (cause instanceof ServiceNotAvailableException) { // implicitly covers NotCurrentLeaderException
             throw leadershipStateManager.invalidateStateOnLostLeadership(leadershipToken, cause);
         } else if (cause instanceof InterruptedException) {
             Thread.currentThread().interrupt();

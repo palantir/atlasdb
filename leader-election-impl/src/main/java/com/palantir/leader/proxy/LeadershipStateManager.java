@@ -166,7 +166,7 @@ public class LeadershipStateManager<T> {
 
             leadershipCoordinator.markAsNotLeading(leadershipToken, cause);
         }
-        throw leadershipCoordinator.notCurrentLeaderException(
+        return leadershipCoordinator.notCurrentLeaderException(
                 "method invoked on a non-leader (leadership lost)", cause);
     }
 
