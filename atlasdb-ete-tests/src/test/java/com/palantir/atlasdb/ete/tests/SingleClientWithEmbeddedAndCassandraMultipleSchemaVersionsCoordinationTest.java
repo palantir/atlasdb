@@ -17,12 +17,11 @@ package com.palantir.atlasdb.ete.tests;
 
 import com.palantir.atlasdb.ete.suiteclasses.AbstractMultipleSchemaVersionsCoordinationTest;
 import com.palantir.atlasdb.ete.utilities.EteExtension;
-import com.palantir.atlasdb.ete.utilities.EteExtension.InitializationMode;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 public class SingleClientWithEmbeddedAndCassandraMultipleSchemaVersionsCoordinationTest
         extends AbstractMultipleSchemaVersionsCoordinationTest {
     @RegisterExtension
-    public static EteExtension eteExtension =
-            EteExtension.getInstance(InitializationMode.SingleClientWithEmbeddedAndCassandra);
+    public static EteExtension eteExtension = EteExtension.getInstance(
+            EteExtension.SINGLE_CLIENT_WITH_EMBEDDED_AND_CASSANDRA_ETE_EXTENSION_CONFIGURATION);
 }

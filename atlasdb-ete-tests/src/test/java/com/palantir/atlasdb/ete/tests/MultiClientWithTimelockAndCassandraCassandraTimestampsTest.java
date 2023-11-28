@@ -17,11 +17,10 @@ package com.palantir.atlasdb.ete.tests;
 
 import com.palantir.atlasdb.ete.suiteclasses.AbstractCassandraTimestampTest;
 import com.palantir.atlasdb.ete.utilities.EteExtension;
-import com.palantir.atlasdb.ete.utilities.EteExtension.InitializationMode;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 public class MultiClientWithTimelockAndCassandraCassandraTimestampsTest extends AbstractCassandraTimestampTest {
     @RegisterExtension
     public static EteExtension eteExtension =
-            EteExtension.getInstance(InitializationMode.MultiClientWithTimelockAndCassandra);
+            EteExtension.getInstance(EteExtension.MULTI_CLIENT_WITH_TIMELOCK_AND_CASSANDRA_ETE_EXTENSION_CONFIGURATION);
 }

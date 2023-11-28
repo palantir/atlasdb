@@ -73,103 +73,22 @@ public final class EteExtension implements BeforeAllCallback, ExtensionContext.S
     private static List<String> availableClients;
 
     private static volatile EteExtension instance;
-    private static volatile InitializationMode initializationMode;
     private static volatile boolean isBeforeAllCalled = false;
 
     private EteExtension() {}
 
-    public static synchronized EteExtension getInstance(InitializationMode initializationMode) {
+    public static synchronized EteExtension getInstance(EteExtensionConfiguration eteExtensionConfiguration) {
         if (instance == null) {
-            switch (initializationMode) {
-                case MultiClientWithPostgresTimelockAndPostgres:
-                    initializeForMultiClientWithPostgresTimelockAndPostgres();
-                    break;
-                case MultiClientWithTimelockAndCassandra:
-                    initializeForMultiClientWithTimelockAndCassandra();
-                    break;
-                case SingleClientWithEmbeddedAndCassandra:
-                    initializeForSingleClientWithEmbeddedAndCassandra();
-                    break;
-                case SingleClientWithEmbeddedAndOracle:
-                    initializeForSingleClientWithEmbeddedAndOracle();
-                    break;
-                case SingleClientWithEmbeddedAndPostgres:
-                    initializeForSingleClientWithEmbeddedAndPostgres();
-                    break;
-                case SingleClientWithEmbeddedAndThreeNodeCassandra:
-                    initializeForSingleClientWithEmbeddedAndThreeNodeCassandra();
-                    break;
-            }
-            EteExtension.initializationMode = initializationMode;
+            waitDuration = eteExtensionConfiguration.waitDuration();
+            setup(
+                    eteExtensionConfiguration.eteClass(),
+                    eteExtensionConfiguration.composeFile(),
+                    eteExtensionConfiguration.clients(),
+                    eteExtensionConfiguration.environment(),
+                    eteExtensionConfiguration.usingTimelock());
             instance = new EteExtension();
         }
-        if (initializationMode != EteExtension.initializationMode) {
-            throw new IllegalStateException(
-                    "EteExtension has already been initialized with mode " + EteExtension.initializationMode
-                            + ". You cannot initialize it again with another mode. Please use correct gradle task to"
-                            + " run your tests. There is a separate task for each mode.");
-        }
         return instance;
-    }
-
-    private static void initializeForMultiClientWithPostgresTimelockAndPostgres() {
-        waitDuration = Duration.ofMinutes(2);
-        setup(
-                MultiClientWithPostgresTimelockAndPostgresTestSuite.class,
-                "docker-compose.multi-client-with-postgres-timelock-and-postgres.yml",
-                EteExtension.Clients.MULTI,
-                ImmutableMap.of(),
-                true);
-    }
-
-    private static void initializeForMultiClientWithTimelockAndCassandra() {
-        waitDuration = Duration.ofMinutes(2);
-        setup(
-                MultiClientWithTimelockAndCassandraTestSuite.class,
-                "docker-compose.multi-client-with-timelock-and-cassandra.yml",
-                EteExtension.Clients.MULTI,
-                CassandraEnvironment.get(),
-                true);
-    }
-
-    private static void initializeForSingleClientWithEmbeddedAndCassandra() {
-        waitDuration = Duration.ofMinutes(2);
-        setup(
-                SingleClientWithEmbeddedAndCassandraTestSuite.class,
-                "docker-compose.single-client-with-embedded-and-cassandra.yml",
-                EteExtension.Clients.SINGLE,
-                CassandraEnvironment.get(),
-                false);
-    }
-
-    private static void initializeForSingleClientWithEmbeddedAndOracle() {
-        waitDuration = Duration.ofMinutes(10);
-        setup(
-                SingleClientWithEmbeddedAndOracleTestSuite.class,
-                "docker-compose.single-client-with-embedded-and-oracle.yml",
-                EteExtension.Clients.SINGLE,
-                ImmutableMap.of(),
-                false);
-    }
-
-    private static void initializeForSingleClientWithEmbeddedAndPostgres() {
-        waitDuration = Duration.ofMinutes(2);
-        setup(
-                SingleClientWithEmbeddedAndPostgresTestSuite.class,
-                "docker-compose.single-client-with-embedded-and-postgres.yml",
-                EteExtension.Clients.SINGLE,
-                ImmutableMap.of(),
-                false);
-    }
-
-    private static void initializeForSingleClientWithEmbeddedAndThreeNodeCassandra() {
-        waitDuration = Duration.ofMinutes(2);
-        setup(
-                SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite.class,
-                "docker-compose.single-client-with-embedded-and-three-node-cassandra.yml",
-                EteExtension.Clients.SINGLE,
-                CassandraEnvironment.get(),
-                false);
     }
 
     private static void setup(
@@ -294,12 +213,235 @@ public final class EteExtension implements BeforeAllCallback, ExtensionContext.S
         }
     }
 
-    public enum InitializationMode {
-        MultiClientWithPostgresTimelockAndPostgres,
-        MultiClientWithTimelockAndCassandra,
-        SingleClientWithEmbeddedAndCassandra,
-        SingleClientWithEmbeddedAndOracle,
-        SingleClientWithEmbeddedAndPostgres,
-        SingleClientWithEmbeddedAndThreeNodeCassandra
+    public interface EteExtensionConfiguration {
+        Class<?> eteClass();
+
+        String composeFile();
+
+        Clients clients();
+
+        Map<String, String> environment();
+
+        boolean usingTimelock();
+
+        Duration waitDuration();
     }
+
+    private static final class MultiClientWithPostgresTimelockAndPostgresEteExtensionConfiguration
+            implements EteExtensionConfiguration {
+        @Override
+        public Class<?> eteClass() {
+            return MultiClientWithPostgresTimelockAndPostgresTestSuite.class;
+        }
+
+        @Override
+        public String composeFile() {
+            return "docker-compose.multi-client-with-postgres-timelock-and-postgres.yml";
+        }
+
+        @Override
+        public Clients clients() {
+            return Clients.MULTI;
+        }
+
+        @Override
+        public Map<String, String> environment() {
+            return ImmutableMap.of();
+        }
+
+        @Override
+        public boolean usingTimelock() {
+            return true;
+        }
+
+        @Override
+        public Duration waitDuration() {
+            return Duration.ofMinutes(2);
+        }
+    }
+
+    private static final class MultiClientWithTimelockAndCassandraEteExtensionConfiguration
+            implements EteExtensionConfiguration {
+        @Override
+        public Class<?> eteClass() {
+            return MultiClientWithTimelockAndCassandraTestSuite.class;
+        }
+
+        @Override
+        public String composeFile() {
+            return "docker-compose.multi-client-with-timelock-and-cassandra.yml";
+        }
+
+        @Override
+        public Clients clients() {
+            return Clients.MULTI;
+        }
+
+        @Override
+        public Map<String, String> environment() {
+            return CassandraEnvironment.get();
+        }
+
+        @Override
+        public boolean usingTimelock() {
+            return true;
+        }
+
+        @Override
+        public Duration waitDuration() {
+            return Duration.ofMinutes(2);
+        }
+    }
+
+    private static final class SingleClientWithEmbeddedAndCassandraEteExtensionConfiguration
+            implements EteExtensionConfiguration {
+        @Override
+        public Class<?> eteClass() {
+            return SingleClientWithEmbeddedAndCassandraTestSuite.class;
+        }
+
+        @Override
+        public String composeFile() {
+            return "docker-compose.single-client-with-embedded-and-cassandra.yml";
+        }
+
+        @Override
+        public Clients clients() {
+            return Clients.SINGLE;
+        }
+
+        @Override
+        public Map<String, String> environment() {
+            return CassandraEnvironment.get();
+        }
+
+        @Override
+        public boolean usingTimelock() {
+            return false;
+        }
+
+        @Override
+        public Duration waitDuration() {
+            return Duration.ofMinutes(2);
+        }
+    }
+
+    private static final class SingleClientWithEmbeddedAndOracleEteExtensionConfiguration
+            implements EteExtensionConfiguration {
+        @Override
+        public Class<?> eteClass() {
+            return SingleClientWithEmbeddedAndOracleTestSuite.class;
+        }
+
+        @Override
+        public String composeFile() {
+            return "docker-compose.single-client-with-embedded-and-oracle.yml";
+        }
+
+        @Override
+        public Clients clients() {
+            return Clients.SINGLE;
+        }
+
+        @Override
+        public Map<String, String> environment() {
+            return ImmutableMap.of();
+        }
+
+        @Override
+        public boolean usingTimelock() {
+            return false;
+        }
+
+        @Override
+        public Duration waitDuration() {
+            return Duration.ofMinutes(10);
+        }
+    }
+
+    private static final class SingleClientWithEmbeddedAndPostgresEteExtensionConfiguration
+            implements EteExtensionConfiguration {
+        @Override
+        public Class<?> eteClass() {
+            return SingleClientWithEmbeddedAndPostgresTestSuite.class;
+        }
+
+        @Override
+        public String composeFile() {
+            return "docker-compose.single-client-with-embedded-and-postgres.yml";
+        }
+
+        @Override
+        public Clients clients() {
+            return Clients.SINGLE;
+        }
+
+        @Override
+        public Map<String, String> environment() {
+            return ImmutableMap.of();
+        }
+
+        @Override
+        public boolean usingTimelock() {
+            return false;
+        }
+
+        @Override
+        public Duration waitDuration() {
+            return Duration.ofMinutes(2);
+        }
+    }
+
+    private static final class SingleClientWithEmbeddedAndThreeNodeCassandra implements EteExtensionConfiguration {
+        @Override
+        public Class<?> eteClass() {
+            return SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite.class;
+        }
+
+        @Override
+        public String composeFile() {
+            return "docker-compose.single-client-with-embedded-and-three-node-cassandra.yml";
+        }
+
+        @Override
+        public Clients clients() {
+            return Clients.SINGLE;
+        }
+
+        @Override
+        public Map<String, String> environment() {
+            return CassandraEnvironment.get();
+        }
+
+        @Override
+        public boolean usingTimelock() {
+            return false;
+        }
+
+        @Override
+        public Duration waitDuration() {
+            return Duration.ofMinutes(2);
+        }
+    }
+
+    public static final EteExtensionConfiguration
+            MULTI_CLIENT_WITH_POSTGRES_TIMELOCK_AND_POSTGRES_ETE_EXTENSION_CONFIGURATION =
+                    new MultiClientWithPostgresTimelockAndPostgresEteExtensionConfiguration();
+
+    public static final EteExtensionConfiguration MULTI_CLIENT_WITH_TIMELOCK_AND_CASSANDRA_ETE_EXTENSION_CONFIGURATION =
+            new MultiClientWithTimelockAndCassandraEteExtensionConfiguration();
+
+    public static final EteExtensionConfiguration
+            SINGLE_CLIENT_WITH_EMBEDDED_AND_CASSANDRA_ETE_EXTENSION_CONFIGURATION =
+                    new SingleClientWithEmbeddedAndCassandraEteExtensionConfiguration();
+
+    public static final EteExtensionConfiguration SINGLE_CLIENT_WITH_EMBEDDED_AND_ORACLE_ETE_EXTENSION_CONFIGURATION =
+            new SingleClientWithEmbeddedAndOracleEteExtensionConfiguration();
+
+    public static final EteExtensionConfiguration SINGLE_CLIENT_WITH_EMBEDDED_AND_POSTGRES_ETE_EXTENSION_CONFIGURATION =
+            new SingleClientWithEmbeddedAndPostgresEteExtensionConfiguration();
+
+    public static final EteExtensionConfiguration
+            SINGLE_CLIENT_WITH_EMBEDDED_AND_THREE_NODE_CASSANDRA_ETE_EXTENSION_CONFIGURATION =
+                    new SingleClientWithEmbeddedAndThreeNodeCassandra();
 }
