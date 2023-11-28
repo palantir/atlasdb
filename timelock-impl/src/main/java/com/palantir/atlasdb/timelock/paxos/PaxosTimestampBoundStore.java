@@ -256,12 +256,12 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                 boolean beBad = num == 48;
                 boolean sleep = num == 49;
                 log.info(
-                        "The dice have been rolled!",
+                        "The dice have been rolled! {} {} {}",
                         SafeArg.of("dieRoll", num),
                         SafeArg.of("beBad", beBad),
                         SafeArg.of("sleep", sleep));
 
-                executionExecutor.submit(() -> {
+                executionExecutor.execute(() -> {
                     if (beBad) {
                         log.info("Attempting to lose leadership, because we rolled a 1 in 100 chance.");
                         loseLeadership.get().run();
