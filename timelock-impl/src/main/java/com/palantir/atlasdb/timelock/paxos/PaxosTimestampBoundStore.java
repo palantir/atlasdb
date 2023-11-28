@@ -270,8 +270,8 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                 if (sleep) {
                     log.info("Now going to sleep to try and create some election chaos");
                     Uninterruptibles.sleepUninterruptibly(15, TimeUnit.SECONDS);
-                    proposer.propose(newSeq, PtBytes.toBytes(limit));
                 }
+                proposer.propose(newSeq, PtBytes.toBytes(limit));
 
                 PaxosValue value = knowledge
                         .getLearnedValue(newSeq)
