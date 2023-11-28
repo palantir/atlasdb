@@ -29,10 +29,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+@ExtendWith(DbKvsPostgresExtension.class)
 public class PostgresMultiSequenceTimestampSeriesProviderTest {
     private static final TimestampSeries DEFAULT_SERIES = TimestampSeries.of("default");
 
@@ -40,14 +42,14 @@ public class PostgresMultiSequenceTimestampSeriesProviderTest {
     private TimestampBoundStore boundStore;
     private TimestampSeriesProvider seriesProvider;
 
-    @Before
+    @BeforeEach
     public void createTimestampInterfaces() {
-        kvs = DbKvsPostgresTestSuite.createKvs();
+        kvs = DbKvsPostgresExtension.createKvs();
         boundStore = createDbTimestampBoundStore(kvs, DEFAULT_SERIES);
         seriesProvider = createTimestampSeriesProvider(kvs);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         kvs.close();
     }

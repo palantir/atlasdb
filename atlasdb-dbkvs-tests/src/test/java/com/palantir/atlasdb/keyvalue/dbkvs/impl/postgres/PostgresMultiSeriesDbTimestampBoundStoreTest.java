@@ -21,12 +21,19 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
-import com.palantir.atlasdb.timestamp.AbstractDbTimestampBoundStoreTest;
+import com.palantir.atlasdb.timestamp.AbstractDbTimestampBoundStoreTestV2;
 import com.palantir.timestamp.TimestampBoundStore;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
-public class PostgresMultiSeriesDbTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTest {
+@ExtendWith(DbKvsPostgresExtension.class)
+/* TODO(boyoruk): Investigate why this is needed. If this class does not run first, then some of its methods fail.
+ * Although this solution works, we should find the root cause. */
+@Order(1)
+public class PostgresMultiSeriesDbTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTestV2 {
+
     private static final TimestampSeries DEFAULT_SERIES = TimestampSeries.of("defaultSeries");
     private static final TimestampSeries SERIES_1 = TimestampSeries.of("series1");
     private static final TimestampSeries SERIES_2 = TimestampSeries.of("series2");
@@ -36,14 +43,14 @@ public class PostgresMultiSeriesDbTimestampBoundStoreTest extends AbstractDbTime
 
     private ConnectionManagerAwareDbKvs kvs;
 
-    @After
+    @AfterEach
     public void tearDown() {
         kvs.close();
     }
 
     @Override
     protected TimestampBoundStore createTimestampBoundStore() {
-        kvs = DbKvsPostgresTestSuite.createKvs();
+        kvs = DbKvsPostgresExtension.createKvs();
         return createDbTimestampBoundStore(DEFAULT_SERIES);
     }
 
@@ -69,7 +76,7 @@ public class PostgresMultiSeriesDbTimestampBoundStoreTest extends AbstractDbTime
         TimestampBoundStore legacyStore = InDbTimestampBoundStore.create(
                 kvs.getConnectionManager(),
                 AtlasDbConstants.TIMESTAMP_TABLE,
-                DbKvsPostgresTestSuite.getKvsConfig().ddl().tablePrefix());
+                DbKvsPostgresExtension.getKvsConfig().ddl().tablePrefix());
         long initialValue = store.getUpperLimit();
         legacyStore.storeUpperLimit(FIFTY_MILLION);
 

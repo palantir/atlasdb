@@ -29,7 +29,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.InvalidationRunner;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -41,15 +41,17 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
+@ExtendWith(DbKvsPostgresExtension.class)
 public class DbTimestampStoreInvalidatorCreationTest {
     private final MetricsManager metrics = MetricsManagers.createForTests();
 
-    @ClassRule
-    public static final TestResourceManager TRM = new TestResourceManager(DbKvsPostgresTestSuite::createKvs);
+    @RegisterExtension
+    public static final TestResourceManagerV2 TRM = new TestResourceManagerV2(DbKvsPostgresExtension::createKvs);
 
     private final ConnectionManagerAwareDbKvs kvs = (ConnectionManagerAwareDbKvs) TRM.getDefaultKvs();
     private final TableReference otherTable = TableReference.createWithEmptyNamespace("fooBar");
@@ -57,14 +59,14 @@ public class DbTimestampStoreInvalidatorCreationTest {
 
     private final TimestampBoundStore defaultStore = getStore(
             AtlasDbConstants.TIMESTAMP_TABLE,
-            DbKvsPostgresTestSuite.getKvsConfig().ddl().tablePrefix());
+            DbKvsPostgresExtension.getKvsConfig().ddl().tablePrefix());
     private final TimestampBoundStore otherStore = getStore(otherTable, prefix);
 
     private final InvalidationRunner invalidationRunner =
             new InvalidationRunner(kvs.getConnectionManager(), otherTable, prefix);
     private static final long TIMESTAMP_1 = 12000;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         kvs.dropTables(ImmutableSet.of(otherTable, AtlasDbConstants.TIMESTAMP_TABLE));
         invalidationRunner.createTableIfDoesNotExist();
@@ -111,7 +113,7 @@ public class DbTimestampStoreInvalidatorCreationTest {
         otherStore.storeUpperLimit(TIMESTAMP_1);
         otherStore.getUpperLimit();
         ServiceDiscoveringAtlasSupplier atlasSupplier =
-                createAtlasSupplier(DbKvsPostgresTestSuite.getKvsConfig(), tableReference);
+                createAtlasSupplier(DbKvsPostgresExtension.getKvsConfig(), tableReference);
         return atlasSupplier.getTimestampStoreInvalidator();
     }
 

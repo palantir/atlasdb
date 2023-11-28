@@ -13,31 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
-import com.palantir.atlasdb.sweep.AbstractTargetedSweepTest;
+import com.palantir.atlasdb.keyvalue.impl.KvsManager;
+import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
+import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTestV2;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers.CacheWarming;
-import java.util.Arrays;
-import org.junit.ClassRule;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
-@RunWith(Parameterized.class)
-public class DbKvsPostgresTargetedSweepIntegrationTest extends AbstractTargetedSweepTest {
-    @ClassRule
-    public static final TestResourceManager TRM = new TestResourceManager(DbKvsPostgresTestSuite::createKvs);
-
-    @Parameterized.Parameters(name = "ssmCacheWarming={0}")
-    public static Iterable<CacheWarming> data() {
-        return Arrays.asList(CacheWarming.values());
-    }
+public abstract class AbstractDbKvsPostgresSweepTaskRunnerTest extends AbstractSweepTaskRunnerTestV2 {
 
     private final CacheWarming ssmCacheWarming;
 
-    public DbKvsPostgresTargetedSweepIntegrationTest(CacheWarming ssmCacheWarming) {
-        super(TRM, TRM);
+    public AbstractDbKvsPostgresSweepTaskRunnerTest(
+            KvsManager kvsManager, TransactionManagerManager transactionManagerManager, CacheWarming ssmCacheWarming) {
+        super(kvsManager, transactionManagerManager);
         this.ssmCacheWarming = ssmCacheWarming;
     }
 
