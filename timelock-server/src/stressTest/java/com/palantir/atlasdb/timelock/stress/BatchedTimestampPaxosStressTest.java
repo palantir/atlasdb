@@ -18,13 +18,13 @@ package com.palantir.atlasdb.timelock.stress;
 
 import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeTimelockCluster;
 
-import com.palantir.atlasdb.timelock.AbstractStressTest;
+import com.palantir.atlasdb.timelock.AbstractPaxosStressTest;
 import com.palantir.atlasdb.timelock.TestableTimelockClusterV2;
 import com.palantir.atlasdb.timelock.util.TestableTimeLockClusterPorts;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class BatchedTimestampPaxosStressTest extends AbstractStressTest {
+public class BatchedTimestampPaxosStressTest extends AbstractPaxosStressTest {
     @RegisterExtension
     public static final TestableTimelockClusterV2 BATCHED_TIMESTAMP_PAXOS = new TestableTimelockClusterV2(
             "batched timestamp paxos single leader",

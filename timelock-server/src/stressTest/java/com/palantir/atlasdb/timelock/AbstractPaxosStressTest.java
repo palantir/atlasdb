@@ -28,12 +28,12 @@ import java.time.Duration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public abstract class AbstractStressTest {
+public abstract class AbstractPaxosStressTest {
 
     private final TestableTimelockClusterV2 cluster;
     private NamespacedClientsV2 client;
 
-    public AbstractStressTest(TestableTimelockClusterV2 cluster) {
+    public AbstractPaxosStressTest(TestableTimelockClusterV2 cluster) {
         this.cluster = cluster;
     }
 
