@@ -90,7 +90,7 @@ public class MultiClientConjureTimelockResourceTest {
     @BeforeEach
     public void before() {
         resource = new MultiClientConjureTimelockResource(
-                TARGETER, (namespace, _context) -> getServiceForClient(namespace));
+                TARGETER, (namespace, _context, _endpointName) -> getServiceForClient(namespace));
     }
 
     @Test

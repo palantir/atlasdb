@@ -192,7 +192,10 @@ public class JerseyAsyncTimelockResource {
     @Path("do-not-use-without-explicit-atlasdb-authorisation/lock-diagnostic-config")
     public Optional<LockDiagnosticInfo> getEnhancedLockDiagnosticInfo(
             @PathParam("namespace") String namespace, Set<UUID> requestIds) {
-        return namespaces.get(namespace, Optional.empty()).getLockLog().getAndLogLockDiagnosticInfo(requestIds);
+        return namespaces
+                .get(namespace, Optional.empty(), "JerseyAsyncTimelock#getEnhancedLockDiagnosticInfo")
+                .getLockLog()
+                .getAndLogLockDiagnosticInfo(requestIds);
     }
 
     private void addJerseyCallback(ListenableFuture<?> result, AsyncResponse response) {
@@ -213,6 +216,8 @@ public class JerseyAsyncTimelockResource {
     }
 
     private AsyncTimelockService getAsyncTimelockService(String namespace) {
-        return namespaces.get(namespace, Optional.empty()).getTimelockService();
+        return namespaces
+                .get(namespace, Optional.empty(), "JerseyAsyncTimelock#generic")
+                .getTimelockService();
     }
 }

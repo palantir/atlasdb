@@ -144,7 +144,7 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
             AuthHeader authHeader, String namespace, long currentTimestamp, @Nullable RequestContext context) {
         return handleExceptions(() -> {
             timelockNamespaces
-                    .get(namespace, TimelockNamespaces.toUserAgent(context))
+                    .get(namespace, TimelockNamespaces.toUserAgent(context), "TimeLockManagement#fastForwardTimestamp")
                     .getTimestampManagementService()
                     .fastForwardTimestamp(currentTimestamp);
             return Futures.immediateFuture(null);

@@ -48,7 +48,8 @@ public final class TimestampResource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getTimestampService(namespace, userAgent).getFreshTimestamp();
+        return getTimestampService(namespace, userAgent, "Timestamp#getFreshTimestamp")
+                .getFreshTimestamp();
     }
 
     @POST // This has to be POST because we can't allow caching.
@@ -62,10 +63,11 @@ public final class TimestampResource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getTimestampService(namespace, userAgent).getFreshTimestamps(numTimestampsRequested);
+        return getTimestampService(namespace, userAgent, "Timestamp#getFreshTimestamps")
+                .getFreshTimestamps(numTimestampsRequested);
     }
 
-    private TimestampService getTimestampService(String namespace, Optional<String> userAgent) {
-        return namespaces.get(namespace, userAgent).getTimestampService();
+    private TimestampService getTimestampService(String namespace, Optional<String> userAgent, String endpointName) {
+        return namespaces.get(namespace, userAgent, endpointName).getTimestampService();
     }
 }

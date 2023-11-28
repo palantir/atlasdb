@@ -29,6 +29,7 @@ import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
+import com.palantir.atlasdb.timelock.TriFunction;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
@@ -52,7 +53,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
@@ -61,26 +61,26 @@ import javax.annotation.Nullable;
  * */
 public final class MultiClientConjureTimelockResource implements UndertowMultiClientConjureTimelockService {
     private final ConjureResourceExceptionHandler exceptionHandler;
-    private final BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices;
+    private final TriFunction<String, Optional<String>, String, AsyncTimelockService> timelockServices;
 
     @VisibleForTesting
     MultiClientConjureTimelockResource(
             RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
+            TriFunction<String, Optional<String>, String, AsyncTimelockService> timelockServices) {
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.timelockServices = timelockServices;
     }
 
     public static UndertowService undertow(
             RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
+            TriFunction<String, Optional<String>, String, AsyncTimelockService> timelockServices) {
         return MultiClientConjureTimelockServiceEndpoints.of(
                 new MultiClientConjureTimelockResource(redirectRetryTargeter, timelockServices));
     }
 
     public static MultiClientConjureTimelockService jersey(
             RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
+            TriFunction<String, Optional<String>, String, AsyncTimelockService> timelockServices) {
         return new JerseyAdapter(new MultiClientConjureTimelockResource(redirectRetryTargeter, timelockServices));
     }
 
@@ -149,7 +149,8 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
     private ListenableFuture<Entry<Namespace, ConjureUnlockResponseV2>> unlockForSingleNamespace(
             Namespace namespace, ConjureUnlockRequestV2 request, @Nullable RequestContext context) {
         ListenableFuture<ConjureUnlockResponseV2> unlockResponseFuture = Futures.transform(
-                getServiceForNamespace(namespace, context).unlock(toServerLockTokens(request.get())),
+                getServiceForNamespace(namespace, context, "MultiClientConjureTimelock#unlock")
+                        .unlock(toServerLockTokens(request.get())),
                 response -> ConjureUnlockResponseV2.of(fromServerLockTokens(response)),
                 MoreExecutors.directExecutor());
         return Futures.transform(
@@ -177,7 +178,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
     private ListenableFuture<Map.Entry<Namespace, GetCommitTimestampsResponse>> getCommitTimestampsForSingleNamespace(
             Namespace namespace, GetCommitTimestampsRequest request, @Nullable RequestContext context) {
         ListenableFuture<GetCommitTimestampsResponse> commitTimestampsResponseListenableFuture = getServiceForNamespace(
-                        namespace, context)
+                        namespace, context, "MultiClientConjureTimelock#getCommitTimestampsForSingleNamespace")
                 .getCommitTimestamps(
                         request.getNumTimestamps(),
                         request.getLastKnownVersion().map(this::toIdentifiedVersion));
@@ -195,7 +196,9 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
             startTransactionsForSingleNamespace(
                     Namespace namespace, ConjureStartTransactionsRequest request, @Nullable RequestContext context) {
         ListenableFuture<ConjureStartTransactionsResponse> conjureStartTransactionsResponseListenableFuture =
-                getServiceForNamespace(namespace, context).startTransactionsWithWatches(request);
+                getServiceForNamespace(
+                                namespace, context, "MultiClientConjureTimelock#startTransactionsForSingleNamespace")
+                        .startTransactionsWithWatches(request);
         return Futures.transform(
                 conjureStartTransactionsResponseListenableFuture,
                 startTransactionsResponse -> Maps.immutableEntry(namespace, startTransactionsResponse),
@@ -204,16 +207,18 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
 
     private ListenableFuture<Map.Entry<Namespace, LeaderTime>> getNamespacedLeaderTimes(
             Namespace namespace, @Nullable RequestContext context) {
-        ListenableFuture<LeaderTime> leaderTimeListenableFuture =
-                getServiceForNamespace(namespace, context).leaderTime();
+        ListenableFuture<LeaderTime> leaderTimeListenableFuture = getServiceForNamespace(
+                        namespace, context, "MultiClientConjureTimelock#getNamespacedLeaderTimes")
+                .leaderTime();
         return Futures.transform(
                 leaderTimeListenableFuture,
                 leaderTime -> Maps.immutableEntry(namespace, leaderTime),
                 MoreExecutors.directExecutor());
     }
 
-    private AsyncTimelockService getServiceForNamespace(Namespace namespace, @Nullable RequestContext context) {
-        return timelockServices.apply(namespace.get(), TimelockNamespaces.toUserAgent(context));
+    private AsyncTimelockService getServiceForNamespace(
+            Namespace namespace, @Nullable RequestContext context, String endpointName) {
+        return timelockServices.apply(namespace.get(), TimelockNamespaces.toUserAgent(context), endpointName);
     }
 
     private <T> ListenableFuture<T> handleExceptions(Supplier<ListenableFuture<T>> supplier) {

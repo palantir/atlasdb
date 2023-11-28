@@ -92,8 +92,8 @@ public class ConjureTimelockResourceTest {
 
     @BeforeEach
     public void before() {
-        resource = new ConjureTimelockResource(TARGETER, (_namespace, _userAgent) -> timelockService);
-        service = ConjureTimelockResource.jersey(TARGETER, (_namespace, _userAgent) -> timelockService);
+        resource = new ConjureTimelockResource(TARGETER, (_namespace, _userAgent, _endpointName) -> timelockService);
+        service = ConjureTimelockResource.jersey(TARGETER, (_namespace, _userAgent, _endpointName) -> timelockService);
     }
 
     @Test

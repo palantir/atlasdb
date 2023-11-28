@@ -79,32 +79,31 @@ import com.palantir.tokens.auth.AuthHeader;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 public final class ConjureTimelockResource implements UndertowConjureTimelockService {
     private final ConjureResourceExceptionHandler exceptionHandler;
-    private final BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices;
+    private final TriFunction<String, Optional<String>, String, AsyncTimelockService> timelockServices;
 
     @VisibleForTesting
     ConjureTimelockResource(
             RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
+            TriFunction<String, Optional<String>, String, AsyncTimelockService> timelockServices) {
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.timelockServices = timelockServices;
     }
 
     public static UndertowService undertow(
             RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
+            TriFunction<String, Optional<String>, String, AsyncTimelockService> timelockServices) {
         return ConjureTimelockServiceEndpoints.of(new ConjureTimelockResource(redirectRetryTargeter, timelockServices));
     }
 
     public static ConjureTimelockService jersey(
             RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
+            TriFunction<String, Optional<String>, String, AsyncTimelockService> timelockServices) {
         return new JerseyAdapter(new ConjureTimelockResource(redirectRetryTargeter, timelockServices));
     }
 
@@ -114,8 +113,9 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
             String namespace,
             ConjureStartTransactionsRequest request,
             @Nullable RequestContext context) {
-        return handleExceptions(() ->
-                forNamespace(namespace, TimelockNamespaces.toUserAgent(context)).startTransactionsWithWatches(request));
+        return handleExceptions(() -> forNamespace(
+                        namespace, TimelockNamespaces.toUserAgent(context), "ConjureTimelock#startTransactions")
+                .startTransactionsWithWatches(request));
     }
 
     @Override
@@ -161,8 +161,9 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
             int timestampsToRetrieve,
             Function<TimestampRange, T> responseWrappingFunction) {
         return handleExceptions(() -> {
-            ListenableFuture<TimestampRange> rangeFuture =
-                    forNamespace(namespace, userAgent).getFreshTimestampsAsync(timestampsToRetrieve);
+            ListenableFuture<TimestampRange> rangeFuture = forNamespace(
+                            namespace, userAgent, "ConjureTimelock#getFreshTimestamps")
+                    .getFreshTimestampsAsync(timestampsToRetrieve);
             return Futures.transform(rangeFuture, responseWrappingFunction::apply, MoreExecutors.directExecutor());
         });
     }
@@ -170,8 +171,9 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
     @Override
     public ListenableFuture<LeaderTime> leaderTime(
             AuthHeader authHeader, String namespace, @Nullable RequestContext context) {
-        return handleExceptions(() ->
-                forNamespace(namespace, TimelockNamespaces.toUserAgent(context)).leaderTime());
+        return handleExceptions(
+                () -> forNamespace(namespace, TimelockNamespaces.toUserAgent(context), "ConjureTimelock#leaderTime")
+                        .leaderTime());
     }
 
     @Override
@@ -193,7 +195,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                     .metadata(metadata)
                     .build();
             ListenableFuture<LockResponseV2> tokenFuture = forNamespace(
-                            namespace, TimelockNamespaces.toUserAgent(context))
+                            namespace, TimelockNamespaces.toUserAgent(context), "ConjureTimelock#lock")
                     .lock(lockRequest);
             return Futures.transform(
                     tokenFuture,
@@ -216,7 +218,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
                     .acquireTimeoutMs(request.getAcquireTimeoutMs())
                     .build();
             ListenableFuture<WaitForLocksResponse> tokenFuture = forNamespace(
-                            namespace, TimelockNamespaces.toUserAgent(context))
+                            namespace, TimelockNamespaces.toUserAgent(context), "ConjureTimelock#waitForLocks")
                     .waitForLocks(lockRequest);
             return Futures.transform(
                     tokenFuture,
@@ -268,7 +270,8 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
             Set<LockToken> tokens,
             Function<RefreshLockResponseV2, T> userTokenTranslator) {
         return handleExceptions(() -> Futures.transform(
-                forNamespace(namespace, TimelockNamespaces.toUserAgent(context)).refreshLockLeases(tokens),
+                forNamespace(namespace, TimelockNamespaces.toUserAgent(context), "ConjureTimelock#refreshLocks")
+                        .refreshLockLeases(tokens),
                 userTokenTranslator::apply,
                 MoreExecutors.directExecutor()));
     }
@@ -299,7 +302,8 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
             Set<LockToken> tokens,
             Function<Set<LockToken>, T> userTokenTranslator) {
         return handleExceptions(() -> Futures.transform(
-                forNamespace(namespace, TimelockNamespaces.toUserAgent(context)).unlock(tokens),
+                forNamespace(namespace, TimelockNamespaces.toUserAgent(context), "ConjureTimelock#unlock")
+                        .unlock(tokens),
                 userTokenTranslator::apply,
                 MoreExecutors.directExecutor()));
     }
@@ -370,12 +374,15 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
             @Nullable RequestContext context,
             int numTimestamps,
             Optional<ConjureIdentifiedVersion> lockWatchVersion) {
-        return forNamespace(namespace, TimelockNamespaces.toUserAgent(context))
+        return forNamespace(
+                        namespace,
+                        TimelockNamespaces.toUserAgent(context),
+                        "ConjureTimelock#getCommitTimestampsInternal")
                 .getCommitTimestamps(numTimestamps, lockWatchVersion.map(this::toIdentifiedVersion));
     }
 
-    private AsyncTimelockService forNamespace(String namespace, Optional<String> userAgent) {
-        return timelockServices.apply(namespace, userAgent);
+    private AsyncTimelockService forNamespace(String namespace, Optional<String> userAgent, String endpointName) {
+        return timelockServices.apply(namespace, userAgent, endpointName);
     }
 
     private <T> ListenableFuture<T> handleExceptions(Supplier<ListenableFuture<T>> supplier) {

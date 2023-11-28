@@ -70,7 +70,8 @@ public class LockV1Resource {
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent)
             throws InterruptedException {
-        return Optional.ofNullable(getLockService(namespace, userAgent).lockWithFullLockResponse(client, request));
+        return Optional.ofNullable(getLockService(namespace, userAgent, "LockV1#lockWithFullLockResponse")
+                .lockWithFullLockResponse(client, request));
     }
 
     @POST
@@ -105,7 +106,7 @@ public class LockV1Resource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getLockService(namespace, userAgent).unlock(token);
+        return getLockService(namespace, userAgent, "LockV1#unlock").unlock(token);
     }
 
     @POST
@@ -121,7 +122,7 @@ public class LockV1Resource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getLockService(namespace, userAgent).unlockSimple(token);
+        return getLockService(namespace, userAgent, "LockV1#unlockSimple").unlockSimple(token);
     }
 
     @POST
@@ -137,7 +138,7 @@ public class LockV1Resource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getLockService(namespace, userAgent).unlockAndFreeze(token);
+        return getLockService(namespace, userAgent, "LockV1#unlockAndFreeze").unlockAndFreeze(token);
     }
 
     @POST
@@ -153,7 +154,7 @@ public class LockV1Resource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getLockService(namespace, userAgent).getTokens(client);
+        return getLockService(namespace, userAgent, "LockV1#getTokens").getTokens(client);
     }
 
     @POST
@@ -185,7 +186,7 @@ public class LockV1Resource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getLockService(namespace, userAgent).refreshTokens(tokens);
+        return getLockService(namespace, userAgent, "LockV1#refreshTokens").refreshTokens(tokens);
     }
 
     @POST
@@ -203,7 +204,8 @@ public class LockV1Resource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return Optional.ofNullable(getLockService(namespace, userAgent).refreshGrant(grant));
+        return Optional.ofNullable(
+                getLockService(namespace, userAgent, "LockV1#refreshGrant").refreshGrant(grant));
     }
 
     @POST
@@ -221,7 +223,8 @@ public class LockV1Resource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return Optional.ofNullable(getLockService(namespace, userAgent).refreshGrant(grantId));
+        return Optional.ofNullable(
+                getLockService(namespace, userAgent, "LockV1#refreshGrantId").refreshGrant(grantId));
     }
 
     @POST
@@ -237,7 +240,7 @@ public class LockV1Resource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getLockService(namespace, userAgent).convertToGrant(token);
+        return getLockService(namespace, userAgent, "LockV1#convertToGrant").convertToGrant(token);
     }
 
     @POST
@@ -254,7 +257,7 @@ public class LockV1Resource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getLockService(namespace, userAgent).useGrant(client, grant);
+        return getLockService(namespace, userAgent, "LockV1#useGrant").useGrant(client, grant);
     }
 
     @POST
@@ -287,7 +290,7 @@ public class LockV1Resource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getLockService(namespace, userAgent).useGrant(client, grantId);
+        return getLockService(namespace, userAgent, "LockV1#useGrant").useGrant(client, grantId);
     }
 
     @POST
@@ -321,7 +324,8 @@ public class LockV1Resource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return Optional.ofNullable(getLockService(namespace, userAgent).getMinLockedInVersionId());
+        return Optional.ofNullable(getLockService(namespace, userAgent, "LockV1#getMinLockedInVersionId")
+                .getMinLockedInVersionId());
     }
 
     @POST
@@ -336,7 +340,8 @@ public class LockV1Resource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return Optional.ofNullable(getLockService(namespace, userAgent).getMinLockedInVersionId(client));
+        return Optional.ofNullable(getLockService(namespace, userAgent, "LockV1#getMinLockedInVersionIdForClient")
+                .getMinLockedInVersionId(client));
     }
 
     @POST
@@ -365,7 +370,8 @@ public class LockV1Resource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getLockService(namespace, userAgent).getLockServerOptions();
+        return getLockService(namespace, userAgent, "LockV1#getLockServerOptions")
+                .getLockServerOptions();
     }
 
     @POST
@@ -380,7 +386,7 @@ public class LockV1Resource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getLockService(namespace, userAgent).currentTimeMillis();
+        return getLockService(namespace, userAgent, "LockV1#currentTimeMillis").currentTimeMillis();
     }
 
     @POST
@@ -395,7 +401,7 @@ public class LockV1Resource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        getLockService(namespace, userAgent).logCurrentState();
+        getLockService(namespace, userAgent, "LockV1#logCurrentState").logCurrentState();
     }
 
     // Remote lock service
@@ -415,7 +421,8 @@ public class LockV1Resource {
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent)
             throws InterruptedException {
-        return Optional.ofNullable(getLockService(namespace, userAgent).lock(client, request));
+        return Optional.ofNullable(
+                getLockService(namespace, userAgent, "LockV1#lock").lock(client, request));
     }
 
     @POST
@@ -450,7 +457,8 @@ public class LockV1Resource {
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent)
             throws InterruptedException {
-        return Optional.ofNullable(getLockService(namespace, userAgent).lockAndGetHeldLocks(client, request));
+        return Optional.ofNullable(getLockService(namespace, userAgent, "LockV1#lockAndGetHeldLocks")
+                .lockAndGetHeldLocks(client, request));
     }
 
     @POST
@@ -482,7 +490,7 @@ public class LockV1Resource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getLockService(namespace, userAgent).unlock(token);
+        return getLockService(namespace, userAgent, "LockV1#unlock").unlock(token);
     }
 
     @POST
@@ -498,7 +506,8 @@ public class LockV1Resource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getLockService(namespace, userAgent).refreshLockRefreshTokens(tokens);
+        return getLockService(namespace, userAgent, "LockV1#refreshLockRefreshTokens")
+                .refreshLockRefreshTokens(tokens);
     }
 
     @POST
@@ -516,7 +525,8 @@ public class LockV1Resource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return Optional.ofNullable(getLockService(namespace, userAgent).getMinLockedInVersionId(client));
+        return Optional.ofNullable(getLockService(namespace, userAgent, "LockV1#getMinLockedInVersionId")
+                .getMinLockedInVersionId(client));
     }
 
     @POST
@@ -549,10 +559,10 @@ public class LockV1Resource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getLockService(namespace, userAgent).getLockState(lock);
+        return getLockService(namespace, userAgent, "LockV1#getLockState").getLockState(lock);
     }
 
-    private LockService getLockService(String namespace, Optional<String> userAgent) {
-        return namespaces.get(namespace, userAgent).getLockService();
+    private LockService getLockService(String namespace, Optional<String> userAgent, String endpointName) {
+        return namespaces.get(namespace, userAgent, endpointName).getLockService();
     }
 }

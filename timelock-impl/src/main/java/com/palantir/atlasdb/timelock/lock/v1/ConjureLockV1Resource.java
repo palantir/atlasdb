@@ -25,6 +25,7 @@ import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
+import com.palantir.atlasdb.timelock.TriFunction;
 import com.palantir.conjure.java.undertow.lib.RequestContext;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.ConjureLockRefreshToken;
@@ -41,28 +42,27 @@ import com.palantir.tokens.auth.AuthHeader;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiFunction;
 
 public final class ConjureLockV1Resource implements UndertowConjureLockV1Service {
     private final ConjureResourceExceptionHandler exceptionHandler;
-    private final BiFunction<String, Optional<String>, LockService> lockServices;
+    private final TriFunction<String, Optional<String>, String, LockService> lockServices;
 
     private ConjureLockV1Resource(
             RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, LockService> lockServices) {
+            TriFunction<String, Optional<String>, String, LockService> lockServices) {
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.lockServices = lockServices;
     }
 
     public static UndertowService undertow(
             RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, LockService> lockServices) {
+            TriFunction<String, Optional<String>, String, LockService> lockServices) {
         return ConjureLockV1ServiceEndpoints.of(new ConjureLockV1Resource(redirectRetryTargeter, lockServices));
     }
 
     public static ConjureLockV1ShimService jersey(
             RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, LockService> lockServices) {
+            TriFunction<String, Optional<String>, String, LockService> lockServices) {
         return new ConjureLockV1Resource.JerseyAdapter(new ConjureLockV1Resource(redirectRetryTargeter, lockServices));
     }
 
@@ -72,7 +72,7 @@ public final class ConjureLockV1Resource implements UndertowConjureLockV1Service
         return exceptionHandler.handleExceptions(() -> {
             try {
                 return Futures.immediateFuture(Optional.ofNullable(lockServices
-                        .apply(namespace, TimelockNamespaces.toUserAgent(context))
+                        .apply(namespace, TimelockNamespaces.toUserAgent(context), "ConjureLockV1#lockAndGetHeldLocks")
                         .lockAndGetHeldLocks(request.getLockClient(), request.getLockRequest())));
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -86,7 +86,7 @@ public final class ConjureLockV1Resource implements UndertowConjureLockV1Service
             AuthHeader authHeader, String namespace, List<ConjureLockRefreshToken> request, RequestContext context) {
         return exceptionHandler.handleExceptions(() -> {
             ListenableFuture<Set<LockRefreshToken>> serviceTokens = Futures.immediateFuture(lockServices
-                    .apply(namespace, TimelockNamespaces.toUserAgent(context))
+                    .apply(namespace, TimelockNamespaces.toUserAgent(context), "ConjureLockV1#refreshLockRefreshTokens")
                     .refreshLockRefreshTokens(Collections2.transform(
                             request, token -> new LockRefreshToken(token.getTokenId(), token.getExpirationDateMs()))));
             return Futures.transform(
@@ -103,7 +103,7 @@ public final class ConjureLockV1Resource implements UndertowConjureLockV1Service
             SimpleHeldLocksToken serverToken =
                     new SimpleHeldLocksToken(request.getTokenId(), request.getCreationDateMs());
             return Futures.immediateFuture(lockServices
-                    .apply(namespace, TimelockNamespaces.toUserAgent(context))
+                    .apply(namespace, TimelockNamespaces.toUserAgent(context), "ConjureLockV1#unlockSimple")
                     .unlockSimple(serverToken));
         });
     }

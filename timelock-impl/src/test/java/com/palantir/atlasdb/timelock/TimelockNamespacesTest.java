@@ -73,15 +73,15 @@ public class TimelockNamespacesTest {
         prepareServiceFactoryAndMaxNumberOfClientsSupplierInvocations();
         when(serviceFactory.apply(CLIENT_A)).thenReturn(servicesA);
         when(serviceFactory.apply(CLIENT_B)).thenReturn(servicesB);
-        assertThat(namespaces.get(CLIENT_A, USER_AGENT)).isEqualTo(servicesA);
-        assertThat(namespaces.get(CLIENT_B, USER_AGENT)).isEqualTo(servicesB);
+        assertThat(namespaces.get(CLIENT_A, USER_AGENT, "test")).isEqualTo(servicesA);
+        assertThat(namespaces.get(CLIENT_B, USER_AGENT, "test")).isEqualTo(servicesB);
     }
 
     @Test
     public void servicesAreOnlyCreatedOncePerClient() {
         prepareServiceFactoryAndMaxNumberOfClientsSupplierInvocations();
-        namespaces.get(CLIENT_A, USER_AGENT);
-        namespaces.get(CLIENT_A, USER_AGENT);
+        namespaces.get(CLIENT_A, USER_AGENT, "test");
+        namespaces.get(CLIENT_A, USER_AGENT, "test");
         verify(serviceFactory, times(1)).apply(any());
     }
 
@@ -90,7 +90,8 @@ public class TimelockNamespacesTest {
         prepareServiceFactoryAndMaxNumberOfClientsSupplierInvocations();
         createMaximumNumberOfClients();
 
-        assertThatThrownBy(() -> namespaces.get(uniqueClient(), USER_AGENT)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> namespaces.get(uniqueClient(), USER_AGENT, "test"))
+                .isInstanceOf(IllegalStateException.class);
 
         verify(serviceFactory, times(DEFAULT_MAX_NUMBER_OF_CLIENTS)).apply(any());
         verifyNoMoreInteractions(serviceFactory);
@@ -107,7 +108,7 @@ public class TimelockNamespacesTest {
     public void onClientCreationIncreaseNumberOfClients() {
         prepareServiceFactoryAndMaxNumberOfClientsSupplierInvocations();
         assertThat(namespaces.getNumberOfActiveClients()).isEqualTo(0);
-        namespaces.get(uniqueClient(), USER_AGENT);
+        namespaces.get(uniqueClient(), USER_AGENT, "test");
         assertThat(namespaces.getNumberOfActiveClients()).isEqualTo(1);
     }
 
@@ -118,7 +119,7 @@ public class TimelockNamespacesTest {
 
         when(maxNumberOfClientsSupplier.get()).thenReturn(DEFAULT_MAX_NUMBER_OF_CLIENTS + 1);
 
-        namespaces.get(uniqueClient(), USER_AGENT);
+        namespaces.get(uniqueClient(), USER_AGENT, "test");
     }
 
     @Test
@@ -127,12 +128,12 @@ public class TimelockNamespacesTest {
         assertNumberOfActiveClientsIs(0);
         assertMaxClientsIs(DEFAULT_MAX_NUMBER_OF_CLIENTS);
 
-        namespaces.get(uniqueClient(), USER_AGENT);
+        namespaces.get(uniqueClient(), USER_AGENT, "test");
 
         assertNumberOfActiveClientsIs(1);
         assertMaxClientsIs(DEFAULT_MAX_NUMBER_OF_CLIENTS);
 
-        namespaces.get(uniqueClient(), USER_AGENT);
+        namespaces.get(uniqueClient(), USER_AGENT, "test");
 
         assertNumberOfActiveClientsIs(2);
         assertMaxClientsIs(DEFAULT_MAX_NUMBER_OF_CLIENTS);
@@ -173,11 +174,11 @@ public class TimelockNamespacesTest {
                 .thenReturn(mock(TimeLockServices.class));
 
         String client = uniqueClient();
-        TimeLockServices services = namespaces.get(client, USER_AGENT);
+        TimeLockServices services = namespaces.get(client, USER_AGENT, "test");
         namespaces.invalidateResourcesForClient(client);
         verify(services).close();
 
-        TimeLockServices newServices = namespaces.get(client, USER_AGENT);
+        TimeLockServices newServices = namespaces.get(client, USER_AGENT, "test");
         assertThat(newServices).as("should have gotten a new set of delegates").isNotEqualTo(services);
 
         namespaces.invalidateResourcesForClient(client);
@@ -197,7 +198,7 @@ public class TimelockNamespacesTest {
 
     private void createMaximumNumberOfClients() {
         for (int i = 0; i < DEFAULT_MAX_NUMBER_OF_CLIENTS; i++) {
-            namespaces.get(uniqueClient(), USER_AGENT);
+            namespaces.get(uniqueClient(), USER_AGENT, "test");
         }
     }
 

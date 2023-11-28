@@ -72,7 +72,8 @@ public class TimestampManagementResource {
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
         long timestampToUse = currentTimestamp.orElse(SENTINEL_TIMESTAMP);
-        getTimestampManagementService(namespace, userAgent).fastForwardTimestamp(timestampToUse);
+        getTimestampManagementService(namespace, userAgent, "TimestampManagement#fastForwardTimestamp")
+                .fastForwardTimestamp(timestampToUse);
     }
 
     @GET
@@ -86,11 +87,13 @@ public class TimestampManagementResource {
     public String ping(
             @Safe @PathParam("namespace") @Handle.PathParam String namespace,
             @Safe @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER) Optional<String> userAgent) {
-        return getTimestampManagementService(namespace, userAgent).ping();
+        return getTimestampManagementService(namespace, userAgent, "TimestampManagement#ping")
+                .ping();
     }
 
-    private TimestampManagementService getTimestampManagementService(String namespace, Optional<String> userAgent) {
-        return namespaces.get(namespace, userAgent).getTimestampManagementService();
+    private TimestampManagementService getTimestampManagementService(
+            String namespace, Optional<String> userAgent, String endpointName) {
+        return namespaces.get(namespace, userAgent, endpointName).getTimestampManagementService();
     }
 
     enum TextPlainSerializer implements SerializerFactory<String> {

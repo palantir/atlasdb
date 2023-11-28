@@ -57,7 +57,8 @@ public final class UndertowAsyncTimelockResource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getAsyncTimelockService(namespace, userAgent).getFreshTimestampAsync();
+        return getAsyncTimelockService(namespace, userAgent, "UndertowAsyncTimelock#getFreshTimestamp")
+                .getFreshTimestampAsync();
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/fresh-timestamps")
@@ -68,7 +69,8 @@ public final class UndertowAsyncTimelockResource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getAsyncTimelockService(namespace, userAgent).getFreshTimestampsAsync(numTimestampsRequested);
+        return getAsyncTimelockService(namespace, userAgent, "UndertowAsyncTimelock#getFreshTimestamps")
+                .getFreshTimestampsAsync(numTimestampsRequested);
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/lock-immutable-timestamp")
@@ -79,7 +81,8 @@ public final class UndertowAsyncTimelockResource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getAsyncTimelockService(namespace, userAgent).lockImmutableTimestamp(request);
+        return getAsyncTimelockService(namespace, userAgent, "UndertowAsyncTimelock#lockImmutableTimestamp")
+                .lockImmutableTimestamp(request);
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/start-atlasdb-transaction")
@@ -90,7 +93,8 @@ public final class UndertowAsyncTimelockResource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getAsyncTimelockService(namespace, userAgent).deprecatedStartTransaction(request);
+        return getAsyncTimelockService(namespace, userAgent, "UndertowAsyncTimelock#deprecatedStartTransactionV1")
+                .deprecatedStartTransaction(request);
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/start-identified-atlasdb-transaction")
@@ -101,7 +105,7 @@ public final class UndertowAsyncTimelockResource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getAsyncTimelockService(namespace, userAgent)
+        return getAsyncTimelockService(namespace, userAgent, "UndertowAsyncTimelock#deprecatedStartTransactionV2")
                 .startTransaction(request)
                 .toStartTransactionResponse();
     }
@@ -114,7 +118,8 @@ public final class UndertowAsyncTimelockResource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getAsyncTimelockService(namespace, userAgent).startTransaction(request);
+        return getAsyncTimelockService(namespace, userAgent, "UndertowAsyncTimelock#deprecatedStartTransactionV3")
+                .startTransaction(request);
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/start-atlasdb-transaction-v4")
@@ -125,7 +130,8 @@ public final class UndertowAsyncTimelockResource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getAsyncTimelockService(namespace, userAgent).startTransactionsAsync(request);
+        return getAsyncTimelockService(namespace, userAgent, "UndertowAsyncTimelock#startTransactions")
+                .startTransactionsAsync(request);
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/immutable-timestamp")
@@ -135,7 +141,8 @@ public final class UndertowAsyncTimelockResource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getAsyncTimelockService(namespace, userAgent).getImmutableTimestamp();
+        return getAsyncTimelockService(namespace, userAgent, "UndertowAsyncTimelock#getImmutableTimestamp")
+                .getImmutableTimestamp();
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/lock")
@@ -146,7 +153,8 @@ public final class UndertowAsyncTimelockResource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getAsyncTimelockService(namespace, userAgent).deprecatedLock(request);
+        return getAsyncTimelockService(namespace, userAgent, "UndertowAsyncTimelock#deprecatedLock")
+                .deprecatedLock(request);
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/lock-v2")
@@ -157,7 +165,8 @@ public final class UndertowAsyncTimelockResource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getAsyncTimelockService(namespace, userAgent).lock(request);
+        return getAsyncTimelockService(namespace, userAgent, "UndertowAsyncTimelock#lock")
+                .lock(request);
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/await-locks")
@@ -168,7 +177,8 @@ public final class UndertowAsyncTimelockResource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getAsyncTimelockService(namespace, userAgent).waitForLocks(request);
+        return getAsyncTimelockService(namespace, userAgent, "UndertowAsyncTimelock#waitForLocks")
+                .waitForLocks(request);
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/refresh-locks")
@@ -179,7 +189,8 @@ public final class UndertowAsyncTimelockResource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getAsyncTimelockService(namespace, userAgent).deprecatedRefreshLockLeases(tokens);
+        return getAsyncTimelockService(namespace, userAgent, "UndertowAsyncTimelock#deprecatedRefreshLockLeases")
+                .deprecatedRefreshLockLeases(tokens);
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/refresh-locks-v2")
@@ -190,7 +201,8 @@ public final class UndertowAsyncTimelockResource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getAsyncTimelockService(namespace, userAgent).refreshLockLeases(tokens);
+        return getAsyncTimelockService(namespace, userAgent, "UndertowAsyncTimelock#refreshLockLeases")
+                .refreshLockLeases(tokens);
     }
 
     @Handle(method = HttpMethod.GET, path = "/{namespace}/timelock/leader-time")
@@ -200,7 +212,8 @@ public final class UndertowAsyncTimelockResource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getAsyncTimelockService(namespace, userAgent).leaderTime();
+        return getAsyncTimelockService(namespace, userAgent, "UndertowAsyncTimelock#getLeaderTime")
+                .leaderTime();
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/unlock")
@@ -211,7 +224,8 @@ public final class UndertowAsyncTimelockResource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getAsyncTimelockService(namespace, userAgent).unlock(tokens);
+        return getAsyncTimelockService(namespace, userAgent, "UndertowAsyncTimelock#unlock")
+                .unlock(tokens);
     }
 
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/current-time-millis")
@@ -221,7 +235,8 @@ public final class UndertowAsyncTimelockResource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return getAsyncTimelockService(namespace, userAgent).currentTimeMillis();
+        return getAsyncTimelockService(namespace, userAgent, "UndertowAsyncTimelock#currentTimeMillis")
+                .currentTimeMillis();
     }
 
     // TODO(jkong): Remove this once PDS-95791 is resolved.
@@ -236,10 +251,14 @@ public final class UndertowAsyncTimelockResource {
                     @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
                     @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
                     Optional<String> userAgent) {
-        return namespaces.get(namespace, userAgent).getLockLog().getAndLogLockDiagnosticInfo(requestIds);
+        return namespaces
+                .get(namespace, userAgent, "UndertowAsyncTimelock#getEnhancedLockDiagnosticInfo")
+                .getLockLog()
+                .getAndLogLockDiagnosticInfo(requestIds);
     }
 
-    private AsyncTimelockService getAsyncTimelockService(String namespace, Optional<String> userAgent) {
-        return namespaces.get(namespace, userAgent).getTimelockService();
+    private AsyncTimelockService getAsyncTimelockService(
+            String namespace, Optional<String> userAgent, String endpointName) {
+        return namespaces.get(namespace, userAgent, endpointName).getTimelockService();
     }
 }

@@ -34,6 +34,7 @@ import com.palantir.atlasdb.timelock.ConjureTimelockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.TooManyRequestsExceptionMapper;
+import com.palantir.atlasdb.timelock.TriFunction;
 import com.palantir.atlasdb.timelock.adjudicate.FeedbackHandler;
 import com.palantir.atlasdb.timelock.adjudicate.HealthStatusReport;
 import com.palantir.atlasdb.timelock.adjudicate.LeaderElectionMetricAggregator;
@@ -90,7 +91,6 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -318,10 +318,12 @@ public class TimeLockAgent {
         registerManagementResource();
         healthCheck = paxosResources.leadershipComponents().healthCheck(namespaces::getActiveClients);
 
-        BiFunction<String, Optional<String>, LockService> lockServiceGetter =
-                (namespace, userAgent) -> namespaces.get(namespace, userAgent).getLockService();
-        BiFunction<String, Optional<String>, AsyncTimelockService> asyncTimelockServiceGetter =
-                (namespace, userAgent) -> namespaces.get(namespace, userAgent).getTimelockService();
+        TriFunction<String, Optional<String>, String, LockService> lockServiceGetter =
+                (namespace, userAgent, endpointName) ->
+                        namespaces.get(namespace, userAgent, endpointName).getLockService();
+        TriFunction<String, Optional<String>, String, AsyncTimelockService> asyncTimelockServiceGetter =
+                (namespace, userAgent, endpointName) ->
+                        namespaces.get(namespace, userAgent, endpointName).getTimelockService();
 
         if (undertowRegistrar.isPresent()) {
             Consumer<UndertowService> presentUndertowRegistrar = undertowRegistrar.get();
