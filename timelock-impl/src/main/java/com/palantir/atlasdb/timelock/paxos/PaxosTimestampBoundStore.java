@@ -17,6 +17,7 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Ordering;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
@@ -44,6 +45,11 @@ import com.palantir.timestamp.MultipleRunningTimestampServiceError;
 import com.palantir.timestamp.TimestampBoundStore;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 import org.immutables.value.Value;
@@ -57,6 +63,10 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
     private final PaxosAcceptorNetworkClient acceptorNetworkClient;
     private final PaxosLearnerNetworkClient learnerClient;
     private final long maximumWaitBeforeProposalMs;
+    public static final AtomicReference<Runnable> loseLeadership = new AtomicReference<>(
+            () -> log.info("Tried to lose leadership, but losing leadership hadn't been set up yet..."));
+
+    private final ExecutorService executionExecutor = Executors.newSingleThreadExecutor();
 
     @GuardedBy("this")
     private SequenceAndBound agreedState;
@@ -241,7 +251,22 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
         }
         while (true) {
             try {
-                proposer.propose(newSeq, PtBytes.toBytes(limit));
+                int num = ThreadLocalRandom.current().nextInt(50);
+
+                boolean beBad = num == 48;
+                boolean sleep = num == 49;
+                executionExecutor.submit(() -> {
+                    if (beBad) {
+                        log.info("Attempting to lose leadership, because we rolled a 1 in 100 chance.");
+                        loseLeadership.get().run();
+                    }
+                });
+                if (sleep) {
+                    log.info("Now going to sleep to try and create some election chaos");
+                    Uninterruptibles.sleepUninterruptibly(15, TimeUnit.SECONDS);
+                    proposer.propose(newSeq, PtBytes.toBytes(limit));
+                }
+
                 PaxosValue value = knowledge
                         .getLearnedValue(newSeq)
                         .orElseThrow(() -> new SafeIllegalStateException("Timestamp bound store: Paxos proposal"

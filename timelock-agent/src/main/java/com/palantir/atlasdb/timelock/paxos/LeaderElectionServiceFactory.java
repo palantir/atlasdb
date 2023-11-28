@@ -18,6 +18,8 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.LeaderElectionServiceBuilder;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosProposer;
@@ -26,6 +28,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class LeaderElectionServiceFactory {
+    private static final SafeLogger log = SafeLoggerFactory.get(LeaderElectionServiceFactory.class);
 
     private final Map<Client, BatchingLeaderElectionService> leaderElectionServicesByClient = new ConcurrentHashMap<>();
 
@@ -38,21 +41,28 @@ public class LeaderElectionServiceFactory {
         PaxosAcceptorNetworkClient acceptorClient =
                 dependencies.networkClientFactories().acceptor().create(dependencies.paxosClient());
 
-        return new BatchingLeaderElectionService(new LeaderElectionServiceBuilder()
-                .leaderPinger(dependencies.leaderPinger())
-                .leaderUuid(dependencies.leaderUuid())
-                .pingRate(dependencies.runtime().get().pingRate())
-                .randomWaitBeforeProposingLeadership(
-                        dependencies.runtime().get().maximumWaitBeforeProposingLeadership())
-                .eventRecorder(dependencies.eventRecorder())
-                .knowledge(dependencies.localLearner())
-                .acceptorClient(acceptorClient)
-                .learnerClient(dependencies.networkClientFactories().learner().create(dependencies.paxosClient()))
-                .latestRoundVerifier(dependencies.latestRoundVerifierFactory().create(acceptorClient))
-                .decorateProposer(uninstrumentedPaxosProposer -> instrumentProposer(
-                        dependencies.paxosClient(), dependencies.metrics(), uninstrumentedPaxosProposer))
-                .leaderAddressCacheTtl(Duration.ofSeconds(1))
-                .build());
+        BatchingLeaderElectionService batchingLeaderElectionService =
+                new BatchingLeaderElectionService(new LeaderElectionServiceBuilder()
+                        .leaderPinger(dependencies.leaderPinger())
+                        .leaderUuid(dependencies.leaderUuid())
+                        .pingRate(dependencies.runtime().get().pingRate())
+                        .randomWaitBeforeProposingLeadership(
+                                dependencies.runtime().get().maximumWaitBeforeProposingLeadership())
+                        .eventRecorder(dependencies.eventRecorder())
+                        .knowledge(dependencies.localLearner())
+                        .acceptorClient(acceptorClient)
+                        .learnerClient(
+                                dependencies.networkClientFactories().learner().create(dependencies.paxosClient()))
+                        .latestRoundVerifier(
+                                dependencies.latestRoundVerifierFactory().create(acceptorClient))
+                        .decorateProposer(uninstrumentedPaxosProposer -> instrumentProposer(
+                                dependencies.paxosClient(), dependencies.metrics(), uninstrumentedPaxosProposer))
+                        .leaderAddressCacheTtl(Duration.ofSeconds(1))
+                        .build());
+
+        log.info("Setting losing leadership logic to something real");
+        PaxosTimestampBoundStore.loseLeadership.set(batchingLeaderElectionService::stepDown);
+        return batchingLeaderElectionService;
     }
 
     private static PaxosProposer instrumentProposer(
