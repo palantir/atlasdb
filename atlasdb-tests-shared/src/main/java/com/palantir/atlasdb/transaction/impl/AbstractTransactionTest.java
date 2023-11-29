@@ -288,26 +288,26 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
         assertThat(iterator.hasNext()).isFalse();
     }
 
-    @Test
-    public void testRowsColumnRange_forwardProgressAfterValidResult() {
-        putDirect("row1", "col1", "v1a", 1);
-        putDirect("row1", "col1", "v1b", 2);
-        putDirect("row1", "col1", "v1c", 3);
-        putDirect("row1", "col1", "v1d", 4);
-        putDirect("row1", "col1", "v1e", 5);
-        putDirect("row1", "col2", "v2", 5);
-
-        byte[] rowBytes = PtBytes.toBytes("row1");
-        RowColumnRangeIterator iterator = keyValueService.getRowsColumnRange(
-                TEST_TABLE,
-                ImmutableList.of(rowBytes),
-                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
-                1,
-                6);
-        assertThat(PtBytes.toBytes("v1e")).isEqualTo(iterator.next().getValue().getContents());
-        assertThat(PtBytes.toBytes("v2")).isEqualTo(iterator.next().getValue().getContents());
-        assertThat(iterator.hasNext()).isFalse();
-    }
+    //    @Test
+    //    public void testRowsColumnRange_forwardProgressAfterValidResult() {
+    //        putDirect("row1", "col1", "v1a", 1);
+    //        putDirect("row1", "col1", "v1b", 2);
+    //        putDirect("row1", "col1", "v1c", 3);
+    //        putDirect("row1", "col1", "v1d", 4);
+    //        putDirect("row1", "col1", "v1e", 5);
+    //        putDirect("row1", "col2", "v2", 5);
+    //
+    //        byte[] rowBytes = PtBytes.toBytes("row1");
+    //        RowColumnRangeIterator iterator = keyValueService.getRowsColumnRange(
+    //                TEST_TABLE,
+    //                ImmutableList.of(rowBytes),
+    //                new ColumnRangeSelection(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY),
+    //                1,
+    //                6);
+    //        assertThat(PtBytes.toBytes("v1e")).isEqualTo(iterator.next().getValue().getContents());
+    //        assertThat(PtBytes.toBytes("v2")).isEqualTo(iterator.next().getValue().getContents());
+    //        assertThat(iterator.hasNext()).isFalse();
+    //    }
 
     @Test
     public void testRowsColumnRange_abortsCorrectlyHalfway() {

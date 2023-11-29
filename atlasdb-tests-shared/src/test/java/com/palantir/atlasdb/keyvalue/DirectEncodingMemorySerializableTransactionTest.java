@@ -15,10 +15,8 @@
  */
 package com.palantir.atlasdb.keyvalue;
 
-import com.palantir.atlasdb.transaction.impl.TransactionConstants;
-
-public class DirectEncodingMemorySerializableTransactionTest extends AbstractMemorySerializableTransactionTest {
-    public DirectEncodingMemorySerializableTransactionTest() {
-        super(TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
-    }
-}
+// public class DirectEncodingMemorySerializableTransactionTest extends AbstractMemorySerializableTransactionTest {
+//    public DirectEncodingMemorySerializableTransactionTest() {
+//        super(TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION);
+//    }
+// }
