@@ -15,35 +15,24 @@
  */
 package com.palantir.atlasdb.ete.suites;
 
-import com.palantir.atlasdb.containers.CassandraEnvironment;
-import com.palantir.atlasdb.ete.suiteclasses.CassandraTimestampsEteTest;
-import com.palantir.atlasdb.ete.suiteclasses.CoordinationEteTest;
-import com.palantir.atlasdb.ete.suiteclasses.LockWithTimelockEteTest;
-import com.palantir.atlasdb.ete.suiteclasses.MultipleSchemaVersionsCoordinationEteTest;
-import com.palantir.atlasdb.ete.suiteclasses.TargetedSweepEteTest;
-import com.palantir.atlasdb.ete.suiteclasses.TimestampManagementEteTest;
-import com.palantir.atlasdb.ete.suiteclasses.TodoEteTest;
-import com.palantir.atlasdb.ete.utilities.EteSetup;
-import org.junit.ClassRule;
-import org.junit.rules.RuleChain;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import com.palantir.atlasdb.ete.tests.MultiClientWithTimelockAndCassandraCassandraTimestampsTest;
+import com.palantir.atlasdb.ete.tests.MultiClientWithTimelockAndCassandraCoordinationTest;
+import com.palantir.atlasdb.ete.tests.MultiClientWithTimelockAndCassandraLockWithTimelockTest;
+import com.palantir.atlasdb.ete.tests.MultiClientWithTimelockAndCassandraMultipleSchemaVersionsCoordinationTest;
+import com.palantir.atlasdb.ete.tests.MultiClientWithTimelockAndCassandraTargetedSweepTest;
+import com.palantir.atlasdb.ete.tests.MultiClientWithTimelockAndCassandraTimestampManagementTest;
+import com.palantir.atlasdb.ete.tests.MultiClientWithTimelockAndCassandraTodoTest;
+import org.junit.platform.suite.api.SelectClasses;
+import org.junit.platform.suite.api.Suite;
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    TodoEteTest.class,
-    TargetedSweepEteTest.class,
-    CassandraTimestampsEteTest.class,
-    TimestampManagementEteTest.class,
-    CoordinationEteTest.class,
-    MultipleSchemaVersionsCoordinationEteTest.class,
-    LockWithTimelockEteTest.class
+@Suite
+@SelectClasses({
+    MultiClientWithTimelockAndCassandraTodoTest.class,
+    MultiClientWithTimelockAndCassandraTargetedSweepTest.class,
+    MultiClientWithTimelockAndCassandraCassandraTimestampsTest.class,
+    MultiClientWithTimelockAndCassandraTimestampManagementTest.class,
+    MultiClientWithTimelockAndCassandraCoordinationTest.class,
+    MultiClientWithTimelockAndCassandraMultipleSchemaVersionsCoordinationTest.class,
+    MultiClientWithTimelockAndCassandraLockWithTimelockTest.class
 })
-public class MultiClientWithTimelockAndCassandraTestSuite extends EteSetup {
-    @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupCompositionWithTimelock(
-            MultiClientWithTimelockAndCassandraTestSuite.class,
-            "docker-compose.multi-client-with-timelock-and-cassandra.yml",
-            Clients.MULTI,
-            CassandraEnvironment.get());
-}
+public class MultiClientWithTimelockAndCassandraTestSuite {}

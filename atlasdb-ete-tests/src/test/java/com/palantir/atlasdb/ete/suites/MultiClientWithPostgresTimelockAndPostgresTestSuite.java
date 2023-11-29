@@ -15,29 +15,18 @@
  */
 package com.palantir.atlasdb.ete.suites;
 
-import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.ete.suiteclasses.CoordinationEteTest;
-import com.palantir.atlasdb.ete.suiteclasses.LockWithTimelockEteTest;
-import com.palantir.atlasdb.ete.suiteclasses.TimestampManagementEteTest;
-import com.palantir.atlasdb.ete.suiteclasses.TodoEteTest;
-import com.palantir.atlasdb.ete.utilities.EteSetup;
-import org.junit.ClassRule;
-import org.junit.rules.RuleChain;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import com.palantir.atlasdb.ete.tests.MultiClientWithTimelockAndPostgresCoordinationTest;
+import com.palantir.atlasdb.ete.tests.MultiClientWithTimelockAndPostgresLockWithTimelockTest;
+import com.palantir.atlasdb.ete.tests.MultiClientWithTimelockAndPostgresTimestampManagementTest;
+import com.palantir.atlasdb.ete.tests.MultiClientWithTimelockAndPostgresTodoTest;
+import org.junit.platform.suite.api.SelectClasses;
+import org.junit.platform.suite.api.Suite;
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    TodoEteTest.class,
-    TimestampManagementEteTest.class,
-    CoordinationEteTest.class,
-    LockWithTimelockEteTest.class
+@Suite
+@SelectClasses({
+    MultiClientWithTimelockAndPostgresCoordinationTest.class,
+    MultiClientWithTimelockAndPostgresLockWithTimelockTest.class,
+    MultiClientWithTimelockAndPostgresTimestampManagementTest.class,
+    MultiClientWithTimelockAndPostgresTodoTest.class
 })
-public class MultiClientWithPostgresTimelockAndPostgresTestSuite extends EteSetup {
-    @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupCompositionWithTimelock(
-            MultiClientWithPostgresTimelockAndPostgresTestSuite.class,
-            "docker-compose.multi-client-with-postgres-timelock-and-postgres.yml",
-            Clients.MULTI,
-            ImmutableMap.of());
-}
+public class MultiClientWithPostgresTimelockAndPostgresTestSuite {}
