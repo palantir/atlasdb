@@ -21,7 +21,7 @@ import com.google.common.base.Throwables;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
-import com.palantir.atlasdb.containers.ContainersV2;
+import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
@@ -44,8 +44,8 @@ public class NodesDownTestSetup implements BeforeAllCallback, ExtensionContext.S
     private static final Refreshable<CassandraKeyValueServiceRuntimeConfig> RUNTIME_CONFIG =
             ThreeNodeCassandraCluster.KVS_RUNTIME_CONFIG;
 
-    public static final ContainersV2 CONTAINERS =
-            new ContainersV2(NodesDownTestSetup.class).with(new ThreeNodeCassandraCluster());
+    public static final Containers CONTAINERS =
+            new Containers(NodesDownTestSetup.class).with(new ThreeNodeCassandraCluster());
 
     @Override
     public synchronized void beforeAll(ExtensionContext context) throws Exception {

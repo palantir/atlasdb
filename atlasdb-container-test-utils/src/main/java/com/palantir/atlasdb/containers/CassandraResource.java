@@ -35,9 +35,9 @@ import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 public class CassandraResource implements BeforeAllCallback, AfterAllCallback, KvsManager, TransactionManagerManager {
-    private final CassandraContainerV2 containerInstance = new CassandraContainerV2();
+    private final CassandraContainer containerInstance = new CassandraContainer();
     private final Supplier<KeyValueService> supplier;
-    private ContainersV2 containers;
+    private Containers containers;
     private TestResourceManagerV2 testResourceManager;
     private Proxy socksProxy;
 
@@ -51,7 +51,7 @@ public class CassandraResource implements BeforeAllCallback, AfterAllCallback, K
 
     @Override
     public void beforeAll(ExtensionContext extensionContext) throws Exception {
-        containers = new ContainersV2(extensionContext.getRequiredTestClass()).with(containerInstance);
+        containers = new Containers(extensionContext.getRequiredTestClass()).with(containerInstance);
         testResourceManager = new TestResourceManagerV2(supplier);
         containers.beforeAll(extensionContext);
         socksProxy = Containers.getSocksProxy(containerInstance.getServiceName());

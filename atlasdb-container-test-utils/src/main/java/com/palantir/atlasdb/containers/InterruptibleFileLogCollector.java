@@ -32,7 +32,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-/* TODO(boyoruk): Migrate to JUnit5 */
 @SuppressFBWarnings("SLF4J_ILLEGAL_PASSED_CLASS")
 public class InterruptibleFileLogCollector implements LogCollector {
     private static final SafeLogger log = SafeLoggerFactory.get(InterruptibleFileLogCollector.class);

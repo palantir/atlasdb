@@ -31,8 +31,8 @@ import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 public class UninitializedCassandraResource implements BeforeAllCallback, AfterAllCallback {
-    private final CassandraContainerV2 containerInstance = CassandraContainerV2.throwawayContainer();
-    private final ContainersV2 containers;
+    private final CassandraContainer containerInstance = CassandraContainer.throwawayContainer();
+    private final Containers containers;
 
     private KeyValueService kvs;
 
@@ -41,7 +41,7 @@ public class UninitializedCassandraResource implements BeforeAllCallback, AfterA
     private Proxy socksProxy;
 
     public UninitializedCassandraResource(Class<?> classToSaveLogsFor) {
-        containers = new ContainersV2(classToSaveLogsFor).with(containerInstance);
+        containers = new Containers(classToSaveLogsFor).with(containerInstance);
     }
 
     public void initialize() {
@@ -56,7 +56,7 @@ public class UninitializedCassandraResource implements BeforeAllCallback, AfterA
     @Override
     public void beforeAll(ExtensionContext extensionContext) throws IOException, InterruptedException {
         containers.beforeAll(extensionContext);
-        socksProxy = ContainersV2.getSocksProxy(containerInstance.getServiceName());
+        socksProxy = Containers.getSocksProxy(containerInstance.getServiceName());
         containers.getContainer(containerInstance.getServiceName()).kill();
         containers.getDockerCompose().rm();
         kvs = createKvs();
