@@ -25,7 +25,7 @@ dependencies {
     implementation 'com.google.guava:guava'
     implementation 'com.google.protobuf:protobuf-java'
     implementation 'com.palantir.docker.compose:docker-compose-rule-core'
-    implementation 'com.palantir.docker.compose:docker-compose-rule-junit4'
+    implementation 'com.palantir.docker.compose:docker-compose-junit-jupiter'
     implementation 'com.palantir.refreshable:refreshable'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'

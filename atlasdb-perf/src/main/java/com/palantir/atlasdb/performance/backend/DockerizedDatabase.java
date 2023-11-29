@@ -15,8 +15,7 @@
  */
 package com.palantir.atlasdb.performance.backend;
 
-import com.palantir.docker.compose.DockerComposeRule;
-import com.palantir.docker.compose.configuration.ShutdownStrategy;
+import com.palantir.docker.compose.DockerComposeExtension;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.docker.compose.connection.waiting.HealthCheck;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
@@ -35,11 +34,10 @@ public final class DockerizedDatabase implements Closeable {
     private static final String DOCKER_LOGS_DIR = "container-logs";
 
     public static DockerizedDatabase start(KeyValueServiceInstrumentation type) {
-        DockerComposeRule docker = DockerComposeRule.builder()
+        DockerComposeExtension docker = DockerComposeExtension.builder()
                 .file(getDockerComposeFileAbsolutePath(type.getDockerComposeResourceFileName()))
                 .waitingForHostNetworkedPort(type.getKeyValueServicePort(), toBeOpen())
                 .saveLogsTo(DOCKER_LOGS_DIR)
-                .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
                 .build();
         InetSocketAddress addr = connect(docker, type.getKeyValueServicePort());
         return new DockerizedDatabase(docker, new DockerizedDatabaseUri(type, addr));
@@ -67,7 +65,7 @@ public final class DockerizedDatabase implements Closeable {
         return port -> SuccessOrFailure.fromBoolean(port.isListeningNow(), "" + "" + port + " was not open");
     }
 
-    private static InetSocketAddress connect(DockerComposeRule docker, int dbPort) {
+    private static InetSocketAddress connect(DockerComposeExtension docker, int dbPort) {
         try {
             if (docker == null) {
                 throw new SafeIllegalStateException("Docker compose rule cannot be run, is null.");
@@ -82,10 +80,10 @@ public final class DockerizedDatabase implements Closeable {
         }
     }
 
-    private final DockerComposeRule docker;
+    private final DockerComposeExtension docker;
     private final DockerizedDatabaseUri uri;
 
-    private DockerizedDatabase(DockerComposeRule docker, DockerizedDatabaseUri uri) {
+    private DockerizedDatabase(DockerComposeExtension docker, DockerizedDatabaseUri uri) {
         this.docker = docker;
         this.uri = uri;
     }
