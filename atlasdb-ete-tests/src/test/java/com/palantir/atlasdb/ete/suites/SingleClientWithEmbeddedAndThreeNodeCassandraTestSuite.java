@@ -15,35 +15,24 @@
  */
 package com.palantir.atlasdb.ete.suites;
 
-import com.palantir.atlasdb.containers.CassandraEnvironment;
-import com.palantir.atlasdb.ete.suiteclasses.CoordinationEteTest;
-import com.palantir.atlasdb.ete.suiteclasses.LockWithoutTimelockEteTest;
-import com.palantir.atlasdb.ete.suiteclasses.MultiCassandraDoubleNodeDownEteTest;
-import com.palantir.atlasdb.ete.suiteclasses.MultiCassandraSingleNodeDownEteTest;
-import com.palantir.atlasdb.ete.suiteclasses.MultipleSchemaVersionsCoordinationEteTest;
-import com.palantir.atlasdb.ete.suiteclasses.TimestampManagementEteTest;
-import com.palantir.atlasdb.ete.suiteclasses.TodoEteTest;
-import com.palantir.atlasdb.ete.utilities.EteSetup;
-import org.junit.ClassRule;
-import org.junit.rules.RuleChain;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import com.palantir.atlasdb.ete.tests.SingleClientWithEmbeddedAndThreeNodeCassandraCoordinationTest;
+import com.palantir.atlasdb.ete.tests.SingleClientWithEmbeddedAndThreeNodeCassandraLockWithoutTimelockTest;
+import com.palantir.atlasdb.ete.tests.SingleClientWithEmbeddedAndThreeNodeCassandraMultiCassandraDoubleNodeDownTest;
+import com.palantir.atlasdb.ete.tests.SingleClientWithEmbeddedAndThreeNodeCassandraMultiCassandraSingleNodeDownTest;
+import com.palantir.atlasdb.ete.tests.SingleClientWithEmbeddedAndThreeNodeCassandraMultipleSchemaVersionsCoordinationTest;
+import com.palantir.atlasdb.ete.tests.SingleClientWithEmbeddedAndThreeNodeCassandraTimestampManagementTest;
+import com.palantir.atlasdb.ete.tests.SingleClientWithEmbeddedAndThreeNodeCassandraTodoTest;
+import org.junit.platform.suite.api.SelectClasses;
+import org.junit.platform.suite.api.Suite;
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    TodoEteTest.class,
-    MultiCassandraSingleNodeDownEteTest.class,
-    MultiCassandraDoubleNodeDownEteTest.class,
-    TimestampManagementEteTest.class,
-    CoordinationEteTest.class,
-    MultipleSchemaVersionsCoordinationEteTest.class,
-    LockWithoutTimelockEteTest.class
+@Suite
+@SelectClasses({
+    SingleClientWithEmbeddedAndThreeNodeCassandraTodoTest.class,
+    SingleClientWithEmbeddedAndThreeNodeCassandraMultiCassandraSingleNodeDownTest.class,
+    SingleClientWithEmbeddedAndThreeNodeCassandraMultiCassandraDoubleNodeDownTest.class,
+    SingleClientWithEmbeddedAndThreeNodeCassandraTimestampManagementTest.class,
+    SingleClientWithEmbeddedAndThreeNodeCassandraCoordinationTest.class,
+    SingleClientWithEmbeddedAndThreeNodeCassandraMultipleSchemaVersionsCoordinationTest.class,
+    SingleClientWithEmbeddedAndThreeNodeCassandraLockWithoutTimelockTest.class
 })
-public class SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite extends EteSetup {
-    @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
-            SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite.class,
-            "docker-compose.single-client-with-embedded-and-three-node-cassandra.yml",
-            Clients.SINGLE,
-            CassandraEnvironment.get());
-}
+public class SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite {}
