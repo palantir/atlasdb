@@ -203,7 +203,6 @@ dependencies {
     integTestImplementation project(':atlasdb-config')
     integTestImplementation project(':atlasdb-impl-shared')
     integTestImplementation project(':commons-executors')
-    integTestImplementation project(':flake-rule')
     integTestImplementation project(':leader-election-api')
     integTestImplementation project(':lock-api')
     integTestImplementation project(':lock-api-objects')
