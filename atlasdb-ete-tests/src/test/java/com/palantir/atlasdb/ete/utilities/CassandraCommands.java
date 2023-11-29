@@ -29,11 +29,11 @@ public final class CassandraCommands {
     }
 
     public static void nodetoolFlush(String containerName) throws IOException, InterruptedException {
-        EteSetup.execCliCommand(containerName, "nodetool flush");
+        EteExtension.execCliCommand(containerName, "nodetool flush");
     }
 
     public static void nodetoolCompact(String containerName) throws IOException, InterruptedException {
-        EteSetup.execCliCommand(containerName, "nodetool compact");
+        EteExtension.execCliCommand(containerName, "nodetool compact");
     }
 
     public static List<String> nodetoolGetSsTables(
@@ -44,7 +44,7 @@ public final class CassandraCommands {
                 keyspace,
                 CassandraKeyValueServiceImpl.internalTableName(tableRef),
                 BaseEncoding.base16().lowerCase().encode(rowKey));
-        String output = EteSetup.execCliCommand(containerName, query);
+        String output = EteExtension.execCliCommand(containerName, query);
 
         String[] outputSplitIntoLines = output.split("\n");
         return Arrays.stream(outputSplitIntoLines)
@@ -53,6 +53,6 @@ public final class CassandraCommands {
     }
 
     public static String ssTableMetadata(String containerName, String path) throws IOException, InterruptedException {
-        return EteSetup.execCliCommand(containerName, "sstablemetadata " + path);
+        return EteExtension.execCliCommand(containerName, "sstablemetadata " + path);
     }
 }

@@ -36,7 +36,7 @@ public final class MultiCassandraUtils {
     }
 
     public static void killCassandraContainer(String containerName) {
-        Container container = EteSetup.getContainer(containerName);
+        Container container = EteExtension.getContainer(containerName);
         try {
             container.kill();
         } catch (IOException | InterruptedException e) {
@@ -45,7 +45,7 @@ public final class MultiCassandraUtils {
     }
 
     public static void startCassandraContainer(String containerName) {
-        Container container = EteSetup.getContainer(containerName);
+        Container container = EteExtension.getContainer(containerName);
         try {
             container.start();
         } catch (IOException | InterruptedException e) {
@@ -60,7 +60,7 @@ public final class MultiCassandraUtils {
                 .pollInterval(Duration.ofSeconds(1))
                 .until(() -> {
                     // TODO (jkong): hack
-                    String curlOutput = EteSetup.execCliCommand(
+                    String curlOutput = EteExtension.execCliCommand(
                             "ete1",
                             String.format(
                                     "bash -c 'curl %s:%s; echo $?; exit 0;'",

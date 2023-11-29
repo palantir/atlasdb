@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.ete.tests;
 
-import com.palantir.atlasdb.ete.suiteclasses.AbstractTodoTest;
+import com.palantir.atlasdb.ete.abstracttests.AbstractTodoTest;
 import com.palantir.atlasdb.ete.utilities.EteExtension;
 import com.palantir.atlasdb.ete.utilities.EteExtension.InitializationMode;
 import org.junit.jupiter.api.extension.RegisterExtension;

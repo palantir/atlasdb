@@ -13,59 +13,49 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.ete.suiteclasses;
+package com.palantir.atlasdb.ete.abstracttests;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.ete.utilities.EteSetup;
+import com.palantir.atlasdb.ete.utilities.EteExtension;
 import com.palantir.atlasdb.ete.utilities.MultiCassandraUtils;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
-import com.palantir.flake.FlakeRetryingRule;
-import com.palantir.flake.ShouldRetry;
 import java.util.UUID;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestRule;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
-@ShouldRetry // In some cases we obtain a TTransportException from Cassandra, probably because we don't wait enough?
-public class MultiCassandraSingleNodeDownEteTest {
+public abstract class AbstractMultiCassandraDoubleNodeDownTest {
     private static final ImmutableSet<String> ALL_CASSANDRA_NODES =
             ImmutableSet.of("cassandra1", "cassandra2", "cassandra3");
-    private static final String CASSANDRA_NODE_TO_KILL = "cassandra1";
+    private static final ImmutableList<String> CASSANDRA_NODES_TO_KILL = ImmutableList.of("cassandra1", "cassandra2");
 
-    @Rule
-    public final TestRule flakeRetryingRule = new FlakeRetryingRule();
-
-    @BeforeClass
+    @BeforeAll
     public static void shutdownCassandraNode() {
-        MultiCassandraUtils.killCassandraContainer(CASSANDRA_NODE_TO_KILL);
+        CASSANDRA_NODES_TO_KILL.forEach(MultiCassandraUtils::killCassandraContainer);
     }
 
-    @AfterClass
-    public static void resetCassandraNodes() {
+    @AfterAll
+    public static void resetCassandraNode() {
         MultiCassandraUtils.resetCassandraCluster(ALL_CASSANDRA_NODES);
     }
 
     @Test
-    public void shouldBeAbleToWriteWithOneCassandraNodeDown() {
-        TodoResource todos = EteSetup.createClientToSingleNode(TodoResource.class);
-        Todo todo = getUniqueTodo();
-
-        todos.addTodo(todo);
+    public void shouldNotBeAbleToWriteWithTwoCassandraNodesDown() {
+        assertThatThrownBy(() -> EteExtension.createClientToSingleNode(TodoResource.class)
+                        .addTodo(getUniqueTodo()))
+                .isInstanceOf(RuntimeException.class);
     }
 
     @Test
-    public void shouldBeAbleToReadWithOneCassandraNodeDown() {
-        TodoResource todos = EteSetup.createClientToSingleNode(TodoResource.class);
-        Todo todo = getUniqueTodo();
-
-        todos.addTodo(todo);
-        assertThat(todos.getTodoList()).contains(todo);
+    public void shouldNotBeAbleToReadWithTwoCassandraNodesDown() {
+        assertThatThrownBy(() -> EteExtension.createClientToSingleNode(TodoResource.class)
+                        .getTodoList())
+                .isInstanceOf(RuntimeException.class);
     }
 
     private static Todo getUniqueTodo() {

@@ -14,34 +14,25 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.ete.suiteclasses;
+package com.palantir.atlasdb.ete.abstracttests;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.palantir.atlasdb.ete.utilities.EteSetup;
+import com.palantir.atlasdb.ete.utilities.EteExtension;
 import com.palantir.atlasdb.lock.LockResource;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class LockWithTimelockEteTest {
-    private LockResource lockResource = EteSetup.createClientToSingleNode(LockResource.class);
+public abstract class AbstractLockWithoutTimelockTest {
+    private final LockResource lockResource =
+            EteExtension.createClientToSingleNodeWithExtendedTimeout(LockResource.class);
 
     @Test
-    public void smallV1LockSucceeds() {
-        assertThat(lockResource.lockUsingLegacyLockApi(1, 100)).isTrue();
+    public void hugeV1LockSucceeds() {
+        assertThat(lockResource.lockUsingLegacyLockApi(100, 500_000)).isTrue();
     }
 
     @Test
-    public void smallV2LockSucceeds() {
-        assertThat(lockResource.lockUsingTimelockApi(1, 100)).isTrue();
-    }
-
-    @Test
-    public void largeV1LockSucceeds() {
-        assertThat(lockResource.lockUsingLegacyLockApi(50, 100_000)).isTrue();
-    }
-
-    @Test
-    public void largeV2LockSucceeds() {
-        assertThat(lockResource.lockUsingTimelockApi(50, 100_000)).isTrue();
+    public void hugeV2LockSucceeds() {
+        assertThat(lockResource.lockUsingTimelockApi(100, 500_000)).isTrue();
     }
 }
