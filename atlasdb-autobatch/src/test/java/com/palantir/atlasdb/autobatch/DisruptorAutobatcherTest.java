@@ -59,7 +59,7 @@ public final class DisruptorAutobatcherTest {
         long waitTimeMillis = 10;
         fakeTicker.advance(waitTimeMillis, TimeUnit.MILLISECONDS);
         future.running();
-        long runningTimeMillis = 10;
+        long runningTimeMillis = 90;
         fakeTicker.advance(runningTimeMillis, TimeUnit.MILLISECONDS);
         future.set("Test");
         assertWaitTimeAndRunningTimeMetricsAreProduced(registry, waitTimeMillis, runningTimeMillis);
