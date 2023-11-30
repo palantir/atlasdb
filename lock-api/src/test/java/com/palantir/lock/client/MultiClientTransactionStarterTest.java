@@ -32,6 +32,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
+import com.palantir.atlasdb.autobatch.AutobatcherTelemetryComponents;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher.DisruptorFuture;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
@@ -45,6 +46,7 @@ import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchCacheImpl;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -234,7 +236,7 @@ public class MultiClientTransactionStarterTest {
                                 getCache(namespace),
                                 LOCK_CLEANUP_SERVICE_MAP.computeIfAbsent(
                                         namespace, _unused -> mock(LockCleanupService.class)))),
-                new DisruptorFuture<>("test"));
+                new DisruptorFuture<>(AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry())));
     }
 
     private void setupServiceAndAssertSanity(
