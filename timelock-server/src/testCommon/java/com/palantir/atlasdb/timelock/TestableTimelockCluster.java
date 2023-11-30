@@ -28,10 +28,10 @@ import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.timelock.NamespacedClientsV2.ProxyFactoryV2;
+import com.palantir.atlasdb.timelock.NamespacedClients.ProxyFactory;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
-import com.palantir.atlasdb.timelock.util.TestProxiesV2;
-import com.palantir.atlasdb.timelock.util.TestProxiesV2.ProxyModeV2;
+import com.palantir.atlasdb.timelock.util.TestProxies;
+import com.palantir.atlasdb.timelock.util.TestProxies.ProxyMode;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.InProgressResponseState;
@@ -61,28 +61,28 @@ import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.Extension;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-public class TestableTimelockClusterV2 implements BeforeAllCallback, AfterAllCallback {
+public class TestableTimelockCluster implements BeforeAllCallback, AfterAllCallback {
 
     private final File temporaryFolder;
     private final String name;
-    private final List<TemporaryConfigurationHolderV2> configs;
+    private final List<TemporaryConfigurationHolder> configs;
     private final boolean needsPostgresDatabase;
-    private final Set<TestableTimelockServerV2> servers;
-    private final Multimap<TestableTimelockServerV2, TestableTimelockServerV2> serverToOtherServers;
+    private final Set<TestableTimelockServer> servers;
+    private final Multimap<TestableTimelockServer, TestableTimelockServer> serverToOtherServers;
     private final FailoverProxyFactory proxyFactory;
     private final ExecutorService executorService = Executors.newCachedThreadPool();
     private final List<Extension> extensions = new ArrayList<>();
-    private final Map<String, NamespacedClientsV2> clientsByNamespace = new ConcurrentHashMap<>();
+    private final Map<String, NamespacedClients> clientsByNamespace = new ConcurrentHashMap<>();
 
-    public TestableTimelockClusterV2(String configFileTemplate, TemplateVariables... variables) {
+    public TestableTimelockCluster(String configFileTemplate, TemplateVariables... variables) {
         this(name(), configFileTemplate, variables);
     }
 
-    public TestableTimelockClusterV2(String name, String configFileTemplate, TemplateVariables... variables) {
+    public TestableTimelockCluster(String name, String configFileTemplate, TemplateVariables... variables) {
         this(name, configFileTemplate, ImmutableList.copyOf(variables));
     }
 
-    public TestableTimelockClusterV2(String name, String configFileTemplate, Iterable<TemplateVariables> variables) {
+    public TestableTimelockCluster(String name, String configFileTemplate, Iterable<TemplateVariables> variables) {
         this(
                 name,
                 configFileTemplate,
@@ -93,25 +93,25 @@ public class TestableTimelockClusterV2 implements BeforeAllCallback, AfterAllCal
                         .collect(Collectors.toList()));
     }
 
-    public TestableTimelockClusterV2(
+    public TestableTimelockCluster(
             String name, String configFileTemplate, List<TestableTimelockServerConfiguration> configurations) {
         try {
             this.temporaryFolder =
-                    Files.createTempDirectory("TestableTimelockClusterV2").toFile();
+                    Files.createTempDirectory("TestableTimelockCluster").toFile();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
         this.name = name;
         this.needsPostgresDatabase =
                 configurations.stream().anyMatch(TestableTimelockServerConfiguration::needsPostgresDatabase);
-        Map<TemplateVariables, TemporaryConfigurationHolderV2> configMap = KeyedStream.of(configurations)
+        Map<TemplateVariables, TemporaryConfigurationHolder> configMap = KeyedStream.of(configurations)
                 .mapKeys(TestableTimelockServerConfiguration::templateVariables)
                 .map(configuration -> getConfigHolder(configFileTemplate, configuration.templateVariables()))
                 .collectToMap();
         this.configs = ImmutableList.copyOf(configMap.values());
         this.servers = ImmutableSet.copyOf(KeyedStream.stream(configMap)
                 .mapEntries((template, holder) -> Maps.immutableEntry(template, getServerHolder(holder, template)))
-                .map(holder -> new TestableTimelockServerV2("https://localhost", holder))
+                .map(holder -> new TestableTimelockServer("https://localhost", holder))
                 .collectToMap()
                 .values());
         this.serverToOtherServers = KeyedStream.of(servers)
@@ -120,13 +120,13 @@ public class TestableTimelockClusterV2 implements BeforeAllCallback, AfterAllCal
                 .flatMap(Collection::stream)
                 .collectToSetMultimap();
         this.proxyFactory =
-                new FailoverProxyFactory(new TestProxiesV2("https://localhost", ImmutableList.copyOf(servers)));
+                new FailoverProxyFactory(new TestProxies("https://localhost", ImmutableList.copyOf(servers)));
 
         if (needsPostgresDatabase) {
             extensions.add(new DbKvsExtension());
         }
         extensions.addAll(configs);
-        for (TestableTimelockServerV2 server : servers) {
+        for (TestableTimelockServer server : servers) {
             extensions.add(server.serverHolder());
         }
     }
@@ -177,29 +177,29 @@ public class TestableTimelockClusterV2 implements BeforeAllCallback, AfterAllCal
     }
 
     void waitUntilAllServersOnlineAndReadyToServeNamespaces(List<String> namespaces) {
-        servers.forEach(TestableTimelockServerV2::start);
+        servers.forEach(TestableTimelockServer::start);
         waitUntilReadyToServeNamespaces(namespaces);
     }
 
-    void killAndAwaitTermination(Iterable<TestableTimelockServerV2> serversToKill) throws ExecutionException {
+    void killAndAwaitTermination(Iterable<TestableTimelockServer> serversToKill) throws ExecutionException {
         Set<ListenableFuture<Void>> shutdownFutures = ImmutableSet.copyOf(serversToKill).stream()
-                .map(TestableTimelockServerV2::killAsync)
+                .map(TestableTimelockServer::killAsync)
                 .collect(Collectors.toSet());
 
         Futures.getDone(Futures.allAsList(shutdownFutures));
     }
 
-    TestableTimelockServerV2 currentLeaderFor(String namespace) {
+    TestableTimelockServer currentLeaderFor(String namespace) {
         return Iterables.getOnlyElement(currentLeaders(namespace).get(namespace));
     }
 
-    SetMultimap<String, TestableTimelockServerV2> currentLeaders(String... namespaces) {
+    SetMultimap<String, TestableTimelockServer> currentLeaders(String... namespaces) {
         return currentLeaders(ImmutableSet.copyOf(namespaces));
     }
 
-    SetMultimap<String, TestableTimelockServerV2> currentLeaders(Iterable<String> namespaces) {
+    SetMultimap<String, TestableTimelockServer> currentLeaders(Iterable<String> namespaces) {
         Set<String> namespacesIterable = ImmutableSet.copyOf(namespaces);
-        KeyedStream<TestableTimelockServerV2, PaxosContainer<Set<String>>> responses = PaxosQuorumChecker.collectUntil(
+        KeyedStream<TestableTimelockServer, PaxosContainer<Set<String>>> responses = PaxosQuorumChecker.collectUntil(
                 ImmutableList.copyOf(servers),
                 server -> PaxosContainer.of(server.pinger().ping(namespaces)),
                 Maps.toMap(servers, unused -> new CheckedRejectionExecutorService(executorService)),
@@ -216,7 +216,7 @@ public class TestableTimelockClusterV2 implements BeforeAllCallback, AfterAllCal
                 .collectToSetMultimap();
     }
 
-    private static Predicate<InProgressResponseState<TestableTimelockServerV2, PaxosContainer<Set<String>>>>
+    private static Predicate<InProgressResponseState<TestableTimelockServer, PaxosContainer<Set<String>>>>
             untilAllNamespacesAreSeen(Set<String> namespacesIterable) {
         return state -> state.responses().values().stream()
                 .filter(PaxosContainer::isSuccessful)
@@ -226,8 +226,8 @@ public class TestableTimelockClusterV2 implements BeforeAllCallback, AfterAllCal
                 .containsAll(namespacesIterable);
     }
 
-    SetMultimap<String, TestableTimelockServerV2> nonLeaders(String... namespaces) {
-        SetMultimap<String, TestableTimelockServerV2> currentLeaderPerNamespace = currentLeaders(namespaces);
+    SetMultimap<String, TestableTimelockServer> nonLeaders(String... namespaces) {
+        SetMultimap<String, TestableTimelockServer> currentLeaderPerNamespace = currentLeaders(namespaces);
 
         assertThat(currentLeaderPerNamespace.asMap().values())
                 .as("there should only be one leader per namespace")
@@ -251,7 +251,7 @@ public class TestableTimelockClusterV2 implements BeforeAllCallback, AfterAllCal
 
     private boolean tryFailoverToNewLeader(String namespace) {
         try {
-            TestableTimelockServerV2 leader = currentLeaderFor(namespace);
+            TestableTimelockServer leader = currentLeaderFor(namespace);
             leader.killSync();
             waitUntilLeaderIsElected(ImmutableList.of(namespace));
             leader.start();
@@ -262,43 +262,43 @@ public class TestableTimelockClusterV2 implements BeforeAllCallback, AfterAllCal
         }
     }
 
-    Set<TestableTimelockServerV2> servers() {
+    Set<TestableTimelockServer> servers() {
         return servers;
     }
 
-    NamespacedClientsV2 clientForRandomNamespace() {
+    NamespacedClients clientForRandomNamespace() {
         return client(UUID.randomUUID().toString());
     }
 
-    NamespacedClientsV2 client(String namespace) {
+    NamespacedClients client(String namespace) {
         return clientsByNamespace.computeIfAbsent(namespace, this::uncachedNamespacedClients);
     }
 
-    NamespacedClientsV2 uncachedNamespacedClients(String namespace) {
-        return NamespacedClientsV2.from(namespace, proxyFactory);
+    NamespacedClients uncachedNamespacedClients(String namespace) {
+        return NamespacedClients.from(namespace, proxyFactory);
     }
 
-    private static final class FailoverProxyFactory implements ProxyFactoryV2 {
+    private static final class FailoverProxyFactory implements ProxyFactory {
 
-        private final TestProxiesV2 proxies;
+        private final TestProxies proxies;
 
-        private FailoverProxyFactory(TestProxiesV2 proxies) {
+        private FailoverProxyFactory(TestProxies proxies) {
             this.proxies = proxies;
         }
 
         @Override
-        public <T> T createProxy(Class<T> clazz, ProxyModeV2 proxyMode) {
+        public <T> T createProxy(Class<T> clazz, ProxyMode proxyMode) {
             return proxies.failover(clazz, proxyMode);
         }
     }
 
-    private static TimeLockServerHolderV2 getServerHolder(
-            TemporaryConfigurationHolderV2 configHolder, TemplateVariables templateVariables) {
-        return new TimeLockServerHolderV2(configHolder::getTemporaryConfigFileLocation, templateVariables);
+    private static TimeLockServerHolder getServerHolder(
+            TemporaryConfigurationHolder configHolder, TemplateVariables templateVariables) {
+        return new TimeLockServerHolder(configHolder::getTemporaryConfigFileLocation, templateVariables);
     }
 
-    private TemporaryConfigurationHolderV2 getConfigHolder(String templateName, TemplateVariables variables) {
-        return new TemporaryConfigurationHolderV2(temporaryFolder, templateName, variables);
+    private TemporaryConfigurationHolder getConfigHolder(String templateName, TemplateVariables variables) {
+        return new TemporaryConfigurationHolder(temporaryFolder, templateName, variables);
     }
 
     @Override

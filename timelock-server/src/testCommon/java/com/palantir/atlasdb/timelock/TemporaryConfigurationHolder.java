@@ -26,7 +26,7 @@ import java.util.Locale;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-public class TemporaryConfigurationHolderV2 implements BeforeAllCallback {
+public class TemporaryConfigurationHolder implements BeforeAllCallback {
 
     private static final Configuration TEMPLATE_CONFIG = templateConfig();
 
@@ -36,7 +36,7 @@ public class TemporaryConfigurationHolderV2 implements BeforeAllCallback {
 
     private File temporaryConfigFile;
 
-    TemporaryConfigurationHolderV2(File temporaryFolder, String templateName, TemplateVariables variables) {
+    TemporaryConfigurationHolder(File temporaryFolder, String templateName, TemplateVariables variables) {
         this.temporaryFolder = temporaryFolder;
         this.templateName = templateName;
         this.variables = ImmutableTemplateVariables.copyOf(variables);
@@ -44,7 +44,7 @@ public class TemporaryConfigurationHolderV2 implements BeforeAllCallback {
 
     private static Configuration templateConfig() {
         Configuration config = new Configuration(Configuration.VERSION_2_3_29);
-        config.setClassLoaderForTemplateLoading(TemporaryConfigurationHolderV2.class.getClassLoader(), "/");
+        config.setClassLoaderForTemplateLoading(TemporaryConfigurationHolder.class.getClassLoader(), "/");
         config.setDefaultEncoding("UTF-8");
         config.setLocale(Locale.UK);
         config.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);

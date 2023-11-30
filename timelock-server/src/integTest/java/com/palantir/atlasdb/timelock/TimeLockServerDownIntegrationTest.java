@@ -38,12 +38,12 @@ public class TimeLockServerDownIntegrationTest {
             Cell.create("bar".getBytes(StandardCharsets.UTF_8), "baz".getBytes(StandardCharsets.UTF_8));
 
     @RegisterExtension
-    public static final TestableTimelockClusterV2 CLUSTER =
-            new TestableTimelockClusterV2("paxosSingleServer.ftl", DEFAULT_SINGLE_SERVER);
+    public static final TestableTimelockCluster CLUSTER =
+            new TestableTimelockCluster("paxosSingleServer.ftl", DEFAULT_SINGLE_SERVER);
 
     @Test
     public void getsDependencyExceptionFromTransactionsWhenDown() throws ExecutionException {
-        TransactionManager txnManager = TimeLockTestUtilsV2.createTransactionManager(CLUSTER);
+        TransactionManager txnManager = TimeLockTestUtils.createTransactionManager(CLUSTER);
         txnManager.getKeyValueService().createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         // write a value

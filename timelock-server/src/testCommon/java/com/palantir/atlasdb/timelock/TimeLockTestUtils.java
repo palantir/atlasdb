@@ -38,16 +38,16 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
-public final class TimeLockTestUtilsV2 {
-    private TimeLockTestUtilsV2() {
+public final class TimeLockTestUtils {
+    private TimeLockTestUtils() {
         // Utility class
     }
 
-    static TransactionManager createTransactionManager(TestableTimelockClusterV2 cluster) {
+    static TransactionManager createTransactionManager(TestableTimelockCluster cluster) {
         return createTransactionManager(cluster, UUID.randomUUID().toString());
     }
 
-    static TransactionManager createTransactionManager(TestableTimelockClusterV2 cluster, String agent) {
+    static TransactionManager createTransactionManager(TestableTimelockCluster cluster, String agent) {
         return createTransactionManager(
                         cluster,
                         agent,
@@ -57,8 +57,8 @@ public final class TimeLockTestUtilsV2 {
                 .transactionManager();
     }
 
-    static TransactionManagerContextV2 createTransactionManager(
-            TestableTimelockClusterV2 cluster,
+    static TransactionManagerContext createTransactionManager(
+            TestableTimelockCluster cluster,
             String agent,
             AtlasDbRuntimeConfig runtimeConfigTemplate,
             ImmutableAtlasDbConfig.Builder installConfigTemplate,
@@ -92,7 +92,7 @@ public final class TimeLockTestUtilsV2 {
                 .build()
                 .serializable();
 
-        return ImmutableTransactionManagerContextV2.builder()
+        return ImmutableTransactionManagerContext.builder()
                 .transactionManager(transactionManager)
                 .install(config)
                 .runtime(runtimeConfig)
@@ -100,7 +100,7 @@ public final class TimeLockTestUtilsV2 {
     }
 
     @Value.Immutable
-    interface TransactionManagerContextV2 {
+    interface TransactionManagerContext {
         AtlasDbConfig install();
 
         AtlasDbRuntimeConfig runtime();

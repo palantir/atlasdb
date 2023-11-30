@@ -19,7 +19,7 @@ package com.palantir.atlasdb.timelock;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.Namespace;
-import com.palantir.atlasdb.timelock.util.TestProxiesV2.ProxyModeV2;
+import com.palantir.atlasdb.timelock.util.TestProxies.ProxyMode;
 import com.palantir.lock.ConjureLockV1Service;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockService;
@@ -45,27 +45,27 @@ import com.palantir.timestamp.TimestampRange;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface NamespacedClientsV2 {
+public interface NamespacedClients {
 
-    interface ProxyFactoryV2 {
-        <T> T createProxy(Class<T> clazz, ProxyModeV2 proxyMode);
+    interface ProxyFactory {
+        <T> T createProxy(Class<T> clazz, ProxyMode proxyMode);
     }
 
     @Value.Parameter
     String namespace();
 
     @Value.Parameter
-    ProxyFactoryV2 proxyFactory();
+    ProxyFactory proxyFactory();
 
     @Value.Parameter
-    ProxyModeV2 proxyMode();
+    ProxyMode proxyMode();
 
-    default NamespacedClientsV2 throughWireMockProxy() {
-        return ImmutableNamespacedClientsV2.of(namespace(), proxyFactory(), ProxyModeV2.WIREMOCK);
+    default NamespacedClients throughWireMockProxy() {
+        return ImmutableNamespacedClients.of(namespace(), proxyFactory(), ProxyMode.WIREMOCK);
     }
 
-    static NamespacedClientsV2 from(String namespace, ProxyFactoryV2 proxyFactory) {
-        return ImmutableNamespacedClientsV2.of(namespace, proxyFactory, ProxyModeV2.DIRECT);
+    static NamespacedClients from(String namespace, ProxyFactory proxyFactory) {
+        return ImmutableNamespacedClients.of(namespace, proxyFactory, ProxyMode.DIRECT);
     }
 
     @Value.Derived

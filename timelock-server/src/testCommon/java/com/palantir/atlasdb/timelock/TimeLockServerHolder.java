@@ -42,7 +42,7 @@ import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-public class TimeLockServerHolderV2 implements BeforeAllCallback, AfterAllCallback {
+public class TimeLockServerHolder implements BeforeAllCallback, AfterAllCallback {
 
     static final String ALL_NAMESPACES = "/[a-zA-Z0-9_-]+/.*";
 
@@ -59,7 +59,7 @@ public class TimeLockServerHolderV2 implements BeforeAllCallback, AfterAllCallba
     private boolean isRunning = false;
     private boolean initialised = false;
 
-    TimeLockServerHolderV2(Supplier<String> configFilePathSupplier, TemplateVariables variables) {
+    TimeLockServerHolder(Supplier<String> configFilePathSupplier, TemplateVariables variables) {
         this.configFilePathSupplier = configFilePathSupplier;
         this.wireMockServer = new WireMockServer(wireMockConfiguration(variables.getLocalProxyPort()));
         this.wireMock = new WireMock(wireMockServer);

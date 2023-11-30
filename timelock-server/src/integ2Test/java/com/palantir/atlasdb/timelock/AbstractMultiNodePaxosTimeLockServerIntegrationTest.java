@@ -83,9 +83,9 @@ import org.junit.jupiter.api.Test;
 
 public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
 
-    private final TestableTimelockClusterV2 cluster;
+    private final TestableTimelockCluster cluster;
 
-    public AbstractMultiNodePaxosTimeLockServerIntegrationTest(TestableTimelockClusterV2 cluster) {
+    public AbstractMultiNodePaxosTimeLockServerIntegrationTest(TestableTimelockCluster cluster) {
         this.cluster = cluster;
     }
 
@@ -100,7 +100,7 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
                     .toMillis());
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
 
-    private NamespacedClientsV2 client;
+    private NamespacedClients client;
 
     @BeforeEach
     public void bringAllNodesOnline() {
@@ -130,7 +130,7 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void leaderRespondsToRequests() {
-        NamespacedClientsV2 currentLeader =
+        NamespacedClients currentLeader =
                 cluster.currentLeaderFor(client.namespace()).client(client.namespace());
         currentLeader.getFreshTimestamp();
 
@@ -154,8 +154,7 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void leaderLosesLeadershipIfQuorumIsNotAlive() throws ExecutionException {
-        NamespacedClientsV2 leader =
-                cluster.currentLeaderFor(client.namespace()).client(client.namespace());
+        NamespacedClients leader = cluster.currentLeaderFor(client.namespace()).client(client.namespace());
         cluster.killAndAwaitTermination(cluster.nonLeaders(client.namespace()).values());
 
         assertThatThrownBy(leader::getFreshTimestamp)
@@ -164,18 +163,18 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void someoneBecomesLeaderAgainAfterQuorumIsRestored() throws ExecutionException {
-        Set<TestableTimelockServerV2> nonLeaders =
+        Set<TestableTimelockServer> nonLeaders =
                 ImmutableSet.copyOf(cluster.nonLeaders(client.namespace()).values());
         cluster.killAndAwaitTermination(nonLeaders);
 
-        nonLeaders.forEach(TestableTimelockServerV2::start);
+        nonLeaders.forEach(TestableTimelockServer::start);
         client.getFreshTimestamp();
     }
 
     @Test
     public void canHostilelyTakeOverNamespace() {
-        TestableTimelockServerV2 currentLeader = cluster.currentLeaderFor(client.namespace());
-        TestableTimelockServerV2 nonLeader =
+        TestableTimelockServer currentLeader = cluster.currentLeaderFor(client.namespace());
+        TestableTimelockServer nonLeader =
                 Iterables.get(cluster.nonLeaders(client.namespace()).get(client.namespace()), 0);
 
         assertThatThrownBy(nonLeader.client(client.namespace())::getFreshTimestamp)
@@ -198,7 +197,7 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void canPerformRollingRestart() {
         bringAllNodesOnline();
-        for (TestableTimelockServerV2 server : cluster.servers()) {
+        for (TestableTimelockServer server : cluster.servers()) {
             server.killSync();
             cluster.waitUntilAllServersOnlineAndReadyToServeNamespaces(ImmutableList.of(client.namespace()));
             client.getFreshTimestamp();
@@ -251,7 +250,7 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void canCreateNewClientsDynamically() {
         for (int i = 0; i < 5; i++) {
-            NamespacedClientsV2 randomNamespace =
+            NamespacedClients randomNamespace =
                     cluster.clientForRandomNamespace().throughWireMockProxy();
 
             randomNamespace.getFreshTimestamp();
@@ -327,7 +326,7 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
         Set<String> activeNamespaces = getActiveNamespaces();
         assertThat(activeNamespaces).contains(randomNamespace);
 
-        for (TestableTimelockServerV2 server : cluster.servers()) {
+        for (TestableTimelockServer server : cluster.servers()) {
             server.killSync();
             server.start();
         }
@@ -346,7 +345,7 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
 
     private Set<String> getKnownNamespaces() {
         return cluster.servers().stream()
-                .map(TestableTimelockServerV2::timeLockManagementService)
+                .map(TestableTimelockServer::timeLockManagementService)
                 .map(resource -> resource.getNamespaces(AuthHeader.valueOf("Bearer omitted")))
                 .flatMap(Set::stream)
                 .collect(Collectors.toSet());
@@ -354,7 +353,7 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
 
     private Set<String> getActiveNamespaces() {
         return cluster.servers().stream()
-                .map(TestableTimelockServerV2::timeLockManagementService)
+                .map(TestableTimelockServer::timeLockManagementService)
                 .map(resource -> resource.getActiveNamespaces(AuthHeader.valueOf("Bearer omitted")))
                 .flatMap(Set::stream)
                 .collect(Collectors.toSet());
@@ -448,7 +447,7 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
         long freshTimestamp = client.getFreshTimestamp();
 
         long fastForwardTimestamp = freshTimestamp + 100_000_000;
-        NamespacedClientsV2 other = cluster.clientForRandomNamespace().throughWireMockProxy();
+        NamespacedClients other = cluster.clientForRandomNamespace().throughWireMockProxy();
         other.timestampManagementService().fastForwardTimestamp(fastForwardTimestamp);
 
         cluster.failoverToNewLeader(client.namespace());
@@ -458,7 +457,7 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void sanityCheckMultiClientLeaderTime() {
-        TestableTimelockServerV2 leader = cluster.currentLeaderFor(client.namespace());
+        TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
         // Multi client batched TimeLock endpoints do not support multi-leader mode on TimeLock
         Assumptions.assumeFalse(leader.isMultiLeader());
 
@@ -475,7 +474,7 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void sanityCheckMultiClientLeaderTimeAgainstConjureTimelockService() {
-        TestableTimelockServerV2 leader = cluster.currentLeaderFor(client.namespace());
+        TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
         // Multi client batched TimeLock endpoints do not support multi-leader mode on TimeLock
         Assumptions.assumeFalse(leader.isMultiLeader());
 
@@ -494,7 +493,7 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void sanityCheckMultiClientStartTransactions() {
-        TestableTimelockServerV2 leader = cluster.currentLeaderFor(client.namespace());
+        TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
         // Multi client batched TimeLock endpoints do not support multi-leader mode on TimeLock
         Assumptions.assumeFalse(leader.isMultiLeader());
 
@@ -512,7 +511,7 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void sanityCheckMultiClientStartTransactionsAgainstConjureTimelockService() {
-        TestableTimelockServerV2 leader = cluster.currentLeaderFor(client.namespace());
+        TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
         // Multi client batched TimeLock endpoints do not support multi-leader mode on TimeLock
         Assumptions.assumeFalse(leader.isMultiLeader());
 
@@ -543,15 +542,15 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void multiClientStartTransactionsReturnsCorrectStartTimestamps() {
-        TestableTimelockServerV2 leader = cluster.currentLeaderFor(client.namespace());
+        TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
         // Multi client batched TimeLock endpoints do not support multi-leader mode on TimeLock
         Assumptions.assumeFalse(leader.isMultiLeader());
 
         Namespace delta = Namespace.of("delta");
         Namespace gamma = Namespace.of("gamma");
 
-        NamespacedClientsV2 deltaClient = leader.client(delta.get()).throughWireMockProxy();
-        NamespacedClientsV2 gammaClient = leader.client(gamma.get()).throughWireMockProxy();
+        NamespacedClients deltaClient = leader.client(delta.get()).throughWireMockProxy();
+        NamespacedClients gammaClient = leader.client(gamma.get()).throughWireMockProxy();
         List<String> expectedNamespaces = ImmutableList.of(delta.get(), gamma.get());
 
         int deltaFastForwardedTimestamp = 155_200_000;
@@ -572,7 +571,7 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void sanityCheckMultiClientGetCommitTimestamps() {
-        TestableTimelockServerV2 leader = cluster.currentLeaderFor(client.namespace());
+        TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
         // Multi client batched TimeLock endpoints do not support multi-leader mode on TimeLock
         Assumptions.assumeFalse(leader.isMultiLeader());
 
@@ -593,7 +592,7 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void sanityCheckMultiClientGetCommitTimestampsAgainstConjureTimelockService() {
-        TestableTimelockServerV2 leader = cluster.currentLeaderFor(client.namespace());
+        TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
         // Multi client batched TimeLock endpoints do not support multi-leader mode on TimeLock
         Assumptions.assumeFalse(leader.isMultiLeader());
 
@@ -783,7 +782,7 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     private Map<Namespace, ConjureStartTransactionsResponse> assertSanityAndStartTransactions(
-            TestableTimelockServerV2 leader, List<String> expectedNamespaces) {
+            TestableTimelockServer leader, List<String> expectedNamespaces) {
         MultiClientConjureTimelockService multiClientConjureTimelockService = leader.multiClientService();
         int numTransactions = 5;
 
@@ -819,7 +818,7 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     private LeaderTimes assertSanityAndGetLeaderTimes(
-            TestableTimelockServerV2 leader, Set<Namespace> expectedNamespaces) {
+            TestableTimelockServer leader, Set<Namespace> expectedNamespaces) {
         MultiClientConjureTimelockService multiClientConjureTimelockService = leader.multiClientService();
 
         LeaderTimes leaderTimes = multiClientConjureTimelockService.leaderTimes(AUTH_HEADER, expectedNamespaces);

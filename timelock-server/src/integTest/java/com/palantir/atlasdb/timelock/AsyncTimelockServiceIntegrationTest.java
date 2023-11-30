@@ -91,11 +91,11 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     private final ExecutorService executor = PTExecutors.newCachedThreadPool();
 
-    private NamespacedClientsV2 namespace;
+    private NamespacedClients namespace;
 
     @RegisterExtension
-    public static final TestableTimelockClusterV2 cluster =
-            new TestableTimelockClusterV2("paxosSingleServer.ftl", DEFAULT_SINGLE_SERVER);
+    public static final TestableTimelockCluster cluster =
+            new TestableTimelockCluster("paxosSingleServer.ftl", DEFAULT_SINGLE_SERVER);
 
     @BeforeEach
     public void setUp() {
@@ -196,7 +196,7 @@ public class AsyncTimelockServiceIntegrationTest extends AbstractAsyncTimelockSe
 
     @Test
     public void taggedMetricsCanBeIteratedThrough() {
-        NamespacedClientsV2 randomNamespace = cluster.clientForRandomNamespace();
+        NamespacedClients randomNamespace = cluster.clientForRandomNamespace();
         randomNamespace.getFreshTimestamp();
         Map<MetricName, Metric> metrics = cluster.currentLeaderFor(randomNamespace.namespace())
                 .taggedMetricRegistry()

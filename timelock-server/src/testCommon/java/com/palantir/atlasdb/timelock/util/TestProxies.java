@@ -20,8 +20,8 @@ import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.TestProxyUtils;
-import com.palantir.atlasdb.timelock.TestableTimelockServerV2;
-import com.palantir.atlasdb.timelock.TimeLockServerHolderV2;
+import com.palantir.atlasdb.timelock.TestableTimelockServer;
+import com.palantir.atlasdb.timelock.TimeLockServerHolder;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
@@ -33,49 +33,49 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 
-public class TestProxiesV2 {
+public class TestProxies {
 
     private static final SslConfiguration SSL_CONFIGURATION =
             SslConfiguration.of(Paths.get("var/security/trustStore.jks"));
     public static final TrustContext TRUST_CONTEXT = SslSocketFactories.createTrustContext(SSL_CONFIGURATION);
 
     private final String baseUri;
-    private final List<TimeLockServerHolderV2> servers;
+    private final List<TimeLockServerHolder> servers;
     private final ConcurrentMap<Object, Object> proxies = new ConcurrentHashMap<>();
 
-    public TestProxiesV2(String baseUri, List<TestableTimelockServerV2> servers) {
+    public TestProxies(String baseUri, List<TestableTimelockServer> servers) {
         this.baseUri = baseUri;
         this.servers =
-                servers.stream().map(TestableTimelockServerV2::serverHolder).collect(Collectors.toList());
+                servers.stream().map(TestableTimelockServer::serverHolder).collect(Collectors.toList());
     }
 
-    public enum ProxyModeV2 {
+    public enum ProxyMode {
         DIRECT {
             @Override
-            int getPort(TimeLockServerHolderV2 serverHolder) {
+            int getPort(TimeLockServerHolder serverHolder) {
                 return serverHolder.getTimelockPort();
             }
         },
         WIREMOCK {
             @Override
-            int getPort(TimeLockServerHolderV2 serverHolder) {
+            int getPort(TimeLockServerHolder serverHolder) {
                 return serverHolder.getTimelockWiremockPort();
             }
         };
 
-        abstract int getPort(TimeLockServerHolderV2 serverHolder);
+        abstract int getPort(TimeLockServerHolder serverHolder);
     }
 
     public void clearProxies() {
         proxies.clear();
     }
 
-    public <T> T singleNode(TimeLockServerHolderV2 server, Class<T> serviceInterface, ProxyModeV2 proxyMode) {
+    public <T> T singleNode(TimeLockServerHolder server, Class<T> serviceInterface, ProxyMode proxyMode) {
         return singleNode(server, serviceInterface, true, proxyMode);
     }
 
     public <T> T singleNode(
-            TimeLockServerHolderV2 server, Class<T> serviceInterface, boolean shouldRetry, ProxyModeV2 proxyMode) {
+            TimeLockServerHolder server, Class<T> serviceInterface, boolean shouldRetry, ProxyMode proxyMode) {
         String uri = getServerUri(server, proxyMode);
         List<Object> key = ImmutableList.of(serviceInterface, uri, "single", proxyMode);
         AuxiliaryRemotingParameters parameters = shouldRetry
@@ -87,7 +87,7 @@ public class TestProxiesV2 {
                         AtlasDbHttpClients.createProxy(Optional.of(TRUST_CONTEXT), uri, serviceInterface, parameters));
     }
 
-    public <T> T failover(Class<T> serviceInterface, ProxyModeV2 proxyMode) {
+    public <T> T failover(Class<T> serviceInterface, ProxyMode proxyMode) {
         List<String> uris =
                 servers.stream().map(server -> getServerUri(server, proxyMode)).collect(Collectors.toList());
 
@@ -104,7 +104,7 @@ public class TestProxiesV2 {
                         TestProxyUtils.AUXILIARY_REMOTING_PARAMETERS_RETRYING));
     }
 
-    private String getServerUri(TimeLockServerHolderV2 server, ProxyModeV2 proxyMode) {
+    private String getServerUri(TimeLockServerHolder server, ProxyMode proxyMode) {
         return baseUri + ":" + proxyMode.getPort(server);
     }
 }
