@@ -33,9 +33,9 @@ public final class AutobatcherTelemetryComponents {
         markWaitingTimeMetrics(waitTime);
         markRunningTimeMetrics(runningTime);
 
-        Duration totalTime = waitTime.plus(runningTime);
-        if (!totalTime.isZero()) {
-            markWaitingTimeProportion(waitTime.dividedBy(totalTime));
+        long totalTimeNanos = waitTime.toNanos() + runningTime.toNanos();
+        if (totalTimeNanos > 0) {
+            markWaitingTimePercentage((100 * waitTime.toNanos()) / totalTimeNanos);
         }
     }
 
@@ -51,7 +51,7 @@ public final class AutobatcherTelemetryComponents {
         overheadMetrics.runningTimeMillis().update(runningTime.toMillis());
     }
 
-    private void markWaitingTimeProportion(long waitTimePercentage) {
+    private void markWaitingTimePercentage(long waitTimePercentage) {
         overheadMetrics.waitTimePercentage().update(waitTimePercentage);
     }
 
@@ -77,7 +77,7 @@ public final class AutobatcherTelemetryComponents {
                 () -> overheadMetrics.waitTimePercentage().getSnapshot().getValue(0.05));
         overheadMetrics.waitTimePercentageP50((Gauge<Double>)
                 () -> overheadMetrics.waitTimePercentage().getSnapshot().getValue(0.5));
-        overheadMetrics.waitTimeMillisP999((Gauge<Double>)
+        overheadMetrics.waitTimePercentageP999((Gauge<Double>)
                 () -> overheadMetrics.waitTimePercentage().getSnapshot().getValue(0.999));
 
         overheadMetrics.runningTimeMillisP1((Gauge<Double>)
