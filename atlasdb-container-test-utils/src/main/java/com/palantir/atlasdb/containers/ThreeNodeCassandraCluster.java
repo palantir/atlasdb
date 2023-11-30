@@ -31,7 +31,7 @@ import com.palantir.refreshable.Refreshable;
 import java.net.InetSocketAddress;
 import java.util.Map;
 
-public class ThreeNodeCassandraCluster extends ContainerV2 {
+public class ThreeNodeCassandraCluster extends Container {
     private static final SafeLogger log = SafeLoggerFactory.get(ThreeNodeCassandraCluster.class);
 
     private static final CassandraVersion CASSANDRA_VERSION = CassandraVersion.fromEnvironment();
@@ -66,18 +66,18 @@ public class ThreeNodeCassandraCluster extends ContainerV2 {
                 .servers(ImmutableCqlCapableConfig.builder()
                         .addThriftHosts(
                                 new InetSocketAddress(
-                                        FIRST_CASSANDRA_CONTAINER_NAME, CassandraContainerV2.CASSANDRA_THRIFT_PORT),
+                                        FIRST_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT),
                                 new InetSocketAddress(
-                                        SECOND_CASSANDRA_CONTAINER_NAME, CassandraContainerV2.CASSANDRA_THRIFT_PORT),
+                                        SECOND_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT),
                                 new InetSocketAddress(
-                                        THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainerV2.CASSANDRA_THRIFT_PORT))
+                                        THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_THRIFT_PORT))
                         .addCqlHosts(
                                 new InetSocketAddress(
-                                        FIRST_CASSANDRA_CONTAINER_NAME, CassandraContainerV2.CASSANDRA_CQL_PORT),
+                                        FIRST_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_CQL_PORT),
                                 new InetSocketAddress(
-                                        SECOND_CASSANDRA_CONTAINER_NAME, CassandraContainerV2.CASSANDRA_CQL_PORT),
+                                        SECOND_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_CQL_PORT),
                                 new InetSocketAddress(
-                                        THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainerV2.CASSANDRA_CQL_PORT))
+                                        THIRD_CASSANDRA_CONTAINER_NAME, CassandraContainer.CASSANDRA_CQL_PORT))
                         .build())
                 .mutationBatchCount(10000)
                 .mutationBatchSizeBytes(10000000)

@@ -15,11 +15,15 @@
  */
 package com.palantir.atlasdb.containers;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.mockito.Mock;
 
-/* TODO(boyoruk): Delete when JUnit5 upgrade is over. */
 @SuppressWarnings("checkstyle:IllegalThrows")
 public class ContainersTest {
+    @Mock
+    private ExtensionContext context;
+
     @Test
     public void containerStartsUpCorrectly() throws Throwable {
         Containers containers = new Containers(ContainersTest.class).with(new FirstNginxContainer());
@@ -36,7 +40,7 @@ public class ContainersTest {
         setupContainers(containers);
     }
 
-    private static void setupContainers(Containers containers) throws Throwable {
-        containers.before();
+    private void setupContainers(Containers containers) throws Throwable {
+        containers.beforeAll(context);
     }
 }

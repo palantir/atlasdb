@@ -27,7 +27,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.async.DefaultCassandraAsyncKeyValueServiceFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.DefaultCqlClientFactory;
-import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.DockerComposeExtension;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.refreshable.Refreshable;
@@ -37,7 +37,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
 
-/* TODO(boyoruk): Delete when JUnit5 upgrade is over. */
 public class CassandraContainer extends Container {
     static final int CASSANDRA_CQL_PORT = 9042;
     static final int CASSANDRA_THRIFT_PORT = 9160;
@@ -95,7 +94,7 @@ public class CassandraContainer extends Container {
     }
 
     @Override
-    public SuccessOrFailure isReady(DockerComposeRule rule) {
+    public SuccessOrFailure isReady(DockerComposeExtension extension) {
         try (CassandraKeyValueService cassandraKeyValueService = CassandraKeyValueServiceImpl.createForTesting(
                 getConfigWithProxy(Containers.getSocksProxy(name).address()), getRuntimeConfig())) {
             return SuccessOrFailure.onResultOf(cassandraKeyValueService::isInitialized);

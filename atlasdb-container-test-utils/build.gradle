@@ -14,8 +14,6 @@ dependencies {
     implementation 'com.github.ben-manes.caffeine:caffeine'
     implementation 'com.google.guava:guava'
     implementation 'com.palantir.docker.compose:docker-compose-rule-core'
-    implementation 'com.palantir.docker.compose:docker-compose-rule-junit4'
-    implementation 'com.palantir.docker.proxy:docker-proxy-rule-junit4'
     implementation 'com.palantir.docker.compose:docker-compose-junit-jupiter'
     implementation 'com.palantir.docker.proxy:docker-proxy-junit-jupiter'
     implementation 'org.awaitility:awaitility'
@@ -25,7 +23,6 @@ dependencies {
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'io.netty:netty-transport'
-    implementation 'junit:junit'
     implementation 'org.junit.jupiter:junit-jupiter'
     implementation 'org.junit.jupiter:junit-jupiter-api'
 
@@ -34,10 +31,4 @@ dependencies {
 
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.mockito:mockito-core'
-    testImplementation 'org.junit.jupiter:junit-jupiter'
-
-    testImplementation 'junit:junit'
-    testRuntimeOnly 'org.junit.vintage:junit-vintage-engine', {
-        because 'allows JUnit 3 and JUnit 4 tests to run'
-    }
 }
