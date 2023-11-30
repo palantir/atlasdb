@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 final class TimedDetachedSpan {
     private final DetachedSpan delegate;
     private final Stopwatch stopwatch;
-    private volatile AtomicBoolean completed = new AtomicBoolean(false);
+    private final AtomicBoolean completed = new AtomicBoolean(false);
 
     private TimedDetachedSpan(Stopwatch stopwatch, DetachedSpan delegate) {
         this.stopwatch = stopwatch;
