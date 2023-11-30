@@ -31,6 +31,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.Futures;
+import com.palantir.atlasdb.autobatch.AutobatcherTelemetryComponents;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
@@ -39,6 +40,7 @@ import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchCacheImpl;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
@@ -145,7 +147,7 @@ public class TransactionStarterTest {
                 .map(count ->
                         ImmutableTestBatchElement.<Integer, List<StartIdentifiedAtlasDbTransactionResponse>>builder()
                                 .argument(count)
-                                .result(new DisruptorAutobatcher.DisruptorFuture<>("test"))
+                                .result(new DisruptorAutobatcher.DisruptorFuture<>(AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry())))
                                 .build())
                 .collect(toList());
         BatchingIdentifiedAtlasDbTransactionStarter.consumer(lockLeaseService, cache)
