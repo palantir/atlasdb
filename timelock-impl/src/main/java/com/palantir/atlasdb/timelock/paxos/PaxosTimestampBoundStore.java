@@ -263,8 +263,11 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
 
                 executionExecutor.execute(() -> {
                     if (beBad) {
-                        log.info("Attempting to lose leadership, because we rolled a 1 in 100 chance.");
+                        log.info("Attempting to lose leadership, because we rolled a 1 in 50 chance.");
                         loseLeadership.get().run();
+                        Uninterruptibles.sleepUninterruptibly(
+                                ThreadLocalRandom.current().nextInt(5), TimeUnit.SECONDS
+                        );
                     }
                 });
                 if (sleep) {
