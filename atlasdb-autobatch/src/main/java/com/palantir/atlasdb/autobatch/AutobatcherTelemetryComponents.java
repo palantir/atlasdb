@@ -18,22 +18,21 @@ package com.palantir.atlasdb.autobatch;
 
 
 import com.codahale.metrics.Gauge;
-import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.time.Duration;
 
 public final class AutobatcherTelemetryComponents {
-    private final @CompileTimeConstant String safeLoggablePurpose;
+    private final String safeLoggablePurpose;
     private final AutobatchOverheadMetrics overheadMetrics;
 
-    private AutobatcherTelemetryComponents(@CompileTimeConstant String safeLoggablePurpose,  AutobatchOverheadMetrics overheadMetrics) {
+    private AutobatcherTelemetryComponents(String safeLoggablePurpose,  AutobatchOverheadMetrics overheadMetrics) {
         this.safeLoggablePurpose = safeLoggablePurpose;
         this.overheadMetrics = overheadMetrics;
     }
 
     void markWaitingTimeAndRunningTimeMetrics(Duration waitTime, Duration runningTime) {
         markWaitingTimeMetrics(waitTime);
-        markRunningTime(runningTime);
+        markRunningTimeMetrics(runningTime);
 
         Duration totalTime = waitTime.plus(runningTime);
         if (!totalTime.isZero()) {
@@ -52,7 +51,7 @@ public final class AutobatcherTelemetryComponents {
         return safeLoggablePurpose;
     }
 
-    private void markRunningTime(Duration runningTime) {
+    private void markRunningTimeMetrics(Duration runningTime) {
         overheadMetrics
                 .runningTimeMillis()
                 .update(runningTime.toMillis());
@@ -66,7 +65,7 @@ public final class AutobatcherTelemetryComponents {
 
     }
 
-    public static AutobatcherTelemetryComponents create(@CompileTimeConstant String safeLoggablePurpose, TaggedMetricRegistry taggedMetricRegistry) {
+    public static AutobatcherTelemetryComponents create(String safeLoggablePurpose, TaggedMetricRegistry taggedMetricRegistry) {
         AutobatchOverheadMetrics overheadMetrics = AutobatchOverheadMetrics.builder()
                 .registry(taggedMetricRegistry)
                 .operationType(safeLoggablePurpose)
