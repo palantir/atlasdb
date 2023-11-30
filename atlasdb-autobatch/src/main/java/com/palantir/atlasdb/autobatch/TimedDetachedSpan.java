@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.autobatch;
 
 import com.google.common.base.Stopwatch;
+import com.google.common.base.Ticker;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.tracing.DetachedSpan;
 import java.time.Duration;
@@ -44,7 +45,7 @@ final class TimedDetachedSpan {
         return stopwatch.elapsed();
     }
 
-    static TimedDetachedSpan from(DetachedSpan delegate) {
-        return new TimedDetachedSpan(Stopwatch.createStarted(), delegate);
+    static TimedDetachedSpan from(Ticker ticker, DetachedSpan delegate) {
+        return new TimedDetachedSpan(Stopwatch.createStarted(ticker), delegate);
     }
 }
