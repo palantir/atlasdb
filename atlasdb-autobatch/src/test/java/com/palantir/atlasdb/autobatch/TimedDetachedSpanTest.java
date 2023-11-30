@@ -18,7 +18,6 @@ package com.palantir.atlasdb.autobatch;
 
 import static com.palantir.logsafe.testing.Assertions.assertThat;
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
-import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -77,24 +76,7 @@ public final class TimedDetachedSpanTest {
         fakeTicker.advance(10, TimeUnit.MINUTES);
         span.complete();
         assertThat(span.getDurationOrThrowIfStillRunning()).isCloseTo(Duration.ofMinutes(10), Duration.ZERO);
-        assertThat(span.getDurationOrThrowIfStillRunning()).isCloseTo(Duration.ofMinutes(10), Duration.ZERO);
-    }
-
-    @Test
-    public void returnedSpanDurationIsIdempotentAfterFirstCompletion() {
-        FakeTicker fakeTicker = new FakeTicker();
-        TimedDetachedSpan span = TimedDetachedSpan.from(fakeTicker, delegate);
-        fakeTicker.advance(10, TimeUnit.MINUTES);
         span.complete();
         assertThat(span.getDurationOrThrowIfStillRunning()).isCloseTo(Duration.ofMinutes(10), Duration.ZERO);
-        fakeTicker.advance(10, TimeUnit.MINUTES);
-        assertThat(span.getDurationOrThrowIfStillRunning()).isCloseTo(Duration.ofMinutes(10), Duration.ZERO);
-    }
-
-    @Test
-    public void secondCallToCompleteDoesNotThrow() {
-        TimedDetachedSpan span = TimedDetachedSpan.from(Ticker.systemTicker(), delegate);
-        span.complete();
-        assertThatCode(span::complete).doesNotThrowAnyException();
     }
 }

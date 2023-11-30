@@ -24,7 +24,7 @@ final class FakeTicker extends Ticker {
 
     private final AtomicLong nanos = new AtomicLong();
 
-    public void advance(long time, TimeUnit timeUnit) {
+    void advance(long time, TimeUnit timeUnit) {
         nanos.addAndGet(timeUnit.toNanos(time));
     }
 
