@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
 import com.google.common.util.concurrent.UncheckedExecutionException;
+import com.google.errorprone.annotations.CompileTimeConstant;
 import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.WaitStrategy;
 import com.palantir.common.concurrent.PTExecutors;
@@ -177,7 +178,7 @@ public final class Autobatchers {
             this.handlerFactory = handlerFactory;
         }
 
-        public AutobatcherBuilder<I, O> safeLoggablePurpose(String purposeParam) {
+        public AutobatcherBuilder<I, O> safeLoggablePurpose(@CompileTimeConstant String purposeParam) {
             this.purpose = purposeParam;
             return this;
         }
