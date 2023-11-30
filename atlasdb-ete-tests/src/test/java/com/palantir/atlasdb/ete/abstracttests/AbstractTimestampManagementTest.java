@@ -13,19 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.ete.suiteclasses;
+package com.palantir.atlasdb.ete.abstracttests;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.palantir.atlasdb.ete.utilities.EteSetup;
+import com.palantir.atlasdb.ete.utilities.EteExtension;
 import com.palantir.atlasdb.timestamp.EteTimestampResource;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class TimestampManagementEteTest {
+public abstract class AbstractTimestampManagementTest {
 
     // TODO(jlach): why single node? why not all nodes?
     // based on TodoEteTest
-    private EteTimestampResource timestampClient = EteSetup.createClientToSingleNode(EteTimestampResource.class);
+    private final EteTimestampResource timestampClient =
+            EteExtension.createClientToSingleNode(EteTimestampResource.class);
 
     @Test
     public void shouldBeAbleToFetchAndForwardTimestamp() {

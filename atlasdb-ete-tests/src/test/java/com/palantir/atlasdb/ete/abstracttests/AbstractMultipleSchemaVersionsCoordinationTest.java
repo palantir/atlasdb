@@ -14,33 +14,33 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.ete.suiteclasses;
+package com.palantir.atlasdb.ete.abstracttests;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.palantir.atlasdb.coordination.CoordinationResource;
-import com.palantir.atlasdb.ete.utilities.EteSetup;
-import org.junit.Test;
+import com.palantir.atlasdb.ete.utilities.EteExtension;
+import org.junit.jupiter.api.Test;
 
-public class MultipleSchemaVersionsCoordinationEteTest {
+public abstract class AbstractMultipleSchemaVersionsCoordinationTest {
     private static final int VERSION_ONE = 1;
     private static final int NEW_VERSION = 5888888;
 
     private final CoordinationResource coordinationResource =
-            EteSetup.createClientToSingleNode(CoordinationResource.class);
+            EteExtension.createClientToSingleNode(CoordinationResource.class);
 
     @Test
     public void transactionFailsUnderUnknownSchemaVersion() {
         coordinationResource.forceInstallNewTransactionsSchemaVersion(NEW_VERSION);
-        CoordinationEteTest.assertTransactionsSchemaVersionIsNow(NEW_VERSION, coordinationResource);
+        AbstractCoordinationTest.assertTransactionsSchemaVersionIsNow(NEW_VERSION, coordinationResource);
         assertThat(coordinationResource.doTransactionAndReportOutcome()).isFalse();
     }
 
     @Test
     public void transactionOnKnownVersionFailsOnValueWithUnknownVersion() {
         coordinationResource.forceInstallNewTransactionsSchemaVersion(NEW_VERSION);
-        CoordinationEteTest.assertTransactionsSchemaVersionIsNow(NEW_VERSION, coordinationResource);
+        AbstractCoordinationTest.assertTransactionsSchemaVersionIsNow(NEW_VERSION, coordinationResource);
 
         // writes to kvs via txn are blocked as transaction on NEW_VERSION will not be able to mark itself in
         // progress.
@@ -48,7 +48,7 @@ public class MultipleSchemaVersionsCoordinationEteTest {
                 .doesNotThrowAnyException();
 
         coordinationResource.forceInstallNewTransactionsSchemaVersion(VERSION_ONE);
-        CoordinationEteTest.assertTransactionsSchemaVersionIsNow(VERSION_ONE, coordinationResource);
+        AbstractCoordinationTest.assertTransactionsSchemaVersionIsNow(VERSION_ONE, coordinationResource);
 
         // This must still determine whether the transaction that started under a NEW_VERSION regime committed
         // or not, when performing conflict checking. We can't tell, hence we must fail.

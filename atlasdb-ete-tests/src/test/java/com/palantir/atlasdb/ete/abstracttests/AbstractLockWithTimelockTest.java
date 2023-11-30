@@ -13,28 +13,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.ete.suiteclasses;
+
+package com.palantir.atlasdb.ete.abstracttests;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.ete.utilities.EteExtension;
-import com.palantir.atlasdb.timestamp.EteTimestampResource;
+import com.palantir.atlasdb.lock.LockResource;
 import org.junit.jupiter.api.Test;
 
-public abstract class AbstractTimestampManagementTest {
-
-    // TODO(jlach): why single node? why not all nodes?
-    // based on TodoEteTest
-    private final EteTimestampResource timestampClient =
-            EteExtension.createClientToSingleNode(EteTimestampResource.class);
+public abstract class AbstractLockWithTimelockTest {
+    private final LockResource lockResource = EteExtension.createClientToSingleNode(LockResource.class);
 
     @Test
-    public void shouldBeAbleToFetchAndForwardTimestamp() {
-        assertThat(timestampClient.getFreshTimestamp()).isNotNull();
+    public void smallV1LockSucceeds() {
+        assertThat(lockResource.lockUsingLegacyLockApi(1, 100)).isTrue();
+    }
 
-        long newts = timestampClient.getFreshTimestamp() + 10000000;
-        timestampClient.fastForwardTimestamp(newts);
+    @Test
+    public void smallV2LockSucceeds() {
+        assertThat(lockResource.lockUsingTimelockApi(1, 100)).isTrue();
+    }
 
-        assertThat(timestampClient.getFreshTimestamp()).isGreaterThan(newts);
+    @Test
+    public void largeV1LockSucceeds() {
+        assertThat(lockResource.lockUsingLegacyLockApi(50, 100_000)).isTrue();
+    }
+
+    @Test
+    public void largeV2LockSucceeds() {
+        assertThat(lockResource.lockUsingTimelockApi(50, 100_000)).isTrue();
     }
 }

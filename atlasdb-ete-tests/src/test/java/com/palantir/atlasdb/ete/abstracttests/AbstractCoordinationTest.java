@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.ete.suiteclasses;
+package com.palantir.atlasdb.ete.abstracttests;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

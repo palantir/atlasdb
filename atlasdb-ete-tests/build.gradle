@@ -47,8 +47,6 @@ dependencies {
     testImplementation 'com.palantir.conjure.java.api:test-utils'
     testImplementation 'com.palantir.conjure.java.runtime:keystores'
     testImplementation 'com.palantir.docker.compose:docker-compose-rule-core'
-    testImplementation 'com.palantir.docker.compose:docker-compose-rule-junit4'
-    testImplementation 'com.palantir.docker.proxy:docker-proxy-rule-junit4'
     testImplementation 'com.palantir.docker.compose:docker-compose-junit-jupiter'
     testImplementation 'com.palantir.docker.proxy:docker-proxy-junit-jupiter'
     testImplementation 'com.palantir.safe-logging:preconditions'
@@ -69,7 +67,6 @@ dependencies {
     testImplementation project(':atlasdb-remoting-api')
     testImplementation project(':atlasdb-tests-shared')
     testImplementation project(':flake-extension')
-    testImplementation project(':flake-rule')
     testImplementation project(':lock-api-objects')
     testImplementation project(':timestamp-api')
     testImplementation project(':timestamp-impl')
@@ -90,12 +87,6 @@ dependencies {
     compileOnly 'org.immutables:value::annotations'
     compileOnly project(':atlasdb-processors')
     testCompileOnly 'org.immutables:value::annotations'
-
-    /* TODO(boyoruk): Migrate to JUnit5 */
-    testImplementation 'junit:junit'
-    testRuntimeOnly 'org.junit.vintage:junit-vintage-engine', {
-        because 'allows JUnit 3 and JUnit 4 tests to run'
-    }
 }
 
 // ETE Test Wiring
@@ -192,7 +183,7 @@ test {
         setFailOnNoMatchingTests(false)
 
         // suite classes that should not be run outside of suites
-        excludeTestsMatching 'com.palantir.atlasdb.ete.suiteclasses.*'
+        excludeTestsMatching 'com.palantir.atlasdb.ete.abstracttests.*'
         excludeTestsMatching 'com.palantir.atlasdb.ete.tests.*'
 
         // tests with 1-off tasks

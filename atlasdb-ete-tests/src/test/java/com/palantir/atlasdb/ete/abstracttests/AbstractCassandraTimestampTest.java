@@ -13,13 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.ete.suiteclasses;
+package com.palantir.atlasdb.ete.abstracttests;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.ete.utilities.CassandraCommands;
-import com.palantir.atlasdb.ete.utilities.EteSetup;
+import com.palantir.atlasdb.ete.utilities.EteExtension;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
@@ -34,25 +34,25 @@ import java.util.function.BooleanSupplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.awaitility.Awaitility;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-public class CassandraTimestampsEteTest {
+public abstract class AbstractCassandraTimestampTest {
     private static final Todo TODO = ImmutableTodo.of("todo");
     private static final Todo TODO_2 = ImmutableTodo.of("todo_two");
     private static final String CASSANDRA_CONTAINER_NAME = "cassandra";
     private static final long ID = 1L;
     private static final String NAMESPACE = "tom";
 
-    private TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
+    private final TodoResource todoClient = EteExtension.createClientToSingleNode(TodoResource.class);
 
-    @Before
+    @BeforeEach
     public void setup() {
         todoClient.truncate();
     }
 
-    @After
+    @AfterEach
     public void cleanup() {
         todoClient.truncate();
     }

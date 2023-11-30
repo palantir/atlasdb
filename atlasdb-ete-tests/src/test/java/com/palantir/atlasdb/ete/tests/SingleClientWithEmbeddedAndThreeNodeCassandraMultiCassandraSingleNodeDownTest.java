@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.ete.tests;
 
-import com.palantir.atlasdb.ete.suiteclasses.AbstractMultiCassandraSingleNodeDownTest;
+import com.palantir.atlasdb.ete.abstracttests.AbstractMultiCassandraSingleNodeDownTest;
 import com.palantir.atlasdb.ete.utilities.EteExtension;
 import com.palantir.atlasdb.ete.utilities.EteExtension.InitializationMode;
 import org.junit.jupiter.api.extension.RegisterExtension;

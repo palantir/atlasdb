@@ -13,33 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.ete.suiteclasses;
+package com.palantir.atlasdb.ete.abstracttests;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.palantir.atlasdb.ete.utilities.EteSetup;
+import com.palantir.atlasdb.ete.utilities.EteExtension;
 import com.palantir.atlasdb.ete.utilities.StreamTestUtils;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.todo.ImmutableTodo;
 import com.palantir.atlasdb.todo.Todo;
 import com.palantir.atlasdb.todo.TodoResource;
-import com.palantir.flake.FlakeRetryingRule;
-import com.palantir.flake.ShouldRetry;
+import com.palantir.flake.FlakeRetryTest;
 import java.net.SocketTimeoutException;
-import org.junit.After;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestRule;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
-public class TodoEteTest {
+public abstract class AbstractTodoTest {
     private static final Todo TODO = ImmutableTodo.of("some stuff to do");
+    private final TodoResource todoClient = EteExtension.createClientToSingleNode(TodoResource.class);
 
-    private final TodoResource todoClient = EteSetup.createClientToSingleNode(TodoResource.class);
-
-    @Rule
-    public final TestRule flakeRetryingRule = new FlakeRetryingRule();
-
-    @After
+    @AfterEach
     public void cleanupStreamTables() {
         todoClient.truncate();
     }
@@ -50,9 +43,8 @@ public class TodoEteTest {
         assertThat(todoClient.getTodoList()).contains(TODO);
     }
 
-    @Test
-    @ShouldRetry(
-            numAttempts = 10,
+    @FlakeRetryTest(
+            maxNumberOfRetriesUntilSuccess = 10,
             retryableExceptions = {SocketTimeoutException.class})
     public void shouldSweepStreamIndices() {
         // Stores five small streams, each of which fits into a single block
