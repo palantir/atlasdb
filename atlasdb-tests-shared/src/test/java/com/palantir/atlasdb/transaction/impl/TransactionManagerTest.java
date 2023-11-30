@@ -132,8 +132,8 @@ public class TransactionManagerTest extends TransactionTestSetupV2 {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 NoOpCleaner.INSTANCE,
-                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                AbstractTransactionTestV2.GET_RANGES_THREAD_POOL_SIZE,
+                AbstractTransactionTestV2.DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
                 knowledge);
 
@@ -259,8 +259,8 @@ public class TransactionManagerTest extends TransactionTestSetupV2 {
                 NoOpCleaner.INSTANCE,
                 DefaultTimestampCache.createForTests(),
                 false,
-                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                AbstractTransactionTestV2.GET_RANGES_THREAD_POOL_SIZE,
+                AbstractTransactionTestV2.DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 true,

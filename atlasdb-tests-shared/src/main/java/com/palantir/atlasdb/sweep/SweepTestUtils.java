@@ -26,7 +26,7 @@ import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
+import com.palantir.atlasdb.transaction.impl.AbstractTransactionTestV2;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -89,8 +89,8 @@ public final class SweepTestUtils {
                 cdm,
                 ssm,
                 cleaner,
-                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                AbstractTransactionTestV2.GET_RANGES_THREAD_POOL_SIZE,
+                AbstractTransactionTestV2.DEFAULT_GET_RANGES_CONCURRENCY,
                 writer,
                 knowledge);
         setupTables(kvs);

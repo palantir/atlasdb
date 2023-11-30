@@ -43,7 +43,6 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timelock.paxos.AbstractInMemoryTimelockExtension;
-import com.palantir.timelock.paxos.InMemoryTimelockServices;
 import com.palantir.timestamp.TimestampManagementService;
 import java.util.HashMap;
 import java.util.Map;
@@ -59,35 +58,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     private final WrapperWithTracker<CallbackAwareTransaction> transactionWrapper;
     private final WrapperWithTracker<KeyValueService> keyValueServiceWrapper;
     private Optional<Long> unreadableTs = Optional.empty();
-
-    @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
-    public TestTransactionManagerImpl(
-            MetricsManager metricsManager,
-            KeyValueService keyValueService,
-            InMemoryTimelockServices inMemoryTimelockServices,
-            LockService lockService,
-            TransactionService transactionService,
-            ConflictDetectionManager conflictDetectionManager,
-            SweepStrategyManager sweepStrategyManager,
-            TimestampCache timestampCache,
-            MultiTableSweepQueueWriter sweepQueue,
-            TransactionKnowledgeComponents knowledge,
-            ExecutorService deleteExecutor) {
-        this(
-                metricsManager,
-                keyValueService,
-                inMemoryTimelockServices,
-                lockService,
-                transactionService,
-                conflictDetectionManager,
-                sweepStrategyManager,
-                timestampCache,
-                sweepQueue,
-                deleteExecutor,
-                WrapperWithTracker.TRANSACTION_NO_OP,
-                WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP,
-                knowledge);
-    }
 
     public TestTransactionManagerImpl(
             MetricsManager metricsManager,
@@ -142,8 +112,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 NoOpCleaner.INSTANCE,
                 DefaultTimestampCache.createForTests(),
                 false,
-                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                AbstractTransactionTestV2.GET_RANGES_THREAD_POOL_SIZE,
+                AbstractTransactionTestV2.DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 true,
@@ -154,49 +124,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 knowledge);
         this.transactionWrapper = WrapperWithTracker.TRANSACTION_NO_OP;
         this.keyValueServiceWrapper = WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP;
-    }
-
-    @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
-    public TestTransactionManagerImpl(
-            MetricsManager metricsManager,
-            KeyValueService keyValueService,
-            InMemoryTimelockServices services,
-            LockService lockService,
-            TransactionService transactionService,
-            ConflictDetectionManager conflictDetectionManager,
-            SweepStrategyManager sweepStrategyManager,
-            TimestampCache timestampCache,
-            MultiTableSweepQueueWriter sweepQueue,
-            ExecutorService deleteExecutor,
-            WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
-            WrapperWithTracker<KeyValueService> keyValueServiceWrapper,
-            TransactionKnowledgeComponents knowledge) {
-        super(
-                metricsManager,
-                createAssertKeyValue(keyValueService, lockService),
-                services.getLegacyTimelockService(),
-                services.getLockWatchManager(),
-                services.getTimestampManagementService(),
-                lockService,
-                transactionService,
-                Suppliers.ofInstance(AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS),
-                conflictDetectionManager,
-                sweepStrategyManager,
-                NoOpCleaner.INSTANCE,
-                timestampCache,
-                false,
-                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                sweepQueue,
-                deleteExecutor,
-                true,
-                () -> TRANSACTION_CONFIG,
-                ConflictTracer.NO_OP,
-                DefaultMetricsFilterEvaluationContext.createDefault(),
-                Optional.empty(),
-                knowledge);
-        this.transactionWrapper = transactionWrapper;
-        this.keyValueServiceWrapper = keyValueServiceWrapper;
     }
 
     public TestTransactionManagerImpl(
@@ -227,8 +154,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 NoOpCleaner.INSTANCE,
                 timestampCache,
                 false,
-                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                AbstractTransactionTestV2.GET_RANGES_THREAD_POOL_SIZE,
+                AbstractTransactionTestV2.DEFAULT_GET_RANGES_CONCURRENCY,
                 sweepQueue,
                 deleteExecutor,
                 true,

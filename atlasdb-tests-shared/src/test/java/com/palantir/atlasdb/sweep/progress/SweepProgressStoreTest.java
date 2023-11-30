@@ -18,7 +18,7 @@ package com.palantir.atlasdb.sweep.progress;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class SweepProgressStoreTest extends AbstractSweepProgressStoreTest {
+public class SweepProgressStoreTest extends AbstractSweepProgressStoreTestV2 {
     @RegisterExtension
     public static final TestResourceManagerV2 TRM = TestResourceManagerV2.inMemory();
 

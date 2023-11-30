@@ -130,8 +130,8 @@ public abstract class AbstractSerializableTransactionTestV2 extends AbstractTran
                 conflictDetectionManager,
                 SweepStrategyManagers.createDefault(keyValueService),
                 NoOpCleaner.INSTANCE,
-                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                AbstractTransactionTestV2.GET_RANGES_THREAD_POOL_SIZE,
+                AbstractTransactionTestV2.DEFAULT_GET_RANGES_CONCURRENCY,
                 sweepQueue,
                 knowledge);
         sweepQueue.initialize(txManager);
@@ -167,8 +167,8 @@ public abstract class AbstractSerializableTransactionTestV2 extends AbstractTran
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 true,
                 timestampCache,
-                AbstractTransactionTest.GET_RANGES_EXECUTOR,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
+                AbstractTransactionTestV2.GET_RANGES_EXECUTOR,
+                AbstractTransactionTestV2.DEFAULT_GET_RANGES_CONCURRENCY,
                 getSweepQueueWriterInitialized(),
                 MoreExecutors.newDirectExecutorService(),
                 true,
