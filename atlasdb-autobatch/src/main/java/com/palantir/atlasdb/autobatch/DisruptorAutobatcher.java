@@ -33,6 +33,7 @@ import com.palantir.conjure.java.api.errors.QosReason;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.DetachedSpan;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.io.Closeable;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -69,20 +70,20 @@ public final class DisruptorAutobatcher<T, R>
 
     private final Disruptor<DisruptorBatchElement<T, R>> disruptor;
     private final RingBuffer<DisruptorBatchElement<T, R>> buffer;
-    private final String safeLoggablePurpose;
     private final Runnable closingCallback;
+    private final AutobatcherTelemetryComponents telemetryComponents;
 
     private volatile boolean closed = false;
 
     DisruptorAutobatcher(
             Disruptor<DisruptorBatchElement<T, R>> disruptor,
             RingBuffer<DisruptorBatchElement<T, R>> buffer,
-            String safeLoggablePurpose,
-            Runnable closingCallback) {
+            Runnable closingCallback,
+            AutobatcherTelemetryComponents telemetryComponents) {
         this.disruptor = disruptor;
         this.buffer = buffer;
-        this.safeLoggablePurpose = safeLoggablePurpose;
         this.closingCallback = closingCallback;
+        this.telemetryComponents = telemetryComponents;
     }
 
     @Override
@@ -91,7 +92,7 @@ public final class DisruptorAutobatcher<T, R>
             throw QosException.unavailable(CLOSED_REASON);
         }
 
-        DisruptorFuture<R> result = new DisruptorFuture<R>(safeLoggablePurpose);
+        DisruptorFuture<R> result = new DisruptorFuture<R>(telemetryComponents);
         buffer.publishEvent((refresh, sequence) -> {
             refresh.result = result;
             refresh.argument = argument;
@@ -129,7 +130,7 @@ public final class DisruptorAutobatcher<T, R>
         }
     }
 
-    public static final class DisruptorFuture<R> extends AbstractFuture<R> {
+    static final class DisruptorFuture<R> extends AbstractFuture<R> {
 
         private final DetachedSpan parent;
         private final TimedDetachedSpan waitingSpan;
@@ -139,9 +140,8 @@ public final class DisruptorAutobatcher<T, R>
 
         private volatile boolean valueSet = false;
 
-
-        public DisruptorFuture(String safeLoggablePurpose) {
-            this.parent = DetachedSpan.start(safeLoggablePurpose + " disruptor task");
+        DisruptorFuture(AutobatcherTelemetryComponents telemetryComponents) {
+            this.parent = DetachedSpan.start(telemetryComponents.getSafeLoggablePurpose() + " disruptor task");
             this.waitingSpan = TimedDetachedSpan.from(parent.childDetachedSpan("task waiting to be run"));
             this.addListener(
                     () -> {
@@ -150,15 +150,10 @@ public final class DisruptorAutobatcher<T, R>
                             runningSpan.complete();
                             parent.complete();
 
-                            // report wait time given we know wait finished
-
-                            // approximates success
                             if (valueSet) {
-                                // report running time
-                                // report total time
-                                // report fraction of time spent waiting
+                                telemetryComponents.markWaitingTimeAndRunningTimeMetrics(waitingSpan.getDurationOrThrowIfStillRunning(), runningSpan.getDurationOrThrowIfStillRunning());
                             } else {
-                                // report wait time only as
+                                telemetryComponents.markWaitingTimeMetrics(waitingSpan.getDurationOrThrowIfStillRunning());
                             }
 
                         } else {
@@ -206,6 +201,6 @@ public final class DisruptorAutobatcher<T, R>
         disruptor.handleEventsWith(
                 (event, sequence, endOfBatch) -> eventHandler.onEvent(event.consume(), sequence, endOfBatch));
         disruptor.start();
-        return new DisruptorAutobatcher<>(disruptor, disruptor.getRingBuffer(), safeLoggablePurpose, closingCallback);
+        return new DisruptorAutobatcher<>(disruptor, disruptor.getRingBuffer(), closingCallback, AutobatcherTelemetryComponents.create(safeLoggablePurpose, new DefaultTaggedMetricRegistry()));
     }
 }
