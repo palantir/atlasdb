@@ -165,7 +165,8 @@ public class GetSuspectedLeaderWithUuidTests {
         @Value.Lazy
         @Override
         default DisruptorAutobatcher.DisruptorFuture<Optional<ClientAwareLeaderPinger>> result() {
-            return new DisruptorAutobatcher.DisruptorFuture<>(AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry()));
+            return new DisruptorAutobatcher.DisruptorFuture<>(
+                    AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry()));
         }
 
         default Optional<ClientAwareLeaderPinger> get()

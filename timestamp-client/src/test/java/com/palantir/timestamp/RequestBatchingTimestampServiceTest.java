@@ -100,7 +100,8 @@ public final class RequestBatchingTimestampServiceTest {
         List<BatchElement<Integer, TimestampRange>> elements = Arrays.stream(sizes)
                 .mapToObj(size -> ImmutableTestBatchElement.builder()
                         .argument(size)
-                        .result(new DisruptorAutobatcher.DisruptorFuture<>(AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry())))
+                        .result(new DisruptorAutobatcher.DisruptorFuture<>(
+                                AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry())))
                         .build())
                 .collect(toList());
         RequestBatchingTimestampService.consumer(unbatchedDelegate).accept(elements);
