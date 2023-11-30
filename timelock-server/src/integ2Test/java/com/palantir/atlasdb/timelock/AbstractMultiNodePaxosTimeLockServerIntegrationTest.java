@@ -263,7 +263,7 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    @Disabled
+    @Disabled // TODO(boyoruk): Investigate why this test fails
     public void lockRequestCanBlockForTheFullTimeout() {
         LockToken token =
                 client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
@@ -277,7 +277,7 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    @Disabled
+    @Disabled // TODO(boyoruk): Investigate why this test fails
     public void waitForLocksRequestCanBlockForTheFullTimeout() {
         Assumptions.assumeFalse(cluster.isDbTimelock()); // We will never test only DB timelock when releasing.
         LockToken token =
