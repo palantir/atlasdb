@@ -21,11 +21,12 @@ import com.google.common.base.Ticker;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.tracing.DetachedSpan;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 final class TimedDetachedSpan {
     private final DetachedSpan delegate;
     private final Stopwatch stopwatch;
-    private volatile boolean completed = false;
+    private volatile AtomicBoolean completed = new AtomicBoolean(false);
 
     private TimedDetachedSpan(Stopwatch stopwatch, DetachedSpan delegate) {
         this.stopwatch = stopwatch;
@@ -33,13 +34,14 @@ final class TimedDetachedSpan {
     }
 
     void complete() {
-        delegate.complete();
-        stopwatch.stop();
-        completed = true;
+        if (completed.compareAndSet(false, true)) {
+            delegate.complete();
+            stopwatch.stop();
+        }
     }
 
     Duration getDurationOrThrowIfStillRunning() {
-        if (!completed) {
+        if (!completed.get()) {
             throw new SafeRuntimeException("Fetching duration was attempted while the span task is still running.");
         }
         return stopwatch.elapsed();

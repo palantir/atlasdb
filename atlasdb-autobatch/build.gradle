@@ -36,6 +36,7 @@ dependencies {
 
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.mockito:mockito-core'
+    testImplementation 'com.palantir.safe-logging:preconditions-assertj'
     testImplementation 'com.palantir.tracing:tracing-test-utils'
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation 'org.mockito:mockito-junit-jupiter'
