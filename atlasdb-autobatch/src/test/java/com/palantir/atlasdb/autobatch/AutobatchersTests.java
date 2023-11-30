@@ -35,7 +35,7 @@ public class AutobatchersTests {
         DisruptorAutobatcher<Object, Object> autobatcher = Autobatchers.independent(list -> {
                     throw new SafeIllegalStateException("boo");
                 })
-                .safeLoggablePurpose("testing")
+                .safeLoggablePurpose("test")
                 .build();
         ListenableFuture<Object> response = autobatcher.apply(new Object());
         assertThatThrownBy(response::get)
@@ -50,7 +50,7 @@ public class AutobatchersTests {
         DisruptorAutobatcher<Object, Object> autobatcher = Autobatchers.independent(
                         list -> Uninterruptibles.sleepUninterruptibly(Duration.ofSeconds(30)))
                 .batchFunctionTimeout(Duration.ofSeconds(1))
-                .safeLoggablePurpose("testing")
+                .safeLoggablePurpose("test")
                 .timeoutHandler(_exception -> runtimeException)
                 .build();
 
@@ -72,7 +72,7 @@ public class AutobatchersTests {
                     list.forEach(element -> element.result().set(new Object()));
                 })
                 .batchFunctionTimeout(Duration.ofSeconds(1))
-                .safeLoggablePurpose("testing")
+                .safeLoggablePurpose("test")
                 .build();
 
         ListenableFuture<Object> response = autobatcher.apply(new Object());
