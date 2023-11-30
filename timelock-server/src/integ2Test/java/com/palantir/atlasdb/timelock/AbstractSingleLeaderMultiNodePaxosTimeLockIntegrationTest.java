@@ -27,38 +27,26 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.paxos.BatchPaxosAcceptorRpcClient;
 import com.palantir.atlasdb.timelock.paxos.PaxosRemoteClients;
-import com.palantir.atlasdb.timelock.suite.SingleLeaderPaxosSuite;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
-import com.palantir.atlasdb.timelock.util.ParameterInjector;
-import com.palantir.atlasdb.timelock.util.TestProxies;
+import com.palantir.atlasdb.timelock.util.TestProxiesV2;
 import com.palantir.paxos.Client;
 import java.util.ArrayList;
 import java.util.List;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-@RunWith(Parameterized.class)
-public class SingleLeaderMultiNodePaxosTimeLockIntegrationTest {
+public abstract class AbstractSingleLeaderMultiNodePaxosTimeLockIntegrationTest {
     private static final ImmutableSet<Client> CLIENT_SET = ImmutableSet.of(PSEUDO_LEADERSHIP_CLIENT);
 
-    @ClassRule
-    public static ParameterInjector<TestableTimelockCluster> injector =
-            ParameterInjector.withFallBackConfiguration(() -> SingleLeaderPaxosSuite.BATCHED_PAXOS);
+    private final TestableTimelockClusterV2 cluster;
 
-    @Parameterized.Parameter
-    public TestableTimelockCluster cluster;
+    private NamespacedClientsV2 namespace;
 
-    @Parameterized.Parameters(name = "{0}")
-    public static Iterable<TestableTimelockCluster> params() {
-        return injector.getParameter();
+    public AbstractSingleLeaderMultiNodePaxosTimeLockIntegrationTest(TestableTimelockClusterV2 cluster) {
+        this.cluster = cluster;
     }
 
-    private NamespacedClients namespace;
-
-    @Before
+    @BeforeEach
     public void setUp() {
         namespace = cluster.clientForRandomNamespace().throughWireMockProxy();
     }
@@ -98,12 +86,12 @@ public class SingleLeaderMultiNodePaxosTimeLockIntegrationTest {
 
     @Test
     public void migrationToBatchedSingleLeaderHasConsistentSequenceNumbers() {
-        NamespacedClients client = cluster.clientForRandomNamespace().throughWireMockProxy();
+        NamespacedClientsV2 client = cluster.clientForRandomNamespace().throughWireMockProxy();
         cluster.waitUntilAllServersOnlineAndReadyToServeNamespaces(ImmutableList.of(client.namespace()));
 
         List<Long> sequenceNumbers = new ArrayList<>();
 
-        for (TestableTimelockServer server : cluster.servers()) {
+        for (TestableTimelockServerV2 server : cluster.servers()) {
             server.startUsingBatchedSingleLeader();
             if (cluster.currentLeaderFor(client.namespace()) == server) {
                 // if we are the leader failover twice to ensure we see the new sequence
@@ -122,12 +110,12 @@ public class SingleLeaderMultiNodePaxosTimeLockIntegrationTest {
 
     @Test
     public void reverseMigrationFromBatchedSingleLeaderHasConsistentSequenceNumbers() {
-        NamespacedClients client = cluster.clientForRandomNamespace().throughWireMockProxy();
+        NamespacedClientsV2 client = cluster.clientForRandomNamespace().throughWireMockProxy();
         cluster.waitUntilAllServersOnlineAndReadyToServeNamespaces(ImmutableList.of(client.namespace()));
-        cluster.servers().forEach(TestableTimelockServer::startUsingBatchedSingleLeader);
+        cluster.servers().forEach(TestableTimelockServerV2::startUsingBatchedSingleLeader);
         List<Long> sequenceNumbers = new ArrayList<>();
 
-        for (TestableTimelockServer server : cluster.servers()) {
+        for (TestableTimelockServerV2 server : cluster.servers()) {
             server.stopUsingBatchedSingleLeader();
             cluster.failoverToNewLeader(client.namespace());
             long sequenceForBatchedEndpoint = getSequenceForServerUsingBatchedEndpoint(server);
@@ -140,21 +128,21 @@ public class SingleLeaderMultiNodePaxosTimeLockIntegrationTest {
         assertThat(ImmutableSet.copyOf(sequenceNumbers)).hasSameSizeAs(sequenceNumbers);
     }
 
-    private static long getSequenceForServerUsingBatchedEndpoint(TestableTimelockServer server) {
+    private static long getSequenceForServerUsingBatchedEndpoint(TestableTimelockServerV2 server) {
         BatchPaxosAcceptorRpcClient acceptor = server.client(LEADER_PAXOS_NAMESPACE)
                 .proxyFactory()
-                .createProxy(BatchPaxosAcceptorRpcClient.class, TestProxies.ProxyMode.DIRECT);
+                .createProxy(BatchPaxosAcceptorRpcClient.class, TestProxiesV2.ProxyModeV2.DIRECT);
         return acceptor.latestSequencesPreparedOrAccepted(LEADER_FOR_ALL_CLIENTS, null, CLIENT_SET)
                 .updates()
                 .get(PSEUDO_LEADERSHIP_CLIENT);
     }
 
-    private static long getSequenceForServerUsingOldEndpoint(TestableTimelockServer server) {
+    private static long getSequenceForServerUsingOldEndpoint(TestableTimelockServerV2 server) {
         PaxosRemoteClients.TimelockSingleLeaderPaxosAcceptorRpcClient acceptor = server.client(LEADER_PAXOS_NAMESPACE)
                 .proxyFactory()
                 .createProxy(
                         PaxosRemoteClients.TimelockSingleLeaderPaxosAcceptorRpcClient.class,
-                        TestProxies.ProxyMode.DIRECT);
+                        TestProxiesV2.ProxyModeV2.DIRECT);
         return acceptor.getLatestSequencePreparedOrAccepted();
     }
 }

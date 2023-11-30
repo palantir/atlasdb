@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2023 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,31 +14,19 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.suite;
+package com.palantir.atlasdb.timelock;
 
 import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeTimelockCluster;
 
-import com.github.peterwippermann.junit4.parameterizedsuite.ParameterizedSuite;
-import com.google.common.collect.ImmutableSet;
-import com.palantir.atlasdb.timelock.MultiNodePaxosTimeLockServerIntegrationTest;
-import com.palantir.atlasdb.timelock.TemplateVariables;
-import com.palantir.atlasdb.timelock.TestableTimelockCluster;
-import com.palantir.atlasdb.timelock.TestableTimelockServerConfiguration;
 import com.palantir.atlasdb.timelock.util.TestableTimeLockClusterPorts;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
-import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
-import org.junit.Rule;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Suite;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-/* TODO(boyoruk): Migrate whole suiteTest folder to JUnit5 */
-@RunWith(ParameterizedSuite.class)
-@Suite.SuiteClasses(MultiNodePaxosTimeLockServerIntegrationTest.class)
-public class DbTimeLockSingleLeaderPaxosSuite {
+public class DbTimelockSingleLeaderMultiNodePaxosTimeLockServerIntegrationTest
+        extends AbstractMultiNodePaxosTimeLockServerIntegrationTest {
     private static final Iterable<TemplateVariables> TEMPLATE_VARIABLES = generateThreeNodeTimelockCluster(
             TestableTimeLockClusterPorts.DB_TIMELOCK_SINGLE_LEADER_PAXOS_SUITE,
             builder -> builder.clientPaxosBuilder(builder.clientPaxosBuilder()
@@ -50,15 +38,11 @@ public class DbTimeLockSingleLeaderPaxosSuite {
             .map(variables -> TestableTimelockServerConfiguration.of(variables, true))
             .collect(Collectors.toList());
 
-    public static final TestableTimelockCluster DB_TIMELOCK_CLUSTER = new TestableTimelockCluster(
+    @RegisterExtension
+    public static final TestableTimelockClusterV2 DB_TIMELOCK_CLUSTER = new TestableTimelockClusterV2(
             "db-timelock; batched single leader", "dbTimeLockPaxosMultiServer.ftl", TESTABLE_CONFIGURATIONS);
 
-    @Parameterized.Parameters(name = "{0}")
-    public static Collection<TestableTimelockCluster> params() {
-        return ImmutableSet.of(DB_TIMELOCK_CLUSTER);
+    public DbTimelockSingleLeaderMultiNodePaxosTimeLockServerIntegrationTest() {
+        super(DB_TIMELOCK_CLUSTER);
     }
-
-    @Rule
-    @Parameterized.Parameter
-    public TestableTimelockCluster cluster;
 }

@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock;
 
+import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeTimelockCluster;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -24,32 +25,26 @@ import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
-import com.palantir.atlasdb.timelock.suite.MultiLeaderPaxosSuite;
-import com.palantir.atlasdb.timelock.util.ParameterInjector;
+import com.palantir.atlasdb.timelock.util.TestableTimeLockClusterPorts;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.api.errors.QosException;
+import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-@RunWith(Parameterized.class)
 public class MultiLeaderMultiNodePaxosTimeLockIntegrationTest {
 
-    @ClassRule
-    public static ParameterInjector<TestableTimelockCluster> injector =
-            ParameterInjector.withFallBackConfiguration(() -> MultiLeaderPaxosSuite.MULTI_LEADER_PAXOS);
-
-    @Parameterized.Parameter
-    public TestableTimelockCluster cluster;
-
-    @Parameterized.Parameters(name = "{0}")
-    public static Iterable<TestableTimelockCluster> params() {
-        return injector.getParameter();
-    }
+    @RegisterExtension
+    public static final TestableTimelockClusterV2 cluster = new TestableTimelockClusterV2(
+            "batched timestamp paxos multi leader",
+            "paxosMultiServer.ftl",
+            generateThreeNodeTimelockCluster(
+                    TestableTimeLockClusterPorts.MULTI_LEADER_PAXOS_SUITE, builder -> builder.clientPaxosBuilder(
+                                    builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(true))
+                            .leaderMode(PaxosLeaderMode.LEADER_PER_CLIENT)));
 
     @Test
     public void eachNamespaceGetsAssignedDifferentLeaders() {
@@ -57,35 +52,35 @@ public class MultiLeaderMultiNodePaxosTimeLockIntegrationTest {
         // leadership on that namespace
         // by putting timelock behind a wiremock proxy, we can disallow requests to namespaces effectively giving us
         // the ability to allocate namespaces to particular leaders
-        SetMultimap<TestableTimelockServer, String> allocations = allocateRandomNamespacesToAllNodes(3);
+        SetMultimap<TestableTimelockServerV2, String> allocations = allocateRandomNamespacesToAllNodes(3);
 
         Set<String> allNamespaces = ImmutableSet.copyOf(allocations.values());
 
         allNamespaces.stream()
                 .map(cluster::client)
-                .map(NamespacedClients::throughWireMockProxy)
-                .forEach(NamespacedClients::getFreshTimestamp);
+                .map(NamespacedClientsV2::throughWireMockProxy)
+                .forEach(NamespacedClientsV2::getFreshTimestamp);
 
-        SetMultimap<TestableTimelockServer, String> namespacesByLeader = ImmutableSetMultimap.copyOf(
+        SetMultimap<TestableTimelockServerV2, String> namespacesByLeader = ImmutableSetMultimap.copyOf(
                         cluster.currentLeaders(allNamespaces))
                 .inverse();
 
         assertThat(namespacesByLeader).isEqualTo(allocations);
 
-        cluster.servers().forEach(TestableTimelockServer::allowAllNamespaces);
+        cluster.servers().forEach(TestableTimelockServerV2::allowAllNamespaces);
     }
 
     @Test
     public void nonLeadersCorrectly308() {
-        SetMultimap<TestableTimelockServer, String> allocations = allocateRandomNamespacesToAllNodes(1);
+        SetMultimap<TestableTimelockServerV2, String> allocations = allocateRandomNamespacesToAllNodes(1);
         String randomNamespace = Iterables.get(allocations.values(), 0);
-        NamespacedClients clientForRandomNamespace =
+        NamespacedClientsV2 clientForRandomNamespace =
                 cluster.client(randomNamespace).throughWireMockProxy();
         clientForRandomNamespace.getFreshTimestamp();
 
-        cluster.servers().forEach(TestableTimelockServer::allowAllNamespaces);
+        cluster.servers().forEach(TestableTimelockServerV2::allowAllNamespaces);
 
-        TestableTimelockServer allocatedLeader = Iterables.getOnlyElement(
+        TestableTimelockServerV2 allocatedLeader = Iterables.getOnlyElement(
                 ImmutableSetMultimap.copyOf(allocations).inverse().get(randomNamespace));
 
         assertThat(cluster.currentLeaderFor(randomNamespace)).isEqualTo(allocatedLeader);
@@ -96,13 +91,13 @@ public class MultiLeaderMultiNodePaxosTimeLockIntegrationTest {
                 .hasRootCauseInstanceOf(QosException.RetryOther.class));
     }
 
-    private SetMultimap<TestableTimelockServer, String> allocateRandomNamespacesToAllNodes(int namespacesPerLeader) {
-        SetMultimap<TestableTimelockServer, String> namespaceAllocations = KeyedStream.of(cluster.servers())
+    private SetMultimap<TestableTimelockServerV2, String> allocateRandomNamespacesToAllNodes(int namespacesPerLeader) {
+        SetMultimap<TestableTimelockServerV2, String> namespaceAllocations = KeyedStream.of(cluster.servers())
                 .flatMap(unused -> Stream.generate(MultiLeaderMultiNodePaxosTimeLockIntegrationTest::randomNamespace)
                         .limit(namespacesPerLeader))
                 .collectToSetMultimap();
 
-        Multimaps.asMap(namespaceAllocations).forEach(TestableTimelockServer::rejectAllNamespacesOtherThan);
+        Multimaps.asMap(namespaceAllocations).forEach(TestableTimelockServerV2::rejectAllNamespacesOtherThan);
 
         return namespaceAllocations;
     }
