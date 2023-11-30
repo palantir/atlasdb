@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.autobatch;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Ticker;
 import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -70,20 +72,20 @@ public final class DisruptorAutobatcher<T, R>
 
     private final Disruptor<DisruptorBatchElement<T, R>> disruptor;
     private final RingBuffer<DisruptorBatchElement<T, R>> buffer;
-    private final Runnable closingCallback;
     private final AutobatcherTelemetryComponents telemetryComponents;
+    private final Runnable closingCallback;
 
     private volatile boolean closed = false;
 
     DisruptorAutobatcher(
             Disruptor<DisruptorBatchElement<T, R>> disruptor,
             RingBuffer<DisruptorBatchElement<T, R>> buffer,
-            Runnable closingCallback,
-            AutobatcherTelemetryComponents telemetryComponents) {
+            AutobatcherTelemetryComponents telemetryComponents,
+            Runnable closingCallback) {
         this.disruptor = disruptor;
         this.buffer = buffer;
-        this.closingCallback = closingCallback;
         this.telemetryComponents = telemetryComponents;
+        this.closingCallback = closingCallback;
     }
 
     @Override
@@ -130,8 +132,9 @@ public final class DisruptorAutobatcher<T, R>
         }
     }
 
-    static final class DisruptorFuture<R> extends AbstractFuture<R> {
+    public static final class DisruptorFuture<R> extends AbstractFuture<R> {
 
+        private final Ticker ticker;
         private final DetachedSpan parent;
         private final TimedDetachedSpan waitingSpan;
 
@@ -140,9 +143,11 @@ public final class DisruptorAutobatcher<T, R>
 
         private volatile boolean valueSet = false;
 
-        DisruptorFuture(AutobatcherTelemetryComponents telemetryComponents) {
+        @VisibleForTesting
+        DisruptorFuture(Ticker ticker, AutobatcherTelemetryComponents telemetryComponents) {
+            this.ticker = ticker;
             this.parent = DetachedSpan.start(telemetryComponents.getSafeLoggablePurpose() + " disruptor task");
-            this.waitingSpan = TimedDetachedSpan.from(parent.childDetachedSpan("task waiting to be run"));
+            this.waitingSpan = TimedDetachedSpan.from(ticker, parent.childDetachedSpan("task waiting to be run"));
             this.addListener(
                     () -> {
                         waitingSpan.complete();
@@ -164,9 +169,13 @@ public final class DisruptorAutobatcher<T, R>
                     MoreExecutors.directExecutor());
         }
 
+        public DisruptorFuture(AutobatcherTelemetryComponents telemetryComponents) {
+            this(Ticker.systemTicker(), telemetryComponents);
+        }
+
         void running() {
             waitingSpan.complete();
-            runningSpan = TimedDetachedSpan.from(parent.childDetachedSpan("running task"));
+            runningSpan = TimedDetachedSpan.from(ticker, parent.childDetachedSpan("running task"));
         }
 
         @Override
@@ -201,6 +210,6 @@ public final class DisruptorAutobatcher<T, R>
         disruptor.handleEventsWith(
                 (event, sequence, endOfBatch) -> eventHandler.onEvent(event.consume(), sequence, endOfBatch));
         disruptor.start();
-        return new DisruptorAutobatcher<>(disruptor, disruptor.getRingBuffer(), closingCallback, AutobatcherTelemetryComponents.create(safeLoggablePurpose, new DefaultTaggedMetricRegistry()));
+        return new DisruptorAutobatcher<>(disruptor, disruptor.getRingBuffer(), AutobatcherTelemetryComponents.create(safeLoggablePurpose, new DefaultTaggedMetricRegistry()), closingCallback);
     }
 }
