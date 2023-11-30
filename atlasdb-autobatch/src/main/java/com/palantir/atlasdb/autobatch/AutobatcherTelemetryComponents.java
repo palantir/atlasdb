@@ -22,7 +22,7 @@ import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.time.Duration;
 
-final class AutobatcherTelemetryComponents {
+public final class AutobatcherTelemetryComponents {
     private final @CompileTimeConstant String safeLoggablePurpose;
     private final AutobatchOverheadMetrics overheadMetrics;
 
@@ -66,7 +66,7 @@ final class AutobatcherTelemetryComponents {
 
     }
 
-    static AutobatcherTelemetryComponents create(@CompileTimeConstant String safeLoggablePurpose, TaggedMetricRegistry taggedMetricRegistry) {
+    public static AutobatcherTelemetryComponents create(@CompileTimeConstant String safeLoggablePurpose, TaggedMetricRegistry taggedMetricRegistry) {
         AutobatchOverheadMetrics overheadMetrics = AutobatchOverheadMetrics.builder()
                 .registry(taggedMetricRegistry)
                 .operationType(safeLoggablePurpose)
