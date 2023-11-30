@@ -94,11 +94,11 @@ import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
 @SuppressWarnings("MustBeClosedChecker")
-public abstract class AbstractTransactionTestV2 extends TransactionTestSetupV2 {
+public abstract class AbstractTransactionTest extends TransactionTestSetup {
     private static final BatchColumnRangeSelection ALL_COLUMNS =
             BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 3);
 
-    public AbstractTransactionTestV2(KvsManager kvsManager, TransactionManagerManager tmManager) {
+    public AbstractTransactionTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
         super(kvsManager, tmManager);
     }
 
@@ -1725,7 +1725,7 @@ public abstract class AbstractTransactionTestV2 extends TransactionTestSetupV2 {
 
         Map<Cell, byte[]> valuesToPut = KeyedStream.of(IntStream.range(0, 100).boxed())
                 .flatMapKeys(index -> Stream.of(Cell.create(row(index), column(0)), Cell.create(row(index), column(1))))
-                .map(AbstractTransactionTestV2::value)
+                .map(AbstractTransactionTest::value)
                 .collectToMap();
 
         tx.put(TEST_TABLE, valuesToPut);

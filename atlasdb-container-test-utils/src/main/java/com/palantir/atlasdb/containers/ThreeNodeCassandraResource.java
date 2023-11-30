@@ -20,7 +20,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import java.io.IOException;
@@ -33,7 +33,7 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 public class ThreeNodeCassandraResource
         implements BeforeAllCallback, AfterAllCallback, KvsManager, TransactionManagerManager {
     private final Supplier<KeyValueService> supplier;
-    private TestResourceManagerV2 testResourceManager;
+    private TestResourceManager testResourceManager;
 
     public ThreeNodeCassandraResource() {
         this.supplier = () -> CassandraKeyValueServiceImpl.createForTesting(
@@ -44,7 +44,7 @@ public class ThreeNodeCassandraResource
     public void beforeAll(ExtensionContext extensionContext) throws IOException, InterruptedException {
         Containers containers =
                 new Containers(extensionContext.getRequiredTestClass()).with(new ThreeNodeCassandraCluster());
-        testResourceManager = new TestResourceManagerV2(supplier);
+        testResourceManager = new TestResourceManager(supplier);
         containers.beforeAll(extensionContext);
     }
 

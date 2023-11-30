@@ -99,7 +99,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 @SuppressWarnings("CheckReturnValue")
-public abstract class AbstractSerializableTransactionTestV2 extends AbstractTransactionTestV2 {
+public abstract class AbstractSerializableTransactionTest extends AbstractTransactionTest {
     private static final int DEFAULT_COL_COUNT = 101;
     private static final int DEFAULT_BATCH_HINT = 100;
     private static final String DEFAULT_ROW_PREFIX = "row";
@@ -111,7 +111,7 @@ public abstract class AbstractSerializableTransactionTestV2 extends AbstractTran
     private static final byte[] BYTES_ONE = PtBytes.toBytes("a");
     private static final byte[] BYTES_TWO = PtBytes.toBytes("b");
 
-    public AbstractSerializableTransactionTestV2(KvsManager kvsManager, TransactionManagerManager tmManager) {
+    public AbstractSerializableTransactionTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
         super(kvsManager, tmManager);
     }
 
@@ -130,8 +130,8 @@ public abstract class AbstractSerializableTransactionTestV2 extends AbstractTran
                 conflictDetectionManager,
                 SweepStrategyManagers.createDefault(keyValueService),
                 NoOpCleaner.INSTANCE,
-                AbstractTransactionTestV2.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTestV2.DEFAULT_GET_RANGES_CONCURRENCY,
+                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 sweepQueue,
                 knowledge);
         sweepQueue.initialize(txManager);
@@ -167,8 +167,8 @@ public abstract class AbstractSerializableTransactionTestV2 extends AbstractTran
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 true,
                 timestampCache,
-                AbstractTransactionTestV2.GET_RANGES_EXECUTOR,
-                AbstractTransactionTestV2.DEFAULT_GET_RANGES_CONCURRENCY,
+                AbstractTransactionTest.GET_RANGES_EXECUTOR,
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 getSweepQueueWriterInitialized(),
                 MoreExecutors.newDirectExecutorService(),
                 true,

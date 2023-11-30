@@ -47,14 +47,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.mockito.Mockito;
 
-public abstract class AbstractSweepTaskRunnerTestV2 extends AbstractSweepTestV2 {
+public abstract class AbstractSweepTaskRunnerTest extends AbstractSweepTest {
     protected static final int DEFAULT_BATCH_SIZE = 1000;
 
     protected SweepTaskRunner sweepRunner;
     protected LongSupplier tsSupplier;
     protected final AtomicLong sweepTimestamp = new AtomicLong();
 
-    public AbstractSweepTaskRunnerTestV2(KvsManager kvsManager, TransactionManagerManager tmManager) {
+    public AbstractSweepTaskRunnerTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
         super(kvsManager, tmManager);
     }
 

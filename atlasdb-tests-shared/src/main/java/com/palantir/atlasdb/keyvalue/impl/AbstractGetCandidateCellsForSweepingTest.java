@@ -39,14 +39,14 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public abstract class AbstractGetCandidateCellsForSweepingTestV2 {
+public abstract class AbstractGetCandidateCellsForSweepingTest {
     private final KvsManager kvsManager;
     protected static final TableReference TEST_TABLE =
             TableReference.createFromFullyQualifiedName("get_candidate_cells_for_sweeping.test_table");
 
     private KeyValueService kvs;
 
-    protected AbstractGetCandidateCellsForSweepingTestV2(KvsManager kvsManager) {
+    protected AbstractGetCandidateCellsForSweepingTest(KvsManager kvsManager) {
         this.kvsManager = kvsManager;
     }
 

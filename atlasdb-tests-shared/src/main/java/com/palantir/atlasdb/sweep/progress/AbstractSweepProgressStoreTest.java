@@ -28,7 +28,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public abstract class AbstractSweepProgressStoreTestV2 {
+public abstract class AbstractSweepProgressStoreTest {
     private static final TableReference TABLE = TableReference.createFromFullyQualifiedName("foo.bar");
     private static final TableReference OTHER_TABLE = TableReference.createFromFullyQualifiedName("qwe.rty");
 
@@ -60,7 +60,7 @@ public abstract class AbstractSweepProgressStoreTestV2 {
     private KeyValueService kvs;
     private SweepProgressStore progressStore;
 
-    protected AbstractSweepProgressStoreTestV2(KvsManager kvsManager) {
+    protected AbstractSweepProgressStoreTest(KvsManager kvsManager) {
         this.kvsManager = kvsManager;
     }
 

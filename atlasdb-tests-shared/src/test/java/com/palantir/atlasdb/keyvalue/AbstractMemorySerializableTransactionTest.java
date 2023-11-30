@@ -16,15 +16,15 @@
 package com.palantir.atlasdb.keyvalue;
 
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
-import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTestV2;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
 import com.palantir.atlasdb.transaction.impl.TransactionSchemaVersionEnforcement;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-public abstract class AbstractMemorySerializableTransactionTest extends AbstractSerializableTransactionTestV2 {
+public abstract class AbstractMemorySerializableTransactionTest extends AbstractSerializableTransactionTest {
     @RegisterExtension
-    public static final TestResourceManagerV2 TRM = TestResourceManagerV2.inMemory();
+    public static final TestResourceManager TRM = TestResourceManager.inMemory();
 
     private final int transactionsSchemaVersion;
 

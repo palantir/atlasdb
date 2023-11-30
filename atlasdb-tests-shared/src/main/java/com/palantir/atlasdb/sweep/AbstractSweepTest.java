@@ -51,7 +51,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-public abstract class AbstractSweepTestV2 {
+public abstract class AbstractSweepTest {
     protected static final String FULL_TABLE_NAME = "test_table.xyz_atlasdb_sweeper_test";
     protected static final TableReference TABLE_NAME = TableReference.createFromFullyQualifiedName(FULL_TABLE_NAME);
     protected static final String COL = "c";
@@ -84,7 +84,7 @@ public abstract class AbstractSweepTestV2 {
     @RegisterExtension
     public static InMemoryTimelockClassExtension inMemoryTimelockClassExtension = new InMemoryTimelockClassExtension();
 
-    protected AbstractSweepTestV2(KvsManager kvsManager, TransactionManagerManager tmManager) {
+    protected AbstractSweepTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
         this.kvsManager = kvsManager;
         this.tmManager = tmManager;
     }

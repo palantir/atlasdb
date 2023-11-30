@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers.CacheWarming;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -24,7 +24,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 public class CacheWarmingDbKvsPostgresSweepTaskRunnerTest extends AbstractDbKvsPostgresSweepTaskRunnerTest {
 
     @RegisterExtension
-    public static final TestResourceManagerV2 TRM = new TestResourceManagerV2(DbKvsPostgresExtension::createKvs);
+    public static final TestResourceManager TRM = new TestResourceManager(DbKvsPostgresExtension::createKvs);
 
     public CacheWarmingDbKvsPostgresSweepTaskRunnerTest() {
         super(TRM, TRM, CacheWarming.FULL);

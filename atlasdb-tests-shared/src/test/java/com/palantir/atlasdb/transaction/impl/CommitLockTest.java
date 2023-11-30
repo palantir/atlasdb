@@ -28,7 +28,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -54,10 +54,11 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-@Disabled // TODO (boyoruk): fix this test
-public class CommitLockTest extends TransactionTestSetupV2 {
+/* TODO(boyoruk): fix this test */
+@Disabled
+public class CommitLockTest extends TransactionTestSetup {
     @RegisterExtension
-    public static final TestResourceManagerV2 TRM = TestResourceManagerV2.inMemory();
+    public static final TestResourceManager TRM = TestResourceManager.inMemory();
 
     private static final TransactionConfig TRANSACTION_CONFIG =
             ImmutableTransactionConfig.builder().build();
@@ -182,8 +183,8 @@ public class CommitLockTest extends TransactionTestSetupV2 {
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 true,
                 timestampCache,
-                AbstractTransactionTestV2.GET_RANGES_EXECUTOR,
-                AbstractTransactionTestV2.DEFAULT_GET_RANGES_CONCURRENCY,
+                AbstractTransactionTest.GET_RANGES_EXECUTOR,
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 true,

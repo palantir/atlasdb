@@ -20,7 +20,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.atlasdb.transaction.impl.AbstractTransactionTestV2;
+import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.atlasdb.transaction.impl.TransactionSchemaVersionEnforcement;
 import com.palantir.atlasdb.transaction.impl.TransactionTables;
 import com.palantir.atlasdb.transaction.service.SimpleTransactionService;
@@ -37,7 +37,7 @@ import java.util.stream.LongStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-public abstract class AbstractCassandraKeyValueServiceTransactionIntegrationTest extends AbstractTransactionTestV2 {
+public abstract class AbstractCassandraKeyValueServiceTransactionIntegrationTest extends AbstractTransactionTest {
 
     @RegisterExtension
     public static final CassandraResource CASSANDRA = new CassandraResource();

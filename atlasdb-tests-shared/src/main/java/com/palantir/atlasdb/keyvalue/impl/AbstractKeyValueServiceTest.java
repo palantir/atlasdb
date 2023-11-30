@@ -87,7 +87,7 @@ import org.junit.jupiter.api.Test;
 import org.xnio.ByteString;
 
 @SuppressWarnings("MustBeClosedChecker")
-public abstract class AbstractKeyValueServiceTestV2 {
+public abstract class AbstractKeyValueServiceTest {
     private final KvsManager kvsManager;
 
     protected static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.pt_kvs_test");
@@ -101,11 +101,11 @@ public abstract class AbstractKeyValueServiceTestV2 {
 
     protected KeyValueService keyValueService;
 
-    protected AbstractKeyValueServiceTestV2(KvsManager kvsManager) {
+    protected AbstractKeyValueServiceTest(KvsManager kvsManager) {
         this(kvsManager, UnaryOperator.identity());
     }
 
-    public AbstractKeyValueServiceTestV2(KvsManager kvsManager, UnaryOperator<KeyValueService> keyValueServiceWrapper) {
+    public AbstractKeyValueServiceTest(KvsManager kvsManager, UnaryOperator<KeyValueService> keyValueServiceWrapper) {
         this.kvsManager = kvsManager;
         this.keyValueServiceWrapper = keyValueServiceWrapper;
     }
@@ -120,8 +120,6 @@ public abstract class AbstractKeyValueServiceTestV2 {
 
     @BeforeEach
     public void setUp() throws Exception {
-        System.out.println("setUp");
-
         keyValueService = keyValueServiceWrapper.apply(kvsManager.getDefaultKvs());
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
@@ -1958,7 +1956,7 @@ public abstract class AbstractKeyValueServiceTestV2 {
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         List<Cell> cells = IntStream.range(0, 5)
-                .mapToObj(AbstractKeyValueServiceTestV2::cell)
+                .mapToObj(AbstractKeyValueServiceTest::cell)
                 .collect(Collectors.toList());
         byte[] update = PtBytes.toBytes("update");
         ImmutableMap<Cell, byte[]> actualMap = ImmutableMap.of(
@@ -1999,7 +1997,7 @@ public abstract class AbstractKeyValueServiceTestV2 {
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         List<Cell> cells = IntStream.range(0, 5)
-                .mapToObj(AbstractKeyValueServiceTestV2::cell)
+                .mapToObj(AbstractKeyValueServiceTest::cell)
                 .collect(Collectors.toList());
         byte[] update = PtBytes.toBytes("update");
         ImmutableMap<Cell, byte[]> actualMap = ImmutableMap.of(
@@ -2040,12 +2038,11 @@ public abstract class AbstractKeyValueServiceTestV2 {
      */
     @Test
     public void multiCheckAndSetFailureOnAbsentTest() {
-        System.out.println("multiCheckAndSetFailureOnAbsentTest");
         Assumptions.assumeTrue(keyValueService.getCheckAndSetCompatibility().supportsMultiCheckAndSetOperations());
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         List<Cell> cells = IntStream.range(0, 5)
-                .mapToObj(AbstractKeyValueServiceTestV2::cell)
+                .mapToObj(AbstractKeyValueServiceTest::cell)
                 .collect(Collectors.toList());
         byte[] update = PtBytes.toBytes("update");
         ImmutableMap<Cell, byte[]> actualMap = ImmutableMap.of(

@@ -16,10 +16,10 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.palantir.atlasdb.containers.CassandraResource;
-import com.palantir.atlasdb.sweep.progress.AbstractSweepProgressStoreTestV2;
+import com.palantir.atlasdb.sweep.progress.AbstractSweepProgressStoreTest;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class CassandraSweepProgressStoreIntegrationTest extends AbstractSweepProgressStoreTestV2 {
+public class CassandraSweepProgressStoreIntegrationTest extends AbstractSweepProgressStoreTest {
     @RegisterExtension
     public static final CassandraResource CASSANDRA = new CassandraResource();
 

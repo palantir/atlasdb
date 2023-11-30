@@ -41,7 +41,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class AbstractTargetedSweepTestV2 extends AbstractSweepTestV2 {
+public class AbstractTargetedSweepTest extends AbstractSweepTest {
     protected static final TableReference TABLE_TO_BE_DROPPED = TableReference.createFromFullyQualifiedName("ts.drop");
     protected static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c"));
     protected static final String OLD_VALUE = "old_value";
@@ -49,7 +49,7 @@ public class AbstractTargetedSweepTestV2 extends AbstractSweepTestV2 {
     private final SpecialTimestampsSupplier timestampsSupplier = mock(SpecialTimestampsSupplier.class);
     protected TargetedSweeper sweepQueue;
 
-    protected AbstractTargetedSweepTestV2(KvsManager kvsManager, TransactionManagerManager tmManager) {
+    protected AbstractTargetedSweepTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
         super(kvsManager, tmManager);
     }
 

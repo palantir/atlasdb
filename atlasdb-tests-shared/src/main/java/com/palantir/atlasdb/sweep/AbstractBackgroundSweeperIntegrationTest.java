@@ -64,7 +64,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-public abstract class AbstractBackgroundSweeperIntegrationTestV2 {
+public abstract class AbstractBackgroundSweeperIntegrationTest {
     static final TableReference TABLE_1 = TableReference.createFromFullyQualifiedName("foo.bar");
     private static final TableReference TABLE_2 = TableReference.createFromFullyQualifiedName("qwe.rty");
     private static final TableReference TABLE_3 = TableReference.createFromFullyQualifiedName("baz.qux");
@@ -102,8 +102,8 @@ public abstract class AbstractBackgroundSweeperIntegrationTestV2 {
         CellsSweeper cellsSweeper = new CellsSweeper(txManager, kvs, ImmutableList.of());
         SweepTaskRunner sweepRunner = new SweepTaskRunner(
                 kvs,
-                AbstractBackgroundSweeperIntegrationTestV2::getTimestamp,
-                AbstractBackgroundSweeperIntegrationTestV2::getTimestamp,
+                AbstractBackgroundSweeperIntegrationTest::getTimestamp,
+                AbstractBackgroundSweeperIntegrationTest::getTimestamp,
                 txService,
                 cellsSweeper,
                 null);

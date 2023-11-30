@@ -21,11 +21,11 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
-import com.palantir.atlasdb.keyvalue.impl.AbstractGetCandidateCellsForSweepingTestV2;
+import com.palantir.atlasdb.keyvalue.impl.AbstractGetCandidateCellsForSweepingTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTestV2 {
+public class CassandraGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
     @RegisterExtension
     public static final CassandraResource CASSANDRA = new CassandraResource();
 

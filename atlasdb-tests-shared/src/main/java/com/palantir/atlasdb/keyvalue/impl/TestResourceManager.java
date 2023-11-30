@@ -26,13 +26,13 @@ import java.util.function.Supplier;
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
-public class TestResourceManagerV2 implements AfterAllCallback, KvsManager, TransactionManagerManager {
+public class TestResourceManager implements AfterAllCallback, KvsManager, TransactionManagerManager {
     private final Supplier<KeyValueService> getKvsSupplier;
     private final List<AutoCloseable> closeableResources = new ArrayList<>();
 
     private TransactionManager transactionManager = null;
 
-    public TestResourceManagerV2(Supplier<KeyValueService> kvsSupplier) {
+    public TestResourceManager(Supplier<KeyValueService> kvsSupplier) {
         this.getKvsSupplier = Suppliers.memoize(() -> {
             KeyValueService kvs = kvsSupplier.get();
             registerCloseable(kvs);
@@ -40,8 +40,8 @@ public class TestResourceManagerV2 implements AfterAllCallback, KvsManager, Tran
         });
     }
 
-    public static TestResourceManagerV2 inMemory() {
-        return new TestResourceManagerV2(() -> new InMemoryKeyValueService(false));
+    public static TestResourceManager inMemory() {
+        return new TestResourceManager(() -> new InMemoryKeyValueService(false));
     }
 
     @Override

@@ -30,7 +30,7 @@ import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -51,10 +51,10 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class TransactionManagerTest extends TransactionTestSetupV2 {
+public class TransactionManagerTest extends TransactionTestSetup {
 
     @RegisterExtension
-    public static final TestResourceManagerV2 TRM = TestResourceManagerV2.inMemory();
+    public static final TestResourceManager TRM = TestResourceManager.inMemory();
 
     public TransactionManagerTest() {
         super(TRM, TRM);
@@ -132,8 +132,8 @@ public class TransactionManagerTest extends TransactionTestSetupV2 {
                 conflictDetectionManager,
                 sweepStrategyManager,
                 NoOpCleaner.INSTANCE,
-                AbstractTransactionTestV2.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTestV2.DEFAULT_GET_RANGES_CONCURRENCY,
+                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
                 knowledge);
 
@@ -259,8 +259,8 @@ public class TransactionManagerTest extends TransactionTestSetupV2 {
                 NoOpCleaner.INSTANCE,
                 DefaultTimestampCache.createForTests(),
                 false,
-                AbstractTransactionTestV2.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTestV2.DEFAULT_GET_RANGES_CONCURRENCY,
+                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
+                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
                 MoreExecutors.newDirectExecutorService(),
                 true,

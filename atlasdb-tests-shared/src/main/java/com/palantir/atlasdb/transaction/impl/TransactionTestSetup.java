@@ -76,7 +76,7 @@ import org.rocksdb.RocksDBException;
  * - The timestamp and lock services are disjoint across individual tests.
  * - The key value services may not be disjoint across individual tests.
  */
-public abstract class TransactionTestSetupV2 {
+public abstract class TransactionTestSetup {
     @TempDir
     public static File persistentStorageFolder;
 
@@ -127,7 +127,7 @@ public abstract class TransactionTestSetupV2 {
     @RegisterExtension
     public InMemoryTimelockExtension inMemoryTimelockExtension = new InMemoryTimelockExtension();
 
-    protected TransactionTestSetupV2(KvsManager kvsManager, TransactionManagerManager tmManager) {
+    protected TransactionTestSetup(KvsManager kvsManager, TransactionManagerManager tmManager) {
         this.kvsManager = kvsManager;
         this.tmManager = tmManager;
     }

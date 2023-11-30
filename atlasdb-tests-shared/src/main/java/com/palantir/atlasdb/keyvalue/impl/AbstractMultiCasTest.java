@@ -32,7 +32,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class AbstractMultiCasTestV2 {
+public class AbstractMultiCasTest {
     private static final byte[] ROW_1 = PtBytes.toBytes("row1");
     private static final byte[] COL_1 = PtBytes.toBytes("col1");
     public static final Cell FIRST_CELL = Cell.create(ROW_1, COL_1);
@@ -45,7 +45,7 @@ public class AbstractMultiCasTestV2 {
     private final KvsManager kvsManager;
     private KeyValueService kvs;
 
-    public AbstractMultiCasTestV2(KvsManager kvsManager) {
+    public AbstractMultiCasTest(KvsManager kvsManager) {
         this.kvsManager = kvsManager;
     }
 
