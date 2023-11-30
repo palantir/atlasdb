@@ -27,10 +27,12 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.autobatch.AutobatcherTelemetryComponents;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.paxos.LeaderPingerContext;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -163,7 +165,7 @@ public class GetSuspectedLeaderWithUuidTests {
         @Value.Lazy
         @Override
         default DisruptorAutobatcher.DisruptorFuture<Optional<ClientAwareLeaderPinger>> result() {
-            return new DisruptorAutobatcher.DisruptorFuture<>("test");
+            return new DisruptorAutobatcher.DisruptorFuture<>(AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry()));
         }
 
         default Optional<ClientAwareLeaderPinger> get()
