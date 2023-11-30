@@ -49,6 +49,20 @@ public final class AutobatcherTelemetryComponentsTest {
     }
 
     @Test
+    public void markWaitingTimeMetricsDoesNotReportWaitingTimePercentageAndRunningTimeMetrics() {
+        TaggedMetricRegistry registry = new DefaultTaggedMetricRegistry();
+        AutobatcherTelemetryComponents telemetryComponents =
+                AutobatcherTelemetryComponents.create(SAFE_LOGGABLE_PURPOSE, registry);
+
+        for (int i = 0; i <= 1000; i++) {
+            telemetryComponents.markWaitingTimeMetrics(Duration.ofMillis(i));
+        }
+
+        assertThat(getWaitTimePercentageHistogram(registry)).isNull();
+        assertThat(getRunningTimeHistogram(registry)).isNull();
+    }
+
+    @Test
     public void markWaitingTimeAndRunningTimeReportsWaitingTimeHistogramWithAdditionalPercentiles() {
         TaggedMetricRegistry registry = new DefaultTaggedMetricRegistry();
         AutobatcherTelemetryComponents telemetryComponents =
@@ -104,6 +118,15 @@ public final class AutobatcherTelemetryComponentsTest {
         assertThat(getWaitTimePercentageP5Gauge(registry).getValue()).isEqualTo(5);
         assertThat(getWaitTimePercentageP50Gauge(registry).getValue()).isEqualTo(50);
         assertThat(getWaitTimePercentageP999Gauge(registry).getValue()).isEqualTo(100);
+    }
+
+    @Test
+    public void markWaitingTimeAndRunningTimeDoesNotThrowAndDoesNotReportWaitTimePercentageWhenTotalTimeIsZero() {
+        TaggedMetricRegistry registry = new DefaultTaggedMetricRegistry();
+        AutobatcherTelemetryComponents telemetryComponents =
+                AutobatcherTelemetryComponents.create(SAFE_LOGGABLE_PURPOSE, registry);
+        telemetryComponents.markWaitingTimeAndRunningTimeMetrics(Duration.ZERO, Duration.ZERO);
+        assertThat(getWaitTimePercentageHistogram(registry)).isNull();
     }
 
     private static Histogram getWaitTimeHistogram(TaggedMetricRegistry registry) {
