@@ -100,13 +100,11 @@ dependencies {
     testCommonImplementation 'com.github.tomakehurst:wiremock-standalone'
     testCommonImplementation 'com.palantir.conjure.java.runtime:client-config'
     testCommonImplementation 'com.palantir.docker.compose:docker-compose-rule-core'
-    testCommonImplementation 'com.palantir.docker.compose:docker-compose-rule-junit4'
     testCommonImplementation 'com.palantir.docker.compose:docker-compose-junit-jupiter'
     testCommonImplementation 'com.ea.agentloader:ea-agent-loader'
     testCommonImplementation 'com.fasterxml.jackson.core:jackson-core'
     testCommonImplementation 'com.fasterxml.jackson.core:jackson-databind'
     testCommonImplementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml'
-    testCommonImplementation 'com.github.peterwippermann.junit4:parameterized-suite'
     testCommonImplementation 'com.google.errorprone:error_prone_annotations'
     testCommonImplementation 'com.google.guava:guava'
     testCommonImplementation 'com.palantir.common:streams'
@@ -144,12 +142,8 @@ dependencies {
     testCommonImplementation (project(':atlasdb-tests-shared')) {
         exclude group: 'com.fasterxml.jackson.jaxrs'
     }
-    testCommonRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
-        because 'allows JUnit 3 and JUnit 4 tests to run'
-    }
 
     testCommonApi 'io.dropwizard:dropwizard-testing'
-    testCommonApi 'com.github.peterwippermann.junit4:parameterized-suite'
 
     testCommonAnnotationProcessor 'org.immutables:value'
     testCommonCompileOnly 'org.immutables:value::annotations'
@@ -177,13 +171,6 @@ dependencies {
 
     stressTestImplementation project(':timelock-api:timelock-api-jersey')
 
-    stressTestRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
-        because 'allows JUnit 3 and JUnit 4 tests to run'
-    }
-    integ2TestRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
-        because 'allows JUnit 3 and JUnit 4 tests to run'
-    }
-
     integTestImplementation 'com.fasterxml.jackson.core:jackson-core'
     integTestImplementation 'com.fasterxml.jackson.core:jackson-databind'
     integTestImplementation 'com.google.guava:guava'
@@ -209,8 +196,4 @@ dependencies {
     integTestImplementation project(':timelock-api:timelock-api-objects')
     integTestImplementation project(':timelock-impl')
     integTestImplementation project(':timestamp-api')
-
-    integTestRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
-        because 'allows JUnit 3 and JUnit 4 tests to run'
-    }
 }
