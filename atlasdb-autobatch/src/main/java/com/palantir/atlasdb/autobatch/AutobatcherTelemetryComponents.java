@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.autobatch;
 
-
 import com.codahale.metrics.Gauge;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.time.Duration;
@@ -25,7 +24,7 @@ public final class AutobatcherTelemetryComponents {
     private final String safeLoggablePurpose;
     private final AutobatchOverheadMetrics overheadMetrics;
 
-    private AutobatcherTelemetryComponents(String safeLoggablePurpose,  AutobatchOverheadMetrics overheadMetrics) {
+    private AutobatcherTelemetryComponents(String safeLoggablePurpose, AutobatchOverheadMetrics overheadMetrics) {
         this.safeLoggablePurpose = safeLoggablePurpose;
         this.overheadMetrics = overheadMetrics;
     }
@@ -41,10 +40,7 @@ public final class AutobatcherTelemetryComponents {
     }
 
     void markWaitingTimeMetrics(Duration waitTime) {
-        overheadMetrics
-                .waitTimeMillis()
-                .update(waitTime.toMillis());
-
+        overheadMetrics.waitTimeMillis().update(waitTime.toMillis());
     }
 
     String getSafeLoggablePurpose() {
@@ -52,42 +48,47 @@ public final class AutobatcherTelemetryComponents {
     }
 
     private void markRunningTimeMetrics(Duration runningTime) {
-        overheadMetrics
-                .runningTimeMillis()
-                .update(runningTime.toMillis());
-
+        overheadMetrics.runningTimeMillis().update(runningTime.toMillis());
     }
 
     private void markWaitingTimeProportion(long waitTimePercentage) {
-        overheadMetrics
-                .waitTimePercentage()
-                .update(waitTimePercentage);
-
+        overheadMetrics.waitTimePercentage().update(waitTimePercentage);
     }
 
-    public static AutobatcherTelemetryComponents create(String safeLoggablePurpose, TaggedMetricRegistry taggedMetricRegistry) {
+    public static AutobatcherTelemetryComponents create(
+            String safeLoggablePurpose, TaggedMetricRegistry taggedMetricRegistry) {
         AutobatchOverheadMetrics overheadMetrics = AutobatchOverheadMetrics.builder()
                 .registry(taggedMetricRegistry)
                 .operationType(safeLoggablePurpose)
                 .build();
 
-        overheadMetrics.waitTimeMillisP1((Gauge<Double>) () -> overheadMetrics.waitTimeMillis().getSnapshot().getValue(0.01));
-        overheadMetrics.waitTimeMillisP5((Gauge<Double>) () -> overheadMetrics.waitTimeMillis().getSnapshot().getValue(0.05));
-        overheadMetrics.waitTimeMillisP50((Gauge<Double>) () -> overheadMetrics.waitTimeMillis().getSnapshot().getValue(0.5));
-        overheadMetrics.waitTimeMillisP999((Gauge<Double>) () -> overheadMetrics.waitTimeMillis().getSnapshot().getValue(0.999));
+        overheadMetrics.waitTimeMillisP1((Gauge<Double>)
+                () -> overheadMetrics.waitTimeMillis().getSnapshot().getValue(0.01));
+        overheadMetrics.waitTimeMillisP5((Gauge<Double>)
+                () -> overheadMetrics.waitTimeMillis().getSnapshot().getValue(0.05));
+        overheadMetrics.waitTimeMillisP50((Gauge<Double>)
+                () -> overheadMetrics.waitTimeMillis().getSnapshot().getValue(0.5));
+        overheadMetrics.waitTimeMillisP999((Gauge<Double>)
+                () -> overheadMetrics.waitTimeMillis().getSnapshot().getValue(0.999));
 
-        overheadMetrics.waitTimePercentageP1((Gauge<Double>) () -> overheadMetrics.waitTimePercentage().getSnapshot().getValue(0.01));
-        overheadMetrics.waitTimePercentageP5((Gauge<Double>) () -> overheadMetrics.waitTimePercentage().getSnapshot().getValue(0.05));
-        overheadMetrics.waitTimePercentageP50((Gauge<Double>) () -> overheadMetrics.waitTimePercentage().getSnapshot().getValue(0.5));
-        overheadMetrics.waitTimeMillisP999((Gauge<Double>) () -> overheadMetrics.waitTimePercentage().getSnapshot().getValue(0.999));
+        overheadMetrics.waitTimePercentageP1((Gauge<Double>)
+                () -> overheadMetrics.waitTimePercentage().getSnapshot().getValue(0.01));
+        overheadMetrics.waitTimePercentageP5((Gauge<Double>)
+                () -> overheadMetrics.waitTimePercentage().getSnapshot().getValue(0.05));
+        overheadMetrics.waitTimePercentageP50((Gauge<Double>)
+                () -> overheadMetrics.waitTimePercentage().getSnapshot().getValue(0.5));
+        overheadMetrics.waitTimeMillisP999((Gauge<Double>)
+                () -> overheadMetrics.waitTimePercentage().getSnapshot().getValue(0.999));
 
-        overheadMetrics.runningTimeMillisP1((Gauge<Double>) () -> overheadMetrics.runningTimeMillis().getSnapshot().getValue(0.01));
-        overheadMetrics.runningTimeMillisP5((Gauge<Double>) () -> overheadMetrics.runningTimeMillis().getSnapshot().getValue(0.05));
-        overheadMetrics.runningTimeMillisP50((Gauge<Double>) () -> overheadMetrics.runningTimeMillis().getSnapshot().getValue(0.5));
-        overheadMetrics.runningTimeMillisP999((Gauge<Double>) () -> overheadMetrics.runningTimeMillis().getSnapshot().getValue(0.999));
+        overheadMetrics.runningTimeMillisP1((Gauge<Double>)
+                () -> overheadMetrics.runningTimeMillis().getSnapshot().getValue(0.01));
+        overheadMetrics.runningTimeMillisP5((Gauge<Double>)
+                () -> overheadMetrics.runningTimeMillis().getSnapshot().getValue(0.05));
+        overheadMetrics.runningTimeMillisP50((Gauge<Double>)
+                () -> overheadMetrics.runningTimeMillis().getSnapshot().getValue(0.5));
+        overheadMetrics.runningTimeMillisP999((Gauge<Double>)
+                () -> overheadMetrics.runningTimeMillis().getSnapshot().getValue(0.999));
 
         return new AutobatcherTelemetryComponents(safeLoggablePurpose, overheadMetrics);
     }
-
-
 }
