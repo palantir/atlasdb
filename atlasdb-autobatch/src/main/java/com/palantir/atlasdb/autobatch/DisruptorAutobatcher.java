@@ -132,32 +132,51 @@ public final class DisruptorAutobatcher<T, R>
     public static final class DisruptorFuture<R> extends AbstractFuture<R> {
 
         private final DetachedSpan parent;
-        private final DetachedSpan waitingSpan;
+        private final TimedDetachedSpan waitingSpan;
 
         @Nullable
-        private DetachedSpan runningSpan = null;
+        private TimedDetachedSpan runningSpan = null;
+
+        private volatile boolean valueSet = false;
+
 
         public DisruptorFuture(String safeLoggablePurpose) {
             this.parent = DetachedSpan.start(safeLoggablePurpose + " disruptor task");
-            this.waitingSpan = parent.childDetachedSpan("task waiting to be run");
+            this.waitingSpan = TimedDetachedSpan.from(parent.childDetachedSpan("task waiting to be run"));
             this.addListener(
                     () -> {
                         waitingSpan.complete();
                         if (runningSpan != null) {
                             runningSpan.complete();
+                            parent.complete();
+
+                            // report wait time given we know wait finished
+
+                            // approximates success
+                            if (valueSet) {
+                                // report running time
+                                // report total time
+                                // report fraction of time spent waiting
+                            } else {
+                                // report wait time only as
+                            }
+
+                        } else {
+                            parent.complete();
                         }
-                        parent.complete();
+
                     },
                     MoreExecutors.directExecutor());
         }
 
         void running() {
             waitingSpan.complete();
-            runningSpan = parent.childDetachedSpan("running task");
+            runningSpan = TimedDetachedSpan.from(parent.childDetachedSpan("running task"));
         }
 
         @Override
         public boolean set(R value) {
+            valueSet = true;
             return super.set(value);
         }
 

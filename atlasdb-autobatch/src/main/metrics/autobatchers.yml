@@ -1,0 +1,54 @@
+options:
+  javaPackage: 'com.palantir.atlasdb.autobatch'
+
+namespaces:
+  autobatchOverhead:
+    docs: Metrics on how much time was spent waiting for tasks to enqueue and running tasks
+    tags:
+      - operationType
+    metrics:
+      waitTimeMillis:
+        docs: Time spent waiting
+        type: histogram
+      waitTimeMillisP1:
+        docs: Time spent waiting (p1 percentile only)
+        type: gauge
+      waitTimeMillisP5:
+        docs: Time spent waiting (p5 percentile only)
+        type: gauge
+      waitTimeMillisP50:
+        docs: Time spent waiting (p50 percentile only)
+        type: gauge
+      waitTimeMillisP999:
+        docs: Time spent waiting (p999 percentile only)
+        type: gauge
+      waitTimePercentage:
+        docs: Percentage of time spent waiting as a proportion of total runtime
+        type: histogram
+      waitTimePercentageP1:
+        docs: Percentage of time spent waiting as a proportion of total runtime (p1 percentile only)
+        type: gauge
+      waitTimePercentageP5:
+        docs: Percentage of time spent waiting as a proportion of total runtime (p5 percentile only)
+        type: gauge
+      waitTimePercentageP50:
+        docs: Percentage of time spent waiting as a proportion of total runtime (p50 percentile only)
+        type: gauge
+      waitTimePercentageP999:
+        docs: Percentage of time spent waiting as a proportion of total runtime (p999 percentile only)
+        type: gauge
+      runningTimeMillis:
+        docs: Time spent running
+        type: histogram
+      runningTimeMillisP1:
+        docs: Time spent running (P1 percentile only)
+        type: gauge
+      runningTimeMillisP5:
+        docs: Time spent running (P1 percentile only)
+        type: gauge
+      runningTimeMillisP50:
+        docs: Time spent running (P50 percentile only)
+        type: gauge
+      runningTimeMillisP999:
+        docs: Time spent running (P999 percentile only)
+        type: gauge
