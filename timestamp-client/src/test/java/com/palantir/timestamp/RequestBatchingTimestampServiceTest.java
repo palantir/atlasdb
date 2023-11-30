@@ -26,8 +26,10 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
+import com.palantir.atlasdb.autobatch.AutobatcherTelemetryComponents;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
@@ -98,7 +100,7 @@ public final class RequestBatchingTimestampServiceTest {
         List<BatchElement<Integer, TimestampRange>> elements = Arrays.stream(sizes)
                 .mapToObj(size -> ImmutableTestBatchElement.builder()
                         .argument(size)
-                        .result(new DisruptorAutobatcher.DisruptorFuture<>("test"))
+                        .result(new DisruptorAutobatcher.DisruptorFuture<>(AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry())))
                         .build())
                 .collect(toList());
         RequestBatchingTimestampService.consumer(unbatchedDelegate).accept(elements);

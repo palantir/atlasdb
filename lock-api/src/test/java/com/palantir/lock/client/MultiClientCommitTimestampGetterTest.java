@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
+import com.palantir.atlasdb.autobatch.AutobatcherTelemetryComponents;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher.DisruptorFuture;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
@@ -45,6 +46,7 @@ import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchCacheImpl;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -253,6 +255,6 @@ public class MultiClientCommitTimestampGetterTest {
                         .cache(lockWatchCacheMap.computeIfAbsent(namespace, _unused -> spy(LockWatchCacheImpl.noOp())))
                         .commitLocksToken(lockToken)
                         .build(),
-                new DisruptorFuture<Long>("test"));
+                new DisruptorFuture<Long>(AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry())));
     }
 }
