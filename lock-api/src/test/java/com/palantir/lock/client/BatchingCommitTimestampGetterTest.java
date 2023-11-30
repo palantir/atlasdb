@@ -116,7 +116,8 @@ public final class BatchingCommitTimestampGetterTest {
         List<BatchElement<BatchingCommitTimestampGetter.Request, Long>> elements = Arrays.stream(requests)
                 .map(request -> ImmutableTestBatchElement.<BatchingCommitTimestampGetter.Request, Long>builder()
                         .argument(request)
-                        .result(new DisruptorAutobatcher.DisruptorFuture<>(AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry())))
+                        .result(new DisruptorAutobatcher.DisruptorFuture<>(
+                                AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry())))
                         .build())
                 .collect(toList());
         batchProcessor.accept(elements);

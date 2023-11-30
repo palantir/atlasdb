@@ -156,15 +156,17 @@ public final class DisruptorAutobatcher<T, R>
                             parent.complete();
 
                             if (valueSet) {
-                                telemetryComponents.markWaitingTimeAndRunningTimeMetrics(waitingSpan.getDurationOrThrowIfStillRunning(), runningSpan.getDurationOrThrowIfStillRunning());
+                                telemetryComponents.markWaitingTimeAndRunningTimeMetrics(
+                                        waitingSpan.getDurationOrThrowIfStillRunning(),
+                                        runningSpan.getDurationOrThrowIfStillRunning());
                             } else {
-                                telemetryComponents.markWaitingTimeMetrics(waitingSpan.getDurationOrThrowIfStillRunning());
+                                telemetryComponents.markWaitingTimeMetrics(
+                                        waitingSpan.getDurationOrThrowIfStillRunning());
                             }
 
                         } else {
                             parent.complete();
                         }
-
                     },
                     MoreExecutors.directExecutor());
         }
@@ -210,6 +212,10 @@ public final class DisruptorAutobatcher<T, R>
         disruptor.handleEventsWith(
                 (event, sequence, endOfBatch) -> eventHandler.onEvent(event.consume(), sequence, endOfBatch));
         disruptor.start();
-        return new DisruptorAutobatcher<>(disruptor, disruptor.getRingBuffer(), AutobatcherTelemetryComponents.create(safeLoggablePurpose, new DefaultTaggedMetricRegistry()), closingCallback);
+        return new DisruptorAutobatcher<>(
+                disruptor,
+                disruptor.getRingBuffer(),
+                AutobatcherTelemetryComponents.create(safeLoggablePurpose, new DefaultTaggedMetricRegistry()),
+                closingCallback);
     }
 }
