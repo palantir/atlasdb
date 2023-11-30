@@ -48,6 +48,7 @@ import org.immutables.value.Value;
 
 public final class DefaultOffHeapCache<K, V> implements OffHeapCache<K, V> {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultOffHeapCache.class);
+    private static final String BATCHER_PURPOSE = "off-heap-cache";
     private static final MetricName CACHE_HIT = constructCacheMetricName("cacheHit");
     private static final MetricName CACHE_MISS = constructCacheMetricName("cacheMiss");
     private static final MetricName CACHE_NUKE = constructCacheMetricName("cacheNuke");
@@ -101,7 +102,7 @@ public final class DefaultOffHeapCache<K, V> implements OffHeapCache<K, V> {
         this.cacheMiss = taggedMetricRegistry.meter(CACHE_MISS);
         this.cacheNuke = taggedMetricRegistry.counter(CACHE_NUKE);
         this.valuePutter = Autobatchers.coalescing(new WriteBatcher<>(this))
-                .safeLoggablePurpose("off-heap-cache")
+                .safeLoggablePurpose(BATCHER_PURPOSE)
                 .build();
         Gauge<Integer> cacheSizeGauge =
                 () -> this.cacheDescriptor.get().currentSize().intValue();
