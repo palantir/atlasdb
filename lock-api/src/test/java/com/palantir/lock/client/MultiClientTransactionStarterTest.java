@@ -236,7 +236,8 @@ public class MultiClientTransactionStarterTest {
                                 getCache(namespace),
                                 LOCK_CLEANUP_SERVICE_MAP.computeIfAbsent(
                                         namespace, _unused -> mock(LockCleanupService.class)))),
-                new DisruptorFuture<>(AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry())));
+                new DisruptorFuture<>(
+                        AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry())));
     }
 
     private void setupServiceAndAssertSanity(

@@ -39,7 +39,8 @@ interface TestBatchElement extends BatchElement<CasRequest, Void> {
     static TestBatchElement of(Cell cell, ByteBuffer expected, ByteBuffer update) {
         return ImmutableTestBatchElement.builder()
                 .argument(ImmutableCasRequest.of(cell, expected, update))
-                .result(new DisruptorAutobatcher.DisruptorFuture<>(AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry())))
+                .result(new DisruptorAutobatcher.DisruptorFuture<>(
+                        AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry())))
                 .build();
     }
 }

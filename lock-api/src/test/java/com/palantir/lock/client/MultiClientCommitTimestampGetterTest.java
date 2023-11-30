@@ -255,6 +255,7 @@ public class MultiClientCommitTimestampGetterTest {
                         .cache(lockWatchCacheMap.computeIfAbsent(namespace, _unused -> spy(LockWatchCacheImpl.noOp())))
                         .commitLocksToken(lockToken)
                         .build(),
-                new DisruptorFuture<Long>(AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry())));
+                new DisruptorFuture<Long>(
+                        AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry())));
     }
 }

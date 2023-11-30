@@ -316,7 +316,8 @@ public class WriteBatchingTransactionServiceTest {
         static TestTransactionBatchElement of(long startTimestamp, long commitTimestamp) {
             return ImmutableTestTransactionBatchElement.builder()
                     .argument(ImmutableTimestampPair.of(startTimestamp, commitTimestamp))
-                    .result(new DisruptorAutobatcher.DisruptorFuture<>(AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry())))
+                    .result(new DisruptorAutobatcher.DisruptorFuture<>(
+                            AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry())))
                     .build();
         }
     }
