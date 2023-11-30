@@ -197,7 +197,8 @@ public class CoalescingBatchingEventHandlerTests {
         @Value.Derived
         @Override
         default DisruptorAutobatcher.DisruptorFuture<Response> result() {
-            return new DisruptorAutobatcher.DisruptorFuture<>(AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry()));
+            return new DisruptorAutobatcher.DisruptorFuture<>(
+                    AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry()));
         }
     }
 }

@@ -48,7 +48,8 @@ public class TracingEventHandlerTest {
 
     private static final class TestBatchElement implements BatchElement<Integer, Long> {
 
-        private final DisruptorFuture<Long> future = new DisruptorFuture<>(AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry()));
+        private final DisruptorFuture<Long> future =
+                new DisruptorFuture<>(AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry()));
 
         @Override
         public Integer argument() {

@@ -66,9 +66,12 @@ public class MultiClientTimeLockUnlockerTest {
 
     @Test
     public void delegatesMultipleTokensCorrectly() {
-        DisruptorFuture<Set<ConjureLockTokenV2>> firstResultFuture = new DisruptorFuture<>(AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry()));
-        DisruptorFuture<Set<ConjureLockTokenV2>> secondResultFuture = new DisruptorFuture<>(AutobatcherTelemetryComponents.create("test2", new DefaultTaggedMetricRegistry()));
-        DisruptorFuture<Set<ConjureLockTokenV2>> thirdResultFuture = new DisruptorFuture<>(AutobatcherTelemetryComponents.create("test3", new DefaultTaggedMetricRegistry()));
+        DisruptorFuture<Set<ConjureLockTokenV2>> firstResultFuture =
+                new DisruptorFuture<>(AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry()));
+        DisruptorFuture<Set<ConjureLockTokenV2>> secondResultFuture = new DisruptorFuture<>(
+                AutobatcherTelemetryComponents.create("test2", new DefaultTaggedMetricRegistry()));
+        DisruptorFuture<Set<ConjureLockTokenV2>> thirdResultFuture = new DisruptorFuture<>(
+                AutobatcherTelemetryComponents.create("test3", new DefaultTaggedMetricRegistry()));
         when(conjureTimelockService.unlock(ImmutableMap.of(
                         NAMESPACE_1,
                         ConjureUnlockRequestV2.of(ImmutableSet.of(CONJURE_TOKEN_1, CONJURE_TOKEN_2)),
@@ -96,9 +99,12 @@ public class MultiClientTimeLockUnlockerTest {
 
     @Test
     public void individualTokenIsOnlySuccessfullyUnlockedOnce() {
-        DisruptorFuture<Set<ConjureLockTokenV2>> firstResultFuture = new DisruptorFuture<>(AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry()));
-        DisruptorFuture<Set<ConjureLockTokenV2>> secondResultFuture = new DisruptorFuture<>(AutobatcherTelemetryComponents.create("test2", new DefaultTaggedMetricRegistry()));
-        DisruptorFuture<Set<ConjureLockTokenV2>> thirdResultFuture = new DisruptorFuture<>(AutobatcherTelemetryComponents.create("test3", new DefaultTaggedMetricRegistry()));
+        DisruptorFuture<Set<ConjureLockTokenV2>> firstResultFuture =
+                new DisruptorFuture<>(AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry()));
+        DisruptorFuture<Set<ConjureLockTokenV2>> secondResultFuture = new DisruptorFuture<>(
+                AutobatcherTelemetryComponents.create("test2", new DefaultTaggedMetricRegistry()));
+        DisruptorFuture<Set<ConjureLockTokenV2>> thirdResultFuture = new DisruptorFuture<>(
+                AutobatcherTelemetryComponents.create("test3", new DefaultTaggedMetricRegistry()));
         when(conjureTimelockService.unlock(ImmutableMap.of(
                         NAMESPACE_1,
                         ConjureUnlockRequestV2.of(ImmutableSet.of(CONJURE_TOKEN_1, CONJURE_TOKEN_2, CONJURE_TOKEN_3)))))
@@ -135,11 +141,13 @@ public class MultiClientTimeLockUnlockerTest {
                         BatchElement.of(
                                 ImmutableUnlockRequest.of(
                                         NAMESPACE_1, ImmutableSet.of(CONJURE_TOKEN_1, CONJURE_TOKEN_2)),
-                                new DisruptorFuture<>(AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry()))),
+                                new DisruptorFuture<>(AutobatcherTelemetryComponents.create(
+                                        "test", new DefaultTaggedMetricRegistry()))),
                         BatchElement.of(
                                 ImmutableUnlockRequest.of(
                                         NAMESPACE_1, ImmutableSet.of(CONJURE_TOKEN_2, CONJURE_TOKEN_3)),
-                                new DisruptorFuture<>(AutobatcherTelemetryComponents.create("test2", new DefaultTaggedMetricRegistry()))))))
+                                new DisruptorFuture<>(AutobatcherTelemetryComponents.create(
+                                        "test2", new DefaultTaggedMetricRegistry()))))))
                 .isEqualTo(runtimeException);
         // Ensuring the futures have failed is the responsibility of IndependentBatchingEventHandler, not the function.
     }

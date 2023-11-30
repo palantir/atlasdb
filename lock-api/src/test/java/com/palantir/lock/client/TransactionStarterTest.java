@@ -147,7 +147,9 @@ public class TransactionStarterTest {
                 .map(count ->
                         ImmutableTestBatchElement.<Integer, List<StartIdentifiedAtlasDbTransactionResponse>>builder()
                                 .argument(count)
-                                .result(new DisruptorAutobatcher.DisruptorFuture<>(AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry())))
+                                .result(new DisruptorAutobatcher.DisruptorFuture<>(
+                                        AutobatcherTelemetryComponents.create(
+                                                "test", new DefaultTaggedMetricRegistry())))
                                 .build())
                 .collect(toList());
         BatchingIdentifiedAtlasDbTransactionStarter.consumer(lockLeaseService, cache)
