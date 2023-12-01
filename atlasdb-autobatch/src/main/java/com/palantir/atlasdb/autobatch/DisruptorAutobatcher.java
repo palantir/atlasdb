@@ -35,7 +35,7 @@ import com.palantir.conjure.java.api.errors.QosReason;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.DetachedSpan;
-import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import java.io.Closeable;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -215,7 +215,7 @@ public final class DisruptorAutobatcher<T, R>
         return new DisruptorAutobatcher<>(
                 disruptor,
                 disruptor.getRingBuffer(),
-                AutobatcherTelemetryComponents.create(safeLoggablePurpose, new DefaultTaggedMetricRegistry()),
+                AutobatcherTelemetryComponents.create(safeLoggablePurpose, SharedTaggedMetricRegistries.getSingleton()),
                 closingCallback);
     }
 }
