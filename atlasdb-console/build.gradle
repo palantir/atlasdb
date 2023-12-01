@@ -31,13 +31,17 @@ dependencies {
 
     testImplementation project(':atlasdb-client')
 
-    testImplementation('org.jmock:jmock-legacy') {
-        exclude group: 'org.hamcrest'
-    }
     testImplementation('org.gmock:gmock') {
         exclude module: 'groovy-test'
+    }
+    testImplementation('org.jmock:jmock-imposters') {
+        exclude group: 'org.hamcrest'
     }
 }
 
 tasks.checkImplicitDependenciesMain.enabled = false
 tasks.checkUnusedDependenciesMain.enabled = false
+
+test {
+    jvmArgs '--add-opens=java.base/java.lang=ALL-UNNAMED'
+}
