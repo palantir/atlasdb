@@ -7,6 +7,7 @@ dependencies {
   runtimeOnly project(':atlasdb-cli')
   runtimeOnly project(':atlasdb-cassandra')
   runtimeOnly project(':atlasdb-dbkvs')
+  runtimeOnly 'ch.qos.logback:logback-classic'
 }
 
 distribution {
