@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
+import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.PostgresDdlConfig;
@@ -27,13 +28,16 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.TableValueStyle;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle.PrimaryKeyConstraintNames;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.sql.AgnosticResultRow;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.ExceptionCheck;
+import java.util.Arrays;
 import java.util.concurrent.Semaphore;
 import java.util.function.Predicate;
 import org.slf4j.Logger;
@@ -86,6 +90,7 @@ public class PostgresDdlTable implements DbDdlTable {
                                             + "  CONSTRAINT %s PRIMARY KEY (row_name, col_name, ts) ",
                                     prefixedTableName, PrimaryKeyConstraintNames.get(prefixedTableName))
                             + ")");
+            logDebugOrTrace("created postgres table", UnsafeArg.of("tableName", prefixedTableName));
         } catch (PalantirSqlException e) {
             if (!e.getMessage().contains("already exists")) {
                 log.error("Error occurred trying to create the table", e);
@@ -102,6 +107,10 @@ public class PostgresDdlTable implements DbDdlTable {
                         })
                         .getMessage();
                 throw new RuntimeException(exceptionMsg, e);
+            } else {
+                logDebugOrTrace(
+                        "attempted to create postgres table that already existed",
+                        UnsafeArg.of("tableName", prefixedTableName));
             }
         }
 
@@ -128,13 +137,15 @@ public class PostgresDdlTable implements DbDdlTable {
                     "AtlasDB does not currently support case insensitive drop table commands for Postgres");
         }
 
-        executeIgnoringError("DROP TABLE " + prefixedTableName(), "does not exist");
+        String prefixedTableName = prefixedTableName();
+        executeIgnoringError("DROP TABLE " + prefixedTableName, "does not exist");
         conns.get()
                 .executeUnregisteredQuery(
                         String.format(
                                 "DELETE FROM %s WHERE table_name = ?",
                                 config.metadataTable().getQualifiedName()),
                         tableName.getQualifiedName());
+        logDebugOrTrace("deleted postgres table", UnsafeArg.of("tableName", prefixedTableName));
     }
 
     @Override
@@ -215,6 +226,14 @@ public class PostgresDdlTable implements DbDdlTable {
                 log.error("Error occurred trying to run function", e);
                 throw e;
             }
+        }
+    }
+
+    private static void logDebugOrTrace(@CompileTimeConstant String message, Arg<?>... args) {
+        if (log.isTraceEnabled()) {
+            log.trace(message, Arrays.asList(args), new SafeRuntimeException("provided for stack trace"));
+        } else if (log.isDebugEnabled()) {
+            log.debug(message, Arrays.asList(args));
         }
     }
 }
