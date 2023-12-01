@@ -66,7 +66,7 @@ public final class AutobatcherTelemetryComponents {
                 () -> overheadMetrics.waitTimeMillis().getSnapshot().getValue(0.01));
         overheadMetrics.waitTimeMillisP5((Gauge<Double>)
                 () -> overheadMetrics.waitTimeMillis().getSnapshot().getValue(0.05));
-        overheadMetrics.waitTimeMillisP50((Gauge<Double>)
+        overheadMetrics.waitTimeMillisMedian((Gauge<Double>)
                 () -> overheadMetrics.waitTimeMillis().getSnapshot().getValue(0.5));
         overheadMetrics.waitTimeMillisP999((Gauge<Double>)
                 () -> overheadMetrics.waitTimeMillis().getSnapshot().getValue(0.999));
@@ -75,7 +75,7 @@ public final class AutobatcherTelemetryComponents {
                 () -> overheadMetrics.waitTimePercentage().getSnapshot().getValue(0.01));
         overheadMetrics.waitTimePercentageP5((Gauge<Double>)
                 () -> overheadMetrics.waitTimePercentage().getSnapshot().getValue(0.05));
-        overheadMetrics.waitTimePercentageP50((Gauge<Double>)
+        overheadMetrics.waitTimePercentageMedian((Gauge<Double>)
                 () -> overheadMetrics.waitTimePercentage().getSnapshot().getValue(0.5));
         overheadMetrics.waitTimePercentageP999((Gauge<Double>)
                 () -> overheadMetrics.waitTimePercentage().getSnapshot().getValue(0.999));
@@ -84,7 +84,7 @@ public final class AutobatcherTelemetryComponents {
                 () -> overheadMetrics.runningTimeMillis().getSnapshot().getValue(0.01));
         overheadMetrics.runningTimeMillisP5((Gauge<Double>)
                 () -> overheadMetrics.runningTimeMillis().getSnapshot().getValue(0.05));
-        overheadMetrics.runningTimeMillisP50((Gauge<Double>)
+        overheadMetrics.runningTimeMillisMedian((Gauge<Double>)
                 () -> overheadMetrics.runningTimeMillis().getSnapshot().getValue(0.5));
         overheadMetrics.runningTimeMillisP999((Gauge<Double>)
                 () -> overheadMetrics.runningTimeMillis().getSnapshot().getValue(0.999));

@@ -16,7 +16,7 @@ namespaces:
       waitTimeMillisP5:
         docs: Time spent waiting (p5 percentile only)
         type: gauge
-      waitTimeMillisP50:
+      waitTimeMillisMedian:
         docs: Time spent waiting (p50 percentile only)
         type: gauge
       waitTimeMillisP999:
@@ -31,7 +31,7 @@ namespaces:
       waitTimePercentageP5:
         docs: Percentage of time spent waiting as a proportion of total runtime (p5 percentile only)
         type: gauge
-      waitTimePercentageP50:
+      waitTimePercentageMedian:
         docs: Percentage of time spent waiting as a proportion of total runtime (p50 percentile only)
         type: gauge
       waitTimePercentageP999:
@@ -46,7 +46,7 @@ namespaces:
       runningTimeMillisP5:
         docs: Time spent running (P1 percentile only)
         type: gauge
-      runningTimeMillisP50:
+      runningTimeMillisMedian:
         docs: Time spent running (P50 percentile only)
         type: gauge
       runningTimeMillisP999:
