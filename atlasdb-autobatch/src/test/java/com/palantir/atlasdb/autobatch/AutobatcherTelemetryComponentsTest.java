@@ -158,7 +158,7 @@ public final class AutobatcherTelemetryComponentsTest {
                 .registry(registry)
                 .operationType(SAFE_LOGGABLE_PURPOSE)
                 .build();
-        return (Gauge<Double>) registry.getMetrics().get(overheadMetrics.waitTimeMillisP50MetricName());
+        return (Gauge<Double>) registry.getMetrics().get(overheadMetrics.waitTimeMillisMedianMetricName());
     }
 
     private static Gauge<Double> getWaitTimeP999Gauge(TaggedMetricRegistry registry) {
@@ -198,7 +198,7 @@ public final class AutobatcherTelemetryComponentsTest {
                 .registry(registry)
                 .operationType(SAFE_LOGGABLE_PURPOSE)
                 .build();
-        return (Gauge<Double>) registry.getMetrics().get(overheadMetrics.runningTimeMillisP50MetricName());
+        return (Gauge<Double>) registry.getMetrics().get(overheadMetrics.runningTimeMillisMedianMetricName());
     }
 
     private static Gauge<Double> getRunningTimeP999Gauge(TaggedMetricRegistry registry) {
@@ -238,7 +238,7 @@ public final class AutobatcherTelemetryComponentsTest {
                 .registry(registry)
                 .operationType(SAFE_LOGGABLE_PURPOSE)
                 .build();
-        return (Gauge<Double>) registry.getMetrics().get(overheadMetrics.waitTimePercentageP50MetricName());
+        return (Gauge<Double>) registry.getMetrics().get(overheadMetrics.waitTimePercentageMedianMetricName());
     }
 
     private static Gauge<Double> getWaitTimePercentageP999Gauge(TaggedMetricRegistry registry) {
