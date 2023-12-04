@@ -43,11 +43,11 @@ public final class DisruptorAutobatcherTest {
         FakeTicker fakeTicker = new FakeTicker();
         DisruptorFuture<String> future = new DisruptorFuture<>(
                 fakeTicker, AutobatcherTelemetryComponents.create(SAFE_LOGGABLE_PURPOSE, registry));
-        int waitTimeMillis = 10;
-        fakeTicker.advance(waitTimeMillis, TimeUnit.MILLISECONDS);
+        int waitTimeNanos = 10;
+        fakeTicker.advance(waitTimeNanos, TimeUnit.NANOSECONDS);
         future.running();
         future.setException(new RuntimeException("Test"));
-        assertOnlyWaitTimeMetricsAreProduced(registry, waitTimeMillis);
+        assertOnlyWaitTimeMetricsAreProduced(registry, waitTimeNanos);
     }
 
     @Test
@@ -56,21 +56,21 @@ public final class DisruptorAutobatcherTest {
         FakeTicker fakeTicker = new FakeTicker();
         DisruptorFuture<String> future = new DisruptorFuture<>(
                 fakeTicker, AutobatcherTelemetryComponents.create(SAFE_LOGGABLE_PURPOSE, registry));
-        long waitTimeMillis = 10;
-        fakeTicker.advance(waitTimeMillis, TimeUnit.MILLISECONDS);
+        long waitTimeNanos = 10;
+        fakeTicker.advance(waitTimeNanos, TimeUnit.NANOSECONDS);
         future.running();
-        long runningTimeMillis = 90;
-        fakeTicker.advance(runningTimeMillis, TimeUnit.MILLISECONDS);
+        long runningTimeNanos = 90;
+        fakeTicker.advance(runningTimeNanos, TimeUnit.NANOSECONDS);
         future.set("Test");
-        assertWaitTimeAndRunningTimeMetricsAreProduced(registry, waitTimeMillis, runningTimeMillis);
+        assertWaitTimeAndRunningTimeMetricsAreProduced(registry, waitTimeNanos, runningTimeNanos);
     }
 
     private void assertWaitTimeAndRunningTimeMetricsAreProduced(
-            TaggedMetricRegistry registry, long waitTimeMillis, long runningTimeMillis) {
-        assertThat(getWaitTimeHistogram(registry).getSnapshot().getValues()).containsExactly(waitTimeMillis);
+            TaggedMetricRegistry registry, long waitTimeNanos, long runningTimeNanos) {
+        assertThat(getWaitTimeHistogram(registry).getSnapshot().getValues()).containsExactly(waitTimeNanos);
         assertThat(getWaitTimePercentageHistogram(registry).getSnapshot().getValues())
-                .containsExactly((100 * waitTimeMillis) / (waitTimeMillis + runningTimeMillis));
-        assertThat(getRunningTimeHistogram(registry).getSnapshot().getValues()).containsExactly(runningTimeMillis);
+                .containsExactly((100 * waitTimeNanos) / (waitTimeNanos + runningTimeNanos));
+        assertThat(getRunningTimeHistogram(registry).getSnapshot().getValues()).containsExactly(runningTimeNanos);
     }
 
     private void assertNoWaitTimeAndRunningTimeMetricsAreProduced(TaggedMetricRegistry registry) {
@@ -79,8 +79,8 @@ public final class DisruptorAutobatcherTest {
         assertThat(getRunningTimeHistogram(registry)).isNull();
     }
 
-    private void assertOnlyWaitTimeMetricsAreProduced(TaggedMetricRegistry registry, int waitTimeMillis) {
-        assertThat(getWaitTimeHistogram(registry).getSnapshot().getValues()).containsExactly(waitTimeMillis);
+    private void assertOnlyWaitTimeMetricsAreProduced(TaggedMetricRegistry registry, int waitTimeNanos) {
+        assertThat(getWaitTimeHistogram(registry).getSnapshot().getValues()).containsExactly(waitTimeNanos);
         assertThat(getWaitTimePercentageHistogram(registry)).isNull();
         assertThat(getRunningTimeHistogram(registry)).isNull();
     }
@@ -90,7 +90,7 @@ public final class DisruptorAutobatcherTest {
                 .registry(registry)
                 .operationType(SAFE_LOGGABLE_PURPOSE)
                 .build();
-        return (Histogram) registry.getMetrics().get(overheadMetrics.waitTimeMillisMetricName());
+        return (Histogram) registry.getMetrics().get(overheadMetrics.waitTimeNanosMetricName());
     }
 
     private static Histogram getRunningTimeHistogram(TaggedMetricRegistry registry) {
@@ -98,7 +98,7 @@ public final class DisruptorAutobatcherTest {
                 .registry(registry)
                 .operationType(SAFE_LOGGABLE_PURPOSE)
                 .build();
-        return (Histogram) registry.getMetrics().get(overheadMetrics.runningTimeMillisMetricName());
+        return (Histogram) registry.getMetrics().get(overheadMetrics.runningTimeNanosMetricName());
     }
 
     private static Histogram getWaitTimePercentageHistogram(TaggedMetricRegistry registry) {
