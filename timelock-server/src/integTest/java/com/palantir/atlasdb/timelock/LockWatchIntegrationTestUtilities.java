@@ -116,8 +116,8 @@ public final class LockWatchIntegrationTestUtilities {
     }
 
     public static TransactionManager createTransactionManager(
-            double validationProbability, TestableTimelockClusterV2 timelockCluster, String namespace) {
-        return TimeLockTestUtilsV2.createTransactionManager(
+            double validationProbability, TestableTimelockCluster timelockCluster, String namespace) {
+        return TimeLockTestUtils.createTransactionManager(
                         timelockCluster,
                         namespace,
                         AtlasDbRuntimeConfig.defaultRuntimeConfig(),

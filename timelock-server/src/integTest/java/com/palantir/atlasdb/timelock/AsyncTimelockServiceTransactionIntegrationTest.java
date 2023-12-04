@@ -64,13 +64,13 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
     private final TransactionManager txnManager;
 
     @RegisterExtension
-    public static final TestableTimelockClusterV2 cluster =
-            new TestableTimelockClusterV2("paxosSingleServer.ftl", DEFAULT_SINGLE_SERVER);
+    public static final TestableTimelockCluster cluster =
+            new TestableTimelockCluster("paxosSingleServer.ftl", DEFAULT_SINGLE_SERVER);
 
     public AsyncTimelockServiceTransactionIntegrationTest() {
         cluster.waitUntilLeaderIsElected(ImmutableList.of(AGENT));
 
-        txnManager = TimeLockTestUtilsV2.createTransactionManager(cluster, AGENT);
+        txnManager = TimeLockTestUtils.createTransactionManager(cluster, AGENT);
         txnManager.getKeyValueService().createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
     }
 

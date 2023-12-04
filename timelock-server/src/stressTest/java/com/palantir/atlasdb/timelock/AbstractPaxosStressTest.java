@@ -30,10 +30,10 @@ import org.junit.jupiter.api.Test;
 
 public abstract class AbstractPaxosStressTest {
 
-    private final TestableTimelockClusterV2 cluster;
-    private NamespacedClientsV2 client;
+    private final TestableTimelockCluster cluster;
+    private NamespacedClients client;
 
-    public AbstractPaxosStressTest(TestableTimelockClusterV2 cluster) {
+    public AbstractPaxosStressTest(TestableTimelockCluster cluster) {
         this.cluster = cluster;
     }
 
@@ -45,7 +45,7 @@ public abstract class AbstractPaxosStressTest {
 
     @Test
     public void stressTest() {
-        TestableTimelockServerV2 nonLeader =
+        TestableTimelockServer nonLeader =
                 Iterables.getFirst(cluster.nonLeaders(client.namespace()).values(), null);
         int startingNumThreads = ManagementFactory.getThreadMXBean().getThreadCount();
         boolean isNonLeaderTakenOut = false;
@@ -66,7 +66,7 @@ public abstract class AbstractPaxosStressTest {
 
     @Test
     public void stressTestForPaxosEndpoints() {
-        TestableTimelockServerV2 nonLeader =
+        TestableTimelockServer nonLeader =
                 Iterables.getFirst(cluster.nonLeaders(client.namespace()).values(), null);
         int startingNumThreads = ManagementFactory.getThreadMXBean().getThreadCount();
         boolean isNonLeaderTakenOut = false;
@@ -100,7 +100,7 @@ public abstract class AbstractPaxosStressTest {
         }
     }
 
-    private void makeServerWaitTwoSecondsAndThenReturn503s(TestableTimelockServerV2 nonLeader) {
+    private void makeServerWaitTwoSecondsAndThenReturn503s(TestableTimelockServer nonLeader) {
         nonLeader
                 .serverHolder()
                 .wireMock()

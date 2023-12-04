@@ -94,7 +94,7 @@ public final class LockWatchValueIntegrationTest {
     private static final CellReference TABLE_CELL_4 = CellReference.of(TABLE_REF, CELL_4);
 
     @RegisterExtension
-    public static final TestableTimelockClusterV2 CLUSTER = new TestableTimelockClusterV2(
+    public static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
             "non-batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
             generateThreeNodeTimelockCluster(

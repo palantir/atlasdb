@@ -38,7 +38,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 public class MultiLeaderMultiNodePaxosTimeLockIntegrationTest {
 
     @RegisterExtension
-    public static final TestableTimelockClusterV2 cluster = new TestableTimelockClusterV2(
+    public static final TestableTimelockCluster cluster = new TestableTimelockCluster(
             "batched timestamp paxos multi leader",
             "paxosMultiServer.ftl",
             generateThreeNodeTimelockCluster(
@@ -52,35 +52,35 @@ public class MultiLeaderMultiNodePaxosTimeLockIntegrationTest {
         // leadership on that namespace
         // by putting timelock behind a wiremock proxy, we can disallow requests to namespaces effectively giving us
         // the ability to allocate namespaces to particular leaders
-        SetMultimap<TestableTimelockServerV2, String> allocations = allocateRandomNamespacesToAllNodes(3);
+        SetMultimap<TestableTimelockServer, String> allocations = allocateRandomNamespacesToAllNodes(3);
 
         Set<String> allNamespaces = ImmutableSet.copyOf(allocations.values());
 
         allNamespaces.stream()
                 .map(cluster::client)
-                .map(NamespacedClientsV2::throughWireMockProxy)
-                .forEach(NamespacedClientsV2::getFreshTimestamp);
+                .map(NamespacedClients::throughWireMockProxy)
+                .forEach(NamespacedClients::getFreshTimestamp);
 
-        SetMultimap<TestableTimelockServerV2, String> namespacesByLeader = ImmutableSetMultimap.copyOf(
+        SetMultimap<TestableTimelockServer, String> namespacesByLeader = ImmutableSetMultimap.copyOf(
                         cluster.currentLeaders(allNamespaces))
                 .inverse();
 
         assertThat(namespacesByLeader).isEqualTo(allocations);
 
-        cluster.servers().forEach(TestableTimelockServerV2::allowAllNamespaces);
+        cluster.servers().forEach(TestableTimelockServer::allowAllNamespaces);
     }
 
     @Test
     public void nonLeadersCorrectly308() {
-        SetMultimap<TestableTimelockServerV2, String> allocations = allocateRandomNamespacesToAllNodes(1);
+        SetMultimap<TestableTimelockServer, String> allocations = allocateRandomNamespacesToAllNodes(1);
         String randomNamespace = Iterables.get(allocations.values(), 0);
-        NamespacedClientsV2 clientForRandomNamespace =
+        NamespacedClients clientForRandomNamespace =
                 cluster.client(randomNamespace).throughWireMockProxy();
         clientForRandomNamespace.getFreshTimestamp();
 
-        cluster.servers().forEach(TestableTimelockServerV2::allowAllNamespaces);
+        cluster.servers().forEach(TestableTimelockServer::allowAllNamespaces);
 
-        TestableTimelockServerV2 allocatedLeader = Iterables.getOnlyElement(
+        TestableTimelockServer allocatedLeader = Iterables.getOnlyElement(
                 ImmutableSetMultimap.copyOf(allocations).inverse().get(randomNamespace));
 
         assertThat(cluster.currentLeaderFor(randomNamespace)).isEqualTo(allocatedLeader);
@@ -91,13 +91,13 @@ public class MultiLeaderMultiNodePaxosTimeLockIntegrationTest {
                 .hasRootCauseInstanceOf(QosException.RetryOther.class));
     }
 
-    private SetMultimap<TestableTimelockServerV2, String> allocateRandomNamespacesToAllNodes(int namespacesPerLeader) {
-        SetMultimap<TestableTimelockServerV2, String> namespaceAllocations = KeyedStream.of(cluster.servers())
+    private SetMultimap<TestableTimelockServer, String> allocateRandomNamespacesToAllNodes(int namespacesPerLeader) {
+        SetMultimap<TestableTimelockServer, String> namespaceAllocations = KeyedStream.of(cluster.servers())
                 .flatMap(unused -> Stream.generate(MultiLeaderMultiNodePaxosTimeLockIntegrationTest::randomNamespace)
                         .limit(namespacesPerLeader))
                 .collectToSetMultimap();
 
-        Multimaps.asMap(namespaceAllocations).forEach(TestableTimelockServerV2::rejectAllNamespacesOtherThan);
+        Multimaps.asMap(namespaceAllocations).forEach(TestableTimelockServer::rejectAllNamespacesOtherThan);
 
         return namespaceAllocations;
     }

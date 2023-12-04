@@ -39,7 +39,7 @@ public class DbTimelockSingleLeaderMultiNodePaxosTimeLockServerIntegrationTest
             .collect(Collectors.toList());
 
     @RegisterExtension
-    public static final TestableTimelockClusterV2 DB_TIMELOCK_CLUSTER = new TestableTimelockClusterV2(
+    public static final TestableTimelockCluster DB_TIMELOCK_CLUSTER = new TestableTimelockCluster(
             "db-timelock; batched single leader", "dbTimeLockPaxosMultiServer.ftl", TESTABLE_CONFIGURATIONS);
 
     public DbTimelockSingleLeaderMultiNodePaxosTimeLockServerIntegrationTest() {

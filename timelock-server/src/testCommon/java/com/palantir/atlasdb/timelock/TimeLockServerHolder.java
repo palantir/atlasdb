@@ -38,9 +38,11 @@ import io.dropwizard.testing.DropwizardTestSupport;
 import java.io.File;
 import java.io.IOException;
 import java.util.function.Supplier;
-import org.junit.rules.ExternalResource;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
-public class TimeLockServerHolder extends ExternalResource {
+public class TimeLockServerHolder implements BeforeAllCallback, AfterAllCallback {
 
     static final String ALL_NAMESPACES = "/[a-zA-Z0-9_-]+/.*";
 
@@ -66,7 +68,11 @@ public class TimeLockServerHolder extends ExternalResource {
     }
 
     @Override
-    protected void before() throws Exception {
+    public void beforeAll(ExtensionContext extensionContext) throws Exception {
+        beforeAll();
+    }
+
+    protected synchronized void beforeAll() throws Exception {
         if (isRunning) {
             return;
         }
@@ -81,7 +87,11 @@ public class TimeLockServerHolder extends ExternalResource {
     }
 
     @Override
-    protected void after() {
+    public void afterAll(ExtensionContext extensionContext) {
+        afterAll();
+    }
+
+    protected synchronized void afterAll() {
         if (isRunning) {
             wireMockServer.stop();
             timelockServer.after();
@@ -129,7 +139,7 @@ public class TimeLockServerHolder extends ExternalResource {
         if (!isRunning) {
             return Futures.immediateFailedFuture(new RuntimeException("timelock hasn't started"));
         }
-        after();
+        afterAll();
         return getShutdownFuture();
     }
 
@@ -139,7 +149,7 @@ public class TimeLockServerHolder extends ExternalResource {
 
     synchronized void start() {
         try {
-            before();
+            beforeAll();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

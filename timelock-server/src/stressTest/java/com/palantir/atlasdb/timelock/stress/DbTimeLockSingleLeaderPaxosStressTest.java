@@ -20,7 +20,7 @@ import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeT
 
 import com.palantir.atlasdb.timelock.AbstractPaxosStressTest;
 import com.palantir.atlasdb.timelock.TemplateVariables;
-import com.palantir.atlasdb.timelock.TestableTimelockClusterV2;
+import com.palantir.atlasdb.timelock.TestableTimelockCluster;
 import com.palantir.atlasdb.timelock.TestableTimelockServerConfiguration;
 import com.palantir.atlasdb.timelock.util.TestableTimeLockClusterPorts;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
@@ -42,7 +42,7 @@ public class DbTimeLockSingleLeaderPaxosStressTest extends AbstractPaxosStressTe
             .collect(Collectors.toList());
 
     @RegisterExtension
-    public static final TestableTimelockClusterV2 DB_TIMELOCK_CLUSTER = new TestableTimelockClusterV2(
+    public static final TestableTimelockCluster DB_TIMELOCK_CLUSTER = new TestableTimelockCluster(
             "db-timelock; batched single leader", "dbTimeLockPaxosMultiServer.ftl", TESTABLE_CONFIGURATIONS);
 
     public DbTimeLockSingleLeaderPaxosStressTest() {

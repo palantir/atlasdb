@@ -25,7 +25,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 public class NonBatchedTimestampSingleLeaderMultiNodePaxosTimeLockServerIntegrationTest
         extends AbstractMultiNodePaxosTimeLockServerIntegrationTest {
     @RegisterExtension
-    public static final TestableTimelockClusterV2 NON_BATCHED_TIMESTAMP_PAXOS = new TestableTimelockClusterV2(
+    public static final TestableTimelockCluster NON_BATCHED_TIMESTAMP_PAXOS = new TestableTimelockCluster(
             "non-batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
             generateThreeNodeTimelockCluster(

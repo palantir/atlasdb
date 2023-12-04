@@ -26,7 +26,7 @@ public class BatchedSingleLeaderMultiNodePaxosTimeLockIntegrationTest
         extends AbstractSingleLeaderMultiNodePaxosTimeLockIntegrationTest {
 
     @RegisterExtension
-    public static final TestableTimelockClusterV2 BATCHED_PAXOS = new TestableTimelockClusterV2(
+    public static final TestableTimelockCluster BATCHED_PAXOS = new TestableTimelockCluster(
             "batched single leader",
             "paxosMultiServer.ftl",
             generateThreeNodeTimelockCluster(
