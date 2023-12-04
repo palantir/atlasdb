@@ -7,19 +7,19 @@ namespaces:
     tags:
       - operationType
     metrics:
-      waitTimeMillis:
+      waitTimeNanos:
         docs: Time spent waiting
         type: histogram
-      waitTimeMillisP1:
+      waitTimeNanosP1:
         docs: Time spent waiting (p1 percentile only)
         type: gauge
-      waitTimeMillisP5:
+      waitTimeNanosP5:
         docs: Time spent waiting (p5 percentile only)
         type: gauge
-      waitTimeMillisMedian:
+      waitTimeNanosMedian:
         docs: Time spent waiting (p50 percentile only)
         type: gauge
-      waitTimeMillisP999:
+      waitTimeNanosP999:
         docs: Time spent waiting (p999 percentile only)
         type: gauge
       waitTimePercentage:
@@ -37,18 +37,18 @@ namespaces:
       waitTimePercentageP999:
         docs: Percentage of time spent waiting as a proportion of total runtime (p999 percentile only)
         type: gauge
-      runningTimeMillis:
+      runningTimeNanos:
         docs: Time spent running
         type: histogram
-      runningTimeMillisP1:
+      runningTimeNanosP1:
         docs: Time spent running (P1 percentile only)
         type: gauge
-      runningTimeMillisP5:
+      runningTimeNanosP5:
         docs: Time spent running (P1 percentile only)
         type: gauge
-      runningTimeMillisMedian:
+      runningTimeNanosMedian:
         docs: Time spent running (P50 percentile only)
         type: gauge
-      runningTimeMillisP999:
+      runningTimeNanosP999:
         docs: Time spent running (P999 percentile only)
         type: gauge
