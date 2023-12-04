@@ -20,6 +20,7 @@ import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptio
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
@@ -37,6 +38,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionService.LeadershipToken;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
@@ -46,6 +48,7 @@ import com.palantir.leader.SuspectedNotCurrentLeaderException;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.SafeLoggable;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.io.Closeable;
 import java.io.IOException;
 import java.time.Duration;
@@ -59,6 +62,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.Supplier;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -77,6 +81,11 @@ public class AwaitingLeadershipProxyTest {
         when(leaderElectionService.getCurrentTokenIfLeading()).thenReturn(Optional.empty());
         when(leaderElectionService.isStillLeading(leadershipToken))
                 .thenReturn(Futures.immediateFuture(StillLeadingStatus.LEADING));
+    }
+
+    @AfterEach
+    void after() {
+        executor.shutdownNow();
     }
 
     @Test
@@ -184,6 +193,72 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
+    public void shouldThrowIfNotLeading() {
+        Callable<Void> delegate = () -> {
+            throw new ServiceNotAvailableException(new SafeRuntimeException(TEST_MESSAGE));
+        };
+
+        assertThatThrownBy(() -> callOnNonLeader(delegate))
+                .isInstanceOf(ServiceNotAvailableException.class)
+                .hasMessageContaining("method invoked on a non-leader (leadership lost)")
+                .rootCause()
+                .isInstanceOf(SafeRuntimeException.class)
+                .hasMessageContaining(TEST_MESSAGE);
+    }
+
+    @Test
+    public void shouldThrowIfDelegateNotLeading() {
+        Callable<Void> delegate = () -> {
+            throw new NotCurrentLeaderException("not current leader", new SafeRuntimeException(TEST_MESSAGE));
+        };
+
+        assertThatThrownBy(() -> callOnNonLeader(delegate))
+                .isInstanceOf(ServiceNotAvailableException.class)
+                .hasMessageContaining("method invoked on a non-leader (leadership lost)")
+                .rootCause()
+                .isInstanceOf(SafeRuntimeException.class)
+                .hasMessageContaining(TEST_MESSAGE);
+    }
+
+    @Test
+    public void shouldThrowIfNoQuorum() {
+        Callable<Void> delegate = () -> {
+            throw new ServiceNotAvailableException(new SafeRuntimeException(TEST_MESSAGE));
+        };
+
+        assertThatThrownBy(() -> {
+                    CountDownLatch delegateCallStarted = new CountDownLatch(1);
+                    CountDownLatch leadershipLost = new CountDownLatch(1);
+
+                    Callable<Void> proxy = proxyFor(() -> {
+                        delegateCallStarted.countDown();
+                        leadershipLost.await();
+
+                        return delegate.call();
+                    });
+
+                    Future<Void> blockingCall = executor.submit(proxy);
+                    executor.shutdown();
+                    delegateCallStarted.await();
+
+                    loseLeadershipOnLeaderElectionService(StillLeadingStatus.NO_QUORUM);
+                    leadershipLost.countDown();
+
+                    try {
+                        blockingCall.get();
+                        fail("call should have failed due to lost leadership");
+                    } catch (Throwable e) {
+                        throw e.getCause();
+                    }
+                })
+                .isInstanceOf(ServiceNotAvailableException.class)
+                .hasMessageContaining("method invoked on a non-leader (leadership lost)")
+                .rootCause()
+                .isInstanceOf(SafeRuntimeException.class)
+                .hasMessageContaining(TEST_MESSAGE);
+    }
+
+    @Test
     public void shouldMapInterruptedExceptionToNcleIfLeadingStatusChanges() {
         Callable<Void> delegate = () -> {
             throw new InterruptedException(TEST_MESSAGE);
@@ -214,7 +289,19 @@ public class AwaitingLeadershipProxyTest {
         });
         waitForLeadershipToBeGained();
 
+        assertThat(Thread.currentThread().isInterrupted()).isFalse();
         assertThatThrownBy(proxy::call).isInstanceOf(InterruptedException.class).hasMessage(TEST_MESSAGE);
+        assertThat(Thread.currentThread().isInterrupted()).isTrue();
+    }
+
+    @Test
+    public void shouldPropagateError() throws InterruptedException {
+        Callable<Void> proxy = proxyFor(() -> {
+            throw new LinkageError(TEST_MESSAGE);
+        });
+        waitForLeadershipToBeGained();
+
+        assertThatThrownBy(proxy::call).isInstanceOf(LinkageError.class).hasMessage(TEST_MESSAGE);
     }
 
     @Test
@@ -510,6 +597,7 @@ public class AwaitingLeadershipProxyTest {
 
     private static Supplier<MyCloseable> createSpyableSupplier(MyCloseable mock) {
         // Mockito is not able to spy lambdas, so this anonymous class must remain as such.
+        //noinspection Convert2Lambda
         return spy(new Supplier<>() {
             @Override
             public MyCloseable get() {
@@ -519,7 +607,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @SuppressWarnings("IllegalThrows")
-    private Void loseLeadershipDuringCallToProxyFor(Callable<Void> delegate) throws Throwable {
+    private void loseLeadershipDuringCallToProxyFor(Callable<Void> delegate) throws Throwable {
         CountDownLatch delegateCallStarted = new CountDownLatch(1);
         CountDownLatch leadershipLost = new CountDownLatch(1);
 
@@ -533,13 +621,43 @@ public class AwaitingLeadershipProxyTest {
         waitForLeadershipToBeGained();
 
         Future<Void> blockingCall = executor.submit(proxy);
+        executor.shutdown();
         delegateCallStarted.await();
 
         loseLeadership(proxy);
         leadershipLost.countDown();
 
         try {
-            return blockingCall.get();
+            blockingCall.get();
+            fail("call should have failed due to lost leadership");
+        } catch (Throwable e) {
+            throw e.getCause();
+        }
+    }
+
+    private void callOnNonLeader(Callable<Void> delegate) throws Throwable {
+        CountDownLatch delegateCallStarted = new CountDownLatch(1);
+        CountDownLatch leadershipLost = new CountDownLatch(1);
+
+        Callable<Void> proxy = proxyFor(() -> {
+            delegateCallStarted.countDown();
+            leadershipLost.await();
+
+            return delegate.call();
+        });
+
+        waitForLeadershipToBeGained();
+
+        Future<Void> blockingCall = executor.submit(proxy);
+        executor.shutdown();
+        delegateCallStarted.await();
+
+        loseLeadership(proxy);
+        leadershipLost.countDown();
+
+        try {
+            blockingCall.get();
+            fail("call should have failed due to lost leadership");
         } catch (Throwable e) {
             throw e.getCause();
         }
@@ -589,6 +707,7 @@ public class AwaitingLeadershipProxyTest {
         Uninterruptibles.sleepUninterruptibly(Duration.ofMillis(100L));
     }
 
+    @SuppressWarnings("unchecked")
     private <T> Callable<T> proxyFor(Callable<T> fn) {
         return (Callable<T>) AwaitingLeadershipProxy.newProxyInstance(
                 Callable.class, () -> fn, LeadershipCoordinator.create(leaderElectionService));
