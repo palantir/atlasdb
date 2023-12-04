@@ -40,7 +40,7 @@ public final class AutobatcherTelemetryComponents {
     }
 
     void markWaitingTimeMetrics(Duration waitTime) {
-        overheadMetrics.waitTimeMillis().update(waitTime.toMillis());
+        overheadMetrics.waitTimeNanos().update(waitTime.toNanos());
     }
 
     String getSafeLoggablePurpose() {
@@ -48,7 +48,7 @@ public final class AutobatcherTelemetryComponents {
     }
 
     private void markRunningTimeMetrics(Duration runningTime) {
-        overheadMetrics.runningTimeMillis().update(runningTime.toMillis());
+        overheadMetrics.runningTimeNanos().update(runningTime.toNanos());
     }
 
     private void markWaitingTimePercentage(long waitTimePercentage) {
@@ -62,14 +62,14 @@ public final class AutobatcherTelemetryComponents {
                 .operationType(safeLoggablePurpose)
                 .build();
 
-        overheadMetrics.waitTimeMillisP1((Gauge<Double>)
-                () -> overheadMetrics.waitTimeMillis().getSnapshot().getValue(0.01));
-        overheadMetrics.waitTimeMillisP5((Gauge<Double>)
-                () -> overheadMetrics.waitTimeMillis().getSnapshot().getValue(0.05));
-        overheadMetrics.waitTimeMillisMedian((Gauge<Double>)
-                () -> overheadMetrics.waitTimeMillis().getSnapshot().getValue(0.5));
-        overheadMetrics.waitTimeMillisP999((Gauge<Double>)
-                () -> overheadMetrics.waitTimeMillis().getSnapshot().getValue(0.999));
+        overheadMetrics.waitTimeNanosP1((Gauge<Double>)
+                () -> overheadMetrics.waitTimeNanos().getSnapshot().getValue(0.01));
+        overheadMetrics.waitTimeNanosP5((Gauge<Double>)
+                () -> overheadMetrics.waitTimeNanos().getSnapshot().getValue(0.05));
+        overheadMetrics.waitTimeNanosMedian((Gauge<Double>)
+                () -> overheadMetrics.waitTimeNanos().getSnapshot().getValue(0.5));
+        overheadMetrics.waitTimeNanosP999((Gauge<Double>)
+                () -> overheadMetrics.waitTimeNanos().getSnapshot().getValue(0.999));
 
         overheadMetrics.waitTimePercentageP1((Gauge<Double>)
                 () -> overheadMetrics.waitTimePercentage().getSnapshot().getValue(0.01));
@@ -80,14 +80,14 @@ public final class AutobatcherTelemetryComponents {
         overheadMetrics.waitTimePercentageP999((Gauge<Double>)
                 () -> overheadMetrics.waitTimePercentage().getSnapshot().getValue(0.999));
 
-        overheadMetrics.runningTimeMillisP1((Gauge<Double>)
-                () -> overheadMetrics.runningTimeMillis().getSnapshot().getValue(0.01));
-        overheadMetrics.runningTimeMillisP5((Gauge<Double>)
-                () -> overheadMetrics.runningTimeMillis().getSnapshot().getValue(0.05));
-        overheadMetrics.runningTimeMillisMedian((Gauge<Double>)
-                () -> overheadMetrics.runningTimeMillis().getSnapshot().getValue(0.5));
-        overheadMetrics.runningTimeMillisP999((Gauge<Double>)
-                () -> overheadMetrics.runningTimeMillis().getSnapshot().getValue(0.999));
+        overheadMetrics.runningTimeNanosP1((Gauge<Double>)
+                () -> overheadMetrics.runningTimeNanos().getSnapshot().getValue(0.01));
+        overheadMetrics.runningTimeNanosP5((Gauge<Double>)
+                () -> overheadMetrics.runningTimeNanos().getSnapshot().getValue(0.05));
+        overheadMetrics.runningTimeNanosMedian((Gauge<Double>)
+                () -> overheadMetrics.runningTimeNanos().getSnapshot().getValue(0.5));
+        overheadMetrics.runningTimeNanosP999((Gauge<Double>)
+                () -> overheadMetrics.runningTimeNanos().getSnapshot().getValue(0.999));
 
         return new AutobatcherTelemetryComponents(safeLoggablePurpose, overheadMetrics);
     }
