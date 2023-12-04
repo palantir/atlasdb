@@ -26,7 +26,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.dbkvs.InvalidationRunner;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.timestamp.TimestampBoundStore;
 import java.time.Duration;
 import java.util.concurrent.Executors;
@@ -39,7 +39,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 @ExtendWith(DbKvsPostgresExtension.class)
 public class DbKvsPostgresInvalidationRunnerTest {
     @RegisterExtension
-    public static final TestResourceManagerV2 TRM = new TestResourceManagerV2(DbKvsPostgresExtension::createKvs);
+    public static final TestResourceManager TRM = new TestResourceManager(DbKvsPostgresExtension::createKvs);
 
     private final ConnectionManagerAwareDbKvs kvs = (ConnectionManagerAwareDbKvs) TRM.getDefaultKvs();
     private final TimestampBoundStore store = getStore();

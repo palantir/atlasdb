@@ -20,13 +20,13 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
-import com.palantir.atlasdb.timestamp.AbstractDbTimestampBoundStoreTestV2;
+import com.palantir.atlasdb.timestamp.AbstractDbTimestampBoundStoreTest;
 import com.palantir.timestamp.TimestampBoundStore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(DbKvsOracleExtension.class)
-public class OracleEmbeddedDbTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTestV2 {
+public class OracleEmbeddedDbTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTest {
 
     private KeyValueService kvs;
 

@@ -17,10 +17,10 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class InMemoryKeyValueServiceTest extends AbstractKeyValueServiceTestV2 {
+public class InMemoryKeyValueServiceTest extends AbstractKeyValueServiceTest {
 
     @RegisterExtension
-    public static final TestResourceManagerV2 TRM = TestResourceManagerV2.inMemory();
+    public static final TestResourceManager TRM = TestResourceManager.inMemory();
 
     public InMemoryKeyValueServiceTest() {
         super(TRM);

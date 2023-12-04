@@ -24,7 +24,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.AbstractDbKvsKeyValueServiceTest;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -39,7 +39,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 public class DbKvsOracleKeyValueServiceTest extends AbstractDbKvsKeyValueServiceTest {
 
     @RegisterExtension
-    public static final TestResourceManagerV2 TRM = new TestResourceManagerV2(DbKvsOracleExtension::createKvs);
+    public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleExtension::createKvs);
 
     private static final TableReference TABLE_1 =
             TableReference.createFromFullyQualifiedName("multipass.providerGroupIdAndRealmToPrincipalId");

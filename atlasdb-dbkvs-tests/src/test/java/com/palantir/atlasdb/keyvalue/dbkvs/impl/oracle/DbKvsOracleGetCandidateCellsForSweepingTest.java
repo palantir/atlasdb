@@ -16,16 +16,16 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
-import com.palantir.atlasdb.keyvalue.impl.AbstractGetCandidateCellsForSweepingTestV2;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
+import com.palantir.atlasdb.keyvalue.impl.AbstractGetCandidateCellsForSweepingTest;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 @ExtendWith(DbKvsOracleExtension.class)
-public class DbKvsOracleGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTestV2 {
+public class DbKvsOracleGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
 
     @RegisterExtension
-    public static final TestResourceManagerV2 TRM = new TestResourceManagerV2(DbKvsOracleExtension::createKvs);
+    public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleExtension::createKvs);
 
     public DbKvsOracleGetCandidateCellsForSweepingTest() {
         super(TRM);

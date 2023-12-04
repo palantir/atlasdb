@@ -37,7 +37,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.OracleTableNameGetterImpl;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.logging.KvsProfilingLogger.CallableCheckedException;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -54,7 +54,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 public final class OracleAlterTableIntegrationTest {
 
     @RegisterExtension
-    public static final TestResourceManagerV2 TRM = new TestResourceManagerV2(DbKvsOracleExtension::createKvs);
+    public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleExtension::createKvs);
 
     private static final Namespace NAMESPACE = Namespace.create("test_namespace");
     private static final TableReference TABLE_REFERENCE = TableReference.create(NAMESPACE, "foo");

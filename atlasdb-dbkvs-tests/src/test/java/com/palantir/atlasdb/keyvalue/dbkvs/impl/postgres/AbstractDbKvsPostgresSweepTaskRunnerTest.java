@@ -17,10 +17,10 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
-import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTestV2;
+import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers.CacheWarming;
 
-public abstract class AbstractDbKvsPostgresSweepTaskRunnerTest extends AbstractSweepTaskRunnerTestV2 {
+public abstract class AbstractDbKvsPostgresSweepTaskRunnerTest extends AbstractSweepTaskRunnerTest {
 
     private final CacheWarming ssmCacheWarming;
 

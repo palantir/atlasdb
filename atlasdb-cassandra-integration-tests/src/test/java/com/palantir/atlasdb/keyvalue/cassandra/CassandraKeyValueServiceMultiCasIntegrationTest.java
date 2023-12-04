@@ -17,10 +17,10 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.palantir.atlasdb.containers.CassandraResource;
-import com.palantir.atlasdb.keyvalue.impl.AbstractMultiCasTestV2;
+import com.palantir.atlasdb.keyvalue.impl.AbstractMultiCasTest;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class CassandraKeyValueServiceMultiCasIntegrationTest extends AbstractMultiCasTestV2 {
+public class CassandraKeyValueServiceMultiCasIntegrationTest extends AbstractMultiCasTest {
     @RegisterExtension
     public static final CassandraResource CASSANDRA = new CassandraResource();
 

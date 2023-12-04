@@ -34,14 +34,14 @@ import com.palantir.atlasdb.keyvalue.dbkvs.OracleDdlConfig;
 import com.palantir.atlasdb.keyvalue.dbkvs.cleaner.DbKvsNamespaceDeleterFactory;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.LegacyPhysicalBoundStoreStrategy;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleter;
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleterFactory;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.table.description.ColumnMetadataDescription;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import com.palantir.atlasdb.transaction.impl.TransactionTestSetupV2;
+import com.palantir.atlasdb.transaction.impl.TransactionTestSetup;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.nexus.db.DBType;
@@ -68,10 +68,10 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 /* TODO(boyoruk): Investigate why this is needed. If this class does not run first, then some of its methods fail.
  * Although this solution works, we should find the root cause. */
 @Order(1)
-public final class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetupV2 {
+public final class OracleNamespaceDeleterIntegrationTest extends TransactionTestSetup {
 
     @RegisterExtension
-    public static final TestResourceManagerV2 TRM = new TestResourceManagerV2(DbKvsOracleExtension::createKvs);
+    public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleExtension::createKvs);
 
     private static final Refreshable<Optional<KeyValueServiceRuntimeConfig>> RUNTIME_CONFIG =
             Refreshable.only(Optional.empty());
