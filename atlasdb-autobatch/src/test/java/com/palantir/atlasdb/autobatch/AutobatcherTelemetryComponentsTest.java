@@ -20,104 +20,65 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
+import com.codahale.metrics.LockFreeExponentiallyDecayingReservoir;
+import com.codahale.metrics.Reservoir;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.Test;
 
 public final class AutobatcherTelemetryComponentsTest {
-
     private static final String SAFE_LOGGABLE_PURPOSE = "test-purpose";
+    private static final int SIZE = 1001;
 
     @Test
-    public void markWaitingTimeMetricsReportsWaitingTimeHistogramWithAdditionalPercentiles() {
+    public void creationDoesNotReportAnyMetricsIfNoMarkWasTriggered() {
         TaggedMetricRegistry registry = new DefaultTaggedMetricRegistry();
-        AutobatcherTelemetryComponents telemetryComponents =
-                AutobatcherTelemetryComponents.create(SAFE_LOGGABLE_PURPOSE, registry);
+        AutobatcherTelemetryComponents.create(SAFE_LOGGABLE_PURPOSE, registry);
 
-        Long[] markedNanos = new Long[1001];
-        for (int i = 0; i <= 1000; i++) {
-            markedNanos[i] = (long) i;
-            telemetryComponents.markWaitingTimeMetrics(Duration.ofNanos(i));
-        }
-
-        assertThat(getWaitTimeHistogram(registry).getSnapshot().getValues()).containsExactlyInAnyOrder(markedNanos);
-        assertThat(getWaitTimeP1Gauge(registry).getValue()).isEqualTo(10);
-        assertThat(getWaitTimeP5Gauge(registry).getValue()).isEqualTo(50);
-        assertThat(getWaitTimeP50Gauge(registry).getValue()).isEqualTo(500);
-        assertThat(getWaitTimeP999Gauge(registry).getValue()).isEqualTo(999);
+        assertWaitTimeMetricsAreNotReported(registry);
+        assertRunningTimeMetricsAreNotReported(registry);
+        assertWaitTimePercentageMetricsAreNotReported(registry);
+        assertTotalTimeMetricsAreNotReported(registry);
     }
 
     @Test
-    public void markWaitingTimeMetricsDoesNotReportWaitingTimePercentageAndRunningTimeMetrics() {
+    public void markWaitingTimeMetricsReportsOnlyWaitingTimeHistogramWithAdditionalPercentiles() {
         TaggedMetricRegistry registry = new DefaultTaggedMetricRegistry();
         AutobatcherTelemetryComponents telemetryComponents =
                 AutobatcherTelemetryComponents.create(SAFE_LOGGABLE_PURPOSE, registry);
 
-        for (int i = 0; i <= 1000; i++) {
-            telemetryComponents.markWaitingTimeMetrics(Duration.ofNanos(i));
+        Long[] waitNanos = createRandomPositiveLongs();
+        for (Long waitTime : waitNanos) {
+            telemetryComponents.markWaitingTimeMetrics(Duration.ofNanos(waitTime));
         }
 
-        assertThat(getWaitTimePercentageHistogram(registry)).isNull();
-        assertThat(getRunningTimeHistogram(registry)).isNull();
+        assertWaitTimeMetricsAreReported(registry, waitNanos);
+        assertRunningTimeMetricsAreNotReported(registry);
+        assertWaitTimePercentageMetricsAreNotReported(registry);
+        assertTotalTimeMetricsAreNotReported(registry);
     }
 
     @Test
-    public void markWaitingTimeAndRunningTimeReportsWaitingTimeHistogramWithAdditionalPercentiles() {
+    public void markWaitingTimeAndRunningTimeReportsAllMetricsWithAdditionalPercentiles() {
         TaggedMetricRegistry registry = new DefaultTaggedMetricRegistry();
         AutobatcherTelemetryComponents telemetryComponents =
                 AutobatcherTelemetryComponents.create(SAFE_LOGGABLE_PURPOSE, registry);
 
-        Long[] markedNanos = new Long[1001];
-        for (int i = 0; i <= 1000; i++) {
-            markedNanos[i] = (long) i;
-            telemetryComponents.markWaitingTimeAndRunningTimeMetrics(Duration.ofNanos(i), Duration.ZERO);
+        Long[] waitNanos = createRandomPositiveLongs();
+        Long[] runningNanos = createRandomPositiveLongs();
+        for (int index = 0; index < SIZE; index++) {
+            telemetryComponents.markWaitingTimeAndRunningTimeMetrics(
+                    Duration.ofNanos(waitNanos[index]), Duration.ofNanos(runningNanos[index]));
         }
 
-        assertThat(getWaitTimeHistogram(registry).getSnapshot().getValues()).containsExactlyInAnyOrder(markedNanos);
-        assertThat(getWaitTimeP1Gauge(registry).getValue()).isEqualTo(10);
-        assertThat(getWaitTimeP5Gauge(registry).getValue()).isEqualTo(50);
-        assertThat(getWaitTimeP50Gauge(registry).getValue()).isEqualTo(500);
-        assertThat(getWaitTimeP999Gauge(registry).getValue()).isEqualTo(999);
-    }
-
-    @Test
-    public void markWaitingTimeAndRunningTimeReportsRunningTimeHistogramWithAdditionalPercentiles() {
-        TaggedMetricRegistry registry = new DefaultTaggedMetricRegistry();
-        AutobatcherTelemetryComponents telemetryComponents =
-                AutobatcherTelemetryComponents.create(SAFE_LOGGABLE_PURPOSE, registry);
-
-        Long[] markedNanos = new Long[1001];
-        for (int i = 0; i <= 1000; i++) {
-            markedNanos[i] = (long) i;
-            telemetryComponents.markWaitingTimeAndRunningTimeMetrics(Duration.ZERO, Duration.ofNanos(i));
-        }
-
-        assertThat(getRunningTimeHistogram(registry).getSnapshot().getValues()).containsExactlyInAnyOrder(markedNanos);
-        assertThat(getRunningTimeP1Gauge(registry).getValue()).isEqualTo(10);
-        assertThat(getRunningTimeP5Gauge(registry).getValue()).isEqualTo(50);
-        assertThat(getRunningTimeP50Gauge(registry).getValue()).isEqualTo(500);
-        assertThat(getRunningTimeP999Gauge(registry).getValue()).isEqualTo(999);
-    }
-
-    @Test
-    public void markWaitingTimeAndRunningTimeReportsWaitingTimePercentageHistogramWithAdditionalPercentiles() {
-        TaggedMetricRegistry registry = new DefaultTaggedMetricRegistry();
-        AutobatcherTelemetryComponents telemetryComponents =
-                AutobatcherTelemetryComponents.create(SAFE_LOGGABLE_PURPOSE, registry);
-
-        Long[] percentages = new Long[101];
-        for (int i = 0; i <= 100; i++) {
-            percentages[i] = (long) i;
-            telemetryComponents.markWaitingTimeAndRunningTimeMetrics(Duration.ofNanos(i), Duration.ofNanos(100 - i));
-        }
-
-        assertThat(getWaitTimePercentageHistogram(registry).getSnapshot().getValues())
-                .containsExactlyInAnyOrder(percentages);
-        assertThat(getWaitTimePercentageP1Gauge(registry).getValue()).isEqualTo(1);
-        assertThat(getWaitTimePercentageP5Gauge(registry).getValue()).isEqualTo(5);
-        assertThat(getWaitTimePercentageP50Gauge(registry).getValue()).isEqualTo(50);
-        assertThat(getWaitTimePercentageP999Gauge(registry).getValue()).isEqualTo(100);
+        assertWaitTimeMetricsAreReported(registry, waitNanos);
+        assertWaitTimePercentageMetricsAreReported(registry, computeWaitPercentages(waitNanos, runningNanos));
+        assertRunningTimeMetricsAreReported(registry, runningNanos);
+        assertTotalTimeMetricsAreReported(registry, computeTotals(waitNanos, runningNanos));
     }
 
     @Test
@@ -126,7 +87,48 @@ public final class AutobatcherTelemetryComponentsTest {
         AutobatcherTelemetryComponents telemetryComponents =
                 AutobatcherTelemetryComponents.create(SAFE_LOGGABLE_PURPOSE, registry);
         telemetryComponents.markWaitingTimeAndRunningTimeMetrics(Duration.ZERO, Duration.ZERO);
+        assertWaitTimePercentageMetricsAreNotReported(registry);
+    }
+
+    private void assertWaitTimeMetricsAreReported(TaggedMetricRegistry registry, Long[] values) {
+        assertThat(getWaitTimeHistogram(registry).getSnapshot().getValues()).containsExactlyInAnyOrder(values);
+        assertThat(getWaitTimeP1Gauge(registry).getValue()).isEqualTo(calculatePercentile(values, 1));
+        assertThat(getWaitTimeP50Gauge(registry).getValue()).isEqualTo(calculatePercentile(values, 50));
+    }
+
+    private void assertWaitTimePercentageMetricsAreReported(TaggedMetricRegistry registry, Long[] values) {
+        assertThat(getWaitTimePercentageHistogram(registry).getSnapshot().getValues())
+                .containsExactlyInAnyOrder(values);
+        assertThat(getWaitTimePercentageP1Gauge(registry).getValue()).isEqualTo(calculatePercentile(values, 1));
+        assertThat(getWaitTimePercentageP50Gauge(registry).getValue()).isEqualTo(calculatePercentile(values, 50));
+    }
+
+    private void assertRunningTimeMetricsAreReported(TaggedMetricRegistry registry, Long[] values) {
+        assertThat(getRunningTimeHistogram(registry).getSnapshot().getValues()).containsExactlyInAnyOrder(values);
+        assertThat(getRunningTimeP1Gauge(registry).getValue()).isEqualTo(calculatePercentile(values, 1));
+        assertThat(getRunningTimeP50Gauge(registry).getValue()).isEqualTo(calculatePercentile(values, 50));
+    }
+
+    private void assertTotalTimeMetricsAreReported(TaggedMetricRegistry registry, Long[] values) {
+        assertThat(getTotalTimeHistogram(registry).getSnapshot().getValues()).containsExactlyInAnyOrder(values);
+        assertThat(getTotalTimeP1Gauge(registry).getValue()).isEqualTo(calculatePercentile(values, 1));
+        assertThat(getTotalTimeP50Gauge(registry).getValue()).isEqualTo(calculatePercentile(values, 50));
+    }
+
+    private void assertWaitTimeMetricsAreNotReported(TaggedMetricRegistry registry) {
+        assertThat(getWaitTimeHistogram(registry)).isNull();
+    }
+
+    private void assertRunningTimeMetricsAreNotReported(TaggedMetricRegistry registry) {
+        assertThat(getRunningTimeHistogram(registry)).isNull();
+    }
+
+    private void assertWaitTimePercentageMetricsAreNotReported(TaggedMetricRegistry registry) {
         assertThat(getWaitTimePercentageHistogram(registry)).isNull();
+    }
+
+    private void assertTotalTimeMetricsAreNotReported(TaggedMetricRegistry registry) {
+        assertThat(getTotalTimeHistogram(registry)).isNull();
     }
 
     private static Histogram getWaitTimeHistogram(TaggedMetricRegistry registry) {
@@ -145,28 +147,12 @@ public final class AutobatcherTelemetryComponentsTest {
         return (Gauge<Double>) registry.getMetrics().get(overheadMetrics.waitTimeNanosP1MetricName());
     }
 
-    private static Gauge<Double> getWaitTimeP5Gauge(TaggedMetricRegistry registry) {
-        AutobatchOverheadMetrics overheadMetrics = AutobatchOverheadMetrics.builder()
-                .registry(registry)
-                .operationType(SAFE_LOGGABLE_PURPOSE)
-                .build();
-        return (Gauge<Double>) registry.getMetrics().get(overheadMetrics.waitTimeNanosP5MetricName());
-    }
-
     private static Gauge<Double> getWaitTimeP50Gauge(TaggedMetricRegistry registry) {
         AutobatchOverheadMetrics overheadMetrics = AutobatchOverheadMetrics.builder()
                 .registry(registry)
                 .operationType(SAFE_LOGGABLE_PURPOSE)
                 .build();
         return (Gauge<Double>) registry.getMetrics().get(overheadMetrics.waitTimeNanosMedianMetricName());
-    }
-
-    private static Gauge<Double> getWaitTimeP999Gauge(TaggedMetricRegistry registry) {
-        AutobatchOverheadMetrics overheadMetrics = AutobatchOverheadMetrics.builder()
-                .registry(registry)
-                .operationType(SAFE_LOGGABLE_PURPOSE)
-                .build();
-        return (Gauge<Double>) registry.getMetrics().get(overheadMetrics.waitTimeNanosP999MetricName());
     }
 
     private static Histogram getRunningTimeHistogram(TaggedMetricRegistry registry) {
@@ -185,14 +171,6 @@ public final class AutobatcherTelemetryComponentsTest {
         return (Gauge<Double>) registry.getMetrics().get(overheadMetrics.runningTimeNanosP1MetricName());
     }
 
-    private static Gauge<Double> getRunningTimeP5Gauge(TaggedMetricRegistry registry) {
-        AutobatchOverheadMetrics overheadMetrics = AutobatchOverheadMetrics.builder()
-                .registry(registry)
-                .operationType(SAFE_LOGGABLE_PURPOSE)
-                .build();
-        return (Gauge<Double>) registry.getMetrics().get(overheadMetrics.runningTimeNanosP5MetricName());
-    }
-
     private static Gauge<Double> getRunningTimeP50Gauge(TaggedMetricRegistry registry) {
         AutobatchOverheadMetrics overheadMetrics = AutobatchOverheadMetrics.builder()
                 .registry(registry)
@@ -201,12 +179,28 @@ public final class AutobatcherTelemetryComponentsTest {
         return (Gauge<Double>) registry.getMetrics().get(overheadMetrics.runningTimeNanosMedianMetricName());
     }
 
-    private static Gauge<Double> getRunningTimeP999Gauge(TaggedMetricRegistry registry) {
+    private static Histogram getTotalTimeHistogram(TaggedMetricRegistry registry) {
         AutobatchOverheadMetrics overheadMetrics = AutobatchOverheadMetrics.builder()
                 .registry(registry)
                 .operationType(SAFE_LOGGABLE_PURPOSE)
                 .build();
-        return (Gauge<Double>) registry.getMetrics().get(overheadMetrics.runningTimeNanosP999MetricName());
+        return (Histogram) registry.getMetrics().get(overheadMetrics.totalTimeNanosMetricName());
+    }
+
+    private static Gauge<Double> getTotalTimeP1Gauge(TaggedMetricRegistry registry) {
+        AutobatchOverheadMetrics overheadMetrics = AutobatchOverheadMetrics.builder()
+                .registry(registry)
+                .operationType(SAFE_LOGGABLE_PURPOSE)
+                .build();
+        return (Gauge<Double>) registry.getMetrics().get(overheadMetrics.totalTimeNanosP1MetricName());
+    }
+
+    private static Gauge<Double> getTotalTimeP50Gauge(TaggedMetricRegistry registry) {
+        AutobatchOverheadMetrics overheadMetrics = AutobatchOverheadMetrics.builder()
+                .registry(registry)
+                .operationType(SAFE_LOGGABLE_PURPOSE)
+                .build();
+        return (Gauge<Double>) registry.getMetrics().get(overheadMetrics.totalTimeNanosMedianMetricName());
     }
 
     private static Histogram getWaitTimePercentageHistogram(TaggedMetricRegistry registry) {
@@ -225,14 +219,6 @@ public final class AutobatcherTelemetryComponentsTest {
         return (Gauge<Double>) registry.getMetrics().get(overheadMetrics.waitTimePercentageP1MetricName());
     }
 
-    private static Gauge<Double> getWaitTimePercentageP5Gauge(TaggedMetricRegistry registry) {
-        AutobatchOverheadMetrics overheadMetrics = AutobatchOverheadMetrics.builder()
-                .registry(registry)
-                .operationType(SAFE_LOGGABLE_PURPOSE)
-                .build();
-        return (Gauge<Double>) registry.getMetrics().get(overheadMetrics.waitTimePercentageP5MetricName());
-    }
-
     private static Gauge<Double> getWaitTimePercentageP50Gauge(TaggedMetricRegistry registry) {
         AutobatchOverheadMetrics overheadMetrics = AutobatchOverheadMetrics.builder()
                 .registry(registry)
@@ -241,11 +227,40 @@ public final class AutobatcherTelemetryComponentsTest {
         return (Gauge<Double>) registry.getMetrics().get(overheadMetrics.waitTimePercentageMedianMetricName());
     }
 
-    private static Gauge<Double> getWaitTimePercentageP999Gauge(TaggedMetricRegistry registry) {
-        AutobatchOverheadMetrics overheadMetrics = AutobatchOverheadMetrics.builder()
-                .registry(registry)
-                .operationType(SAFE_LOGGABLE_PURPOSE)
-                .build();
-        return (Gauge<Double>) registry.getMetrics().get(overheadMetrics.waitTimePercentageP999MetricName());
+    private Long[] computeWaitPercentages(Long[] waitNanos, Long[] runningNanos) {
+        int length = waitNanos.length;
+        List<Long> percentagesList = new ArrayList<>();
+        for (int index = 0; index < length; index++) {
+            long totalNanos = waitNanos[index] + runningNanos[index];
+            if (totalNanos > 0) {
+                percentagesList.add((100 * waitNanos[index]) / totalNanos);
+            }
+        }
+        return percentagesList.toArray(new Long[0]);
+    }
+
+    private Long[] computeTotals(Long[] waitNanos, Long[] runningNanos) {
+        int length = waitNanos.length;
+        Long[] totalNanos = new Long[length];
+        for (int index = 0; index < length; index++) {
+            totalNanos[index] = waitNanos[index] + runningNanos[index];
+        }
+        return totalNanos;
+    }
+
+    private static Long[] createRandomPositiveLongs() {
+        Long[] longs = new Long[SIZE];
+        for (int index = 0; index < SIZE; index++) {
+            longs[index] = ThreadLocalRandom.current().nextLong(0, Long.MAX_VALUE);
+        }
+        return longs;
+    }
+
+    private static double calculatePercentile(Long[] values, double percentile) {
+        Reservoir reservoir = LockFreeExponentiallyDecayingReservoir.builder().build();
+        for (long value : values) {
+            reservoir.update(value);
+        }
+        return reservoir.getSnapshot().getValue(percentile / 100.0);
     }
 }
