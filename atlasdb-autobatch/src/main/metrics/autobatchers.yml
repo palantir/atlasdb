@@ -13,14 +13,8 @@ namespaces:
       waitTimeNanosP1:
         docs: Time spent waiting (p1 percentile only)
         type: gauge
-      waitTimeNanosP5:
-        docs: Time spent waiting (p5 percentile only)
-        type: gauge
       waitTimeNanosMedian:
         docs: Time spent waiting (p50 percentile only)
-        type: gauge
-      waitTimeNanosP999:
-        docs: Time spent waiting (p999 percentile only)
         type: gauge
       waitTimePercentage:
         docs: Percentage of time spent waiting as a proportion of total runtime
@@ -28,14 +22,8 @@ namespaces:
       waitTimePercentageP1:
         docs: Percentage of time spent waiting as a proportion of total runtime (p1 percentile only)
         type: gauge
-      waitTimePercentageP5:
-        docs: Percentage of time spent waiting as a proportion of total runtime (p5 percentile only)
-        type: gauge
       waitTimePercentageMedian:
         docs: Percentage of time spent waiting as a proportion of total runtime (p50 percentile only)
-        type: gauge
-      waitTimePercentageP999:
-        docs: Percentage of time spent waiting as a proportion of total runtime (p999 percentile only)
         type: gauge
       runningTimeNanos:
         docs: Time spent running
@@ -43,12 +31,15 @@ namespaces:
       runningTimeNanosP1:
         docs: Time spent running (P1 percentile only)
         type: gauge
-      runningTimeNanosP5:
-        docs: Time spent running (P1 percentile only)
-        type: gauge
       runningTimeNanosMedian:
         docs: Time spent running (P50 percentile only)
         type: gauge
-      runningTimeNanosP999:
-        docs: Time spent running (P999 percentile only)
+      totalTimeNanos:
+        docs: Time spent waiting and running
+        type: histogram
+      totalTimeNanosP1:
+        docs: Time spent waiting and running (P1 percentile only)
+        type: gauge
+      totalTimeNanosMedian:
+        docs: Time spent waiting and running (P50 percentile only)
         type: gauge
