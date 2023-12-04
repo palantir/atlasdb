@@ -35,10 +35,9 @@ public class LeadershipStateManager<T> {
     private final CoalescingSupplier<LeadershipToken> leadershipTokenCoalescingSupplier;
     private final LeadershipCoordinator leadershipCoordinator;
 
-    // Concurrency:
-    // While the state manager is open and sending requests through to the delegate, this is only updated by the thread
-    // that is responsible for updating the leadership token. Once the state manager as a whole is closed, any thread
-    // is allowed to clear the delegate (as no further requests will attempt to get a reference to use the delegate).
+    /**
+     * delegate reference is atomic as {@link #clearDelegate()} can be accessed by multiple threads.
+     * */
     private final AtomicReference<T> delegateRef;
 
     private final AtomicReference<LeadershipToken> maybeValidLeadershipTokenRef;
@@ -90,8 +89,7 @@ public class LeadershipStateManager<T> {
 
     /**
      * This method refreshes the delegateRef which can be a very expensive operation. This should be executed exactly
-     * once each time the leadership token is updated.
-     *
+     * once for one leadershipToken update.
      * @throws NotCurrentLeaderException if we do not have leadership anymore.
      */
     private void tryToUpdateLeadershipToken() {
@@ -137,23 +135,12 @@ public class LeadershipStateManager<T> {
         }
     }
 
-    void requestDelegateInvalidation() {
-        // This forces a re-creation of the delegate on the next call to getOrUpdateLeadershipToken.
-        // Consider the following implementations:
-        //  - `clearDelegate()`: this will not actually ever reset the delegate.
-        //  - `delegateRef.set(delegateSupplier.get())`: this creates a race condition as the supplier might update
-        //     the delegate underneath us and we might accidentally clear it.
-        //  - `delegateRef.compareAndSet(delegateRef.get(), delegateSupplier.get())`: this creates a race condition
-        //     where the supplier creates a new delegate that races with us.
-        maybeValidLeadershipTokenRef.set(null);
-    }
-
     /**
      * Right now there is no way to release resources quickly. In the event of loss of leadership, we wait till the
      * LeadershipCoordinator has updated its state. Then, the next request can release the delegateRef in
      * `getOrUpdateLeadershipToken`.
      */
-    void invalidateStateOnLostLeadership(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
+    void handleNotLeading(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
         if (maybeValidLeadershipTokenRef.compareAndSet(leadershipToken, null)) {
             // We are not clearing delegateTokenRef here. This is fine as we are relying on `getOrUpdateLeadershipToken`
             // to claim the resources for the next request if this node loses leadership.
