@@ -2,7 +2,7 @@ version: '2'
 
 services:
   cassandra1:
-    image: palantirtechnologies/cassandra:unspecified
+    image: palantirtechnologies/cassandra:2.2.18-1.116.0
     ports:
       - "9160"
       - "9042"
@@ -20,7 +20,7 @@ services:
         ipv4_address: 10.20.20.2
 
   cassandra2:
-    image: palantirtechnologies/cassandra:unspecified
+    image: palantirtechnologies/cassandra:2.2.18-1.116.0
     ports:
       - "9160"
       - "9042"
@@ -38,7 +38,7 @@ services:
         ipv4_address: 10.20.20.3
 
   cassandra3:
-    image: palantirtechnologies/cassandra:unspecified
+    image: palantirtechnologies/cassandra:2.2.18-1.116.0
     ports:
       - "9160"
       - "9042"
@@ -56,7 +56,7 @@ services:
         ipv4_address: 10.20.20.4
 
   timelock1.palantir.pt:
-    image: palantirtechnologies/timelock-server-distribution:unspecified
+    image: palantirtechnologies/timelock-server-distribution:latest
     command: [ bash, -c, 'cp var/conf/timelock.distributed.yml var/conf/timelock.yml  
                           && service/bin/init.sh console' ]
     ports:
@@ -68,7 +68,7 @@ services:
         ipv4_address: 10.20.20.5
 
   timelock2.palantir.pt:
-    image: palantirtechnologies/timelock-server-distribution:unspecified
+    image: palantirtechnologies/timelock-server-distribution:latest
     command: [ bash, -c, 'cp var/conf/timelock.distributed.yml var/conf/timelock.yml  
                           && service/bin/init.sh console' ]
     ports:
@@ -80,7 +80,7 @@ services:
         ipv4_address: 10.20.20.6
 
   timelock3.palantir.pt:
-    image: palantirtechnologies/timelock-server-distribution:unspecified
+    image: palantirtechnologies/timelock-server-distribution:latest
     command: [bash, -c, 'cp var/conf/timelock.distributed.yml var/conf/timelock.yml  
                           && service/bin/init.sh console' ]
     ports:
@@ -93,7 +93,7 @@ services:
 
 
   workload-server:
-    image: palantirtechnologies/atlasdb-workload-server-distribution:unspecified
+    image: palantirtechnologies/atlasdb-workload-server-distribution:latest
     command: [bash, -c, 'cp var/conf/workload-server.timelock.cassandra.yml var/conf/workload-server.yml
                          && dockerize -timeout 120s -wait tcp://cassandra1:9160 -wait tcp://cassandra2:9160 -wait tcp://cassandra3:9160
                          && service/bin/init.sh console']
