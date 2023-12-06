@@ -16,15 +16,22 @@
 
 package com.palantir.atlasdb.autobatch;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.lmax.disruptor.EventHandler;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher.DisruptorFuture;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Semaphore;
 
 final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchElement<T, R>> {
 
@@ -35,6 +42,8 @@ final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchEl
     // explicitly not using Multimap to avoid expensive com.google.common.collect.AbstractMapBasedMultimap.clear()
     // that iterates and clears each value collection.
     private final Map<T, Set<DisruptorFuture<R>>> pending;
+    private final Semaphore semaphore = new Semaphore(2);
+    private final ExecutorService executorService = PTExecutors.newFixedThreadPool(2);
 
     CoalescingBatchingEventHandler(CoalescingRequestFunction<T, R> function, int bufferSize) {
         this.function = function;
@@ -46,14 +55,37 @@ final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchEl
         pending.computeIfAbsent(event.argument(), _key -> Sets.newHashSetWithExpectedSize(5))
                 .add(event.result());
         if (endOfBatch) {
-            flush();
+            Map<T, Set<DisruptorFuture<R>>> batch = ImmutableMap.<T, Set<DisruptorFuture<R>>>builder()
+                    .putAll(pending)
+                    .buildOrThrow();
+            pending.clear();
+            asyncFlush(batch);
         }
     }
 
-    private void flush() {
+    private void asyncFlush(Map<T, Set<DisruptorFuture<R>>> batch) {
         try {
-            Map<T, R> results = function.apply(pending.keySet());
-            pending.forEach((argument, futures) -> {
+            semaphore.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        }
+
+        ListenableFuture<Void> flushJob;
+        try {
+            flushJob = Futures.submit(() -> flush(batch), executorService);
+        } catch (Exception e) {
+            semaphore.release();
+            throw e;
+        }
+
+        flushJob.addListener(semaphore::release, MoreExecutors.directExecutor());
+    }
+
+    private void flush(Map<T, Set<DisruptorFuture<R>>> batch) {
+        try {
+            Map<T, R> results = function.apply(batch.keySet());
+            batch.forEach((argument, futures) -> {
                 R result = results.get(argument);
                 boolean hasResult = result != null || results.containsKey(argument);
                 for (DisruptorFuture<R> future : futures) {
@@ -68,8 +100,7 @@ final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchEl
                 }
             });
         } catch (Throwable t) {
-            pending.forEach((argument, futures) -> futures.forEach(future -> future.setException(t)));
+            batch.forEach((argument, futures) -> futures.forEach(future -> future.setException(t)));
         }
-        pending.clear();
     }
 }

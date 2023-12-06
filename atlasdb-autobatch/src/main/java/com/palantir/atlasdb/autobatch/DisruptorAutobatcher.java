@@ -22,7 +22,7 @@ import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.lmax.disruptor.BusySpinWaitStrategy;
+import com.lmax.disruptor.BlockingWaitStrategy;
 import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.TimeoutException;
@@ -208,7 +208,7 @@ public final class DisruptorAutobatcher<T, R>
                 bufferSize,
                 threadFactory(safeLoggablePurpose),
                 ProducerType.MULTI,
-                waitStrategy.orElseGet(BusySpinWaitStrategy::new));
+                waitStrategy.orElseGet(BlockingWaitStrategy::new));
         disruptor.handleEventsWith(
                 (event, sequence, endOfBatch) -> eventHandler.onEvent(event.consume(), sequence, endOfBatch));
         disruptor.start();
