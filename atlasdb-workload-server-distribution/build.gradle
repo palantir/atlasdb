@@ -26,6 +26,7 @@ dependencies {
     implementation project(':atlasdb-workload-server')
     implementation project(':atlasdb-workload-server-api')
     implementation project(':atlasdb-config')
+    runtimeOnly project(':atlasdb-cassandra')
 
     compileOnly 'org.immutables:value::annotations'
     annotationProcessor 'org.immutables:value'
