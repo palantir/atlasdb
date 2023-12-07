@@ -22,6 +22,8 @@ import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import java.util.Map;
 import javax.annotation.concurrent.NotThreadSafe;
 
+// not thread safe from annotation but looks okay to me if we have multiple instances of this in the context of the
+// current PR
 @NotThreadSafe // Disruptor runs the batching function on just one thread.
 public final class BatchSizeRecorder {
     static final String BATCH_SIZE_METER_NAME = BatchSizeRecorder.class.getName() + ".batchSize";
