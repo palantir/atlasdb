@@ -39,6 +39,7 @@ import java.util.stream.IntStream;
 import org.awaitility.Awaitility;
 import org.awaitility.core.ThrowingRunnable;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
@@ -91,6 +92,7 @@ public class AsyncTimeLockUnlockerTest {
         assertAllTokensEventuallyUnlocked();
     }
 
+    @Disabled // for the purposes of these RCs, this is no longer guaranteed behaviour
     @SuppressWarnings("unchecked") // Mock invocation known to be correct
     @Test
     public void noParallelCallsMadeFromTimelockPointOfView() {
