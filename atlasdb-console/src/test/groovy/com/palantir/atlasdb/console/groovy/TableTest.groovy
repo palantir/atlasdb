@@ -18,7 +18,7 @@ package com.palantir.atlasdb.console.groovy
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
-import static groovy.test.GroovyAssert.shouldFail
+import static com.palantir.atlasdb.console.groovy.AtlasConsoleServiceWrapperTest.shouldFail
 import static org.assertj.core.api.Assertions.assertThatThrownBy
 
 import com.palantir.atlasdb.api.TransactionToken

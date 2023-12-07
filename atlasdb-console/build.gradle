@@ -26,17 +26,17 @@ dependencies {
     testImplementation 'com.fasterxml.jackson.core:jackson-core'
     testImplementation 'com.fasterxml.jackson.core:jackson-databind'
     testImplementation 'org.assertj:assertj-core'
-    testImplementation 'org.codehaus.groovy:groovy-test'
     testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.jmock:jmock'
+
     testImplementation project(':atlasdb-client')
 
     testImplementation('org.jmock:jmock-legacy') {
         exclude group: 'org.hamcrest'
     }
-    testImplementation('org.jmock:jmock') {
-      exclude group: 'org.hamcrest'
+    testImplementation('org.gmock:gmock') {
+        exclude module: 'groovy-test'
     }
-    testImplementation 'org.gmock:gmock'
 }
 
 tasks.checkImplicitDependenciesMain.enabled = false
