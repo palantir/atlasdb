@@ -35,9 +35,13 @@ dependencies {
     testCompileOnly 'org.immutables:value::annotations'
 
     testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.awaitility:awaitility'
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'com.palantir.safe-logging:preconditions-assertj'
     testImplementation 'com.palantir.tracing:tracing-test-utils'
+    testImplementation('org.jmock:jmock') {
+        exclude group: 'org.hamcrest'
+    }
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation 'org.mockito:mockito-junit-jupiter'
 }

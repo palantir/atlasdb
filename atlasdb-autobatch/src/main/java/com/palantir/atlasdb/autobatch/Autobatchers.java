@@ -231,16 +231,19 @@ public final class Autobatchers {
             timeoutOrchestrationContext.ifPresent(parametersBuilder::batchFunctionTimeoutContext);
             EventHandlerParameters parameters = parametersBuilder.build();
 
-            EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(parameters);
-
-            EventHandler<BatchElement<I, O>> tracingHandler =
-                    new TracingEventHandler<>(handler, parameters.batchSize());
-
-            EventHandler<BatchElement<I, O>> profiledHandler =
-                    new ProfilingEventHandler<>(tracingHandler, purpose, safeTags.buildOrThrow());
+            // these can have a share executor, though we'd need to know ahead of time
+            // how many autobatchers we will use, which can be tricky. Some of them
+            // are instanciated wholly inside atlas; others elsewhere.
+            EventHandler<BatchElement<I, O>> handler = new MultiplexingEventHandler<>(
+                    2,
+                    purpose,
+                    () -> new ProfilingEventHandler<>(
+                            new TracingEventHandler<>(this.handlerFactory.apply(parameters), parameters.batchSize()),
+                            purpose,
+                            safeTags.buildOrThrow()));
 
             return DisruptorAutobatcher.create(
-                    profiledHandler,
+                    handler,
                     parameters.batchSize(),
                     purpose,
                     waitStrategy,
