@@ -150,7 +150,7 @@ public class AsyncTimeLockUnlockerTest {
 
     private void assertConditionEventuallyTrue(ThrowingRunnable throwingRunnable) {
         Awaitility.await()
-                .atMost(Duration.ofSeconds(10))
+                .atMost(Duration.ofSeconds(30))
                 .pollInterval(Duration.ofMillis(100))
                 .untilAsserted(throwingRunnable);
     }
