@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
-import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -32,7 +31,7 @@ import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.leader.SuspectedNotCurrentLeaderException;
 import com.palantir.leader.proxy.ToggleableExceptionProxy;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.paxos.Client;
@@ -152,6 +151,19 @@ public class PaxosTimestampBoundStoreTest {
 
     @ParameterizedTest
     @MethodSource("useBatches")
+    public void canRecoverFromNotHavingQuorum(boolean useBatch) {
+        setup(useBatch);
+        store.storeUpperLimit(TIMESTAMP_1);
+        failureToggles.get(1).set(true);
+        failureToggles.get(2).set(true);
+        failureToggles.get(3).set(true);
+        assertThatThrownBy(() -> store.getUpperLimit()).isInstanceOf(ServiceNotAvailableException.class);
+        failureToggles.get(3).set(false);
+        assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_1);
+    }
+
+    @ParameterizedTest
+    @MethodSource("useBatches")
     public void retriesProposeUntilSuccessful(boolean useBatch) throws Exception {
         setup(useBatch);
         PaxosProposer wrapper = spy(new OnceFailingPaxosProposer(createPaxosProposer(0)));
@@ -163,23 +175,17 @@ public class PaxosTimestampBoundStoreTest {
 
     @ParameterizedTest
     @MethodSource("useBatches")
-    public void throwsNotCurrentLeaderExceptionIfBoundUnexpectedlyChangedUnderUs(boolean useBatch) {
+    public void throwsSuspectedNotCurrentLeaderExceptionIfBoundUnexpectedlyChangedUnderUs(boolean useBatch) {
         setup(useBatch);
         PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(1);
         additionalStore.storeUpperLimit(TIMESTAMP_1);
-        assertThatThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2)).isInstanceOf(NotCurrentLeaderException.class);
-    }
-
-    @ParameterizedTest
-    @MethodSource("useBatches")
-    public void throwsSafeIllegalStateExceptionIfCalledAfterNotCurrentLeaderException(boolean useBatch) {
-        setup(useBatch);
-        PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(1);
-        additionalStore.storeUpperLimit(TIMESTAMP_1);
-        assertThatThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2)).isInstanceOf(NotCurrentLeaderException.class);
-        assertThatLoggableExceptionThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2))
+        assertThatThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2))
+                .isInstanceOf(SuspectedNotCurrentLeaderException.class);
+        assertThatThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2))
+                .as("no further requests should be permitted after a SuspectedNotCurrentLeaderException")
                 .isInstanceOf(SafeIllegalStateException.class)
-                .hasMessageContaining("Cannot store upper limit as leadership has been lost.");
+                .hasMessage(
+                        "Cannot store upper limit as leadership has been lost, or this store is no longer current.");
     }
 
     @ParameterizedTest
