@@ -23,7 +23,7 @@ CONTAINER_4=(':atlasdb-cassandra-multinode-tests:check' ':atlasdb-tests-shared:c
 
 CONTAINER_5=(':lock-impl:check' ':atlasdb-dbkvs-tests:postgresTest' ':atlasdb-ete-test-utils:check' ':atlasdb-ete-tests:singleClientWithEmbeddedAndThreeNodeCassandraTest' ':atlasdb-ete-tests:singleClientWithEmbeddedAndCassandraTest')
 
-CONTAINER_6=(':timelock-server:suiteTest')
+CONTAINER_6=(':timelock-server:integ2Test')
 
 CONTAINER_7=(':timelock-server:stressTest')
 

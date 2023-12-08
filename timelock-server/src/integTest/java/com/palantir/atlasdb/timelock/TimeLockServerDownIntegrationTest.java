@@ -28,9 +28,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutionException;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 public class TimeLockServerDownIntegrationTest {
     private static final TableReference TABLE = TableReference.create(Namespace.create("test"), "test");
@@ -38,11 +37,9 @@ public class TimeLockServerDownIntegrationTest {
     private static final Cell CELL =
             Cell.create("bar".getBytes(StandardCharsets.UTF_8), "baz".getBytes(StandardCharsets.UTF_8));
 
-    private static final TestableTimelockCluster CLUSTER =
+    @RegisterExtension
+    public static final TestableTimelockCluster CLUSTER =
             new TestableTimelockCluster("paxosSingleServer.ftl", DEFAULT_SINGLE_SERVER);
-
-    @ClassRule
-    public static final RuleChain ruleChain = CLUSTER.getRuleChain();
 
     @Test
     public void getsDependencyExceptionFromTransactionsWhenDown() throws ExecutionException {

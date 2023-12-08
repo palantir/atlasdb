@@ -16,32 +16,16 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
-import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers.CacheWarming;
-import java.util.Arrays;
-import org.junit.ClassRule;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
-@RunWith(Parameterized.class)
-public class DbKvsPostgresSweepTaskRunnerTest extends AbstractSweepTaskRunnerTest {
-    @ClassRule
-    public static final TestResourceManager TRM = new TestResourceManager(DbKvsPostgresTestSuite::createKvs);
+@ExtendWith(DbKvsPostgresExtension.class)
+public class DbKvsPostgresSweepTaskRunnerTest extends AbstractDbKvsPostgresSweepTaskRunnerTest {
+    @RegisterExtension
+    public static final TestResourceManager TRM = new TestResourceManager(DbKvsPostgresExtension::createKvs);
 
-    @Parameterized.Parameters(name = "ssmCacheWarming={0}")
-    public static Iterable<CacheWarming> data() {
-        return Arrays.asList(CacheWarming.values());
-    }
-
-    private final CacheWarming ssmCacheWarming;
-
-    public DbKvsPostgresSweepTaskRunnerTest(CacheWarming ssmCacheWarming) {
-        super(TRM, TRM);
-        this.ssmCacheWarming = ssmCacheWarming;
-    }
-
-    @Override
-    protected CacheWarming getSsmCacheWarming() {
-        return ssmCacheWarming;
+    public DbKvsPostgresSweepTaskRunnerTest() {
+        super(TRM, TRM, CacheWarming.NONE);
     }
 }

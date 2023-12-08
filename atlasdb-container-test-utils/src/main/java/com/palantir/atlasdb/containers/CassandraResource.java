@@ -23,7 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.refreshable.Refreshable;
@@ -35,10 +35,10 @@ import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
 public class CassandraResource implements BeforeAllCallback, AfterAllCallback, KvsManager, TransactionManagerManager {
-    private final CassandraContainerV2 containerInstance = new CassandraContainerV2();
+    private final CassandraContainer containerInstance = new CassandraContainer();
     private final Supplier<KeyValueService> supplier;
-    private ContainersV2 containers;
-    private TestResourceManagerV2 testResourceManager;
+    private Containers containers;
+    private TestResourceManager testResourceManager;
     private Proxy socksProxy;
 
     public CassandraResource() {
@@ -51,8 +51,8 @@ public class CassandraResource implements BeforeAllCallback, AfterAllCallback, K
 
     @Override
     public void beforeAll(ExtensionContext extensionContext) throws Exception {
-        containers = new ContainersV2(extensionContext.getRequiredTestClass()).with(containerInstance);
-        testResourceManager = new TestResourceManagerV2(supplier);
+        containers = new Containers(extensionContext.getRequiredTestClass()).with(containerInstance);
+        testResourceManager = new TestResourceManager(supplier);
         containers.beforeAll(extensionContext);
         socksProxy = Containers.getSocksProxy(containerInstance.getServiceName());
     }

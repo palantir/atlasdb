@@ -16,15 +16,14 @@
 package com.palantir.atlasdb.containers;
 
 import com.google.common.collect.ImmutableMap;
-import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.DockerComposeExtension;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import java.util.Map;
 
-/* TODO(boyoruk): Delete when JUnit5 upgrade is over. */
 public abstract class Container {
     public abstract String getDockerComposeFile();
 
-    public abstract SuccessOrFailure isReady(DockerComposeRule rule);
+    public abstract SuccessOrFailure isReady(DockerComposeExtension extension);
 
     public Map<String, String> getEnvironment() {
         return ImmutableMap.of();

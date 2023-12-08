@@ -29,10 +29,9 @@ import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.util.Optional;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 /**
  * This test creates a single TimeLock server that is configured in a three node configuration.
@@ -48,17 +47,15 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
             .leaderMode(PaxosLeaderMode.SINGLE_LEADER)
             .build();
 
-    private static final TestableTimelockCluster CLUSTER =
+    @RegisterExtension
+    public static final TestableTimelockCluster CLUSTER =
             new TestableTimelockCluster("paxosStaticThreeServers.ftl", SINGLE_NODE);
 
     private static final TestableTimelockServer SERVER = Iterables.getOnlyElement(CLUSTER.servers());
 
-    @ClassRule
-    public static final RuleChain ruleChain = CLUSTER.getRuleChain();
-
     private NamespacedClients namespace;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         namespace = CLUSTER.clientForRandomNamespace();
     }

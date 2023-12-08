@@ -16,7 +16,7 @@ testSets {
         imports 'testCommon'
     }
 
-    suiteTest {
+    integ2Test {
         imports 'testCommon'
     }
 }
@@ -27,14 +27,8 @@ stressTest {
     }
 }
 
-suiteTest {
-    filter {
-        includeTestsMatching "com.palantir.atlasdb.timelock.suite.*"
-    }
-}
-
 check.dependsOn integTest
-check.dependsOn suiteTest
+check.dependsOn integ2Test
 check.dependsOn stressTest
 
 dependencies {
@@ -62,13 +56,13 @@ dependencies {
     implementation 'io.dropwizard:dropwizard-logging'
     implementation 'javax.ws.rs:javax.ws.rs-api'
     implementation 'org.eclipse.jetty:jetty-util'
+
     implementation project(':atlasdb-api')
     implementation project(':atlasdb-client')
     implementation project(':timelock-agent')
 
     annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'
-    testCompileOnly 'org.immutables:value::annotations'
 
     runtimeOnly (project(':atlasdb-cassandra')) {
         exclude(module:'log4j-over-slf4j')
@@ -79,6 +73,7 @@ dependencies {
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'org.junit.jupiter:junit-jupiter'
+
     testImplementation project(':atlasdb-commons')
     testImplementation project(':atlasdb-container-test-utils')
     testImplementation project(':atlasdb-dbkvs')
@@ -87,6 +82,7 @@ dependencies {
     testImplementation project(':flake-extension')
     testImplementation project(':lock-api-objects')
     testImplementation project(':timelock-impl')
+
     testImplementation (project(':atlasdb-tests-shared')) {
         exclude group: 'com.fasterxml.jackson.jaxrs'
     }
@@ -99,18 +95,16 @@ dependencies {
         exclude group: 'org.ow2.asm'
     }
 
-    testCommonAnnotationProcessor 'org.immutables:value'
-    testCommonCompileOnly 'org.immutables:value::annotations'
+    testCompileOnly 'org.immutables:value::annotations'
 
     testCommonImplementation 'com.github.tomakehurst:wiremock-standalone'
     testCommonImplementation 'com.palantir.conjure.java.runtime:client-config'
     testCommonImplementation 'com.palantir.docker.compose:docker-compose-rule-core'
-    testCommonImplementation 'com.palantir.docker.compose:docker-compose-rule-junit4'
+    testCommonImplementation 'com.palantir.docker.compose:docker-compose-junit-jupiter'
     testCommonImplementation 'com.ea.agentloader:ea-agent-loader'
     testCommonImplementation 'com.fasterxml.jackson.core:jackson-core'
     testCommonImplementation 'com.fasterxml.jackson.core:jackson-databind'
     testCommonImplementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml'
-    testCommonImplementation 'com.github.peterwippermann.junit4:parameterized-suite'
     testCommonImplementation 'com.google.errorprone:error_prone_annotations'
     testCommonImplementation 'com.google.guava:guava'
     testCommonImplementation 'com.palantir.common:streams'
@@ -126,6 +120,7 @@ dependencies {
     testCommonImplementation 'io.dropwizard:dropwizard-testing'
     testCommonImplementation 'org.awaitility:awaitility'
     testCommonImplementation 'org.freemarker:freemarker'
+
     testCommonImplementation project(':atlasdb-api')
     testCommonImplementation project(':atlasdb-client')
     testCommonImplementation project(':atlasdb-commons')
@@ -143,46 +138,38 @@ dependencies {
     testCommonImplementation project(':timelock-api:timelock-api-objects')
     testCommonImplementation project(':timelock-impl')
     testCommonImplementation project(':timestamp-api')
+
     testCommonImplementation (project(':atlasdb-tests-shared')) {
         exclude group: 'com.fasterxml.jackson.jaxrs'
     }
-    testCommonRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
-        because 'allows JUnit 3 and JUnit 4 tests to run'
-    }
 
     testCommonApi 'io.dropwizard:dropwizard-testing'
-    testCommonApi 'com.github.peterwippermann.junit4:parameterized-suite'
 
-    suiteTestImplementation 'com.google.guava:guava'
-    suiteTestImplementation 'com.palantir.common:streams'
-    suiteTestImplementation 'com.palantir.conjure.java.api:errors'
-    suiteTestImplementation 'com.palantir.conjure.java.api:service-config'
-    suiteTestImplementation 'com.palantir.safe-logging:preconditions'
-    suiteTestImplementation 'com.palantir.tokens:auth-tokens'
-    suiteTestImplementation project(':atlasdb-conjure')
-    suiteTestImplementation project(':leader-election-api')
-    suiteTestImplementation project(':lock-api')
-    suiteTestImplementation project(':lock-api-objects')
-    suiteTestImplementation project(':lock-conjure-api:lock-conjure-api-jersey')
-    suiteTestImplementation project(':lock-conjure-api:lock-conjure-api-objects')
-    suiteTestImplementation project(':timelock-api:timelock-api-jersey')
-    suiteTestImplementation project(':timelock-api:timelock-api-objects')
-    suiteTestImplementation project(':timelock-impl')
-    suiteTestImplementation project(':timestamp-api')
-    suiteTestRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
-        because 'allows JUnit 3 and JUnit 4 tests to run'
-    }
+    testCommonAnnotationProcessor 'org.immutables:value'
+    testCommonCompileOnly 'org.immutables:value::annotations'
 
+    integ2TestImplementation 'com.google.guava:guava'
+    integ2TestImplementation 'com.palantir.common:streams'
+    integ2TestImplementation 'com.palantir.conjure.java.api:errors'
+    integ2TestImplementation 'com.palantir.conjure.java.api:service-config'
+    integ2TestImplementation 'com.palantir.safe-logging:preconditions'
+    integ2TestImplementation 'com.palantir.tokens:auth-tokens'
     stressTestImplementation 'com.google.guava:guava'
     stressTestImplementation 'com.palantir.tokens:auth-tokens'
     stressTestImplementation 'com.github.tomakehurst:wiremock-standalone'
-    stressTestImplementation project(':timelock-api:timelock-api-jersey')
-    stressTestRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
-        because 'allows JUnit 3 and JUnit 4 tests to run'
-    }
 
-    // TODO(fdesouza): Remove this once PDS-95791 is resolved.
-    integTestImplementation project(':examples:profile-client')
+    integ2TestImplementation project(':atlasdb-conjure')
+    integ2TestImplementation project(':leader-election-api')
+    integ2TestImplementation project(':lock-api')
+    integ2TestImplementation project(':lock-api-objects')
+    integ2TestImplementation project(':lock-conjure-api:lock-conjure-api-jersey')
+    integ2TestImplementation project(':lock-conjure-api:lock-conjure-api-objects')
+    integ2TestImplementation project(':timelock-api:timelock-api-jersey')
+    integ2TestImplementation project(':timelock-api:timelock-api-objects')
+    integ2TestImplementation project(':timelock-impl')
+    integ2TestImplementation project(':timestamp-api')
+
+    stressTestImplementation project(':timelock-api:timelock-api-jersey')
 
     integTestImplementation 'com.fasterxml.jackson.core:jackson-core'
     integTestImplementation 'com.fasterxml.jackson.core:jackson-databind'
@@ -196,20 +183,17 @@ dependencies {
     integTestImplementation 'com.palantir.tritium:tritium-registry'
     integTestImplementation 'io.dropwizard.metrics:metrics-core'
     integTestImplementation 'org.awaitility:awaitility'
+
     integTestImplementation project(':atlasdb-api')
     integTestImplementation project(':atlasdb-client')
     integTestImplementation project(':atlasdb-commons')
     integTestImplementation project(':atlasdb-config')
     integTestImplementation project(':atlasdb-impl-shared')
     integTestImplementation project(':commons-executors')
-    integTestImplementation project(':flake-rule')
     integTestImplementation project(':leader-election-api')
     integTestImplementation project(':lock-api')
     integTestImplementation project(':lock-api-objects')
     integTestImplementation project(':timelock-api:timelock-api-objects')
     integTestImplementation project(':timelock-impl')
     integTestImplementation project(':timestamp-api')
-    integTestRuntimeOnly("org.junit.vintage:junit-vintage-engine") {
-        because 'allows JUnit 3 and JUnit 4 tests to run'
-    }
 }

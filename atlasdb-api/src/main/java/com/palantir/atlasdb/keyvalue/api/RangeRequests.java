@@ -56,6 +56,7 @@ public final class RangeRequests {
      * This will return the row name that will include exactly all prefix matches if passed to
      * {@link KeyValueService#getRange(TableReference, RangeRequest, long)}.
      * <p>
+     *
      * @param rowName must be non-null
      */
     public static byte[] createEndNameForPrefixScan(@Nonnull byte[] rowName) {

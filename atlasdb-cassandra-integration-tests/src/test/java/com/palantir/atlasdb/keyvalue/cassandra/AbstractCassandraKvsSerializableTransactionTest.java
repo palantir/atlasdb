@@ -25,13 +25,13 @@ import com.palantir.atlasdb.sweep.queue.SweepQueue;
 import com.palantir.atlasdb.sweep.queue.SweepQueueReader;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTestV2;
+import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
 import com.palantir.atlasdb.transaction.impl.TransactionSchemaVersionEnforcement;
 import java.util.function.UnaryOperator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-public abstract class AbstractCassandraKvsSerializableTransactionTest extends AbstractSerializableTransactionTestV2 {
+public abstract class AbstractCassandraKvsSerializableTransactionTest extends AbstractSerializableTransactionTest {
     @RegisterExtension
     public static final CassandraResource CASSANDRA = new CassandraResource();
 

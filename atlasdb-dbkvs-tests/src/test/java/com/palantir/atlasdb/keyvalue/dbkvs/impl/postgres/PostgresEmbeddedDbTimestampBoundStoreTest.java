@@ -20,22 +20,29 @@ import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.timestamp.AbstractDbTimestampBoundStoreTest;
 import com.palantir.timestamp.TimestampBoundStore;
-import org.junit.After;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+@ExtendWith(DbKvsPostgresExtension.class)
+/* TODO(boyoruk): Investigate why this is needed. If this class does not run first, then some of its methods fail.
+ * Although this solution works, we should find the root cause. */
+@Order(1)
 public class PostgresEmbeddedDbTimestampBoundStoreTest extends AbstractDbTimestampBoundStoreTest {
+
     private ConnectionManagerAwareDbKvs kvs;
 
-    @After
-    public void tearDown() throws Exception {
+    @AfterEach
+    public void tearDown() {
         kvs.close();
     }
 
     @Override
     protected TimestampBoundStore createTimestampBoundStore() {
-        kvs = DbKvsPostgresTestSuite.createKvs();
+        kvs = DbKvsPostgresExtension.createKvs();
         return InDbTimestampBoundStore.create(
                 kvs.getConnectionManager(),
                 AtlasDbConstants.TIMESTAMP_TABLE,
-                DbKvsPostgresTestSuite.getKvsConfig().ddl().tablePrefix());
+                DbKvsPostgresExtension.getKvsConfig().ddl().tablePrefix());
     }
 }

@@ -5,63 +5,59 @@ versionsLock {
 }
 
 dependencies {
-  implementation project(":atlasdb-dbkvs")
-  implementation project(":atlasdb-tests-shared")
+    implementation project(':atlasdb-api')
+    implementation project(':atlasdb-client')
+    implementation project(':atlasdb-commons')
+    implementation project(":atlasdb-dbkvs")
+    implementation project(":atlasdb-tests-shared")
 
-  implementation 'com.google.guava:guava'
-  implementation 'junit:junit'
-  implementation 'org.assertj:assertj-core'
-  implementation project(':atlasdb-api')
-  implementation project(':atlasdb-client')
-  implementation project(':atlasdb-commons')
+    implementation 'com.google.guava:guava'
+    implementation 'org.assertj:assertj-core'
+    implementation 'org.junit.jupiter:junit-jupiter'
+    implementation 'org.junit.jupiter:junit-jupiter-api'
 
-  testImplementation 'com.google.guava:guava'
-  testImplementation 'com.palantir.conjure.java.api:service-config'
-  testImplementation 'com.palantir.docker.compose:docker-compose-rule-core'
-  testImplementation 'com.palantir.refreshable:refreshable'
-  testImplementation 'com.palantir.safe-logging:preconditions'
-  testImplementation 'com.palantir.safe-logging:safe-logging'
-  testImplementation 'joda-time:joda-time'
-  testImplementation 'org.apache.commons:commons-lang3'
-  testImplementation 'org.awaitility:awaitility'
-  testImplementation 'org.xerial:sqlite-jdbc'
-  testImplementation project(':atlasdb-api')
-  testImplementation project(':atlasdb-client')
-  testImplementation project(':atlasdb-config')
-  testImplementation project(':atlasdb-dbkvs-hikari')
-  testImplementation project(':commons-db')
-  testImplementation project(':timestamp-api')
+    testImplementation project(':atlasdb-api')
+    testImplementation project(':atlasdb-client')
+    testImplementation project(':atlasdb-config')
+    testImplementation project(':atlasdb-dbkvs-hikari')
+    testImplementation project(':commons-db')
+    testImplementation project(':timestamp-api')
 
-  testImplementation 'org.mockito:mockito-core'
-  testImplementation 'org.junit.jupiter:junit-jupiter'
-  testImplementation 'org.mockito:mockito-junit-jupiter'
-  testImplementation 'com.palantir.docker.compose:docker-compose-rule-junit4'
+    testImplementation 'com.google.guava:guava'
+    testImplementation 'org.apache.commons:commons-lang3'
+    testImplementation 'com.palantir.conjure.java.api:service-config'
+    testImplementation 'com.palantir.refreshable:refreshable'
+    testImplementation 'com.palantir.safe-logging:preconditions'
+    testImplementation 'com.palantir.safe-logging:safe-logging'
+    testImplementation 'joda-time:joda-time'
+    testImplementation 'org.xerial:sqlite-jdbc'
+    testImplementation 'org.awaitility:awaitility'
+    testImplementation 'org.mockito:mockito-core'
+    testImplementation 'org.mockito:mockito-junit-jupiter'
+    testImplementation 'com.palantir.docker.compose:docker-compose-junit-jupiter'
 
-  testAnnotationProcessor 'org.immutables:value'
-  testCompileOnly 'org.immutables:value::annotations'
-
-  /* TODO(boyoruk): Migrate to JUnit5 */
-  testImplementation 'junit:junit'
-  testRuntimeOnly 'org.junit.vintage:junit-vintage-engine', {
-    because 'allows JUnit 3 and JUnit 4 tests to run'
-  }
+    testAnnotationProcessor 'org.immutables:value'
+    testCompileOnly 'org.immutables:value::annotations'
 }
 
 task postgresTest(type: Test) {
     maxHeapSize = "1024m"
-    include '**/DbKvsPostgresTestSuite.class'
+    include '**/postgres/'
+    include '**/HikariCpConnectionManagerTest.class'
     maxParallelForks 2
 }
 
 task oracleTest(type: Test) {
     maxHeapSize = "1024m"
-    include '**/DbKvsOracleTestSuite.class'
-    include '**/OracleNamespaceDeleterTests.class'
+    include '**/oracle/'
     maxParallelForks 2
-    useJUnitPlatform()
 }
 
 test {
     // Tests should be included with the relevant flavoured task.
     exclude '**/*.class'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
 }

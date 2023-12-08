@@ -19,16 +19,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
-import com.palantir.atlasdb.transaction.impl.AbstractTransactionTestV2;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.transaction.impl.AbstractTransactionTest;
 import com.palantir.atlasdb.transaction.impl.TransactionSchemaVersionEnforcement;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-public abstract class AbstractMemoryTransactionTest extends AbstractTransactionTestV2 {
+public abstract class AbstractMemoryTransactionTest extends AbstractTransactionTest {
     @RegisterExtension
-    public static final TestResourceManagerV2 TRM = TestResourceManagerV2.inMemory();
+    public static final TestResourceManager TRM = TestResourceManager.inMemory();
 
     private static final byte[] ROW_1 = PtBytes.toBytes("row1");
     private static final byte[] ZERO = new byte[0];

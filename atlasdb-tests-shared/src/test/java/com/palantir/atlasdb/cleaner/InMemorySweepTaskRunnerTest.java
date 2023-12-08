@@ -18,9 +18,9 @@ package com.palantir.atlasdb.cleaner;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTestV2;
+import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
 import java.util.Optional;
 import java.util.stream.IntStream;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -28,9 +28,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class InMemorySweepTaskRunnerTest extends AbstractSweepTaskRunnerTestV2 {
+public class InMemorySweepTaskRunnerTest extends AbstractSweepTaskRunnerTest {
     @RegisterExtension
-    public static final TestResourceManagerV2 TRM = TestResourceManagerV2.inMemory();
+    public static final TestResourceManager TRM = TestResourceManager.inMemory();
 
     public InMemorySweepTaskRunnerTest() {
         super(TRM, TRM);

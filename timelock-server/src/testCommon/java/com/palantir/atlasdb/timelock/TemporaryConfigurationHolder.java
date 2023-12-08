@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.timelock;
 
+import com.palantir.test.utils.SubdirectoryCreator;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
 import freemarker.template.TemplateExceptionHandler;
@@ -22,20 +23,20 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Locale;
-import org.junit.rules.ExternalResource;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
-public class TemporaryConfigurationHolder extends ExternalResource {
+public class TemporaryConfigurationHolder implements BeforeAllCallback {
 
     private static final Configuration TEMPLATE_CONFIG = templateConfig();
 
-    private final TemporaryFolder temporaryFolder;
+    private final File temporaryFolder;
     private final String templateName;
     private final ImmutableTemplateVariables variables;
 
     private File temporaryConfigFile;
 
-    TemporaryConfigurationHolder(TemporaryFolder temporaryFolder, String templateName, TemplateVariables variables) {
+    TemporaryConfigurationHolder(File temporaryFolder, String templateName, TemplateVariables variables) {
         this.temporaryFolder = temporaryFolder;
         this.templateName = templateName;
         this.variables = ImmutableTemplateVariables.copyOf(variables);
@@ -51,18 +52,20 @@ public class TemporaryConfigurationHolder extends ExternalResource {
     }
 
     @Override
-    public void before() throws Exception {
-        temporaryConfigFile = temporaryFolder.newFile();
+    public void beforeAll(ExtensionContext extensionContext) throws Exception {
+        temporaryConfigFile = Files.createTempFile(temporaryFolder.toPath(), "temporaryConfigFile", null)
+                .toFile();
         createTemporaryConfigFile();
     }
 
     private void createTemporaryConfigFile() throws Exception {
         Template template = TEMPLATE_CONFIG.getTemplate(templateName);
         TemplateVariables variablesWithFolders = variables
-                .withDataDirectory(
-                        temporaryFolder.newFolder(appendPort("legacy")).getAbsolutePath())
+                .withDataDirectory(SubdirectoryCreator.createAndGetSubdirectory(temporaryFolder, appendPort("legacy"))
+                        .getAbsolutePath())
                 .withSqliteDataDirectory(
-                        temporaryFolder.newFolder(appendPort("sqlite")).getAbsolutePath());
+                        SubdirectoryCreator.createAndGetSubdirectory(temporaryFolder, appendPort("sqlite"))
+                                .getAbsolutePath());
         template.process(
                 variablesWithFolders, Files.newBufferedWriter(temporaryConfigFile.toPath(), StandardCharsets.UTF_8));
     }

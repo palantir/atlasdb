@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.SetMultimap;
@@ -27,6 +28,7 @@ import com.google.common.collect.Sets;
 import com.google.common.hash.Hashing;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.timelock.NamespacedClients.ProxyFactory;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.atlasdb.timelock.util.TestProxies.ProxyMode;
@@ -34,7 +36,11 @@ import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.paxos.InProgressResponseState;
 import com.palantir.paxos.PaxosQuorumChecker;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -50,16 +56,14 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import org.awaitility.Awaitility;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TemporaryFolder;
-import org.junit.rules.TestRule;
-import org.junit.runner.Description;
-import org.junit.runners.model.Statement;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.Extension;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
-public class TestableTimelockCluster implements TestRule {
+public class TestableTimelockCluster implements BeforeAllCallback, AfterAllCallback {
 
-    private final TemporaryFolder temporaryFolder = new TemporaryFolder();
-
+    private final File temporaryFolder;
     private final String name;
     private final List<TemporaryConfigurationHolder> configs;
     private final boolean needsPostgresDatabase;
@@ -67,7 +71,7 @@ public class TestableTimelockCluster implements TestRule {
     private final Multimap<TestableTimelockServer, TestableTimelockServer> serverToOtherServers;
     private final FailoverProxyFactory proxyFactory;
     private final ExecutorService executorService = Executors.newCachedThreadPool();
-
+    private final List<Extension> extensions = new ArrayList<>();
     private final Map<String, NamespacedClients> clientsByNamespace = new ConcurrentHashMap<>();
 
     public TestableTimelockCluster(String configFileTemplate, TemplateVariables... variables) {
@@ -91,6 +95,12 @@ public class TestableTimelockCluster implements TestRule {
 
     public TestableTimelockCluster(
             String name, String configFileTemplate, List<TestableTimelockServerConfiguration> configurations) {
+        try {
+            this.temporaryFolder =
+                    Files.createTempDirectory("TestableTimelockCluster").toFile();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         this.name = name;
         this.needsPostgresDatabase =
                 configurations.stream().anyMatch(TestableTimelockServerConfiguration::needsPostgresDatabase);
@@ -111,6 +121,32 @@ public class TestableTimelockCluster implements TestRule {
                 .collectToSetMultimap();
         this.proxyFactory =
                 new FailoverProxyFactory(new TestProxies("https://localhost", ImmutableList.copyOf(servers)));
+
+        if (needsPostgresDatabase) {
+            extensions.add(new DbKvsExtension());
+        }
+        extensions.addAll(configs);
+        for (TestableTimelockServer server : servers) {
+            extensions.add(server.serverHolder());
+        }
+    }
+
+    @Override
+    public void beforeAll(ExtensionContext extensionContext) throws Exception {
+        for (Extension extension : extensions) {
+            if (extension instanceof BeforeAllCallback) {
+                ((BeforeAllCallback) extension).beforeAll(extensionContext);
+            }
+        }
+    }
+
+    @Override
+    public void afterAll(ExtensionContext extensionContext) throws Exception {
+        for (Extension extension : Lists.reverse(extensions)) {
+            if (extension instanceof AfterAllCallback) {
+                ((AfterAllCallback) extension).afterAll(extensionContext);
+            }
+        }
     }
 
     private static String name() {
@@ -242,7 +278,7 @@ public class TestableTimelockCluster implements TestRule {
         return NamespacedClients.from(namespace, proxyFactory);
     }
 
-    private static final class FailoverProxyFactory implements NamespacedClients.ProxyFactory {
+    private static final class FailoverProxyFactory implements ProxyFactory {
 
         private final TestProxies proxies;
 
@@ -256,24 +292,6 @@ public class TestableTimelockCluster implements TestRule {
         }
     }
 
-    RuleChain getRuleChain() {
-        RuleChain ruleChain = RuleChain.outerRule(temporaryFolder);
-
-        if (needsPostgresDatabase) {
-            ruleChain = ruleChain.around(new DbKvsRule());
-        }
-
-        for (TemporaryConfigurationHolder config : configs) {
-            ruleChain = ruleChain.around(config);
-        }
-
-        for (TestableTimelockServer server : servers) {
-            ruleChain = ruleChain.around(server.serverHolder());
-        }
-
-        return ruleChain;
-    }
-
     private static TimeLockServerHolder getServerHolder(
             TemporaryConfigurationHolder configHolder, TemplateVariables templateVariables) {
         return new TimeLockServerHolder(configHolder::getTemporaryConfigFileLocation, templateVariables);
@@ -281,11 +299,6 @@ public class TestableTimelockCluster implements TestRule {
 
     private TemporaryConfigurationHolder getConfigHolder(String templateName, TemplateVariables variables) {
         return new TemporaryConfigurationHolder(temporaryFolder, templateName, variables);
-    }
-
-    @Override
-    public Statement apply(Statement base, Description description) {
-        return getRuleChain().apply(base, description);
     }
 
     @Override

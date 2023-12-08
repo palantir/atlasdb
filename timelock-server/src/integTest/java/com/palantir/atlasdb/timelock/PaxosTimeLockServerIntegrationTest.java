@@ -35,13 +35,15 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampManagementService;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.time.Duration;
 import org.awaitility.Awaitility;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TemporaryFolder;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 public class PaxosTimeLockServerIntegrationTest {
 
@@ -65,23 +67,34 @@ public class PaxosTimeLockServerIntegrationTest {
     private static final ImmutableSortedMap<LockDescriptor, LockMode> LOCK_MAP =
             ImmutableSortedMap.of(LOCK_1, LockMode.WRITE);
 
-    private static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
-    private static final TemporaryConfigurationHolder TEMPORARY_CONFIG_HOLDER =
+    private static final File TEMPORARY_FOLDER;
+
+    static {
+        try {
+            TEMPORARY_FOLDER = Files.createTempDirectory("PaxosTimeLockServerIntegrationTest")
+                    .toFile();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Order(1)
+    @RegisterExtension
+    public static final TemporaryConfigurationHolder TEMPORARY_CONFIG_HOLDER =
             new TemporaryConfigurationHolder(TEMPORARY_FOLDER, "paxosSingleServer.ftl", DEFAULT_SINGLE_SERVER);
-    private static final TimeLockServerHolder TIMELOCK_SERVER_HOLDER =
+
+    @Order(2)
+    @RegisterExtension
+    public static final TimeLockServerHolder TIMELOCK_SERVER_HOLDER =
             new TimeLockServerHolder(TEMPORARY_CONFIG_HOLDER::getTemporaryConfigFileLocation, DEFAULT_SINGLE_SERVER);
+
     private static final TestableTimelockServer TIMELOCK =
             new TestableTimelockServer("https://localhost", TIMELOCK_SERVER_HOLDER);
 
     private static NamespacedClients namespace1;
     private static NamespacedClients namespace2;
 
-    @ClassRule
-    public static final RuleChain ruleChain = RuleChain.outerRule(TEMPORARY_FOLDER)
-            .around(TEMPORARY_CONFIG_HOLDER)
-            .around(TIMELOCK_SERVER_HOLDER);
-
-    @BeforeClass
+    @BeforeAll
     public static void waitForClusterToStabilize() {
         namespace1 = TIMELOCK.client(CLIENT_1);
         namespace2 = TIMELOCK.client(CLIENT_2);

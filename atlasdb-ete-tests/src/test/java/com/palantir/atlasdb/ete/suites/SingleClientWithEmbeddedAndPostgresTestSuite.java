@@ -15,27 +15,18 @@
  */
 package com.palantir.atlasdb.ete.suites;
 
-import com.palantir.atlasdb.ete.suiteclasses.CoordinationEteTest;
-import com.palantir.atlasdb.ete.suiteclasses.LockWithoutTimelockEteTest;
-import com.palantir.atlasdb.ete.suiteclasses.TimestampManagementEteTest;
-import com.palantir.atlasdb.ete.suiteclasses.TodoEteTest;
-import com.palantir.atlasdb.ete.utilities.EteSetup;
-import org.junit.ClassRule;
-import org.junit.rules.RuleChain;
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import com.palantir.atlasdb.ete.tests.SingleClientWithEmbeddedAndPostgresCoordinationTest;
+import com.palantir.atlasdb.ete.tests.SingleClientWithEmbeddedAndPostgresLockWithoutTimelockTest;
+import com.palantir.atlasdb.ete.tests.SingleClientWithEmbeddedAndPostgresTimestampManagementTest;
+import com.palantir.atlasdb.ete.tests.SingleClientWithEmbeddedAndPostgresTodoTest;
+import org.junit.platform.suite.api.SelectClasses;
+import org.junit.platform.suite.api.Suite;
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    TodoEteTest.class,
-    TimestampManagementEteTest.class,
-    CoordinationEteTest.class,
-    LockWithoutTimelockEteTest.class
+@Suite
+@SelectClasses({
+    SingleClientWithEmbeddedAndPostgresTodoTest.class,
+    SingleClientWithEmbeddedAndPostgresTimestampManagementTest.class,
+    SingleClientWithEmbeddedAndPostgresCoordinationTest.class,
+    SingleClientWithEmbeddedAndPostgresLockWithoutTimelockTest.class
 })
-public class SingleClientWithEmbeddedAndPostgresTestSuite extends EteSetup {
-    @ClassRule
-    public static final RuleChain COMPOSITION_SETUP = EteSetup.setupComposition(
-            SingleClientWithEmbeddedAndPostgresTestSuite.class,
-            "docker-compose.single-client-with-embedded-and-postgres.yml",
-            Clients.SINGLE);
-}
+public class SingleClientWithEmbeddedAndPostgresTestSuite {}

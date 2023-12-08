@@ -23,10 +23,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
-import org.junit.rules.ExternalResource;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
-/* TODO(boyoruk): Delete this when JUnit5 upgrade is done */
-public class TestResourceManager extends ExternalResource implements KvsManager, TransactionManagerManager {
+public class TestResourceManager implements AfterAllCallback, KvsManager, TransactionManagerManager {
     private final Supplier<KeyValueService> getKvsSupplier;
     private final List<AutoCloseable> closeableResources = new ArrayList<>();
 
@@ -70,7 +70,7 @@ public class TestResourceManager extends ExternalResource implements KvsManager,
     }
 
     @Override
-    public void after() {
+    public void afterAll(ExtensionContext extensionContext) {
         closeableResources.forEach(resource -> {
             try {
                 resource.close();

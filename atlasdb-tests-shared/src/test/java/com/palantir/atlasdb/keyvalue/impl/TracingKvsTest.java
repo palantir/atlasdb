@@ -35,11 +35,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class TracingKvsTest extends AbstractKeyValueServiceTestV2 {
+public class TracingKvsTest extends AbstractKeyValueServiceTest {
 
     @RegisterExtension
-    public static final TestResourceManagerV2 TRM =
-            new TestResourceManagerV2(() -> TracingKeyValueService.create(new InMemoryKeyValueService(false)));
+    public static final TestResourceManager TRM =
+            new TestResourceManager(() -> TracingKeyValueService.create(new InMemoryKeyValueService(false)));
 
     private static final SafeLogger log = SafeLoggerFactory.get(TracingKvsTest.class);
     private static final String TEST_OBSERVER_NAME = TracingKvsTest.class.getName();

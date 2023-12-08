@@ -20,14 +20,14 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Sets;
-import com.palantir.docker.compose.DockerComposeRule;
+import com.palantir.docker.compose.DockerComposeExtension;
 import com.palantir.docker.compose.configuration.DockerComposeFiles;
 import com.palantir.docker.compose.configuration.ProjectName;
 import com.palantir.docker.compose.configuration.ShutdownStrategy;
 import com.palantir.docker.compose.connection.DockerMachine;
 import com.palantir.docker.compose.execution.DockerCompose;
 import com.palantir.docker.compose.logging.LogDirectory;
-import com.palantir.docker.proxy.DockerProxyRule;
+import com.palantir.docker.proxy.DockerProxyExtension;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -42,25 +42,27 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.awaitility.Awaitility;
-import org.junit.rules.ExternalResource;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
-/* TODO(boyoruk): Delete when JUnit5 upgrade is over. */
 @SuppressWarnings("ShutdownHook")
-public class Containers extends ExternalResource {
+public class Containers implements BeforeAllCallback, AfterAllCallback {
     private static final ProjectName PROJECT_NAME = ProjectName.fromString("atlasdbcontainers");
 
     @VisibleForTesting
-    static final DockerProxyRule DOCKER_PROXY_RULE = DockerProxyRule.fromProjectName(PROJECT_NAME, Container.class);
+    static final DockerProxyExtension DOCKER_PROXY_EXTENSION =
+            DockerProxyExtension.fromProjectName(PROJECT_NAME, Container.class);
 
     private static final Set<Container> containersToStart = new HashSet<>();
     private static final Set<Container> containersStarted = new HashSet<>();
     private static final LoadingCache<String, String> dockerComposeFilesToTemporaryCopies =
             Caffeine.newBuilder().build(Containers::getDockerComposeFile);
 
-    private static volatile DockerComposeRule dockerComposeRule;
+    private static volatile DockerComposeExtension dockerComposeExtension;
     private static volatile InterruptibleFileLogCollector currentLogCollector;
     private static volatile boolean shutdownHookAdded;
-    private static volatile boolean dockerProxyRuleStarted;
+    private static volatile boolean dockerProxyExtensionStarted;
 
     private final String logDirectory;
 
@@ -79,24 +81,24 @@ public class Containers extends ExternalResource {
 
     public com.palantir.docker.compose.connection.Container getContainer(String containerName) {
         synchronized (Containers.class) {
-            return dockerComposeRule.containers().container(containerName);
+            return dockerComposeExtension.containers().container(containerName);
         }
     }
 
     public DockerCompose getDockerCompose() {
-        return dockerComposeRule.dockerCompose();
+        return dockerComposeExtension.dockerCompose();
     }
 
     @Override
-    public void before() throws Throwable {
+    public void beforeAll(ExtensionContext extensionContext) throws IOException, InterruptedException {
         synchronized (Containers.class) {
             setupShutdownHook();
 
             setupLogCollectorForLogDirectory();
-            setupDockerComposeRule();
+            setupDockerComposeExtension();
             startCollectingLogs();
 
-            ensureDockerProxyRuleRunning();
+            ensureDockerProxyExtensionRunning();
 
             waitForContainersToStart();
             containersStarted.addAll(containersToStart);
@@ -104,7 +106,11 @@ public class Containers extends ExternalResource {
     }
 
     @Override
-    protected void after() {
+    public void afterAll(ExtensionContext extensionContext) {
+        afterAll();
+    }
+
+    public void afterAll() {
         currentLogCollector.stopExecutor();
     }
 
@@ -130,7 +136,7 @@ public class Containers extends ExternalResource {
         currentLogCollector = new InterruptibleFileLogCollector(new File(logDirectory));
     }
 
-    private void setupDockerComposeRule() throws InterruptedException, IOException {
+    private void setupDockerComposeExtension() throws InterruptedException, IOException {
         DockerComposeFiles files = DockerComposeFiles.from(containersToStart.stream()
                 .map(Container::getDockerComposeFile)
                 .map(dockerComposeFilesToTemporaryCopies::get)
@@ -144,7 +150,7 @@ public class Containers extends ExternalResource {
         DockerMachine machine =
                 DockerMachine.localMachine().withEnvironment(environment).build();
 
-        dockerComposeRule = DockerComposeRule.builder()
+        dockerComposeExtension = DockerComposeExtension.builder()
                 .files(files)
                 .projectName(PROJECT_NAME)
                 .machine(machine)
@@ -152,7 +158,7 @@ public class Containers extends ExternalResource {
                 .shutdownStrategy(ShutdownStrategy.AGGRESSIVE_WITH_NETWORK_CLEANUP)
                 .build();
 
-        dockerComposeRule.before();
+        dockerComposeExtension.before();
     }
 
     private void startCollectingLogs() {
@@ -168,10 +174,10 @@ public class Containers extends ExternalResource {
     }
 
     @SuppressWarnings("checkstyle:IllegalThrows")
-    private static void ensureDockerProxyRuleRunning() throws Throwable {
-        if (!dockerProxyRuleStarted) {
-            dockerProxyRuleStarted = true;
-            DOCKER_PROXY_RULE.before();
+    private static void ensureDockerProxyExtensionRunning() throws InterruptedException, IOException {
+        if (!dockerProxyExtensionStarted) {
+            dockerProxyExtensionStarted = true;
+            DOCKER_PROXY_EXTENSION.before();
         }
     }
 
@@ -180,7 +186,7 @@ public class Containers extends ExternalResource {
             Awaitility.await()
                     .atMost(Duration.ofMinutes(5))
                     .pollInterval(Duration.ofSeconds(1))
-                    .until(() -> container.isReady(dockerComposeRule).succeeded());
+                    .until(() -> container.isReady(dockerComposeExtension).succeeded());
         }
     }
 
@@ -197,14 +203,14 @@ public class Containers extends ExternalResource {
     @VisibleForTesting
     static void onShutdown() {
         synchronized (Containers.class) {
-            if (dockerProxyRuleStarted) {
-                DOCKER_PROXY_RULE.after();
+            if (dockerProxyExtensionStarted) {
+                DOCKER_PROXY_EXTENSION.after();
             }
-            if (dockerComposeRule != null) {
-                dockerComposeRule.after();
+            if (dockerComposeExtension != null) {
+                dockerComposeExtension.after();
             }
-            dockerProxyRuleStarted = false;
-            dockerComposeRule = null;
+            dockerProxyExtensionStarted = false;
+            dockerComposeExtension = null;
             currentLogCollector = null;
             containersStarted.clear();
         }

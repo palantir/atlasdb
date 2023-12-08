@@ -5,21 +5,12 @@ versionsLock {
 }
 
 dependencies {
-  implementation project(":atlasdb-config")
-  implementation project(":timelock-impl")
-  testImplementation project(":atlasdb-config")
-
-  testImplementation project(":commons-api")
-
   implementation 'com.palantir.tracing:tracing'
-
-  implementation 'junit:junit'
   implementation 'org.junit.jupiter:junit-jupiter'
   implementation 'org.junit.jupiter:junit-jupiter-api'
   implementation 'org.assertj:assertj-core'
   implementation 'org.mockito:mockito-core'
   implementation 'org.awaitility:awaitility'
-
   implementation 'com.fasterxml.jackson.core:jackson-core'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'com.github.ben-manes.caffeine:caffeine'
@@ -43,6 +34,7 @@ dependencies {
   implementation project(':atlasdb-client')
   implementation project(':atlasdb-client-protobufs')
   implementation project(':atlasdb-commons')
+  implementation project(":atlasdb-config")
   implementation project(':atlasdb-coordination-impl')
   implementation project(':atlasdb-impl-shared')
   implementation project(':atlasdb-remoting-api')
@@ -52,6 +44,7 @@ dependencies {
   implementation project(':lock-impl')
   implementation project(':timelock-agent')
   implementation project(':timelock-api:timelock-api-jersey')
+  implementation project(":timelock-impl")
   implementation project(':timestamp-api')
 
   testImplementation 'com.github.tomakehurst:wiremock-standalone'
@@ -70,6 +63,7 @@ dependencies {
   testImplementation 'org.slf4j:slf4j-api'
   testImplementation 'org.junit.jupiter:junit-jupiter'
   testImplementation 'org.mockito:mockito-junit-jupiter'
+
   testImplementation project(':atlasdb-api')
   testImplementation project(':atlasdb-client')
   testImplementation project(':atlasdb-client-protobufs')
@@ -80,19 +74,16 @@ dependencies {
   testImplementation project(':lock-api-objects')
   testImplementation project(':lock-impl')
   testImplementation project(':timestamp-api')
-
-  compileOnly 'org.immutables:value::annotations'
-  testCompileOnly 'org.immutables:value::annotations'
+  testImplementation project(":atlasdb-config")
+  testImplementation project(":commons-api")
 
   testImplementation project(path: ":atlasdb-client", configuration: "testArtifacts")
   testImplementation('org.jmock:jmock') {
     exclude group: 'org.hamcrest'
   }
 
-  testImplementation 'junit:junit'
-  testRuntimeOnly 'org.junit.vintage:junit-vintage-engine', {
-    because 'allows JUnit 3 and JUnit 4 tests to run'
-  }
+  compileOnly 'org.immutables:value::annotations'
+  testCompileOnly 'org.immutables:value::annotations'
 }
 schemas = [
     'com.palantir.atlasdb.schema.indexing.IndexTestSchema',

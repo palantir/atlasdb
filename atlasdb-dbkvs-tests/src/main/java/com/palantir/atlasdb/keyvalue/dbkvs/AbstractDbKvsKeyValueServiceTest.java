@@ -37,8 +37,8 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
-import org.junit.After;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 
 public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueServiceTest {
     protected static final Namespace TEST_NAMESPACE = Namespace.create("ns");
@@ -49,13 +49,13 @@ public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueS
         super(kvsManager);
     }
 
-    @After
+    @AfterEach
     public void resetMaxBatch() {
         setMaxRangeOfTimestampsBatchSize(DbKvs.DEFAULT_GET_RANGE_OF_TS_BATCH);
     }
 
     @Test
-    public void dontThrowWhenCreatingTheSameLongTable() throws Exception {
+    public void dontThrowWhenCreatingTheSameLongTable() {
         TableReference longTableName = TableReference.create(TEST_NAMESPACE, TEST_LONG_TABLE_NAME);
 
         keyValueService.createTable(longTableName, AtlasDbConstants.GENERIC_TABLE_METADATA);

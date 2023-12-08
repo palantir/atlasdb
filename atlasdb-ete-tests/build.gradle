@@ -26,6 +26,7 @@ dependencies {
     implementation 'io.dropwizard:dropwizard-jersey'
     implementation 'javax.ws.rs:javax.ws.rs-api'
     implementation 'org.apache.commons:commons-text'
+
     implementation project(':atlasdb-api')
     implementation project(':atlasdb-client')
     implementation project(':atlasdb-client-protobufs')
@@ -45,16 +46,17 @@ dependencies {
     testImplementation 'com.palantir.conjure.java.api:ssl-config'
     testImplementation 'com.palantir.conjure.java.api:test-utils'
     testImplementation 'com.palantir.conjure.java.runtime:keystores'
-    testImplementation 'com.palantir.docker.compose:docker-compose-rule-junit4'
-    testImplementation 'com.palantir.docker.proxy:docker-proxy-rule-junit4'
+    testImplementation 'com.palantir.docker.compose:docker-compose-rule-core'
+    testImplementation 'com.palantir.docker.compose:docker-compose-junit-jupiter'
+    testImplementation 'com.palantir.docker.proxy:docker-proxy-junit-jupiter'
     testImplementation 'com.palantir.safe-logging:preconditions'
     testImplementation 'com.palantir.safe-logging:safe-logging'
     testImplementation 'commons-io:commons-io'
     testImplementation 'joda-time:joda-time'
     testImplementation 'org.slf4j:slf4j-api'
-    testImplementation 'com.palantir.docker.compose:docker-compose-rule-core'
     testImplementation 'io.dropwizard:dropwizard-testing'
     testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.junit.platform:junit-platform-suite'
     testImplementation project(':atlasdb-api')
     testImplementation project(':atlasdb-cassandra')
     testImplementation project(':atlasdb-cassandra').sourceSets.test.output
@@ -64,31 +66,27 @@ dependencies {
     testImplementation project(':atlasdb-impl-shared')
     testImplementation project(':atlasdb-remoting-api')
     testImplementation project(':atlasdb-tests-shared')
-    testImplementation project(':flake-rule')
+    testImplementation project(':flake-extension')
     testImplementation project(':lock-api-objects')
     testImplementation project(':timestamp-api')
     testImplementation project(':timestamp-impl')
+
     testImplementation ('com.palantir.cassandra:cassandra-thrift') {
         exclude group: 'commons-logging'
         exclude module: 'junit'
         exclude group: 'org.apache.httpcomponents'
     }
 
-    runtimeOnly project(':atlasdb-dbkvs')
     runtimeOnly project(':atlasdb-cassandra')
+    runtimeOnly project(':atlasdb-dbkvs')
 
     annotationProcessor 'org.immutables:value'
     annotationProcessor project(':atlasdb-processors')
+    testAnnotationProcessor 'org.immutables:value'
+
     compileOnly 'org.immutables:value::annotations'
     compileOnly project(':atlasdb-processors')
-    testAnnotationProcessor 'org.immutables:value'
     testCompileOnly 'org.immutables:value::annotations'
-
-    /* TODO(boyoruk): Migrate to JUnit5 */
-    testImplementation 'junit:junit'
-    testRuntimeOnly 'org.junit.vintage:junit-vintage-engine', {
-        because 'allows JUnit 3 and JUnit 4 tests to run'
-    }
 }
 
 // ETE Test Wiring
@@ -185,7 +183,8 @@ test {
         setFailOnNoMatchingTests(false)
 
         // suite classes that should not be run outside of suites
-        excludeTestsMatching 'com.palantir.atlasdb.ete.suiteclasses.*'
+        excludeTestsMatching 'com.palantir.atlasdb.ete.abstracttests.*'
+        excludeTestsMatching 'com.palantir.atlasdb.ete.tests.*'
 
         // tests with 1-off tasks
         excludeTestsMatching 'com.palantir.atlasdb.ete.standalone.TimeLockMigrationEteTest'
@@ -196,6 +195,10 @@ test {
         excludeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndPostgresTestSuite'
         excludeTestsMatching 'com.palantir.atlasdb.ete.suites.SingleClientWithEmbeddedAndThreeNodeCassandraTestSuite'
     }
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
 }
 
 distribution {

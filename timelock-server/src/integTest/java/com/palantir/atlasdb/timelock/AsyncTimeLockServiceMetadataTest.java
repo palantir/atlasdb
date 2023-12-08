@@ -54,8 +54,8 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 public class AsyncTimeLockServiceMetadataTest {
     private static final String WATCHED_TABLE_NAME = "watched-table";
@@ -90,7 +90,7 @@ public class AsyncTimeLockServiceMetadataTest {
                     .requestorId(UUID.randomUUID())
                     .build();
 
-    @Before
+    @BeforeEach
     public void setup() {
         timeLockService.startWatching(
                 LockWatchRequest.of(ImmutableSet.of(LockWatchReferences.entireTable(WATCHED_TABLE_NAME))));

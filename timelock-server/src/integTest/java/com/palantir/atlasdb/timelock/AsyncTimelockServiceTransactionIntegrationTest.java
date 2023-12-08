@@ -45,7 +45,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.assertj.core.api.ThrowableAssert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 
 public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyncTimelockServiceIntegrationTest {
 
@@ -61,6 +62,10 @@ public class AsyncTimelockServiceTransactionIntegrationTest extends AbstractAsyn
 
     private final ExecutorService executor = Executors.newCachedThreadPool();
     private final TransactionManager txnManager;
+
+    @RegisterExtension
+    public static final TestableTimelockCluster cluster =
+            new TestableTimelockCluster("paxosSingleServer.ftl", DEFAULT_SINGLE_SERVER);
 
     public AsyncTimelockServiceTransactionIntegrationTest() {
         cluster.waitUntilLeaderIsElected(ImmutableList.of(AGENT));
