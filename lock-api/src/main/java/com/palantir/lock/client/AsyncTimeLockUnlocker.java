@@ -60,7 +60,6 @@ public final class AsyncTimeLockUnlocker implements TimeLockUnlocker, AutoClosea
                     }
                     batch.stream().map(BatchElement::result).forEach(f -> f.set(null));
                 })
-                .handlerCount(2)
                 .batchFunctionTimeout(Duration.ofSeconds(30))
                 .safeLoggablePurpose("async-timelock-unlocker")
                 .build());
