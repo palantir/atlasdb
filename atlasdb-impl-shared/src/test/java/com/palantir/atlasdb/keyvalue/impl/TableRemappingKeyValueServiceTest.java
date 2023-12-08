@@ -51,7 +51,7 @@ public class TableRemappingKeyValueServiceTest {
     private static final int NUM_ITERATIONS = 1_000;
 
     private final AtomicLong timestamp = new AtomicLong();
-    private final KeyValueService rawKvs = new InMemoryKeyValueService(true);
+    private final KeyValueService rawKvs = new InMemoryKeyValueService(false);
     private final KvTableMappingService tableMapper = KvTableMappingService.create(rawKvs, timestamp::incrementAndGet);
     private final KeyValueService kvs = TableRemappingKeyValueService.create(rawKvs, tableMapper);
 
@@ -87,6 +87,51 @@ public class TableRemappingKeyValueServiceTest {
             }));
             futures.forEach(Futures::getUnchecked);
         }
+    }
+
+    @Test
+    public void testAddTableInOneNodeAfterDropInAnother() {
+        // Simulate another node/service backed by the same kvs.
+        KvTableMappingService tableMapper2 = KvTableMappingService.create(rawKvs, timestamp::incrementAndGet);
+        TableRemappingKeyValueService kvs2 = TableRemappingKeyValueService.create(rawKvs, tableMapper2);
+        // Create the table in the first node
+        kvs.createTable(DATA_TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        Cell cell = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col"));
+        // Try to get a value, creating the mapping in memory
+        kvs.get(DATA_TABLE_REF, ImmutableMap.of(cell, 1L));
+        // Drop the table in node 2. This removes the mapping from the db, but the in memory mapping in node 1 isn't
+        // removed
+        kvs2.dropTable(DATA_TABLE_REF);
+        // Create the table again in node 1. This will not write the mapping to the db, since it already exists in
+        // memory.
+        kvs.createTable(DATA_TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        // Try and get a value on node 2. This will load the mapping from the db, find that it doesn't exist and throw.
+        Map<Cell, Value> result = kvs2.get(DATA_TABLE_REF, ImmutableMap.of(cell, 1L));
+        assertThat(result).isEmpty();
+    }
+
+    // Create test that is the same as the above, but we recreate on node 2, and then call get on node 1. This will
+    // result in an exception since the mapping exists, but is wrong.
+    @Test
+    public void testAddTableInOneNodeAfterDropInAnother2() {
+        // Simulate another node/service backed by the same kvs.
+        KvTableMappingService tableMapper2 = KvTableMappingService.create(rawKvs, timestamp::incrementAndGet);
+        TableRemappingKeyValueService kvs2 = TableRemappingKeyValueService.create(rawKvs, tableMapper2);
+        // Create the table in the first node
+        kvs.createTable(DATA_TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        Cell cell = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col"));
+        // Try to get a value, creating the mapping in memory
+        kvs.get(DATA_TABLE_REF, ImmutableMap.of(cell, 1L));
+        // Drop the table in node 2. This removes the mapping from the db, but the in memory mapping in node 1 isn't
+        // removed
+        kvs2.dropTable(DATA_TABLE_REF);
+        // Create the table again in node 2. This will write a new mapping to the db, which doesn't match the mapping
+        // that is still in memory on node 1.
+        kvs2.createTable(DATA_TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        // Try and get a value on node 1. This will not load the mapping from the db, since it's already in memory.
+        // However, the in memory mapping is wrong, and this will crash.
+        Map<Cell, Value> result = kvs.get(DATA_TABLE_REF, ImmutableMap.of(cell, 1L));
+        assertThat(result).isEmpty();
     }
 
     private Void dropTablesWithPrefix(String prefix) {
