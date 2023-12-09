@@ -170,7 +170,7 @@ public final class Autobatchers {
         private Optional<Duration> batchFunctionTimeout = Optional.empty();
         private Optional<TimeoutHandler> timeoutHandler = Optional.empty();
         private Optional<WaitStrategy> waitStrategy = Optional.empty();
-        private Optional<Integer> handlerCount = Optional.empty();
+        private Optional<Integer> maybeHandlerCount = Optional.of(2);
 
         @Nullable
         private String purpose;
@@ -186,7 +186,7 @@ public final class Autobatchers {
 
         public AutobatcherBuilder<I, O> handlerCount(int handlerCount) {
             Preconditions.checkArgument((handlerCount >= 1) && (handlerCount <= 5));
-            this.handlerCount = Optional.of(handlerCount);
+            this.maybeHandlerCount = Optional.of(handlerCount);
             return this;
         }
 
@@ -242,7 +242,7 @@ public final class Autobatchers {
             // how many autobatchers we will use, which can be tricky. Some of them
             // are instanciated wholly inside atlas; others elsewhere.
             EventHandler<BatchElement<I, O>> handler = new MultiplexingEventHandler<>(
-                    handlerCount.orElse(1),
+                    maybeHandlerCount.orElse(1),
                     purpose,
                     () -> new ProfilingEventHandler<>(
                             new TracingEventHandler<>(this.handlerFactory.apply(parameters), parameters.batchSize()),

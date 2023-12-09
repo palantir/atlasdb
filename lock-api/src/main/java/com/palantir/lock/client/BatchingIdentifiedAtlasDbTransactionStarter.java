@@ -64,6 +64,11 @@ public final class BatchingIdentifiedAtlasDbTransactionStarter implements Identi
     static Consumer<List<BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>>>> consumer(
             LockLeaseService lockLeaseService, LockWatchCache cache) {
         return batch -> {
+
+            batch = new List<>() {
+
+            };
+
             int numTransactions =
                     batch.stream().mapToInt(BatchElement::argument).sum();
 
@@ -73,7 +78,14 @@ public final class BatchingIdentifiedAtlasDbTransactionStarter implements Identi
             int start = 0;
             for (BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> batchElement : batch) {
                 int end = start + batchElement.argument();
-                batchElement.result().set(ImmutableList.copyOf(startTransactionResponses.subList(start, end)));
+                System.out.println("start="+start+";end="+end+";length="+startTransactionResponses.size());
+                try {
+                    batchElement.result().set(ImmutableList.copyOf(startTransactionResponses.subList(start, end)));
+                } catch (IndexOutOfBoundsException e) {
+                    System.out.println("Exception: " + e);
+                    System.out.println("List: " + startTransactionResponses);
+                    throw e;
+                }
                 start = end;
             }
         };
