@@ -153,8 +153,6 @@ public final class DisruptorAutobatcher<T, R>
                         waitingSpan.complete();
                         if (runningSpan != null) {
                             runningSpan.complete();
-                            parent.complete();
-
                             if (valueSet) {
                                 telemetryComponents.markWaitingTimeAndRunningTimeMetrics(
                                         waitingSpan.getDurationOrThrowIfStillRunning(),
@@ -163,10 +161,8 @@ public final class DisruptorAutobatcher<T, R>
                                 telemetryComponents.markWaitingTimeMetrics(
                                         waitingSpan.getDurationOrThrowIfStillRunning());
                             }
-
-                        } else {
-                            parent.complete();
                         }
+                        parent.complete();
                     },
                     MoreExecutors.directExecutor());
         }

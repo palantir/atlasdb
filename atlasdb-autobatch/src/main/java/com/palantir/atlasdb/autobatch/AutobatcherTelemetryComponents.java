@@ -29,6 +29,10 @@ public final class AutobatcherTelemetryComponents {
         this.overheadMetrics = overheadMetrics;
     }
 
+    String getSafeLoggablePurpose() {
+        return safeLoggablePurpose;
+    }
+
     void markWaitingTimeAndRunningTimeMetrics(Duration waitTime, Duration runningTime) {
         markWaitingTimeMetrics(waitTime);
         markRunningTimeMetrics(runningTime);
@@ -42,10 +46,6 @@ public final class AutobatcherTelemetryComponents {
 
     void markWaitingTimeMetrics(Duration waitTime) {
         overheadMetrics.waitTimeNanos().update(waitTime.toNanos());
-    }
-
-    String getSafeLoggablePurpose() {
-        return safeLoggablePurpose;
     }
 
     private void markRunningTimeMetrics(Duration runningTime) {
