@@ -18,7 +18,7 @@ buildscript {
         classpath 'com.palantir.gradle.gitversion:gradle-git-version:3.0.0'
         classpath 'com.palantir.gradle.jdks:gradle-jdks:0.34.0'
         classpath 'com.palantir.gradle.jdkslatest:gradle-jdks-latest:0.12.0'
-        classpath 'com.palantir.javaformat:gradle-palantir-java-format:2.38.0'
+        classpath 'com.palantir.javaformat:gradle-palantir-java-format:2.39.0'
         classpath 'com.palantir.metricschema:gradle-metric-schema:0.25.0'
         classpath 'com.palantir.sls-packaging:gradle-sls-packaging:7.13.0'
         classpath 'com.google.protobuf:protobuf-gradle-plugin:0.9.4'
