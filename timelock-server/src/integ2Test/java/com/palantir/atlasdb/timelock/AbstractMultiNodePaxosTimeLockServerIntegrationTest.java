@@ -58,14 +58,13 @@ import com.palantir.lock.client.ConjureLockRequests;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LockRequest;
-import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.PartitionedTimestamps;
 import com.palantir.lock.v2.WaitForLocksRequest;
-import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.tokens.auth.AuthHeader;
+import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
@@ -76,12 +75,14 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
+
+    private static final Exception READ_TIMED_OUT_EXCEPTION = new SocketTimeoutException("Read timed out");
 
     private final TestableTimelockCluster cluster;
 
@@ -262,33 +263,30 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    @Disabled // TODO(boyoruk): Investigate why this test fails
     public void lockRequestCanBlockForTheFullTimeout() {
         LockToken token =
                 client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 
-        try {
-            LockResponse response = client.lock(LockRequest.of(LOCKS, LONGER_THAN_READ_TIMEOUT_LOCK_TIMEOUT_MS));
-            assertThat(response.wasSuccessful()).isFalse();
-        } finally {
-            client.unlock(token);
-        }
+        Assertions.assertThatThrownBy(() -> {
+                    client.lock(LockRequest.of(LOCKS, LONGER_THAN_READ_TIMEOUT_LOCK_TIMEOUT_MS));
+                })
+                .hasCause(READ_TIMED_OUT_EXCEPTION);
+
+        client.unlock(token);
     }
 
     @Test
-    @Disabled // TODO(boyoruk): Investigate why this test fails
     public void waitForLocksRequestCanBlockForTheFullTimeout() {
         Assumptions.assumeFalse(cluster.isDbTimelock()); // We will never test only DB timelock when releasing.
         LockToken token =
                 client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
 
-        try {
-            WaitForLocksResponse response =
+        Assertions.assertThatThrownBy(() -> {
                     client.waitForLocks(WaitForLocksRequest.of(LOCKS, LONGER_THAN_READ_TIMEOUT_LOCK_TIMEOUT_MS));
-            assertThat(response.wasSuccessful()).isFalse();
-        } finally {
-            client.unlock(token);
-        }
+                })
+                .hasCause(READ_TIMED_OUT_EXCEPTION);
+
+        client.unlock(token);
     }
 
     @Test
