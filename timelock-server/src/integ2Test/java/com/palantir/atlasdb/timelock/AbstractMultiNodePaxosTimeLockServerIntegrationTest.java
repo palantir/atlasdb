@@ -73,7 +73,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
@@ -265,20 +264,16 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void lockRequestCanBlockForTheFullTimeout() {
-        LockToken token1 =
-                client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
-        AtomicReference<LockToken> token2 = new AtomicReference<>(null);
+        Set<LockToken> tokens = new HashSet<>();
+        tokens.add(client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken());
         try {
             Assertions.assertThatThrownBy(() -> {
-                        token2.set(client.lock(LockRequest.of(LOCKS, LONGER_THAN_READ_TIMEOUT_LOCK_TIMEOUT_MS))
+                        tokens.add(client.lock(LockRequest.of(LOCKS, LONGER_THAN_READ_TIMEOUT_LOCK_TIMEOUT_MS))
                                 .getToken());
                     })
                     .hasCause(READ_TIMED_OUT_EXCEPTION);
         } finally {
-            client.unlock(token1);
-            if (token2.get() != null) {
-                client.unlock(token2.get());
-            }
+            client.unlock(tokens);
         }
     }
 
