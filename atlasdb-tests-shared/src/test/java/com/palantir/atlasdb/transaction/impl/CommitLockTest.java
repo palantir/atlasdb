@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -168,15 +167,14 @@ public class CommitLockTest extends TransactionTestSetup {
     }
 
     private TransactionManager createTransactionManager(ConflictHandler conflictHandler) {
-        ImmutableMap<TableReference, ConflictHandler> tablesToWriteWrite = ImmutableMap.of(
-                TEST_TABLE, conflictHandler, TransactionConstants.TRANSACTION_TABLE, ConflictHandler.IGNORE_ALL);
         TestTransactionManagerImpl transactionManager = new TestTransactionManagerImpl(
                 MetricsManagers.createForTests(),
                 keyValueService,
                 inMemoryTimelockExtension,
                 lockService,
                 transactionService,
-                TestConflictDetectionManagers.createWithStaticConflictDetection(tablesToWriteWrite),
+                TestConflictDetectionManagers.createWithStaticConflictDetection(
+                        ImmutableMap.of(TEST_TABLE, conflictHandler)),
                 sweepStrategyManager,
                 timestampCache,
                 MultiTableSweepQueueWriter.NO_OP,

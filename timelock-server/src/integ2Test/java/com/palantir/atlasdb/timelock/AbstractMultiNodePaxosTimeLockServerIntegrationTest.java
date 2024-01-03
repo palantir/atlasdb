@@ -73,6 +73,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
@@ -264,29 +265,37 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void lockRequestCanBlockForTheFullTimeout() {
-        LockToken token =
+        LockToken token1 =
                 client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
-
-        Assertions.assertThatThrownBy(() -> {
-                    client.lock(LockRequest.of(LOCKS, LONGER_THAN_READ_TIMEOUT_LOCK_TIMEOUT_MS));
-                })
-                .hasCause(READ_TIMED_OUT_EXCEPTION);
-
-        client.unlock(token);
+        AtomicReference<LockToken> token2 = new AtomicReference<>(null);
+        try {
+            Assertions.assertThatThrownBy(() -> {
+                        token2.set(client.lock(LockRequest.of(LOCKS, LONGER_THAN_READ_TIMEOUT_LOCK_TIMEOUT_MS))
+                                .getToken());
+                    })
+                    .hasCause(READ_TIMED_OUT_EXCEPTION);
+        } finally {
+            client.unlock(token1);
+            if (token2.get() != null) {
+                client.unlock(token2.get());
+            }
+        }
     }
 
     @Test
     public void waitForLocksRequestCanBlockForTheFullTimeout() {
         Assumptions.assumeFalse(cluster.isDbTimelock()); // We will never test only DB timelock when releasing.
+
         LockToken token =
                 client.lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS)).getToken();
-
-        Assertions.assertThatThrownBy(() -> {
-                    client.waitForLocks(WaitForLocksRequest.of(LOCKS, LONGER_THAN_READ_TIMEOUT_LOCK_TIMEOUT_MS));
-                })
-                .hasCause(READ_TIMED_OUT_EXCEPTION);
-
-        client.unlock(token);
+        try {
+            Assertions.assertThatThrownBy(() -> {
+                        client.waitForLocks(WaitForLocksRequest.of(LOCKS, LONGER_THAN_READ_TIMEOUT_LOCK_TIMEOUT_MS));
+                    })
+                    .hasCause(READ_TIMED_OUT_EXCEPTION);
+        } finally {
+            client.unlock(token);
+        }
     }
 
     @Test
