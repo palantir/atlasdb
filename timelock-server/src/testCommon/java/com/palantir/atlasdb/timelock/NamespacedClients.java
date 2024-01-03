@@ -42,6 +42,7 @@ import com.palantir.timestamp.RemoteTimestampManagementAdapter;
 import com.palantir.timestamp.TimestampManagementRpcClient;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
+import java.util.Set;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -133,6 +134,10 @@ public interface NamespacedClients {
 
     default boolean unlock(LockToken token) {
         return timelockService().unlock(ImmutableSet.of(token)).contains(token);
+    }
+
+    default Set<LockToken> unlock(Set<LockToken> tokens) {
+        return timelockService().unlock(tokens);
     }
 
     default boolean refreshLockLease(LockToken token) {

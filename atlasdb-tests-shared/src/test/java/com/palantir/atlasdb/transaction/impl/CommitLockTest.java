@@ -17,27 +17,18 @@ package com.palantir.atlasdb.transaction.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
+import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.cleaner.NoOpCleaner;
-import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
-import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
-import com.palantir.atlasdb.transaction.TransactionConfig;
-import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
-import com.palantir.atlasdb.transaction.impl.metrics.SimpleTableLevelMetricsController;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
@@ -46,22 +37,15 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import org.junit.jupiter.api.Assumptions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-/* TODO(boyoruk): fix this test */
-@Disabled
 public class CommitLockTest extends TransactionTestSetup {
     @RegisterExtension
     public static final TestResourceManager TRM = TestResourceManager.inMemory();
 
-    private static final TransactionConfig TRANSACTION_CONFIG =
-            ImmutableTransactionConfig.builder().build();
     private static final String ROW = "row";
     private static final String COLUMN = "col_1";
     private static final String OTHER_COLUMN = "col_2";
@@ -157,46 +141,12 @@ public class CommitLockTest extends TransactionTestSetup {
     }
 
     private void commitWriteWith(PreCommitCondition preCommitCondition, ConflictHandler conflictHandler) {
-        Transaction transaction = startTransaction(preCommitCondition, conflictHandler);
-        put(transaction, ROW, COLUMN, "100");
-        transaction.commit();
-    }
-
-    private Transaction startTransaction(PreCommitCondition preCommitCondition, ConflictHandler conflictHandler) {
-        ImmutableMap<TableReference, ConflictHandler> tablesToWriteWrite = ImmutableMap.of(
-                TEST_TABLE, conflictHandler, TransactionConstants.TRANSACTION_TABLE, ConflictHandler.IGNORE_ALL);
-        return new SerializableTransaction(
-                MetricsManagers.createForTests(),
-                keyValueService,
-                timelockService,
-                NoOpLockWatchManager.create(),
-                transactionService,
-                NoOpCleaner.INSTANCE,
-                Suppliers.ofInstance(timestampService.getFreshTimestamp()),
-                TestConflictDetectionManagers.createWithStaticConflictDetection(tablesToWriteWrite),
-                SweepStrategyManagers.createDefault(keyValueService),
-                0L,
-                Optional.empty(),
-                preCommitCondition,
-                AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
-                null,
-                TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                true,
-                timestampCache,
-                AbstractTransactionTest.GET_RANGES_EXECUTOR,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                MultiTableSweepQueueWriter.NO_OP,
-                MoreExecutors.newDirectExecutorService(),
-                true,
-                () -> TRANSACTION_CONFIG,
-                ConflictTracer.NO_OP,
-                new SimpleTableLevelMetricsController(metricsManager),
-                knowledge) {
-            @Override
-            protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
-                return Maps.transformValues(map, byte[]::clone);
-            }
-        };
+        try (TransactionManager transactionManager = createTransactionManager(conflictHandler)) {
+            Transaction transaction = Iterables.getOnlyElement(
+                    transactionManager.startTransactions(ImmutableList.of(preCommitCondition)));
+            put(transaction, ROW, COLUMN, "100");
+            transaction.commit();
+        }
     }
 
     private LockResponse acquireRowLock(String rowName) {
@@ -214,5 +164,23 @@ public class CommitLockTest extends TransactionTestSetup {
     private LockResponse lock(LockDescriptor lockDescriptor) {
         LockRequest lockRequest = LockRequest.of(ImmutableSet.of(lockDescriptor), 5_000);
         return timelockService.lock(lockRequest);
+    }
+
+    private TransactionManager createTransactionManager(ConflictHandler conflictHandler) {
+        TestTransactionManagerImpl transactionManager = new TestTransactionManagerImpl(
+                MetricsManagers.createForTests(),
+                keyValueService,
+                inMemoryTimelockExtension,
+                lockService,
+                transactionService,
+                TestConflictDetectionManagers.createWithStaticConflictDetection(
+                        ImmutableMap.of(TEST_TABLE, conflictHandler)),
+                sweepStrategyManager,
+                timestampCache,
+                MultiTableSweepQueueWriter.NO_OP,
+                knowledge,
+                MoreExecutors.newDirectExecutorService());
+        transactionManager.overrideConflictHandlerForTable(TEST_TABLE, conflictHandler);
+        return transactionManager;
     }
 }
