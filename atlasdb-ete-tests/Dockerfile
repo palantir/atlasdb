@@ -1,8 +1,9 @@
-FROM adoptopenjdk/openjdk11:x86_64-debian-jre-11.0.18_10
+FROM azul/zulu-openjdk:17-latest
 
 ENV DOCKERIZE_VERSION v0.2.0
 
 RUN apt-get update \
+    && apt-get install -y curl \
     && apt-get install -y procps wget \
     && wget --no-check-certificate http://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz \
     && tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz

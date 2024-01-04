@@ -51,6 +51,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -60,6 +61,7 @@ import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import io.dropwizard.Application;
 import io.dropwizard.configuration.EnvironmentVariableSubstitutor;
 import io.dropwizard.configuration.SubstitutingSourceProvider;
+import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 import io.dropwizard.jersey.optional.EmptyOptionalException;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
@@ -87,6 +89,8 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     public void initialize(Bootstrap<AtlasDbEteConfiguration> bootstrap) {
         bootstrap.setMetricRegistry(SharedMetricRegistries.getOrCreate("AtlasDbTest"));
         enableEnvironmentVariablesInConfig(bootstrap);
+        bootstrap.setObjectMapper(
+                ObjectMappers.newServerObjectMapper().setSubtypeResolver(new DiscoverableSubtypeResolver()));
         bootstrap.getObjectMapper().registerModule(new Jdk8Module());
     }
 
