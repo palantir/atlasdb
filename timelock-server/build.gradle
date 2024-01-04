@@ -37,8 +37,6 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-core'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
-    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
-    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
     implementation 'com.google.guava:guava'
     implementation 'com.palantir.conjure.java.api:service-config'
     implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
@@ -61,7 +59,10 @@ dependencies {
     implementation project(':atlasdb-client')
     implementation project(':timelock-agent')
 
+    annotationProcessor 'com.google.auto.service:auto-service'
     annotationProcessor 'org.immutables:value'
+
+    compileOnly 'com.google.auto.service:auto-service-annotations'
     compileOnly 'org.immutables:value::annotations'
 
     runtimeOnly (project(':atlasdb-cassandra')) {

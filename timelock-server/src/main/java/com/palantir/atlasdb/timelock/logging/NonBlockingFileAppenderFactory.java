@@ -16,8 +16,10 @@
 package com.palantir.atlasdb.timelock.logging;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.google.auto.service.AutoService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import io.dropwizard.jackson.Discoverable;
 import io.dropwizard.logging.FileAppenderFactory;
 import io.dropwizard.logging.async.AsyncAppenderFactory;
 import io.dropwizard.logging.filter.LevelFilterFactory;
@@ -28,6 +30,7 @@ import io.dropwizard.logging.layout.LayoutFactory;
  * appender. This prevents request log rollovers from blocking request threads.
  * TODO(nziebart): remove this when we switch to internal web framework
  */
+@AutoService(Discoverable.class)
 @JsonTypeName("non-blocking-file")
 public class NonBlockingFileAppenderFactory<E extends ch.qos.logback.core.spi.DeferredProcessingAware>
         extends FileAppenderFactory<E> {

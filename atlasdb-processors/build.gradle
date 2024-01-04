@@ -3,13 +3,12 @@ apply plugin: 'java-library'
 
 dependencies {
     annotationProcessor 'com.google.auto.service:auto-service'
-    compileOnly 'com.google.auto.service:auto-service'
+    compileOnly 'com.google.auto.service:auto-service-annotations'
 
     // these three dependencies should be implementation, but that breaks IntelliJ currently
     api 'com.google.guava:guava'
     api 'com.squareup:javapoet'
     api 'com.palantir.goethe:goethe'
 
-    implementation 'com.google.auto.service:auto-service-annotations'
     implementation 'com.google.errorprone:error_prone_annotations'
 }

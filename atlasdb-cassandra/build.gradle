@@ -38,7 +38,6 @@ dependencies {
   implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'com.github.ben-manes.caffeine:caffeine'
   implementation 'com.github.rholder:guava-retrying'
-  implementation 'com.google.auto.service:auto-service-annotations'
   implementation 'com.google.errorprone:error_prone_annotations'
   implementation 'com.google.protobuf:protobuf-java'
   implementation 'com.palantir.common:streams'
@@ -100,6 +99,7 @@ dependencies {
   annotationProcessor 'org.derive4j:derive4j'
   annotationProcessor 'org.immutables:value'
   annotationProcessor project(":atlasdb-processors")
+  compileOnly 'com.google.auto.service:auto-service-annotations'
   compileOnly 'org.derive4j:derive4j-annotation'
   compileOnly 'org.immutables:value::annotations'
   compileOnly project(":atlasdb-processors")
