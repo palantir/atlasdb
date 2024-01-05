@@ -36,6 +36,7 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableDbKeyValueServiceConfig.class)
 @JsonTypeName(DbAtlasDbFactory.TYPE)
 @Value.Immutable
+@SuppressWarnings("AutoService")
 public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
     public abstract DdlConfig ddl();
 

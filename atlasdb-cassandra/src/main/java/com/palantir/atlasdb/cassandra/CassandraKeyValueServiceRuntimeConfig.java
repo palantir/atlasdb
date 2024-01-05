@@ -37,6 +37,7 @@ import org.immutables.value.Value;
             name = CassandraKeyValueServiceRuntimeConfig.TYPE)
 })
 @Value.Immutable
+@SuppressWarnings("AutoService")
 public abstract class CassandraKeyValueServiceRuntimeConfig implements KeyValueServiceRuntimeConfig {
 
     public static final String TYPE = "cassandra";

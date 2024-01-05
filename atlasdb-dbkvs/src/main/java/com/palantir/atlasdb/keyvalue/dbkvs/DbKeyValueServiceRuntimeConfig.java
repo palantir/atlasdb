@@ -29,6 +29,7 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutableDbKeyValueServiceRuntimeConfig.class)
 @JsonTypeName(DbAtlasDbFactory.TYPE)
 @Value.Immutable
+@SuppressWarnings("AutoService")
 public abstract class DbKeyValueServiceRuntimeConfig implements KeyValueServiceRuntimeConfig {
 
     @Override

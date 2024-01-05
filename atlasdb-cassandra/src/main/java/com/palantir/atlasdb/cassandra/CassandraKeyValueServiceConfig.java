@@ -47,6 +47,7 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableCassandraKeyValueServiceConfig.class)
 @JsonTypeName(CassandraKeyValueServiceConfig.TYPE)
 @Value.Immutable
+@SuppressWarnings("AutoService")
 public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     String TYPE = "cassandra";
