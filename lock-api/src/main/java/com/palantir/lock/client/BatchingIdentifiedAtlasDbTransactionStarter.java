@@ -73,12 +73,12 @@ public final class BatchingIdentifiedAtlasDbTransactionStarter implements Identi
             int start = 0;
             for (BatchElement<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> batchElement : batch) {
                 int end = start + batchElement.argument();
-                System.out.println("start=" + start + ";end=" + end + ";length=" + startTransactionResponses.size());
+                // System.out.println("start=" + start + ";end=" + end + ";length=" + startTransactionResponses.size());
                 try {
                     batchElement.result().set(ImmutableList.copyOf(startTransactionResponses.subList(start, end)));
                 } catch (IndexOutOfBoundsException e) {
-                    System.out.println("Exception: " + e);
-                    System.out.println("List: " + startTransactionResponses);
+                    // System.out.println("Exception: " + e);
+                    // System.out.println("List: " + startTransactionResponses);
                     throw e;
                 }
                 start = end;
