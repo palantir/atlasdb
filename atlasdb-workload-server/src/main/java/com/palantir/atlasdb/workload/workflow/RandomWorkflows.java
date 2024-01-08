@@ -26,7 +26,6 @@ import com.palantir.atlasdb.workload.transaction.ColumnRangeSelection;
 import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.ImmutableDeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.ImmutableRowColumnRangeReadTransactionAction;
-import com.palantir.atlasdb.workload.transaction.ImmutableRowColumnRangeReadTransactionAction.Builder;
 import com.palantir.atlasdb.workload.transaction.ImmutableWriteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.RowColumnRangeReadTransactionAction;
 import com.palantir.atlasdb.workload.transaction.SingleCellReadTransactionAction;
@@ -122,11 +121,12 @@ public final class RandomWorkflows {
                     .map(_index -> {
                         WorkloadCell startCell = randomCell();
                         int endColumn = random.nextInt(workflowConfiguration.maxColumns());
-                        Builder builder = ImmutableRowColumnRangeReadTransactionAction.builder()
-                                .table(workflowConfiguration
-                                        .tableConfiguration()
-                                        .tableName())
-                                .row(startCell.key());
+                        ImmutableRowColumnRangeReadTransactionAction.Builder builder =
+                                ImmutableRowColumnRangeReadTransactionAction.builder()
+                                        .table(workflowConfiguration
+                                                .tableConfiguration()
+                                                .tableName())
+                                        .row(startCell.key());
                         if (startCell.column() < endColumn) {
                             builder.columnRangeSelection(ColumnRangeSelection.builder()
                                     .startColumnInclusive(startCell.column())
