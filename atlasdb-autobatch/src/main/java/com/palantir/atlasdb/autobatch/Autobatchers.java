@@ -170,7 +170,7 @@ public final class Autobatchers {
         private Optional<Duration> batchFunctionTimeout = Optional.empty();
         private Optional<TimeoutHandler> timeoutHandler = Optional.empty();
         private Optional<WaitStrategy> waitStrategy = Optional.empty();
-        private Optional<Integer> maybeHandlerCount = Optional.of(1);
+        private Optional<Integer> maybeHandlerCount = Optional.of(2);
 
         @Nullable
         private String purpose;

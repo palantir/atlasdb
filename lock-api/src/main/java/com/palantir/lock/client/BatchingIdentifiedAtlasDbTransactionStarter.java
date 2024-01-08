@@ -66,6 +66,7 @@ public final class BatchingIdentifiedAtlasDbTransactionStarter implements Identi
         return batch -> {
             int numTransactions =
                     batch.stream().mapToInt(BatchElement::argument).sum();
+            int batchSizeAtStart = batch.size();
 
             List<StartIdentifiedAtlasDbTransactionResponse> startTransactionResponses =
                     getStartTransactionResponses(lockLeaseService, cache, numTransactions);
@@ -77,8 +78,15 @@ public final class BatchingIdentifiedAtlasDbTransactionStarter implements Identi
                 try {
                     batchElement.result().set(ImmutableList.copyOf(startTransactionResponses.subList(start, end)));
                 } catch (IndexOutOfBoundsException e) {
+                    // System.out.println("------------------------");
                     // System.out.println("Exception: " + e);
+                    // System.out.println("List count: " + startTransactionResponses.size());
+                    // System.out.println("Num transactions asked for: " + numTransactions);
                     // System.out.println("List: " + startTransactionResponses);
+                    // System.out.println("Batch: " + batch);
+                    // System.out.println("Batch size: " + batch.size());
+                    // System.out.println("Batch size at start: " + batchSizeAtStart);
+                    // System.out.println("------------------------");
                     throw e;
                 }
                 start = end;

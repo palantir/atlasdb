@@ -22,18 +22,14 @@ import com.palantir.common.concurrent.PTExecutors;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Semaphore;
 import java.util.function.Supplier;
 
-/**
- * Uses N instances of the delegate factory handler.
- * Each batch is processed on one of the handlers, asynchronously.
- * The handler for the next batch is chosen in a round-robin fashion.
- * Bear in mind: onEvent is called from the disruptor thread and invocations are not parallel and do not intersect in time.
- */
 final class MultiplexingEventHandler<I, O> implements EventHandler<BatchElement<I, O>> {
     private final int concurrency;
     private final ExecutorService executorService;
     private final List<EventHandler<BatchElement<I, O>>> handlers = new ArrayList<>();
+    private final List<Semaphore> semaphores = new ArrayList<>();
     private int pointer = 0;
 
     @VisibleForTesting
@@ -43,6 +39,7 @@ final class MultiplexingEventHandler<I, O> implements EventHandler<BatchElement<
         this.executorService = executorService;
         for (int index = 0; index < concurrency; index++) {
             this.handlers.add(factory.get());
+            this.semaphores.add(new Semaphore(1, true));
         }
     }
 
@@ -56,17 +53,35 @@ final class MultiplexingEventHandler<I, O> implements EventHandler<BatchElement<
     @Override
     public void onEvent(BatchElement<I, O> event, long sequence, boolean endOfBatch) throws Exception {
         EventHandler<BatchElement<I, O>> handler = handlers.get(pointer);
+        Semaphore semaphore = semaphores.get(pointer);
         if (endOfBatch) {
             pointer = (pointer + 1) % concurrency;
             executorService.execute(() -> {
+                acquire(semaphore);
                 try {
                     handler.onEvent(event, sequence, true);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
+                } finally {
+                    semaphore.release();
                 }
             });
         } else {
-            handler.onEvent(event, sequence, false);
+            acquire(semaphore);
+            try {
+                handler.onEvent(event, sequence, false);
+            } finally {
+                semaphore.release();
+            }
+        }
+    }
+
+    private static void acquire(Semaphore semaphore) {
+        try {
+            semaphore.acquire();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
         }
     }
 }
