@@ -47,6 +47,10 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableCassandraKeyValueServiceConfig.class)
 @JsonTypeName(CassandraKeyValueServiceConfig.TYPE)
 @Value.Immutable
+// Suppressing the warning because the AutoService does not work on interfaces. However, there is a @Value.Immutable
+// annotation on this interface, and the @AutoService will be propagated to the generated class. In this class,
+// AutoService will generate the proper metadata for use at runtime.
+@SuppressWarnings("AutoService")
 public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     String TYPE = "cassandra";
