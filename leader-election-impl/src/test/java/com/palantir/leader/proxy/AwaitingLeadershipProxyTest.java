@@ -80,7 +80,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    @SuppressWarnings("SelfEquals")
+    @SuppressWarnings("TruthSelfEquals")
     // We're asserting that calling .equals on a proxy does not redirect
     // the .equals call to the instance its being proxied.
     public void shouldAllowObjectMethodsWhenLeading() {
@@ -167,7 +167,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    @SuppressWarnings("SelfEquals")
+    @SuppressWarnings("TruthSelfEquals")
     // We're asserting that calling .equals on a proxy does not redirect
     // the .equals call to the instance its being proxied.
     public void shouldAllowObjectMethodsWhenNotLeading() {

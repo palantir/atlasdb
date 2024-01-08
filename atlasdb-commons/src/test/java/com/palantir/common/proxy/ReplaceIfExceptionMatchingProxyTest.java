@@ -71,6 +71,7 @@ public class ReplaceIfExceptionMatchingProxyTest {
     }
 
     @Test
+    @SuppressWarnings("TruthSelfEquals")
     public void testEqualsHashCodeToStringNotDelegated() {
         TestInterface iface =
                 ReplaceIfExceptionMatchingProxy.newProxyInstance(TestInterface.class, supplier, _thrown -> true);
