@@ -56,8 +56,8 @@ final class MultiplexingEventHandler<I, O> implements EventHandler<BatchElement<
         Semaphore semaphore = semaphores.get(pointer);
         if (endOfBatch) {
             pointer = (pointer + 1) % concurrency;
+            acquire(semaphore);
             executorService.execute(() -> {
-                acquire(semaphore);
                 try {
                     handler.onEvent(event, sequence, true);
                 } catch (Exception e) {
