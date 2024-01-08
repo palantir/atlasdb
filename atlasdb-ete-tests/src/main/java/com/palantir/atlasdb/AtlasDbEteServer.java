@@ -16,7 +16,6 @@
 package com.palantir.atlasdb;
 
 import com.codahale.metrics.SharedMetricRegistries;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.base.Stopwatch;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
@@ -91,7 +90,6 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         enableEnvironmentVariablesInConfig(bootstrap);
         bootstrap.setObjectMapper(
                 ObjectMappers.newServerObjectMapper().setSubtypeResolver(new DiscoverableSubtypeResolver()));
-        bootstrap.getObjectMapper().registerModule(new Jdk8Module());
     }
 
     @Override
