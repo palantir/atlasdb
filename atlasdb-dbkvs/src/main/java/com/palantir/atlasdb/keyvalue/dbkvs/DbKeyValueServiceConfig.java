@@ -36,6 +36,9 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableDbKeyValueServiceConfig.class)
 @JsonTypeName(DbAtlasDbFactory.TYPE)
 @Value.Immutable
+// Suppressing the warning because the AutoService does not work on abstract classes. However, there is a
+// @Value.Immutable annotation on this abstract class, and the @AutoService will be propagated to the generated class.
+// In this class, AutoService will generate the proper metadata for use at runtime.
 @SuppressWarnings("AutoService")
 public abstract class DbKeyValueServiceConfig implements KeyValueServiceConfig {
     public abstract DdlConfig ddl();
