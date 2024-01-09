@@ -19,6 +19,7 @@ package com.palantir.atlasdb.autobatch;
 import com.lmax.disruptor.EventHandler;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher.DisruptorFuture;
 import com.palantir.tracing.Tracers;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -47,7 +48,8 @@ public class TracingEventHandlerTest {
 
     private static final class TestBatchElement implements BatchElement<Integer, Long> {
 
-        private final DisruptorFuture<Long> future = new DisruptorFuture<>("test");
+        private final DisruptorFuture<Long> future =
+                new DisruptorFuture<>(AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry()));
 
         @Override
         public Integer argument() {

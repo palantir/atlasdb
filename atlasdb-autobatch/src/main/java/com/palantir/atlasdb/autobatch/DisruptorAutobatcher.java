@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.autobatch;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Ticker;
 import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -33,6 +35,7 @@ import com.palantir.conjure.java.api.errors.QosReason;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.DetachedSpan;
+import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import java.io.Closeable;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
@@ -69,7 +72,7 @@ public final class DisruptorAutobatcher<T, R>
 
     private final Disruptor<DisruptorBatchElement<T, R>> disruptor;
     private final RingBuffer<DisruptorBatchElement<T, R>> buffer;
-    private final String safeLoggablePurpose;
+    private final AutobatcherTelemetryComponents telemetryComponents;
     private final Runnable closingCallback;
 
     private volatile boolean closed = false;
@@ -77,11 +80,11 @@ public final class DisruptorAutobatcher<T, R>
     DisruptorAutobatcher(
             Disruptor<DisruptorBatchElement<T, R>> disruptor,
             RingBuffer<DisruptorBatchElement<T, R>> buffer,
-            String safeLoggablePurpose,
+            AutobatcherTelemetryComponents telemetryComponents,
             Runnable closingCallback) {
         this.disruptor = disruptor;
         this.buffer = buffer;
-        this.safeLoggablePurpose = safeLoggablePurpose;
+        this.telemetryComponents = telemetryComponents;
         this.closingCallback = closingCallback;
     }
 
@@ -91,7 +94,7 @@ public final class DisruptorAutobatcher<T, R>
             throw QosException.unavailable(CLOSED_REASON);
         }
 
-        DisruptorFuture<R> result = new DisruptorFuture<R>(safeLoggablePurpose);
+        DisruptorFuture<R> result = new DisruptorFuture<R>(telemetryComponents);
         buffer.publishEvent((refresh, sequence) -> {
             refresh.result = result;
             refresh.argument = argument;
@@ -131,33 +134,51 @@ public final class DisruptorAutobatcher<T, R>
 
     public static final class DisruptorFuture<R> extends AbstractFuture<R> {
 
+        private final Ticker ticker;
         private final DetachedSpan parent;
-        private final DetachedSpan waitingSpan;
+        private final TimedDetachedSpan waitingSpan;
 
         @Nullable
-        private DetachedSpan runningSpan = null;
+        private TimedDetachedSpan runningSpan = null;
 
-        public DisruptorFuture(String safeLoggablePurpose) {
-            this.parent = DetachedSpan.start(safeLoggablePurpose + " disruptor task");
-            this.waitingSpan = parent.childDetachedSpan("task waiting to be run");
+        private volatile boolean valueSet = false;
+
+        @VisibleForTesting
+        DisruptorFuture(Ticker ticker, AutobatcherTelemetryComponents telemetryComponents) {
+            this.ticker = ticker;
+            this.parent = DetachedSpan.start(telemetryComponents.getSafeLoggablePurpose() + " disruptor task");
+            this.waitingSpan = TimedDetachedSpan.from(ticker, parent.childDetachedSpan("task waiting to be run"));
             this.addListener(
                     () -> {
                         waitingSpan.complete();
                         if (runningSpan != null) {
                             runningSpan.complete();
+                            if (valueSet) {
+                                telemetryComponents.markWaitingTimeAndRunningTimeMetrics(
+                                        waitingSpan.getDurationOrThrowIfStillRunning(),
+                                        runningSpan.getDurationOrThrowIfStillRunning());
+                            } else {
+                                telemetryComponents.markWaitingTimeMetrics(
+                                        waitingSpan.getDurationOrThrowIfStillRunning());
+                            }
                         }
                         parent.complete();
                     },
                     MoreExecutors.directExecutor());
         }
 
+        public DisruptorFuture(AutobatcherTelemetryComponents telemetryComponents) {
+            this(Ticker.systemTicker(), telemetryComponents);
+        }
+
         void running() {
             waitingSpan.complete();
-            runningSpan = parent.childDetachedSpan("running task");
+            runningSpan = TimedDetachedSpan.from(ticker, parent.childDetachedSpan("running task"));
         }
 
         @Override
         public boolean set(R value) {
+            valueSet = true;
             return super.set(value);
         }
 
@@ -187,6 +208,10 @@ public final class DisruptorAutobatcher<T, R>
         disruptor.handleEventsWith(
                 (event, sequence, endOfBatch) -> eventHandler.onEvent(event.consume(), sequence, endOfBatch));
         disruptor.start();
-        return new DisruptorAutobatcher<>(disruptor, disruptor.getRingBuffer(), safeLoggablePurpose, closingCallback);
+        return new DisruptorAutobatcher<>(
+                disruptor,
+                disruptor.getRingBuffer(),
+                AutobatcherTelemetryComponents.create(safeLoggablePurpose, SharedTaggedMetricRegistries.getSingleton()),
+                closingCallback);
     }
 }

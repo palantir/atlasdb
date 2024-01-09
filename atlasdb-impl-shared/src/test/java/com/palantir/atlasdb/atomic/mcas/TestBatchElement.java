@@ -16,9 +16,11 @@
 
 package com.palantir.atlasdb.atomic.mcas;
 
+import com.palantir.atlasdb.autobatch.AutobatcherTelemetryComponents;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.nio.ByteBuffer;
 import javax.annotation.Nullable;
 
@@ -37,7 +39,8 @@ interface TestBatchElement extends BatchElement<CasRequest, Void> {
     static TestBatchElement of(Cell cell, ByteBuffer expected, ByteBuffer update) {
         return ImmutableTestBatchElement.builder()
                 .argument(ImmutableCasRequest.of(cell, expected, update))
-                .result(new DisruptorAutobatcher.DisruptorFuture<>("test"))
+                .result(new DisruptorAutobatcher.DisruptorFuture<>(
+                        AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry())))
                 .build();
     }
 }

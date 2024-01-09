@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
@@ -196,7 +197,8 @@ public class CoalescingBatchingEventHandlerTests {
         @Value.Derived
         @Override
         default DisruptorAutobatcher.DisruptorFuture<Response> result() {
-            return new DisruptorAutobatcher.DisruptorFuture<>("test");
+            return new DisruptorAutobatcher.DisruptorFuture<>(
+                    AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry()));
         }
     }
 }

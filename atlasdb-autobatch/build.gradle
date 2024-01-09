@@ -1,6 +1,11 @@
 apply from: "../gradle/shared.gradle"
+apply plugin: 'com.palantir.metric-schema'
 
 libsDirName = file('build/artifacts')
+
+license {
+    exclude '**/AutobatchOverheadMetrics.java'
+}
 
 dependencies {
     implementation project(":atlasdb-commons")
@@ -31,6 +36,7 @@ dependencies {
 
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.mockito:mockito-core'
+    testImplementation 'com.palantir.safe-logging:preconditions-assertj'
     testImplementation 'com.palantir.tracing:tracing-test-utils'
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation 'org.mockito:mockito-junit-jupiter'
