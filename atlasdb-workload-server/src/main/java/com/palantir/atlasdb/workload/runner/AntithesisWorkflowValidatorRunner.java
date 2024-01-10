@@ -50,7 +50,10 @@ public final class AntithesisWorkflowValidatorRunner implements WorkflowValidato
                             submitWorkflowValidators(workflowAndInvariants))
                     .get();
             log.info("antithesis: stop_faults");
+            log.info("antithesis: start_validation");
+            // TODO (jkong): Do we need to wait for the cluster to stabilise here?
             workflowHistoryValidators.forEach(this::checkAndReportInvariantViolations);
+            log.info("antithesis: end_validation");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
