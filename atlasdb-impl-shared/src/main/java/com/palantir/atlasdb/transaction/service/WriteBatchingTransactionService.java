@@ -66,7 +66,7 @@ public final class WriteBatchingTransactionService implements TransactionService
 
     public static TransactionService create(EncodingTransactionService delegate) {
         DisruptorAutobatcher<TimestampPair, Void> autobatcher = Autobatchers.<TimestampPair, Void>independent(
-                        elements -> processBatch(delegate, elements), 2)
+                        elements -> processBatch(delegate, elements), 5)
                 .safeLoggablePurpose("write-batching-transaction-service")
                 .batchFunctionTimeout(Duration.ofMinutes(5))
                 .build();
