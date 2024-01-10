@@ -49,7 +49,6 @@ public final class AntithesisWorkflowValidatorRunner implements WorkflowValidato
             List<WorkflowHistoryValidator> workflowHistoryValidators = Futures.allAsList(
                             submitWorkflowValidators(workflowAndInvariants))
                     .get();
-            log.info("antithesis: stop_faults");
             log.info("antithesis: start_validation");
             // TODO (jkong): Do we need to wait for the cluster to stabilise here? Possible race condition if
             // a server fault was still live when this validation began.
