@@ -22,11 +22,12 @@ dependencies {
 
     implementation project(':atlasdb-api')
     implementation project(':atlasdb-buggify')
-    implementation project(':atlasdb-cassandra')
     implementation project(':atlasdb-client')
     implementation project(':atlasdb-workload-server')
     implementation project(':atlasdb-workload-server-api')
     implementation project(':atlasdb-config')
+
+    runtimeOnly project(':atlasdb-cassandra')
 
     compileOnly 'org.immutables:value::annotations'
     annotationProcessor 'org.immutables:value'
