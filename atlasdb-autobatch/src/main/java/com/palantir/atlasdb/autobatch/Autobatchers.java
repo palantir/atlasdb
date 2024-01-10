@@ -96,8 +96,13 @@ public final class Autobatchers {
      * @return builder where the autobatcher can be further customised
      */
     public static <I, O> AutobatcherBuilder<I, O> independent(Consumer<List<BatchElement<I, O>>> batchFunction) {
-        return new AutobatcherBuilder<>(parameters -> new IndependentBatchingEventHandler<>(
-                maybeWrapWithTimeout(batchFunction, parameters), parameters.batchSize()));
+        return independent(batchFunction, 1);
+    }
+
+    public static <I, O> AutobatcherBuilder<I, O> independent(
+            Consumer<List<BatchElement<I, O>>> batchFunction, int maxBatchesInParallel) {
+        return new AutobatcherBuilder<I, O>(parameters -> IndependentBatchingEventHandler.create(
+                maybeWrapWithTimeout(batchFunction, parameters), parameters.batchSize(), maxBatchesInParallel));
     }
 
     private static <I, O> Consumer<List<BatchElement<I, O>>> maybeWrapWithTimeout(
@@ -233,14 +238,8 @@ public final class Autobatchers {
 
             EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(parameters);
 
-            EventHandler<BatchElement<I, O>> tracingHandler =
-                    new TracingEventHandler<>(handler, parameters.batchSize());
-
-            EventHandler<BatchElement<I, O>> profiledHandler =
-                    new ProfilingEventHandler<>(tracingHandler, purpose, safeTags.buildOrThrow());
-
             return DisruptorAutobatcher.create(
-                    profiledHandler,
+                    handler,
                     parameters.batchSize(),
                     purpose,
                     waitStrategy,
