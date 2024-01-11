@@ -40,7 +40,6 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.CheckForNull;
@@ -67,10 +66,9 @@ public final class WriteBatchingTransactionService implements TransactionService
 
     public static TransactionService create(EncodingTransactionService delegate) {
         DisruptorAutobatcher<TimestampPair, Void> autobatcher = Autobatchers.<TimestampPair, Void>independent(
-                        elements -> processBatch(delegate, elements))
+                        elements -> processBatch(delegate, elements), 2)
                 .safeLoggablePurpose("write-batching-transaction-service")
                 .batchFunctionTimeout(Duration.ofMinutes(5))
-                .bufferSize(OptionalInt.of(8192))
                 .build();
         return new WriteBatchingTransactionService(delegate, autobatcher);
     }
