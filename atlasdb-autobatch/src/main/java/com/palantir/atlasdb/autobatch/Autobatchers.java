@@ -238,8 +238,11 @@ public final class Autobatchers {
 
             EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(parameters);
 
+            EventHandler<BatchElement<I, O>> profiledHandler =
+                    new ProfilingEventHandler<>(handler, purpose, safeTags.buildOrThrow());
+
             return DisruptorAutobatcher.create(
-                    handler,
+                    profiledHandler,
                     parameters.batchSize(),
                     purpose,
                     waitStrategy,
