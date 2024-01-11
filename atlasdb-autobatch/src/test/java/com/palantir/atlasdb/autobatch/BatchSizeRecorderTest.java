@@ -33,8 +33,8 @@ public class BatchSizeRecorderTest {
     @Test
     public void metersResults() {
         BatchSizeRecorder batchSizeRecorder = BatchSizeRecorder.create(SAFE_IDENTIFIER, ImmutableMap.of());
-        batchSizeRecorder.markBatchProcessed(5);
-        batchSizeRecorder.markBatchProcessed(10);
+        batchSizeRecorder.markBatchDispatched(5);
+        batchSizeRecorder.markBatchDispatched(10);
 
         Histogram histogram = (Histogram) SharedTaggedMetricRegistries.getSingleton()
                 .getMetrics()
@@ -56,7 +56,7 @@ public class BatchSizeRecorderTest {
                 .buildOrThrow();
         BatchSizeRecorder recorder = BatchSizeRecorder.create(SAFE_IDENTIFIER, customTags);
 
-        recorder.markBatchProcessed(5);
+        recorder.markBatchDispatched(5);
 
         Map<MetricName, Metric> metrics =
                 SharedTaggedMetricRegistries.getSingleton().getMetrics();

@@ -70,7 +70,7 @@ public final class WriteBatchingTransactionService implements TransactionService
                         elements -> processBatch(delegate, elements))
                 .safeLoggablePurpose("write-batching-transaction-service")
                 .batchFunctionTimeout(Duration.ofMinutes(5))
-                .bufferSize(OptionalInt.of(2048))
+                .bufferSize(OptionalInt.of(8192))
                 .build();
         return new WriteBatchingTransactionService(delegate, autobatcher);
     }

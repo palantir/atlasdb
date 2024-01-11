@@ -42,7 +42,7 @@ public final class BatchSizeRecorder {
         return new BatchSizeRecorder(histogram);
     }
 
-    public void markBatchProcessed(long batchSize) {
+    public void markBatchDispatched(long batchSize) {
         histogram.update(batchSize);
     }
 }
