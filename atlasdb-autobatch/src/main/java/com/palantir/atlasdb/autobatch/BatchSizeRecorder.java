@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.autobatch;
 
+import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
@@ -24,7 +25,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 @NotThreadSafe // Disruptor runs the batching function on just one thread.
 public final class BatchSizeRecorder {
-    static final String BATCH_SIZE_METER_NAME = BatchSizeRecorder.class.getName() + ".batchSize";
+    static final String BATCH_SIZE_METER_NAME_PREFIX = BatchSizeRecorder.class.getName();
 
     private final Histogram histogram;
 
@@ -35,10 +36,21 @@ public final class BatchSizeRecorder {
     public static BatchSizeRecorder create(String safeLoggerIdentifier, Map<String, String> tags) {
         Histogram histogram = SharedTaggedMetricRegistries.getSingleton()
                 .histogram(MetricName.builder()
-                        .safeName(BATCH_SIZE_METER_NAME)
+                        .safeName(BATCH_SIZE_METER_NAME_PREFIX + ".batchSize")
                         .putSafeTags("identifier", safeLoggerIdentifier)
                         .putAllSafeTags(tags)
                         .build());
+
+        Gauge<Double> medianGauge = () -> histogram.getSnapshot().getMedian();
+        SharedTaggedMetricRegistries.getSingleton()
+                .registerWithReplacement(
+                        MetricName.builder()
+                                .safeName(BATCH_SIZE_METER_NAME_PREFIX + ".batchSizeMedian")
+                                .putSafeTags("identifier", safeLoggerIdentifier)
+                                .putAllSafeTags(tags)
+                                .build(),
+                        medianGauge);
+
         return new BatchSizeRecorder(histogram);
     }
 

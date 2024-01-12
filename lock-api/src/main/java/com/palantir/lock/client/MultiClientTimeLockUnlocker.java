@@ -42,12 +42,17 @@ import org.immutables.value.Value;
 public class MultiClientTimeLockUnlocker implements AutoCloseable {
     private final DisruptorAutobatcher<UnlockRequest, Set<ConjureLockTokenV2>> batcher;
 
-    public MultiClientTimeLockUnlocker(InternalMultiClientConjureTimelockService delegate, OptionalInt bufferSize) {
-        this.batcher = Autobatchers.independent(new UnlockConsumer(delegate))
+    public MultiClientTimeLockUnlocker(
+            InternalMultiClientConjureTimelockService delegate, OptionalInt bufferSize, int parallelBatches) {
+        this.batcher = Autobatchers.independent(new UnlockConsumer(delegate), parallelBatches)
                 .bufferSize(bufferSize)
                 .batchFunctionTimeout(Duration.ofSeconds(30))
                 .safeLoggablePurpose("multi-client-timelock-unlocker")
                 .build();
+    }
+
+    public MultiClientTimeLockUnlocker(InternalMultiClientConjureTimelockService delegate, OptionalInt bufferSize) {
+        this(delegate, bufferSize, 1);
     }
 
     public Set<ConjureLockTokenV2> unlock(Namespace namespace, Set<ConjureLockTokenV2> tokens) {
