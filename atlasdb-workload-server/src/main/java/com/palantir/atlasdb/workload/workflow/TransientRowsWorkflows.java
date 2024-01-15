@@ -60,8 +60,7 @@ public final class TransientRowsWorkflows {
 
     private static final SecureRandom SECURE_RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();
 
-    private TransientRowsWorkflows() {
-    }
+    private TransientRowsWorkflows() {}
 
     public static Workflow create(
             InteractiveTransactionStore store,
@@ -167,7 +166,8 @@ public final class TransientRowsWorkflows {
                 .orElseThrow(() -> new SafeIllegalStateException(
                         "Expected to find a read of the summary row", SafeArg.of("actions", actions)));
         WitnessedSingleCellReadTransactionAction normalRowRead = readTransactionActions.stream()
-                .filter(action -> action.cell().key().equals(summaryRowRead.cell().column()))
+                .filter(action ->
+                        action.cell().key().equals(summaryRowRead.cell().column()))
                 .findAny()
                 .orElseThrow(() -> new SafeIllegalStateException(
                         "Expected to find a read of a corresponding normal row", SafeArg.of("actions", actions)));
