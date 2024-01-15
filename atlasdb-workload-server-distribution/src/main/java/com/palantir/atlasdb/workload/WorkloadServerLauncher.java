@@ -189,12 +189,12 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 workflowsAndInvariantsToRun = workflowsAndInvariants;
                 break;
             default:
-                throw new SafeIllegalStateException("Unexpected value: "
-                        + configuration.install().workflowExecutionConfig().runMode());
+                throw new SafeIllegalStateException("Unexpected run mode",
+                        SafeArg.of("runMode", configuration.install().workflowExecutionConfig().runMode()));
         }
 
         new AntithesisWorkflowValidatorRunner(new DefaultWorkflowRunner(
-                        MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService)))
+                MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService)))
                 .run(workflowsAndInvariantsToRun);
 
         log.info("antithesis: terminate");
