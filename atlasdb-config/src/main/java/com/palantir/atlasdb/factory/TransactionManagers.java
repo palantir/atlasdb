@@ -207,7 +207,7 @@ public abstract class TransactionManagers {
 
     @Value.Default
     BiFunction<TimelockService, TimestampManagementService, TimeLockClient> defaultTimelockClientFactory() {
-        return (service, management) -> TimeLockClient.createDefault(service);
+        return (service, _management) -> TimeLockClient.createDefault(service);
     }
 
     abstract Optional<LockAndTimestampServiceFactory> lockAndTimestampServiceFactory();

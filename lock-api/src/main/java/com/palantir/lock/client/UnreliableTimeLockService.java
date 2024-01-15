@@ -42,6 +42,9 @@ import java.util.stream.Collectors;
  */
 public final class UnreliableTimeLockService implements TimelockService {
     private static final SafeLogger log = SafeLoggerFactory.get(UnreliableTimeLockService.class);
+    private static final double UNLOCK_PROBABILITY = 0.05;
+    private static final double INCREASE_TIMESTAMP_PROBABILITY = 0.1;
+    private static final double FAIL_TO_REFRESH_PROBABILITY = 0.01;
 
     private final TimelockService delegate;
     private final BuggifyFactory buggify;
@@ -100,7 +103,7 @@ public final class UnreliableTimeLockService implements TimelockService {
     @Override
     public LockResponse lock(LockRequest request) {
         LockResponse response = delegate.lock(request);
-        buggify.maybe(0.05).run(() -> {
+        buggify.maybe(UNLOCK_PROBABILITY).run(() -> {
             log.info("BUGGIFY: Unlocking lock token {} after acquiring", SafeArg.of("token", response.getToken()));
             delegate.unlock(Set.of(response.getToken()));
         });
@@ -110,7 +113,7 @@ public final class UnreliableTimeLockService implements TimelockService {
     @Override
     public LockResponse lock(LockRequest lockRequest, ClientLockingOptions options) {
         LockResponse response = delegate.lock(lockRequest, options);
-        buggify.maybe(0.05).run(() -> {
+        buggify.maybe(UNLOCK_PROBABILITY).run(() -> {
             log.info("BUGGIFY: Unlocking lock token {} after acquiring", SafeArg.of("token", response.getToken()));
             delegate.unlock(Set.of(response.getToken()));
         });
@@ -125,7 +128,7 @@ public final class UnreliableTimeLockService implements TimelockService {
     @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
         Set<LockToken> tokensToRefresh = tokens.stream()
-                .filter(_token -> !buggify.maybe(0.01).asBoolean())
+                .filter(_token -> !buggify.maybe(FAIL_TO_REFRESH_PROBABILITY).asBoolean())
                 .collect(Collectors.toSet());
         Set<LockToken> tokensToUnlock = Sets.difference(tokens, tokensToRefresh);
         if (!tokensToUnlock.isEmpty()) {
@@ -151,6 +154,6 @@ public final class UnreliableTimeLockService implements TimelockService {
     }
 
     private void maybeRandomlyIncreaseTimestamp() {
-        buggify.maybe(0.1).run(timestampManager::randomlyIncreaseTimestamp);
+        buggify.maybe(INCREASE_TIMESTAMP_PROBABILITY).run(timestampManager::randomlyIncreaseTimestamp);
     }
 }

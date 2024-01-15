@@ -123,7 +123,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 timeLockFeedbackBackgroundTask,
                 timelockRequestBatcherProviders,
                 schemas,
-                (service, management) -> TimeLockClient.createDefault(service));
+                (service, _management) -> TimeLockClient.createDefault(service));
     }
 
     public DefaultLockAndTimestampServiceFactory(

@@ -38,6 +38,8 @@ public final class UnreliableTimestampManager implements TimestampManager {
 
     // A partition is sized at 2^23 timestamps, and we want to skip through potentially many at a time.
     private static final long THOUSAND_COARSE_PARTITIONS_SIZE = 1000 * (1L << 23);
+
+    // This is a SecureRandom whose seed can be set by the Antithesis framework.
     private static final SecureRandom SECURE_RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();
     private final ReadWriteLock timestampLock;
     private final TimelockService delegate;
