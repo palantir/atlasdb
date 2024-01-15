@@ -19,7 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.buggify.api.BuggifyFactory;
 import com.palantir.atlasdb.buggify.impl.DefaultBuggifyFactory;
-import com.palantir.atlasdb.buggify.impl.DefaultNativeSamplingSecureRandomFactory;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
@@ -32,15 +31,9 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
-import java.security.SecureRandom;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -48,36 +41,22 @@ import java.util.stream.Collectors;
  * acquiring. This is useful for testing the behavior of clients when locks are lost.
  */
 public final class UnreliableTimeLockService implements TimelockService {
-    // A partition is sized at 2^23 timestamps, and we want to skip through potentially many at a time.
-    private static final long THOUSAND_COARSE_PARTITIONS_SIZE = 1000 * (1L << 23);
-    private static final SecureRandom SECURE_RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();
-
     private static final SafeLogger log = SafeLoggerFactory.get(UnreliableTimeLockService.class);
 
     private final TimelockService delegate;
-    private final TimestampManagementService managementService;
     private final BuggifyFactory buggify;
-    private final ReadWriteLock timestampLock;
+    private final TimestampManager timestampManager;
 
-    public static UnreliableTimeLockService create(
-            TimelockService timelockService, TimestampManagementService managementService) {
-        return new UnreliableTimeLockService(timelockService, managementService, DefaultBuggifyFactory.INSTANCE);
+    public static UnreliableTimeLockService create(TimelockService timelockService, TimestampManager timestampManager) {
+        return new UnreliableTimeLockService(timelockService, timestampManager, DefaultBuggifyFactory.INSTANCE);
     }
 
     @VisibleForTesting
     UnreliableTimeLockService(
-            TimelockService delegate,
-            TimestampManagementService timeLockManagementService,
-            BuggifyFactory buggifyFactory) {
+            TimelockService delegate, TimestampManager timestampManager, BuggifyFactory buggifyFactory) {
         this.delegate = delegate;
-        this.managementService = timeLockManagementService;
         this.buggify = buggifyFactory;
-
-        // Fast forward doesn't actually verify it's going forward, so we need to make sure we don't end up
-        // with a situation where we buggify -> getFreshTimestamp -> calculate next timestamp -> get stuck
-        // while the timestamp progresses, then the original thread then fast forwards (but actually goes back in time)
-        // It's an unfair lock to add more chaos to the buggified requests.
-        timestampLock = new ReentrantReadWriteLock(false);
+        this.timestampManager = timestampManager;
     }
 
     @Override
@@ -88,19 +67,19 @@ public final class UnreliableTimeLockService implements TimelockService {
     @Override
     public long getFreshTimestamp() {
         maybeRandomlyIncreaseTimestamp();
-        return runWithReadLock(delegate::getFreshTimestamp);
+        return timestampManager.getFreshTimestamp();
     }
 
     @Override
     public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
         maybeRandomlyIncreaseTimestamp();
-        return runWithReadLock(() -> delegate.getCommitTimestamp(startTs, commitLocksToken));
+        return timestampManager.getCommitTimestamp(startTs, commitLocksToken);
     }
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
         maybeRandomlyIncreaseTimestamp();
-        return runWithReadLock(() -> delegate.getFreshTimestamps(numTimestampsRequested));
+        return timestampManager.getFreshTimestamps(numTimestampsRequested);
     }
 
     @Override
@@ -172,43 +151,6 @@ public final class UnreliableTimeLockService implements TimelockService {
     }
 
     private void maybeRandomlyIncreaseTimestamp() {
-        buggify.maybe(0.1).run(this::randomlyIncreaseTimestamp);
-    }
-
-    private void randomlyIncreaseTimestamp() {
-        runWithWriteLock(() -> {
-            long currentTimestamp = delegate.getFreshTimestamp();
-            long newTimestamp = SECURE_RANDOM
-                    .longs(1, currentTimestamp + 1, currentTimestamp + THOUSAND_COARSE_PARTITIONS_SIZE)
-                    .findFirst()
-                    .getAsLong();
-            log.info(
-                    "BUGGIFY: Increasing timestamp from {} to {}",
-                    SafeArg.of("currentTimestamp", currentTimestamp),
-                    SafeArg.of("newTimestamp", newTimestamp));
-            managementService.fastForwardTimestamp(newTimestamp);
-            return null;
-        });
-    }
-
-    private <T> T runWithReadLock(Supplier<T> task) {
-        Lock lock = timestampLock.readLock();
-        lock.lock();
-        try {
-            return task.get();
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    private <T> T runWithWriteLock(Supplier<T> task) {
-        Lock lock = timestampLock.writeLock();
-        lock.lock();
-
-        try {
-            return task.get();
-        } finally {
-            lock.unlock();
-        }
+        buggify.maybe(0.1).run(timestampManager::randomlyIncreaseTimestamp);
     }
 }
