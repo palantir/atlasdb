@@ -166,7 +166,8 @@ public final class TransientRowsWorkflows {
                 .orElseThrow(() -> new SafeIllegalStateException(
                         "Expected to find a read of the summary row", SafeArg.of("actions", actions)));
         WitnessedSingleCellReadTransactionAction normalRowRead = readTransactionActions.stream()
-                .filter(action -> action.cell().key() != SUMMARY_ROW)
+                .filter(action ->
+                        action.cell().key().equals(summaryRowRead.cell().column()))
                 .findAny()
                 .orElseThrow(() -> new SafeIllegalStateException(
                         "Expected to find a read of a corresponding normal row", SafeArg.of("actions", actions)));
