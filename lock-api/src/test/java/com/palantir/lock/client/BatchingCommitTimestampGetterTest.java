@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.Futures;
+import com.palantir.atlasdb.autobatch.AutobatcherTelemetryComponents;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
@@ -40,6 +41,7 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchValueCache;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -114,7 +116,8 @@ public final class BatchingCommitTimestampGetterTest {
         List<BatchElement<BatchingCommitTimestampGetter.Request, Long>> elements = Arrays.stream(requests)
                 .map(request -> ImmutableTestBatchElement.<BatchingCommitTimestampGetter.Request, Long>builder()
                         .argument(request)
-                        .result(new DisruptorAutobatcher.DisruptorFuture<>("test"))
+                        .result(new DisruptorAutobatcher.DisruptorFuture<>(
+                                AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry())))
                         .build())
                 .collect(toList());
         batchProcessor.accept(elements);

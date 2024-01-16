@@ -32,6 +32,7 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchReferenceTableExtractor;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
@@ -95,13 +96,19 @@ final class ValueStoreImpl implements ValueStore {
     @Override
     public void putValue(CellReference cellReference, CacheValue value) {
         values.with(map -> map.put(cellReference, CacheEntry.unlocked(value), (oldValue, newValue) -> {
+            boolean oldValueIsUnlocked = oldValue.status().isUnlocked();
+            boolean oldValueEqualToNewValue = oldValue.equals(newValue);
             Preconditions.checkState(
-                    oldValue.status().isUnlocked() && oldValue.equals(newValue),
+                    oldValueIsUnlocked && oldValueEqualToNewValue,
                     "Trying to cache a value which is either locked or is not equal to a currently cached value",
                     UnsafeArg.of("table", cellReference.tableRef()),
                     UnsafeArg.of("cell", cellReference.cell()),
                     UnsafeArg.of("oldValue", oldValue),
-                    UnsafeArg.of("newValue", newValue));
+                    UnsafeArg.of("newValue", newValue),
+                    SafeArg.of("oldValueSize", oldValue.value().size()),
+                    SafeArg.of("newValueSize", newValue.value().size()),
+                    SafeArg.of("oldValueIsUnlocked", oldValueIsUnlocked),
+                    SafeArg.of("oldValueEqualToNewValue", oldValueEqualToNewValue));
             metrics.decreaseCacheSize(
                     EntryWeigher.INSTANCE.weigh(cellReference, oldValue.value().size()));
             return newValue;
