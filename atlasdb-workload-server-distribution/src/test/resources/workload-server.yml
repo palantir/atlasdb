@@ -54,4 +54,6 @@ install:
       isolationLevel: SERIALIZABLE
     iterationCount: 100
     type: write-once-delete-once
+  workflowExecutionConfig:
+    runMode: ALL
   exitAfterRunning: false
