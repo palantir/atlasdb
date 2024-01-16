@@ -23,7 +23,7 @@ import com.palantir.timestamp.TimestampRange;
  * Intended to be used for the {@link UnreliableTimeLockService} to randomly fast-forward the timestamp for the purpose
  * of Antithesis testing.
  */
-public interface TimestampManager {
+public interface RandomizedTimestampManager {
     void randomlyIncreaseTimestamp();
 
     long getFreshTimestamp();

@@ -19,6 +19,7 @@ package com.palantir.lock.client;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.palantir.atlasdb.buggify.api.BuggifyFactory;
@@ -60,7 +61,7 @@ public final class UnreliableTimelockClientTest {
     private TimeLockClient timeLockClient;
 
     @Mock
-    private TimestampManager timestampManager;
+    private RandomizedTimestampManager timestampManager;
 
     private UnreliableTimeLockService unreliableTimeLockService;
 
@@ -79,18 +80,21 @@ public final class UnreliableTimelockClientTest {
     public void verifyGetFreshTimestampCallsDelegate() {
         unreliableTimeLockService.getFreshTimestamp();
         verify(timestampManager).getFreshTimestamp();
+        verifyNoMoreInteractions(timestampManager);
     }
 
     @Test
     public void verifyGetCommitTimestampsCallsDelegate() {
         unreliableTimeLockService.getCommitTimestamp(1, LOCK_TOKEN);
         verify(timestampManager).getCommitTimestamp(1, LOCK_TOKEN);
+        verifyNoMoreInteractions(timestampManager);
     }
 
     @Test
     public void verifyGetFreshTimestampsCallsDelegate() {
         unreliableTimeLockService.getFreshTimestamps(1);
         verify(timestampManager).getFreshTimestamps(1);
+        verifyNoMoreInteractions(timestampManager);
     }
 
     @ParameterizedTest
@@ -195,13 +199,10 @@ public final class UnreliableTimelockClientTest {
     }
 
     private static BuggifyFactory createAlwaysBuggyFactory() {
-        BuggifyFactory factory = mock(BuggifyFactory.class);
-        when(factory.maybe(anyDouble())).thenReturn(DefaultBuggify.INSTANCE);
-        return factory;
+        return _value -> DefaultBuggify.INSTANCE;
     }
 
-    // Visible as it's used as a method source
-    static Stream<Named<Consumer<UnreliableTimeLockService>>> timestampMethods() {
+    private static Stream<Named<Consumer<UnreliableTimeLockService>>> timestampMethods() {
         return Stream.of(
                 namedTask("getFreshTimestamp", UnreliableTimeLockService::getFreshTimestamp),
                 namedTask("getCommitTimestamp", service -> service.getCommitTimestamp(1, LOCK_TOKEN)),

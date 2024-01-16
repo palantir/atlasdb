@@ -18,7 +18,7 @@ package com.palantir.atlasdb.workload.store;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.buggify.impl.DefaultNativeSamplingSecureRandomFactory;
-import com.palantir.lock.client.TimestampManager;
+import com.palantir.lock.client.RandomizedTimestampManager;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
@@ -33,19 +33,34 @@ import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
-public final class UnreliableTimestampManager implements TimestampManager {
+public final class UnreliableTimestampManager implements RandomizedTimestampManager {
     private static final SafeLogger log = SafeLoggerFactory.get(UnreliableTimestampManager.class);
 
-    // A partition is sized at 2^23 timestamps, and we want to skip through potentially many at a time.
+    // A coarse partition in the timestamp bound store is sized at 2^23 timestamps, and we want to skip through
+    // potentially many at a time.
     private static final long THOUSAND_COARSE_PARTITIONS_SIZE = 1000 * (1L << 23);
 
     // This is a SecureRandom whose seed can be set by the Antithesis framework.
     private static final SecureRandom SECURE_RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();
-    private final ReadWriteLock timestampLock;
+
+    // Fast forward doesn't actually verify it's going forward, so we need to make sure we don't end up
+    // with a situation where, with two threads 1 and 2,
+    // On 1, we call fastForwardTimestamp -> getFreshTimestamp -> calculate next timestamp (say, X) -> get stuck
+    // After 1 is stuck, on 2, we do the same, but successfully fast forward the timestamp to Y (Y > X).
+    // 1 then gets unstuck, and fast forwards to X, which is less than Y.
+    // It's an unfair lock to add more chaos to the buggified requests
+    private final ReadWriteLock timestampLock = new ReentrantReadWriteLock(false);
     private final TimelockService delegate;
 
     private final LongSupplier getFreshTimestamp;
     private final LongConsumer fastForwardTimestamp;
+
+    private UnreliableTimestampManager(
+            TimelockService delegate, LongSupplier getFreshTimestamp, LongConsumer fastForwardTimestamp) {
+        this.delegate = delegate;
+        this.getFreshTimestamp = getFreshTimestamp;
+        this.fastForwardTimestamp = fastForwardTimestamp;
+    }
 
     static UnreliableTimestampManager create(TimelockService timelockService, LongConsumer randomlyIncreaseTimestamp) {
         return new UnreliableTimestampManager(
@@ -58,18 +73,6 @@ public final class UnreliableTimestampManager implements TimestampManager {
         return new UnreliableTimestampManager(timelockService, getFreshTimestamp, fastForwardTimestamp);
     }
 
-    private UnreliableTimestampManager(
-            TimelockService delegate, LongSupplier getFreshTimestamp, LongConsumer fastForwardTimestamp) {
-        // Fast forward doesn't actually verify it's going forward, so we need to make sure we don't end up
-        // with a situation where we buggify -> getFreshTimestamp -> calculate next timestamp -> get stuck
-        // while the timestamp progresses, then the original thread then fast forwards (but actually goes back in time)
-        // It's an unfair lock to add more chaos to the buggified requests.
-        timestampLock = new ReentrantReadWriteLock(false);
-        this.delegate = delegate;
-        this.getFreshTimestamp = getFreshTimestamp;
-        this.fastForwardTimestamp = fastForwardTimestamp;
-    }
-
     @Override
     public void randomlyIncreaseTimestamp() {
         runWithWriteLock(() -> {
@@ -77,7 +80,7 @@ public final class UnreliableTimestampManager implements TimestampManager {
             long newTimestamp = SECURE_RANDOM
                     .longs(1, currentTimestamp + 1, currentTimestamp + THOUSAND_COARSE_PARTITIONS_SIZE)
                     .findFirst()
-                    .getAsLong();
+                    .orElseThrow();
             log.info(
                     "BUGGIFY: Increasing timestamp from {} to {}",
                     SafeArg.of("currentTimestamp", currentTimestamp),

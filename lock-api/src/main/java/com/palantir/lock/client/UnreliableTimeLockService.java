@@ -38,7 +38,8 @@ import java.util.stream.Collectors;
 
 /**
  * A version of timelock service that has a chance to randomly lose locks during refresh or immediately after
- * acquiring. This is useful for testing the behavior of clients when locks are lost.
+ * acquiring, or randomly fast forwarding timestamps every time we get a new timestamp.
+ * This is useful for testing the behavior of clients when locks are lost or timestamps randomly jump forward.
  */
 public final class UnreliableTimeLockService implements TimelockService {
     private static final SafeLogger log = SafeLoggerFactory.get(UnreliableTimeLockService.class);
@@ -48,15 +49,16 @@ public final class UnreliableTimeLockService implements TimelockService {
 
     private final TimelockService delegate;
     private final BuggifyFactory buggify;
-    private final TimestampManager timestampManager;
+    private final RandomizedTimestampManager timestampManager;
 
-    public static UnreliableTimeLockService create(TimelockService timelockService, TimestampManager timestampManager) {
+    public static UnreliableTimeLockService create(
+            TimelockService timelockService, RandomizedTimestampManager timestampManager) {
         return new UnreliableTimeLockService(timelockService, timestampManager, DefaultBuggifyFactory.INSTANCE);
     }
 
     @VisibleForTesting
     UnreliableTimeLockService(
-            TimelockService delegate, TimestampManager timestampManager, BuggifyFactory buggifyFactory) {
+            TimelockService delegate, RandomizedTimestampManager timestampManager, BuggifyFactory buggifyFactory) {
         this.delegate = delegate;
         this.buggify = buggifyFactory;
         this.timestampManager = timestampManager;

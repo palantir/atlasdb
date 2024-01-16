@@ -18,23 +18,22 @@ package com.palantir.atlasdb.workload.store;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.collect.Iterables;
-import com.palantir.lock.client.TimestampManager;
+import com.palantir.lock.client.RandomizedTimestampManager;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Named;
@@ -46,27 +45,32 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class UnreliableTimestampManagerTest {
+public final class UnreliableTimestampManagerTest {
 
     @Mock
     private TimelockService timelockService;
 
     @Test
+    @SuppressWarnings("JdkObsolete") // LinkedList has the API I need for this test, and I don't see the benefit in
+    // using an ArrayDeque to then marshall it into a List here.
     public void randomlyIncreaseTimestampRandomlyIncreasesTimestamp() {
-        List<Long> allValues = new ArrayList<>(List.of(0L));
+        LinkedList<Long> timestamps = new LinkedList<>(List.of(0L));
         UnreliableTimestampManager timestampManager =
-                UnreliableTimestampManager.create(timelockService, () -> Iterables.getLast(allValues), allValues::add);
+                UnreliableTimestampManager.create(timelockService, timestamps::getLast, timestamps::add);
         for (int i = 0; i < 10; i++) {
             timestampManager.randomlyIncreaseTimestamp();
         }
 
-        assertListRandomlyIncreasesInValue(allValues);
+        assertListRandomlyIncreasesInValue(timestamps);
     }
 
     @Test
     public void randomlyIncreaseTimestampRandomlyIncreasesTimestampWithMultipleThreads() throws InterruptedException {
-        ArrayList<Long> allValues = new ArrayList<>(List.of(0L));
-        UnreliableTimestampManager timestampManager = createThreadsafeArrayBackedTimestampManager(allValues);
+        // Collections#synchronizedList gives us a List, not a LinkedList, which isn't suitable here as I want a
+        // synchronized getLast method without handrolling it.
+        Deque<Long> timestamps = new ConcurrentLinkedDeque<>(List.of(0L));
+        UnreliableTimestampManager timestampManager =
+                UnreliableTimestampManager.create(timelockService, timestamps::getLast, timestamps::add);
 
         ExecutorService executor = Executors.newCachedThreadPool();
         try {
@@ -78,12 +82,12 @@ public class UnreliableTimestampManagerTest {
             assertThat(executor.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
         }
 
-        assertListRandomlyIncreasesInValue(allValues);
+        assertListRandomlyIncreasesInValue(new ArrayList<>(timestamps));
     }
 
     @ParameterizedTest
     @MethodSource("timestampMethods")
-    public void gettingTimestampsBlocksOnPendingFastForward(Consumer<TimestampManager> task)
+    public void gettingTimestampsBlocksOnPendingFastForward(Consumer<RandomizedTimestampManager> task)
             throws InterruptedException {
         CountDownLatch startingFastForward = new CountDownLatch(1);
         CountDownLatch blockFastForward = new CountDownLatch(1);
@@ -102,23 +106,21 @@ public class UnreliableTimestampManagerTest {
         try {
             Future<?> increaseTimestampFuture = executor.submit(timestampManager::randomlyIncreaseTimestamp);
             startingFastForward.await();
+
             Future<?> getTimestamp = executor.submit(() -> task.accept(timestampManager));
             assertThat(getTimestamp).isNotDone();
+
             blockFastForward.countDown();
             assertThat(increaseTimestampFuture).succeedsWithin(Duration.ofSeconds(1));
             assertThat(getTimestamp).succeedsWithin(Duration.ofSeconds(1));
-
         } finally {
-            executor.shutdown();
-            boolean shutdownSuccessfully = executor.awaitTermination(10, TimeUnit.SECONDS);
-            executor.shutdownNow();
-            assertThat(shutdownSuccessfully).isTrue();
+            assertThat(executor.shutdownNow()).isEmpty();
         }
     }
 
     private static void assertListRandomlyIncreasesInValue(List<Long> timestamps) {
         assertThat(timestamps).isSorted();
-        assertThat(new HashSet<>(timestamps)).hasSameSizeAs(timestamps);
+        assertThat(timestamps).doesNotHaveDuplicates();
 
         List<Long> differencesBetweenValues = new ArrayList<>();
         for (int i = 1; i < timestamps.size(); i++) {
@@ -131,40 +133,17 @@ public class UnreliableTimestampManagerTest {
         assertThat(new HashSet<>(differencesBetweenValues)).hasSizeGreaterThan(differencesBetweenValues.size() / 4);
     }
 
-    private UnreliableTimestampManager createThreadsafeArrayBackedTimestampManager(List<Long> timestampList) {
-        ReadWriteLock rwlock = new ReentrantReadWriteLock();
-        return UnreliableTimestampManager.create(
-                timelockService,
-                () -> {
-                    Lock lock = rwlock.readLock();
-                    lock.lock();
-                    try {
-                        return Iterables.getLast(timestampList);
-                    } finally {
-                        lock.unlock();
-                    }
-                },
-                value -> {
-                    Lock lock = rwlock.writeLock();
-                    lock.lock();
-                    try {
-                        timestampList.add(value);
-                    } finally {
-                        lock.unlock();
-                    }
-                });
-    }
-
-    static Stream<Named<Consumer<TimestampManager>>> timestampMethods() {
+    static Stream<Named<Consumer<RandomizedTimestampManager>>> timestampMethods() {
         return Stream.of(
-                namedTask("getFreshTimestamp", TimestampManager::getFreshTimestamp),
+                namedTask("getFreshTimestamp", RandomizedTimestampManager::getFreshTimestamp),
                 namedTask(
                         "getCommitTimestamp",
                         service -> service.getCommitTimestamp(1, LockToken.of(UUID.randomUUID()))),
                 namedTask("getFreshTimestamps", service -> service.getFreshTimestamps(10)));
     }
 
-    private static Named<Consumer<TimestampManager>> namedTask(String name, Consumer<TimestampManager> task) {
+    private static Named<Consumer<RandomizedTimestampManager>> namedTask(
+            String name, Consumer<RandomizedTimestampManager> task) {
         return Named.of(name, task);
     }
 }
