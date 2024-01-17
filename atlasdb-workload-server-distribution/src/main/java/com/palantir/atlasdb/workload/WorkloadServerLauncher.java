@@ -142,6 +142,46 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 Refreshable.only(configuration.runtime().atlas()),
                 USER_AGENT,
                 metricsManager);
+        List<WorkflowAndInvariants<Workflow>> allWorkflowsAndInvariants =
+                createAllWorkflowsAndInvariants(configuration, environment, transactionStoreFactory);
+
+        new AntithesisWorkflowValidatorRunner(new DefaultWorkflowRunner(
+                        MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService)))
+                .run(selectWorkflowsToRun(configuration, allWorkflowsAndInvariants));
+
+        log.info("antithesis: terminate");
+
+        workflowsRanLatch.countDown();
+
+        if (configuration.install().exitAfterRunning()) {
+            System.exit(0);
+        }
+    }
+
+    private static List<WorkflowAndInvariants<Workflow>> selectWorkflowsToRun(
+            WorkloadServerConfiguration configuration, List<WorkflowAndInvariants<Workflow>> workflowsAndInvariants) {
+        Collections.shuffle(workflowsAndInvariants, DefaultNativeSamplingSecureRandomFactory.INSTANCE.create());
+        switch (configuration.install().workflowExecutionConfig().runMode()) {
+            case ONE:
+                return workflowsAndInvariants.subList(0, 1);
+            case ALL:
+                return workflowsAndInvariants;
+            default:
+                throw new SafeIllegalStateException(
+                        "Unexpected run mode",
+                        SafeArg.of(
+                                "runMode",
+                                configuration
+                                        .install()
+                                        .workflowExecutionConfig()
+                                        .runMode()));
+        }
+    }
+
+    private List<WorkflowAndInvariants<Workflow>> createAllWorkflowsAndInvariants(
+            WorkloadServerConfiguration configuration,
+            Environment environment,
+            AtlasDbTransactionStoreFactory transactionStoreFactory) {
         SingleRowTwoCellsWorkflowConfiguration singleRowTwoCellsConfig =
                 configuration.install().singleRowTwoCellsConfig();
         RingWorkflowConfiguration ringWorkflowConfiguration =
@@ -161,7 +201,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
 
         waitForTransactionStoreFactoryToBeInitialized(transactionStoreFactory);
 
-        List<WorkflowAndInvariants<Workflow>> workflowsAndInvariants = new ArrayList<>(List.of(
+        return new ArrayList<>(List.of(
                 createSingleRowTwoCellsWorkflowValidator(
                         transactionStoreFactory, singleRowTwoCellsConfig, environment.lifecycle()),
                 createRingWorkflowValidator(
@@ -178,41 +218,9 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 createRandomWorkflow(transactionStoreFactory, randomWorkflowConfig, environment.lifecycle()),
                 createWriteOnceDeleteOnceWorkflow(
                         transactionStoreFactory, writeOnceDeleteOnceConfig, environment.lifecycle())));
-        Collections.shuffle(workflowsAndInvariants, DefaultNativeSamplingSecureRandomFactory.INSTANCE.create());
-
-        List<WorkflowAndInvariants<Workflow>> workflowsAndInvariantsToRun;
-        switch (configuration.install().workflowExecutionConfig().runMode()) {
-            case ONE:
-                workflowsAndInvariantsToRun = workflowsAndInvariants.subList(0, 1);
-                break;
-            case ALL:
-                workflowsAndInvariantsToRun = workflowsAndInvariants;
-                break;
-            default:
-                throw new SafeIllegalStateException(
-                        "Unexpected run mode",
-                        SafeArg.of(
-                                "runMode",
-                                configuration
-                                        .install()
-                                        .workflowExecutionConfig()
-                                        .runMode()));
-        }
-
-        new AntithesisWorkflowValidatorRunner(new DefaultWorkflowRunner(
-                        MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService)))
-                .run(workflowsAndInvariantsToRun);
-
-        log.info("antithesis: terminate");
-
-        workflowsRanLatch.countDown();
-
-        if (configuration.install().exitAfterRunning()) {
-            System.exit(0);
-        }
     }
 
-    private void waitForTransactionStoreFactoryToBeInitialized(AtlasDbTransactionStoreFactory factory) {
+    private static void waitForTransactionStoreFactoryToBeInitialized(AtlasDbTransactionStoreFactory factory) {
         // TODO (jkong): This is awful, but sufficient for now.
         Instant deadline = Instant.now().plusSeconds(TimeUnit.MINUTES.toSeconds(5));
         while (Instant.now().isBefore(deadline)) {
