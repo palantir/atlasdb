@@ -56,5 +56,5 @@ install:
     iterationCount: 100
     type: write-once-delete-once
   workflowExecutionConfig:
-    runMode: ALL
+    runMode: ONE
   exitAfterRunning: true
