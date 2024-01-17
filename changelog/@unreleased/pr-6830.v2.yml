@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: '[Antithesis] Support randomly fast forwarding timestamps to potentially
+    induce a different class of failures during fuzzing'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6830
