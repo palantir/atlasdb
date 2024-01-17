@@ -44,22 +44,25 @@ public final class AsyncTimeLockUnlocker implements TimeLockUnlocker, AutoClosea
     }
 
     public static AsyncTimeLockUnlocker create(TimelockService timelockService) {
-        return new AsyncTimeLockUnlocker(Autobatchers.<Set<LockToken>, Void>independent(batch -> {
-                    Set<LockToken> allTokensToUnlock = batch.stream()
-                            .map(BatchElement::argument)
-                            .flatMap(Collection::stream)
-                            .collect(Collectors.toSet());
-                    try {
-                        timelockService.tryUnlock(allTokensToUnlock);
-                    } catch (Throwable t) {
-                        log.info(
-                                "Failed to unlock lock tokens {} from timelock. They will eventually expire on their "
-                                        + "own, but if this message recurs frequently, it may be worth investigation.",
-                                SafeArg.of("numFailed", allTokensToUnlock.size()),
-                                t);
-                    }
-                    batch.stream().map(BatchElement::result).forEach(f -> f.set(null));
-                })
+        return new AsyncTimeLockUnlocker(Autobatchers.<Set<LockToken>, Void>independent(
+                        batch -> {
+                            Set<LockToken> allTokensToUnlock = batch.stream()
+                                    .map(BatchElement::argument)
+                                    .flatMap(Collection::stream)
+                                    .collect(Collectors.toSet());
+                            try {
+                                timelockService.tryUnlock(allTokensToUnlock);
+                            } catch (Throwable t) {
+                                log.info(
+                                        "Failed to unlock lock tokens {} from timelock. They will eventually expire on"
+                                                + " their own, but if this message recurs frequently, it may be worth"
+                                                + " investigation.",
+                                        SafeArg.of("numFailed", allTokensToUnlock.size()),
+                                        t);
+                            }
+                            batch.stream().map(BatchElement::result).forEach(f -> f.set(null));
+                        },
+                        2)
                 .batchFunctionTimeout(Duration.ofSeconds(30))
                 .safeLoggablePurpose("async-timelock-unlocker")
                 .build());
