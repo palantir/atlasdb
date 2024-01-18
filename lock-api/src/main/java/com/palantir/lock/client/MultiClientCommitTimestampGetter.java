@@ -53,7 +53,7 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
     }
 
     public static MultiClientCommitTimestampGetter create(InternalMultiClientConjureTimelockService delegate) {
-        DisruptorAutobatcher<NamespacedRequest, Long> autobatcher = Autobatchers.independent(consumer(delegate))
+        DisruptorAutobatcher<NamespacedRequest, Long> autobatcher = Autobatchers.independent(consumer(delegate), 2)
                 .safeLoggablePurpose("multi-client-commit-timestamp-getter")
                 .batchFunctionTimeout(Duration.ofSeconds(30))
                 .build();

@@ -57,7 +57,7 @@ public final class MultiClientTransactionStarter implements AutoCloseable {
 
     public static MultiClientTransactionStarter create(InternalMultiClientConjureTimelockService delegate) {
         DisruptorAutobatcher<NamespaceAndRequestParams, List<StartIdentifiedAtlasDbTransactionResponse>> autobatcher =
-                Autobatchers.independent(consumer(delegate, UniqueIds.pseudoRandomUuidV4()), 2)
+                Autobatchers.independent(consumer(delegate, UniqueIds.pseudoRandomUuidV4()))
                         .safeLoggablePurpose("multi-client-transaction-starter")
                         .timeoutHandler(exception -> new StartTransactionFailedException(
                                 "Timed out while attempting to start transactions", exception))
