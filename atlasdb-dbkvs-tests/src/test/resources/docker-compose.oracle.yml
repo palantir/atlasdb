@@ -2,7 +2,7 @@ version: '2'
 
 services:
   oracle:
-    image: palantirtechnologies/oracle-atlasdb:19.21.0.0
+    image: palantirtechnologies/oracle-atlasdb:19.22.0.0
     volumes:
       - ./docker-startup:/opt/oracle/scripts/startup
     ports:
