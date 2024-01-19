@@ -198,8 +198,10 @@ migration as `serviceNameConfiguration.namespaceOverride`.
 This migration can be reversed trivially (just by changing the config to reference the now-correct `sid`) if you are
 using embedded timestamp and lock services.
 
-Fixing tables that have a missing overflow column (ORA-00904: OVERFLOW”, or “invalid identifier: OVERFLOW”)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Fixing tables that have a missing overflow column
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This error may manifest itself as an `ORA-00904: "OVERFLOW"``, or `"invalid identifier: OVERFLOW"`
 
 On rare occasions, the metadata in Oracle can mismatch the expected
 metadata by the service. This can happen as a result of a rare race
@@ -251,16 +253,20 @@ that condition still satisfies the status quo, thus it's on the configurator to 
 safe to make.
 
 Although the alter action is idempotent, it is recommended to remove the configuration after it has ran. Check the logs
-for ``Altering table to have overflow column to match metadata.`` and that there were no error logs printed to ensure
-that has successfully ran.
+for the presence of a log line ``Altering table to have overflow column to match metadata.``, and verify there is no
+error log line of the form ``Error occurred trying to execute the Oracle query`` immediately following it. If there is,
+then the alter action failed. Please determine if the stacktrace in the error log line relates to an operator error,
+or requires further assistance from Palantir support.
 
-If things do not work:
+If, upon adding the above config, you continue to see the same error, then please follow the steps below:
 
-#. Check for log lines containing ``Potentially altering table {} (internal name: {}) to have overflow column.``, and verify that your table reference / physical table name shows up in one of the log lines.
+#. Check for log lines starting with ``Potentially altering table``:
+    * Verify that your table reference / physical table name shows up in one of the log lines.
     * Note that physical table names are logged unsafely, if your infrastructure understands log safety.
     * If this is not present, then your service is not re-issuing a call to ``KeyValueService#createTable``.
     * To fix, attempt to recreate the table using ``KeyValueService#createTable``.
-#. Check for log lines containing ``Table name: {}, Overflow table migrated status: {}, overflow table existence status: {}, overflow column exists status: {}`` containing your table reference / physical table name. Verify that ``overflowTableHasMigrated`` and ``overflowTableExists`` are both true, and ``overflowColumnExists`` is false.
+#. Check for log lines containing ``Overflow table migrated status:`` containing your table reference / physical table name.
+    * Verify that ``overflowTableHasMigrated`` and ``overflowTableExists`` are both true, and ``overflowColumnExists`` is false.
     * If any of these are incorrect, then it is likely your issue does not pertain to a missing overflow column. Please contact support for further assistance.
 #. Check for the log line containing the stack trace with exception message ``Unable to alter table to have overflow column due to a table mapping error.``.
     * Note that this exception message is marked unsafe. You may alternatively be able to find this stacktrace with the cause of type ``TableMappingNotFoundException``.
