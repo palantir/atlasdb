@@ -53,5 +53,7 @@ public interface WorkloadServerInstallConfiguration {
 
     WriteOnceDeleteOnceWorkflowConfiguration writeOnceDeleteOnceConfig();
 
+    WorkflowExecutionConfiguration workflowExecutionConfig();
+
     boolean exitAfterRunning();
 }
