@@ -42,5 +42,5 @@ distribution {
     serviceName "atlasdb-workload-server"
     mainClass 'com.palantir.atlasdb.workload.WorkloadServerLauncher'
     args 'server', 'var/conf/workload-server.yml'
-    defaultJvmOpts "-Xms512m", "-Xmx512m"
+    defaultJvmOpts "-Xms512m", "-Xmx512m", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
 }
