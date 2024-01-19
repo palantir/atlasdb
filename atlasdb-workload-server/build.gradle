@@ -13,6 +13,7 @@ dependencies {
     implementation project(':atlasdb-client-protobufs')
     implementation project(':atlasdb-config')
     implementation project(':atlasdb-impl-shared')
+    implementation project(':timestamp-api')
     implementation project(':lock-api')
     implementation project(':lock-api-objects')
 
