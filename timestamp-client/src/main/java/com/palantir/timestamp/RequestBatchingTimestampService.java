@@ -89,6 +89,15 @@ public final class RequestBatchingTimestampService implements CloseableTimestamp
         return new RequestBatchingTimestampService(delegate, autobatcher);
     }
 
+    public static RequestBatchingTimestampService create(TimestampService untimedDelegate, int autobatcherParallelism) {
+        TimestampService delegate = TimingProxy.newProxyInstance(TimestampService.class, untimedDelegate, timer);
+        DisruptorAutobatcher<Integer, TimestampRange> autobatcher = Autobatchers.independent(
+                        consumer(delegate), autobatcherParallelism)
+                .safeLoggablePurpose("request-batching-timestamp-service")
+                .build();
+        return new RequestBatchingTimestampService(delegate, autobatcher);
+    }
+
     @VisibleForTesting
     static Consumer<List<BatchElement<Integer, TimestampRange>>> consumer(TimestampService delegate) {
         return batch -> {

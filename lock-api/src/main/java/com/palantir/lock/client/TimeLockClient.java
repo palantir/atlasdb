@@ -54,6 +54,14 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     private final LockRefresher<LockToken> lockRefresher;
     private final TimeLockUnlocker unlocker;
 
+    public static TimeLockClient createExperimental(TimelockService timelockService, int autobatcherParallelism) {
+        AsyncTimeLockUnlocker asyncUnlocker = AsyncTimeLockUnlocker.create(timelockService);
+        RequestBatchingTimestampService timestampService = RequestBatchingTimestampService.create(
+                new TimelockServiceErrorDecorator(timelockService), autobatcherParallelism);
+        return new TimeLockClient(
+                timelockService, timestampService, createLockRefresher(timelockService), asyncUnlocker);
+    }
+
     public static TimeLockClient createDefault(TimelockService timelockService) {
         AsyncTimeLockUnlocker asyncUnlocker = AsyncTimeLockUnlocker.create(timelockService);
         RequestBatchingTimestampService timestampService =
