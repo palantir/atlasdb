@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
+import com.google.common.annotations.Beta;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.util.Map;
@@ -49,7 +50,11 @@ public interface PreCommitCondition {
      * {@link TransactionFailedException}. If the condition is not valid, the transaction will not be committed.
      * This will _only_ be called in write transactions once #commit() has been called. In all other cases,
      * {@link #throwIfConditionInvalid(long)} will be called instead.
+     *
+     * This API should not be implemented by users of AtlasDB. It is only intended for internal use, and may be
+     * removed or changed at any time.
      */
+    @Beta
     default void throwIfConditionInvalid(Map<TableReference, ? extends Map<Cell, byte[]>> mutations, long timestamp) {
         throwIfConditionInvalid(timestamp);
     }
