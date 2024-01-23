@@ -162,7 +162,7 @@ public final class Autobatchers {
 
     public static final class AutobatcherBuilder<I, O> {
 
-        private final Function<EventHandlerParameters, EventHandler<BatchElement<I, O>>> handlerFactory;
+        private final Function<EventHandlerParameters, AutobatcherEventHandler<I, O>> handlerFactory;
         private final ImmutableMap.Builder<String, String> safeTags = ImmutableMap.builder();
 
         private Observability observability = Observability.UNDECIDED;
@@ -174,7 +174,7 @@ public final class Autobatchers {
         @Nullable
         private String purpose;
 
-        private AutobatcherBuilder(Function<EventHandlerParameters, EventHandler<BatchElement<I, O>>> handlerFactory) {
+        private AutobatcherBuilder(Function<EventHandlerParameters, AutobatcherEventHandler<I, O>> handlerFactory) {
             this.handlerFactory = handlerFactory;
         }
 
