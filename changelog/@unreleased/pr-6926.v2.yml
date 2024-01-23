@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: PreCommitConditions may now implement a check that relies on the mutation
+    map that AtlasDB will commit. This check will only be called on a transaction
+    that has writes and only once commit has been called.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6926
