@@ -40,6 +40,7 @@ final class IndependentBatchingEventHandler<T, R> implements EventHandler<BatchE
     }
 
     private void flush() {
+        pending.forEach(element -> element.result().running());
         try {
             batchFunction.accept(Collections.unmodifiableList(pending));
         } catch (Throwable t) {

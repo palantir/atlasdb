@@ -33,7 +33,7 @@ final class TracingEventHandler<I, O> implements EventHandler<BatchElement<I, O>
     public void onEvent(BatchElement<I, O> event, long sequence, boolean endOfBatch) throws Exception {
         pending.add(event);
         if (endOfBatch) {
-            pending.forEach(e -> e.result().running());
+            // pending.forEach(e -> e.result().running());
             handler.onEvent(event, sequence, true);
             pending.clear();
         } else {

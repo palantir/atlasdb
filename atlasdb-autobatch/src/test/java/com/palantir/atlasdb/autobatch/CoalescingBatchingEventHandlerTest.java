@@ -36,7 +36,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class CoalescingBatchingEventHandlerTests {
+public class CoalescingBatchingEventHandlerTest {
 
     private static final AtomicLong COUNTER = new AtomicLong();
 

@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2024 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package com.palantir.atlasdb.autobatch;
 
 import com.lmax.disruptor.EventHandler;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher.DisruptorFuture;
+import com.palantir.tracing.RenderTracingRule;
 import com.palantir.tracing.Tracers;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 public class TracingEventHandlerTest {
 
+    public RenderTracingRule renderTracingRule = new RenderTracingRule();
     private final EventHandler<BatchElement<Integer, Long>> delegate = new FutureCompletingEventHandler();
 
     @Test
