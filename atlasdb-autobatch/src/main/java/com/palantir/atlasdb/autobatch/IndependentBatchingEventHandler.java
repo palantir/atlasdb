@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2024 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,35 +16,74 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import com.lmax.disruptor.EventHandler;
+import com.google.common.collect.ImmutableList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
+import org.jetbrains.annotations.VisibleForTesting;
 
-final class IndependentBatchingEventHandler<T, R> implements EventHandler<BatchElement<T, R>> {
+final class IndependentBatchingEventHandler<T, R> implements AutobatcherEventHandler<T, R> {
     private final Consumer<List<BatchElement<T, R>>> batchFunction;
     private final List<BatchElement<T, R>> pending;
+    private final WorkerPool pool;
 
-    IndependentBatchingEventHandler(Consumer<List<BatchElement<T, R>>> batchFunction, int bufferSize) {
+    @VisibleForTesting
+    IndependentBatchingEventHandler(Consumer<List<BatchElement<T, R>>> batchFunction, int bufferSize, WorkerPool pool) {
         this.batchFunction = batchFunction;
         this.pending = new ArrayList<>(bufferSize);
+        this.pool = pool;
+    }
+
+    static <T, R> AutobatcherEventHandler<T, R> createWithParallelBatchProcessing(
+            Consumer<List<BatchElement<T, R>>> batchFunction,
+            int bufferSize,
+            int parallelism,
+            String safeLoggablePurpose) {
+        return new IndependentBatchingEventHandler<>(
+                batchFunction,
+                bufferSize,
+                WorkerPoolImpl.create(parallelism - 1, "autobatchers." + safeLoggablePurpose + ".event-handler"));
+    }
+
+    static <T, R> AutobatcherEventHandler<T, R> createWithSequentialBatchProcessing(
+            Consumer<List<BatchElement<T, R>>> batchFunction, int bufferSize, String safeLoggablePurpose) {
+        return IndependentBatchingEventHandler.createWithParallelBatchProcessing(
+                batchFunction, bufferSize, 1, safeLoggablePurpose);
     }
 
     @Override
     public void onEvent(BatchElement<T, R> event, long sequence, boolean endOfBatch) {
         pending.add(event);
         if (endOfBatch) {
-            flush();
+            processBatch();
+            pending.clear();
         }
     }
 
-    private void flush() {
-        try {
-            batchFunction.accept(Collections.unmodifiableList(pending));
-        } catch (Throwable t) {
-            pending.forEach(p -> p.result().setException(t));
+    private void processBatch() {
+        boolean flushWasSubmitted =
+                pool.tryRun(() -> ImmutableList.copyOf(pending), batchCopy -> flush(batchFunction, batchCopy));
+
+        if (flushWasSubmitted) {
+            return;
         }
-        pending.clear();
+
+        List<BatchElement<T, R>> batchView = Collections.unmodifiableList(pending);
+        flush(batchFunction, batchView);
+    }
+
+    private static <T, R> void flush(Consumer<List<BatchElement<T, R>>> batchFunction, List<BatchElement<T, R>> batch) {
+        batch.forEach(element -> element.result().running());
+        try {
+            batchFunction.accept(batch);
+        } catch (Throwable t) {
+            batch.forEach(p -> p.result().setException(t));
+        }
+    }
+
+    @Override
+    public void close() {
+        pool.close();
     }
 }
