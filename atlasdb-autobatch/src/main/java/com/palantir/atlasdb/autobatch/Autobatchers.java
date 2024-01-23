@@ -95,8 +95,9 @@ public final class Autobatchers {
      * @return builder where the autobatcher can be further customised
      */
     public static <I, O> AutobatcherBuilder<I, O> independent(Consumer<List<BatchElement<I, O>>> batchFunction) {
-        return new AutobatcherBuilder<>(parameters -> new IndependentBatchingEventHandler<>(
-                maybeWrapWithTimeout(batchFunction, parameters), parameters.batchSize()));
+        return new AutobatcherBuilder<>(
+                parameters -> IndependentBatchingEventHandler.createWithSequentialBatchProcessing(
+                        maybeWrapWithTimeout(batchFunction, parameters), parameters.batchSize()));
     }
 
     private static <I, O> Consumer<List<BatchElement<I, O>>> maybeWrapWithTimeout(
