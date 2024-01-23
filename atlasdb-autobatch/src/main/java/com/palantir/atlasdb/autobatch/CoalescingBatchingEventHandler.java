@@ -18,7 +18,6 @@ package com.palantir.atlasdb.autobatch;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-import com.lmax.disruptor.EventHandler;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher.DisruptorFuture;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -26,7 +25,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
 import java.util.Set;
 
-final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchElement<T, R>> {
+final class CoalescingBatchingEventHandler<T, R> implements AutobatcherEventHandler<T, R> {
 
     private static final SafeLogger log = SafeLoggerFactory.get(CoalescingBatchingEventHandler.class);
 
@@ -73,4 +72,7 @@ final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchEl
         }
         pending.clear();
     }
+
+    @Override
+    public void close() {}
 }

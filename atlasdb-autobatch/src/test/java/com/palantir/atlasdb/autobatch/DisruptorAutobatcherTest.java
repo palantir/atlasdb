@@ -16,17 +16,23 @@
 
 package com.palantir.atlasdb.autobatch;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import com.codahale.metrics.Histogram;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher.DisruptorFuture;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 
 public final class DisruptorAutobatcherTest {
     private static final String SAFE_LOGGABLE_PURPOSE = "test-purpose";
+    private static final int BUFFER_SIZE = 128;
 
     @Test
     public void metricsAreNotReportedWhenRunningIsNotTriggered() {
@@ -63,6 +69,57 @@ public final class DisruptorAutobatcherTest {
         fakeTicker.advance(runningTimeNanos, TimeUnit.NANOSECONDS);
         future.set("Test");
         assertWaitTimeAndRunningTimeAndTotalTimeMetricsAreProduced(registry, waitTimeNanos, runningTimeNanos);
+    }
+
+    @Test
+    public void closeClosesHandler() throws Exception {
+        AutobatcherEventHandler<String, String> delegate = mock(AutobatcherEventHandler.class);
+        DisruptorAutobatcher<String, String> autobatcher =
+                DisruptorAutobatcher.create(delegate, BUFFER_SIZE, SAFE_LOGGABLE_PURPOSE, Optional.empty(), () -> {});
+        autobatcher.close();
+        verify(delegate).close();
+    }
+
+    @Test
+    public void closeRunsClosingCallbacks() {
+        Runnable closingCallback = mock(Runnable.class);
+        DisruptorAutobatcher<String, String> autobatcher = DisruptorAutobatcher.create(
+                NoOpAutobatcherEventHandler.INSTANCE,
+                BUFFER_SIZE,
+                SAFE_LOGGABLE_PURPOSE,
+                Optional.empty(),
+                closingCallback);
+        autobatcher.close();
+        verify(closingCallback).run();
+    }
+
+    @Test
+    public void closeClosesHandlerWhenClosingCallbackThrows() throws Exception {
+        AutobatcherEventHandler<String, String> delegate = mock(AutobatcherEventHandler.class);
+        SafeRuntimeException exception = new SafeRuntimeException("test exception");
+        DisruptorAutobatcher<String, String> autobatcher =
+                DisruptorAutobatcher.create(delegate, BUFFER_SIZE, SAFE_LOGGABLE_PURPOSE, Optional.empty(), () -> {
+                    throw exception;
+                });
+        assertThatLoggableExceptionThrownBy(autobatcher::close).isEqualTo(exception);
+        verify(delegate).close();
+    }
+
+    @Test
+    public void closeRunsClosingCallbackWhenHandlerClosingThrows() {
+        Runnable closingCallback = mock(Runnable.class);
+        SafeRuntimeException exception = new SafeRuntimeException("test exception");
+        DisruptorAutobatcher<String, String> autobatcher = DisruptorAutobatcher.create(
+                new AutobatcherEventHandlerWithThrowingClose(exception),
+                BUFFER_SIZE,
+                SAFE_LOGGABLE_PURPOSE,
+                Optional.empty(),
+                closingCallback);
+        assertThatLoggableExceptionThrownBy(autobatcher::close)
+                .hasLogMessage("Failed to close event handler")
+                .hasNoArgs()
+                .hasCause(exception);
+        verify(closingCallback).run();
     }
 
     private void assertWaitTimeAndRunningTimeAndTotalTimeMetricsAreProduced(
@@ -119,5 +176,32 @@ public final class DisruptorAutobatcherTest {
                 .operationType(SAFE_LOGGABLE_PURPOSE)
                 .build();
         return (Histogram) registry.getMetrics().get(overheadMetrics.waitTimePercentageMetricName());
+    }
+
+    private enum NoOpAutobatcherEventHandler implements AutobatcherEventHandler<String, String> {
+        INSTANCE;
+
+        @Override
+        public void onEvent(BatchElement<String, String> _event, long _sequence, boolean _endOfBatch) {}
+
+        @Override
+        public void close() {}
+    }
+
+    private static final class AutobatcherEventHandlerWithThrowingClose
+            implements AutobatcherEventHandler<String, String> {
+        private final RuntimeException exception;
+
+        AutobatcherEventHandlerWithThrowingClose(RuntimeException exception) {
+            this.exception = exception;
+        }
+
+        @Override
+        public void onEvent(BatchElement<String, String> _event, long _sequence, boolean _endOfBatch) {}
+
+        @Override
+        public void close() {
+            throw exception;
+        }
     }
 }

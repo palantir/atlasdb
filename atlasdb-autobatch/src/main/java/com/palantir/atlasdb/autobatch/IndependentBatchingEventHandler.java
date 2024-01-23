@@ -16,13 +16,12 @@
 
 package com.palantir.atlasdb.autobatch;
 
-import com.lmax.disruptor.EventHandler;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
-final class IndependentBatchingEventHandler<T, R> implements EventHandler<BatchElement<T, R>> {
+final class IndependentBatchingEventHandler<T, R> implements AutobatcherEventHandler<T, R> {
     private final Consumer<List<BatchElement<T, R>>> batchFunction;
     private final List<BatchElement<T, R>> pending;
 
@@ -48,4 +47,7 @@ final class IndependentBatchingEventHandler<T, R> implements EventHandler<BatchE
         }
         pending.clear();
     }
+
+    @Override
+    public void close() {}
 }

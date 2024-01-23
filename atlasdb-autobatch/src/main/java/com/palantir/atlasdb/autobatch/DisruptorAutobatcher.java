@@ -23,7 +23,6 @@ import com.google.common.util.concurrent.AsyncFunction;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.lmax.disruptor.BlockingWaitStrategy;
-import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.TimeoutException;
 import com.lmax.disruptor.WaitStrategy;
@@ -32,6 +31,7 @@ import com.lmax.disruptor.dsl.ProducerType;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.conjure.java.api.errors.QosReason;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.DetachedSpan;
@@ -113,6 +113,7 @@ public final class DisruptorAutobatcher<T, R>
                             + "Ensure that handlers aren't uninterruptibly blocking and ensure that they are closed.",
                     e);
         }
+
         closingCallback.run();
     }
 
@@ -194,7 +195,7 @@ public final class DisruptorAutobatcher<T, R>
     }
 
     static <T, R> DisruptorAutobatcher<T, R> create(
-            EventHandler<BatchElement<T, R>> eventHandler,
+            AutobatcherEventHandler<T, R> eventHandler,
             int bufferSize,
             String safeLoggablePurpose,
             Optional<WaitStrategy> waitStrategy,
@@ -212,6 +213,14 @@ public final class DisruptorAutobatcher<T, R>
                 disruptor,
                 disruptor.getRingBuffer(),
                 AutobatcherTelemetryComponents.create(safeLoggablePurpose, SharedTaggedMetricRegistries.getSingleton()),
-                closingCallback);
+                () -> {
+                    try {
+                        eventHandler.close();
+                    } catch (Exception e) {
+                        throw new SafeRuntimeException("Failed to close event handler", e);
+                    } finally {
+                        closingCallback.run();
+                    }
+                });
     }
 }
