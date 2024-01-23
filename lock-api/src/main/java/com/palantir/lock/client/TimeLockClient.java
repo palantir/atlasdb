@@ -65,7 +65,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     public static TimeLockClient createDefault(TimelockService timelockService) {
         AsyncTimeLockUnlocker asyncUnlocker = AsyncTimeLockUnlocker.create(timelockService);
         RequestBatchingTimestampService timestampService =
-                RequestBatchingTimestampService.create(new TimelockServiceErrorDecorator(timelockService));
+                RequestBatchingTimestampService.create(new TimelockServiceErrorDecorator(timelockService), 5);
         return new TimeLockClient(
                 timelockService, timestampService, createLockRefresher(timelockService), asyncUnlocker);
     }
@@ -73,7 +73,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     public static TimeLockClient createDefault(TimelockService timelockService, long lockRefreshIntervalMillis) {
         AsyncTimeLockUnlocker asyncUnlocker = AsyncTimeLockUnlocker.create(timelockService);
         RequestBatchingTimestampService timestampService =
-                RequestBatchingTimestampService.create(new TimelockServiceErrorDecorator(timelockService));
+                RequestBatchingTimestampService.create(new TimelockServiceErrorDecorator(timelockService), 5);
         return new TimeLockClient(
                 timelockService,
                 timestampService,
