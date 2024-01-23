@@ -2110,11 +2110,10 @@ public class SnapshotTransaction extends AbstractTransaction
 
                 // Freeze the writes that we will commit. It is possible for writes to be added to the write buffer past
                 // this point (if they had passed the #ensureUncommitted check before committing started), but they will
-                // be discarded silently.
+                // be discarded silently. This sounds scary, but this is not a regression from previous behaviour
                 // TODO(mdaudali): We should explicitly freeze the write buffer to better surface lost writes in this
                 // edge case.
-                ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> writes =
-                        localWriteBuffer.getLocalWrites();
+                Map<TableReference, ? extends Map<Cell, byte[]>> writes = localWriteBuffer.getLocalWrites();
 
                 // Write to the targeted sweep queue. We must do this before writing to the key value service -
                 // otherwise we may have hanging values that targeted sweep won't know about.
@@ -2158,7 +2157,8 @@ public class SnapshotTransaction extends AbstractTransaction
                 // We check the pre-commit conditions first since they may operate similarly to read write conflict
                 // handling - we should check lock validity last to ensure that sweep hasn't affected the checks.
                 timedAndTraced(
-                        "userPreCommitCondition", () -> throwIfPreCommitConditionInvalid(writes, commitTimestamp));
+                        "userPreCommitCondition",
+                        () -> throwIfPreCommitConditionInvalidAtCommitOnWriteTransaction(writes, commitTimestamp));
 
                 // Not timed, because this just calls ConjureTimelockServiceBlocking.refreshLockLeases, and that is
                 // timed.
@@ -2242,8 +2242,8 @@ public class SnapshotTransaction extends AbstractTransaction
         }
     }
 
-    private void throwIfPreCommitConditionInvalid(
-            Map<TableReference, ConcurrentNavigableMap<Cell, byte[]>> mutations, long timestamp) {
+    private void throwIfPreCommitConditionInvalidAtCommitOnWriteTransaction(
+            Map<TableReference, ? extends Map<Cell, byte[]>> mutations, long timestamp) {
         try {
             preCommitCondition.throwIfConditionInvalid(mutations, timestamp);
         } catch (TransactionFailedException ex) {

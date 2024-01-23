@@ -18,7 +18,6 @@ package com.palantir.atlasdb.transaction.api;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.util.Map;
-import java.util.concurrent.ConcurrentNavigableMap;
 
 /**
  * General condition that is checked before a transaction commits for validity. All conditions associated with a
@@ -51,8 +50,7 @@ public interface PreCommitCondition {
      * This will _only_ be called in write transactions once #commit() has been called. In all other cases,
      * {@link #throwIfConditionInvalid(long)} will be called instead.
      */
-    default void throwIfConditionInvalid(
-            Map<TableReference, ConcurrentNavigableMap<Cell, byte[]>> mutations, long timestamp) {
+    default void throwIfConditionInvalid(Map<TableReference, ? extends Map<Cell, byte[]>> mutations, long timestamp) {
         throwIfConditionInvalid(timestamp);
     }
     /**
