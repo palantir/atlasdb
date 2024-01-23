@@ -2108,11 +2108,17 @@ public class SnapshotTransaction extends AbstractTransaction
                 timedAndTraced(
                         "markingTransactionInProgress", () -> transactionService.markInProgress(getStartTimestamp()));
 
+                // Freeze the writes that we will commit. It is possible for writes to be added to the write buffer past
+                // this point (if they had passed the #ensureUncommitted check before committing started), but they will
+                // be discarded silently.
+                // TODO(mdaudali): We should explicitly freeze the write buffer to better surface lost writes in this
+                // edge case.
+                ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> writes =
+                        localWriteBuffer.getLocalWrites();
+
                 // Write to the targeted sweep queue. We must do this before writing to the key value service -
                 // otherwise we may have hanging values that targeted sweep won't know about.
-                timedAndTraced(
-                        "writingToSweepQueue",
-                        () -> sweepQueue.enqueue(localWriteBuffer.getLocalWrites(), getStartTimestamp()));
+                timedAndTraced("writingToSweepQueue", () -> sweepQueue.enqueue(writes, getStartTimestamp()));
 
                 // Introduced for txn4 - Prevents sweep from making progress beyond immutableTs before entries were
                 // put into the sweep queue. This ensures that sweep must process writes to the sweep queue done by
@@ -2121,9 +2127,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
                 // Write to the key value service. We must do this before getting the commit timestamp - otherwise
                 // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
-                timedAndTraced(
-                        "commitWrite",
-                        () -> keyValueService.multiPut(localWriteBuffer.getLocalWrites(), getStartTimestamp()));
+                timedAndTraced("commitWrite", () -> keyValueService.multiPut(writes, getStartTimestamp()));
 
                 // Now that all writes are done, get the commit timestamp
                 // We must do this before we check that our locks are still valid to ensure that other transactions that
@@ -2153,7 +2157,8 @@ public class SnapshotTransaction extends AbstractTransaction
                 // this throwIfPreCommitRequirementsNotMet is required by the transaction protocol for correctness.
                 // We check the pre-commit conditions first since they may operate similarly to read write conflict
                 // handling - we should check lock validity last to ensure that sweep hasn't affected the checks.
-                timedAndTraced("userPreCommitCondition", () -> throwIfPreCommitConditionInvalid(commitTimestamp));
+                timedAndTraced(
+                        "userPreCommitCondition", () -> throwIfPreCommitConditionInvalid(writes, commitTimestamp));
 
                 // Not timed, because this just calls ConjureTimelockServiceBlocking.refreshLockLeases, and that is
                 // timed.
@@ -2231,6 +2236,16 @@ public class SnapshotTransaction extends AbstractTransaction
     private void throwIfPreCommitConditionInvalid(long timestamp) {
         try {
             preCommitCondition.throwIfConditionInvalid(timestamp);
+        } catch (TransactionFailedException ex) {
+            transactionOutcomeMetrics.markPreCommitCheckFailed();
+            throw ex;
+        }
+    }
+
+    private void throwIfPreCommitConditionInvalid(
+            Map<TableReference, ConcurrentNavigableMap<Cell, byte[]>> mutations, long timestamp) {
+        try {
+            preCommitCondition.throwIfConditionInvalid(mutations, timestamp);
         } catch (TransactionFailedException ex) {
             transactionOutcomeMetrics.markPreCommitCheckFailed();
             throw ex;

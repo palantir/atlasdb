@@ -15,6 +15,11 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.Map;
+import java.util.concurrent.ConcurrentNavigableMap;
+
 /**
  * General condition that is checked before a transaction commits for validity. All conditions associated with a
  * transaction must be true for that transaction to commit successfully. If a given condition is valid at commit
@@ -40,6 +45,16 @@ public interface PreCommitCondition {
      */
     void throwIfConditionInvalid(long timestamp);
 
+    /**
+     * Checks that the condition is valid at the given timestamp and writes, otherwise throws a
+     * {@link TransactionFailedException}. If the condition is not valid, the transaction will not be committed.
+     * This will _only_ be called in write transactions once #commit() has been called. In all other cases,
+     * {@link #throwIfConditionInvalid(long)} will be called instead.
+     */
+    default void throwIfConditionInvalid(
+            Map<TableReference, ConcurrentNavigableMap<Cell, byte[]>> mutations, long timestamp) {
+        throwIfConditionInvalid(timestamp);
+    }
     /**
      * Cleans up any state managed by this condition, e.g. a lock that should be held for the lifetime of the
      * transaction. Conditions last the lifetime of a particular transaction and will be cleaned up on each retry.
