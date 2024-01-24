@@ -29,7 +29,12 @@ dependencies {
     testImplementation 'org.junit.platform:junit-platform-suite'
 }
 
+task prepareDockerImages (type: Exec) {
+    commandLine 'sh', './tag-test-images.sh'
+}
+
 task integrationTest(type: Test) {
+    dependsOn prepareDockerImages
     include '**/AntithesisDockerTest.class'
 }
 
