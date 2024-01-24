@@ -9,3 +9,30 @@ docker {
     tags 'latest', 'snapshot'
     files 'var/docker-compose.yml', 'var/compact.sh', 'var/flush.sh'
 }
+
+dependencies {
+    testImplementation 'com.google.errorprone:error_prone_annotations'
+    testImplementation 'com.google.guava:guava'
+    testImplementation 'com.palantir.conjure.java.api:ssl-config'
+    testImplementation 'com.palantir.conjure.java.api:test-utils'
+    testImplementation 'com.palantir.conjure.java.runtime:keystores'
+    testImplementation 'com.palantir.docker.compose:docker-compose-rule-core'
+    testImplementation 'com.palantir.docker.compose:docker-compose-junit-jupiter'
+    testImplementation 'com.palantir.docker.proxy:docker-proxy-junit-jupiter'
+    testImplementation 'com.palantir.safe-logging:preconditions'
+    testImplementation 'com.palantir.safe-logging:safe-logging'
+    testImplementation 'commons-io:commons-io'
+    testImplementation 'joda-time:joda-time'
+    testImplementation 'org.slf4j:slf4j-api'
+    testImplementation 'io.dropwizard:dropwizard-testing'
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.junit.platform:junit-platform-suite'
+}
+
+task integrationTest(type: Test) {
+    include '**/AntithesisDockerTest.class'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}

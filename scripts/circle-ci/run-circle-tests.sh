@@ -39,7 +39,9 @@ CONTAINER_12=(':atlasdb-dbkvs:check' ':atlasdb-cassandra:check' )
 
 CONTAINER_13=(':atlasdb-ete-tests:timeLockMigrationTest')
 
-CONTAINER_14=('compileJava' 'compileTestJava')
+CONTAINER_14=(':atlasdb-workload-server-antithesis:integrationTest')
+
+CONTAINER_15=('compileJava' 'compileTestJava')
 
 # Excluded as it is split into two subsets
 EXCLUDED=(':atlasdb-cassandra-integration-tests:check')
@@ -75,7 +77,7 @@ JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xlog:class+unload=off"
 JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xlog:gc:build-%t-%p.gc.log"
 
 # External builds have a 16gb limit.
-if [ "$test_suite_index" -eq "14" ]; then
+if [ "$test_suite_index" -eq "15" ]; then
     export _JAVA_OPTIONS="-Xms2g -Xmx4g -XX:ActiveProcessorCount=8 ${JAVA_GC_LOGGING_OPTIONS}"
 elif [ "$test_suite_index" -eq "4" ]; then
     export _JAVA_OPTIONS="-Xms8g -Xmx8g -XX:ActiveProcessorCount=8 ${JAVA_GC_LOGGING_OPTIONS}"
@@ -104,5 +106,6 @@ case "$test_suite_index" in
     11) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_11[@]} ;;
     12) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_12[@]} ;;
     13) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_13[@]} ;;
-    14) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_14[@]} --stacktrace && checkDocsBuild ;;
+    14) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_14[@]} ;;
+    15) ./gradlew $BASE_GRADLE_ARGS ${CONTAINER_15[@]} --stacktrace && checkDocsBuild ;;
 esac
