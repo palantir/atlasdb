@@ -45,7 +45,7 @@ public final class BatchingIdentifiedAtlasDbTransactionStarter implements Identi
 
     static BatchingIdentifiedAtlasDbTransactionStarter create(LockLeaseService lockLeaseService, LockWatchCache cache) {
         DisruptorAutobatcher<Integer, List<StartIdentifiedAtlasDbTransactionResponse>> autobatcher =
-                Autobatchers.independent(consumer(lockLeaseService, cache), 2)
+                Autobatchers.independent(consumer(lockLeaseService, cache))
                         .safeLoggablePurpose("transaction-starter")
                         .batchFunctionTimeout(Duration.ofSeconds(30))
                         .timeoutHandler(exception -> new StartTransactionFailedException(
