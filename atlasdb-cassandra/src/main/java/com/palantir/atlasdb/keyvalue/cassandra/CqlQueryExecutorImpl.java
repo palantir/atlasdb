@@ -30,7 +30,7 @@ import org.apache.cassandra.thrift.CqlPreparedResult;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.thrift.TException;
 
-class CqlQueryExecutorImpl implements CqlQueryExecutor {
+public class CqlQueryExecutorImpl implements CqlQueryExecutor {
     private final CassandraClientPool clientPool;
     private final ConsistencyLevel consistency;
 
