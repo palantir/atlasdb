@@ -2,8 +2,6 @@
 
 echo "Preparing images for Antithesis test"
 
-./gradlew --scan dockerTag
-
 VERSION=$1
 EXPECTED_ANTITHESIS_TEST_TAG="unspecified"
 
