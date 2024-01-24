@@ -31,7 +31,7 @@ dependencies {
 
 task prepareDockerImages (type: Exec) {
     dependsOn dockerTag
-    commandLine 'sh', './tag-test-images.sh', '1.0.0' // TODO(lmeireles): use real version tag
+    commandLine 'sh', './tag-test-images.sh', project.version.toString()
 }
 
 task integrationTest(type: Test) {
