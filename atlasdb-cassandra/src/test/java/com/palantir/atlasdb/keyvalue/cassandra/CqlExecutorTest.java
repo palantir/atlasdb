@@ -39,7 +39,7 @@ import org.mockito.ArgumentMatcher;
 
 public class CqlExecutorTest {
 
-    private final CqlExecutorImpl.QueryExecutor queryExecutor = mock(CqlExecutorImpl.QueryExecutor.class);
+    private final CqlQueryExecutor queryExecutor = mock(CqlQueryExecutor.class);
     private final CqlExecutor executor = new CqlExecutorImpl(queryExecutor);
 
     private long queryDelayMillis = 0L;

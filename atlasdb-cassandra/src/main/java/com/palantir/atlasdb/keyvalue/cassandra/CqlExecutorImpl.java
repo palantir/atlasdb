@@ -19,13 +19,10 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CellWithTimestamp;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.annotation.Output;
-import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
@@ -36,9 +33,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -53,27 +48,20 @@ import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlPreparedResult;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
-import org.apache.thrift.TException;
 
 public class CqlExecutorImpl implements CqlExecutor {
-    private final QueryExecutor queryExecutor;
+
     private static final SafeLogger log = SafeLoggerFactory.get(CqlExecutorImpl.class);
 
-    public interface QueryExecutor {
-        CqlResult execute(CqlQuery cqlQuery, byte[] rowHintForHostSelection);
-
-        CqlPreparedResult prepare(ByteBuffer query, byte[] rowHintForHostSelection, Compression compression);
-
-        CqlResult executePrepared(int queryId, List<ByteBuffer> values);
-    }
+    private final CqlQueryExecutor cqlQueryExecutor;
 
     CqlExecutorImpl(CassandraClientPool clientPool, ConsistencyLevel consistency) {
-        this.queryExecutor = new QueryExecutorImpl(clientPool, consistency);
+        this.cqlQueryExecutor = new CqlQueryExecutorImpl(clientPool, consistency);
     }
 
     @VisibleForTesting
-    CqlExecutorImpl(QueryExecutor queryExecutor) {
-        this.queryExecutor = queryExecutor;
+    CqlExecutorImpl(CqlQueryExecutor cqlQueryExecutor) {
+        this.cqlQueryExecutor = cqlQueryExecutor;
     }
 
     @Override
@@ -88,7 +76,7 @@ public class CqlExecutorImpl implements CqlExecutor {
                 quotedTableName(tableRef).getValue(), limit);
         ByteBuffer queryBytes = ByteBuffer.wrap(preparedSelQuery.getBytes(StandardCharsets.UTF_8));
 
-        CqlPreparedResult preparedResult = queryExecutor.prepare(queryBytes, rowsAscending.get(0), Compression.NONE);
+        CqlPreparedResult preparedResult = cqlQueryExecutor.prepare(queryBytes, rowsAscending.get(0), Compression.NONE);
         int queryId = preparedResult.getItemId();
 
         List<CellWithTimestamp> result = new ArrayList<>();
@@ -137,7 +125,7 @@ public class CqlExecutorImpl implements CqlExecutor {
         byte[] row = rows.get(rowIndex);
 
         Callable<CqlResult> task = () -> {
-            CqlResult cqlResult = queryExecutor.executePrepared(queryId, ImmutableList.of(ByteBuffer.wrap(row)));
+            CqlResult cqlResult = cqlQueryExecutor.executePrepared(queryId, ImmutableList.of(ByteBuffer.wrap(row)));
             if (!Thread.interrupted()) {
                 scheduleSweepRowTask(
                         futures, queryId, nextRowToQuery.getAndIncrement(), nextRowToQuery, rows, executor);
@@ -184,7 +172,7 @@ public class CqlExecutorImpl implements CqlExecutor {
 
     private List<CellWithTimestamp> executeAndGetCells(
             CqlQuery query, byte[] rowHintForHostSelection, Function<CqlRow, CellWithTimestamp> cellTsExtractor) {
-        CqlResult cqlResult = queryExecutor.execute(query, rowHintForHostSelection);
+        CqlResult cqlResult = cqlQueryExecutor.execute(query, rowHintForHostSelection);
         return CqlExecutorImpl.getCells(cellTsExtractor, cqlResult);
     }
 
@@ -240,86 +228,5 @@ public class CqlExecutorImpl implements CqlExecutor {
     private static List<CellWithTimestamp> getCells(
             Function<CqlRow, CellWithTimestamp> cellTsExtractor, CqlResult cqlResult) {
         return cqlResult.getRows().stream().map(cellTsExtractor).collect(Collectors.toList());
-    }
-
-    private static class QueryExecutorImpl implements QueryExecutor {
-        private final CassandraClientPool clientPool;
-        private final ConsistencyLevel consistency;
-
-        private Map<Integer, CassandraServer> hostsPerPreparedQuery;
-
-        QueryExecutorImpl(CassandraClientPool clientPool, ConsistencyLevel consistency) {
-            this.clientPool = clientPool;
-            this.consistency = consistency;
-            this.hostsPerPreparedQuery = new HashMap<>();
-        }
-
-        @Override
-        public CqlResult execute(CqlQuery cqlQuery, byte[] rowHintForHostSelection) {
-            return executeQueryOnHost(cqlQuery, getHostForRow(rowHintForHostSelection));
-        }
-
-        @Override
-        public CqlPreparedResult prepare(ByteBuffer query, byte[] rowHintForHostSelection, Compression compression) {
-            FunctionCheckedException<CassandraClient, CqlPreparedResult, TException> prepareFunction =
-                    client -> client.prepare_cql3_query(query, compression);
-
-            try {
-                CassandraServer hostForRow = getHostForRow(rowHintForHostSelection);
-                CqlPreparedResult preparedResult = clientPool.runWithRetryOnServer(hostForRow, prepareFunction);
-                hostsPerPreparedQuery.put(preparedResult.getItemId(), hostForRow);
-                return preparedResult;
-            } catch (TException e) {
-                throw Throwables.throwUncheckedException(e);
-            }
-        }
-
-        @Override
-        public CqlResult executePrepared(int queryId, List<ByteBuffer> values) {
-            FunctionCheckedException<CassandraClient, CqlResult, TException> cqlFunction =
-                    client -> client.execute_prepared_cql3_query(queryId, values, consistency);
-
-            CassandraServer host = hostsPerPreparedQuery.getOrDefault(
-                    queryId, getHostForRow(values.get(0).array()));
-
-            return executeFunctionOnHost(cqlFunction, host);
-        }
-
-        private CassandraServer getHostForRow(byte[] row) {
-            return clientPool.getRandomServerForKey(row);
-        }
-
-        private CqlResult executeQueryOnHost(CqlQuery cqlQuery, CassandraServer cassandraServer) {
-            return executeFunctionOnHost(createCqlFunction(cqlQuery), cassandraServer);
-        }
-
-        private CqlResult executeFunctionOnHost(
-                FunctionCheckedException<CassandraClient, CqlResult, TException> cqlFunction,
-                CassandraServer cassandraServer) {
-            try {
-                return clientPool.runWithRetryOnServer(cassandraServer, cqlFunction);
-            } catch (RetryLimitReachedException e) {
-                if (consistency.equals(ConsistencyLevel.ALL)) {
-                    throw CassandraUtils.wrapInIceForDeleteOrRethrow(e);
-                }
-                throw e;
-            } catch (TException e) {
-                throw Throwables.throwUncheckedException(e);
-            }
-        }
-
-        private FunctionCheckedException<CassandraClient, CqlResult, TException> createCqlFunction(CqlQuery cqlQuery) {
-            return new FunctionCheckedException<CassandraClient, CqlResult, TException>() {
-                @Override
-                public CqlResult apply(CassandraClient client) throws TException {
-                    return client.execute_cql3_query(cqlQuery, Compression.NONE, consistency);
-                }
-
-                @Override
-                public String toString() {
-                    return cqlQuery.toString();
-                }
-            };
-        }
     }
 }
