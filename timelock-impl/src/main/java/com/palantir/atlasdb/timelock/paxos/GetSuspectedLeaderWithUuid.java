@@ -27,10 +27,9 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher.DisruptorFuture;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
-import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.streams.KeyedStream;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.LeaderPingerContext;
@@ -143,21 +142,12 @@ class GetSuspectedLeaderWithUuid implements Consumer<List<BatchElement<UUID, Opt
             return;
         }
 
-        IllegalStateException exception =
-                new SafeIllegalStateException("There is a fatal problem with the leadership election configuration! "
-                        + "This is probably caused by invalid pref files setting up the cluster "
-                        + "(e.g. for lock server look at lock.prefs, leader.prefs, and lock_client.prefs)."
-                        + "If the preferences are specified with a host port pair list and localhost index "
-                        + "then make sure that the localhost index is correct (e.g. actually the localhost).");
-
         if (cachedService != pingedService) {
-            log.error("Remote potential leaders are claiming to be each other!", exception);
-            throw Throwables.rewrap(exception);
+            throw new SafeIllegalArgumentException("Remote potential leaders are claiming to be each other!");
         }
 
         if (pingedServiceUuid.equals(localUuid)) {
-            log.error("Remote potential leader is claiming to be you!", exception);
-            throw Throwables.rewrap(exception);
+            throw new SafeIllegalArgumentException("Remote potential leader is claiming to be you!");
         }
     }
 }

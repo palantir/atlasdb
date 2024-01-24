@@ -29,7 +29,6 @@ import com.github.rholder.retry.WaitStrategy;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
-import com.palantir.common.base.Throwables;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -86,10 +85,7 @@ public final class TransactionRetryStrategy {
         try {
             return retryer.call(task::run);
         } catch (RetryException e) {
-            Throwable wrapped = Throwables.rewrap(
-                    String.format("Failing after %d tries.", e.getNumberOfFailedAttempts()),
-                    e.getLastFailedAttempt().getExceptionCause());
-            throw throwTaskException(wrapped);
+            throw throwTaskException(e.getLastFailedAttempt().getExceptionCause());
         } catch (ExecutionException e) {
             throw throwTaskException(e.getCause());
         }
