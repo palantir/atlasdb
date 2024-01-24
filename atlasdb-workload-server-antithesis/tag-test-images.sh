@@ -4,7 +4,7 @@ echo "Preparing images for Antithesis test"
 
 ./gradlew --scan dockerTag
 
-VERSION=$(./gradlew -q printVersion)
+VERSION="1.0.0" # TODO(lmeireles): replace with actual version
 EXPECTED_ANTITHESIS_TEST_TAG="unspecified"
 
 docker pull palantirtechnologies/cassandra:2.2.18-1.116.0
