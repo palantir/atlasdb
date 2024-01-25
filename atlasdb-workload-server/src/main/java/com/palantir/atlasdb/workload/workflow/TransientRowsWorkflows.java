@@ -61,8 +61,7 @@ public final class TransientRowsWorkflows {
 
     private static final SecureRandom SECURE_RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();
 
-    private TransientRowsWorkflows() {
-    }
+    private TransientRowsWorkflows() {}
 
     public static Workflow create(
             InteractiveTransactionStore store,
@@ -97,7 +96,8 @@ public final class TransientRowsWorkflows {
         protected Optional<WitnessedTransaction> run(InteractiveTransactionStore store, Integer taskIndex) {
             if (taskIndex % configuration.validateEveryNIterations() == 0) {
                 // This is cheeky, as we are not including our reads in our transaction history!
-                List<CrossCellInconsistency> violations = findInconsistencyInIndexStateDuringWorkflow(configuration, store);
+                List<CrossCellInconsistency> violations =
+                        findInconsistencyInIndexStateDuringWorkflow(configuration, store);
 
                 if (!violations.isEmpty()) {
                     recordFailure(violations);
@@ -208,7 +208,10 @@ public final class TransientRowsWorkflows {
     }
 
     private static void checkSummaryConsistencyForIndex(
-            List<CrossCellInconsistency> violations, BiFunction<String, WorkloadCell, Optional<Integer>> reader, String tableName, Integer index) {
+            List<CrossCellInconsistency> violations,
+            BiFunction<String, WorkloadCell, Optional<Integer>> reader,
+            String tableName,
+            Integer index) {
         WorkloadCell primaryCell = ImmutableWorkloadCell.of(index, COLUMN);
         Optional<Integer> valueFromPrimaryRow = reader.apply(tableName, primaryCell);
         WorkloadCell summaryCell = ImmutableWorkloadCell.of(SUMMARY_ROW, index);
