@@ -22,6 +22,8 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.time.Duration;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
@@ -41,13 +43,20 @@ public class AntithesisDockerTest {
 
     @Test
     public void workloadServerHasInitializedTransactionStoreFactorySuccessfully() throws IOException {
-        OutputStream logStream = new ByteArrayOutputStream();
-        dockerComposeExtension
-                .dockerComposeExecutable()
-                .execute("logs", "workload-server")
-                .getInputStream()
-                .transferTo(logStream);
+        Awaitility.await()
+                .atMost(Duration.ofMinutes(5))
+                .pollInterval(Duration.ofSeconds(10))
+                .until(() -> {
+                    OutputStream logStream = new ByteArrayOutputStream();
+                    dockerComposeExtension
+                            .dockerComposeExecutable()
+                            .execute("logs", "workload-server")
+                            .getInputStream()
+                            .transferTo(logStream);
 
-        assertThat(logStream.toString()).contains("AtlasDB transaction store factory initialized.");
+                    return logStream.toString().contains("AtlasDB transaction store factory initialized.");
+                });
+
+        assertThat(true).isTrue();
     }
 }

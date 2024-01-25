@@ -13,6 +13,8 @@ docker {
 dependencies {
     testImplementation project(":atlasdb-workload-server-distribution")
     testImplementation project(":timelock-server-distribution")
+
+    testImplementation 'commons-io:commons-io'
     testImplementation 'com.google.errorprone:error_prone_annotations'
     testImplementation 'com.google.guava:guava'
     testImplementation 'com.palantir.conjure.java.api:ssl-config'
@@ -23,12 +25,12 @@ dependencies {
     testImplementation 'com.palantir.docker.proxy:docker-proxy-junit-jupiter'
     testImplementation 'com.palantir.safe-logging:preconditions'
     testImplementation 'com.palantir.safe-logging:safe-logging'
-    testImplementation 'commons-io:commons-io'
-    testImplementation 'joda-time:joda-time'
-    testImplementation 'org.slf4j:slf4j-api'
     testImplementation 'io.dropwizard:dropwizard-testing'
+    testImplementation 'joda-time:joda-time'
     testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.awaitility:awaitility'
     testImplementation 'org.junit.platform:junit-platform-suite'
+    testImplementation 'org.slf4j:slf4j-api'
 }
 
 task prepareDockerImages (type: Exec) {
