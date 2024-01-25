@@ -37,7 +37,10 @@ public class AntithesisDockerTest {
                 try {
                     return SuccessOrFailure.fromBoolean(
                             container.state().isHealthy(), "Workload server container is not yet up");
-                } catch (IOException | InterruptedException e) {
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     throw new RuntimeException(e);
                 }
             })
