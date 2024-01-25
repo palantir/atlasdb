@@ -30,7 +30,6 @@ dependencies {
 }
 
 task prepareDockerImages (type: Exec) {
-    dependsOn dockerTag
     commandLine 'sh', './tag-test-images.sh', project.version.toString()
 }
 
