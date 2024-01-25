@@ -23,6 +23,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -43,6 +44,11 @@ public class AntithesisDockerTest {
 
     @Test
     public void workloadServerHasInitializedTransactionStoreFactorySuccessfully() throws IOException {
+        AtomicBoolean hasRunSuccessfully = new AtomicBoolean(false);
+
+        String successMessage = "Finished running desired workflows successfully";
+        String failureMessage = "Workflow will now exit.";
+
         Awaitility.await()
                 .atMost(Duration.ofMinutes(5))
                 .pollInterval(Duration.ofSeconds(10))
@@ -54,9 +60,16 @@ public class AntithesisDockerTest {
                             .getInputStream()
                             .transferTo(logStream);
 
-                    return logStream.toString().contains("AtlasDB transaction store factory initialized.");
+                    String logs = logStream.toString();
+
+                    if (logs.contains(successMessage)) {
+                        hasRunSuccessfully.set(true);
+                        return true;
+                    }
+
+                    return logs.contains(failureMessage);
                 });
 
-        assertThat(true).isTrue();
+        assertThat(hasRunSuccessfully.get()).isTrue();
     }
 }
