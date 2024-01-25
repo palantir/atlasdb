@@ -17,6 +17,7 @@ dependencies {
     testImplementation 'com.palantir.docker.compose:docker-compose-rule-core'
     testImplementation 'com.palantir.docker.compose:docker-compose-junit-jupiter'
     testImplementation 'com.palantir.safe-logging:safe-logging'
+    testImplementation 'io.dropwizard:dropwizard-testing'
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.awaitility:awaitility'
     testImplementation 'org.junit.platform:junit-platform-suite'
