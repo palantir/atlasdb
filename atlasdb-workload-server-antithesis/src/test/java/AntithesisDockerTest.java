@@ -35,7 +35,8 @@ public class AntithesisDockerTest {
             .files(DockerComposeFiles.from("var/docker-compose.yml"))
             .waitingForService("workload-server", container -> {
                 try {
-                    return SuccessOrFailure.fromBoolean(container.state().isHealthy(), "Some container is not up");
+                    return SuccessOrFailure.fromBoolean(
+                            container.state().isHealthy(), "Workload server container is not yet up");
                 } catch (IOException | InterruptedException e) {
                     throw new RuntimeException(e);
                 }
