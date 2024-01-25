@@ -39,7 +39,7 @@ CONTAINER_12=(':atlasdb-dbkvs:check' ':atlasdb-cassandra:check' )
 
 CONTAINER_13=(':atlasdb-ete-tests:timeLockMigrationTest')
 
-CONTAINER_14=('atlasdb-workload-server-distribution:dockerTag' 'timelock-server-distribution:dockerTag' ':atlasdb-workload-server-antithesis:dockerTag' ':atlasdb-workload-server-antithesis:integrationTest')
+CONTAINER_14=(':atlasdb-workload-server-distribution:dockerTag' ':timelock-server-distribution:dockerTag' ':atlasdb-workload-server-antithesis:dockerTag' ':atlasdb-workload-server-antithesis:integrationTest')
 
 CONTAINER_15=('compileJava' 'compileTestJava')
 
