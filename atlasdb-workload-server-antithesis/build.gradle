@@ -30,8 +30,11 @@ task prepareDockerImages (type: Exec) {
     commandLine 'sh', './tag-test-images.sh', project.version.toString()
 }
 
-task integrationTest(type: Test) {
+tasks.named("test") {
     dependsOn prepareDockerImages
+}
+
+test {
     include '**/AntithesisDockerTest.class'
 }
 
