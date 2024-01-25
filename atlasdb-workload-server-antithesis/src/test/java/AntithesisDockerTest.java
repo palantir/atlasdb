@@ -43,7 +43,7 @@ public class AntithesisDockerTest {
             .build();
 
     @Test
-    public void workloadServerHasInitializedTransactionStoreFactorySuccessfully() throws IOException {
+    public void workloadServerHasRunDesiredWorkflowsSuccessfully() {
         AtomicBoolean hasRunSuccessfully = new AtomicBoolean(false);
 
         String successMessage = "Finished running desired workflows successfully";
