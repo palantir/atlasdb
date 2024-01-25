@@ -11,6 +11,8 @@ docker {
 }
 
 dependencies {
+    testImplementation project(":atlasdb-workload-server-distribution")
+    testImplementation project(":timelock-server-distribution")
     testImplementation 'com.google.errorprone:error_prone_annotations'
     testImplementation 'com.google.guava:guava'
     testImplementation 'com.palantir.conjure.java.api:ssl-config'
@@ -34,7 +36,9 @@ task prepareDockerImages (type: Exec) {
 }
 
 task integrationTest(type: Test) {
-    dependsOn prepareDockerImages
+    dependsOn ':atlasdb-workload-server-distribution:dockerTag'
+    dependsOn ':timelock-server-distribution:dockerTag'
+    dependsOn dockerTag
     include '**/AntithesisDockerTest.class'
 }
 
