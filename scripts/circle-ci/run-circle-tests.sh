@@ -47,7 +47,7 @@ CONTAINER_15=('compileJava' 'compileTestJava')
 EXCLUDED=(':atlasdb-cassandra-integration-tests:check')
 
 # Container 0 - runs tasks not found in the below containers
-CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}" "${CONTAINER_6[@]}" "${CONTAINER_7[@]}" "${CONTAINER_8[@]}" "${CONTAINER_9[@]}" "${CONTAINER_10[@]}" "${CONTAINER_11[@]}" "${CONTAINER_12[@]}" "${CONTAINER_13[@]}" "${EXCLUDED[@]}")
+CONTAINER_0_EXCLUDE=("${CONTAINER_1[@]}" "${CONTAINER_2[@]}" "${CONTAINER_3[@]}" "${CONTAINER_4[@]}" "${CONTAINER_5[@]}" "${CONTAINER_6[@]}" "${CONTAINER_7[@]}" "${CONTAINER_8[@]}" "${CONTAINER_9[@]}" "${CONTAINER_10[@]}" "${CONTAINER_11[@]}" "${CONTAINER_12[@]}" "${CONTAINER_13[@]}" "${CONTAINER_14[@]}" "${EXCLUDED[@]}")
 
 for task in "${CONTAINER_0_EXCLUDE[@]}"
 do
