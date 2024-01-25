@@ -83,7 +83,7 @@ jobs:
       - when:
           # Persist to workspace for the compile/compileTest container to keep deploy fast.
           condition:
-            equal: [ 14, << parameters.suite >> ]
+            equal: [ 13, << parameters.suite >> ]
           steps:
             - persist_to_workspace:
                 root: .
