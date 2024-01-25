@@ -30,6 +30,9 @@ dependencies {
 }
 
 task prepareDockerImages (type: Exec) {
+    dependsOn 'timelock-server-distribution:dockerTag'
+    dependsOn 'atlasdb-workload-server-distribution:dockerTag'
+    dependsOn dockerTag
     commandLine 'sh', './tag-test-images.sh', project.version.toString()
 }
 
