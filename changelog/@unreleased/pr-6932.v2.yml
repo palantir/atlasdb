@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Antithesis docker-compose set up is properly validated to start up
+    at CI.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6932
