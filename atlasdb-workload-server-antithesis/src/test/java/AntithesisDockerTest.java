@@ -19,7 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.palantir.docker.compose.DockerComposeExtension;
 import com.palantir.docker.compose.configuration.DockerComposeFiles;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
@@ -38,7 +40,14 @@ public class AntithesisDockerTest {
             .build();
 
     @Test
-    public void gettingHereIsEnoughToSucceed() {
-        assertThat(true).isTrue();
+    public void workloadServerHasInitializedTransactionStoreFactorySuccessfully() throws IOException {
+        OutputStream logStream = new ByteArrayOutputStream();
+        dockerComposeExtension
+                .dockerComposeExecutable()
+                .execute("logs", "workload-server")
+                .getInputStream()
+                .transferTo(logStream);
+
+        assertThat(logStream.toString()).contains("AtlasDB transaction store factory initialized.");
     }
 }
