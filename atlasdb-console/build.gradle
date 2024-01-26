@@ -31,13 +31,19 @@ dependencies {
 
     testImplementation project(':atlasdb-client')
 
-    testImplementation('org.jmock:jmock-legacy') {
-        exclude group: 'org.hamcrest'
-    }
     testImplementation('org.gmock:gmock') {
         exclude module: 'groovy-test'
+    }
+    testImplementation('org.jmock:jmock-imposters') {
+        exclude group: 'org.hamcrest'
     }
 }
 
 tasks.checkImplicitDependenciesMain.enabled = false
 tasks.checkUnusedDependenciesMain.enabled = false
+
+test {
+    // JDK 17 enforces stricter encapsulation levels for base packages. This workaround is necessary since we use GMock
+    // for our Groovy tests, which leads to errors. We don't have control over this package.
+    jvmArgs '--add-opens=java.base/java.lang=ALL-UNNAMED'
+}

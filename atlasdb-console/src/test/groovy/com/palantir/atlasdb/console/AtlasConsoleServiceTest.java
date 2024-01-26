@@ -36,7 +36,7 @@ import java.util.HashSet;
 import java.util.Set;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
-import org.jmock.lib.legacy.ClassImposteriser;
+import org.jmock.imposters.ByteBuddyClassImposteriser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -52,7 +52,7 @@ public class AtlasConsoleServiceTest {
 
     @BeforeEach
     public void setup() {
-        context.setImposteriser(ClassImposteriser.INSTANCE);
+        context.setImposteriser(ByteBuddyClassImposteriser.INSTANCE);
         delegate = context.mock(AtlasDbService.class);
         mapper = context.mock(ObjectMapper.class);
         service = new AtlasConsoleServiceImpl(delegate, mapper);
