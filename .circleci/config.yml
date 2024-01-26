@@ -101,7 +101,6 @@ jobs:
       CIRCLE_TEST_REPORTS: /tmp/test-reports
       CIRCLE_ARTIFACTS: /tmp/artifacts
     steps:
-      - setup_remote_docker # required for using docker commands: https://circleci.com/docs/building-docker-images/#introduction
       - attach_workspace: { at: . }
       - run: ./gradlew --scan --profile --stacktrace --continue publishToMavenLocal
 
