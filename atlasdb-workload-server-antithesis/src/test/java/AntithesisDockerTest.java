@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -50,7 +49,6 @@ public class AntithesisDockerTest {
     @Test
     public void workloadServerHasRunDesiredWorkflowsSuccessfully() {
         AtomicBoolean hasRunSuccessfully = new AtomicBoolean(false);
-        AtomicReference<String> logsRef = new AtomicReference<>("");
 
         String successMessage = "Finished running desired workflows successfully";
         String failureMessage = "Workflow will now exit.";
@@ -67,7 +65,6 @@ public class AntithesisDockerTest {
                             .transferTo(logStream);
 
                     String logs = logStream.toString();
-                    logsRef.set(logs);
 
                     if (logs.contains(successMessage)) {
                         hasRunSuccessfully.set(true);
@@ -77,8 +74,6 @@ public class AntithesisDockerTest {
                     return logs.contains(failureMessage);
                 });
 
-        // This log assert is not needed, but just making it easier to look at container logs in case this fails
-        assertThat(logsRef.get()).contains(successMessage);
         assertThat(hasRunSuccessfully.get()).isTrue();
     }
 }
