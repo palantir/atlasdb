@@ -19,8 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.palantir.docker.compose.DockerComposeExtension;
 import com.palantir.docker.compose.configuration.DockerComposeFiles;
 import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -32,8 +30,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 public class AntithesisDockerTest {
-
-    private static final SafeLogger log = SafeLoggerFactory.get(AntithesisDockerTest.class);
 
     @RegisterExtension
     public static DockerComposeExtension dockerComposeExtension = DockerComposeExtension.builder()
@@ -59,31 +55,27 @@ public class AntithesisDockerTest {
         String successMessage = "Finished running desired workflows successfully";
         String failureMessage = "Workflow will now exit.";
 
-        try {
-            Awaitility.await()
-                    .atMost(Duration.ofMinutes(5))
-                    .pollInterval(Duration.ofSeconds(10))
-                    .until(() -> {
-                        OutputStream logStream = new ByteArrayOutputStream();
-                        dockerComposeExtension
-                                .dockerComposeExecutable()
-                                .execute("logs", "workload-server")
-                                .getInputStream()
-                                .transferTo(logStream);
+        Awaitility.await()
+                .atMost(Duration.ofMinutes(5))
+                .pollInterval(Duration.ofSeconds(10))
+                .until(() -> {
+                    OutputStream logStream = new ByteArrayOutputStream();
+                    dockerComposeExtension
+                            .dockerComposeExecutable()
+                            .execute("logs", "workload-server")
+                            .getInputStream()
+                            .transferTo(logStream);
 
-                        String logs = logStream.toString();
-                        logsRef.set(logs);
+                    String logs = logStream.toString();
+                    logsRef.set(logs);
 
-                        if (logs.contains(successMessage)) {
-                            hasRunSuccessfully.set(true);
-                            return true;
-                        }
+                    if (logs.contains(successMessage)) {
+                        hasRunSuccessfully.set(true);
+                        return true;
+                    }
 
-                        return logs.contains(failureMessage);
-                    });
-        } catch (Exception e) {
-            log.error("Condition not met", e);
-        }
+                    return logs.contains(failureMessage);
+                });
 
         // This log assert is not needed, but just making it easier to look at container logs in case this fails
         assertThat(logsRef.get()).contains(successMessage);
