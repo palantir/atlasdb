@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Workload server no longer fast forwards timestamp
+  links:
+  - https://github.com/palantir/atlasdb/pull/6937
