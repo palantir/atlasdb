@@ -1,6 +1,0 @@
-type: improvement
-improvement:
-  description: We fast forward logical timestamp on workload server by 10M so we can
-    use transactions3.
-  links:
-  - https://github.com/palantir/atlasdb/pull/6921
