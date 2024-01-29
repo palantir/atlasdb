@@ -1,4 +1,4 @@
-FROM adoptopenjdk/openjdk11:jdk-11.0.11_9-debian
+FROM azul/zulu-openjdk:17-latest
 MAINTAINER AtlasDB Team
 
 ENV DOCKERIZE_VERSION v0.2.0

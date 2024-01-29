@@ -162,7 +162,15 @@ public final class AtlasDbTransactionStoreFactory implements TransactionStoreFac
                 .build()
                 .serializable();
 
+        fastForwardTimestampToSupportTransactions3(transactionManager);
+
         return new AtlasDbTransactionStoreFactory(
                 transactionManager, installConfig.namespace().or(installConfig.keyValueService()::namespace));
+    }
+
+    private static void fastForwardTimestampToSupportTransactions3(TransactionManager transactionManager) {
+        long currentTimestamp = transactionManager.getTimestampService().getFreshTimestamp();
+        long guaranteedTransaction3Timestamp = currentTimestamp + 10_000_000;
+        transactionManager.getTimestampManagementService().fastForwardTimestamp(guaranteedTransaction3Timestamp);
     }
 }
