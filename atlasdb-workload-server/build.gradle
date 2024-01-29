@@ -16,7 +16,6 @@ dependencies {
     implementation project(':timestamp-api')
     implementation project(':lock-api')
     implementation project(':lock-api-objects')
-    implementation project(':timestamp-api')
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
