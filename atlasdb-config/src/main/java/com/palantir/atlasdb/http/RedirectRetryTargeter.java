@@ -23,6 +23,8 @@ import com.google.common.net.HostAndPort;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.URL;
 import java.util.List;
 import java.util.Objects;
@@ -31,13 +33,22 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 public final class RedirectRetryTargeter {
+    private static final SafeLogger log = SafeLoggerFactory.get(RedirectRetryTargeter.class);
+
     private final List<URL> otherServers;
     private final BiMap<HostAndPort, URL> urlsToHostAndPort;
 
     private RedirectRetryTargeter(List<URL> otherServers) {
         this.otherServers = otherServers;
         this.urlsToHostAndPort = KeyedStream.of(otherServers)
-                .mapKeys(url -> HostAndPort.fromParts(url.getHost(), url.getPort()))
+                .mapKeys(url -> {
+                    HostAndPort hostAndPort = HostAndPort.fromParts(url.getHost(), url.getPort());
+                    log.info(
+                            "[PDS-469959] RedirectRetryTargeter - init",
+                            SafeArg.of("url", url),
+                            SafeArg.of("hostAndPort", hostAndPort));
+                    return hostAndPort;
+                })
                 .collectTo(HashBiMap::create);
     }
 
