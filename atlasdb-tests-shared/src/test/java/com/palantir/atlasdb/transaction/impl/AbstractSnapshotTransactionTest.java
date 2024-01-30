@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
@@ -968,6 +969,51 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
             fail("fail");
         } catch (TransactionFailedRetriableException e) {
             assertThat(e.getMessage()).contains("Condition failed");
+        }
+    }
+
+    @Test
+    public void commitWritesCallsPreCommitConditionWithMutationMap() {
+        PreCommitCondition condition = mock(PreCommitCondition.class);
+        Map<TableReference, Map<Cell, byte[]>> writes = Map.of(
+                TABLE, Map.of(TEST_CELL, PtBytes.toBytes("value"), TEST_CELL_2, PtBytes.toBytes("value2")),
+                TABLE2, Map.of(TEST_CELL, PtBytes.toBytes("value3"), TEST_CELL_3, PtBytes.toBytes("value3")));
+        serializableTxManager.runTaskWithConditionThrowOnConflict(condition, (tx, preCommitCondition) -> {
+            for (Map.Entry<TableReference, Map<Cell, byte[]>> entry : writes.entrySet()) {
+                tx.put(entry.getKey(), entry.getValue());
+            }
+            tx.put(TABLE1, Map.of(TEST_CELL_4, PtBytes.toBytes("value4")));
+            tx.delete(TABLE1, Set.of(TEST_CELL_4));
+            return null;
+        });
+
+        Map<TableReference, Map<Cell, byte[]>> expectedWrites =
+                ImmutableMap.<TableReference, Map<Cell, byte[]>>builder()
+                        .putAll(writes)
+                        .put(TABLE1, ImmutableMap.of(TEST_CELL_4, PtBytes.EMPTY_BYTE_ARRAY))
+                        .buildOrThrow();
+
+        verify(condition).throwIfConditionInvalid(eq(expectedWrites), anyLong());
+    }
+
+    @Test
+    public void failToCommitIfPreCommitConditionWithMutationMapFails() {
+        PreCommitCondition condition = mock(PreCommitCondition.class);
+        doThrow(new TransactionFailedRetriableException("Condition failed"))
+                .when(condition)
+                .throwIfConditionInvalid(anyMap(), anyLong());
+        try {
+            serializableTxManager.runTaskWithConditionThrowOnConflict(condition, (tx, preCommitCondition) -> {
+                tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
+                return null;
+            });
+            fail("fail");
+        } catch (TransactionFailedRetriableException e) {
+            assertThat(e.getMessage()).contains("Condition failed");
+            serializableTxManager.runTaskReadOnly(tx -> {
+                assertThat(tx.get(TABLE, ImmutableSet.of(TEST_CELL))).isEmpty();
+                return null;
+            });
         }
     }
 
