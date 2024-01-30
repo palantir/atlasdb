@@ -17,6 +17,9 @@ package com.palantir.timelock.paxos;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timelock.config.ClusterConfiguration;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -28,6 +31,8 @@ import java.util.stream.Collectors;
 import javax.ws.rs.core.UriBuilder;
 
 public final class PaxosRemotingUtils {
+    private static final SafeLogger log = SafeLoggerFactory.get(PaxosRemotingUtils.class);
+
     private PaxosRemotingUtils() {
         // utility class
     }
@@ -65,15 +70,25 @@ public final class PaxosRemotingUtils {
 
     public static URL convertAddressToUrl(ClusterConfiguration cluster, String address) {
         try {
-            return UriBuilder.fromPath(addProtocol(cluster, address)).build().toURL();
+            URL url = UriBuilder.fromPath(addProtocol(cluster, address)).build().toURL();
+            log.info(
+                    "[PDS-469959] PaxosRemotingUtils - qqqqqqq",
+                    SafeArg.of("address", address),
+                    SafeArg.of("url", url));
+            return url;
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
         }
     }
 
     public static List<URL> convertAddressesToUrls(ClusterConfiguration cluster, List<String> addresses) {
-        return addresses.stream()
+        List<URL> urls = addresses.stream()
                 .map(address -> convertAddressToUrl(cluster, address))
                 .collect(Collectors.toList());
+        log.info(
+                "[PDS-469959] PaxosRemotingUtils - abcdefg",
+                SafeArg.of("addresses", addresses),
+                SafeArg.of("urls", urls));
+        return urls;
     }
 }

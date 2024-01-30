@@ -548,16 +548,22 @@ public class TimeLockAgent {
         registrar.accept(new TooManyRequestsExceptionMapper());
     }
 
-    @VisibleForTesting // for InMemoryTimelockServices
+    @VisibleForTesting
+    // for InMemoryTimelockServices
     RedirectRetryTargeter redirectRetryTargeter() {
         URL localServer = PaxosRemotingUtils.convertAddressToUrl(cluster, cluster.localServer());
         List<URL> clusterUrls = PaxosRemotingUtils.convertAddressesToUrls(cluster, cluster.clusterMembers());
+        log.info(
+                "[PDS-469959] TimeLockAgent - abcdefg",
+                SafeArg.of("url", clusterUrls),
+                SafeArg.of("clusterMembers", cluster.clusterMembers()));
         return RedirectRetryTargeter.create(localServer, clusterUrls);
     }
 
     /**
      * Creates timestamp and lock services for the given client. It is expected that for each client there should
      * only be (up to) one active timestamp service, and one active lock service at any time.
+     *
      * @param client Client namespace to create the services for
      * @return Invalidating timestamp and lock services
      */
