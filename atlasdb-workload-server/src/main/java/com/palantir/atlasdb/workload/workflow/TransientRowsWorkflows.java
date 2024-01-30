@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -95,7 +96,8 @@ public final class TransientRowsWorkflows {
         protected Optional<WitnessedTransaction> run(InteractiveTransactionStore store, Integer taskIndex) {
             if (taskIndex % configuration.validateEveryNIterations() == 0) {
                 // This is cheeky, as we are not including our reads in our transaction history!
-                List<CrossCellInconsistency> violations = findInconsistencyInFinalIndexState(configuration, store);
+                List<CrossCellInconsistency> violations =
+                        findInconsistencyInIndexStateDuringWorkflow(configuration, store);
 
                 if (!violations.isEmpty()) {
                     recordFailure(violations);
@@ -184,22 +186,36 @@ public final class TransientRowsWorkflows {
         }
     }
 
+    private static List<CrossCellInconsistency> findInconsistencyInIndexStateDuringWorkflow(
+            TransientRowsWorkflowConfiguration configuration, InteractiveTransactionStore store) {
+        List<CrossCellInconsistency> violations = new ArrayList<>();
+        String tableName = configuration.tableConfiguration().tableName();
+        Set<Integer> taskIndices =
+                IntStream.range(0, configuration.iterationCount()).boxed().collect(Collectors.toSet());
+        taskIndices.forEach(index ->
+                store.readWrite(txn -> checkSummaryConsistencyForIndex(violations, txn::read, tableName, index)));
+        return violations;
+    }
+
     private static List<CrossCellInconsistency> findInconsistencyInFinalIndexState(
             TransientRowsWorkflowConfiguration configuration, ReadableTransactionStore store) {
         List<CrossCellInconsistency> violations = new ArrayList<>();
         String tableName = configuration.tableConfiguration().tableName();
         Set<Integer> taskIndices =
                 IntStream.range(0, configuration.iterationCount()).boxed().collect(Collectors.toSet());
-        taskIndices.forEach(index -> checkSummaryConsistencyForIndex(violations, store, tableName, index));
+        taskIndices.forEach(index -> checkSummaryConsistencyForIndex(violations, store::get, tableName, index));
         return violations;
     }
 
     private static void checkSummaryConsistencyForIndex(
-            List<CrossCellInconsistency> violations, ReadableTransactionStore store, String tableName, Integer index) {
+            List<CrossCellInconsistency> violations,
+            BiFunction<String, WorkloadCell, Optional<Integer>> reader,
+            String tableName,
+            Integer index) {
         WorkloadCell primaryCell = ImmutableWorkloadCell.of(index, COLUMN);
-        Optional<Integer> valueFromPrimaryRow = store.get(tableName, primaryCell);
+        Optional<Integer> valueFromPrimaryRow = reader.apply(tableName, primaryCell);
         WorkloadCell summaryCell = ImmutableWorkloadCell.of(SUMMARY_ROW, index);
-        Optional<Integer> valueFromSummaryRow = store.get(tableName, summaryCell);
+        Optional<Integer> valueFromSummaryRow = reader.apply(tableName, summaryCell);
         if (valueFromSummaryRow.isPresent() ^ valueFromPrimaryRow.isPresent()) {
             violations.add(CrossCellInconsistency.builder()
                     .putInconsistentValues(TableAndWorkloadCell.of(tableName, primaryCell), valueFromPrimaryRow)
