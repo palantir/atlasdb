@@ -16,17 +16,15 @@
 
 package com.palantir.atlasdb.http;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.net.HostAndPort;
-import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.net.URL;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
@@ -36,20 +34,23 @@ public final class RedirectRetryTargeter {
     private static final SafeLogger log = SafeLoggerFactory.get(RedirectRetryTargeter.class);
 
     private final List<URL> otherServers;
-    private final BiMap<HostAndPort, URL> urlsToHostAndPort;
+    private final Map<HostAndPort, URL> hostAndPortToUrls;
 
     private RedirectRetryTargeter(List<URL> otherServers) {
         this.otherServers = otherServers;
-        this.urlsToHostAndPort = KeyedStream.of(otherServers)
-                .mapKeys(url -> {
-                    HostAndPort hostAndPort = HostAndPort.fromParts(url.getHost(), url.getPort());
-                    log.info(
-                            "[PDS-469959] RedirectRetryTargeter - init",
-                            SafeArg.of("url", url),
-                            SafeArg.of("hostAndPort", hostAndPort));
-                    return hostAndPort;
-                })
-                .collectTo(HashBiMap::create);
+        // Not using KeyedStream or similar, because we need to provide a merge function.
+        // It's acceptable to pick any URL as long as these are *correct* for the purpose of retry redirection.
+        this.hostAndPortToUrls = otherServers.stream()
+                .collect(Collectors.toMap(
+                        url -> HostAndPort.fromParts(url.getHost(), url.getPort()),
+                        url -> url,
+                        (url1, url2) -> {
+                            log.info(
+                                    "[PDS-469959] RedirectRetryTargeter - duplicate host and port",
+                                    SafeArg.of("url1", url1),
+                                    SafeArg.of("url2", url2));
+                            return url1;
+                        }));
     }
 
     public static RedirectRetryTargeter create(URL localServer, List<URL> clusterUrls) {
@@ -76,7 +77,7 @@ public final class RedirectRetryTargeter {
 
         if (leaderHint.isPresent()) {
             HostAndPort leader = leaderHint.get();
-            return Optional.ofNullable(urlsToHostAndPort.get(leader));
+            return Optional.ofNullable(hostAndPortToUrls.get(leader));
         }
         return Optional.of(otherServers.get(ThreadLocalRandom.current().nextInt(otherServers.size())));
     }
