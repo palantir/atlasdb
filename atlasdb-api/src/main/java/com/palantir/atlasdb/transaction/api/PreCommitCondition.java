@@ -48,8 +48,8 @@ public interface PreCommitCondition {
     /**
      * Checks that the condition is valid at the given timestamp and writes, otherwise throws a
      * {@link TransactionFailedException}. If the condition is not valid, the transaction will not be committed.
-     * This will _only_ be called in write transactions once {@link SnapshotTransaction#commit()} has been called. In all other cases,
-     * {@link #throwIfConditionInvalid(long)} will be called instead.
+     * This will _only_ be called in write transactions once {@link SnapshotTransaction#commit()} has been called.
+     * In all other cases, {@link #throwIfConditionInvalid(long)} will be called instead.
      *
      * This API should not be implemented by users of AtlasDB. It is only intended for internal use, and may be
      * removed or changed at any time.
@@ -58,6 +58,7 @@ public interface PreCommitCondition {
     default void throwIfConditionInvalid(Map<TableReference, ? extends Map<Cell, byte[]>> mutations, long timestamp) {
         throwIfConditionInvalid(timestamp);
     }
+
     /**
      * Cleans up any state managed by this condition, e.g. a lock that should be held for the lifetime of the
      * transaction. Conditions last the lifetime of a particular transaction and will be cleaned up on each retry.
