@@ -42,9 +42,7 @@ public final class RedirectRetryTargeter {
         // It's acceptable to pick any URL as long as these are *correct* for the purpose of retry redirection.
         this.hostAndPortToUrls = otherServers.stream()
                 .collect(Collectors.toMap(
-                        url -> HostAndPort.fromParts(url.getHost(), url.getPort()),
-                        url -> url,
-                        (url1, url2) -> {
+                        url -> HostAndPort.fromParts(url.getHost(), url.getPort()), url -> url, (url1, url2) -> {
                             log.info(
                                     "[PDS-469959] RedirectRetryTargeter - duplicate host and port",
                                     SafeArg.of("url1", url1),
