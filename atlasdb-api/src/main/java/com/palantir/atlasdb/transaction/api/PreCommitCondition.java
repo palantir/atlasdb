@@ -48,7 +48,7 @@ public interface PreCommitCondition {
     /**
      * Checks that the condition is valid at the given timestamp and writes, otherwise throws a
      * {@link TransactionFailedException}. If the condition is not valid, the transaction will not be committed.
-     * This will _only_ be called in write transactions once #commit() has been called. In all other cases,
+     * This will _only_ be called in write transactions once {@link SnapshotTransaction#commit()} has been called. In all other cases,
      * {@link #throwIfConditionInvalid(long)} will be called instead.
      *
      * This API should not be implemented by users of AtlasDB. It is only intended for internal use, and may be
