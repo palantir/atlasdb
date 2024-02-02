@@ -20,7 +20,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.RateLimiter;
-import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.CheckedRejectedExecutionException;
 import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.concurrent.MultiplexingCompletionService;
@@ -287,21 +286,12 @@ public final class SingleLeaderPinger implements LeaderPinger {
             return;
         }
 
-        IllegalStateException exception =
-                new SafeIllegalStateException("There is a fatal problem with the leadership election configuration! "
-                        + "This is probably caused by invalid pref files setting up the cluster "
-                        + "(e.g. for lock server look at lock.prefs, leader.prefs, and lock_client.prefs)."
-                        + "If the preferences are specified with a host port pair list and localhost index "
-                        + "then make sure that the localhost index is correct (e.g. actually the localhost).");
-
         if (cachedService != pingedService) {
-            log.error("Remote potential leaders are claiming to be each other!", exception);
-            throw Throwables.rewrap(exception);
+            throw new SafeIllegalStateException("Remote potential leaders are claiming to be each other!");
         }
 
         if (pingedServiceUuid.equals(localUuid)) {
-            log.error("Remote potential leader is claiming to be you!", exception);
-            throw Throwables.rewrap(exception);
+            throw new SafeIllegalStateException("Remote potential leader is claiming to be you!");
         }
     }
 }

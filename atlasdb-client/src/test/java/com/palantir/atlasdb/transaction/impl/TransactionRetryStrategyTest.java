@@ -101,10 +101,7 @@ public class TransactionRetryStrategyTest {
                 .thenThrow(new TransactionFailedRetriableException("first"))
                 .thenThrow(second)
                 .thenReturn("success");
-        assertThatExceptionOfType(TransactionFailedRetriableException.class)
-                .isThrownBy(this::runExponential)
-                .withMessage("Failing after 2 tries.")
-                .withCause(second);
+        assertThatThrownBy(this::runExponential).isSameAs(second);
         assertThat(blockStrategy.numRetries).isEqualTo(1);
     }
 
@@ -112,21 +109,21 @@ public class TransactionRetryStrategyTest {
     public void doesNotRetryOnNonRetriableTransactionFailedException() throws Exception {
         TransactionFailedNonRetriableException failure = new TransactionFailedNonRetriableException("");
         when(task.run()).thenThrow(failure).thenReturn("success");
-        assertThatThrownBy(this::runExponential).isEqualTo(failure);
+        assertThatThrownBy(this::runExponential).isSameAs(failure);
     }
 
     @Test
     public void rethrowsExceptions() throws Exception {
         Exception exception = new Exception("rethrown");
         when(task.run()).thenThrow(exception);
-        assertThatThrownBy(this::runExponential).isEqualTo(exception);
+        assertThatThrownBy(this::runExponential).isSameAs(exception);
     }
 
     @Test
     public void rethrowsErrors() throws Exception {
         AssertionError error = new AssertionError();
         when(task.run()).thenThrow(error);
-        assertThatThrownBy(this::runExponential).isEqualTo(error);
+        assertThatThrownBy(this::runExponential).isSameAs(error);
     }
 
     @Test

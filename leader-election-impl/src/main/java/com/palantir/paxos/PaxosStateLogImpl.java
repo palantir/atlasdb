@@ -292,7 +292,7 @@ public class PaxosStateLogImpl<V extends Persistable & Versionable> implements P
                         UnsafeArg.of("full path", file.getAbsolutePath()),
                         SafeArg.of("file name", file.getName()),
                         e);
-                throw Throwables.rewrap(e);
+                throw e;
             } finally {
                 IOUtils.closeQuietly(fileIn);
             }
