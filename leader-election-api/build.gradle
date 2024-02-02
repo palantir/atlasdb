@@ -4,6 +4,8 @@ libsDirName = file('build/artifacts')
 
 dependencies {
   api project(":atlasdb-commons")
+  api 'com.palantir.conjure.java:conjure-undertow-annotations'
+
   implementation project(":leader-election-api-protobufs")
   implementation 'org.apache.commons:commons-lang3'
   implementation 'javax.ws.rs:javax.ws.rs-api'
@@ -18,6 +20,7 @@ dependencies {
   implementation 'com.palantir.safe-logging:safe-logging'
   implementation project(':commons-annotations')
 
+  annotationProcessor 'com.palantir.conjure.java:conjure-undertow-processor'
   annotationProcessor 'org.immutables:value'
   compileOnly 'org.immutables:value::annotations'
 }

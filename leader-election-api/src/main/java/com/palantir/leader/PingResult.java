@@ -27,6 +27,7 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutablePingResult.class)
 @JsonDeserialize(as = ImmutablePingResult.class)
 public interface PingResult extends Serializable {
+    // todo(aalouane): double check serialization isn't broken
     boolean isLeader();
 
     /**

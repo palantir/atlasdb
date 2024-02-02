@@ -16,6 +16,8 @@
 package com.palantir.leader;
 
 import com.palantir.atlasdb.metrics.Timed;
+import com.palantir.conjure.java.undertow.annotations.Handle;
+import com.palantir.conjure.java.undertow.annotations.HttpMethod;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -33,6 +35,7 @@ public interface PingableLeader {
     @Path("ping")
     @Produces(MediaType.APPLICATION_JSON)
     @Timed
+    @Handle(method = HttpMethod.GET, path = "/leader/ping")
     boolean ping();
 
     /**
@@ -43,6 +46,7 @@ public interface PingableLeader {
     @Produces(MediaType.TEXT_PLAIN)
     @SuppressWarnings("checkstyle:AbbreviationAsWordInName") // Avoiding API break
     @Timed
+    @Handle(method = HttpMethod.GET, path = "/leader/uuid")
     String getUUID();
 
     /**
@@ -55,5 +59,6 @@ public interface PingableLeader {
     @Path("pingV2")
     @Produces(MediaType.APPLICATION_JSON)
     @Timed
+    @Handle(method = HttpMethod.GET, path = "/leader/pingV2")
     PingResult pingV2();
 }
