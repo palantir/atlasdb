@@ -75,6 +75,7 @@ dependencies {
   implementation project(':lock-api-objects')
   implementation project(':timestamp-api')
 
+
   testImplementation sourceSets.integrationInput.output
   testImplementation 'ch.qos.logback:logback-core'
   testImplementation 'com.google.guava:guava'
