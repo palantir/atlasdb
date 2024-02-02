@@ -7,9 +7,11 @@ dependencies {
   api 'com.palantir.conjure.java:conjure-undertow-annotations'
 
   implementation project(":leader-election-api-protobufs")
-  implementation 'org.apache.commons:commons-lang3'
-  implementation 'javax.ws.rs:javax.ws.rs-api'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
+  implementation 'com.palantir.conjure.java:conjure-undertow-lib'
+  implementation 'org.apache.commons:commons-lang3'
+  implementation 'io.undertow:undertow-core'
+  implementation 'javax.ws.rs:javax.ws.rs-api'
 
   implementation 'com.palantir.sls.versions:sls-versions'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
