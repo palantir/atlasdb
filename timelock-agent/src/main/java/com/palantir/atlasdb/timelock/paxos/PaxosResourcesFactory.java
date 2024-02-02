@@ -111,10 +111,14 @@ public final class PaxosResourcesFactory {
                 .latestRoundVerifierFactory(latestRoundVerifierFactory)
                 .build();
 
+        BatchPingableLeaderResource batchPingableLeader =
+                new BatchPingableLeaderResource(install.nodeUuid(), factory.components());
+
         return resourcesBuilder
                 .leadershipContextFactory(factory)
                 .putLeadershipBatchComponents(PaxosUseCase.LEADER_FOR_EACH_CLIENT, factory.components())
-                .addAdhocResources(new BatchPingableLeaderResource(install.nodeUuid(), factory.components()))
+                .addAdhocResources(batchPingableLeader)
+                .addUndertowServices(BatchPingableLeaderEndpoints.of(batchPingableLeader))
                 .timeLockCorruptionComponents(timeLockCorruptionComponents(install.sqliteDataSource(), remoteClients))
                 .build();
     }
@@ -155,15 +159,19 @@ public final class PaxosResourcesFactory {
         LeaderAcceptorResource leaderAcceptorResource =
                 new LeaderAcceptorResource(factory.components().acceptor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT));
 
+        BatchPingableLeaderResource batchPingableLeader =
+                new BatchPingableLeaderResource(install.nodeUuid(), factory.components());
+
         return resourcesBuilder
                 .leadershipContextFactory(factory)
                 .putLeadershipBatchComponents(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, factory.components())
-                .addAdhocResources(new BatchPingableLeaderResource(install.nodeUuid(), factory.components()))
+                .addAdhocResources(batchPingableLeader)
                 .addAdhocResources(
                         leaderAcceptorResource,
                         new LeaderLearnerResource(factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
                         factory.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT))
                 .addUndertowServices(LeaderAcceptorResourceEndpoints.of(leaderAcceptorResource))
+                .addUndertowServices(BatchPingableLeaderEndpoints.of(batchPingableLeader))
                 .timeLockCorruptionComponents(timeLockCorruptionComponents(install.sqliteDataSource(), remoteClients))
                 .build();
     }
