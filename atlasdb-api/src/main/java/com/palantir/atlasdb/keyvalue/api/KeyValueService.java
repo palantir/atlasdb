@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 import com.google.common.collect.Multimap;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.errorprone.annotations.MustBeClosed;
 import com.palantir.atlasdb.metrics.Timed;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -31,6 +32,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * A service which stores key-value pairs.
@@ -717,5 +719,81 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
         // This is in general True, but we're setting to false to start rollout only for C* of stopping to check for
         // immutable timestamp lock on non empty reads on thoroughly swept tables.
         return false;
+    }
+
+    @DoDelegate
+    default TransactionKeyValueService getTransactionKeyValueService(Supplier<Long> _startTimestampSupplier) {
+        return new TransactionKeyValueService() {
+            @Override
+            public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
+                    TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
+                return KeyValueService.this.getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
+            }
+
+            @Override
+            public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+                return KeyValueService.this.get(tableRef, timestampByCell);
+            }
+
+            @Override
+            public Map<Cell, Value> getRows(
+                    TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+                return KeyValueService.this.getRows(tableRef, rows, columnSelection, timestamp);
+            }
+
+            @Override
+            public RowColumnRangeIterator getRowsColumnRange(
+                    TableReference tableRef,
+                    Iterable<byte[]> rows,
+                    ColumnRangeSelection columnRangeSelection,
+                    int cellBatchHint,
+                    long timestamp) {
+                return KeyValueService.this.getRowsColumnRange(
+                        tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
+            }
+
+            @Override
+            public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
+                    TableReference tableRef,
+                    Iterable<byte[]> rows,
+                    BatchColumnRangeSelection batchColumnRangeSelection,
+                    long timestamp) {
+                return KeyValueService.this.getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, timestamp);
+            }
+
+            @Override
+            @MustBeClosed
+            public ClosableIterator<RowResult<Value>> getRange(
+                    TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
+                return KeyValueService.this.getRange(tableRef, rangeRequest, timestamp);
+            }
+
+            @Override
+            public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+                return KeyValueService.this.getLatestTimestamps(tableRef, timestampByCell);
+            }
+
+            @Override
+            public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
+                    throws KeyAlreadyExistsException {
+                KeyValueService.this.multiPut(valuesByTable, timestamp);
+            }
+
+            @Override
+            public KeyValueService fullApi() {
+                return KeyValueService.this;
+            }
+
+            @Override
+            public ListenableFuture<Map<Cell, Value>> getAsync(
+                    TableReference tableRef, Map<Cell, Long> timestampByCell) {
+                return KeyValueService.this.getAsync(tableRef, timestampByCell);
+            }
+
+            @Override
+            public void close() {
+                KeyValueService.this.close();
+            }
+        };
     }
 }

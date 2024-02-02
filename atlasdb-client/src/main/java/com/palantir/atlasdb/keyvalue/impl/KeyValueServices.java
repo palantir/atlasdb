@@ -25,6 +25,7 @@ import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
+import com.palantir.atlasdb.keyvalue.api.AsyncTransactionKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -35,6 +36,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TransactionKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
@@ -220,6 +222,22 @@ public final class KeyValueServices {
      */
     public static AsyncKeyValueService synchronousAsAsyncKeyValueService(KeyValueService keyValueService) {
         return new AsyncKeyValueService() {
+            @Override
+            public ListenableFuture<Map<Cell, Value>> getAsync(
+                    TableReference tableRef, Map<Cell, Long> timestampByCell) {
+                return Futures.immediateFuture(keyValueService.get(tableRef, timestampByCell));
+            }
+
+            @Override
+            public void close() {
+                // NoOp
+            }
+        };
+    }
+
+    public static AsyncTransactionKeyValueService synchronousAsAsyncKeyValueService(
+            TransactionKeyValueService keyValueService) {
+        return new AsyncTransactionKeyValueService() {
             @Override
             public ListenableFuture<Map<Cell, Value>> getAsync(
                     TableReference tableRef, Map<Cell, Long> timestampByCell) {

@@ -59,8 +59,8 @@ public class GetRowsColumnRangeIteratorTest {
             BatchColumnRangeSelection.create(null, null, BATCH_SIZE);
 
     private final KeyValueService kvs = new InMemoryKeyValueService(true);
-    private final ColumnRangeBatchProvider batchProvider =
-            new ColumnRangeBatchProvider(kvs, TABLE_REFERENCE, ROW, COLUMN_RANGE_SELECTION, Long.MAX_VALUE);
+    private final ColumnRangeBatchProvider batchProvider = new ColumnRangeBatchProvider(
+            kvs.getTransactionKeyValueService(() -> 1L), TABLE_REFERENCE, ROW, COLUMN_RANGE_SELECTION, Long.MAX_VALUE);
 
     @Test
     public void ifBatchIsEmptyNoValidateCallsAreMade() {
