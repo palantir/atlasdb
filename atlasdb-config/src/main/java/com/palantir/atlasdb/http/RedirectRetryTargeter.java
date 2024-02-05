@@ -44,6 +44,7 @@ public final class RedirectRetryTargeter {
                         url -> HostAndPort.fromParts(url.getHost(), url.getPort()), url -> url, (url1, url2) -> {
                             log.info(
                                     "Duplicate host and port. Keeping the first URL.",
+                                    // Safe because they come from config
                                     SafeArg.of("url1", url1),
                                     SafeArg.of("url2", url2));
                             return url1;
