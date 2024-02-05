@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import one.util.streamex.EntryStream;
 
 public class RetryableCassandraRequest<V, K extends Exception> {
     private final CassandraServer cassandraServer;
@@ -80,6 +81,10 @@ public class RetryableCassandraRequest<V, K extends Exception> {
     }
 
     public AtlasDbDependencyException throwLimitReached() {
-        throw new RetryLimitReachedException(encounteredExceptions);
+        throw new RetryLimitReachedException(
+                encounteredExceptions,
+                EntryStream.of(triedHosts)
+                        .mapKeys(CassandraServer::cassandraHostName)
+                        .toMap());
     }
 }
