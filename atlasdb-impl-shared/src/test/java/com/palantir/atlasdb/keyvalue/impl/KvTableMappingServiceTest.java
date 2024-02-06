@@ -40,6 +40,7 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,8 +50,12 @@ public class KvTableMappingServiceTest {
     private static final TableReference FQ_TABLE2 = TableReference.createFromFullyQualifiedName("test2.test2");
     private static final TableReference FQ_TABLE3 = TableReference.createFromFullyQualifiedName("test3.test3");
     private static final TableReference TABLE_EMPTY_NAMESPACE = TableReference.createWithEmptyNamespace("test");
-    private static final TableReference UNCACHEABLE_TABLE =
+    private static final TableReference UNCACHEABLE_TABLE_1 =
             TableReference.createFromFullyQualifiedName("cant.cachethis");
+    private static final TableReference UNCACHEABLE_TABLE_2 =
+            TableReference.createFromFullyQualifiedName("cant.cachethistoo");
+    private static final Set<TableReference> UNCACHEABLE_TABLES =
+            ImmutableSet.of(UNCACHEABLE_TABLE_1, UNCACHEABLE_TABLE_2);
 
     private AtomicLong counter;
     private KeyValueService kvs;
@@ -238,62 +243,117 @@ public class KvTableMappingServiceTest {
 
     @Test
     public void loadingUncacheableTableLoadsDirectlyFromTheKvsOnEachCall() throws TableMappingNotFoundException {
-        tableMapping.addTable(UNCACHEABLE_TABLE);
-
-        TableReference mappedUncacheableTable = tableMapping.getMappedTableName(UNCACHEABLE_TABLE);
-        int additionalIterations = 100;
-        for (int iteration = 0; iteration < additionalIterations; iteration++) {
-            assertThat(tableMapping.getMappedTableName(UNCACHEABLE_TABLE)).isEqualTo(mappedUncacheableTable);
+        TableReference mappedUncacheableTable = tableMapping.addTable(UNCACHEABLE_TABLE_1);
+        int queryIterations = 100;
+        for (int iteration = 0; iteration < queryIterations; iteration++) {
+            assertThat(tableMapping.getMappedTableName(UNCACHEABLE_TABLE_1)).isEqualTo(mappedUncacheableTable);
         }
 
-        verify(kvs, times(1 + additionalIterations)).get(eq(AtlasDbConstants.NAMESPACE_TABLE), any());
+        verify(kvs, times(queryIterations)).get(eq(AtlasDbConstants.NAMESPACE_TABLE), any());
     }
 
     @Test
     public void loadingUncacheableTableDetectsEntryModifiedInKvsUnderneathUs() throws TableMappingNotFoundException {
-        tableMapping.addTable(UNCACHEABLE_TABLE);
-        TableReference mappedTableFromOriginalService = tableMapping.getMappedTableName(UNCACHEABLE_TABLE);
+        TableReference mappedTableFromOriginalService = tableMapping.addTable(UNCACHEABLE_TABLE_1);
 
         TableMappingService anotherService = createTableMappingService();
-        anotherService.removeTable(UNCACHEABLE_TABLE);
-        anotherService.addTable(UNCACHEABLE_TABLE);
+        anotherService.removeTable(UNCACHEABLE_TABLE_1);
+        anotherService.addTable(UNCACHEABLE_TABLE_1);
 
-        TableReference mappedTableFromAnotherService = anotherService.getMappedTableName(UNCACHEABLE_TABLE);
+        TableReference mappedTableFromAnotherService = anotherService.getMappedTableName(UNCACHEABLE_TABLE_1);
         assertThat(mappedTableFromAnotherService)
                 .as("two table mapping services with the same counter should generate different short names")
                 .isNotEqualTo(mappedTableFromOriginalService);
 
-        assertThat(tableMapping.getMappedTableName(UNCACHEABLE_TABLE))
+        assertThat(tableMapping.getMappedTableName(UNCACHEABLE_TABLE_1))
                 .as("we should reload the mapping from the KVS and detect that it was changed underneath us")
                 .isEqualTo(mappedTableFromAnotherService);
     }
 
     @Test
     public void loadingUncacheableTableDetectsEntryDeletedInKvsUnderneathUs() {
-        tableMapping.addTable(UNCACHEABLE_TABLE);
+        tableMapping.addTable(UNCACHEABLE_TABLE_1);
 
         TableMappingService anotherService = createTableMappingService();
-        anotherService.removeTable(UNCACHEABLE_TABLE);
-        assertThatThrownBy(() -> tableMapping.getMappedTableName(UNCACHEABLE_TABLE))
+        anotherService.removeTable(UNCACHEABLE_TABLE_1);
+        assertThatThrownBy(() -> tableMapping.getMappedTableName(UNCACHEABLE_TABLE_1))
                 .isInstanceOf(TableMappingNotFoundException.class)
-                .hasMessage("Unable to resolve mapping for table reference " + UNCACHEABLE_TABLE);
+                .hasMessage("Unable to resolve mapping for table reference " + UNCACHEABLE_TABLE_1);
     }
 
     @Test
     public void loadingUncacheableTableDoesNotInvalidateCacheForCacheableTables() throws TableMappingNotFoundException {
-        tableMapping.addTable(UNCACHEABLE_TABLE);
-
+        TableReference mappedUncacheableTable = tableMapping.addTable(UNCACHEABLE_TABLE_1);
         TableReference mappedBaseTable = tableMapping.getMappedTableName(FQ_TABLE);
-        TableReference mappedUncacheableTable = tableMapping.getMappedTableName(UNCACHEABLE_TABLE);
-        int additionalIterations = 100;
-        for (int iteration = 0; iteration < additionalIterations; iteration++) {
+        int queryIterations = 100;
+        for (int iteration = 0; iteration < queryIterations; iteration++) {
             assertThat(tableMapping.getMappedTableName(FQ_TABLE)).isEqualTo(mappedBaseTable);
-            assertThat(tableMapping.getMappedTableName(UNCACHEABLE_TABLE)).isEqualTo(mappedUncacheableTable);
+            assertThat(tableMapping.getMappedTableName(UNCACHEABLE_TABLE_1)).isEqualTo(mappedUncacheableTable);
         }
 
-        verify(kvs, times(1 + additionalIterations)).get(eq(AtlasDbConstants.NAMESPACE_TABLE), any());
-        // Once on startup (where it's empty), and once on the first query (loading everything!), but not after that.
+        verify(kvs, times(queryIterations)).get(eq(AtlasDbConstants.NAMESPACE_TABLE), any());
+        // Once on startup (where it's empty), and once on the first query, but not after that.
         verify(kvs, times(2)).getRange(eq(AtlasDbConstants.NAMESPACE_TABLE), any(), anyLong());
+    }
+
+    @Test
+    public void mapToShortTableNamesMapsFullyQualifiedNamesToShortNames() throws TableMappingNotFoundException {
+        tableMapping.addTable(FQ_TABLE2);
+
+        Map<TableReference, Integer> shortTableNamesAsKeys = tableMapping.mapToShortTableNames(ImmutableMap.of(
+                FQ_TABLE, 1,
+                FQ_TABLE2, 2));
+        assertThat(shortTableNamesAsKeys)
+                .isEqualTo(ImmutableMap.of(
+                        tableMapping.getMappedTableName(FQ_TABLE), 1,
+                        tableMapping.getMappedTableName(FQ_TABLE2), 2));
+    }
+
+    @Test
+    public void mapToShortTableNamesThrowsIfKeyNotFoundInTableMap() {
+        assertThatThrownBy(() -> tableMapping.mapToShortTableNames(ImmutableMap.of(FQ_TABLE, 1, FQ_TABLE2, 2)))
+                .isInstanceOf(TableMappingNotFoundException.class)
+                .hasMessage("Unable to resolve mapping for table reference " + FQ_TABLE2);
+    }
+
+    @Test
+    public void mapToShortTableNamesReadsFromCache() throws TableMappingNotFoundException {
+        TableReference mappedTableTwo = tableMapping.addTable(FQ_TABLE2);
+        TableReference mappedTableThree = tableMapping.addTable(FQ_TABLE3);
+
+        int queryIterations = 100;
+        for (int iteration = 0; iteration < queryIterations; iteration++) {
+            assertThat(tableMapping.mapToShortTableNames(ImmutableMap.of(FQ_TABLE2, 2, FQ_TABLE3, 3)))
+                    .isEqualTo(ImmutableMap.of(mappedTableTwo, 2, mappedTableThree, 3));
+        }
+
+        // Once on startup (where it's empty), and once on the first query, but not after that.
+        verify(kvs, times(2)).getRange(eq(AtlasDbConstants.NAMESPACE_TABLE), any(), anyLong());
+    }
+
+    @Test
+    public void mapToShortTableNamesConsultsKeyValueServiceForUncacheableTables() throws TableMappingNotFoundException {
+        tableMapping.addTable(UNCACHEABLE_TABLE_1);
+        tableMapping.addTable(UNCACHEABLE_TABLE_2);
+
+        TableMappingService anotherService = createTableMappingService();
+        anotherService.removeTable(UNCACHEABLE_TABLE_1);
+        TableReference newMappedUncacheableTableOne = anotherService.addTable(UNCACHEABLE_TABLE_1);
+        anotherService.removeTable(UNCACHEABLE_TABLE_2);
+        TableReference newMappedUncacheableTableTwo = anotherService.addTable(UNCACHEABLE_TABLE_2);
+
+        Map<TableReference, Integer> shortTableNamesAsKeys = tableMapping.mapToShortTableNames(ImmutableMap.of(
+                FQ_TABLE, 1,
+                UNCACHEABLE_TABLE_1, 2,
+                UNCACHEABLE_TABLE_2, 3));
+        assertThat(shortTableNamesAsKeys)
+                .isEqualTo(ImmutableMap.of(
+                        tableMapping.getMappedTableName(FQ_TABLE),
+                        1,
+                        newMappedUncacheableTableOne,
+                        2,
+                        newMappedUncacheableTableTwo,
+                        3));
     }
 
     private static TableReference shortTableRefForNumber(long sequenceNumber) {
@@ -312,7 +372,7 @@ public class KvTableMappingServiceTest {
                 counter::incrementAndGet,
                 Namespace.STRICTLY_CHECKED_NAME,
                 ImmutableTableMappingCacheConfiguration.builder()
-                        .cacheableTablePredicate(tableRef -> !tableRef.equals(UNCACHEABLE_TABLE))
+                        .cacheableTablePredicate(tableRef -> !UNCACHEABLE_TABLES.contains(tableRef))
                         .build());
     }
 }
