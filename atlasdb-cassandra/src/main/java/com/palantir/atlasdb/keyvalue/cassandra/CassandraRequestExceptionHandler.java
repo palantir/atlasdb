@@ -109,7 +109,11 @@ class CassandraRequestExceptionHandler {
     }
 
     private static AtlasDbDependencyException logAndThrowException(
-            int numberOfAttempts, int numberOfAttemptsOnHost, Exception ex, CassandraServer serverTried, RetryableCassandraRequest<?, ?> req) {
+            int numberOfAttempts,
+            int numberOfAttemptsOnHost,
+            Exception ex,
+            CassandraServer serverTried,
+            RetryableCassandraRequest<?, ?> req) {
         log.warn(
                 "Tried to connect to cassandra {} times. Exception message was: {} : {}",
                 SafeArg.of("numTries", numberOfAttempts),
