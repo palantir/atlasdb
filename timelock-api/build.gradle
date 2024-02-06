@@ -9,11 +9,17 @@ dependencies {
 
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.google.errorprone:error_prone_annotations'
+    implementation 'com.google.guava:guava'
 
     testImplementation project(':atlasdb-api')
     testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'com.palantir.conjure.java:conjure-lib'
+    testImplementation 'com.palantir.safe-logging:preconditions'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api'
+    testImplementation project(':timelock-api:timelock-api-objects')
 }
 
 subprojects {

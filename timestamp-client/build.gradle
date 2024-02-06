@@ -19,8 +19,10 @@ dependencies {
   testCompileOnly 'org.immutables:value::annotations'
 
   testImplementation 'com.palantir.tracing:tracing'
+  testImplementation 'com.palantir.tritium:tritium-registry'
   testImplementation 'org.assertj:assertj-core'
-  testImplementation 'org.mockito:mockito-core'
   testImplementation 'org.junit.jupiter:junit-jupiter'
+  testImplementation 'org.junit.jupiter:junit-jupiter-api'
   testImplementation 'org.mockito:mockito-junit-jupiter'
+  testImplementation 'org.mockito:mockito-core'
 }

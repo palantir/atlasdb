@@ -19,11 +19,12 @@ dependencies {
   runtimeOnly 'com.oracle.database.jdbc:ojdbc11'
   runtimeOnly 'org.postgresql:postgresql'
 
-  testImplementation 'org.assertj:assertj-core'
-  testImplementation 'org.mockito:mockito-core'
   testImplementation 'com.google.guava:guava'
   testImplementation 'com.palantir.safe-logging:preconditions'
+  testImplementation 'org.assertj:assertj-core'
   testImplementation 'org.junit.jupiter:junit-jupiter'
+  testImplementation 'org.junit.jupiter:junit-jupiter-api'
+  testImplementation 'org.mockito:mockito-core'
 
   annotationProcessor 'org.immutables:value'
   compileOnly 'org.immutables:value::annotations'

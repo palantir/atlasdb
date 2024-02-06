@@ -30,6 +30,8 @@ dependencies {
   testImplementation 'uk.org.lidalia:slf4j-test'
   testImplementation 'org.junit.jupiter:junit-jupiter'
   testImplementation 'org.mockito:mockito-junit-jupiter'
+  testImplementation 'org.junit.jupiter:junit-jupiter-api'
+
   testImplementation project(":flake-extension")
   testImplementation project(':commons-executors')
   testImplementation project(':lock-api-objects')

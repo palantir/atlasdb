@@ -10,6 +10,7 @@ dependencies {
   implementation 'javax.ws.rs:javax.ws.rs-api'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
 
+  implementation 'com.palantir.conjure.java:conjure-undertow-lib'
   implementation 'com.palantir.sls.versions:sls-versions'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'com.google.errorprone:error_prone_annotations'
@@ -17,6 +18,7 @@ dependencies {
   implementation 'com.google.protobuf:protobuf-java'
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'
+  implementation 'io.undertow:undertow-core'
   implementation project(':commons-annotations')
 
   annotationProcessor 'com.palantir.conjure.java:conjure-undertow-processor'

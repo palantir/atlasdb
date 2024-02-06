@@ -157,25 +157,25 @@ public final class PaxosResourcesFactory {
                 .latestRoundVerifierFactory(latestRoundVerifierFactory)
                 .build();
 
-        BatchPingableLeaderResource batchPingableLeader =
-                new BatchPingableLeaderResource(install.nodeUuid(), factory.components());
-
         LeaderAcceptorResource leaderAcceptorResource =
                 new LeaderAcceptorResource(factory.components().acceptor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT));
 
         PingableLeader pingableLeader = factory.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT);
 
+        BatchPingableLeaderResource batchPingableLeader =
+                new BatchPingableLeaderResource(install.nodeUuid(), factory.components());
+
         return resourcesBuilder
                 .leadershipContextFactory(factory)
                 .putLeadershipBatchComponents(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, factory.components())
-                .addAdhocResources(batchPingableLeader)
                 .addAdhocResources(leaderAcceptorResource)
                 .addAdhocResources(pingableLeader)
+                .addAdhocResources(batchPingableLeader)
                 .addAdhocResources(
                         new LeaderLearnerResource(factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)))
-                .addUndertowServices(BatchPingableLeaderEndpoints.of(batchPingableLeader))
                 .addUndertowServices(LeaderAcceptorResourceEndpoints.of(leaderAcceptorResource))
                 .addUndertowServices(PingableLeaderEndpoints.of(pingableLeader))
+                .addUndertowServices(BatchPingableLeaderEndpoints.of(batchPingableLeader))
                 .timeLockCorruptionComponents(timeLockCorruptionComponents(install.sqliteDataSource(), remoteClients))
                 .build();
     }

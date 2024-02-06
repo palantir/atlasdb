@@ -27,6 +27,8 @@ dependencies {
     testImplementation 'com.google.errorprone:error_prone_annotations'
     testImplementation 'com.google.guava:guava'
     testImplementation 'com.palantir.safe-logging:preconditions-assertj'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params'
 
     annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'
