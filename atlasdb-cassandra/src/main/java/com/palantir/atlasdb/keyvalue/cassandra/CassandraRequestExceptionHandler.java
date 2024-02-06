@@ -83,7 +83,7 @@ class CassandraRequestExceptionHandler {
         int numberOfAttemptsOnHost = req.getNumberOfAttemptsOnHost(serverTried);
 
         if (numberOfAttempts >= maxTriesTotal.get()) {
-            throw logAndThrowException(numberOfAttempts, ex, serverTried, req);
+            throw logAndThrowException(numberOfAttempts, numberOfAttemptsOnHost, ex, serverTried, req);
         }
 
         if (shouldBlacklist(ex, numberOfAttemptsOnHost)) {
@@ -109,10 +109,11 @@ class CassandraRequestExceptionHandler {
     }
 
     private static AtlasDbDependencyException logAndThrowException(
-            int numberOfAttempts, Exception ex, CassandraServer serverTried, RetryableCassandraRequest<?, ?> req) {
+            int numberOfAttempts, int numberOfAttemptsOnHost, Exception ex, CassandraServer serverTried, RetryableCassandraRequest<?, ?> req) {
         log.warn(
                 "Tried to connect to cassandra {} times. Exception message was: {} : {}",
                 SafeArg.of("numTries", numberOfAttempts),
+                SafeArg.of("numTriesOnHost", numberOfAttemptsOnHost),
                 SafeArg.of("exceptionClass", ex.getClass().getTypeName()),
                 SafeArg.of("serverHostNameTried", serverTried.cassandraHostName()),
                 UnsafeArg.of("exceptionMessage", ex.getMessage()));
