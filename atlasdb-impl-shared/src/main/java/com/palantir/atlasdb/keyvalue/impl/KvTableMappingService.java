@@ -48,8 +48,6 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -64,7 +62,6 @@ import java.util.regex.Pattern;
 import org.apache.commons.lang3.Validate;
 
 public class KvTableMappingService implements TableMappingService {
-    private static final SafeLogger log = SafeLoggerFactory.get(KvTableMappingService.class);
 
     public static final TableMetadata NAMESPACE_TABLE_METADATA = TableMetadata.internal()
             .rowMetadata(NameMetadataDescription.create(ImmutableList.of(
@@ -258,7 +255,12 @@ public class KvTableMappingService implements TableMappingService {
             if (inputName.isFullyQualifiedName()) {
                 shortToFullTableName.put(inputName, inputName);
             } else if (reverseTableMapSnapshot.containsKey(inputName)) {
-                shortToFullTableName.put(inputName, reverseTableMapSnapshot.get(inputName));
+                TableReference fullName = reverseTableMapSnapshot.get(inputName);
+                if (cacheableTablePredicate.test(fullName)) {
+                    shortToFullTableName.put(inputName, fullName);
+                } else {
+                    tablesToReload.add(inputName);
+                }
             } else if (unmappedTables.contains(inputName)) {
                 shortToFullTableName.put(inputName, inputName);
             } else {

@@ -20,12 +20,15 @@ import java.util.function.Predicate;
 import org.immutables.value.Value;
 
 /**
- * Indicates how the table mapping cache should be configured. This is to account for tables that no longer
+ * Indicates how the table mapping cache should be configured. This is to account for dynamic tables, for which caching
+ * table mapping lookups may be unsafe.
  */
 @Value.Immutable(singleton = true)
 public interface TableMappingCacheConfiguration {
     /**
-     * A predicate indicating whether tables should be cached.
+     * A predicate indicating whether the table mapping for these *fully qualified* table names should be cached.
+     * Users with dynamic tables that may be deleted and re-created should treat these tables as non-cacheable, so that
+     * the latest table mapping will be loaded from the database on each pertinent query.
      */
     @Value.Default
     default Predicate<TableReference> cacheableTablePredicate() {
