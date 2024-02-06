@@ -201,15 +201,15 @@ public class KvTableMappingService implements TableMappingService {
     }
 
     private TableReference getMappedTableRef(TableReference tableRef) throws TableMappingNotFoundException {
-        if (!cacheableTablePredicate.test(tableRef)) {
+        if (cacheableTablePredicate.test(tableRef)) {
+            return getMappedTableRefThroughCache(tableRef);
+        } else {
             Map<Cell, Value> entryForTable = kvs.get(
                     AtlasDbConstants.NAMESPACE_TABLE, ImmutableMap.of(getKeyCellForTable(tableRef), Long.MAX_VALUE));
             return Optional.ofNullable(entryForTable.get(getKeyCellForTable(tableRef)))
                     .map(row -> TableReference.createWithEmptyNamespace(PtBytes.toString(row.getContents())))
                     .orElseThrow(() -> new TableMappingNotFoundException(
                             "Unable to resolve mapping for table reference " + tableRef));
-        } else {
-            return getMappedTableRefThroughCache(tableRef);
         }
     }
 
