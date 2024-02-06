@@ -256,12 +256,13 @@ public class KvTableMappingServiceTest {
 
     @Test
     public void loadingTableNamesIntoCacheAppliesAcrossDistinctCacheableTables() throws TableMappingNotFoundException {
-        tableMapping.addTable(FQ_TABLE2);
-        tableMapping.addTable(FQ_TABLE3);
-
+        // This ordering looks strange but is intentional: we need to add the new tables before calling get
+        TableReference mappedTableTwo = tableMapping.addTable(FQ_TABLE2);
+        TableReference mappedTableThree = tableMapping.addTable(FQ_TABLE3);
         TableReference mappedTableOne = tableMapping.getMappedTableName(FQ_TABLE);
-        TableReference mappedTableTwo = tableMapping.getMappedTableName(FQ_TABLE2);
-        TableReference mappedTableThree = tableMapping.getMappedTableName(FQ_TABLE3);
+
+        assertThat(tableMapping.getMappedTableName(FQ_TABLE2)).isEqualTo(mappedTableTwo);
+        assertThat(tableMapping.getMappedTableName(FQ_TABLE3)).isEqualTo(mappedTableThree);
 
         assertThat(ImmutableSet.of(mappedTableOne, mappedTableTwo, mappedTableThree))
                 .as("mapped tables should all be different")
