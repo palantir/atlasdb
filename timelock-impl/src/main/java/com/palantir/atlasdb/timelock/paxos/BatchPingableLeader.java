@@ -68,7 +68,7 @@ public interface BatchPingableLeader {
     @Path("uuid")
     @Produces(MediaType.APPLICATION_JSON)
     @Handle(
-            method = HttpMethod.POST,
+            method = HttpMethod.GET,
             path = "/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
                     + "/" + PaxosTimeLockConstants.MULTI_LEADER_PAXOS_NAMESPACE
                     + "/" + PaxosTimeLockConstants.BATCH_INTERNAL_NAMESPACE
