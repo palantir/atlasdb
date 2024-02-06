@@ -147,7 +147,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
 
         new AntithesisWorkflowValidatorRunner(new DefaultWorkflowRunner(
                         MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService)))
-                .run(selectWorkflowsToRun(configuration, allWorkflowsAndInvariants));
+                .run(() -> selectWorkflowsToRun(configuration, allWorkflowsAndInvariants));
 
         log.info("Finished running desired workflows successfully");
         log.info("antithesis: terminate");
