@@ -16,7 +16,10 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.palantir.conjure.java.undertow.annotations.Handle;
+import com.palantir.conjure.java.undertow.annotations.HttpMethod;
 import com.palantir.leader.PingableLeader;
+import com.palantir.logsafe.Safe;
 import com.palantir.paxos.Client;
 import java.util.Set;
 import java.util.UUID;
@@ -46,7 +49,13 @@ public interface BatchPingableLeader {
     @Path("ping")
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    Set<Client> ping(Set<Client> clients);
+    @Handle(
+            method = HttpMethod.POST,
+            path = "/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
+                    + "/" + PaxosTimeLockConstants.MULTI_LEADER_PAXOS_NAMESPACE
+                    + "/" + PaxosTimeLockConstants.BATCH_INTERNAL_NAMESPACE
+                    + "/leader/ping")
+    Set<Client> ping(@Safe @Handle.Body Set<Client> clients);
 
     /**
      * Re-exported version of {@link PingableLeader#getUUID}. Returns unique leadership identifier for the remote
@@ -58,5 +67,11 @@ public interface BatchPingableLeader {
     @GET
     @Path("uuid")
     @Produces(MediaType.APPLICATION_JSON)
+    @Handle(
+            method = HttpMethod.POST,
+            path = "/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
+                    + "/" + PaxosTimeLockConstants.MULTI_LEADER_PAXOS_NAMESPACE
+                    + "/" + PaxosTimeLockConstants.BATCH_INTERNAL_NAMESPACE
+                    + "/leader/uuid")
     UUID uuid();
 }
