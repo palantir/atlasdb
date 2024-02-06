@@ -31,6 +31,7 @@ import com.palantir.atlasdb.workload.background.BackgroundCassandraJob;
 import com.palantir.atlasdb.workload.config.WorkloadServerConfiguration;
 import com.palantir.atlasdb.workload.invariant.DurableWritesInvariantMetricReporter;
 import com.palantir.atlasdb.workload.invariant.SerializableInvariantLogReporter;
+import com.palantir.atlasdb.workload.logging.LoggingUtils;
 import com.palantir.atlasdb.workload.resource.AntithesisCassandraSidecarResource;
 import com.palantir.atlasdb.workload.runner.AntithesisWorkflowValidatorRunner;
 import com.palantir.atlasdb.workload.runner.DefaultWorkflowRunner;
@@ -106,6 +107,10 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
     @Override
     public void run(WorkloadServerConfiguration configuration, Environment environment) {
         environment.getObjectMapper().registerModule(new Jdk8Module()).registerModule(new JavaTimeModule());
+
+        // Important to make sure we can control when Antithesis fuzzer kicks in. We need to make sure it's logged
+        // before we actually try to choose the workflows to be run.
+        LoggingUtils.setSynchronousLogging();
 
         scheduleBackgroundJobs(environment);
 
