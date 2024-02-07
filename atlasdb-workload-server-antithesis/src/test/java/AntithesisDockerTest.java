@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -52,27 +53,37 @@ public class AntithesisDockerTest {
 
         String successMessage = "Finished running desired workflows successfully";
         String failureMessage = "Workflow will now exit.";
+        AtomicReference<String> logs = new AtomicReference<>("");
 
-        Awaitility.await()
-                .atMost(Duration.ofMinutes(5))
-                .pollInterval(Duration.ofSeconds(10))
-                .until(() -> {
-                    OutputStream logStream = new ByteArrayOutputStream();
-                    dockerComposeExtension
-                            .dockerComposeExecutable()
-                            .execute("logs", "workload-server")
-                            .getInputStream()
-                            .transferTo(logStream);
+        try {
+            Awaitility.await()
+                    .atMost(Duration.ofMinutes(5))
+                    .pollInterval(Duration.ofSeconds(10))
+                    .until(() -> {
+                        OutputStream logStream = new ByteArrayOutputStream();
+                        dockerComposeExtension
+                                .dockerComposeExecutable()
+                                .execute("logs", "workload-server")
+                                .getInputStream()
+                                .transferTo(logStream);
 
-                    String logs = logStream.toString();
+                        String logsSoFar = logStream.toString();
+                        logs.set(logsSoFar);
 
-                    if (logs.contains(successMessage)) {
-                        hasRunSuccessfully.set(true);
-                        return true;
-                    }
+                        if (logsSoFar.contains(successMessage)) {
+                            hasRunSuccessfully.set(true);
+                            return true;
+                        }
 
-                    return logs.contains(failureMessage);
-                });
+                        return logsSoFar.contains(failureMessage);
+                    });
+        } catch (Exception e) {
+            hasRunSuccessfully.set(false);
+        }
+
+        // This can be inferred from hasRunSuccessfully, but explicitly recheck here so logs readily available to be
+        // consumed when this test fails.
+        assertThat(logs.get()).contains(successMessage);
 
         assertThat(hasRunSuccessfully.get()).isTrue();
     }
