@@ -201,6 +201,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 configuration.install().writeOnceDeleteOnceConfig();
 
         waitForTransactionStoreFactoryToBeInitialized(transactionStoreFactory);
+        transactionStoreFactory.fastForwardTimestampToSupportTransactions3();
 
         return new ArrayList<>(List.of(
                 createSingleRowTwoCellsWorkflowValidator(
