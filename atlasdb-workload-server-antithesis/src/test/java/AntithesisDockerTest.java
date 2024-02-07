@@ -23,7 +23,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.time.Duration;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
@@ -49,10 +48,14 @@ public class AntithesisDockerTest {
 
     @Test
     public void workloadServerHasRunDesiredWorkflowsSuccessfully() {
-        AtomicBoolean hasRunSuccessfully = new AtomicBoolean(false);
-
         String successMessage = "Finished running desired workflows successfully";
         String failureMessage = "Workflow will now exit.";
+
+        String logs = waitUntilDockerComposeSucceededOrFailedAndGetLogs(successMessage, failureMessage);
+        assertThat(logs).contains(successMessage);
+    }
+
+    private String waitUntilDockerComposeSucceededOrFailedAndGetLogs(String successMessage, String failureMessage) {
         AtomicReference<String> logs = new AtomicReference<>("");
 
         try {
@@ -71,19 +74,16 @@ public class AntithesisDockerTest {
                         logs.set(logsSoFar);
 
                         if (logsSoFar.contains(successMessage)) {
-                            hasRunSuccessfully.set(true);
                             return true;
                         }
 
                         return logsSoFar.contains(failureMessage);
                     });
-        } catch (Exception e) {
-            hasRunSuccessfully.set(false);
+        } catch (Exception _e) {
+            // We just don't want the test to fail here, otherwise we won't be able to see the logs and understand what
+            // happened.
         }
 
-        // This can be inferred from hasRunSuccessfully, but explicitly recheck here so logs readily available to be
-        // consumed when this test fails.
-        assertThat(logs.get()).contains(successMessage);
-        assertThat(hasRunSuccessfully.get()).isTrue();
+        return logs.get();
     }
 }
