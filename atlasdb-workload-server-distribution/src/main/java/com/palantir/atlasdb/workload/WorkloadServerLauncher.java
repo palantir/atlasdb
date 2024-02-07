@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.buggify.impl.DefaultBuggifyFactory;
 import com.palantir.atlasdb.buggify.impl.DefaultNativeSamplingSecureRandomFactory;
+import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.workload.background.BackgroundCassandraJob;
@@ -207,6 +208,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
 
         waitForTransactionStoreFactoryToBeInitialized(transactionStoreFactory);
 
+        fastForwardTimestampToSupportTransactions3(transactionStoreFactory.transactionManager());
+
         return new ArrayList<>(List.of(
                 createSingleRowTwoCellsWorkflowValidator(
                         transactionStoreFactory, singleRowTwoCellsConfig, environment.lifecycle()),
@@ -224,6 +227,13 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 createRandomWorkflow(transactionStoreFactory, randomWorkflowConfig, environment.lifecycle()),
                 createWriteOnceDeleteOnceWorkflow(
                         transactionStoreFactory, writeOnceDeleteOnceConfig, environment.lifecycle())));
+    }
+
+    private static void fastForwardTimestampToSupportTransactions3(TransactionManager transactionManager) {
+        long currentTimestamp = transactionManager.getTimestampService().getFreshTimestamp();
+        long guaranteedTransaction3Timestamp = currentTimestamp + 10_000_000;
+
+        transactionManager.getTimestampManagementService().fastForwardTimestamp(guaranteedTransaction3Timestamp);
     }
 
     private static void waitForTransactionStoreFactoryToBeInitialized(AtlasDbTransactionStoreFactory factory) {
