@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.workload.logging;
 
+// CHECKSTYLE:OFF: BanLoggingImplementations
 import ch.qos.logback.classic.AsyncAppender;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
