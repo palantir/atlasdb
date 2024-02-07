@@ -18,6 +18,8 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import com.palantir.atlasdb.metrics.Timed;
 import com.palantir.common.annotation.Inclusive;
+import com.palantir.conjure.java.undertow.annotations.Handle;
+import com.palantir.conjure.java.undertow.annotations.HttpMethod;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.paxos.PaxosValue;
 import java.util.Collection;
@@ -48,7 +50,12 @@ public class LeaderLearnerResource {
     @Path("learn/{seq:.+}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Timed
-    public void learn(@PathParam("seq") long seq, PaxosValue val) {
+    @Handle(
+            method = HttpMethod.POST,
+            path = "/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
+                    + "/" + PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE
+                    + "/learner/learn/{seq}")
+    public void learn(@PathParam("seq") @Handle.PathParam long seq, @Handle.Body PaxosValue val) {
         learner.learn(seq, val);
     }
 
@@ -56,7 +63,12 @@ public class LeaderLearnerResource {
     @Path("learned-value/{seq:.+}")
     @Produces(MediaType.APPLICATION_JSON)
     @Timed
-    public Optional<PaxosValue> getLearnedValue(@PathParam("seq") long seq) {
+    @Handle(
+            method = HttpMethod.GET,
+            path = "/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
+                    + "/" + PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE
+                    + "/learner/learned-value/{seq}")
+    public Optional<PaxosValue> getLearnedValue(@PathParam("seq") @Handle.PathParam long seq) {
         return learner.getLearnedValue(seq);
     }
 
@@ -64,6 +76,11 @@ public class LeaderLearnerResource {
     @Path("greatest-learned-value")
     @Produces(MediaType.APPLICATION_JSON)
     @Timed
+    @Handle(
+            method = HttpMethod.GET,
+            path = "/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
+                    + "/" + PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE
+                    + "/learner/greatest-learned-value")
     public Optional<PaxosValue> getGreatestLearnedValue() {
         return learner.getGreatestLearnedValue();
     }
@@ -72,7 +89,12 @@ public class LeaderLearnerResource {
     @Path("learned-values-since/{seq:.+}")
     @Produces(MediaType.APPLICATION_JSON)
     @Timed
-    public Collection<PaxosValue> getLearnedValuesSince(@PathParam("seq") @Inclusive long seq) {
+    @Handle(
+            method = HttpMethod.GET,
+            path = "/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE
+                    + "/" + PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE
+                    + "/learner/learned-values-since/{seq}")
+    public Collection<PaxosValue> getLearnedValuesSince(@PathParam("seq") @Handle.PathParam @Inclusive long seq) {
         return learner.getLearnedValuesSince(seq);
     }
 }
