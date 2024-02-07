@@ -36,13 +36,16 @@ public final class LoggingUtils {
 
         List<AsyncAppender> asyncAppenders = getAsyncAppenders(rootLogger);
 
-        asyncAppenders.forEach(asyncAppender -> {
-            rootLogger.detachAppender(asyncAppender);
+        asyncAppenders.forEach(
+                asyncAppender -> detachAsyncAppenderAndReattachUnderlyingAppenders(asyncAppender, rootLogger));
+    }
 
-            asyncAppender.iteratorForAppenders().forEachRemaining(wrappedSyncAppender -> {
-                rootLogger.addAppender(wrappedSyncAppender);
-                wrappedSyncAppender.start();
-            });
+    private static void detachAsyncAppenderAndReattachUnderlyingAppenders(AsyncAppender asyncAppender, Logger logger) {
+        logger.detachAppender(asyncAppender);
+
+        asyncAppender.iteratorForAppenders().forEachRemaining(wrappedSyncAppender -> {
+            logger.addAppender(wrappedSyncAppender);
+            wrappedSyncAppender.start();
         });
     }
 
