@@ -119,7 +119,7 @@ public final class PaxosResourcesFactory {
                 .leadershipContextFactory(factory)
                 .putLeadershipBatchComponents(PaxosUseCase.LEADER_FOR_EACH_CLIENT, factory.components())
                 .addAdhocResources(batchPingableLeader)
-                .addUndertowServices(BatchPingableLeaderEndpoints.of(batchPingableLeader))
+                .addAdhocUndertowServices(BatchPingableLeaderEndpoints.of(batchPingableLeader))
                 .timeLockCorruptionComponents(timeLockCorruptionComponents(install.sqliteDataSource(), remoteClients))
                 .build();
     }
@@ -175,10 +175,10 @@ public final class PaxosResourcesFactory {
                 .addAdhocResources(pingableLeader)
                 .addAdhocResources(leaderAcceptorResource)
                 .addAdhocResources(leaderLearnerResource)
-                .addUndertowServices(BatchPingableLeaderEndpoints.of(batchPingableLeader))
-                .addUndertowServices(PingableLeaderEndpoints.of(pingableLeader))
-                .addUndertowServices(LeaderAcceptorResourceEndpoints.of(leaderAcceptorResource))
-                .addUndertowServices(LeaderLearnerResourceEndpoints.of(leaderLearnerResource))
+                .addAdhocUndertowServices(BatchPingableLeaderEndpoints.of(batchPingableLeader))
+                .addAdhocUndertowServices(PingableLeaderEndpoints.of(pingableLeader))
+                .addAdhocUndertowServices(LeaderAcceptorResourceEndpoints.of(leaderAcceptorResource))
+                .addAdhocUndertowServices(LeaderLearnerResourceEndpoints.of(leaderLearnerResource))
                 .timeLockCorruptionComponents(timeLockCorruptionComponents(install.sqliteDataSource(), remoteClients))
                 .build();
     }

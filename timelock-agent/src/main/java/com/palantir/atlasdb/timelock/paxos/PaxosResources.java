@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.timelock.paxos.api.NamespaceLeadershipTakeoverServiceEndpoints;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -39,15 +40,29 @@ public abstract class PaxosResources {
 
     abstract List<Object> adhocResources();
 
-    public abstract List<UndertowService> undertowServices();
+    abstract List<UndertowService> adhocUndertowServices();
 
     public abstract TimeLockCorruptionComponents timeLockCorruptionComponents();
+
+    @Value.Derived
+    NamespaceTakeoverComponent namespaceTakeoverComponent() {
+        return new NamespaceTakeoverComponent(leadershipComponents());
+    }
 
     @Value.Derived
     Map<PaxosUseCase, BatchPaxosResources> leadershipBatchResources() {
         return KeyedStream.stream(leadershipBatchComponents())
                 .map(PaxosResources::batchResourcesFromComponents)
                 .collectToMap();
+    }
+
+    @Value.Derived
+    public List<UndertowService> undertowServices() {
+        return ImmutableList.<UndertowService>builder()
+                .addAll(adhocUndertowServices())
+                .add(NamespaceLeadershipTakeoverServiceEndpoints.of(
+                        new NamespaceTakeoverService(namespaceTakeoverComponent())))
+                .build();
     }
 
     @Value.Derived
@@ -64,7 +79,7 @@ public abstract class PaxosResources {
         return ImmutableList.builder()
                 .addAll(adhocResources())
                 .add(combinedBatchResource)
-                .add(new NamespaceTakeoverResource(leadershipComponents()))
+                .add(new NamespaceTakeoverResource(namespaceTakeoverComponent()))
                 .build();
     }
 
