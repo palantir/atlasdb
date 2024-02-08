@@ -45,6 +45,8 @@ public final class LoggingUtils {
             logger.addAppender(wrappedSyncAppender);
             wrappedSyncAppender.start();
         });
+
+        asyncAppender.stop();
     }
 
     private static List<AsyncAppender> getAsyncAppenders(Logger rootLogger) {
