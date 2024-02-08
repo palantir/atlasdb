@@ -23,7 +23,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.time.Duration;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -48,32 +48,42 @@ public class AntithesisDockerTest {
 
     @Test
     public void workloadServerHasRunDesiredWorkflowsSuccessfully() {
-        AtomicBoolean hasRunSuccessfully = new AtomicBoolean(false);
-
         String successMessage = "Finished running desired workflows successfully";
         String failureMessage = "Workflow will now exit.";
 
-        Awaitility.await()
-                .atMost(Duration.ofMinutes(5))
-                .pollInterval(Duration.ofSeconds(10))
-                .until(() -> {
-                    OutputStream logStream = new ByteArrayOutputStream();
-                    dockerComposeExtension
-                            .dockerComposeExecutable()
-                            .execute("logs", "workload-server")
-                            .getInputStream()
-                            .transferTo(logStream);
+        String logs = waitUntilDockerComposeSucceededOrFailedAndGetLogs(successMessage, failureMessage);
+        assertThat(logs).contains(successMessage);
+    }
 
-                    String logs = logStream.toString();
+    private String waitUntilDockerComposeSucceededOrFailedAndGetLogs(String successMessage, String failureMessage) {
+        AtomicReference<String> logs = new AtomicReference<>("");
 
-                    if (logs.contains(successMessage)) {
-                        hasRunSuccessfully.set(true);
-                        return true;
-                    }
+        try {
+            Awaitility.await()
+                    .atMost(Duration.ofMinutes(5))
+                    .pollInterval(Duration.ofSeconds(10))
+                    .until(() -> {
+                        OutputStream logStream = new ByteArrayOutputStream();
+                        dockerComposeExtension
+                                .dockerComposeExecutable()
+                                .execute("logs", "workload-server")
+                                .getInputStream()
+                                .transferTo(logStream);
 
-                    return logs.contains(failureMessage);
-                });
+                        String logsSoFar = logStream.toString();
+                        logs.set(logsSoFar);
 
-        assertThat(hasRunSuccessfully.get()).isTrue();
+                        if (logsSoFar.contains(successMessage)) {
+                            return true;
+                        }
+
+                        return logsSoFar.contains(failureMessage);
+                    });
+        } catch (Exception _e) {
+            // We just don't want the test to fail here, otherwise we won't be able to see the logs and understand what
+            // happened.
+        }
+
+        return logs.get();
     }
 }

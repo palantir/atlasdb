@@ -1,4 +1,4 @@
-# Run ./gradlew --write-locks to regenerate this file
+# Run ./gradlew writeVersionsLock to regenerate this file
 ch.qos.logback:logback-access:1.2.12 (1 constraints: e4112af4)
 ch.qos.logback:logback-classic:1.2.12 (8 constraints: 3971367b)
 ch.qos.logback:logback-core:1.2.12 (7 constraints: c45f4f63)
