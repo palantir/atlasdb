@@ -18,14 +18,15 @@ package com.palantir.atlasdb.workload.workflow;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * Run the provided workflow and validate that it is correct with the provided invariants.
  */
 public interface WorkflowValidatorRunner<WorkflowTypeT extends Workflow> {
-    void run(List<WorkflowAndInvariants<WorkflowTypeT>> workflowAndInvariants);
+    void run(Supplier<List<WorkflowAndInvariants<WorkflowTypeT>>> workflowAndInvariants);
 
     default void run(WorkflowAndInvariants<WorkflowTypeT>... workflowAndInvariants) {
-        run(Arrays.asList(workflowAndInvariants));
+        run(() -> Arrays.asList(workflowAndInvariants));
     }
 }
