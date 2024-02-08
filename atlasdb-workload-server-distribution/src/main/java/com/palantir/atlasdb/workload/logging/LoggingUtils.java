@@ -17,13 +17,11 @@
 package com.palantir.atlasdb.workload.logging;
 
 // CHECKSTYLE:OFF: BanLoggingImplementations
+
 import ch.qos.logback.classic.AsyncAppender;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.core.Appender;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import org.slf4j.LoggerFactory;
 
@@ -51,12 +49,12 @@ public final class LoggingUtils {
 
     private static List<AsyncAppender> getAsyncAppenders(Logger rootLogger) {
         List<AsyncAppender> asyncAppenders = new ArrayList<>();
-        for (Iterator<Appender<ILoggingEvent>> iterator = rootLogger.iteratorForAppenders(); iterator.hasNext(); ) {
-            Appender<ILoggingEvent> appender = iterator.next();
+        rootLogger.iteratorForAppenders().forEachRemaining(appender -> {
             if (appender instanceof AsyncAppender) {
                 asyncAppenders.add((AsyncAppender) appender);
             }
-        }
+        });
+
         return asyncAppenders;
     }
 }
