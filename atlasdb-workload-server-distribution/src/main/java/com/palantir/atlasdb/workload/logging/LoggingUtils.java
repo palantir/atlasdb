@@ -42,6 +42,7 @@ public final class LoggingUtils {
         logger.detachAppender(asyncAppender);
 
         asyncAppender.iteratorForAppenders().forEachRemaining(wrappedSyncAppender -> {
+            asyncAppender.detachAppender(wrappedSyncAppender);
             logger.addAppender(wrappedSyncAppender);
             wrappedSyncAppender.start();
         });
