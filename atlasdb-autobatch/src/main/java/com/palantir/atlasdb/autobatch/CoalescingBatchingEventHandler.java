@@ -51,6 +51,7 @@ final class CoalescingBatchingEventHandler<T, R> implements EventHandler<BatchEl
     }
 
     private void flush() {
+        pending.values().forEach(set -> set.forEach(DisruptorFuture::running));
         try {
             Map<T, R> results = function.apply(pending.keySet());
             pending.forEach((argument, futures) -> {
