@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2024 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,24 +16,27 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import com.palantir.atlasdb.timelock.paxos.api.NamespaceLeadershipTakeoverService;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.timelock.paxos.api.UndertowNamespaceLeadershipTakeoverService;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Set;
 
-final class NamespaceTakeoverResource implements NamespaceLeadershipTakeoverService {
+final class NamespaceTakeoverService implements UndertowNamespaceLeadershipTakeoverService {
+
     private final NamespaceTakeoverComponent delegate;
 
-    NamespaceTakeoverResource(NamespaceTakeoverComponent delegate) {
+    NamespaceTakeoverService(NamespaceTakeoverComponent delegate) {
         this.delegate = delegate;
     }
 
     @Override
-    public boolean takeover(AuthHeader _authHeader, String namespace) {
-        return delegate.takeover(namespace);
+    public ListenableFuture<Boolean> takeover(AuthHeader _authHeader, String namespace) {
+        return Futures.immediateFuture(delegate.takeover(namespace));
     }
 
     @Override
-    public Set<String> takeoverNamespaces(AuthHeader _authHeader, Set<String> namespaces) {
-        return delegate.takeoverNamespaces(namespaces);
+    public ListenableFuture<Set<String>> takeoverNamespaces(AuthHeader _authHeader, Set<String> namespaces) {
+        return Futures.immediateFuture(delegate.takeoverNamespaces(namespaces));
     }
 }
