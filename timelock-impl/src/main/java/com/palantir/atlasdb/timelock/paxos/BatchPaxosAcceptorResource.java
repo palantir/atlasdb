@@ -38,7 +38,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 
-@Path("/" + PaxosTimeLockConstants.BATCH_INTERNAL_NAMESPACE + "/acceptor")
 public class BatchPaxosAcceptorResource {
 
     private static final SafeLogger log = SafeLoggerFactory.get(BatchPaxosAcceptorResource.class);
