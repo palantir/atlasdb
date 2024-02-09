@@ -20,6 +20,7 @@ import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptio
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import java.util.Collections;
 import org.junit.jupiter.api.Test;
 
 class ClientTest {
@@ -36,6 +37,9 @@ class ClientTest {
         assertThatCode(() -> Client.of("1.")).doesNotThrowAnyException();
         assertThatCode(() -> Client.of("-.")).doesNotThrowAnyException();
         assertThatCode(() -> Client.of("_.")).doesNotThrowAnyException();
+
+        String calledSad = String.join("_", Collections.nCopies(1_000_000, "a")) + ".";
+        assertThatCode(() -> Client.of(calledSad)).doesNotThrowAnyException();
     }
 
     @Test
@@ -54,5 +58,7 @@ class ClientTest {
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .message()
                 .startsWith("Error parsing client as it doesn't match pattern");
+
+        // return !value().isEmpty() && allowedCharacters.get(value().charAt(0));
     }
 }
