@@ -55,6 +55,9 @@ public abstract class Client {
     }
 
     private boolean isValidClient() {
+        // the below line is what I think this does
+        // return !value().isEmpty() && allowedCharacters.get(value().charAt(0));
+
         int length = value().length();
         int cursor = 0;
 
