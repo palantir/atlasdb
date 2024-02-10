@@ -17,6 +17,7 @@ package com.palantir.atlasdb.cli.command;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.io.Files;
 import com.palantir.atlasdb.cli.output.OutputPrinter;
 import com.palantir.atlasdb.compact.CompactorConfig;
 import com.palantir.atlasdb.config.AtlasDbConfig;
@@ -25,6 +26,7 @@ import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.SweepConfig;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator;
 import com.palantir.atlasdb.schema.KeyValueServiceValidator;
 import com.palantir.atlasdb.services.AtlasDbServices;
@@ -39,7 +41,9 @@ import io.airlift.airline.Option;
 import io.airlift.airline.OptionType;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -87,6 +91,13 @@ public class KvsMigrationCommand implements Callable<Integer> {
                     + "config will not be reloaded while the CLI is running",
             required = false)
     private File toRuntimeConfigFile;
+
+    @Option(
+            name = {"-st", "--skipTables"},
+            title = "Tables to skip",
+            description = "A new line separated list of tables output from validated a table {}",
+            required = false)
+    private File tablesToSkip;
 
     @Option(
             name = {"--runtime-config-root"},
@@ -177,6 +188,15 @@ public class KvsMigrationCommand implements Callable<Integer> {
             migrator.cleanup();
         }
         if (validate) {
+            Set<TableReference> tableNamesToSkip;
+            try {
+                tableNamesToSkip = Files.readLines(tablesToSkip, StandardCharsets.UTF_8).stream()
+                        .map(String::trim)
+                        .map(TableReference::fromString)
+                        .collect(ImmutableSet.toImmutableSet());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
             KeyValueServiceValidator validator = new KeyValueServiceValidator(
                     fromServices.getTransactionManager(),
                     toServices.getTransactionManager(),
@@ -186,7 +206,7 @@ public class KvsMigrationCommand implements Callable<Integer> {
                     ImmutableMap.of(),
                     (String message, KeyValueServiceMigrator.KvsMigrationMessageLevel level, Arg<?>... args) ->
                             printer.info(level.toString() + ": " + message, args),
-                    ImmutableSet.of(),
+                    tableNamesToSkip,
                     new AtomicInteger(0));
             validator.validate(true);
         }
