@@ -59,6 +59,13 @@ public final class AtlasDbTransactionStoreFactory implements TransactionStoreFac
         return transactionManager.isInitialized();
     }
 
+    public void fastForwardTimestampToSupportTransactions3() {
+        long currentTimestamp = transactionManager.getTimestampService().getFreshTimestamp();
+        long guaranteedTransaction3Timestamp = currentTimestamp + 10_000_000;
+
+        transactionManager.getTimestampManagementService().fastForwardTimestamp(guaranteedTransaction3Timestamp);
+    }
+
     @Override
     public InteractiveTransactionStore create(Map<String, IsolationLevel> tables, Set<IndexTable> indexes) {
         return AtlasDbTransactionStore.create(transactionManager, toAtlasTables(tables, indexes));
@@ -153,8 +160,12 @@ public final class AtlasDbTransactionStoreFactory implements TransactionStoreFac
                 .globalMetricsRegistry(metricsManager.getRegistry())
                 .globalTaggedMetricRegistry(metricsManager.getTaggedRegistry())
                 .runtimeConfigSupplier(atlasDbRuntimeConfig)
-                .defaultTimelockClientFactory(lockService -> TimeLockClient.createDefault(
-                        UnreliableTimeLockService.create(lockService), LOCK_REFRESH_INTERVAL_MS))
+                .defaultTimelockClientFactory((lockService, timestampManagementService) -> TimeLockClient.createDefault(
+                        UnreliableTimeLockService.create(
+                                lockService,
+                                UnreliableTimestampManager.create(
+                                        lockService, timestampManagementService::fastForwardTimestamp)),
+                        LOCK_REFRESH_INTERVAL_MS))
                 .build()
                 .serializable();
 

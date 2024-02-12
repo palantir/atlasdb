@@ -78,7 +78,7 @@ import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.util.OptionalResolver;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 public final class DefaultLockAndTimestampServiceFactory implements LockAndTimestampServiceFactory {
@@ -95,7 +95,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
     private final Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders;
     private final Set<Schema> schemas;
 
-    private final Function<TimelockService, TimeLockClient> timelockClientFactory;
+    private final BiFunction<TimelockService, TimestampManagementService, TimeLockClient> timelockClientFactory;
 
     public DefaultLockAndTimestampServiceFactory(
             MetricsManager metricsManager,
@@ -123,7 +123,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 timeLockFeedbackBackgroundTask,
                 timelockRequestBatcherProviders,
                 schemas,
-                TimeLockClient::createDefault);
+                (service, _management) -> TimeLockClient.createDefault(service));
     }
 
     public DefaultLockAndTimestampServiceFactory(
@@ -139,7 +139,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
             Optional<TimeLockFeedbackBackgroundTask> timeLockFeedbackBackgroundTask,
             Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
             Set<Schema> schemas,
-            Function<TimelockService, TimeLockClient> timelockClientFactory) {
+            BiFunction<TimelockService, TimestampManagementService, TimeLockClient> timelockClientFactory) {
         this.metricsManager = metricsManager;
         this.config = config;
         this.runtimeConfig = runtimeConfig;
@@ -174,7 +174,8 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
     }
 
     private LockAndTimestampServices withRefreshingLockService(LockAndTimestampServices lockAndTimestampServices) {
-        TimeLockClient timeLockClient = timelockClientFactory.apply(lockAndTimestampServices.timelock());
+        TimeLockClient timeLockClient = timelockClientFactory.apply(
+                lockAndTimestampServices.timelock(), lockAndTimestampServices.managedTimestampService());
         ProfilingTimelockService profilingService = ProfilingTimelockService.create(timeLockClient);
         return ImmutableLockAndTimestampServices.builder()
                 .from(lockAndTimestampServices)

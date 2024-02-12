@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
+import com.palantir.atlasdb.autobatch.AutobatcherTelemetryComponents;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher.DisruptorFuture;
 import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
@@ -32,6 +33,8 @@ import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.client.MultiClientTimeLockUnlocker.UnlockConsumer;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.UUID;
@@ -44,6 +47,7 @@ public class MultiClientTimeLockUnlockerTest {
     private static final ConjureLockTokenV2 CONJURE_TOKEN_1 = ConjureLockTokenV2.of(UUID.randomUUID());
     private static final ConjureLockTokenV2 CONJURE_TOKEN_2 = ConjureLockTokenV2.of(UUID.randomUUID());
     private static final ConjureLockTokenV2 CONJURE_TOKEN_3 = ConjureLockTokenV2.of(UUID.randomUUID());
+    private static final TaggedMetricRegistry TAGGED_METRIC_REGISTRY = new DefaultTaggedMetricRegistry();
 
     private final InternalMultiClientConjureTimelockService conjureTimelockService =
             mock(InternalMultiClientConjureTimelockService.class);
@@ -64,9 +68,12 @@ public class MultiClientTimeLockUnlockerTest {
 
     @Test
     public void delegatesMultipleTokensCorrectly() {
-        DisruptorFuture<Set<ConjureLockTokenV2>> firstResultFuture = new DisruptorFuture<>("test");
-        DisruptorFuture<Set<ConjureLockTokenV2>> secondResultFuture = new DisruptorFuture<>("test2");
-        DisruptorFuture<Set<ConjureLockTokenV2>> thirdResultFuture = new DisruptorFuture<>("test3");
+        DisruptorFuture<Set<ConjureLockTokenV2>> firstResultFuture =
+                new DisruptorFuture<>(AutobatcherTelemetryComponents.create("test", TAGGED_METRIC_REGISTRY));
+        DisruptorFuture<Set<ConjureLockTokenV2>> secondResultFuture =
+                new DisruptorFuture<>(AutobatcherTelemetryComponents.create("test2", TAGGED_METRIC_REGISTRY));
+        DisruptorFuture<Set<ConjureLockTokenV2>> thirdResultFuture =
+                new DisruptorFuture<>(AutobatcherTelemetryComponents.create("test3", TAGGED_METRIC_REGISTRY));
         when(conjureTimelockService.unlock(ImmutableMap.of(
                         NAMESPACE_1,
                         ConjureUnlockRequestV2.of(ImmutableSet.of(CONJURE_TOKEN_1, CONJURE_TOKEN_2)),
@@ -94,9 +101,12 @@ public class MultiClientTimeLockUnlockerTest {
 
     @Test
     public void individualTokenIsOnlySuccessfullyUnlockedOnce() {
-        DisruptorFuture<Set<ConjureLockTokenV2>> firstResultFuture = new DisruptorFuture<>("test");
-        DisruptorFuture<Set<ConjureLockTokenV2>> secondResultFuture = new DisruptorFuture<>("test2");
-        DisruptorFuture<Set<ConjureLockTokenV2>> thirdResultFuture = new DisruptorFuture<>("test3");
+        DisruptorFuture<Set<ConjureLockTokenV2>> firstResultFuture =
+                new DisruptorFuture<>(AutobatcherTelemetryComponents.create("test", TAGGED_METRIC_REGISTRY));
+        DisruptorFuture<Set<ConjureLockTokenV2>> secondResultFuture =
+                new DisruptorFuture<>(AutobatcherTelemetryComponents.create("test2", TAGGED_METRIC_REGISTRY));
+        DisruptorFuture<Set<ConjureLockTokenV2>> thirdResultFuture =
+                new DisruptorFuture<>(AutobatcherTelemetryComponents.create("test3", TAGGED_METRIC_REGISTRY));
         when(conjureTimelockService.unlock(ImmutableMap.of(
                         NAMESPACE_1,
                         ConjureUnlockRequestV2.of(ImmutableSet.of(CONJURE_TOKEN_1, CONJURE_TOKEN_2, CONJURE_TOKEN_3)))))
@@ -133,11 +143,13 @@ public class MultiClientTimeLockUnlockerTest {
                         BatchElement.of(
                                 ImmutableUnlockRequest.of(
                                         NAMESPACE_1, ImmutableSet.of(CONJURE_TOKEN_1, CONJURE_TOKEN_2)),
-                                new DisruptorFuture<>("test")),
+                                new DisruptorFuture<>(
+                                        AutobatcherTelemetryComponents.create("test", TAGGED_METRIC_REGISTRY))),
                         BatchElement.of(
                                 ImmutableUnlockRequest.of(
                                         NAMESPACE_1, ImmutableSet.of(CONJURE_TOKEN_2, CONJURE_TOKEN_3)),
-                                new DisruptorFuture<>("test2")))))
+                                new DisruptorFuture<>(
+                                        AutobatcherTelemetryComponents.create("test2", TAGGED_METRIC_REGISTRY))))))
                 .isEqualTo(runtimeException);
         // Ensuring the futures have failed is the responsibility of IndependentBatchingEventHandler, not the function.
     }

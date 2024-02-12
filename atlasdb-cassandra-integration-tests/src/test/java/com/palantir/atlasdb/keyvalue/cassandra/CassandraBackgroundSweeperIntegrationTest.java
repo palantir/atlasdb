@@ -17,11 +17,11 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.sweep.AbstractBackgroundSweeperIntegrationTestV2;
+import com.palantir.atlasdb.sweep.AbstractBackgroundSweeperIntegrationTest;
 import com.palantir.atlasdb.util.MetricsManagers;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroundSweeperIntegrationTestV2 {
+public class CassandraBackgroundSweeperIntegrationTest extends AbstractBackgroundSweeperIntegrationTest {
     @RegisterExtension
     public static final CassandraResource CASSANDRA =
             new CassandraResource(CassandraBackgroundSweeperIntegrationTest::createKeyValueService);

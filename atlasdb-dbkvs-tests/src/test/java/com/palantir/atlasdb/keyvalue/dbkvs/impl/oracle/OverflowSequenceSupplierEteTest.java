@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionSupplier;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -35,8 +35,8 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 @ExtendWith(DbKvsOracleExtension.class)
 public class OverflowSequenceSupplierEteTest {
     @RegisterExtension
-    public static final TestResourceManagerV2 TRM =
-            new TestResourceManagerV2(() -> ConnectionManagerAwareDbKvs.create(DbKvsOracleExtension.getKvsConfig()));
+    public static final TestResourceManager TRM =
+            new TestResourceManager(() -> ConnectionManagerAwareDbKvs.create(DbKvsOracleExtension.getKvsConfig()));
 
     private final ExecutorService executor = Executors.newFixedThreadPool(4);
     private static final int THREAD_COUNT = 3;

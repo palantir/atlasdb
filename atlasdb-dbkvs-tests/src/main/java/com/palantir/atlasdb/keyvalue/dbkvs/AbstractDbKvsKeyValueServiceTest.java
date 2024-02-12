@@ -28,7 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.DbKvs;
-import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTestV2;
+import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.common.base.ClosableIterator;
 import java.util.HashSet;
@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueServiceTestV2 {
+public abstract class AbstractDbKvsKeyValueServiceTest extends AbstractKeyValueServiceTest {
     protected static final Namespace TEST_NAMESPACE = Namespace.create("ns");
     protected static final String TEST_LONG_TABLE_NAME =
             "ThisShouldAlwaysBeAVeryLongTableNameThatExceedsPostgresLengthLimit";

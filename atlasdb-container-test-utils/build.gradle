@@ -32,3 +32,9 @@ dependencies {
     testImplementation 'org.assertj:assertj-core'
     testImplementation 'org.mockito:mockito-core'
 }
+
+test {
+    // JDK 17 enforces stricter encapsulation levels for base packages. This workaround is necessary since we use
+    // EnvironmentVariablesExtension for CassandraEnvironmentTest.
+    jvmArgs("--add-opens=java.base/java.lang=ALL-UNNAMED", "--add-opens=java.base/java.util=ALL-UNNAMED")
+}

@@ -101,7 +101,7 @@ public final class LockWatchEventIntegrationTest {
             String.valueOf(ThreadLocalRandom.current().nextLong());
 
     @RegisterExtension
-    public static final TestableTimelockClusterV2 CLUSTER = new TestableTimelockClusterV2(
+    public static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
             "non-batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
             generateThreeNodeTimelockCluster(

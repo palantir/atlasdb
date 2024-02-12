@@ -19,8 +19,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.any;
 import static com.github.tomakehurst.wiremock.client.WireMock.anyUrl;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -30,21 +29,28 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgents;
+import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import io.dropwizard.jackson.Jackson;
+import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 import io.dropwizard.testing.DropwizardTestSupport;
 import java.io.File;
 import java.io.IOException;
 import java.util.function.Supplier;
-import org.junit.rules.ExternalResource;
+import org.junit.jupiter.api.extension.AfterAllCallback;
+import org.junit.jupiter.api.extension.BeforeAllCallback;
+import org.junit.jupiter.api.extension.ExtensionContext;
 
-public class TimeLockServerHolder extends ExternalResource {
+public class TimeLockServerHolder implements BeforeAllCallback, AfterAllCallback {
 
     static final String ALL_NAMESPACES = "/[a-zA-Z0-9_-]+/.*";
 
     static final UserAgent WIREMOCK_USER_AGENT = UserAgent.of(UserAgent.Agent.of("wiremock", "1.1.1"));
+
+    private static final YAMLMapper YAML_MAPPER = ObjectMappers.withDefaultModules(YAMLMapper.builder())
+            .subtypeResolver(new DiscoverableSubtypeResolver())
+            .build();
 
     private final Supplier<String> configFilePathSupplier;
 
@@ -66,7 +72,11 @@ public class TimeLockServerHolder extends ExternalResource {
     }
 
     @Override
-    protected void before() throws Exception {
+    public void beforeAll(ExtensionContext extensionContext) throws Exception {
+        beforeAll();
+    }
+
+    protected synchronized void beforeAll() throws Exception {
         if (isRunning) {
             return;
         }
@@ -81,7 +91,11 @@ public class TimeLockServerHolder extends ExternalResource {
     }
 
     @Override
-    protected void after() {
+    public void afterAll(ExtensionContext extensionContext) {
+        afterAll();
+    }
+
+    protected synchronized void afterAll() {
         if (isRunning) {
             wireMockServer.stop();
             timelockServer.after();
@@ -129,7 +143,7 @@ public class TimeLockServerHolder extends ExternalResource {
         if (!isRunning) {
             return Futures.immediateFailedFuture(new RuntimeException("timelock hasn't started"));
         }
-        after();
+        afterAll();
         return getShutdownFuture();
     }
 
@@ -139,7 +153,7 @@ public class TimeLockServerHolder extends ExternalResource {
 
     synchronized void start() {
         try {
-            before();
+            beforeAll();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -147,9 +161,9 @@ public class TimeLockServerHolder extends ExternalResource {
 
     TimeLockInstallConfiguration installConfig() {
         checkTimelockInitialised();
-        ObjectMapper mapper = Jackson.newObjectMapper(new YAMLFactory());
         try {
-            return mapper.readValue(new File(configFilePathSupplier.get()), CombinedTimeLockServerConfiguration.class)
+            return YAML_MAPPER
+                    .readValue(new File(configFilePathSupplier.get()), CombinedTimeLockServerConfiguration.class)
                     .install();
         } catch (IOException e) {
             throw new RuntimeException(e);

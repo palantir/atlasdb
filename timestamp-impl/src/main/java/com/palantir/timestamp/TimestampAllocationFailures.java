@@ -17,6 +17,7 @@ package com.palantir.timestamp;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.common.remoting.ServiceNotAvailableException;
+import com.palantir.leader.SuspectedNotCurrentLeaderException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import javax.annotation.concurrent.ThreadSafe;
 import org.slf4j.Logger;
@@ -55,6 +56,10 @@ public class TimestampAllocationFailures {
 
         if (newFailure instanceof ServiceNotAvailableException) {
             return (ServiceNotAvailableException) newFailure;
+        }
+
+        if (newFailure instanceof SuspectedNotCurrentLeaderException) {
+            return (SuspectedNotCurrentLeaderException) newFailure;
         }
 
         return new SafeRuntimeException("Could not allocate more timestamps", newFailure);

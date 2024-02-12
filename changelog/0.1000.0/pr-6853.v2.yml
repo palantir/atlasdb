@@ -1,0 +1,8 @@
+type: fix
+fix:
+  description: '`SuspectedNotCurrentLeaderException` is now handled correctly; previously,
+    a bug with exception handling meant that these exceptions would leave the timestamp
+    bound stores for the relevant clients in an unusable state until the next leader
+    election.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/6853

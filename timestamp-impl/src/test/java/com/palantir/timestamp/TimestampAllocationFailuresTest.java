@@ -23,6 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import com.palantir.common.remoting.ServiceNotAvailableException;
+import com.palantir.leader.SuspectedNotCurrentLeaderException;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 
@@ -30,6 +31,8 @@ public class TimestampAllocationFailuresTest {
     private static final RuntimeException FAILURE = new IllegalStateException();
     private static final ServiceNotAvailableException SERVICE_NOT_AVAILABLE_EXCEPTION =
             new ServiceNotAvailableException("exception");
+    private static final SuspectedNotCurrentLeaderException SUSPECTED_NOT_CURRENT_LEADER_EXCEPTION =
+            new SuspectedNotCurrentLeaderException("amongus");
     private static final MultipleRunningTimestampServiceError MULTIPLE_RUNNING_SERVICES_FAILURE =
             new MultipleRunningTimestampServiceError("error");
 
@@ -60,6 +63,12 @@ public class TimestampAllocationFailuresTest {
         RuntimeException response = allocationFailures.responseTo(SERVICE_NOT_AVAILABLE_EXCEPTION);
         assertThat(response).isInstanceOf(ServiceNotAvailableException.class);
         assertThat(response).isEqualTo(SERVICE_NOT_AVAILABLE_EXCEPTION);
+    }
+
+    @Test
+    public void shouldRethrowSuspectedNotCurrentLeaderExceptionsWithoutWrapping() {
+        RuntimeException response = allocationFailures.responseTo(SUSPECTED_NOT_CURRENT_LEADER_EXCEPTION);
+        assertThat(response).isEqualTo(SUSPECTED_NOT_CURRENT_LEADER_EXCEPTION);
     }
 
     @Test

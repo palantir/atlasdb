@@ -38,23 +38,22 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.TimelockService;
 import java.util.Optional;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-/* TODO(boyoruk): Delete this when JUnit5 upgrade is done */
 public class AbstractTargetedSweepTest extends AbstractSweepTest {
     protected static final TableReference TABLE_TO_BE_DROPPED = TableReference.createFromFullyQualifiedName("ts.drop");
     protected static final Cell TEST_CELL = Cell.create(PtBytes.toBytes("r"), PtBytes.toBytes("c"));
     protected static final String OLD_VALUE = "old_value";
     protected static final String NEW_VALUE = "new_value";
-    private SpecialTimestampsSupplier timestampsSupplier = mock(SpecialTimestampsSupplier.class);
+    private final SpecialTimestampsSupplier timestampsSupplier = mock(SpecialTimestampsSupplier.class);
     protected TargetedSweeper sweepQueue;
 
     protected AbstractTargetedSweepTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
         super(kvsManager, tmManager);
     }
 
-    @Before
+    @BeforeEach
     @Override
     public void setup() {
         super.setup();

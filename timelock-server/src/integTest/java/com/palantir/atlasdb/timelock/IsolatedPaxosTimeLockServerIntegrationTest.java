@@ -24,7 +24,7 @@ import com.palantir.atlasdb.http.TestProxyUtils;
 import com.palantir.atlasdb.timelock.ImmutableTemplateVariables.TimestampPaxos;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
-import com.palantir.atlasdb.timelock.util.TestProxiesV2;
+import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
@@ -48,12 +48,12 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
             .build();
 
     @RegisterExtension
-    public static final TestableTimelockClusterV2 CLUSTER =
-            new TestableTimelockClusterV2("paxosStaticThreeServers.ftl", SINGLE_NODE);
+    public static final TestableTimelockCluster CLUSTER =
+            new TestableTimelockCluster("paxosStaticThreeServers.ftl", SINGLE_NODE);
 
-    private static final TestableTimelockServerV2 SERVER = Iterables.getOnlyElement(CLUSTER.servers());
+    private static final TestableTimelockServer SERVER = Iterables.getOnlyElement(CLUSTER.servers());
 
-    private NamespacedClientsV2 namespace;
+    private NamespacedClients namespace;
 
     @BeforeEach
     public void setUp() {
@@ -100,7 +100,7 @@ public class IsolatedPaxosTimeLockServerIntegrationTest {
 
     private <T> T createProxyForInternalNamespacedTestService(Class<T> clazz) {
         return AtlasDbHttpClients.createProxy(
-                Optional.of(TestProxiesV2.TRUST_CONTEXT),
+                Optional.of(TestProxies.TRUST_CONTEXT),
                 String.format(
                         "https://localhost:%d/%s/%s/%s",
                         SERVER.serverHolder().getTimelockPort(),

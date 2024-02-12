@@ -17,9 +17,9 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class InMemoryGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTestV2 {
+public class InMemoryGetCandidateCellsForSweepingTest extends AbstractGetCandidateCellsForSweepingTest {
     @RegisterExtension
-    public static final TestResourceManagerV2 TRM = TestResourceManagerV2.inMemory();
+    public static final TestResourceManager TRM = TestResourceManager.inMemory();
 
     public InMemoryGetCandidateCellsForSweepingTest() {
         super(TRM);

@@ -15,11 +15,9 @@
  */
 package com.palantir.atlasdb.console.groovy
 
+import org.codehaus.groovy.runtime.ScriptBytecodeAdapter
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-
-import static groovy.test.GroovyAssert.assertEquals
-import static groovy.test.GroovyAssert.shouldFail
 
 import com.palantir.atlasdb.api.TransactionToken
 import com.palantir.atlasdb.console.AtlasConsoleService
@@ -54,7 +52,7 @@ class AtlasConsoleServiceWrapperTest {
         service.tables().returns(response).once()
         slurper.parseText(response).returns(['b', 'a', 'c']).once()
         play {
-            assertEquals wrapper.tables(), ['a', 'b', 'c']
+            assert wrapper.tables() == ['a', 'b', 'c']
         }
     }
 
@@ -63,7 +61,7 @@ class AtlasConsoleServiceWrapperTest {
         service.getMetadata(TABLE).returns(RESPONSE).once()
         slurper.parseText(RESPONSE).returns(RESULT).once()
         play {
-            assertEquals wrapper.getMetadata(TABLE), RESULT
+            assert wrapper.getMetadata(TABLE) == RESULT
         }
     }
 
@@ -72,7 +70,7 @@ class AtlasConsoleServiceWrapperTest {
         service.getRows(token, TO_JSON).returns(RESPONSE).once()
         slurper.parseText(RESPONSE).returns(RESULT).once()
         play {
-            assertEquals wrapper.getRows(QUERY, token), RESULT
+            assert wrapper.getRows(QUERY, token) == RESULT
         }
     }
 
@@ -82,7 +80,7 @@ class AtlasConsoleServiceWrapperTest {
         service.abort(token).once()
         play {
             def thrownException = shouldFail(RuntimeException) { wrapper.getRows(QUERY, token) }
-            assertEquals EXCEPTION, thrownException
+            assert EXCEPTION == thrownException
         }
     }
 
@@ -91,7 +89,7 @@ class AtlasConsoleServiceWrapperTest {
         service.getCells(token, TO_JSON).returns(RESPONSE).once()
         slurper.parseText(RESPONSE).returns(RESULT).once()
         play {
-            assertEquals wrapper.getCells(QUERY, token), RESULT
+            assert wrapper.getCells(QUERY, token) == RESULT
         }
     }
 
@@ -101,7 +99,7 @@ class AtlasConsoleServiceWrapperTest {
         service.abort(token).once()
         play {
             def thrownException = shouldFail(RuntimeException) { wrapper.getCells(QUERY, token) }
-            assertEquals EXCEPTION, thrownException
+            assert EXCEPTION == thrownException
         }
     }
 
@@ -110,7 +108,7 @@ class AtlasConsoleServiceWrapperTest {
         service.getRange(token, TO_JSON).returns(RESPONSE).once()
         slurper.parseText(RESPONSE).returns(RESULT).once()
         play {
-            assertEquals wrapper.getRange(QUERY, token), RESULT
+            assert wrapper.getRange(QUERY, token) == RESULT
         }
     }
 
@@ -120,7 +118,7 @@ class AtlasConsoleServiceWrapperTest {
         service.abort(token).once()
         play {
             def thrownException = shouldFail(RuntimeException) { wrapper.getRange(QUERY, token) }
-            assertEquals EXCEPTION, thrownException
+            assert EXCEPTION == thrownException
         }
     }
 
@@ -128,7 +126,7 @@ class AtlasConsoleServiceWrapperTest {
     void testPut() {
         service.put(token, TO_JSON).returns(null).once()
         play {
-            assertEquals wrapper.put(QUERY, token), null
+            assert wrapper.put(QUERY, token) == null
         }
     }
 
@@ -138,7 +136,7 @@ class AtlasConsoleServiceWrapperTest {
         service.abort(token).once()
         play {
             def thrownException = shouldFail(RuntimeException) { wrapper.put(QUERY, token) }
-            assertEquals EXCEPTION, thrownException
+            assert EXCEPTION == thrownException
         }
     }
 
@@ -146,7 +144,7 @@ class AtlasConsoleServiceWrapperTest {
     void testDelete() {
         service.delete(token, TO_JSON).returns(null).once()
         play {
-            assertEquals wrapper.delete(QUERY, token), null
+            assert wrapper.delete(QUERY, token) == null
         }
     }
 
@@ -156,7 +154,7 @@ class AtlasConsoleServiceWrapperTest {
         service.abort(token).once()
         play {
             def thrownException = shouldFail(RuntimeException) { wrapper.delete(QUERY, token) }
-            assertEquals EXCEPTION, thrownException
+            assert EXCEPTION == thrownException
         }
     }
 
@@ -164,7 +162,7 @@ class AtlasConsoleServiceWrapperTest {
     void testCommit() {
         service.commit(token).returns(null).once()
         play {
-            assertEquals wrapper.commit(token), null
+            assert wrapper.commit(token) == null
         }
     }
 
@@ -172,7 +170,7 @@ class AtlasConsoleServiceWrapperTest {
     void testAbort() {
         service.abort(token).returns(null).once()
         play {
-            assertEquals wrapper.abort(token), null
+            assert wrapper.abort(token) == null
         }
     }
 
@@ -180,7 +178,7 @@ class AtlasConsoleServiceWrapperTest {
     void testStartTransaction() {
         service.startTransaction().returns(token).once()
         play {
-            assertEquals wrapper.startTransaction(), token
+            assert wrapper.startTransaction() == token
         }
     }
 
@@ -188,7 +186,7 @@ class AtlasConsoleServiceWrapperTest {
     void testEndTransactionCommit() {
         service.commit(token).returns(null).once()
         play {
-            assertEquals wrapper.endTransaction(token), null
+            assert wrapper.endTransaction(token) == null
         }
     }
 
@@ -198,7 +196,25 @@ class AtlasConsoleServiceWrapperTest {
         service.abort(token).once()
         play {
             def thrownException = shouldFail(RuntimeException) { wrapper.endTransaction(token) }
-            assertEquals EXCEPTION, thrownException
+            assert EXCEPTION == thrownException
         }
+    }
+
+    public static Throwable shouldFail(Class clazz, Closure code) {
+        Throwable th = null;
+        try {
+            code.call();
+        } catch (GroovyRuntimeException gre) {
+            th = ScriptBytecodeAdapter.unwrap(gre);
+        } catch (Throwable e) {
+            th = e;
+        }
+
+        if (th == null) {
+            fail("Closure " + code + " should have failed with an exception of type " + clazz.getName());
+        } else if (!clazz.isInstance(th)) {
+            fail("Closure " + code + " should have failed with an exception of type " + clazz.getName() + ", instead got Exception " + th);
+        }
+        return th;
     }
 }

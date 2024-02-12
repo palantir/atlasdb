@@ -97,6 +97,8 @@ services:
     command: [bash, -c, 'cp var/conf/workload-server.timelock.cassandra.yml var/conf/workload-server.yml
                          && dockerize -timeout 120s -wait tcp://cassandra1:9160 -wait tcp://cassandra2:9160 -wait tcp://cassandra3:9160
                          && service/bin/init.sh console']
+    ports:
+      - "5005:5005" # enabling port for remote debugger
     container_name: workload-server
     depends_on:
       - cassandra1

@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: We now start antithesis fuzzer before selecting the workflow to run. Otherwise, Antithesis fuzzer cannot appropriately branch before we select the workflows and we'll end up always running the same one, rather than trying all of them. We are also making logging synchronous for that project (to make sure it's written to a file and can be picked up before actually running the code that specifies workflows)
+  links:
+  - https://github.com/palantir/atlasdb/pull/6950

@@ -22,7 +22,6 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-core'
     implementation 'com.fasterxml.jackson.datatype:jackson-datatype-guava'
-    implementation 'com.google.auto.service:auto-service-annotations'
     implementation 'com.google.errorprone:error_prone_annotations'
     implementation 'com.google.guava:guava'
     implementation 'com.palantir.common:streams'
@@ -53,7 +52,6 @@ dependencies {
     implementation project(':timelock-api:timelock-api-objects')
     implementation project(':timestamp-api')
 
-    testImplementation 'com.google.auto.service:auto-service-annotations'
     testImplementation 'com.palantir.config.crypto:encrypted-config-value'
     testImplementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
     testImplementation 'com.palantir.conjure.java:conjure-lib'
@@ -63,12 +61,15 @@ dependencies {
     testImplementation project(path: ':atlasdb-tests-shared')
 
     annotationProcessor 'org.immutables:value'
-    compileOnly 'org.immutables:value::annotations'
     annotationProcessor 'com.google.auto.service:auto-service'
+
+    compileOnly 'com.google.auto.service:auto-service-annotations'
+    compileOnly 'org.immutables:value::annotations'
 
     testAnnotationProcessor 'com.google.auto.service:auto-service'
     testAnnotationProcessor 'org.immutables:value'
     testCompileOnly 'org.immutables:value::annotations'
+    testCompileOnly 'com.google.auto.service:auto-service-annotations'
 
     testImplementation project(path: ":atlasdb-client", configuration: "testArtifacts")
     testImplementation('org.jmock:jmock') {

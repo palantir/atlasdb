@@ -16,9 +16,14 @@ dependencies {
     implementation 'com.palantir.conjure.java.api:service-config'
     implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
     implementation 'com.palantir.refreshable:refreshable'
+    implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.tritium:tritium-registry'
     implementation 'com.google.errorprone:error_prone_annotations'
     implementation 'com.google.guava:guava'
+
+    implementation 'ch.qos.logback:logback-classic'
+    implementation 'ch.qos.logback:logback-core'
+    implementation 'org.slf4j:slf4j-api'
 
     implementation project(':atlasdb-api')
     implementation project(':atlasdb-buggify')
@@ -26,6 +31,8 @@ dependencies {
     implementation project(':atlasdb-workload-server')
     implementation project(':atlasdb-workload-server-api')
     implementation project(':atlasdb-config')
+
+    runtimeOnly project(':atlasdb-cassandra')
 
     compileOnly 'org.immutables:value::annotations'
     annotationProcessor 'org.immutables:value'
@@ -39,5 +46,5 @@ distribution {
     serviceName "atlasdb-workload-server"
     mainClass 'com.palantir.atlasdb.workload.WorkloadServerLauncher'
     args 'server', 'var/conf/workload-server.yml'
-    defaultJvmOpts "-Xms512m", "-Xmx512m"
+    defaultJvmOpts "-Xms512m", "-Xmx512m", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
 }

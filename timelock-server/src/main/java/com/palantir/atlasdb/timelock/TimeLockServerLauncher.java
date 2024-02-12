@@ -18,12 +18,9 @@ package com.palantir.atlasdb.timelock;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
-import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.conjure.java.api.config.service.UserAgent;
@@ -70,21 +67,16 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
 
     @Override
     public void initialize(Bootstrap<CombinedTimeLockServerConfiguration> bootstrap) {
-        MetricRegistry metricRegistry = SharedMetricRegistries.getOrCreate(
-                "AtlasDbTest" + UUID.randomUUID().toString());
+        MetricRegistry metricRegistry = SharedMetricRegistries.getOrCreate("AtlasDbTest" + UUID.randomUUID());
         bootstrap.setMetricRegistry(metricRegistry);
-        bootstrap.setObjectMapper(ObjectMappers.newServerObjectMapper());
-
-        bootstrap.getObjectMapper().registerSubtypes(NonBlockingFileAppenderFactory.class);
-        bootstrap.getObjectMapper().setSubtypeResolver(new DiscoverableSubtypeResolver());
-        bootstrap.getObjectMapper().registerModule(new Jdk8Module());
+        bootstrap.setObjectMapper(
+                ObjectMappers.newServerObjectMapper().setSubtypeResolver(new DiscoverableSubtypeResolver()));
         super.initialize(bootstrap);
     }
 
     @Override
     public void run(CombinedTimeLockServerConfiguration configuration, Environment environment)
             throws JsonProcessingException {
-        environment.getObjectMapper().registerModule(new Jdk8Module()).registerModule(new JavaTimeModule());
         environment.jersey().register(ConjureJerseyFeature.INSTANCE);
         environment.jersey().register(new EmptyOptionalTo204ExceptionMapper());
 

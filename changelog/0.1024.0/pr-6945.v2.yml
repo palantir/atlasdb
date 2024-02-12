@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Duplicate entries on RedirectRetryTargeter shouldn't cause crashes
+    anymore. Instead, the first URL will be the one used.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6945

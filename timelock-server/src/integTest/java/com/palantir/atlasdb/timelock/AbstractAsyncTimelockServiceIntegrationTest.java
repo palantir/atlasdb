@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock;
 import com.palantir.atlasdb.timelock.ImmutableTemplateVariables.TimestampPaxos;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 
-/* TODO(boyoruk): Migrate whole integTest folder to JUnit5 */
 public abstract class AbstractAsyncTimelockServiceIntegrationTest {
 
     public static final TemplateVariables DEFAULT_SINGLE_SERVER = ImmutableTemplateVariables.builder()

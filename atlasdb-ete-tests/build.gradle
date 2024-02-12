@@ -11,7 +11,6 @@ versionsLock {
 dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
-    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8'
     implementation 'com.google.errorprone:error_prone_annotations'
     implementation 'com.google.guava:guava'
     implementation 'com.google.protobuf:protobuf-java'
@@ -26,6 +25,8 @@ dependencies {
     implementation 'io.dropwizard:dropwizard-jersey'
     implementation 'javax.ws.rs:javax.ws.rs-api'
     implementation 'org.apache.commons:commons-text'
+    implementation 'io.dropwizard:dropwizard-jackson'
+    implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
 
     implementation project(':atlasdb-api')
     implementation project(':atlasdb-client')

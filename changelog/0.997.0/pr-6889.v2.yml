@@ -1,0 +1,8 @@
+type: fix
+fix:
+  description: Go back to closing all delegates as opposed to only relevant delegates
+    on suspected leader election loss, while we investigate a bug with said mechanism
+    that causes a permanent non-leader state for some clients when the relevant race
+    condition happens.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6889

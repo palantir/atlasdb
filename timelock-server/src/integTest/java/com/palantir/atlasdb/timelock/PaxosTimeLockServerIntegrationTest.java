@@ -80,19 +80,19 @@ public class PaxosTimeLockServerIntegrationTest {
 
     @Order(1)
     @RegisterExtension
-    public static final TemporaryConfigurationHolderV2 TEMPORARY_CONFIG_HOLDER =
-            new TemporaryConfigurationHolderV2(TEMPORARY_FOLDER, "paxosSingleServer.ftl", DEFAULT_SINGLE_SERVER);
+    public static final TemporaryConfigurationHolder TEMPORARY_CONFIG_HOLDER =
+            new TemporaryConfigurationHolder(TEMPORARY_FOLDER, "paxosSingleServer.ftl", DEFAULT_SINGLE_SERVER);
 
     @Order(2)
     @RegisterExtension
-    public static final TimeLockServerHolderV2 TIMELOCK_SERVER_HOLDER =
-            new TimeLockServerHolderV2(TEMPORARY_CONFIG_HOLDER::getTemporaryConfigFileLocation, DEFAULT_SINGLE_SERVER);
+    public static final TimeLockServerHolder TIMELOCK_SERVER_HOLDER =
+            new TimeLockServerHolder(TEMPORARY_CONFIG_HOLDER::getTemporaryConfigFileLocation, DEFAULT_SINGLE_SERVER);
 
-    private static final TestableTimelockServerV2 TIMELOCK =
-            new TestableTimelockServerV2("https://localhost", TIMELOCK_SERVER_HOLDER);
+    private static final TestableTimelockServer TIMELOCK =
+            new TestableTimelockServer("https://localhost", TIMELOCK_SERVER_HOLDER);
 
-    private static NamespacedClientsV2 namespace1;
-    private static NamespacedClientsV2 namespace2;
+    private static NamespacedClients namespace1;
+    private static NamespacedClients namespace2;
 
     @BeforeAll
     public static void waitForClusterToStabilize() {

@@ -19,6 +19,7 @@ package com.palantir.lock.client;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.palantir.atlasdb.buggify.api.BuggifyFactory;
@@ -36,9 +37,14 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -54,11 +60,14 @@ public final class UnreliableTimelockClientTest {
     @Mock
     private TimeLockClient timeLockClient;
 
+    @Mock
+    private RandomizedTimestampManager timestampManager;
+
     private UnreliableTimeLockService unreliableTimeLockService;
 
     @BeforeEach
     public void before() {
-        unreliableTimeLockService = new UnreliableTimeLockService(timeLockClient, NoOpBuggifyFactory.INSTANCE);
+        unreliableTimeLockService = createTimelockService(NoOpBuggifyFactory.INSTANCE);
     }
 
     @Test
@@ -70,19 +79,30 @@ public final class UnreliableTimelockClientTest {
     @Test
     public void verifyGetFreshTimestampCallsDelegate() {
         unreliableTimeLockService.getFreshTimestamp();
-        verify(timeLockClient).getFreshTimestamp();
+        verify(timestampManager).getFreshTimestamp();
+        verifyNoMoreInteractions(timestampManager);
     }
 
     @Test
     public void verifyGetCommitTimestampsCallsDelegate() {
         unreliableTimeLockService.getCommitTimestamp(1, LOCK_TOKEN);
-        verify(timeLockClient).getCommitTimestamp(1, LOCK_TOKEN);
+        verify(timestampManager).getCommitTimestamp(1, LOCK_TOKEN);
+        verifyNoMoreInteractions(timestampManager);
     }
 
     @Test
     public void verifyGetFreshTimestampsCallsDelegate() {
         unreliableTimeLockService.getFreshTimestamps(1);
-        verify(timeLockClient).getFreshTimestamps(1);
+        verify(timestampManager).getFreshTimestamps(1);
+        verifyNoMoreInteractions(timestampManager);
+    }
+
+    @ParameterizedTest
+    @MethodSource("timestampMethods")
+    public void timestampMethodsRandomlyIncreaseTimestamp(Consumer<UnreliableTimeLockService> task) {
+        UnreliableTimeLockService unreliableTimeLockService = createAlwaysBuggyTimelockService();
+        task.accept(unreliableTimeLockService);
+        verify(timestampManager).randomlyIncreaseTimestamp();
     }
 
     @Test
@@ -112,7 +132,7 @@ public final class UnreliableTimelockClientTest {
     @Test
     public void lockMayUnlockImmediately() {
         when(timeLockClient.lock(LOCK_REQUEST)).thenReturn(LockResponse.successful(LOCK_TOKEN));
-        new UnreliableTimeLockService(timeLockClient, createAlwaysBuggyFactory()).lock(LOCK_REQUEST);
+        createAlwaysBuggyTimelockService().lock(LOCK_REQUEST);
         verify(timeLockClient).unlock(Set.of(LOCK_TOKEN));
     }
 
@@ -120,7 +140,7 @@ public final class UnreliableTimelockClientTest {
     public void lockWithOptionMayUnlockImmediately() {
         ClientLockingOptions lockingOptions = ClientLockingOptions.getDefault();
         when(timeLockClient.lock(LOCK_REQUEST, lockingOptions)).thenReturn(LockResponse.successful(LOCK_TOKEN));
-        new UnreliableTimeLockService(timeLockClient, createAlwaysBuggyFactory()).lock(LOCK_REQUEST, lockingOptions);
+        createAlwaysBuggyTimelockService().lock(LOCK_REQUEST, lockingOptions);
         verify(timeLockClient).unlock(Set.of(LOCK_TOKEN));
     }
 
@@ -141,8 +161,7 @@ public final class UnreliableTimelockClientTest {
     public void refreshLockLeasesMaybeUnlocksLocks() {
         BuggifyFactory factory = mock(BuggifyFactory.class);
         when(factory.maybe(anyDouble())).thenReturn(DefaultBuggify.INSTANCE, NoOpBuggify.INSTANCE);
-        new UnreliableTimeLockService(timeLockClient, factory)
-                .refreshLockLeases(new LinkedHashSet<>(List.of(LOCK_TOKEN, LOCK_TOKEN_2)));
+        createTimelockService(factory).refreshLockLeases(new LinkedHashSet<>(List.of(LOCK_TOKEN, LOCK_TOKEN_2)));
         verify(timeLockClient).refreshLockLeases(Set.of(LOCK_TOKEN_2));
         verify(timeLockClient).unlock(Set.of(LOCK_TOKEN));
     }
@@ -171,9 +190,27 @@ public final class UnreliableTimelockClientTest {
         verify(timeLockClient).currentTimeMillis();
     }
 
+    private UnreliableTimeLockService createAlwaysBuggyTimelockService() {
+        return createTimelockService(createAlwaysBuggyFactory());
+    }
+
+    private UnreliableTimeLockService createTimelockService(BuggifyFactory factory) {
+        return new UnreliableTimeLockService(timeLockClient, timestampManager, factory);
+    }
+
     private static BuggifyFactory createAlwaysBuggyFactory() {
-        BuggifyFactory factory = mock(BuggifyFactory.class);
-        when(factory.maybe(anyDouble())).thenReturn(DefaultBuggify.INSTANCE);
-        return factory;
+        return _value -> DefaultBuggify.INSTANCE;
+    }
+
+    private static Stream<Named<Consumer<UnreliableTimeLockService>>> timestampMethods() {
+        return Stream.of(
+                namedTask("getFreshTimestamp", UnreliableTimeLockService::getFreshTimestamp),
+                namedTask("getCommitTimestamp", service -> service.getCommitTimestamp(1, LOCK_TOKEN)),
+                namedTask("getFreshTimestamps", service -> service.getFreshTimestamps(10)));
+    }
+
+    private static Named<Consumer<UnreliableTimeLockService>> namedTask(
+            String name, Consumer<UnreliableTimeLockService> task) {
+        return Named.of(name, task);
     }
 }

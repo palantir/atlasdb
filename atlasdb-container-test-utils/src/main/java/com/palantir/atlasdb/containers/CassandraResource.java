@@ -23,7 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.refreshable.Refreshable;
@@ -38,7 +38,7 @@ public class CassandraResource implements BeforeAllCallback, AfterAllCallback, K
     private final CassandraContainer containerInstance = new CassandraContainer();
     private final Supplier<KeyValueService> supplier;
     private Containers containers;
-    private TestResourceManagerV2 testResourceManager;
+    private TestResourceManager testResourceManager;
     private Proxy socksProxy;
 
     public CassandraResource() {
@@ -52,7 +52,7 @@ public class CassandraResource implements BeforeAllCallback, AfterAllCallback, K
     @Override
     public void beforeAll(ExtensionContext extensionContext) throws Exception {
         containers = new Containers(extensionContext.getRequiredTestClass()).with(containerInstance);
-        testResourceManager = new TestResourceManagerV2(supplier);
+        testResourceManager = new TestResourceManager(supplier);
         containers.beforeAll(extensionContext);
         socksProxy = Containers.getSocksProxy(containerInstance.getServiceName());
     }

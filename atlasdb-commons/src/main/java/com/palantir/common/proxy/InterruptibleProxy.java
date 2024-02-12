@@ -76,7 +76,7 @@ public final class InterruptibleProxy implements DelegatingInvocationHandler {
         try {
             return future.get();
         } catch (ExecutionException e) {
-            throw Throwables.rewrap(e.getCause());
+            throw e.getCause();
         } catch (InterruptedException e) {
             throw new PalantirInterruptedException(e);
         } finally {

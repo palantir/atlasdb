@@ -1,0 +1,8 @@
+type: feature
+feature:
+  description: Users are able to provide a predicate indicating the fully qualified
+    table names for which the table mapping cache will be allowed to operate. This
+    should unblock workflows for users which delete and re-create tables, who can
+    elect to not cache said tables in the table mapper.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6946

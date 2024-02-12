@@ -68,7 +68,7 @@ public final class DockerizedDatabase implements Closeable {
     private static InetSocketAddress connect(DockerComposeExtension docker, int dbPort) {
         try {
             if (docker == null) {
-                throw new SafeIllegalStateException("Docker compose rule cannot be run, is null.");
+                throw new SafeIllegalStateException("Docker compose extension cannot be run, is null.");
             } else {
                 docker.before();
                 return InetSocketAddress.createUnresolved(
@@ -76,7 +76,7 @@ public final class DockerizedDatabase implements Closeable {
                         docker.hostNetworkedPort(dbPort).getExternalPort());
             }
         } catch (IOException | InterruptedException | IllegalStateException e) {
-            throw new SafeRuntimeException("Could not run docker compose rule.", e);
+            throw new SafeRuntimeException("Could not run docker compose extension.", e);
         }
     }
 

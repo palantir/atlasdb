@@ -24,12 +24,14 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.buggify.impl.DefaultBuggifyFactory;
+import com.palantir.atlasdb.buggify.impl.DefaultNativeSamplingSecureRandomFactory;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.workload.background.BackgroundCassandraJob;
 import com.palantir.atlasdb.workload.config.WorkloadServerConfiguration;
 import com.palantir.atlasdb.workload.invariant.DurableWritesInvariantMetricReporter;
 import com.palantir.atlasdb.workload.invariant.SerializableInvariantLogReporter;
+import com.palantir.atlasdb.workload.logging.LoggingUtils;
 import com.palantir.atlasdb.workload.resource.AntithesisCassandraSidecarResource;
 import com.palantir.atlasdb.workload.runner.AntithesisWorkflowValidatorRunner;
 import com.palantir.atlasdb.workload.runner.DefaultWorkflowRunner;
@@ -59,6 +61,7 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgent.Agent;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
@@ -71,6 +74,8 @@ import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -102,6 +107,10 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
     @Override
     public void run(WorkloadServerConfiguration configuration, Environment environment) {
         environment.getObjectMapper().registerModule(new Jdk8Module()).registerModule(new JavaTimeModule());
+
+        // Important to make sure we can control when Antithesis fuzzer kicks in. We need to make sure it's logged
+        // before we actually try to choose the workflows to be run.
+        LoggingUtils.setSynchronousLogging();
 
         scheduleBackgroundJobs(environment);
 
@@ -138,6 +147,47 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 Refreshable.only(configuration.runtime().atlas()),
                 USER_AGENT,
                 metricsManager);
+        List<WorkflowAndInvariants<Workflow>> allWorkflowsAndInvariants =
+                createAllWorkflowsAndInvariants(configuration, environment, transactionStoreFactory);
+
+        new AntithesisWorkflowValidatorRunner(new DefaultWorkflowRunner(
+                        MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService)))
+                .run(() -> selectWorkflowsToRun(configuration, allWorkflowsAndInvariants));
+
+        log.info("Finished running desired workflows successfully");
+        log.info("antithesis: terminate");
+
+        workflowsRanLatch.countDown();
+
+        if (configuration.install().exitAfterRunning()) {
+            System.exit(0);
+        }
+    }
+
+    private static List<WorkflowAndInvariants<Workflow>> selectWorkflowsToRun(
+            WorkloadServerConfiguration configuration, List<WorkflowAndInvariants<Workflow>> workflowsAndInvariants) {
+        Collections.shuffle(workflowsAndInvariants, DefaultNativeSamplingSecureRandomFactory.INSTANCE.create());
+        switch (configuration.install().workflowExecutionConfig().runMode()) {
+            case ONE:
+                return workflowsAndInvariants.subList(0, 1);
+            case ALL:
+                return workflowsAndInvariants;
+            default:
+                throw new SafeIllegalStateException(
+                        "Unexpected run mode",
+                        SafeArg.of(
+                                "runMode",
+                                configuration
+                                        .install()
+                                        .workflowExecutionConfig()
+                                        .runMode()));
+        }
+    }
+
+    private List<WorkflowAndInvariants<Workflow>> createAllWorkflowsAndInvariants(
+            WorkloadServerConfiguration configuration,
+            Environment environment,
+            AtlasDbTransactionStoreFactory transactionStoreFactory) {
         SingleRowTwoCellsWorkflowConfiguration singleRowTwoCellsConfig =
                 configuration.install().singleRowTwoCellsConfig();
         RingWorkflowConfiguration ringWorkflowConfiguration =
@@ -156,37 +206,28 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 configuration.install().writeOnceDeleteOnceConfig();
 
         waitForTransactionStoreFactoryToBeInitialized(transactionStoreFactory);
+        transactionStoreFactory.fastForwardTimestampToSupportTransactions3();
 
-        new AntithesisWorkflowValidatorRunner(new DefaultWorkflowRunner(
-                        MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService)))
-                .run(
-                        createSingleRowTwoCellsWorkflowValidator(
-                                transactionStoreFactory, singleRowTwoCellsConfig, environment.lifecycle()),
-                        createRingWorkflowValidator(
-                                transactionStoreFactory, ringWorkflowConfiguration, environment.lifecycle()),
-                        createTransientRowsWorkflowValidator(
-                                transactionStoreFactory, transientRowsWorkflowConfiguration, environment.lifecycle()),
-                        createSingleBusyCellWorkflowValidator(
-                                transactionStoreFactory, singleBusyCellWorkflowConfiguration, environment.lifecycle()),
-                        createSingleBusyCellReadNoTouchWorkflowValidator(
-                                transactionStoreFactory,
-                                singleBusyCellReadNoTouchWorkflowConfiguration,
-                                environment.lifecycle()),
-                        createBankBalanceWorkflow(transactionStoreFactory, bankBalanceConfig, environment.lifecycle()),
-                        createRandomWorkflow(transactionStoreFactory, randomWorkflowConfig, environment.lifecycle()),
-                        createWriteOnceDeleteOnceWorkflow(
-                                transactionStoreFactory, writeOnceDeleteOnceConfig, environment.lifecycle()));
-
-        log.info("antithesis: terminate");
-
-        workflowsRanLatch.countDown();
-
-        if (configuration.install().exitAfterRunning()) {
-            System.exit(0);
-        }
+        return new ArrayList<>(List.of(
+                createSingleRowTwoCellsWorkflowValidator(
+                        transactionStoreFactory, singleRowTwoCellsConfig, environment.lifecycle()),
+                createRingWorkflowValidator(
+                        transactionStoreFactory, ringWorkflowConfiguration, environment.lifecycle()),
+                createTransientRowsWorkflowValidator(
+                        transactionStoreFactory, transientRowsWorkflowConfiguration, environment.lifecycle()),
+                createSingleBusyCellWorkflowValidator(
+                        transactionStoreFactory, singleBusyCellWorkflowConfiguration, environment.lifecycle()),
+                createSingleBusyCellReadNoTouchWorkflowValidator(
+                        transactionStoreFactory,
+                        singleBusyCellReadNoTouchWorkflowConfiguration,
+                        environment.lifecycle()),
+                createBankBalanceWorkflow(transactionStoreFactory, bankBalanceConfig, environment.lifecycle()),
+                createRandomWorkflow(transactionStoreFactory, randomWorkflowConfig, environment.lifecycle()),
+                createWriteOnceDeleteOnceWorkflow(
+                        transactionStoreFactory, writeOnceDeleteOnceConfig, environment.lifecycle())));
     }
 
-    private void waitForTransactionStoreFactoryToBeInitialized(AtlasDbTransactionStoreFactory factory) {
+    private static void waitForTransactionStoreFactoryToBeInitialized(AtlasDbTransactionStoreFactory factory) {
         // TODO (jkong): This is awful, but sufficient for now.
         Instant deadline = Instant.now().plusSeconds(TimeUnit.MINUTES.toSeconds(5));
         while (Instant.now().isBefore(deadline)) {

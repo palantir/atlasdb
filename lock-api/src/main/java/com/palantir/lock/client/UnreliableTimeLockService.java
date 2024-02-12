@@ -38,23 +38,30 @@ import java.util.stream.Collectors;
 
 /**
  * A version of timelock service that has a chance to randomly lose locks during refresh or immediately after
- * acquiring. This is useful for testing the behavior of clients when locks are lost.
+ * acquiring, or randomly fast forwarding timestamps every time we get a new timestamp.
+ * This is useful for testing the behavior of clients when locks are lost or timestamps randomly jump forward.
  */
 public final class UnreliableTimeLockService implements TimelockService {
-
     private static final SafeLogger log = SafeLoggerFactory.get(UnreliableTimeLockService.class);
+    private static final double UNLOCK_PROBABILITY = 0.05;
+    private static final double INCREASE_TIMESTAMP_PROBABILITY = 0.1;
+    private static final double FAIL_TO_REFRESH_PROBABILITY = 0.01;
 
     private final TimelockService delegate;
     private final BuggifyFactory buggify;
+    private final RandomizedTimestampManager timestampManager;
 
-    public static UnreliableTimeLockService create(TimelockService timelockService) {
-        return new UnreliableTimeLockService(timelockService, DefaultBuggifyFactory.INSTANCE);
+    public static UnreliableTimeLockService create(
+            TimelockService timelockService, RandomizedTimestampManager timestampManager) {
+        return new UnreliableTimeLockService(timelockService, timestampManager, DefaultBuggifyFactory.INSTANCE);
     }
 
     @VisibleForTesting
-    UnreliableTimeLockService(TimelockService delegate, BuggifyFactory buggifyFactory) {
+    UnreliableTimeLockService(
+            TimelockService delegate, RandomizedTimestampManager timestampManager, BuggifyFactory buggifyFactory) {
         this.delegate = delegate;
         this.buggify = buggifyFactory;
+        this.timestampManager = timestampManager;
     }
 
     @Override
@@ -64,17 +71,20 @@ public final class UnreliableTimeLockService implements TimelockService {
 
     @Override
     public long getFreshTimestamp() {
-        return delegate.getFreshTimestamp();
+        maybeRandomlyIncreaseTimestamp();
+        return timestampManager.getFreshTimestamp();
     }
 
     @Override
     public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
-        return delegate.getCommitTimestamp(startTs, commitLocksToken);
+        maybeRandomlyIncreaseTimestamp();
+        return timestampManager.getCommitTimestamp(startTs, commitLocksToken);
     }
 
     @Override
     public TimestampRange getFreshTimestamps(int numTimestampsRequested) {
-        return delegate.getFreshTimestamps(numTimestampsRequested);
+        maybeRandomlyIncreaseTimestamp();
+        return timestampManager.getFreshTimestamps(numTimestampsRequested);
     }
 
     @Override
@@ -95,7 +105,7 @@ public final class UnreliableTimeLockService implements TimelockService {
     @Override
     public LockResponse lock(LockRequest request) {
         LockResponse response = delegate.lock(request);
-        buggify.maybe(0.05).run(() -> {
+        buggify.maybe(UNLOCK_PROBABILITY).run(() -> {
             log.info("BUGGIFY: Unlocking lock token {} after acquiring", SafeArg.of("token", response.getToken()));
             delegate.unlock(Set.of(response.getToken()));
         });
@@ -105,7 +115,7 @@ public final class UnreliableTimeLockService implements TimelockService {
     @Override
     public LockResponse lock(LockRequest lockRequest, ClientLockingOptions options) {
         LockResponse response = delegate.lock(lockRequest, options);
-        buggify.maybe(0.05).run(() -> {
+        buggify.maybe(UNLOCK_PROBABILITY).run(() -> {
             log.info("BUGGIFY: Unlocking lock token {} after acquiring", SafeArg.of("token", response.getToken()));
             delegate.unlock(Set.of(response.getToken()));
         });
@@ -120,7 +130,7 @@ public final class UnreliableTimeLockService implements TimelockService {
     @Override
     public Set<LockToken> refreshLockLeases(Set<LockToken> tokens) {
         Set<LockToken> tokensToRefresh = tokens.stream()
-                .filter(_token -> !buggify.maybe(0.01).asBoolean())
+                .filter(_token -> !buggify.maybe(FAIL_TO_REFRESH_PROBABILITY).asBoolean())
                 .collect(Collectors.toSet());
         Set<LockToken> tokensToUnlock = Sets.difference(tokens, tokensToRefresh);
         if (!tokensToUnlock.isEmpty()) {
@@ -143,5 +153,9 @@ public final class UnreliableTimeLockService implements TimelockService {
     @Override
     public long currentTimeMillis() {
         return delegate.currentTimeMillis();
+    }
+
+    private void maybeRandomlyIncreaseTimestamp() {
+        buggify.maybe(INCREASE_TIMESTAMP_PROBABILITY).run(timestampManager::randomlyIncreaseTimestamp);
     }
 }

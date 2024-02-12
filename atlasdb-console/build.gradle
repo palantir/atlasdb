@@ -26,18 +26,24 @@ dependencies {
     testImplementation 'com.fasterxml.jackson.core:jackson-core'
     testImplementation 'com.fasterxml.jackson.core:jackson-databind'
     testImplementation 'org.assertj:assertj-core'
-    testImplementation 'org.codehaus.groovy:groovy-test'
     testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.jmock:jmock'
+
     testImplementation project(':atlasdb-client')
 
-    testImplementation('org.jmock:jmock-legacy') {
+    testImplementation('org.gmock:gmock') {
+        exclude module: 'groovy-test'
+    }
+    testImplementation('org.jmock:jmock-imposters') {
         exclude group: 'org.hamcrest'
     }
-    testImplementation('org.jmock:jmock') {
-      exclude group: 'org.hamcrest'
-    }
-    testImplementation 'org.gmock:gmock'
 }
 
 tasks.checkImplicitDependenciesMain.enabled = false
 tasks.checkUnusedDependenciesMain.enabled = false
+
+test {
+    // JDK 17 enforces stricter encapsulation levels for base packages. This workaround is necessary since we use GMock
+    // for our Groovy tests, which leads to errors. We don't have control over this package.
+    jvmArgs '--add-opens=java.base/java.lang=ALL-UNNAMED'
+}

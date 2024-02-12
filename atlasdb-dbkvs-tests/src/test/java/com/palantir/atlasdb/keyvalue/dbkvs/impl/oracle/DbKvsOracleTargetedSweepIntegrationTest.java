@@ -16,16 +16,16 @@
 
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManagerV2;
-import com.palantir.atlasdb.sweep.AbstractTargetedSweepTestV2;
+import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.sweep.AbstractTargetedSweepTest;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 @ExtendWith(DbKvsOracleExtension.class)
-public class DbKvsOracleTargetedSweepIntegrationTest extends AbstractTargetedSweepTestV2 {
+public class DbKvsOracleTargetedSweepIntegrationTest extends AbstractTargetedSweepTest {
 
     @RegisterExtension
-    public static final TestResourceManagerV2 TRM = new TestResourceManagerV2(DbKvsOracleExtension::createKvs);
+    public static final TestResourceManager TRM = new TestResourceManager(DbKvsOracleExtension::createKvs);
 
     public DbKvsOracleTargetedSweepIntegrationTest() {
         super(TRM, TRM);
