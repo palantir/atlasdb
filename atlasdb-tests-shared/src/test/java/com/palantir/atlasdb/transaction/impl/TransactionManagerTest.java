@@ -262,7 +262,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
-                MoreExecutors.newDirectExecutorService(),
+                new DefaultDeleteExecutor(keyValueService, MoreExecutors.newDirectExecutorService()),
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,

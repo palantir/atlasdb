@@ -57,13 +57,15 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.InOrder;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 public class SnapshotTransactionManagerTest {
     private static final String SETUP_TASK_METRIC_NAME =
             SnapshotTransactionManager.class.getCanonicalName() + ".setupTask";
@@ -75,7 +77,9 @@ public class SnapshotTransactionManagerTest {
     private final KeyValueService keyValueService = mock(KeyValueService.class);
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
-    private final ExecutorService deleteExecutor = Executors.newSingleThreadExecutor();
+
+    @Mock
+    private DeleteExecutor deleteExecutor;
 
     @RegisterExtension
     public static InMemoryTimelockClassExtension inMemoryTimelockClassExtension = new InMemoryTimelockClassExtension();
@@ -141,7 +145,7 @@ public class SnapshotTransactionManagerTest {
     @Test
     public void closesDeleteExecutorOnClosingTransactionManager() {
         snapshotTransactionManager.close();
-        assertThat(deleteExecutor.isTerminated()).isTrue();
+        verify(deleteExecutor, times(1)).close();
     }
 
     @Test
