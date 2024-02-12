@@ -17,15 +17,41 @@
 package com.palantir.atlasdb.factory;
 
 import com.codahale.metrics.MetricRegistry;
+import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.conjure.java.api.config.service.ServicesConfigBlock;
+import com.palantir.conjure.java.api.config.service.UserAgent;
+import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.client.RemoteLockServiceAdapter;
+import com.palantir.refreshable.Refreshable;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import java.util.concurrent.ExecutorService;
 
 public final class LockServices {
+    // No need for services config block since timelock server uris come from runtime config.
+    private static final Refreshable<ServicesConfigBlock> DUMMY_SERVICES_CONFIG =
+            Refreshable.only(ServicesConfigBlock.builder().build());
+
     private LockServices() {
         // static factory
+    }
+
+    public static LockService createLockServiceClient(
+            Refreshable<ServerListConfig> timeLockServerListConfig,
+            ExecutorService lockClientExecutor,
+            UserAgent userAgent,
+            MetricRegistry metricRegistry,
+            TaggedMetricRegistry taggedMetricRegistry,
+            String timelockNamespace) {
+        DialogueClients.ReloadingFactory reloadingFactory =
+                DialogueClients.create(DUMMY_SERVICES_CONFIG).withBlockingExecutor(lockClientExecutor);
+        AtlasDbDialogueServiceProvider serviceProvider = AtlasDbDialogueServiceProvider.create(
+                timeLockServerListConfig, reloadingFactory, userAgent, taggedMetricRegistry);
+        return wrapWithDefaultDecorators(
+                createRawLockServiceClient(serviceProvider, metricRegistry, timelockNamespace));
     }
 
     public static LockService createRawLockServiceClient(
