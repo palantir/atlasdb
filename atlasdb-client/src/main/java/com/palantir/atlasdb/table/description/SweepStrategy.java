@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.table.description;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.SweepKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -73,7 +73,7 @@ public final class SweepStrategy {
         return getSweeperStrategy().isPresent() && getSweeperStrategy().get().equals(SweeperStrategy.THOROUGH);
     }
 
-    public static SweepStrategy from(TableMetadataPersistence.SweepStrategy strategy, KeyValueService kvs) {
+    public static SweepStrategy from(TableMetadataPersistence.SweepStrategy strategy, SweepKeyValueService kvs) {
         return new SweepStrategy(
                 sweeperBehaviour(strategy),
                 mustCheckImmutableLockIfAllCellsReadAndPresent(strategy, kvs),
@@ -94,7 +94,7 @@ public final class SweepStrategy {
     }
 
     private static boolean mustCheckImmutableLockIfAllCellsReadAndPresent(
-            TableMetadataPersistence.SweepStrategy strategy, KeyValueService kvs) {
+            TableMetadataPersistence.SweepStrategy strategy, SweepKeyValueService kvs) {
         if (!kvs.sweepsEntriesInStrictlyNonDecreasingFashion()) {
             return mustCheckImmutableLockIfNonExhaustiveRead(strategy);
         }

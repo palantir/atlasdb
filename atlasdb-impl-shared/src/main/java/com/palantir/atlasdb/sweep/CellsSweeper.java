@@ -18,7 +18,7 @@ package com.palantir.atlasdb.sweep;
 import com.google.common.collect.Multimap;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.SweepKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -38,10 +38,11 @@ public class CellsSweeper {
     private static final SafeLogger log = SafeLoggerFactory.get(CellsSweeper.class);
 
     private final TransactionManager txManager;
-    private final KeyValueService keyValueService;
+    private final SweepKeyValueService keyValueService;
     private final Collection<Follower> followers;
 
-    public CellsSweeper(TransactionManager txManager, KeyValueService keyValueService, Collection<Follower> followers) {
+    public CellsSweeper(
+            TransactionManager txManager, SweepKeyValueService keyValueService, Collection<Follower> followers) {
         this.txManager = txManager;
         this.keyValueService = keyValueService;
         this.followers = followers;

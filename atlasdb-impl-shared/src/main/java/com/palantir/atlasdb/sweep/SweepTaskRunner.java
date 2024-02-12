@@ -28,7 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweepingRequest;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.SweepKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -59,14 +59,14 @@ import java.util.stream.Collectors;
 public class SweepTaskRunner {
     private static final SafeLogger log = SafeLoggerFactory.get(SweepTaskRunner.class);
 
-    private final KeyValueService keyValueService;
+    private final SweepKeyValueService keyValueService;
     private final SpecialTimestampsSupplier specialTimestampsSupplier;
     private final CellsSweeper cellsSweeper;
     private final Optional<LegacySweepMetrics> metricsManager;
     private final CommitTsCache commitTsCache;
 
     public SweepTaskRunner(
-            KeyValueService keyValueService,
+            SweepKeyValueService keyValueService,
             LongSupplier unreadableTimestampSupplier,
             LongSupplier immutableTimestampSupplier,
             TransactionService transactionService,
@@ -81,7 +81,7 @@ public class SweepTaskRunner {
     }
 
     public SweepTaskRunner(
-            KeyValueService keyValueService,
+            SweepKeyValueService keyValueService,
             LongSupplier unreadableTsSupplier,
             LongSupplier immutableTsSupplier,
             TransactionService transactionService,

@@ -18,7 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.Maps;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.SweepKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.SweepStrategy;
@@ -41,11 +41,11 @@ public final class SweepStrategyManagers {
         ;
     }
 
-    public static SweepStrategyManager createDefault(KeyValueService kvs) {
+    public static SweepStrategyManager createDefault(SweepKeyValueService kvs) {
         return create(kvs, CacheWarming.FULL);
     }
 
-    public static SweepStrategyManager create(KeyValueService kvs, CacheWarming cacheWarming) {
+    public static SweepStrategyManager create(SweepKeyValueService kvs, CacheWarming cacheWarming) {
         // Wrap in a RecomputingSupplier for its logic to protect against concurrent initialization
         RecomputingSupplier<LoadingCache<TableReference, SweepStrategy>> sweepStrategySupplierLoadingCache =
                 RecomputingSupplier.create(() -> {
@@ -78,12 +78,12 @@ public final class SweepStrategyManagers {
                 Preconditions.checkNotNull(map.get(tableRef), "unknown table", SafeArg.of("tableRef", tableRef));
     }
 
-    public static SweepStrategyManager completelyConservative(KeyValueService kvs) {
+    public static SweepStrategyManager completelyConservative(SweepKeyValueService kvs) {
         return tableRef -> SweepStrategy.from(TableMetadataPersistence.SweepStrategy.CONSERVATIVE, kvs);
     }
 
     private static Map<TableReference, SweepStrategy> getSweepStrategiesForWarmingCache(
-            KeyValueService kvs, CacheWarming cacheWarming) {
+            SweepKeyValueService kvs, CacheWarming cacheWarming) {
         switch (cacheWarming) {
             case FULL:
                 return Maps.transformValues(
@@ -95,7 +95,7 @@ public final class SweepStrategyManagers {
         }
     }
 
-    private static SweepStrategy getSweepStrategy(byte[] tableMeta, KeyValueService kvs) {
+    private static SweepStrategy getSweepStrategy(byte[] tableMeta, SweepKeyValueService kvs) {
         if (tableMeta != null && tableMeta.length > 0) {
             return SweepStrategy.from(
                     TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMeta).getSweepStrategy(), kvs);

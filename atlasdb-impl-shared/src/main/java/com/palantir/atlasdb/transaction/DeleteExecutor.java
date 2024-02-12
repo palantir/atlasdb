@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2022 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2024 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl.expectations;
+package com.palantir.atlasdb.transaction;
 
-import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.TransactionKeyValueService;
-import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
+import java.util.Map;
 
-public interface TrackingKeyValueService extends TransactionKeyValueService {
-    TransactionReadInfo getOverallReadInfo();
+public interface DeleteExecutor extends AutoCloseable {
+    void delete(TableReference tableRef, Map<Cell, Long> keysToDelete);
 
-    ImmutableMap<TableReference, TransactionReadInfo> getReadInfoByTable();
+    @Override
+    void close();
 }

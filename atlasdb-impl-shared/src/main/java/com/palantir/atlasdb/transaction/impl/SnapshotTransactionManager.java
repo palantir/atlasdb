@@ -27,13 +27,14 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
-import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TransactionKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.transaction.DeleteExecutor;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
@@ -83,7 +84,8 @@ import java.util.stream.Collectors;
     private static final int NUM_RETRIES = 10;
 
     final MetricsManager metricsManager;
-    final KeyValueService keyValueService;
+    // TODO(jakubk): This is wrong.
+    final TransactionKeyValueService keyValueService;
     final TransactionService transactionService;
     final TimelockService timelockService;
     final LockWatchManagerInternal lockWatchManager;
@@ -96,7 +98,7 @@ import java.util.stream.Collectors;
     final Cleaner cleaner;
     final boolean allowHiddenTableAccess;
     final ExecutorService getRangesExecutor;
-    final ExecutorService deleteExecutor;
+    final DeleteExecutor deleteExecutor;
     final int defaultGetRangesConcurrency;
     final MultiTableSweepQueueWriter sweepQueueWriter;
     final boolean validateLocksOnReads;
@@ -112,7 +114,7 @@ import java.util.stream.Collectors;
 
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
-            KeyValueService keyValueService,
+            TransactionKeyValueService keyValueService,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TimestampManagementService timestampManagementService,
@@ -127,7 +129,7 @@ import java.util.stream.Collectors;
             int defaultGetRangesConcurrency,
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueueWriter,
-            ExecutorService deleteExecutor,
+            DeleteExecutor deleteExecutor,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
@@ -406,8 +408,8 @@ import java.util.stream.Collectors;
                 SafeShutdownRunner.createWithCachedThreadpool(Duration.ofSeconds(20))) {
             shutdownRunner.shutdownSafely(super::close);
             shutdownRunner.shutdownSafely(cleaner::close);
-            shutdownRunner.shutdownSafely(keyValueService::close);
-            shutdownRunner.shutdownSafely(() -> shutdownExecutor(deleteExecutor));
+            //            shutdownRunner.shutdownSafely(keyValueService::close);
+            shutdownRunner.shutdownSafely(deleteExecutor::close);
             shutdownRunner.shutdownSafely(() -> shutdownExecutor(getRangesExecutor));
             shutdownRunner.shutdownSafely(this::closeLockServiceIfPossible);
 
@@ -508,7 +510,7 @@ import java.util.stream.Collectors;
 
     @Override
     public KeyValueService getKeyValueService() {
-        return keyValueService;
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -528,18 +530,19 @@ import java.util.stream.Collectors;
 
     @Override
     public KeyValueServiceStatus getKeyValueServiceStatus() {
-        ClusterAvailabilityStatus clusterAvailabilityStatus = keyValueService.getClusterAvailabilityStatus();
-        switch (clusterAvailabilityStatus) {
-            case TERMINAL:
-                return KeyValueServiceStatus.TERMINAL;
-            case ALL_AVAILABLE:
-                return KeyValueServiceStatus.HEALTHY_ALL_OPERATIONS;
-            case QUORUM_AVAILABLE:
-                return KeyValueServiceStatus.HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES;
-            case NO_QUORUM_AVAILABLE:
-            default:
-                return KeyValueServiceStatus.UNHEALTHY;
-        }
+        //        ClusterAvailabilityStatus clusterAvailabilityStatus = keyValueService.getClusterAvailabilityStatus();
+        //        switch (clusterAvailabilityStatus) {
+        //            case TERMINAL:
+        //                return KeyValueServiceStatus.TERMINAL;
+        //            case ALL_AVAILABLE:
+        //                return KeyValueServiceStatus.HEALTHY_ALL_OPERATIONS;
+        //            case QUORUM_AVAILABLE:
+        //                return KeyValueServiceStatus.HEALTHY_BUT_NO_SCHEMA_MUTATIONS_OR_DELETES;
+        //            case NO_QUORUM_AVAILABLE:
+        //            default:
+        //                return KeyValueServiceStatus.UNHEALTHY;
+        //        }
+        throw new UnsupportedOperationException();
     }
 
     private <T> T runTimed(Callable<T> operation, String timerName) {

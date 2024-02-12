@@ -39,7 +39,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.PeekingIterator;
-import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.google.common.io.Closer;
@@ -56,7 +55,6 @@ import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.futures.AtlasFutures;
-import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -68,12 +66,12 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.TransactionKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.api.watch.LocksAndMetadata;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
-import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -81,6 +79,7 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintException;
 import com.palantir.atlasdb.tracing.TraceStatistics;
+import com.palantir.atlasdb.transaction.DeleteExecutor;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -152,7 +151,6 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.util.AssertUtils;
-import com.palantir.util.RateLimitedLogger;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import com.palantir.util.result.Result;
 import java.nio.ByteBuffer;
@@ -181,12 +179,10 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -220,8 +216,6 @@ public class SnapshotTransaction extends AbstractTransaction
     private static final SafeLogger perfLogger = SafeLoggerFactory.get("dualschema.perf");
     private static final SafeLogger transactionLengthLogger = SafeLoggerFactory.get("txn.length");
     private static final SafeLogger constraintLogger = SafeLoggerFactory.get("dualschema.constraints");
-    private static final RateLimitedLogger deleteExecutorRateLimitedLogger = new RateLimitedLogger(log, 1.0);
-
     private static final int BATCH_SIZE_GET_FIRST_PAGE = 1000;
     private static final long TXN_LENGTH_THRESHOLD = Duration.ofMinutes(30).toMillis();
 
@@ -245,7 +239,6 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TimelockService timelockService;
     protected final LockWatchManagerInternal lockWatchManager;
     final TrackingKeyValueService keyValueService;
-    final AsyncKeyValueService immediateKeyValueService;
     final TransactionService defaultTransactionService;
     private final AsyncTransactionService immediateTransactionService;
     private final Cleaner cleaner;
@@ -278,7 +271,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final ExecutorService getRangesExecutor;
     protected final int defaultGetRangesConcurrency;
     private final Set<TableReference> involvedTables = ConcurrentHashMap.newKeySet();
-    protected final ExecutorService deleteExecutor;
+    protected final DeleteExecutor deleteExecutor;
     private final Timer.Context transactionTimerContext;
     protected final TransactionOutcomeMetrics transactionOutcomeMetrics;
     protected final boolean validateLocksOnReads;
@@ -312,7 +305,7 @@ public class SnapshotTransaction extends AbstractTransaction
      */
     /* package */ SnapshotTransaction(
             MetricsManager metricsManager,
-            KeyValueService delegateKeyValueService,
+            TransactionKeyValueService transactionKvsManager,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TransactionService transactionService,
@@ -331,7 +324,7 @@ public class SnapshotTransaction extends AbstractTransaction
             ExecutorService getRangesExecutor,
             int defaultGetRangesConcurrency,
             MultiTableSweepQueueWriter sweepQueue,
-            ExecutorService deleteExecutor,
+            DeleteExecutor deleteExecutor,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
@@ -341,8 +334,7 @@ public class SnapshotTransaction extends AbstractTransaction
         this.lockWatchManager = lockWatchManager;
         this.conflictTracer = conflictTracer;
         this.transactionTimerContext = getTimer("transactionMillis").time();
-        this.keyValueService = new TrackingKeyValueServiceImpl(delegateKeyValueService);
-        this.immediateKeyValueService = KeyValueServices.synchronousAsAsyncKeyValueService(keyValueService);
+        this.keyValueService = new TrackingKeyValueServiceImpl(transactionKvsManager);
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
         this.immediateTransactionService = TransactionServices.synchronousAsAsyncTransactionService(transactionService);
@@ -439,7 +431,7 @@ public class SnapshotTransaction extends AbstractTransaction
                                 tableRef,
                                 cells,
                                 cells.size(),
-                                immediateKeyValueService,
+                                keyValueService,
                                 immediateTransactionService)),
                         unCachedRows -> getRowsInternal(tableRef, unCachedRows, columnSelection));
     }
@@ -933,7 +925,7 @@ public class SnapshotTransaction extends AbstractTransaction
                                 tableRef,
                                 uncached,
                                 uncached.size(),
-                                immediateKeyValueService,
+                                keyValueService,
                                 immediateTransactionService));
     }
 
@@ -951,7 +943,7 @@ public class SnapshotTransaction extends AbstractTransaction
                         tableRef,
                         cacheLookupResult.missedCells(),
                         numberOfCellsExpectingValuePostCache,
-                        immediateKeyValueService,
+                        keyValueService,
                         immediateTransactionService);
             }));
         } catch (MoreCellsPresentThanExpectedException e) {
@@ -981,7 +973,7 @@ public class SnapshotTransaction extends AbstractTransaction
             TableReference tableRef,
             Set<Cell> cells,
             long numberOfExpectedPresentCells,
-            AsyncKeyValueService asyncKeyValueService,
+            TransactionKeyValueService asyncKeyValueService,
             AsyncTransactionService asyncTransactionService) {
         Timer.Context timer = getTimer(operationName).time();
         checkGetPreconditions(tableRef);
@@ -1047,7 +1039,7 @@ public class SnapshotTransaction extends AbstractTransaction
         hasReads = true;
 
         ListenableFuture<Map<Cell, byte[]>> result =
-                getFromKeyValueService(tableRef, cells, immediateKeyValueService, immediateTransactionService);
+                getFromKeyValueService(tableRef, cells, keyValueService, immediateTransactionService);
 
         Map<Cell, byte[]> unfiltered = Futures.getUnchecked(result);
         Map<Cell, byte[]> filtered = Maps.filterValues(unfiltered, Predicates.not(Value::isTombstone));
@@ -1068,7 +1060,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private ListenableFuture<Map<Cell, byte[]>> getFromKeyValueService(
             TableReference tableRef,
             Set<Cell> cells,
-            AsyncKeyValueService asyncKeyValueService,
+            TransactionKeyValueService asyncKeyValueService,
             AsyncTransactionService asyncTransactionService) {
         Map<Cell, Long> toRead = Cells.constantValueMap(cells, getStartTimestamp());
         ListenableFuture<Collection<Map.Entry<Cell, byte[]>>> postFilteredResults = Futures.transformAsync(
@@ -1520,14 +1512,14 @@ public class SnapshotTransaction extends AbstractTransaction
     private <T> Collection<Map.Entry<Cell, T>> getWithPostFilteringSync(
             TableReference tableRef, Map<Cell, Value> rawResults, Function<Value, T> transformer) {
         return AtlasFutures.getUnchecked(getWithPostFilteringAsync(
-                tableRef, rawResults, transformer, immediateKeyValueService, immediateTransactionService));
+                tableRef, rawResults, transformer, keyValueService, immediateTransactionService));
     }
 
     private <T> ListenableFuture<Collection<Map.Entry<Cell, T>>> getWithPostFilteringAsync(
             TableReference tableRef,
             Map<Cell, Value> rawResults,
             Function<Value, T> transformer,
-            AsyncKeyValueService asyncKeyValueService,
+            TransactionKeyValueService asyncKeyValueService,
             AsyncTransactionService asyncTransactionService) {
         long bytes = 0;
         for (Map.Entry<Cell, Value> entry : rawResults.entrySet()) {
@@ -1582,7 +1574,7 @@ public class SnapshotTransaction extends AbstractTransaction
             Map<Cell, Value> resultsToPostFilter,
             Collection<Map.Entry<Cell, T>> resultsAccumulator,
             Function<Value, T> transformer,
-            AsyncKeyValueService asyncKeyValueService,
+            TransactionKeyValueService asyncKeyValueService,
             AsyncTransactionService asyncTransactionService) {
         return Futures.transformAsync(
                 Futures.immediateFuture(resultsToPostFilter),
@@ -1670,26 +1662,11 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private void deleteOrphanedSentinelsAsync(TableReference table, Set<Cell> actualOrphanedSentinels) {
         if (sweepQueue.getSweepStrategy(table) == SweeperStrategy.THOROUGH) {
-            SetMultimap<Cell, Long> sentinels = KeyedStream.of(actualOrphanedSentinels)
+            Map<Cell, Long> sentinels = KeyedStream.of(actualOrphanedSentinels)
                     .map(_ignore -> Value.INVALID_VALUE_TIMESTAMP)
-                    .collectToSetMultimap();
-            try {
-                runTaskOnDeleteExecutor(kvs -> kvs.delete(table, sentinels));
-            } catch (Throwable th) {
-                // best effort
-            }
+                    .collectToMap();
+            deleteExecutor.delete(table, sentinels);
         }
-    }
-
-    /**
-     * This method exists to ensure that tasks run on the delete executor do not have references to the
-     * SnapshotTransaction that spawned the task (so that it can be garbage collected, which may be significant as
-     * large write or serializable read transactions may have allocated a lot of memory).
-     */
-    private void runTaskOnDeleteExecutor(Consumer<KeyValueService> task) {
-        // Do not inline this without thinking carefully about exactly what this means
-        KeyValueService theKeyValueService = keyValueService;
-        deleteExecutor.execute(() -> task.accept(theKeyValueService));
     }
 
     private static boolean isSweepSentinel(Value value) {
@@ -1705,7 +1682,7 @@ public class SnapshotTransaction extends AbstractTransaction
             Map<Cell, Value> rawResults,
             @Output Collection<Map.Entry<Cell, T>> resultsCollector,
             Function<Value, T> transformer,
-            AsyncKeyValueService asyncKeyValueService,
+            TransactionKeyValueService asyncKeyValueService,
             AsyncTransactionService asyncTransactionService) {
         Set<Cell> orphanedSentinels = findOrphanedSweepSentinels(tableRef, rawResults);
         LongSet valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
@@ -1728,7 +1705,7 @@ public class SnapshotTransaction extends AbstractTransaction
             Map<Cell, Value> rawResults,
             @Output Collection<Map.Entry<Cell, T>> resultsCollector,
             Function<Value, T> transformer,
-            AsyncKeyValueService asyncKeyValueService,
+            TransactionKeyValueService asyncKeyValueService,
             Set<Cell> orphanedSentinels,
             LongLongMap commitTimestamps) {
         Map<Cell, Long> keysToReload = Maps.newHashMapWithExpectedSize(0);
@@ -2128,7 +2105,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
                 timedAndTraced("commitWrite", () -> keyValueService.multiPut(writes, getStartTimestamp()));
 
-                // Now that all writes are done, get the commit timestamp
+                // Now that all writes are done, get the commit timestampS
                 // We must do this before we check that our locks are still valid to ensure that other transactions that
                 // will hold these locks are sure to have start timestamps after our commit timestamp.
                 // Timing is still useful, as this may perform operations pertaining to lock watches.
@@ -2484,16 +2461,7 @@ public class SnapshotTransaction extends AbstractTransaction
         });
 
         if (allRolledBack) {
-            try {
-                runTaskOnDeleteExecutor(kvs -> deleteCells(kvs, tableRef, keysToDelete));
-            } catch (RejectedExecutionException rejected) {
-                deleteExecutorRateLimitedLogger.log(logger -> logger.info(
-                        "Could not delete keys {} for table {}, because the delete executor's queue was full."
-                                + " Sweep should eventually clean these values.",
-                        SafeArg.of("numKeysToDelete", keysToDelete.size()),
-                        LoggingArgs.tableRef(tableRef),
-                        rejected));
-            }
+            deleteExecutor.delete(tableRef, keysToDelete);
         }
         return allRolledBack;
     }
@@ -2902,11 +2870,6 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private long getStartTimestamp() {
         return startTimestamp.get();
-    }
-
-    @Override
-    protected KeyValueService getKeyValueService() {
-        return keyValueService;
     }
 
     private Multimap<Cell, TableReference> getCellsToQueueForScrubbing() {
