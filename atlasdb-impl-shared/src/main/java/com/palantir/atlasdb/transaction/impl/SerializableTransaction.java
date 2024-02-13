@@ -585,7 +585,7 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     @Override
     protected void throwIfReadWriteConflictForSerializable(long commitTimestamp) {
-        Transaction ro = getReadOnlyTransaction(commitTimestamp);
+        SnapshotReader ro = getReadOnlyTransaction(commitTimestamp);
         verifyRanges(ro);
         verifyColumnRanges(ro);
         verifyCells(ro);
@@ -593,7 +593,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         verifyGetSortedColumns(ro);
     }
 
-    private void verifyRows(Transaction ro) {
+    private void verifyRows(SnapshotReader ro) {
         for (Map.Entry<TableReference, Set<RowRead>> tableAndRowsEntry : rowsRead.entrySet()) {
             TableReference table = tableAndRowsEntry.getKey();
             Set<RowRead> rows = tableAndRowsEntry.getValue();
@@ -611,7 +611,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private void verifyColumns(
-            Transaction ro,
+            SnapshotReader ro,
             TableReference table,
             ConcurrentNavigableMap<Cell, byte[]> readsForTable,
             Multimap<ColumnSelection, byte[]> rowsReadByColumns,
@@ -664,7 +664,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         }
     }
 
-    private void verifyCells(Transaction readOnlyTransaction) {
+    private void verifyCells(SnapshotReader readOnlyTransaction) {
         for (Map.Entry<TableReference, Set<Cell>> tableAndCellsEntry : cellsRead.entrySet()) {
             TableReference table = tableAndCellsEntry.getKey();
             Set<Cell> cells = tableAndCellsEntry.getValue();
@@ -694,7 +694,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         }
     }
 
-    private void verifyRanges(Transaction readOnlyTransaction) {
+    private void verifyRanges(SnapshotReader readOnlyTransaction) {
         // verify each set of reads to ensure they are the same.
         for (Map.Entry<TableReference, ConcurrentMap<RangeRequest, byte[]>> tableAndRange :
                 rangeEndByTable.entrySet()) {
@@ -748,7 +748,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         return reads;
     }
 
-    private void verifyColumnRanges(Transaction readOnlyTransaction) {
+    private void verifyColumnRanges(SnapshotReader readOnlyTransaction) {
         // verify each set of reads to ensure they are the same.
         for (Map.Entry<TableReference, ConcurrentMap<ByteBuffer, ConcurrentMap<BatchColumnRangeSelection, byte[]>>>
                 tableAndColumnRangeEnds : columnRangeEndsByTable.entrySet()) {
@@ -791,7 +791,7 @@ public class SerializableTransaction extends SnapshotTransaction {
         }
     }
 
-    private void verifyGetSortedColumns(Transaction readOnlyTransaction) {
+    private void verifyGetSortedColumns(SnapshotReader snapshotReader) {
         sortedColumnRangeEnds.forEach((request, endOfRangeReference) -> {
             Cell endOfRange = endOfRangeReference.get();
             // no checks required if no data has been read so far
@@ -806,7 +806,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                     readSortedColumns(request.getTableRef(), rows, range, comparator);
 
             Iterator<Map.Entry<Cell, byte[]>> storedValues =
-                    readOnlyTransaction.getSortedColumns(request.getTableRef(), rows, range);
+                    snapshotReader.getSortedColumns(request.getTableRef(), rows, range);
 
             // handles the case where (r1, c), (r2, c) exists and we read only up to (r1, c).
             Iterator<Map.Entry<Cell, byte[]>> truncatedStoredValues = new AbstractIterator<Map.Entry<Cell, byte[]>>() {
@@ -912,6 +912,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private Transaction getReadOnlyTransaction(final long commitTs) {
+        // TODO(jakubk): This should try to create only SnapshotReader + caching.
         return new SnapshotTransaction(
                 metricsManager,
                 keyValueService,
@@ -954,7 +955,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 PartitionedTimestamps partitionedTimestamps = splitTransactionBeforeAndAfter(myStart, startTimestamps);
 
                 ListenableFuture<LongLongMap> postStartCommitTimestamps =
-                        getCommitTimestampsForTransactionsStartedAfterMe(
+                        getCommitTimestampsForTransactionsStartedAfterMeNoBLocking(
                                 tableRef, asyncTransactionService, partitionedTimestamps.afterStart());
 
                 // We are ok to block here because if there is a cycle of transactions that could result in a deadlock,
@@ -977,7 +978,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                                 MoreExecutors.directExecutor());
             }
 
-            private ListenableFuture<LongLongMap> getCommitTimestampsForTransactionsStartedAfterMe(
+            private ListenableFuture<LongLongMap> getCommitTimestampsForTransactionsStartedAfterMeNoBLocking(
                     TableReference tableRef, AsyncTransactionService asyncTransactionService, LongSet startTimestamps) {
                 if (startTimestamps.isEmpty()) {
                     return Futures.immediateFuture(LongLongMaps.immutable.empty());
