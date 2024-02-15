@@ -19,13 +19,14 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.timelock.config.ClusterConfiguration;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import javax.ws.rs.core.UriBuilder;
+import org.apache.hc.core5.net.URIBuilder;
 
 public final class PaxosRemotingUtils {
     private PaxosRemotingUtils() {
@@ -65,8 +66,8 @@ public final class PaxosRemotingUtils {
 
     public static URL convertAddressToUrl(ClusterConfiguration cluster, String address) {
         try {
-            return UriBuilder.fromPath(addProtocol(cluster, address)).build().toURL();
-        } catch (MalformedURLException e) {
+            return new URIBuilder(addProtocol(cluster, address)).build().toURL();
+        } catch (MalformedURLException | URISyntaxException e) {
             throw new RuntimeException(e);
         }
     }
