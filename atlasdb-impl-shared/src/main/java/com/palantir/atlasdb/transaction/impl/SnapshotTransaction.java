@@ -36,10 +36,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.PeekingIterator;
-import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.google.common.io.Closer;
@@ -181,12 +179,10 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -278,7 +274,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final ExecutorService getRangesExecutor;
     protected final int defaultGetRangesConcurrency;
     private final Set<TableReference> involvedTables = ConcurrentHashMap.newKeySet();
-    protected final ExecutorService deleteExecutor;
+    protected final DeleteExecutor deleteExecutor;
     private final Timer.Context transactionTimerContext;
     protected final TransactionOutcomeMetrics transactionOutcomeMetrics;
     protected final boolean validateLocksOnReads;
@@ -331,7 +327,7 @@ public class SnapshotTransaction extends AbstractTransaction
             ExecutorService getRangesExecutor,
             int defaultGetRangesConcurrency,
             MultiTableSweepQueueWriter sweepQueue,
-            ExecutorService deleteExecutor,
+            DeleteExecutor deleteExecutor,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
@@ -1670,26 +1666,11 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private void deleteOrphanedSentinelsAsync(TableReference table, Set<Cell> actualOrphanedSentinels) {
         if (sweepQueue.getSweepStrategy(table) == SweeperStrategy.THOROUGH) {
-            SetMultimap<Cell, Long> sentinels = KeyedStream.of(actualOrphanedSentinels)
+            Map<Cell, Long> sentinels = KeyedStream.of(actualOrphanedSentinels)
                     .map(_ignore -> Value.INVALID_VALUE_TIMESTAMP)
-                    .collectToSetMultimap();
-            try {
-                runTaskOnDeleteExecutor(kvs -> kvs.delete(table, sentinels));
-            } catch (Throwable th) {
-                // best effort
-            }
+                    .collectToMap();
+            deleteExecutor.scheduleForDeletion(table, sentinels);
         }
-    }
-
-    /**
-     * This method exists to ensure that tasks run on the delete executor do not have references to the
-     * SnapshotTransaction that spawned the task (so that it can be garbage collected, which may be significant as
-     * large write or serializable read transactions may have allocated a lot of memory).
-     */
-    private void runTaskOnDeleteExecutor(Consumer<KeyValueService> task) {
-        // Do not inline this without thinking carefully about exactly what this means
-        KeyValueService theKeyValueService = keyValueService;
-        deleteExecutor.execute(() -> task.accept(theKeyValueService));
     }
 
     private static boolean isSweepSentinel(Value value) {
@@ -2484,43 +2465,9 @@ public class SnapshotTransaction extends AbstractTransaction
         });
 
         if (allRolledBack) {
-            try {
-                runTaskOnDeleteExecutor(kvs -> deleteCells(kvs, tableRef, keysToDelete));
-            } catch (RejectedExecutionException rejected) {
-                deleteExecutorRateLimitedLogger.log(logger -> logger.info(
-                        "Could not delete keys {} for table {}, because the delete executor's queue was full."
-                                + " Sweep should eventually clean these values.",
-                        SafeArg.of("numKeysToDelete", keysToDelete.size()),
-                        LoggingArgs.tableRef(tableRef),
-                        rejected));
-            }
+            deleteExecutor.scheduleForDeletion(tableRef, keysToDelete);
         }
         return allRolledBack;
-    }
-
-    private static void deleteCells(
-            KeyValueService keyValueService, TableReference tableRef, Map<Cell, Long> keysToDelete) {
-        try {
-            log.debug(
-                    "For table: {} we are deleting values of an uncommitted transaction: {}",
-                    LoggingArgs.tableRef(tableRef),
-                    UnsafeArg.of("keysToDelete", keysToDelete));
-            keyValueService.delete(tableRef, Multimaps.forMap(keysToDelete));
-        } catch (RuntimeException e) {
-            final String msg = "This isn't a bug but it should be infrequent if all nodes of your KV service are"
-                    + " running. Delete has stronger consistency semantics than read/write and must talk to all nodes"
-                    + " instead of just talking to a quorum of nodes. "
-                    + "Failed to delete keys for table: {} from an uncommitted transaction; "
-                    + " sweep should eventually clean these values.";
-            if (log.isDebugEnabled()) {
-                log.warn(
-                        msg + " The keys that failed to be deleted during rollback were {}",
-                        LoggingArgs.tableRef(tableRef),
-                        UnsafeArg.of("keysToDelete", keysToDelete));
-            } else {
-                log.warn(msg, LoggingArgs.tableRef(tableRef), e);
-            }
-        }
     }
 
     /**

@@ -35,6 +35,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
+import com.palantir.atlasdb.transaction.impl.DefaultDeleteExecutor;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
@@ -136,8 +137,10 @@ public class TransactionManagerModule {
                 derivedSnapshotConfig.concurrentGetRangesThreadPoolSize(),
                 derivedSnapshotConfig.defaultGetRangesConcurrency(),
                 MultiTableSweepQueueWriter.NO_OP,
-                Executors.newSingleThreadExecutor(
-                        new NamedThreadFactory(TransactionManagerModule.class + "-delete-executor", true)),
+                new DefaultDeleteExecutor(
+                        kvs,
+                        Executors.newSingleThreadExecutor(
+                                new NamedThreadFactory(TransactionManagerModule.class + "-delete-executor", true))),
                 true,
                 () -> config.atlasDbRuntimeConfig().transaction(),
                 ConflictTracer.NO_OP,

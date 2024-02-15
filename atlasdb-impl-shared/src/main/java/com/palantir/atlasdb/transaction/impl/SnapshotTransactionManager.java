@@ -96,7 +96,7 @@ import java.util.stream.Collectors;
     final Cleaner cleaner;
     final boolean allowHiddenTableAccess;
     final ExecutorService getRangesExecutor;
-    final ExecutorService deleteExecutor;
+    final DeleteExecutor deleteExecutor;
     final int defaultGetRangesConcurrency;
     final MultiTableSweepQueueWriter sweepQueueWriter;
     final boolean validateLocksOnReads;
@@ -127,7 +127,7 @@ import java.util.stream.Collectors;
             int defaultGetRangesConcurrency,
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueueWriter,
-            ExecutorService deleteExecutor,
+            DeleteExecutor deleteExecutor,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
@@ -407,7 +407,7 @@ import java.util.stream.Collectors;
             shutdownRunner.shutdownSafely(super::close);
             shutdownRunner.shutdownSafely(cleaner::close);
             shutdownRunner.shutdownSafely(keyValueService::close);
-            shutdownRunner.shutdownSafely(() -> shutdownExecutor(deleteExecutor));
+            shutdownRunner.shutdownSafely(deleteExecutor::close);
             shutdownRunner.shutdownSafely(() -> shutdownExecutor(getRangesExecutor));
             shutdownRunner.shutdownSafely(this::closeLockServiceIfPossible);
 

@@ -475,7 +475,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         getRangesExecutor,
                         defaultGetRangesConcurrency,
                         MultiTableSweepQueueWriter.NO_OP,
-                        MoreExecutors.newDirectExecutorService(),
+                        new DefaultDeleteExecutor(kvs, MoreExecutors.newDirectExecutorService()),
                         true,
                         () -> transactionConfig,
                         ConflictTracer.NO_OP,
@@ -3289,9 +3289,10 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
             LockImmutableTimestampResponse res,
             LockWatchManagerInternal mockLockWatchManager,
             PathTypeTracker pathTypeTracker) {
+        KeyValueService wrappedKeyValueService = keyValueServiceWrapper.apply(keyValueService, pathTypeTracker);
         return new SnapshotTransaction(
                 metricsManager,
-                keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
+                wrappedKeyValueService,
                 timelockService,
                 mockLockWatchManager,
                 transactionService,
@@ -3311,7 +3312,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
-                MoreExecutors.newDirectExecutorService(),
+                new DefaultDeleteExecutor(wrappedKeyValueService, MoreExecutors.newDirectExecutorService()),
                 true,
                 () -> transactionConfig,
                 ConflictTracer.NO_OP,
@@ -3342,9 +3343,10 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
             boolean validateLocksOnReads,
             Map<TableReference, ConflictHandler> tableConflictHandlers) {
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        KeyValueService wrappedKeyValueService = keyValueServiceWrapper.apply(keyValueService, pathTypeTracker);
         SnapshotTransaction transaction = new SnapshotTransaction(
                 metricsManager,
-                keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
+                wrappedKeyValueService,
                 timelockService,
                 inMemoryTimelockExtension.getLockWatchManager(),
                 transactionService,
@@ -3363,7 +3365,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
-                MoreExecutors.newDirectExecutorService(),
+                new DefaultDeleteExecutor(wrappedKeyValueService, MoreExecutors.newDirectExecutorService()),
                 validateLocksOnReads,
                 () -> transactionConfig,
                 ConflictTracer.NO_OP,
