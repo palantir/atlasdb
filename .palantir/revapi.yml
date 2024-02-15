@@ -1,4 +1,18 @@
 acceptedBreaks:
+  "0.1032.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.addedToInterface"
+      new: "method com.palantir.atlasdb.transaction.api.DdlManager com.palantir.atlasdb.transaction.api.TransactionManager::getDdlManager()"
+      justification: "New Replacement API"
+    com.palantir.atlasdb:atlasdb-cassandra:
+    - code: "java.method.returnTypeChanged"
+      old: "method com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult<com.google.protobuf.ByteString>\
+        \ com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner::executeCheckAndSet(com.palantir.atlasdb.keyvalue.cassandra.CassandraClient,\
+        \ com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest) throws org.apache.thrift.TException"
+      new: "method com.palantir.atlasdb.keyvalue.api.CheckAndSetResult<com.google.protobuf.ByteString>\
+        \ com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner::executeCheckAndSet(com.palantir.atlasdb.keyvalue.cassandra.CassandraClient,\
+        \ com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest) throws org.apache.thrift.TException"
+      justification: "New Replacement API"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"

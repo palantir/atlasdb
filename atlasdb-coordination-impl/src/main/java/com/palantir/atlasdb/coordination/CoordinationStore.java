@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.coordination;
 
-import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetResult;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.processors.DoDelegate;
 import java.util.Optional;

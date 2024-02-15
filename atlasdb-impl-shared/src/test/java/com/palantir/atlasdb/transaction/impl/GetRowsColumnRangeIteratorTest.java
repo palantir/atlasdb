@@ -31,11 +31,12 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.transaction.api.TransactionKeyValueService;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
@@ -58,7 +59,8 @@ public class GetRowsColumnRangeIteratorTest {
     public static final BatchColumnRangeSelection COLUMN_RANGE_SELECTION =
             BatchColumnRangeSelection.create(null, null, BATCH_SIZE);
 
-    private final KeyValueService kvs = new InMemoryKeyValueService(true);
+    private final TransactionKeyValueService kvs =
+            new DefaultTransactionKeyValueService(new InMemoryKeyValueService(true), () -> 1L);
     private final ColumnRangeBatchProvider batchProvider =
             new ColumnRangeBatchProvider(kvs, TABLE_REFERENCE, ROW, COLUMN_RANGE_SELECTION, Long.MAX_VALUE);
 
@@ -131,7 +133,7 @@ public class GetRowsColumnRangeIteratorTest {
                 .mapToObj(i -> String.format("cell%02d", i).getBytes(StandardCharsets.UTF_8))
                 .map(column -> Cell.create(ROW, column))
                 .collect(ImmutableMap.toImmutableMap(Function.identity(), _unused -> value));
-        kvs.put(TABLE_REFERENCE, puts, 1L);
+        kvs.multiPut(Map.of(TABLE_REFERENCE, puts), 1L);
 
         return puts.keySet();
     }

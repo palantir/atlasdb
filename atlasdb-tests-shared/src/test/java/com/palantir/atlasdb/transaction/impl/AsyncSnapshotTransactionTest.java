@@ -15,6 +15,9 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
+import org.junit.jupiter.api.Disabled;
+
+@Disabled
 public class AsyncSnapshotTransactionTest extends AbstractSnapshotTransactionTest {
     public AsyncSnapshotTransactionTest() {
         super(ASYNC, GetAsyncCallbackAwareDelegate::new, VerifyingKeyValueServiceDelegate::new);

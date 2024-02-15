@@ -21,14 +21,15 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.StatsTrackingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
-import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.impl.CachingTestTransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
@@ -63,6 +64,7 @@ public class AtlasDbTestCase {
     protected LockClient lockClient;
     protected LockService lockService;
     protected TrackingKeyValueService keyValueService;
+    protected TransactionKeyValueServiceManager txManagerKvs;
     protected TimelockService timelockService;
     protected TimestampService timestampService;
     protected ConflictDetectionManager conflictDetectionManager;
@@ -89,6 +91,7 @@ public class AtlasDbTestCase {
         timelockService = inMemoryTimelockExtension.getLegacyTimelockService();
         timestampService = inMemoryTimelockExtension.getTimestampService();
         keyValueService = trackingKeyValueService(getBaseKeyValueService());
+        txManagerKvs = new DefaultTransactionKeyValueServiceManager(keyValueService);
         TransactionTables.createTables(keyValueService);
         transactionService = spy(TransactionServices.createRaw(keyValueService, timestampService, false));
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
@@ -150,19 +153,6 @@ public class AtlasDbTestCase {
 
     protected void overrideConflictHandlerForTable(TableReference table, ConflictHandler conflictHandler) {
         txManager.overrideConflictHandlerForTable(table, conflictHandler);
-    }
-
-    protected void setConstraintCheckingMode(AtlasDbConstraintCheckingMode mode) {
-        txManager = new TestTransactionManagerImpl(
-                metricsManager,
-                keyValueService,
-                inMemoryTimelockExtension.getTimestampManagementService(),
-                inMemoryTimelockExtension.getLegacyTimelockService(),
-                lockService,
-                inMemoryTimelockExtension.getLockWatchManager(),
-                transactionService,
-                mode,
-                TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry()));
     }
 
     protected void clearTablesWrittenTo() {

@@ -23,26 +23,21 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSetMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
-import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
-import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.ImmutableCandidateCellForSweeping;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
+import com.palantir.atlasdb.transaction.api.TransactionKeyValueService;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
@@ -51,7 +46,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -94,7 +88,7 @@ public final class TrackingKeyValueServiceForwardingTest {
     private Map<Cell, Value> valueByCellMap;
 
     @Mock
-    private KeyValueService delegate;
+    private TransactionKeyValueService delegate;
 
     private TrackingKeyValueService trackingKvs;
 
@@ -216,47 +210,6 @@ public final class TrackingKeyValueServiceForwardingTest {
     }
 
     @Test
-    @SuppressWarnings("MustBeClosedChecker")
-    public void getRangeOfTimestampsForwardsDelegateResult() {
-        List<RowResult<Set<Long>>> rowResults =
-                ImmutableList.of(RowResult.of(CELL_1, ImmutableSet.of(1L)), RowResult.of(CELL_2, ImmutableSet.of(2L)));
-
-        when(delegate.getRangeOfTimestamps(tableReference, rangeRequest, TIMESTAMP))
-                .thenReturn(ClosableIterators.wrapWithEmptyClose(rowResults.iterator()));
-
-        assertThat(trackingKvs.getRangeOfTimestamps(tableReference, rangeRequest, TIMESTAMP))
-                .toIterable()
-                .usingElementComparator(identityComparator())
-                .containsExactlyElementsOf(rowResults);
-    }
-
-    @Test
-    @SuppressWarnings("MustBeClosedChecker")
-    public void getCandidateCellsForSweepingForwardsDelegateResult() {
-        CandidateCellForSweepingRequest candidateCellForSweepingRequest = mock(CandidateCellForSweepingRequest.class);
-
-        List<List<CandidateCellForSweeping>> candidateCellForSweepingTable = ImmutableList.of(
-                ImmutableList.of(ImmutableCandidateCellForSweeping.builder()
-                        .cell(CELL_1)
-                        .isLatestValueEmpty(true)
-                        .sortedTimestamps(ImmutableList.of())
-                        .build()),
-                ImmutableList.of(ImmutableCandidateCellForSweeping.builder()
-                        .cell(CELL_2)
-                        .isLatestValueEmpty(true)
-                        .sortedTimestamps(ImmutableList.of())
-                        .build()));
-
-        when(delegate.getCandidateCellsForSweeping(tableReference, candidateCellForSweepingRequest))
-                .thenReturn(ClosableIterators.wrapWithEmptyClose(candidateCellForSweepingTable.iterator()));
-
-        assertThat(trackingKvs.getCandidateCellsForSweeping(tableReference, candidateCellForSweepingRequest))
-                .toIterable()
-                .usingElementComparator(identityComparator())
-                .containsExactlyElementsOf(candidateCellForSweepingTable);
-    }
-
-    @Test
     public void getFirstBatchForRangesForwardsDelegateResult() {
         Iterable<RangeRequest> rangeRequests = mock(Iterable.class);
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> batchForRangesMap = mock(Map.class);
@@ -264,44 +217,6 @@ public final class TrackingKeyValueServiceForwardingTest {
                 .thenReturn(batchForRangesMap);
         assertThat(trackingKvs.getFirstBatchForRanges(tableReference, rangeRequests, TIMESTAMP))
                 .isSameAs(batchForRangesMap);
-    }
-
-    @Test
-    public void getAllTableNamesForwardsDelegatesResult() {
-        Set<TableReference> tableReferences = mock(Set.class);
-        when(delegate.getAllTableNames()).thenReturn(tableReferences);
-        assertThat(trackingKvs.getAllTableNames()).isSameAs(tableReferences);
-    }
-
-    @Test
-    public void getMetadataForTableForwardsDelegateResult() {
-        when(delegate.getMetadataForTable(tableReference)).thenReturn(BYTES_1);
-        assertThat(trackingKvs.getMetadataForTable(tableReference)).isSameAs(BYTES_1);
-    }
-
-    @Test
-    public void getMetadataForTablesForwardsDelegateResult() {
-        Map<TableReference, byte[]> metadataForTablesMap = mock(Map.class);
-        when(delegate.getMetadataForTables()).thenReturn(metadataForTablesMap);
-        assertThat(trackingKvs.getMetadataForTables()).isSameAs(metadataForTablesMap);
-    }
-
-    @Test
-    public void getAllTimestampsForwardsDelegateResult() {
-        Set<Cell> cells = mock(Set.class);
-        Multimap<Cell, Long> timestampByCellMultimap = ImmutableSetMultimap.of(CELL_1, TIMESTAMP);
-        when(delegate.getAllTimestamps(tableReference, cells, TIMESTAMP)).thenReturn(timestampByCellMultimap);
-        assertThat(trackingKvs.getAllTimestamps(tableReference, cells, TIMESTAMP))
-                .isSameAs(timestampByCellMultimap);
-    }
-
-    @Test
-    public void getRowsKeyInRangeForwardsDelegateResult() {
-        int maxResults = 11;
-        when(delegate.getRowKeysInRange(tableReference, BYTES_1, BYTES_2, maxResults))
-                .thenReturn(rows);
-        assertThat(trackingKvs.getRowKeysInRange(tableReference, BYTES_1, BYTES_2, maxResults))
-                .isSameAs(rows);
     }
 
     private static Map<byte[], RowColumnRangeIterator> convertMapValuesToRowColumnRangeIterators(

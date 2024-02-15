@@ -57,6 +57,17 @@ public final class CoordinationServices {
         return wrapHidingVersionSerialization(versionedService);
     }
 
+    public static <T> CoordinationService<T> createTransactionManagerCoordinator(
+            Class<T> clazz,
+            KeyValueService keyValueService,
+            TimestampService timestampService,
+            MetricsManager _metricsManager,
+            boolean initializeAsync) {
+        // TODO(jakubk): Add the versioning and whatnot.
+        return new CoordinationServiceImpl<>(createTransactionManagerCoordinationStore(
+                keyValueService, timestampService::getFreshTimestamp, clazz, initializeAsync));
+    }
+
     private static CoordinationStore<VersionedInternalSchemaMetadata> createCoordinationStore(
             KeyValueService keyValueService, LongSupplier timestampSupplier, boolean initializeAsync) {
         return KeyValueServiceCoordinationStore.create(
@@ -66,6 +77,19 @@ public final class CoordinationServices {
                 timestampSupplier,
                 VersionedInternalSchemaMetadata::knowablySemanticallyEquivalent,
                 VersionedInternalSchemaMetadata.class,
+                initializeAsync);
+    }
+
+    private static <T> CoordinationStore<T> createTransactionManagerCoordinationStore(
+            KeyValueService keyValueService, LongSupplier timestampSupplier, Class<T> clazz, boolean initializeAsync) {
+        return KeyValueServiceCoordinationStore.create(
+                ObjectMappers.newServerObjectMapper(),
+                keyValueService,
+                AtlasDbConstants.DEFAULT_KVS_COORDINATION_KEY,
+                timestampSupplier,
+                // TODO(jakubk): Understand what this is for.
+                (left, right) -> false,
+                clazz,
                 initializeAsync);
     }
 

@@ -21,7 +21,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.ValueAndBound;
-import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetResult;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.logsafe.SafeArg;

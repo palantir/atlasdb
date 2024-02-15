@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2024 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,20 +14,11 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.impl;
+package com.palantir.atlasdb.spi;
 
-import java.util.List;
-import org.immutables.value.Value;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
-@Value.Immutable
-public interface CheckAndSetResult<T> {
-    @Value.Parameter
-    boolean successful();
-
-    @Value.Parameter
-    List<T> existingValues();
-
-    static <T> CheckAndSetResult<T> of(boolean successful, List<T> existingValues) {
-        return ImmutableCheckAndSetResult.of(successful, existingValues);
-    }
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = false)
+public interface TransactionKeyValueServiceRuntimeConfig {
+    String type();
 }

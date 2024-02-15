@@ -28,12 +28,14 @@ import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.factory.AtlasDbServiceDiscovery;
 import com.palantir.atlasdb.factory.LockAndTimestampServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.DefaultDeleteExecutor;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -119,9 +121,10 @@ public class TransactionManagerModule {
             @Internal DerivedSnapshotConfig derivedSnapshotConfig,
             TransactionKnowledgeComponents knowledge) {
         // todo(gmaretic): should this be using a real sweep queue?
+        TransactionKeyValueServiceManager kvs1 = new DefaultTransactionKeyValueServiceManager(kvs);
         return new SerializableTransactionManager(
                 metricsManager,
-                kvs,
+                kvs1,
                 lts.timelock(),
                 lts.lockWatcher(),
                 lts.managedTimestampService(),
@@ -138,7 +141,8 @@ public class TransactionManagerModule {
                 derivedSnapshotConfig.defaultGetRangesConcurrency(),
                 MultiTableSweepQueueWriter.NO_OP,
                 new DefaultDeleteExecutor(
-                        kvs,
+                        kvs1,
+                        lts.managedTimestampService()::getFreshTimestamp,
                         Executors.newSingleThreadExecutor(
                                 new NamedThreadFactory(TransactionManagerModule.class + "-delete-executor", true))),
                 true,

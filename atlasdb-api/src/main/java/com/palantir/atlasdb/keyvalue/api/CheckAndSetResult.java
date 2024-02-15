@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2024 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,13 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.transaction.impl;
 
-import org.junit.jupiter.api.Disabled;
+package com.palantir.atlasdb.keyvalue.api;
 
-@Disabled
-public class SyncSnapshotTransactionTest extends AbstractSnapshotTransactionTest {
-    public SyncSnapshotTransactionTest() {
-        super(SYNC, WrapperWithTracker.TRANSACTION_NO_OP, WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP);
+import java.util.List;
+import org.immutables.value.Value;
+
+@Value.Immutable
+public interface CheckAndSetResult<T> {
+    @Value.Parameter
+    boolean successful();
+
+    @Value.Parameter
+    List<T> existingValues();
+
+    static <T> CheckAndSetResult<T> of(boolean successful, List<T> existingValues) {
+        return ImmutableCheckAndSetResult.of(successful, existingValues);
     }
 }

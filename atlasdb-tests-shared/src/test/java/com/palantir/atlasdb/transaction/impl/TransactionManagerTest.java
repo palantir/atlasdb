@@ -29,6 +29,7 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
+import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -122,7 +123,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
         LockService mockLockService = mock(LockService.class);
         TransactionManager txnManagerWithMocks = SerializableTransactionManager.createForTest(
                 metricsManager,
-                getKeyValueService(),
+                new DefaultTransactionKeyValueServiceManager(getKeyValueService()),
                 mockTimeLockService,
                 mockTimestampManagementService,
                 mockLockService,
@@ -247,7 +248,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
         LockService mockLockService = mock(LockService.class);
         TransactionManager txnManagerWithMocks = new SerializableTransactionManager(
                 metricsManager,
-                keyValueService,
+                new DefaultTransactionKeyValueServiceManager(keyValueService),
                 timelock,
                 NoOpLockWatchManager.create(),
                 timeManagement,
@@ -262,7 +263,10 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 MultiTableSweepQueueWriter.NO_OP,
-                new DefaultDeleteExecutor(keyValueService, MoreExecutors.newDirectExecutorService()),
+                new DefaultDeleteExecutor(
+                        new DefaultTransactionKeyValueServiceManager(keyValueService),
+                        timelock::getFreshTimestamp,
+                        MoreExecutors.newDirectExecutorService()),
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,

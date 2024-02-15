@@ -360,8 +360,12 @@ public interface TransactionManager extends AutoCloseable {
      * Returns the KVS used by this transaction manager. In general, this should not be used by clients, as
      * direct reads and writes to the KVS will bypass the Atlas transaction protocol.
      *
-     * @return the key value service for this transaction manager
+     * @return the key value service for this transaction manager. Some implementations may choose to throw here,
+     *   or throw from some methods on the returned KVS.
+     * @deprecated Some implementations may choose to throw here or throw from some methods on the returned KVS.
+     *   Clients should use {@link #getDdlManager()} for any schema operations, and otherwise loose all hope.
      */
+    @Deprecated
     KeyValueService getKeyValueService();
 
     /**
@@ -376,6 +380,8 @@ public interface TransactionManager extends AutoCloseable {
      * This call must be implemented so that it completes synchronously.
      */
     KeyValueServiceStatus getKeyValueServiceStatus();
+
+    DdlManager getDdlManager();
 
     /**
      * Provides a {@link TimelockServiceStatus}, indicating the current availability of the timelock service.

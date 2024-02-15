@@ -28,6 +28,7 @@ import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.factory.AtlasDbServiceDiscovery;
 import com.palantir.atlasdb.factory.LockAndTimestampServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.services.ServicesConfig;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
@@ -35,6 +36,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.DefaultDeleteExecutor;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
@@ -119,9 +121,10 @@ public class TestTransactionManagerModule {
             Cleaner cleaner,
             @Internal DerivedSnapshotConfig derivedSnapshotConfig,
             TransactionKnowledgeComponents knowledge) {
+        TransactionKeyValueServiceManager kvs1 = new DefaultTransactionKeyValueServiceManager(kvs);
         return new SerializableTransactionManager(
                 metricsManager,
-                kvs,
+                kvs1,
                 lts.timelock(),
                 lts.lockWatcher(),
                 lts.managedTimestampService(),
@@ -137,7 +140,10 @@ public class TestTransactionManagerModule {
                 derivedSnapshotConfig.concurrentGetRangesThreadPoolSize(),
                 derivedSnapshotConfig.defaultGetRangesConcurrency(),
                 MultiTableSweepQueueWriter.NO_OP,
-                new DefaultDeleteExecutor(kvs, PTExecutors.newSingleThreadExecutor(true)),
+                new DefaultDeleteExecutor(
+                        kvs1,
+                        lts.managedTimestampService()::getFreshTimestamp,
+                        PTExecutors.newSingleThreadExecutor(true)),
                 true,
                 () -> config.atlasDbRuntimeConfig().transaction(),
                 ConflictTracer.NO_OP,

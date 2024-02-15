@@ -19,11 +19,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.transaction.api.TransactionKeyValueService;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.logsafe.Preconditions;
@@ -33,14 +33,14 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 public class ColumnRangeBatchProvider implements BatchProvider<Map.Entry<Cell, Value>> {
-    private final KeyValueService keyValueService;
+    private final TransactionKeyValueService keyValueService;
     private final TableReference tableRef;
     private final byte[] row;
     private final BatchColumnRangeSelection columnRangeSelection;
     private final long timestamp;
 
     public ColumnRangeBatchProvider(
-            KeyValueService keyValueService,
+            TransactionKeyValueService keyValueService,
             TableReference tableRef,
             byte[] row,
             BatchColumnRangeSelection columnRangeSelection,

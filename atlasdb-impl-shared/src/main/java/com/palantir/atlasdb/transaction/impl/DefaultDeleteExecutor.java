@@ -19,9 +19,11 @@ package com.palantir.atlasdb.transaction.impl;
 import com.google.common.collect.Multimaps;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.transaction.api.TransactionKeyValueService;
+import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -31,6 +33,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.function.LongSupplier;
 
 public final class DefaultDeleteExecutor implements DeleteExecutor {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultDeleteExecutor.class);
@@ -42,11 +45,17 @@ public final class DefaultDeleteExecutor implements DeleteExecutor {
                     + "Failed to delete keys for table: {} from an uncommitted transaction; "
                     + " sweep should eventually clean these values.";
 
-    private final KeyValueService keyValueService;
+    private final TransactionKeyValueServiceManager keyValueService;
+
+    private final LongSupplier freshTimestampSupplier;
     private final ExecutorService executorService;
 
-    public DefaultDeleteExecutor(KeyValueService keyValueService, ExecutorService executorService) {
+    public DefaultDeleteExecutor(
+            TransactionKeyValueServiceManager keyValueService,
+            LongSupplier freshTimestampSupplier,
+            ExecutorService executorService) {
         this.keyValueService = keyValueService;
+        this.freshTimestampSupplier = freshTimestampSupplier;
         this.executorService = executorService;
     }
 
@@ -64,7 +73,13 @@ public final class DefaultDeleteExecutor implements DeleteExecutor {
                                 LoggingArgs.tableRef(tableRef),
                                 UnsafeArg.of("keysToDelete", keysToDelete));
                     }
-                    keyValueService.delete(tableRef, Multimaps.forMap(keysToDelete));
+                    // TODO(jakubk): We probably want a disruptor to better batch this, but we should check metrics.
+                    TransactionKeyValueService session =
+                            keyValueService.getTransactionKeyValueService(freshTimestampSupplier);
+                    session.delete(tableRef, Multimaps.forMap(keysToDelete));
+                    // TODO(jakubk): Probably want to throw something better here, have special logging? Or retry?
+                    Preconditions.checkState(
+                            session.isValid(freshTimestampSupplier.getAsLong()), "Session not longer valid");
                 } catch (RuntimeException e) {
                     if (log.isDebugEnabled()) {
                         log.warn(

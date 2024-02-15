@@ -18,15 +18,13 @@ package com.palantir.atlasdb.transaction.impl;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.impl.AssertLockedKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -34,6 +32,8 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionKeyValueService;
+import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
@@ -41,14 +41,12 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.TimelockService;
 import com.palantir.timelock.paxos.AbstractInMemoryTimelockExtension;
-import com.palantir.timestamp.TimestampManagementService;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
-import java.util.function.Supplier;
+import java.util.function.LongSupplier;
 
 public class TestTransactionManagerImpl extends SerializableTransactionManager implements TestTransactionManager {
     static final TransactionConfig TRANSACTION_CONFIG =
@@ -56,7 +54,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
 
     private final Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
     private final WrapperWithTracker<CallbackAwareTransaction> transactionWrapper;
-    private final WrapperWithTracker<KeyValueService> keyValueServiceWrapper;
+    private final WrapperWithTracker<TransactionKeyValueService> keyValueServiceWrapper;
     private Optional<Long> unreadableTs = Optional.empty();
 
     public TestTransactionManagerImpl(
@@ -87,45 +85,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 knowledge);
     }
 
-    @SuppressWarnings("Indentation") // Checkstyle complains about lambda in constructor.
-    public TestTransactionManagerImpl(
-            MetricsManager metricsManager,
-            KeyValueService keyValueService,
-            TimestampManagementService timestampManagementService,
-            TimelockService legacyTimelockService,
-            LockService lockService,
-            LockWatchManagerInternal lockWatchManager,
-            TransactionService transactionService,
-            AtlasDbConstraintCheckingMode constraintCheckingMode,
-            TransactionKnowledgeComponents knowledge) {
-        super(
-                metricsManager,
-                createAssertKeyValue(keyValueService, lockService),
-                legacyTimelockService,
-                lockWatchManager,
-                timestampManagementService,
-                lockService,
-                transactionService,
-                Suppliers.ofInstance(constraintCheckingMode),
-                ConflictDetectionManagers.createWithoutWarmingCache(keyValueService),
-                SweepStrategyManagers.createDefault(keyValueService),
-                NoOpCleaner.INSTANCE,
-                DefaultTimestampCache.createForTests(),
-                false,
-                AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
-                AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                MultiTableSweepQueueWriter.NO_OP,
-                new DefaultDeleteExecutor(keyValueService, MoreExecutors.newDirectExecutorService()),
-                true,
-                () -> TRANSACTION_CONFIG,
-                ConflictTracer.NO_OP,
-                DefaultMetricsFilterEvaluationContext.createDefault(),
-                Optional.empty(),
-                knowledge);
-        this.transactionWrapper = WrapperWithTracker.TRANSACTION_NO_OP;
-        this.keyValueServiceWrapper = WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP;
-    }
-
     public TestTransactionManagerImpl(
             MetricsManager metricsManager,
             KeyValueService keyValueService,
@@ -138,11 +97,41 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor,
             WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
-            WrapperWithTracker<KeyValueService> keyValueServiceWrapper,
+            WrapperWithTracker<TransactionKeyValueService> keyValueServiceWrapper,
+            TransactionKnowledgeComponents knowledge) {
+        this(
+                metricsManager,
+                createAssertKeyValue(keyValueService, lockService),
+                services,
+                lockService,
+                transactionService,
+                conflictDetectionManager,
+                sweepStrategyManager,
+                timestampCache,
+                sweepQueue,
+                deleteExecutor,
+                transactionWrapper,
+                keyValueServiceWrapper,
+                knowledge);
+    }
+
+    private TestTransactionManagerImpl(
+            MetricsManager metricsManager,
+            TransactionKeyValueServiceManager keyValueService,
+            AbstractInMemoryTimelockExtension services,
+            LockService lockService,
+            TransactionService transactionService,
+            ConflictDetectionManager conflictDetectionManager,
+            SweepStrategyManager sweepStrategyManager,
+            TimestampCache timestampCache,
+            MultiTableSweepQueueWriter sweepQueue,
+            ExecutorService deleteExecutor,
+            WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
+            WrapperWithTracker<TransactionKeyValueService> keyValueServiceWrapper,
             TransactionKnowledgeComponents knowledge) {
         super(
                 metricsManager,
-                createAssertKeyValue(keyValueService, lockService),
+                keyValueService,
                 services.getLegacyTimelockService(),
                 services.getLockWatchManager(),
                 services.getTimestampManagementService(),
@@ -157,7 +146,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 sweepQueue,
-                new DefaultDeleteExecutor(createAssertKeyValue(keyValueService, lockService), deleteExecutor),
+                new DefaultDeleteExecutor(
+                        keyValueService, services.getLegacyTimelockService()::getFreshTimestamp, deleteExecutor),
                 true,
                 () -> TRANSACTION_CONFIG,
                 ConflictTracer.NO_OP,
@@ -173,8 +163,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
         return false;
     }
 
-    private static KeyValueService createAssertKeyValue(KeyValueService kv, LockService lock) {
-        return new AssertLockedKeyValueService(kv, lock);
+    private static TransactionKeyValueServiceManager createAssertKeyValue(KeyValueService kv, LockService lock) {
+        return new DefaultTransactionKeyValueServiceManager(new AssertLockedKeyValueService(kv, lock));
     }
 
     @Override
@@ -191,14 +181,16 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     @Override
     protected CallbackAwareTransaction createTransaction(
             long immutableTimestamp,
-            Supplier<Long> startTimestampSupplier,
+            LongSupplier startTimestampSupplier,
             LockToken immutableTsLock,
             PreCommitCondition preCommitCondition) {
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        TransactionKeyValueService keyValueService1 = keyValueServiceWrapper.apply(
+                keyValueService.getTransactionKeyValueService(startTimestampSupplier), pathTypeTracker);
         return transactionWrapper.apply(
                 new SerializableTransaction(
                         metricsManager,
-                        keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
+                        keyValueService1,
                         timelockService,
                         lockWatchManager,
                         transactionService,

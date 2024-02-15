@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.coordination;
 
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetResult;
 import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;

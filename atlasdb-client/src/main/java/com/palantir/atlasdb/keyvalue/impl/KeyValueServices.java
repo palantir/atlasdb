@@ -36,6 +36,8 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionKeyValueService;
+import com.palantir.atlasdb.transaction.api.TransactionKeyValueService;
 import com.palantir.common.annotation.Output;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.Throwables;
@@ -229,6 +231,22 @@ public final class KeyValueServices {
             @Override
             public void close() {
                 // NoOp
+            }
+        };
+    }
+
+    public static TransactionKeyValueService synchronousAsAsyncKeyValueService(
+            TransactionKeyValueService keyValueService) {
+        return new AutoDelegate_TransactionKeyValueService() {
+            @Override
+            public TransactionKeyValueService delegate() {
+                return keyValueService;
+            }
+
+            @Override
+            public ListenableFuture<Map<Cell, Value>> getAsync(
+                    TableReference tableRef, Map<Cell, Long> timestampByCell) {
+                return Futures.immediateFuture(keyValueService.get(tableRef, timestampByCell));
             }
         };
     }

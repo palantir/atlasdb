@@ -57,6 +57,7 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
@@ -68,7 +69,11 @@ import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceManager;
 import com.palantir.atlasdb.spi.SharedResourcesConfig;
+import com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig;
+import com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory;
+import com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.sweep.AdjustableSweepBatchConfigSource;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.BackgroundSweeperPerformanceLogger;
@@ -91,6 +96,7 @@ import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.LockWatchingCache;
 import com.palantir.atlasdb.transaction.api.NoOpLockWatchingCache;
+import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
@@ -149,6 +155,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
@@ -435,6 +442,30 @@ public abstract class TransactionManagers {
                     return ValidatingQueryRewritingKeyValueService.create(kvs); // ok
                 },
                 closeables);
+        TransactionKeyValueServiceManager transactionKeyValueServiceManager = initializeCloseable(
+                () -> {
+                    TransactionKeyValueServiceManager tkvsm;
+                    if (config().transactionKeyValueService().isPresent()) {
+                        TransactionKeyValueServiceManagerFactory<?> tkvsmfFactory =
+                                AtlasDbServiceDiscovery.createTransactionKeyValueServiceManagerFactoryOfCorrectType(
+                                        config().transactionKeyValueService().get());
+                        tkvsm = createTransactionManager(
+                                tkvsmfFactory,
+                                metricsManager,
+                                lockAndTimestampServices,
+                                keyValueService,
+                                adapter,
+                                config().transactionKeyValueService().get(),
+                                runtimeConfig().get().map(optionalConfig -> optionalConfig
+                                        .get()
+                                        .transactionKeyValueService()
+                                        .get()));
+                    } else {
+                        tkvsm = new DefaultTransactionKeyValueServiceManager(keyValueService);
+                    }
+                    return tkvsm;
+                },
+                closeables);
 
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
                 keyValueService, schemas(), config().initializeAsync(), allSafeForLogging());
@@ -497,16 +528,16 @@ public abstract class TransactionManagers {
                 .<ConflictTracer>map(Function.identity())
                 .orElse(ConflictTracer.NO_OP);
 
-        Callback<TransactionManager> callbacks = new Callback.CallChain<>(
+        Callback<TransactionManager> callbacks = new Callback.CallChain<>(List.of(
                 timelockConsistencyCheckCallback(config(), runtime.get(), lockAndTimestampServices),
                 targetedSweep.singleAttemptCallback(),
                 asyncInitializationCallback(),
-                createClearsTable());
+                createClearsTable()));
 
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.createInstrumented(
                         metricsManager,
-                        keyValueService,
+                        transactionKeyValueServiceManager,
                         lockAndTimestampServices.timelock(),
                         lockAndTimestampServices.lockWatcher(),
                         lockAndTimestampServices.managedTimestampService(),
@@ -566,6 +597,21 @@ public abstract class TransactionManagers {
 
         log.info("Successfully created, and now returning a transaction manager: this may not be fully initialised.");
         return transactionManager;
+    }
+
+    private <T> TransactionKeyValueServiceManager createTransactionManager(
+            TransactionKeyValueServiceManagerFactory<T> factory,
+            MetricsManager metricsManager,
+            LockAndTimestampServices lockAndTimestampServices,
+            KeyValueService keyValueService,
+            LongSupplier timestampSupplier,
+            TransactionKeyValueServiceConfig config,
+            Refreshable<TransactionKeyValueServiceRuntimeConfig> runtimeConfigRefreshable) {
+        CoordinationService<T> coordinationService = getTransactionKeyValueManagerCoordinator(
+                factory.coordinationClass(), metricsManager, lockAndTimestampServices, keyValueService);
+        KeyValueServiceManager keyValueServiceManager =
+                new DefaultKeyValueServiceManager(metricsManager, timestampSupplier);
+        return factory.createManager(coordinationService, keyValueServiceManager, config, runtimeConfigRefreshable);
     }
 
     private MetricsManager setUpMetricsAndGetMetricsManager() {
@@ -771,6 +817,19 @@ public abstract class TransactionManagers {
         MetadataCoordinationServiceMetrics.registerMetrics(
                 metricsManager, metadataCoordinationService, lockAndTimestampServices.managedTimestampService());
         return metadataCoordinationService;
+    }
+
+    private <T> CoordinationService<T> getTransactionKeyValueManagerCoordinator(
+            Class<T> clazz,
+            MetricsManager metricsManager,
+            LockAndTimestampServices lockAndTimestampServices,
+            KeyValueService keyValueService) {
+        return CoordinationServices.createTransactionManagerCoordinator(
+                clazz,
+                keyValueService,
+                lockAndTimestampServices.managedTimestampService(),
+                metricsManager,
+                config().initializeAsync());
     }
 
     private static Optional<BackgroundCompactor> initializeCompactBackgroundProcess(

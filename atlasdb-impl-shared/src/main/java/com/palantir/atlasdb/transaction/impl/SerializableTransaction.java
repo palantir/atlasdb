@@ -19,7 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
@@ -47,7 +46,6 @@ import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -62,6 +60,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
+import com.palantir.atlasdb.transaction.api.TransactionKeyValueService;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
@@ -110,6 +109,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -149,12 +149,12 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     public SerializableTransaction(
             MetricsManager metricsManager,
-            KeyValueService keyValueService,
+            TransactionKeyValueService keyValueService,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TransactionService transactionService,
             Cleaner cleaner,
-            Supplier<Long> startTimeStamp,
+            LongSupplier startTimeStamp,
             ConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             long immutableTimestamp,
@@ -919,7 +919,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 lockWatchManager,
                 defaultTransactionService,
                 NoOpCleaner.INSTANCE,
-                Suppliers.ofInstance(commitTs),
+                () -> commitTs,
                 ConflictDetectionManagers.createWithNoConflictDetection(),
                 sweepStrategyManager,
                 immutableTimestamp,

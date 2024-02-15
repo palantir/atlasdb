@@ -54,6 +54,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
+import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -93,6 +94,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
@@ -120,7 +122,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         MultiTableSweepQueueWriter sweepQueue = getSweepQueueWriterUninitialized();
         SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
                 MetricsManagers.createForTests(),
-                keyValueService,
+                new DefaultTransactionKeyValueServiceManager(keyValueService),
                 timelockService,
                 timestampManagementService,
                 lockService,
@@ -149,14 +151,15 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 ConflictHandler.SERIALIZABLE,
                 TransactionConstants.TRANSACTION_TABLE,
                 ConflictHandler.IGNORE_ALL);
+        LongSupplier startTimestampSupplier = Suppliers.ofInstance(timestampService.getFreshTimestamp())::get;
         return new SerializableTransaction(
                 MetricsManagers.createForTests(),
-                keyValueService,
+                keyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
                 timelockService,
                 NoOpLockWatchManager.create(),
                 transactionService,
                 NoOpCleaner.INSTANCE,
-                Suppliers.ofInstance(timestampService.getFreshTimestamp()),
+                startTimestampSupplier,
                 TestConflictDetectionManagers.createWithStaticConflictDetection(tablesToWriteWrite),
                 SweepStrategyManagers.createDefault(keyValueService),
                 0L,
@@ -170,7 +173,10 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AbstractTransactionTest.GET_RANGES_EXECUTOR,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 getSweepQueueWriterInitialized(),
-                new DefaultDeleteExecutor(keyValueService, MoreExecutors.newDirectExecutorService()),
+                new DefaultDeleteExecutor(
+                        keyValueServiceManager,
+                        timelockService::getFreshTimestamp,
+                        MoreExecutors.newDirectExecutorService()),
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,

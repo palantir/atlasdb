@@ -22,7 +22,6 @@ import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
@@ -30,6 +29,7 @@ import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionManager;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
@@ -52,6 +52,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 @SuppressWarnings("TooManyArguments") // Legacy
@@ -218,7 +219,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public static TransactionManager createInstrumented(
             MetricsManager metricsManager,
-            KeyValueService keyValueService,
+            TransactionKeyValueServiceManager keyValueService,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TimestampManagementService timestampManagementService,
@@ -275,7 +276,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public static TransactionManager create(
             MetricsManager metricsManager,
-            KeyValueService keyValueService,
+            TransactionKeyValueServiceManager keyValueService,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TimestampManagementService timestampManagementService,
@@ -331,7 +332,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public static TransactionManager create(
             MetricsManager metricsManager,
-            KeyValueService keyValueService,
+            TransactionKeyValueServiceManager keyValueService,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TimestampManagementService timestampManagementService,
@@ -388,7 +389,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     private static TransactionManager create(
             MetricsManager metricsManager,
-            KeyValueService keyValueService,
+            TransactionKeyValueServiceManager keyValueService,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TimestampManagementService timestampManagementService,
@@ -431,7 +432,10 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
-                new DefaultDeleteExecutor(keyValueService, DefaultTaskExecutors.createDefaultDeleteExecutor()),
+                new DefaultDeleteExecutor(
+                        keyValueService,
+                        timelockService::getFreshTimestamp,
+                        DefaultTaskExecutors.createDefaultDeleteExecutor()),
                 validateLocksOnReads,
                 transactionConfig,
                 conflictTracer,
@@ -455,7 +459,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public static SerializableTransactionManager createForTest(
             MetricsManager metricsManager,
-            KeyValueService keyValueService,
+            TransactionKeyValueServiceManager keyValueService,
             TimelockService legacyTimeLockService,
             TimestampManagementService timestampManagementService,
             LockService lockService,
@@ -486,7 +490,10 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 sweepQueue,
-                new DefaultDeleteExecutor(keyValueService, DefaultTaskExecutors.createDefaultDeleteExecutor()),
+                new DefaultDeleteExecutor(
+                        keyValueService,
+                        legacyTimeLockService::getFreshTimestamp,
+                        DefaultTaskExecutors.createDefaultDeleteExecutor()),
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,
@@ -497,7 +504,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public SerializableTransactionManager(
             MetricsManager metricsManager,
-            KeyValueService keyValueService,
+            TransactionKeyValueServiceManager keyValueService,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TimestampManagementService timestampManagementService,
@@ -549,12 +556,12 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     @Override
     protected CallbackAwareTransaction createTransaction(
             long immutableTimestamp,
-            Supplier<Long> startTimestampSupplier,
+            LongSupplier startTimestampSupplier,
             LockToken immutableTsLock,
             PreCommitCondition preCommitCondition) {
         return new SerializableTransaction(
                 metricsManager,
-                keyValueService,
+                keyValueService.getTransactionKeyValueService(startTimestampSupplier),
                 timelockService,
                 lockWatchManager,
                 transactionService,

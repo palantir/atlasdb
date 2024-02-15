@@ -26,6 +26,7 @@ import com.palantir.atlasdb.internalschema.InternalSchemaInstallConfig;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.DoNotLog;
@@ -47,6 +48,8 @@ public abstract class AtlasDbConfig {
     private static final SafeLogger log = SafeLoggerFactory.get(AtlasDbConfig.class);
 
     public abstract KeyValueServiceConfig keyValueService();
+
+    public abstract Optional<TransactionKeyValueServiceConfig> transactionKeyValueService();
 
     public abstract Optional<LeaderConfig> leader();
 

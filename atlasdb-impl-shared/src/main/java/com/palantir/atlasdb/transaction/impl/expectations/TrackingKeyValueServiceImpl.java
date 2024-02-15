@@ -17,50 +17,40 @@
 package com.palantir.atlasdb.transaction.impl.expectations;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
-import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
-import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
+import com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionKeyValueService;
+import com.palantir.atlasdb.transaction.api.TransactionKeyValueService;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.atlasdb.util.MeasuringUtils;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.common.exception.AtlasDbDependencyException;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.lang.reflect.Array;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.ToLongFunction;
 import one.util.streamex.EntryStream;
 
-public final class TrackingKeyValueServiceImpl extends ForwardingKeyValueService implements TrackingKeyValueService {
-    private static final SafeLogger log = SafeLoggerFactory.get(TrackingKeyValueServiceImpl.class);
-
-    private final KeyValueService delegate;
+public final class TrackingKeyValueServiceImpl
+        implements AutoDelegate_TransactionKeyValueService, TrackingKeyValueService {
+    private final TransactionKeyValueService delegate;
     private final KeyValueServiceDataTracker tracker = new KeyValueServiceDataTracker();
 
-    public TrackingKeyValueServiceImpl(KeyValueService delegate) {
+    public TrackingKeyValueServiceImpl(TransactionKeyValueService delegate) {
         this.delegate = delegate;
     }
 
     @Override
-    public KeyValueService delegate() {
+    public TransactionKeyValueService delegate() {
         return delegate;
     }
 
@@ -146,67 +136,12 @@ public final class TrackingKeyValueServiceImpl extends ForwardingKeyValueService
     }
 
     @Override
-    public ClosableIterator<RowResult<Set<Long>>> getRangeOfTimestamps(
-            TableReference tableRef, RangeRequest rangeRequest, long timestamp)
-            throws InsufficientConsistencyException {
-        try (ClosableIterator<RowResult<Set<Long>>> result =
-                delegate.getRangeOfTimestamps(tableRef, rangeRequest, timestamp)) {
-            return wrapIterator(result, tracker.recordCallForTable(tableRef), MeasuringUtils::sizeOfLongSetRowResult);
-        }
-    }
-
-    @Override
-    public ClosableIterator<List<CandidateCellForSweeping>> getCandidateCellsForSweeping(
-            TableReference tableRef, CandidateCellForSweepingRequest request) {
-        try (ClosableIterator<List<CandidateCellForSweeping>> result =
-                delegate.getCandidateCellsForSweeping(tableRef, request)) {
-            return wrapIterator(result, tracker.recordCallForTable(tableRef), MeasuringUtils::sizeOf);
-        }
-    }
-
-    @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
             TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> result =
                 delegate.getFirstBatchForRanges(tableRef, rangeRequests, timestamp);
         tracker.recordReadForTable(
                 tableRef, "getFirstBatchForRanges", MeasuringUtils.sizeOfPageByRangeRequestMap(result));
-        return result;
-    }
-
-    @Override
-    public Set<TableReference> getAllTableNames() {
-        Set<TableReference> result = delegate.getAllTableNames();
-        tracker.recordTableAgnosticRead("getAllTableNames", MeasuringUtils.sizeOf(result));
-        return result;
-    }
-
-    @Override
-    public byte[] getMetadataForTable(TableReference tableRef) {
-        byte[] result = delegate.getMetadataForTable(tableRef);
-        tracker.recordTableAgnosticRead("getMetadataForTable", result.length);
-        return result;
-    }
-
-    @Override
-    public Map<TableReference, byte[]> getMetadataForTables() {
-        Map<TableReference, byte[]> result = delegate.getMetadataForTables();
-        tracker.recordTableAgnosticRead("getMetadataForTables", MeasuringUtils.sizeOfMeasurableByteMap(result));
-        return result;
-    }
-
-    @Override
-    public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp)
-            throws AtlasDbDependencyException {
-        Multimap<Cell, Long> result = delegate.getAllTimestamps(tableRef, cells, timestamp);
-        tracker.recordReadForTable(tableRef, "getAllTimestamps", MeasuringUtils.sizeOf(result));
-        return result;
-    }
-
-    @Override
-    public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
-        List<byte[]> result = delegate.getRowKeysInRange(tableRef, startRow, endRow, maxResults);
-        tracker.recordReadForTable(tableRef, "getRowKeysInRange", MeasuringUtils.sizeOfByteCollection(result));
         return result;
     }
 

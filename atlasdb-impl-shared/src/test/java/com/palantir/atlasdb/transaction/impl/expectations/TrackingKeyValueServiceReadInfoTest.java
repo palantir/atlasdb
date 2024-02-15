@@ -23,21 +23,18 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
-import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
-import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweepingRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
+import com.palantir.atlasdb.transaction.api.TransactionKeyValueService;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableKvsCallReadInfo;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionReadInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
@@ -45,7 +42,6 @@ import com.palantir.common.base.ClosableIterators;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -77,7 +73,7 @@ public final class TrackingKeyValueServiceReadInfoTest {
     private RangeRequest rangeRequest;
 
     @Mock
-    private KeyValueService kvs;
+    private TransactionKeyValueService kvs;
 
     private TrackingKeyValueService trackingKvs;
     private ImmutableMap<Cell, Value> valueByCellMapOfSize;
@@ -231,44 +227,6 @@ public final class TrackingKeyValueServiceReadInfoTest {
         validateReadInfoForLazyRead(size);
     }
 
-    @SuppressWarnings("MustBeClosedChecker")
-    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
-    @MethodSource("sizes")
-    public void readInfoIsCorrectAfterGetRangeOfTimestampsCallAndIteratorConsumption(int size) {
-        setup(size);
-        List<RowResult<Set<Long>>> backingLongSetRowResultListOfSize =
-                TrackingKeyValueServiceTestUtils.createLongSetRowResultListWithSize(size);
-
-        when(kvs.getRangeOfTimestamps(tableReference, rangeRequest, TIMESTAMP))
-                .thenReturn(ClosableIterators.wrapWithEmptyClose(backingLongSetRowResultListOfSize.iterator()));
-
-        trackingKvs
-                .getRangeOfTimestamps(tableReference, rangeRequest, TIMESTAMP)
-                .forEachRemaining(_unused -> {});
-
-        validateReadInfoForLazyRead(size);
-    }
-
-    @SuppressWarnings("MustBeClosedChecker")
-    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
-    @MethodSource("sizes")
-    public void readInfoIsCorrectAfterGetCandidateCellsForSweepingCallAndIteratorConsumption(int size) {
-        setup(size);
-        CandidateCellForSweepingRequest candidateCellForSweepingRequest = mock(CandidateCellForSweepingRequest.class);
-
-        ImmutableList<ImmutableList<CandidateCellForSweeping>> backingCandidateForSweepingTableOfSize =
-                TrackingKeyValueServiceTestUtils.createCandidateCellForSweepingTableWithSize(size);
-
-        when(kvs.getCandidateCellsForSweeping(tableReference, candidateCellForSweepingRequest))
-                .thenReturn(ClosableIterators.wrapWithEmptyClose(backingCandidateForSweepingTableOfSize.iterator()));
-
-        trackingKvs
-                .getCandidateCellsForSweeping(tableReference, candidateCellForSweepingRequest)
-                .forEachRemaining(_unused -> {});
-
-        validateReadInfoForLazyRead(size);
-    }
-
     @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @MethodSource("sizes")
     public void readInfoIsCorrectAfterGetFirstBatchForRangesCall(int size) {
@@ -283,74 +241,6 @@ public final class TrackingKeyValueServiceReadInfoTest {
         trackingKvs.getFirstBatchForRanges(tableReference, rangeRequests, TIMESTAMP);
 
         validateReadInfoForReadForTable("getFirstBatchForRanges", size);
-    }
-
-    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
-    @MethodSource("sizes")
-    public void readInfoIsCorrectAfterGetAllTableNamesCall(int size) {
-        setup(size);
-        when(kvs.getAllTableNames()).thenReturn(TrackingKeyValueServiceTestUtils.createTableReferenceSetWithSize(size));
-
-        trackingKvs.getAllTableNames();
-
-        validateReadInfoForTableAgnosticRead("getAllTableNames", size);
-    }
-
-    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
-    @MethodSource("sizes")
-    public void readInfoIsCorrectAfterGetMetadataForTableCall(int size) {
-        setup(size);
-        when(kvs.getMetadataForTable(tableReference)).thenReturn(new byte[size]);
-
-        trackingKvs.getMetadataForTable(tableReference);
-
-        validateReadInfoForTableAgnosticRead("getMetadataForTable", size);
-    }
-
-    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
-    @MethodSource("sizes")
-    public void readInfoIsCorrectAfterGetMetadataForTablesCall(int size) {
-        setup(size);
-        Map<TableReference, byte[]> metadataForTablesOfSize =
-                TrackingKeyValueServiceTestUtils.createByteArrayByTableReferenceMapWithSize(size);
-
-        when(kvs.getMetadataForTables()).thenReturn(metadataForTablesOfSize);
-
-        trackingKvs.getMetadataForTables();
-
-        validateReadInfoForTableAgnosticRead("getMetadataForTables", size);
-    }
-
-    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
-    @MethodSource("sizes")
-    public void readInfoIsCorrectAfterGetAllTimestampsCall(int size) {
-        setup(size);
-        Set<Cell> cells = mock(Set.class);
-        Multimap<Cell, Long> longByCellMultimapOfSize =
-                TrackingKeyValueServiceTestUtils.createLongByCellMultimapWithSize(size);
-
-        when(kvs.getAllTimestamps(tableReference, cells, TIMESTAMP)).thenReturn(longByCellMultimapOfSize);
-        trackingKvs.getAllTimestamps(tableReference, cells, TIMESTAMP);
-
-        validateReadInfoForReadForTable("getAllTimestamps", size);
-    }
-
-    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
-    @MethodSource("sizes")
-    public void readInfoIsCorrectAfterGetRowsKeysInRangeCall(int size) {
-        setup(size);
-        int maxResults = 13;
-        byte[] startRow = new byte[1];
-        byte[] endRow = new byte[3];
-        ImmutableList<byte[]> byteArrayListOfSize =
-                TrackingKeyValueServiceTestUtils.createListOfByteArraysWithSize(size);
-
-        when(kvs.getRowKeysInRange(tableReference, startRow, endRow, maxResults))
-                .thenReturn(byteArrayListOfSize);
-
-        trackingKvs.getRowKeysInRange(tableReference, startRow, endRow, maxResults);
-
-        validateReadInfoForReadForTable("getRowKeysInRange", size);
     }
 
     private void setup(int size) {
@@ -374,15 +264,5 @@ public final class TrackingKeyValueServiceReadInfoTest {
                 .build();
         assertThat(trackingKvs.getOverallReadInfo()).isEqualTo(readInfo);
         assertThat(trackingKvs.getReadInfoByTable()).containsOnlyKeys(ImmutableList.of(tableReference));
-    }
-
-    private void validateReadInfoForTableAgnosticRead(String methodName, int size) {
-        TransactionReadInfo readInfo = ImmutableTransactionReadInfo.builder()
-                .bytesRead(size)
-                .kvsCalls(1)
-                .maximumBytesKvsCallInfo(ImmutableKvsCallReadInfo.of(methodName, size))
-                .build();
-        assertThat(trackingKvs.getOverallReadInfo()).isEqualTo(readInfo);
-        assertThat(trackingKvs.getReadInfoByTable()).isEmpty();
     }
 }
