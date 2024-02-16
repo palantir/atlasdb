@@ -44,17 +44,17 @@ public class DbKvsPostgresInvalidationRunnerTest {
 
     private final ConnectionManagerAwareDbKvs kvs = (ConnectionManagerAwareDbKvs) TRM.getDefaultKvs();
     private TimestampBoundStore store;
-    private final InvalidationRunner invalidationRunner = new InvalidationRunner(
-            kvs.getConnectionManager(),
-            AtlasDbConstants.TIMESTAMP_TABLE,
-            DbKvsPostgresExtension.getKvsConfig().ddl().tablePrefix());
+    private InvalidationRunner invalidationRunner;
     private static final long TIMESTAMP_1 = 12000;
 
     @BeforeEach
     public void setUp() {
         kvs.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
+        String prefix = UUID.randomUUID().toString().substring(0, 4);
+        invalidationRunner =
+                new InvalidationRunner(kvs.getConnectionManager(), AtlasDbConstants.TIMESTAMP_TABLE, prefix);
         invalidationRunner.createTableIfDoesNotExist();
-        store = getStoreWithPrefix(UUID.randomUUID().toString().substring(0, 8));
+        store = getStoreWithPrefix(prefix);
     }
 
     @Test
