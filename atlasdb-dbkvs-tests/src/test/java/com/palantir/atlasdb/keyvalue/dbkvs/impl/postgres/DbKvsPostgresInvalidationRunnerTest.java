@@ -54,7 +54,7 @@ public class DbKvsPostgresInvalidationRunnerTest {
     public void setUp() {
         kvs.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
         invalidationRunner.createTableIfDoesNotExist();
-        store = getStoreWithPrefix(UUID.randomUUID().toString());
+        store = getStoreWithPrefix(UUID.randomUUID().toString().substring(0, 8));
     }
 
     @Test
