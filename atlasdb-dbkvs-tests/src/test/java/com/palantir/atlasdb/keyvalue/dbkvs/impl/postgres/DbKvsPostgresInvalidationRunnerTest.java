@@ -29,7 +29,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.timestamp.TimestampBoundStore;
 import java.time.Duration;
-import java.util.UUID;
+import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,11 +50,25 @@ public class DbKvsPostgresInvalidationRunnerTest {
     @BeforeEach
     public void setUp() {
         kvs.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
-        String prefix = UUID.randomUUID().toString().substring(0, 4);
+        String prefix = randomAlphanumericPrefix(4);
         invalidationRunner =
                 new InvalidationRunner(kvs.getConnectionManager(), AtlasDbConstants.TIMESTAMP_TABLE, prefix);
         invalidationRunner.createTableIfDoesNotExist();
         store = getStoreWithPrefix(prefix);
+    }
+
+    private static String randomAlphanumericPrefix(long size) {
+        String alphabet = "abcdefghijklmnopqrstuvwxyz";
+        Random random = new Random();
+        StringBuilder stringBuilder = new StringBuilder();
+
+        for (int i = 0; i < size; i++) {
+            int randomIndex = random.nextInt(alphabet.length());
+            char randomCharacter = alphabet.charAt(randomIndex);
+            stringBuilder.append(randomCharacter);
+        }
+
+        return stringBuilder.toString();
     }
 
     @Test
