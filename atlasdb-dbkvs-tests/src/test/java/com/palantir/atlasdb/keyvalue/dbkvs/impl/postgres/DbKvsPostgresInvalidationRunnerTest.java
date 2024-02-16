@@ -29,6 +29,7 @@ import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.timestamp.TimestampBoundStore;
 import java.time.Duration;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,7 +43,7 @@ public class DbKvsPostgresInvalidationRunnerTest {
     public static final TestResourceManager TRM = new TestResourceManager(DbKvsPostgresExtension::createKvs);
 
     private final ConnectionManagerAwareDbKvs kvs = (ConnectionManagerAwareDbKvs) TRM.getDefaultKvs();
-    private final TimestampBoundStore store = getStore();
+    private TimestampBoundStore store;
     private final InvalidationRunner invalidationRunner = new InvalidationRunner(
             kvs.getConnectionManager(),
             AtlasDbConstants.TIMESTAMP_TABLE,
@@ -53,6 +54,7 @@ public class DbKvsPostgresInvalidationRunnerTest {
     public void setUp() {
         kvs.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
         invalidationRunner.createTableIfDoesNotExist();
+        store = getStoreWithPrefix(UUID.randomUUID().toString());
     }
 
     @Test
@@ -98,11 +100,8 @@ public class DbKvsPostgresInvalidationRunnerTest {
         assertBoundNotReadableAfterBeingPoisoned();
     }
 
-    public TimestampBoundStore getStore() {
-        return InDbTimestampBoundStore.create(
-                kvs.getConnectionManager(),
-                AtlasDbConstants.TIMESTAMP_TABLE,
-                DbKvsPostgresExtension.getKvsConfig().ddl().tablePrefix());
+    public TimestampBoundStore getStoreWithPrefix(String prefix) {
+        return InDbTimestampBoundStore.create(kvs.getConnectionManager(), AtlasDbConstants.TIMESTAMP_TABLE, prefix);
     }
 
     private void assertBoundNotReadableAfterBeingPoisoned() {
