@@ -28,6 +28,7 @@ import com.palantir.paxos.PaxosProposer;
 import com.palantir.paxos.PaxosProposerImpl;
 import java.time.Duration;
 import java.util.UUID;
+import java.util.function.BooleanSupplier;
 import java.util.function.UnaryOperator;
 import javax.annotation.Nullable;
 
@@ -63,6 +64,9 @@ public final class LeaderElectionServiceBuilder {
 
     @Nullable
     private PaxosLatestRoundVerifier latestRoundVerifier;
+
+    @Nullable
+    private BooleanSupplier leaderEligible;
 
     private UnaryOperator<PaxosProposer> proposerDecorator = paxosProposer -> paxosProposer;
 
@@ -132,6 +136,11 @@ public final class LeaderElectionServiceBuilder {
         return this;
     }
 
+    public LeaderElectionServiceBuilder leaderEligible(BooleanSupplier leaderEligible) {
+        this.leaderEligible = leaderEligible;
+        return this;
+    }
+
     public LeaderElectionService build() {
         return new PaxosLeaderElectionService(
                 proposerDecorator.apply(buildProposer()),
@@ -142,7 +151,8 @@ public final class LeaderElectionServiceBuilder {
                 pingRate(),
                 randomWaitBeforeProposingLeadership(),
                 leaderAddressCacheTtl(),
-                eventRecorder());
+                eventRecorder(),
+                leaderEligible());
     }
 
     private PaxosProposer buildProposer() {
@@ -192,5 +202,9 @@ public final class LeaderElectionServiceBuilder {
 
     private UUID leaderUuid() {
         return Preconditions.checkNotNull(leaderUuid, "leaderUuid not set");
+    }
+
+    private BooleanSupplier leaderEligible() {
+        return Preconditions.checkNotNull(leaderEligible, "leaderEligible not set");
     }
 }

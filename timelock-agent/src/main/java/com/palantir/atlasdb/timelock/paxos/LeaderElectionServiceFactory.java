@@ -52,6 +52,7 @@ public class LeaderElectionServiceFactory {
                 .decorateProposer(uninstrumentedPaxosProposer -> instrumentProposer(
                         dependencies.paxosClient(), dependencies.metrics(), uninstrumentedPaxosProposer))
                 .leaderAddressCacheTtl(Duration.ofSeconds(1))
+                .leaderEligible(() -> dependencies.runtime().get().allowLeadershipProposition())
                 .build());
     }
 

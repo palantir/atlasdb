@@ -44,6 +44,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BooleanSupplier;
 import org.immutables.value.Value;
 
 /**
@@ -73,7 +74,8 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
 
     private final PaxosLeaderElectionEventRecorder eventRecorder;
 
-    private final AtomicBoolean leaderEligible = new AtomicBoolean(true);
+    private final AtomicBoolean explicitlyDisqualifiedFromLeadership = new AtomicBoolean(false);
+    private final BooleanSupplier leaderEligible;
 
     private final Cache<UUID, HostAndPort> leaderAddressCache;
 
@@ -86,7 +88,8 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
             Duration updatePollingWait,
             Duration randomWaitBeforeProposingLeadership,
             Duration leaderAddressCacheTtl,
-            PaxosLeaderElectionEventRecorder eventRecorder) {
+            PaxosLeaderElectionEventRecorder eventRecorder,
+            BooleanSupplier leaderEligible) {
         this.proposer = proposer;
         this.knowledge = knowledge;
         this.leaderPinger = leaderPinger;
@@ -97,12 +100,13 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
         this.eventRecorder = eventRecorder;
         this.leaderAddressCache =
                 Caffeine.newBuilder().expireAfterWrite(leaderAddressCacheTtl).build();
+        this.leaderEligible = leaderEligible;
     }
 
     @Override
     public void markNotEligibleForLeadership() {
-        boolean previousLeaderEligible = leaderEligible.getAndSet(false);
-        if (previousLeaderEligible) {
+        boolean previouslyDisqualified = explicitlyDisqualifiedFromLeadership.getAndSet(true);
+        if (!previouslyDisqualified) {
             log.info("Node no longer eligible for leadership");
         }
     }
@@ -129,9 +133,15 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
     }
 
     private void proposeLeadershipOrWaitForBackoff(LeadershipState currentState) throws InterruptedException {
-        if (!leaderEligible.get()) {
+        if (explicitlyDisqualifiedFromLeadership.get()) {
             leaderEligibilityLogger.log(logger -> logger.debug("Not eligible for leadership"));
             throw new InterruptedException("leader no longer eligible");
+        }
+
+        if (!leaderEligible.getAsBoolean()) {
+            leaderEligibilityLogger.log(logger -> logger.debug("Not eligible for leadership"));
+            Thread.sleep(10 * updatePollingRate.toMillis());
+            return;
         }
 
         if (pingLeader(currentState.greatestLearnedValue()).isSuccessful()) {

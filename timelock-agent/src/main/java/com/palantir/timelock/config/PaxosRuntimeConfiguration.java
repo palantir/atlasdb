@@ -46,6 +46,12 @@ public interface PaxosRuntimeConfiguration {
         return 300L;
     }
 
+    @JsonProperty("allow-leadership-proposition-i-know-what-i-am-doing")
+    @Value.Default
+    default boolean allowLeadershipProposition() {
+        return true;
+    }
+
     @JsonIgnore
     @Value.Derived
     @Value.Auxiliary
