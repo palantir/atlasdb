@@ -29,9 +29,9 @@ import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.timestamp.TimestampBoundStore;
 import java.time.Duration;
-import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,6 +39,8 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 
 @ExtendWith(DbKvsPostgresExtension.class)
 public class DbKvsPostgresInvalidationRunnerTest {
+    private static final AtomicInteger prefixCounter = new AtomicInteger(0);
+
     @RegisterExtension
     public static final TestResourceManager TRM = new TestResourceManager(DbKvsPostgresExtension::createKvs);
 
@@ -50,25 +52,25 @@ public class DbKvsPostgresInvalidationRunnerTest {
     @BeforeEach
     public void setUp() {
         kvs.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
-        String prefix = randomAlphanumericPrefix(4);
+        String prefix = nextUniquePrefix(prefixCounter);
         invalidationRunner =
                 new InvalidationRunner(kvs.getConnectionManager(), AtlasDbConstants.TIMESTAMP_TABLE, prefix);
         invalidationRunner.createTableIfDoesNotExist();
         store = getStoreWithPrefix(prefix);
     }
 
-    private static String randomAlphanumericPrefix(long size) {
-        String alphabet = "abcdefghijklmnopqrstuvwxyz";
-        Random random = new Random();
-        StringBuilder stringBuilder = new StringBuilder();
+    // 0 -> "a", 1 -> "b", ..., 25 -> "z", 26 -> "aa", 27 -> "ab", ...
+    private static String nextUniquePrefix(AtomicInteger counter) {
+        int nextValue = counter.getAndIncrement();
 
-        for (int i = 0; i < size; i++) {
-            int randomIndex = random.nextInt(alphabet.length());
-            char randomCharacter = alphabet.charAt(randomIndex);
-            stringBuilder.append(randomCharacter);
+        StringBuilder result = new StringBuilder();
+        while (nextValue >= 0) {
+            int remainder = nextValue % 26;
+            result.insert(0, (char) ('a' + remainder));
+            nextValue = (nextValue / 26) - 1;
         }
 
-        return stringBuilder.toString();
+        return result.toString();
     }
 
     @Test
