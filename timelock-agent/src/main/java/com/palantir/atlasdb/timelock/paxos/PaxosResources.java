@@ -57,9 +57,32 @@ public abstract class PaxosResources {
     }
 
     @Value.Derived
+    UseCaseAwareBatchPaxosComponents combinedBatchComponents() {
+        Map<PaxosUseCase, BatchPaxosResources> batchPaxosResourcesByUseCase =
+                ImmutableMap.<PaxosUseCase, BatchPaxosResources>builder()
+                        .put(PaxosUseCase.TIMESTAMP, batchResourcesFromComponents(timestampPaxosComponents()))
+                        .putAll(leadershipBatchResources())
+                        .buildOrThrow();
+
+        return new UseCaseAwareBatchPaxosComponents(new EnumMap<>(batchPaxosResourcesByUseCase));
+    }
+
+    @Value.Derived
+    UseCaseAwareBatchPaxosAcceptorResource combinedBatchPaxosAcceptorResource() {
+        return new UseCaseAwareBatchPaxosAcceptorResource(combinedBatchComponents()::acceptor);
+    }
+
+    @Value.Derived
+    UseCaseAwareBatchPaxosLearnerResource combinedBatchPaxosLearnerResource() {
+        return new UseCaseAwareBatchPaxosLearnerResource(combinedBatchComponents()::learner);
+    }
+
+    @Value.Derived
     public List<UndertowService> undertowServices() {
         return ImmutableList.<UndertowService>builder()
                 .addAll(adhocUndertowServices())
+                .add(UseCaseAwareBatchPaxosAcceptorResourceEndpoints.of(combinedBatchPaxosAcceptorResource()))
+                .add(UseCaseAwareBatchPaxosLearnerResourceEndpoints.of(combinedBatchPaxosLearnerResource()))
                 .add(NamespaceLeadershipTakeoverServiceEndpoints.of(
                         new NamespaceTakeoverService(namespaceTakeoverComponent())))
                 .build();
@@ -67,18 +90,10 @@ public abstract class PaxosResources {
 
     @Value.Derived
     public List<Object> resourcesForRegistration() {
-        Map<PaxosUseCase, BatchPaxosResources> batchPaxosResourcesByUseCase =
-                ImmutableMap.<PaxosUseCase, BatchPaxosResources>builder()
-                        .put(PaxosUseCase.TIMESTAMP, batchResourcesFromComponents(timestampPaxosComponents()))
-                        .putAll(leadershipBatchResources())
-                        .buildOrThrow();
-
-        UseCaseAwareBatchPaxosResource combinedBatchResource =
-                new UseCaseAwareBatchPaxosResource(new EnumMap<>(batchPaxosResourcesByUseCase));
-
         return ImmutableList.builder()
                 .addAll(adhocResources())
-                .add(combinedBatchResource)
+                .add(combinedBatchPaxosAcceptorResource())
+                .add(combinedBatchPaxosLearnerResource())
                 .add(new NamespaceTakeoverResource(namespaceTakeoverComponent()))
                 .build();
     }
