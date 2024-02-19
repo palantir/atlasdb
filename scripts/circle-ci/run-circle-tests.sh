@@ -79,7 +79,7 @@ JAVA_GC_LOGGING_OPTIONS="${JAVA_GC_LOGGING_OPTIONS} -Xlog:gc:build-%t-%p.gc.log"
 # External builds have a 16gb limit.
 if [ "$test_suite_index" -eq "15" ]; then
     export _JAVA_OPTIONS="-Xms2g -Xmx4g -XX:ActiveProcessorCount=8 ${JAVA_GC_LOGGING_OPTIONS}"
-elif [ "$test_suite_index" -eq "4" ]; then
+elif [ "$test_suite_index" -eq "13" ] || [ "$test_suite_index" -eq "4" ]; then
     export _JAVA_OPTIONS="-Xms8g -Xmx8g -XX:ActiveProcessorCount=8 ${JAVA_GC_LOGGING_OPTIONS}"
 elif [ "$test_suite_index" -eq "3" ]; then
     export _JAVA_OPTIONS="-Xms8g -Xmx8g -XX:ActiveProcessorCount=8 ${JAVA_GC_LOGGING_OPTIONS}"
