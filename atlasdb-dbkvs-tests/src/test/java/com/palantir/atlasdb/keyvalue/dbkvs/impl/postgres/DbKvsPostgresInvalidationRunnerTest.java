@@ -51,26 +51,13 @@ public class DbKvsPostgresInvalidationRunnerTest {
 
     @BeforeEach
     public void setUp() {
-        kvs.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
-        String prefix = nextUniquePrefix(prefixCounter);
+        long nextPrefixCount = prefixCounter.incrementAndGet();
+        String prefix = "n" + nextPrefixCount;
+
         invalidationRunner =
                 new InvalidationRunner(kvs.getConnectionManager(), AtlasDbConstants.TIMESTAMP_TABLE, prefix);
         invalidationRunner.createTableIfDoesNotExist();
         store = getStoreWithPrefix(prefix);
-    }
-
-    // 0 -> "a", 1 -> "b", ..., 25 -> "z", 26 -> "aa", 27 -> "ab", ...
-    private static String nextUniquePrefix(AtomicInteger counter) {
-        int nextValue = counter.getAndIncrement();
-
-        StringBuilder result = new StringBuilder();
-        while (nextValue >= 0) {
-            int remainder = nextValue % 26;
-            result.insert(0, (char) ('a' + remainder));
-            nextValue = (nextValue / 26) - 1;
-        }
-
-        return result.toString();
     }
 
     @Test
