@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.coordination;
 
-import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.atlasdb.metrics.Timed;
 import java.util.Optional;
 import java.util.function.Function;
@@ -57,17 +56,13 @@ public interface CoordinationService<T> {
      *
      * Evolutions of the value must be compatible in terms of backwards consistency as defined in the class docs.
      *
-     * Note that in case of check and set failure, there is no atomicity guarantee between the check and set operation
-     * and the returned value and bound; i.e., the returned value and bound may be more recent than the values found
-     * when CAS failed.
-     *
      * @param transform transformation to apply to the existing value and bound the coordination service agrees on
-     * @return a {@link CheckAndSetResult} indicating whether the transform was applied and the current value
+     * @return a {@link TransformResult} indicating whether the transform was applied and the current value
      *
-     * @throws IllegalStateException if check and set fails, but no current value exists
+     * @throws IllegalStateException if we fail to apply the transform, but no current value exists
      */
     @Timed
-    CheckAndSetResult<ValueAndBound<T>> tryTransformCurrentValue(Function<ValueAndBound<T>, T> transform);
+    TransformResult<ValueAndBound<T>> tryTransformCurrentValue(Function<ValueAndBound<T>, T> transform);
 
     /**
      * Returns the most recent value that this coordination service knows about locally.

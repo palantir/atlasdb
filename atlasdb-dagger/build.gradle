@@ -14,7 +14,6 @@ dependencies {
   implementation project(':atlasdb-api')
   implementation project(':atlasdb-client')
   implementation project(':atlasdb-config')
-  implementation project(':atlasdb-coordination-impl')
   implementation project(':atlasdb-impl-shared')
   implementation project(':commons-executors')
   implementation project(':lock-api')

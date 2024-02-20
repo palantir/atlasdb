@@ -14,7 +14,6 @@ dependencies {
   implementation project(':atlasdb-api')
   implementation project(':atlasdb-client-protobufs')
   implementation project(':atlasdb-commons')
-  implementation project(':commons-annotations')
 
   annotationProcessor project(":atlasdb-processors")
   compileOnly project(":atlasdb-processors")

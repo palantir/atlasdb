@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2024 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,32 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.keyvalue.impl;
+package com.palantir.atlasdb.coordination;
 
 import com.palantir.common.annotations.ImmutablesStyles.PackageVisibleImmutablesStyle;
-import java.util.List;
 import org.immutables.value.Value;
 
+/**
+ * Indicates the result of a coordination service transform call.
+ *
+ * Regardless of whether the transformation was successful and managed to install the new value,
+ * as requested by the user, the result will always contain the current value.
+ *
+ * Users should retry the operation accordingly if they care about their particular operation succeeding.
+ *
+ * @param <T> The type of the value returned by the transform.
+ */
 @Value.Immutable
 @PackageVisibleImmutablesStyle
-public interface CheckAndSetResult<T> {
+public interface TransformResult<T> {
+
     @Value.Parameter
     boolean successful();
 
     @Value.Parameter
-    List<T> existingValues();
+    T value();
 
-    static <T> CheckAndSetResult<T> of(boolean successful, List<T> existingValues) {
-        return ImmutableCheckAndSetResult.of(successful, existingValues);
+    static <T> TransformResult<T> of(boolean successful, T value) {
+        return ImmutableTransformResult.of(successful, value);
     }
 }

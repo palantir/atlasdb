@@ -19,7 +19,6 @@ package com.palantir.atlasdb.coordination.keyvalue;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.async.initializer.AsyncInitializer;
@@ -27,6 +26,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.coordination.AutoDelegate_CoordinationStore;
 import com.palantir.atlasdb.coordination.CoordinationStore;
 import com.palantir.atlasdb.coordination.SequenceAndBound;
+import com.palantir.atlasdb.coordination.TransformResult;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -36,15 +36,16 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
-import com.palantir.atlasdb.keyvalue.impl.ImmutableCheckAndSetResult;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiPredicate;
@@ -158,7 +159,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
      * of CAS failure only if {@link KeyValueService#getCheckAndSetCompatibility()} supports detail on failure.
      */
     @Override
-    public CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<ValueAndBound<T>, T> transform) {
+    public TransformResult<ValueAndBound<T>> transformAgreedValue(Function<ValueAndBound<T>, T> transform) {
         Optional<CoordinationStoreState<T>> storeState = readLatestState();
 
         T targetValue = transform.apply(storeState
@@ -229,16 +230,21 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
                 .orElse(false);
     }
 
-    private CheckAndSetResult<ValueAndBound<T>> extractRelevantValues(
+    private TransformResult<ValueAndBound<T>> extractRelevantValues(
             T targetValue, long newBound, CheckAndSetResult<SequenceAndBound> casResult) {
         if (casResult.successful()) {
-            return CheckAndSetResult.of(true, ImmutableList.of(ValueAndBound.of(Optional.of(targetValue), newBound)));
+            return TransformResult.of(true, ValueAndBound.of(Optional.of(targetValue), newBound));
         }
-        return CheckAndSetResult.of(
+        return TransformResult.of(
                 false,
-                casResult.existingValues().stream()
-                        .map(value -> ValueAndBound.of(getValue(value.sequence()), value.bound()))
-                        .collect(Collectors.toList()));
+                transformOnlyElement(
+                        casResult.existingValues(),
+                        value -> ValueAndBound.of(getValue(value.sequence()), value.bound())));
+    }
+
+    private <I, R> R transformOnlyElement(List<I> list, Function<I, R> transform) {
+        Preconditions.checkState(list.size() == 1, "List should have a single element");
+        return transform.apply(list.get(0));
     }
 
     private long getNewBound(long pointInTime) {
@@ -247,8 +253,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
 
     @VisibleForTesting
     Optional<T> getValue(long sequenceNumber) {
-        Preconditions.checkState(
-                sequenceNumber > 0, "Only positive sequence numbers are supported, but found %s", sequenceNumber);
+        validateSequenceNumber(sequenceNumber);
         return readFromCoordinationTable(getCellForSequence(sequenceNumber))
                 .map(Value::getContents)
                 .map(this::deserializeValue);
@@ -256,8 +261,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
 
     @VisibleForTesting
     void putUnlessValueExists(long sequenceNumber, T value) {
-        Preconditions.checkState(
-                sequenceNumber > 0, "Only positive sequence numbers are supported, but found %s", sequenceNumber);
+        validateSequenceNumber(sequenceNumber);
         try {
             kvs.putUnlessExists(
                     AtlasDbConstants.COORDINATION_TABLE,
@@ -286,7 +290,7 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
             Optional<SequenceAndBound> oldValue, SequenceAndBound newValue) {
         if (oldValue.map(presentOldValue -> Objects.equals(presentOldValue, newValue))
                 .orElse(false)) {
-            return ImmutableCheckAndSetResult.of(true, ImmutableList.of(newValue));
+            return CheckAndSetResult.of(true, ImmutableList.of(newValue));
         }
 
         CheckAndSetRequest request = new CheckAndSetRequest.Builder()
@@ -298,10 +302,10 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
 
         try {
             kvs.checkAndSet(request);
-            return ImmutableCheckAndSetResult.of(true, ImmutableList.of(newValue));
+            return CheckAndSetResult.of(true, ImmutableList.of(newValue));
         } catch (CheckAndSetException e) {
             if (e.getActualValues() != null) {
-                return ImmutableCheckAndSetResult.of(
+                return CheckAndSetResult.of(
                         false,
                         e.getActualValues().stream()
                                 .map(this::deserializeSequenceAndBound)
@@ -379,7 +383,14 @@ public final class KeyValueServiceCoordinationStore<T> implements CoordinationSt
                     SafeArg.of("oldValue", oldValue),
                     SafeArg.of("newValue", newValue));
         }
-        return ImmutableCheckAndSetResult.of(false, ImmutableList.of(actualValue.get()));
+        return CheckAndSetResult.of(false, ImmutableList.of(actualValue.get()));
+    }
+
+    private static void validateSequenceNumber(long sequenceNumber) {
+        Preconditions.checkState(
+                sequenceNumber > 0,
+                "Only positive sequence numbers are supported, but found a negative or zero value",
+                SafeArg.of("sequenceNumber", sequenceNumber));
     }
 
     @org.immutables.value.Value.Immutable // We use the AtlasDB Value class too
