@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2019 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2024 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,20 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl;
+package com.palantir.atlasdb.transaction.api;
 
 import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
+import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.processors.AutoDelegate;
+import java.util.Optional;
+import java.util.function.LongSupplier;
 
-interface WrapperWithTracker<T> {
-    WrapperWithTracker<CallbackAwareTransaction> TRANSACTION_NO_OP = (delegate, synchronousTracker) -> delegate;
+@AutoDelegate
+public interface TransactionKeyValueServiceManager extends AutoCloseable {
+    TransactionKeyValueService getTransactionKeyValueService(LongSupplier timestampSupplier);
 
-    WrapperWithTracker<TransactionKeyValueService> KEY_VALUE_SERVICE_NO_OP = (delegate, synchronousTracker) -> delegate;
+    Optional<KeyValueService> getKeyValueService();
 
-    T apply(T delegate, PathTypeTracker pathTypeTracker);
+    @Override
+    void close();
 }

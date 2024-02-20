@@ -57,6 +57,7 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
@@ -91,6 +92,7 @@ import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.LockWatchingCache;
 import com.palantir.atlasdb.transaction.api.NoOpLockWatchingCache;
+import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
@@ -435,6 +437,8 @@ public abstract class TransactionManagers {
                     return ValidatingQueryRewritingKeyValueService.create(kvs); // ok
                 },
                 closeables);
+        TransactionKeyValueServiceManager transactionKeyValueServiceManager =
+                initializeCloseable(() -> new DefaultTransactionKeyValueServiceManager(keyValueService), closeables);
 
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
                 keyValueService, schemas(), config().initializeAsync(), allSafeForLogging());
@@ -497,16 +501,16 @@ public abstract class TransactionManagers {
                 .<ConflictTracer>map(Function.identity())
                 .orElse(ConflictTracer.NO_OP);
 
-        Callback<TransactionManager> callbacks = new Callback.CallChain<>(
+        Callback<TransactionManager> callbacks = new Callback.CallChain<>(List.of(
                 timelockConsistencyCheckCallback(config(), runtime.get(), lockAndTimestampServices),
                 targetedSweep.singleAttemptCallback(),
                 asyncInitializationCallback(),
-                createClearsTable());
+                createClearsTable()));
 
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.createInstrumented(
                         metricsManager,
-                        keyValueService,
+                        transactionKeyValueServiceManager,
                         lockAndTimestampServices.timelock(),
                         lockAndTimestampServices.lockWatcher(),
                         lockAndTimestampServices.managedTimestampService(),

@@ -28,6 +28,7 @@ import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.factory.AtlasDbServiceDiscovery;
 import com.palantir.atlasdb.factory.LockAndTimestampServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.services.ServicesConfig;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
@@ -121,7 +122,7 @@ public class TestTransactionManagerModule {
             TransactionKnowledgeComponents knowledge) {
         return new SerializableTransactionManager(
                 metricsManager,
-                kvs,
+                new DefaultTransactionKeyValueServiceManager(kvs),
                 lts.timelock(),
                 lts.lockWatcher(),
                 lts.managedTimestampService(),

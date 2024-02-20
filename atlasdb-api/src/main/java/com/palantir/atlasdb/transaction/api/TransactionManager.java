@@ -360,7 +360,9 @@ public interface TransactionManager extends AutoCloseable {
      * Returns the KVS used by this transaction manager. In general, this should not be used by clients, as
      * direct reads and writes to the KVS will bypass the Atlas transaction protocol.
      *
-     * @return the key value service for this transaction manager
+     * Some implementations cannot support this interface and may choose to throw here.
+     *
+     * @return the key value service for this transaction manager.
      */
     KeyValueService getKeyValueService();
 

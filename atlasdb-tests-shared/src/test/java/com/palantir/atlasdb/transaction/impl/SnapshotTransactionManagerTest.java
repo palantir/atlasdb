@@ -35,10 +35,12 @@ import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
+import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
+import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -76,6 +78,9 @@ public class SnapshotTransactionManagerTest {
     private final Cleaner cleaner = mock(Cleaner.class);
     private final KeyValueService keyValueService = mock(KeyValueService.class);
 
+    private final TransactionKeyValueServiceManager transactionKeyValueServiceManager =
+            new DefaultTransactionKeyValueServiceManager(keyValueService);
+
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     @Mock
@@ -95,7 +100,7 @@ public class SnapshotTransactionManagerTest {
         timestampService = inMemoryTimelockClassExtension.getManagedTimestampService();
         snapshotTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
-                keyValueService,
+                transactionKeyValueServiceManager,
                 inMemoryTimelockClassExtension.getLegacyTimelockService(),
                 NoOpLockWatchManager.create(),
                 timestampService,
@@ -152,7 +157,7 @@ public class SnapshotTransactionManagerTest {
     public void canCloseTransactionManagerWithNonCloseableLockService() {
         SnapshotTransactionManager newTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
-                keyValueService,
+                transactionKeyValueServiceManager,
                 inMemoryTimelockClassExtension.getLegacyTimelockService(),
                 NoOpLockWatchManager.create(),
                 inMemoryTimelockClassExtension.getManagedTimestampService(),
@@ -296,7 +301,7 @@ public class SnapshotTransactionManagerTest {
             TimelockService timelockService, boolean grabImmutableTsLockOnReads) {
         return new SnapshotTransactionManager(
                 metricsManager,
-                keyValueService,
+                transactionKeyValueServiceManager,
                 timelockService,
                 NoOpLockWatchManager.create(),
                 timestampService,
