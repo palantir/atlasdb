@@ -32,7 +32,6 @@ dependencies {
     implementation 'io.dropwizard.metrics:metrics-core'
     implementation 'io.undertow:undertow-core'
     implementation 'javax.ws.rs:javax.ws.rs-api'
-    implementation 'org.apache.httpcomponents.core5:httpcore5'
     implementation 'org.jdbi:jdbi3-core'
     implementation 'org.jdbi:jdbi3-sqlobject'
 
