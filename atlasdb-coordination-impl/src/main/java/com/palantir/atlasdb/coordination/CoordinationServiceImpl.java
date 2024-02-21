@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.coordination;
 
-import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -54,9 +52,9 @@ public class CoordinationServiceImpl<T> implements CoordinationService<T> {
      * of CAS failure only if the implementation of the CoordinationStore makes such guarantees.
      */
     @Override
-    public CheckAndSetResult<ValueAndBound<T>> tryTransformCurrentValue(Function<ValueAndBound<T>, T> transform) {
-        CheckAndSetResult<ValueAndBound<T>> transformResult = store.transformAgreedValue(transform);
-        ValueAndBound<T> existingValue = Iterables.getOnlyElement(transformResult.existingValues());
+    public TransformResult<ValueAndBound<T>> tryTransformCurrentValue(Function<ValueAndBound<T>, T> transform) {
+        TransformResult<ValueAndBound<T>> transformResult = store.transformAgreedValue(transform);
+        ValueAndBound<T> existingValue = transformResult.value();
         accumulateCachedValue(Optional.of(existingValue));
         return transformResult;
     }
