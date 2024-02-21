@@ -41,7 +41,6 @@ dependencies {
     implementation 'org.glassfish.jersey.core:jersey-common'
     implementation project(':atlasdb-client')
     implementation project(':atlasdb-commons')
-    implementation project(':atlasdb-coordination-impl')
     implementation project(':commons-annotations')
     implementation project(':commons-executors')
     implementation project(':lock-api')

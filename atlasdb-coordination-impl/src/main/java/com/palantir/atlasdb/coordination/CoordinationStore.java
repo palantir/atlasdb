@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.coordination;
 
-import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.processors.DoDelegate;
 import java.util.Optional;
@@ -51,14 +50,10 @@ public interface CoordinationStore<T> {
      * to an existing {@link ValueAndBound}. It is the responsibility of users to confirm whether their transform
      * succeeded or not.
      *
-     * Note that in case of unsuccessful proposal, there is no atomicity guarantee between the check and set operation
-     * and the returned value and bound; i.e., the returned value and bound may be more recent than the values found
-     * when CAS failed.
-     *
      * @param transform transformation of the original value passed
-     * @return a {@link CheckAndSetResult} indicating if the proposal was successful and the current value
+     * @return a {@link TransformResult} indicating if the proposal was successful and the current value
      *
      * @throws IllegalStateException if the proposal fails, but no current value exists
      */
-    CheckAndSetResult<ValueAndBound<T>> transformAgreedValue(Function<ValueAndBound<T>, T> transform);
+    TransformResult<ValueAndBound<T>> transformAgreedValue(Function<ValueAndBound<T>, T> transform);
 }
