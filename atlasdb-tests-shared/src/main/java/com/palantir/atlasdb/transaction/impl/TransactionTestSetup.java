@@ -114,7 +114,7 @@ public abstract class TransactionTestSetup {
 
     protected final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected KeyValueService keyValueService;
-    protected TransactionKeyValueServiceManager keyValueServiceManager;
+    protected TransactionKeyValueServiceManager transactionKeyValueServiceManager;
     protected TimestampService timestampService;
     protected TimestampManagementService timestampManagementService;
     protected TransactionSchemaManager transactionSchemaManager;
@@ -144,7 +144,7 @@ public abstract class TransactionTestSetup {
         lockClient = LockClient.of("test_client");
 
         keyValueService = getKeyValueService();
-        keyValueServiceManager = new DefaultTransactionKeyValueServiceManager(keyValueService);
+        transactionKeyValueServiceManager = new DefaultTransactionKeyValueServiceManager(keyValueService);
         keyValueService.createTables(ImmutableMap.of(
                 TEST_TABLE_THOROUGH,
                 TableMetadata.builder()

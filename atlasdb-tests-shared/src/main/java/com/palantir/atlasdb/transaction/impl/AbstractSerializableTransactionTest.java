@@ -154,7 +154,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         LongSupplier startTimestampSupplier = Suppliers.ofInstance(timestampService.getFreshTimestamp())::get;
         return new SerializableTransaction(
                 MetricsManagers.createForTests(),
-                keyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
+                transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
                 timelockService,
                 NoOpLockWatchManager.create(),
                 transactionService,
@@ -174,7 +174,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 getSweepQueueWriterInitialized(),
                 new DefaultDeleteExecutor(
-                        keyValueServiceManager.getKeyValueService().orElseThrow(),
+                        transactionKeyValueServiceManager.getKeyValueService().orElseThrow(),
                         MoreExecutors.newDirectExecutorService()),
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),

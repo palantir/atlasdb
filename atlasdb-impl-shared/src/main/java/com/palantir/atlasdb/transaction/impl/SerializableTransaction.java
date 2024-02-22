@@ -914,7 +914,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     private Transaction getReadOnlyTransaction(final long commitTs) {
         return new SnapshotTransaction(
                 metricsManager,
-                keyValueService,
+                transactionKeyValueService,
                 timelockService,
                 lockWatchManager,
                 defaultTransactionService,

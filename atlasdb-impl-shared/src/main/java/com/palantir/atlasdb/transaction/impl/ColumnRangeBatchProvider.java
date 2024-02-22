@@ -33,19 +33,19 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 public class ColumnRangeBatchProvider implements BatchProvider<Map.Entry<Cell, Value>> {
-    private final TransactionKeyValueService keyValueService;
+    private final TransactionKeyValueService transactionKeyValueService;
     private final TableReference tableRef;
     private final byte[] row;
     private final BatchColumnRangeSelection columnRangeSelection;
     private final long timestamp;
 
     public ColumnRangeBatchProvider(
-            TransactionKeyValueService keyValueService,
+            TransactionKeyValueService transactionKeyValueService,
             TableReference tableRef,
             byte[] row,
             BatchColumnRangeSelection columnRangeSelection,
             long timestamp) {
-        this.keyValueService = keyValueService;
+        this.transactionKeyValueService = transactionKeyValueService;
         this.tableRef = tableRef;
         this.row = row;
         this.columnRangeSelection = columnRangeSelection;
@@ -61,7 +61,7 @@ public class ColumnRangeBatchProvider implements BatchProvider<Map.Entry<Cell, V
         BatchColumnRangeSelection newRange =
                 BatchColumnRangeSelection.create(startCol, columnRangeSelection.getEndCol(), batchSize);
         Map<byte[], RowColumnRangeIterator> range =
-                keyValueService.getRowsColumnRange(tableRef, ImmutableList.of(row), newRange, timestamp);
+                transactionKeyValueService.getRowsColumnRange(tableRef, ImmutableList.of(row), newRange, timestamp);
         if (range.isEmpty()) {
             return ClosableIterators.wrapWithEmptyClose(
                     ImmutableList.<Map.Entry<Cell, Value>>of().iterator());

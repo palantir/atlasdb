@@ -21,7 +21,7 @@ import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 
-public interface TrackingKeyValueService extends TransactionKeyValueService {
+public interface TrackingTransactionKeyValueService extends TransactionKeyValueService {
     TransactionReadInfo getOverallReadInfo();
 
     ImmutableMap<TableReference, TransactionReadInfo> getReadInfoByTable();
