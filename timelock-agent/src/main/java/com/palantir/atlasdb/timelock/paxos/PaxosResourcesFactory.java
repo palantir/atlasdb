@@ -253,7 +253,12 @@ public final class PaxosResourcesFactory {
         };
 
         return ImmutablePaxosResources.builder()
-                .addAdhocResources(new TimestampPaxosResource(paxosComponents))
+                .addAdhocResources(new TimestampPaxosLearnerResource(paxosComponents))
+                .addAdhocResources(new TimestampPaxosAcceptorResource(paxosComponents))
+                .addAdhocUndertowServices(
+                        TimestampPaxosLearnerResourceEndpoints.of(new TimestampPaxosLearnerResource(paxosComponents)))
+                .addAdhocUndertowServices(
+                        TimestampPaxosAcceptorResourceEndpoints.of(new TimestampPaxosAcceptorResource(paxosComponents)))
                 .timestampPaxosComponents(paxosComponents)
                 .timestampServiceFactory(timestampFactory);
     }
