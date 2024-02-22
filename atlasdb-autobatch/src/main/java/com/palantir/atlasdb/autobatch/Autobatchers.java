@@ -21,7 +21,6 @@ import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.google.errorprone.annotations.CompileTimeConstant;
-import com.lmax.disruptor.EventHandler;
 import com.lmax.disruptor.WaitStrategy;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.Preconditions;
@@ -96,8 +95,11 @@ public final class Autobatchers {
      * @return builder where the autobatcher can be further customised
      */
     public static <I, O> AutobatcherBuilder<I, O> independent(Consumer<List<BatchElement<I, O>>> batchFunction) {
-        return new AutobatcherBuilder<>(parameters -> new IndependentBatchingEventHandler<>(
-                maybeWrapWithTimeout(batchFunction, parameters), parameters.batchSize()));
+        return new AutobatcherBuilder<>(
+                parameters -> IndependentBatchingEventHandler.createWithSequentialBatchProcessing(
+                        maybeWrapWithTimeout(batchFunction, parameters),
+                        parameters.batchSize(),
+                        parameters.safeLoggablePurpose()));
     }
 
     private static <I, O> Consumer<List<BatchElement<I, O>>> maybeWrapWithTimeout(
@@ -162,7 +164,7 @@ public final class Autobatchers {
 
     public static final class AutobatcherBuilder<I, O> {
 
-        private final Function<EventHandlerParameters, EventHandler<BatchElement<I, O>>> handlerFactory;
+        private final Function<EventHandlerParameters, AutobatcherEventHandler<I, O>> handlerFactory;
         private final ImmutableMap.Builder<String, String> safeTags = ImmutableMap.builder();
 
         private Observability observability = Observability.UNDECIDED;
@@ -174,7 +176,7 @@ public final class Autobatchers {
         @Nullable
         private String purpose;
 
-        private AutobatcherBuilder(Function<EventHandlerParameters, EventHandler<BatchElement<I, O>>> handlerFactory) {
+        private AutobatcherBuilder(Function<EventHandlerParameters, AutobatcherEventHandler<I, O>> handlerFactory) {
             this.handlerFactory = handlerFactory;
         }
 
@@ -231,21 +233,19 @@ public final class Autobatchers {
             timeoutOrchestrationContext.ifPresent(parametersBuilder::batchFunctionTimeoutContext);
             EventHandlerParameters parameters = parametersBuilder.build();
 
-            EventHandler<BatchElement<I, O>> handler = this.handlerFactory.apply(parameters);
+            AutobatcherEventHandler<I, O> handler = this.handlerFactory.apply(parameters);
 
-            EventHandler<BatchElement<I, O>> tracingHandler =
-                    new TracingEventHandler<>(handler, parameters.batchSize());
+            AutobatcherEventHandler<I, O> profiledHandler =
+                    new ProfilingEventHandler<>(handler, purpose, safeTags.buildOrThrow());
 
-            EventHandler<BatchElement<I, O>> profiledHandler =
-                    new ProfilingEventHandler<>(tracingHandler, purpose, safeTags.buildOrThrow());
-
-            return DisruptorAutobatcher.create(
-                    profiledHandler,
-                    parameters.batchSize(),
-                    purpose,
-                    waitStrategy,
-                    () -> timeoutOrchestrationContext.ifPresent(
-                            context -> context.exclusiveExecutor().shutdown()));
+            return DisruptorAutobatcher.create(profiledHandler, parameters.batchSize(), purpose, waitStrategy, () -> {
+                try {
+                    profiledHandler.close();
+                } finally {
+                    timeoutOrchestrationContext.ifPresent(
+                            context -> context.exclusiveExecutor().shutdown());
+                }
+            });
         }
     }
 
