@@ -34,11 +34,11 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Map;
 
-public final class DefaultTransactionKeyValueService implements TransactionKeyValueService {
+public final class DelegatingTransactionKeyValueService implements TransactionKeyValueService {
 
     private final KeyValueService delegate;
 
-    public DefaultTransactionKeyValueService(KeyValueService delegate) {
+    public DelegatingTransactionKeyValueService(KeyValueService delegate) {
         this.delegate = delegate;
     }
 

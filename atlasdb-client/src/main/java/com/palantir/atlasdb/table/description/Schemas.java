@@ -18,9 +18,11 @@ package com.palantir.atlasdb.table.description;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import com.palantir.atlasdb.cell.api.DdlManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -39,8 +41,8 @@ public final class Schemas {
         return TableReference.createUnsafe(indexName + definition.getIndexType().getIndexSuffix());
     }
 
-    public static void createIndices(
-            KeyValueService kvs, Map<TableReference, IndexDefinition> fullIndexNameToDefinition) {
+    public static void createUserIndices(
+            DdlManager ddlManager, Map<TableReference, IndexDefinition> fullIndexNameToDefinition) {
         Map<TableReference, byte[]> fullIndexNameToMetadata =
                 Maps.newHashMapWithExpectedSize(fullIndexNameToDefinition.size());
         for (Map.Entry<TableReference, IndexDefinition> indexEntry : fullIndexNameToDefinition.entrySet()) {
@@ -52,25 +54,26 @@ public final class Schemas {
                             .getTableMetadata()
                             .persistToBytes());
         }
-        kvs.createTables(fullIndexNameToMetadata);
+        ddlManager.createTables(fullIndexNameToMetadata);
     }
 
-    public static void createTable(KeyValueService kvs, TableReference tableRef, TableDefinition definition) {
-        createTables(kvs, ImmutableMap.of(tableRef, definition));
+    public static void createUserTable(DdlManager ddlManager, TableReference tableRef, TableDefinition definition) {
+        createUserTables(ddlManager, ImmutableMap.of(tableRef, definition));
     }
 
-    public static void createTable(Schema schema, KeyValueService kvs, TableReference tableRef) {
+    public static void createUserTable(Schema schema, DdlManager ddlManager, TableReference tableRef) {
         TableDefinition definition = schema.getTableDefinition(tableRef);
-        createTable(kvs, tableRef, definition);
+        createUserTable(ddlManager, tableRef, definition);
     }
 
-    public static void createTables(KeyValueService kvs, Map<TableReference, TableDefinition> tableRefToDefinition) {
+    public static void createUserTables(
+            DdlManager ddlManager, Map<TableReference, TableDefinition> tableRefToDefinition) {
         Map<TableReference, byte[]> tableRefToMetadata = Maps.newHashMapWithExpectedSize(tableRefToDefinition.size());
         for (Map.Entry<TableReference, TableDefinition> tableEntry : tableRefToDefinition.entrySet()) {
             tableRefToMetadata.put(
                     tableEntry.getKey(), tableEntry.getValue().toTableMetadata().persistToBytes());
         }
-        kvs.createTables(tableRefToMetadata);
+        ddlManager.createTables(tableRefToMetadata);
     }
 
     public static String getTableReferenceString(String tableName, Namespace namespace) {
@@ -105,10 +108,20 @@ public final class Schemas {
      * (e.g., it is not the responsibility of this method to perform schema
      * upgrades).
      */
-    public static void createTablesAndIndexes(Schema schema, KeyValueService kvs) {
+    public static void createUserTablesAndIndexes(Schema schema, DdlManager ddlManager) {
         schema.validate();
-        createTables(kvs, schema.getTableDefinitions());
-        createIndices(kvs, schema.getIndexDefinitions());
+        createUserTables(ddlManager, schema.getTableDefinitions());
+        createUserIndices(ddlManager, schema.getIndexDefinitions());
+    }
+
+    // Methods below will soon be deprecated and then removed.
+
+    public static void createTable(Schema schema, KeyValueService kvs, TableReference tableRef) {
+        createUserTable(schema, new DelegatingTransactionKeyValueServiceManager(kvs).getDdlManager(), tableRef);
+    }
+
+    public static void createTablesAndIndexes(Schema schema, KeyValueService kvs) {
+        createUserTablesAndIndexes(schema, new DelegatingTransactionKeyValueServiceManager(kvs).getDdlManager());
     }
 
     public static void deleteTablesAndIndexes(Schema schema, KeyValueService kvs) {
@@ -116,7 +129,6 @@ public final class Schemas {
         kvs.dropTables(getExistingTablesAlsoPresentInSchema(schema, kvs));
     }
 
-    /** intended for use by tests. **/
     public static void truncateTablesAndIndexes(Schema schema, KeyValueService kvs) {
         schema.validate();
         kvs.truncateTables(getExistingTablesAlsoPresentInSchema(schema, kvs));

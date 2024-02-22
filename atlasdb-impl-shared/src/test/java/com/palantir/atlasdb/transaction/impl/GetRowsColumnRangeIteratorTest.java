@@ -35,7 +35,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
@@ -60,7 +60,7 @@ public class GetRowsColumnRangeIteratorTest {
             BatchColumnRangeSelection.create(null, null, BATCH_SIZE);
 
     private final TransactionKeyValueService tkvs =
-            new DefaultTransactionKeyValueService(new InMemoryKeyValueService(true));
+            new DelegatingTransactionKeyValueService(new InMemoryKeyValueService(true));
     private final ColumnRangeBatchProvider batchProvider =
             new ColumnRangeBatchProvider(tkvs, TABLE_REFERENCE, ROW, COLUMN_RANGE_SELECTION, Long.MAX_VALUE);
 

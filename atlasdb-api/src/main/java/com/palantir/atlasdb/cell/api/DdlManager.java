@@ -14,20 +14,14 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.atlasdb.cell.api;
 
-import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.processors.AutoDelegate;
-import java.util.Optional;
-import java.util.function.LongSupplier;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.Map;
 
-@AutoDelegate
-public interface TransactionKeyValueServiceManager extends AutoCloseable {
-    TransactionKeyValueService getTransactionKeyValueService(LongSupplier timestampSupplier);
+public interface DdlManager {
 
-    Optional<KeyValueService> getKeyValueService();
-
-    @Override
-    void close();
+    // TODO(jakubk): Convert all these to be async.
+    // TODO(jakubk): Switch to using TableMetadata.
+    void createTables(Map<TableReference, byte[]> tableRefToTableMetadata);
 }
