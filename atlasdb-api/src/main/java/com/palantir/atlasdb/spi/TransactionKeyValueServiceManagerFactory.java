@@ -16,8 +16,8 @@
 
 package com.palantir.atlasdb.spi;
 
+import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.coordination.CoordinationService;
-import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.refreshable.Refreshable;
 
 /**

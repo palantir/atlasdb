@@ -1,4 +1,32 @@
 acceptedBreaks:
+  "0.1040.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.class.removed"
+      old: "interface com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionKeyValueServiceManager"
+      justification: "Still iterating on the APIs"
+    - code: "java.class.removed"
+      old: "interface com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager"
+      justification: "Still iterating on the APIs"
+    - code: "java.method.returnTypeChanged"
+      old: "method com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager\
+        \ com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory<T>::create(com.palantir.atlasdb.coordination.CoordinationService<T>,\
+        \ com.palantir.atlasdb.spi.KeyValueServiceManager, com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig,\
+        \ com.palantir.refreshable.Refreshable<com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig>,\
+        \ boolean)"
+      new: "method com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager\
+        \ com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory<T>::create(com.palantir.atlasdb.coordination.CoordinationService<T>,\
+        \ com.palantir.atlasdb.spi.KeyValueServiceManager, com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig,\
+        \ com.palantir.refreshable.Refreshable<com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig>,\
+        \ boolean)"
+      justification: "Still iterating on the APIs"
+    com.palantir.atlasdb:atlasdb-config:
+    - code: "java.method.numberOfParametersChanged"
+      old: "method com.palantir.atlasdb.factory.TransactionManagersInitializer com.palantir.atlasdb.factory.TransactionManagersInitializer::createInitialTables(com.palantir.atlasdb.keyvalue.api.KeyValueService,\
+        \ java.util.Set<com.palantir.atlasdb.table.description.Schema>, boolean, boolean)"
+      new: "method com.palantir.atlasdb.factory.TransactionManagersInitializer com.palantir.atlasdb.factory.TransactionManagersInitializer::createInitialTables(com.palantir.atlasdb.keyvalue.api.KeyValueService,\
+        \ com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager, java.util.Set<com.palantir.atlasdb.table.description.Schema>,\
+        \ boolean, boolean)"
+      justification: "New API"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"

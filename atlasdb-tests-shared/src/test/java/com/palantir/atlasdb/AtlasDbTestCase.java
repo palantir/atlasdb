@@ -19,9 +19,10 @@ import static org.mockito.Mockito.spy;
 
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueServiceManager;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.StatsTrackingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
@@ -29,7 +30,6 @@ import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.impl.CachingTestTransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
@@ -90,7 +90,7 @@ public class AtlasDbTestCase {
         timelockService = inMemoryTimelockExtension.getLegacyTimelockService();
         timestampService = inMemoryTimelockExtension.getTimestampService();
         keyValueService = trackingKeyValueService(getBaseKeyValueService());
-        txnKeyValueServiceManager = new DefaultTransactionKeyValueServiceManager(keyValueService);
+        txnKeyValueServiceManager = new DelegatingTransactionKeyValueServiceManager(keyValueService);
         TransactionTables.createTables(keyValueService);
         transactionService = spy(TransactionServices.createRaw(keyValueService, timestampService, false));
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);

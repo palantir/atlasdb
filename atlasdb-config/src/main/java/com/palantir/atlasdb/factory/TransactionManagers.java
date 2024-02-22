@@ -27,6 +27,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
@@ -57,7 +58,7 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueServiceManager;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
@@ -96,7 +97,6 @@ import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.LockWatchingCache;
 import com.palantir.atlasdb.transaction.api.NoOpLockWatchingCache;
-import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
@@ -462,14 +462,18 @@ public abstract class TransactionManagers {
                                         .get()),
                                 config().initializeAsync());
                     } else {
-                        tkvsm = new DefaultTransactionKeyValueServiceManager(keyValueService);
+                        tkvsm = new DelegatingTransactionKeyValueServiceManager(keyValueService);
                     }
                     return tkvsm;
                 },
                 closeables);
 
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
-                keyValueService, schemas(), config().initializeAsync(), allSafeForLogging());
+                keyValueService,
+                transactionKeyValueServiceManager,
+                schemas(),
+                config().initializeAsync(),
+                allSafeForLogging());
         CleanupFollower follower = CleanupFollower.create(schemas());
 
         CoordinationService<InternalSchemaMetadata> coordinationService =
