@@ -24,6 +24,8 @@ import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.cell.api.AutoDelegate_TransactionKeyValueService;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -218,17 +220,18 @@ public final class KeyValueServices {
      * @param keyValueService on which to call synchronous requests
      * @return {@link AsyncKeyValueService} which delegates to synchronous methods
      */
-    public static AsyncKeyValueService synchronousAsAsyncKeyValueService(KeyValueService keyValueService) {
-        return new AsyncKeyValueService() {
+    public static TransactionKeyValueService synchronousAsAsyncKeyValueService(
+            TransactionKeyValueService keyValueService) {
+        return new AutoDelegate_TransactionKeyValueService() {
+            @Override
+            public TransactionKeyValueService delegate() {
+                return keyValueService;
+            }
+
             @Override
             public ListenableFuture<Map<Cell, Value>> getAsync(
                     TableReference tableRef, Map<Cell, Long> timestampByCell) {
                 return Futures.immediateFuture(keyValueService.get(tableRef, timestampByCell));
-            }
-
-            @Override
-            public void close() {
-                // NoOp
             }
         };
     }

@@ -16,7 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.google.errorprone.annotations.MustBeClosed;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -29,13 +29,13 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 public class RowRangeBatchProvider implements BatchProvider<RowResult<Value>> {
-    private final KeyValueService keyValueService;
+    private final TransactionKeyValueService keyValueService;
     private final TableReference tableRef;
     private final RangeRequest range;
     private final long timestamp;
 
     public RowRangeBatchProvider(
-            KeyValueService keyValueService, TableReference tableRef, RangeRequest range, long timestamp) {
+            TransactionKeyValueService keyValueService, TableReference tableRef, RangeRequest range, long timestamp) {
         this.keyValueService = keyValueService;
         this.tableRef = tableRef;
         this.range = range;

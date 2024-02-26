@@ -17,7 +17,6 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.primitives.UnsignedBytes;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
@@ -42,8 +41,6 @@ public abstract class AbstractTransaction implements Transaction {
     public final void setTransactionType(TransactionType transactionType) {
         this.transactionType = transactionType;
     }
-
-    protected abstract KeyValueService getKeyValueService();
 
     @Override
     public void commit(TransactionService txService) throws TransactionFailedException {
