@@ -41,7 +41,7 @@ public final class AtlasDbTransactionConcluder {
         }
 
         for (int retry = 0; retry < MAX_RETRIES; retry++) {
-            if (attemptToForceTransactionConclusion(startTimestamp)) {
+            if (tryAbortTransaction(startTimestamp)) {
                 return TransactionStatus.aborted();
             } else {
                 transactionStatus = transactionService.getV2(startTimestamp);
@@ -57,12 +57,11 @@ public final class AtlasDbTransactionConcluder {
     }
 
     // Returns true iff we successfully aborted the transaction at this start timestamp
-    private boolean attemptToForceTransactionConclusion(long startTimestamp) {
+    private boolean tryAbortTransaction(long startTimestamp) {
         try {
             transactionService.putUnlessExists(startTimestamp, TransactionConstants.FAILED_COMMIT_TS);
             return true;
         } catch (KeyAlreadyExistsException keyAlreadyExistsException) {
-            // Transaction was already concluded, but we should perform another get
             return false;
         }
     }

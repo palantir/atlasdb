@@ -43,11 +43,11 @@ public final class AtlasDbTransactionConcluderTest {
     @Mock
     private TransactionService transactionService;
 
-    private AtlasDbTransactionConcluder transactionTableReader;
+    private AtlasDbTransactionConcluder transactionConcluder;
 
     @BeforeEach
     public void setUp() {
-        transactionTableReader = new AtlasDbTransactionConcluder(transactionService);
+        transactionConcluder = new AtlasDbTransactionConcluder(transactionService);
     }
 
     @MethodSource("concludedTransactionStatuses")
@@ -55,7 +55,7 @@ public final class AtlasDbTransactionConcluderTest {
     public void forceTransactionConclusionPassesThroughConcludedStatuses(TransactionStatus status) {
         when(transactionService.getV2(START_TS)).thenReturn(status);
 
-        assertThat(transactionTableReader.forceTransactionConclusion(START_TS)).isEqualTo(status);
+        assertThat(transactionConcluder.forceTransactionConclusion(START_TS)).isEqualTo(status);
     }
 
     @MethodSource("unconcludedTransactionStatuses")
@@ -63,7 +63,7 @@ public final class AtlasDbTransactionConcluderTest {
     public void forceTransactionConclusionAbortsAndReturnsAbortedForUnconcludedStatuses(TransactionStatus status) {
         when(transactionService.getV2(START_TS)).thenReturn(status);
 
-        assertThat(transactionTableReader.forceTransactionConclusion(START_TS)).isEqualTo(TransactionStatus.aborted());
+        assertThat(transactionConcluder.forceTransactionConclusion(START_TS)).isEqualTo(TransactionStatus.aborted());
         verify(transactionService).putUnlessExists(START_TS, TransactionConstants.FAILED_COMMIT_TS);
     }
 
@@ -76,7 +76,7 @@ public final class AtlasDbTransactionConcluderTest {
                 .when(transactionService)
                 .putUnlessExists(START_TS, TransactionConstants.FAILED_COMMIT_TS);
 
-        assertThat(transactionTableReader.forceTransactionConclusion(START_TS))
+        assertThat(transactionConcluder.forceTransactionConclusion(START_TS))
                 .isEqualTo(TransactionStatus.committed(COMMIT_TS));
     }
 
@@ -90,7 +90,7 @@ public final class AtlasDbTransactionConcluderTest {
                 .when(transactionService)
                 .putUnlessExists(START_TS, TransactionConstants.FAILED_COMMIT_TS);
 
-        assertThat(transactionTableReader.forceTransactionConclusion(START_TS))
+        assertThat(transactionConcluder.forceTransactionConclusion(START_TS))
                 .isEqualTo(TransactionStatus.committed(COMMIT_TS));
     }
 
@@ -102,7 +102,7 @@ public final class AtlasDbTransactionConcluderTest {
         when(transactionService.getV2(START_TS)).thenReturn(status);
         doThrow(exception).when(transactionService).putUnlessExists(START_TS, TransactionConstants.FAILED_COMMIT_TS);
 
-        assertThatThrownBy(() -> transactionTableReader.forceTransactionConclusion(START_TS))
+        assertThatThrownBy(() -> transactionConcluder.forceTransactionConclusion(START_TS))
                 .isEqualTo(exception);
     }
 
