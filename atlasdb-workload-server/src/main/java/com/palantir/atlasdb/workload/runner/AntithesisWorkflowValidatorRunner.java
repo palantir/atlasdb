@@ -94,7 +94,7 @@ public final class AntithesisWorkflowValidatorRunner implements WorkflowValidato
                             SafeArg.of("maxAttempts", MAX_ATTEMPTS),
                             e);
 
-                    // A simple linear backoff. We don't need exponentiality, as we don't expect this to overload
+                    // A simple constant backoff. We don't need exponentiality, as we don't expect this to overload
                     // Cassandra or other dependencies. We also don't need jitter, as we normally only deploy one
                     // instance of the workload (and generally won't deploy more than a few).
                     Uninterruptibles.sleepUninterruptibly(SLEEP_BETWEEN_ATTEMPTS.toSeconds(), TimeUnit.SECONDS);
