@@ -98,14 +98,21 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     private final ConcurrentMap<TableReference, Table> tables = new ConcurrentHashMap<>();
     private final ConcurrentMap<TableReference, byte[]> tableMetadata = new ConcurrentHashMap<>();
     private final boolean createTablesAutomatically;
+    private final OverwriteBehaviour overwriteBehaviour;
 
     public InMemoryKeyValueService(boolean createTablesAutomatically) {
         this(createTablesAutomatically, MoreExecutors.newDirectExecutorService());
     }
 
     public InMemoryKeyValueService(boolean createTablesAutomatically, ExecutorService executor) {
+        this(createTablesAutomatically, executor, OverwriteBehaviour.OVERWRITE_SAME_VALUE);
+    }
+
+    public InMemoryKeyValueService(
+            boolean createTablesAutomatically, ExecutorService executor, OverwriteBehaviour overwriteBehaviour) {
         super(executor);
         this.createTablesAutomatically = createTablesAutomatically;
+        this.overwriteBehaviour = overwriteBehaviour;
     }
 
     @Override
@@ -406,14 +413,12 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     public void put(TableReference tableRef, Map<Cell, byte[]> values, long timestamp) {
         putInternal(
-                tableRef,
-                KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp),
-                OverwriteBehaviour.OVERWRITE_SAME_VALUE);
+                tableRef, KeyValueServices.toConstantTimestampValues(values.entrySet(), timestamp), overwriteBehaviour);
     }
 
     @Override
     public void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> values) {
-        putInternal(tableRef, values.entries(), OverwriteBehaviour.OVERWRITE_SAME_VALUE);
+        putInternal(tableRef, values.entries(), overwriteBehaviour);
     }
 
     @Override
@@ -468,7 +473,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         return true;
     }
 
-    private enum OverwriteBehaviour {
+    public enum OverwriteBehaviour {
         DO_NOT_OVERWRITE,
         OVERWRITE_SAME_VALUE,
         OVERWRITE;
