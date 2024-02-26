@@ -54,11 +54,13 @@ public final class AtlasDbTransactionStore implements InteractiveTransactionStor
 
     private static final SafeLogger log = SafeLoggerFactory.get(AtlasDbTransactionStore.class);
     private final TransactionManager transactionManager;
+    private final AtlasDbTransactionConcluder reader;
 
     private final Map<String, TableReference> tables;
 
     private AtlasDbTransactionStore(TransactionManager transactionManager, Map<String, TableReference> tables) {
         this.transactionManager = transactionManager;
+        this.reader = new AtlasDbTransactionConcluder(transactionManager.getTransactionService());
         this.tables = tables;
     }
 
@@ -69,10 +71,9 @@ public final class AtlasDbTransactionStore implements InteractiveTransactionStor
     }
 
     @Override
-    public boolean isCommitted(long startTimestamp) {
-        return TransactionStatus.getCommitTimestamp(
-                        transactionManager.getTransactionService().getV2(startTimestamp))
-                .isPresent();
+    public boolean isCommittedForcingTransactionConclusion(long startTimestamp) {
+        TransactionStatus status = reader.forceTransactionConclusion(startTimestamp);
+        return status instanceof TransactionStatus.Committed;
     }
 
     @Override

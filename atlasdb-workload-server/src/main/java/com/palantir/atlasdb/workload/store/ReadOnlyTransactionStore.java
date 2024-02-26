@@ -21,6 +21,10 @@ import java.util.Optional;
 /**
  * Facade around {@link ReadableTransactionStore}, to prevent users from casting to retrieve an underlying store that
  * may implement more functionality.
+ *
+ * This store is read only, in the sense that it does not allow for users to directly write to the underlying data
+ * tables. However, reads to the underlying store may require writes to be performed to the transactions table or other
+ * AtlasDB internal tables, following the protocol.
  */
 public final class ReadOnlyTransactionStore implements ReadableTransactionStore {
     private final ReadableTransactionStore delegate;
@@ -35,7 +39,7 @@ public final class ReadOnlyTransactionStore implements ReadableTransactionStore 
     }
 
     @Override
-    public boolean isCommitted(long startTimestamp) {
-        return delegate.isCommitted(startTimestamp);
+    public boolean isCommittedForcingTransactionConclusion(long startTimestamp) {
+        return delegate.isCommittedForcingTransactionConclusion(startTimestamp);
     }
 }
