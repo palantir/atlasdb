@@ -38,8 +38,7 @@ final class ProfilingEventHandler<T, R> implements EventHandler<BatchElement<T, 
         delegateHandler.onEvent(event, sequence, endOfBatch);
 
         if (endOfBatch) {
-            // Shouldn't affect clients, because futures have already been completed
-            batchSizeRecorder.markBatchProcessed(elementsSeenSoFar);
+            batchSizeRecorder.markBatchDispatched(elementsSeenSoFar);
             elementsSeenSoFar = 0;
         }
     }
