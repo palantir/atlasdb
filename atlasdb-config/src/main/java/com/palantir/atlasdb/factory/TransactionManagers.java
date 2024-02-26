@@ -69,7 +69,11 @@ import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.KeyValueServiceManager;
 import com.palantir.atlasdb.spi.SharedResourcesConfig;
+import com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig;
+import com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory;
+import com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.sweep.AdjustableSweepBatchConfigSource;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.BackgroundSweeperPerformanceLogger;
@@ -437,8 +441,32 @@ public abstract class TransactionManagers {
                     return ValidatingQueryRewritingKeyValueService.create(kvs); // ok
                 },
                 closeables);
-        TransactionKeyValueServiceManager transactionKeyValueServiceManager =
-                initializeCloseable(() -> new DefaultTransactionKeyValueServiceManager(keyValueService), closeables);
+        KeyValueServiceManager keyValueServiceManager = new DefaultKeyValueServiceManager(metricsManager, adapter);
+        TransactionKeyValueServiceManager transactionKeyValueServiceManager = initializeCloseable(
+                () -> {
+                    TransactionKeyValueServiceManager tkvsm;
+                    if (config().transactionKeyValueService().isPresent()) {
+                        TransactionKeyValueServiceManagerFactory<?> tkvsmfFactory =
+                                AtlasDbServiceDiscovery.createTransactionKeyValueServiceManagerFactoryOfCorrectType(
+                                        config().transactionKeyValueService().get());
+                        tkvsm = createTransactionKeyValueServiceManager(
+                                tkvsmfFactory,
+                                metricsManager,
+                                lockAndTimestampServices,
+                                keyValueService,
+                                keyValueServiceManager,
+                                config().transactionKeyValueService().get(),
+                                runtimeConfig().get().map(optionalConfig -> optionalConfig
+                                        .get()
+                                        .transactionKeyValueService()
+                                        .get()),
+                                config().initializeAsync());
+                    } else {
+                        tkvsm = new DefaultTransactionKeyValueServiceManager(keyValueService);
+                    }
+                    return tkvsm;
+                },
+                closeables);
 
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
                 keyValueService, schemas(), config().initializeAsync(), allSafeForLogging());
@@ -570,6 +598,26 @@ public abstract class TransactionManagers {
 
         log.info("Successfully created, and now returning a transaction manager: this may not be fully initialised.");
         return transactionManager;
+    }
+
+    private <T> TransactionKeyValueServiceManager createTransactionKeyValueServiceManager(
+            TransactionKeyValueServiceManagerFactory<T> factory,
+            MetricsManager metricsManager,
+            LockAndTimestampServices lockAndTimestampServices,
+            KeyValueService internalTablesKeyValueService,
+            KeyValueServiceManager keyValueServiceManager,
+            TransactionKeyValueServiceConfig config,
+            Refreshable<TransactionKeyValueServiceRuntimeConfig> runtimeConfigRefreshable,
+            boolean initializeAsync) {
+        CoordinationService<T> coordinationService =
+                CoordinationServices.createTransactionKeyValueServiceManagerCoordinator(
+                        factory.coordinationValueClass(),
+                        internalTablesKeyValueService,
+                        lockAndTimestampServices.managedTimestampService(),
+                        metricsManager,
+                        config().initializeAsync());
+        return factory.create(
+                coordinationService, keyValueServiceManager, config, runtimeConfigRefreshable, initializeAsync);
     }
 
     private MetricsManager setUpMetricsAndGetMetricsManager() {

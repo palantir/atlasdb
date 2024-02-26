@@ -53,11 +53,22 @@ public final class CoordinationServices {
     public static CoordinationService<InternalSchemaMetadata> createDefault(
             KeyValueService keyValueService, LongSupplier timestampSupplier, boolean initializeAsync) {
         CoordinationService<VersionedInternalSchemaMetadata> versionedService = new CoordinationServiceImpl<>(
-                createCoordinationStore(keyValueService, timestampSupplier, initializeAsync));
+                createInternalSchemaMetadataCoordinationStore(keyValueService, timestampSupplier, initializeAsync));
         return wrapHidingVersionSerialization(versionedService);
     }
 
-    private static CoordinationStore<VersionedInternalSchemaMetadata> createCoordinationStore(
+    public static <T> CoordinationService<T> createTransactionKeyValueServiceManagerCoordinator(
+            Class<T> valueClass,
+            KeyValueService keyValueService,
+            TimestampService timestampService,
+            MetricsManager _metricsManager,
+            boolean initializeAsync) {
+        // TODO(jakubk): Add the versioning.
+        return new CoordinationServiceImpl<>(createTransactionKeyValueServiceManagerCoordinationStore(
+                keyValueService, timestampService::getFreshTimestamp, valueClass, initializeAsync));
+    }
+
+    private static CoordinationStore<VersionedInternalSchemaMetadata> createInternalSchemaMetadataCoordinationStore(
             KeyValueService keyValueService, LongSupplier timestampSupplier, boolean initializeAsync) {
         return KeyValueServiceCoordinationStore.create(
                 ObjectMappers.newServerObjectMapper(),
@@ -66,6 +77,18 @@ public final class CoordinationServices {
                 timestampSupplier,
                 VersionedInternalSchemaMetadata::knowablySemanticallyEquivalent,
                 VersionedInternalSchemaMetadata.class,
+                initializeAsync);
+    }
+
+    private static <T> CoordinationStore<T> createTransactionKeyValueServiceManagerCoordinationStore(
+            KeyValueService keyValueService, LongSupplier timestampSupplier, Class<T> clazz, boolean initializeAsync) {
+        return KeyValueServiceCoordinationStore.create(
+                ObjectMappers.newServerObjectMapper(),
+                keyValueService,
+                AtlasDbConstants.DEFAULT_TRANSACTION_KEY_VALUE_SERVICE_COORDINATION_KEY,
+                timestampSupplier,
+                Object::equals,
+                clazz,
                 initializeAsync);
     }
 

@@ -98,6 +98,8 @@ public final class AtlasDbConstants {
 
     public static final byte[] DEFAULT_METADATA_COORDINATION_KEY = PtBytes.toBytes("m");
 
+    public static final byte[] DEFAULT_TRANSACTION_KEY_VALUE_SERVICE_COORDINATION_KEY = PtBytes.toBytes("x");
+
     public static final long DEFAULT_TRANSACTION_LOCK_ACQUIRE_TIMEOUT_MS = 60_000;
     public static final int THRESHOLD_FOR_LOGGING_LARGE_NUMBER_OF_TRANSACTION_LOOKUPS = 10_000_000;
 
