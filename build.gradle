@@ -7,6 +7,7 @@ buildscript {
     }
 
     dependencies {
+        classpath 'com.palantir.gradle.failure-reports:gradle-failure-reports:1.6.0'
         classpath 'com.palantir.jakartapackagealignment:jakarta-package-alignment:0.6.0'
         classpath 'com.netflix.nebula:gradle-info-plugin:13.0.0'
         classpath 'com.netflix.nebula:nebula-publishing-plugin:21.0.0'
@@ -37,6 +38,7 @@ apply plugin: 'com.palantir.consistent-versions'
 apply plugin: 'com.palantir.external-publish'
 apply plugin: 'com.palantir.git-version'
 apply plugin: 'com.palantir.jdks.latest'
+apply plugin: 'com.palantir.failure-reports'
 
 javaVersions {
   libraryTarget = 11
