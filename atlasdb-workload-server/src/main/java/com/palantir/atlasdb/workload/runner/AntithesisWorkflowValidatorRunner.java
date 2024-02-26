@@ -19,6 +19,7 @@ package com.palantir.atlasdb.workload.runner;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.workload.invariant.InvariantReporter;
 import com.palantir.atlasdb.workload.workflow.Workflow;
 import com.palantir.atlasdb.workload.workflow.WorkflowAndInvariants;
@@ -29,14 +30,18 @@ import com.palantir.atlasdb.workload.workflow.WorkflowValidatorRunner;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public final class AntithesisWorkflowValidatorRunner implements WorkflowValidatorRunner<Workflow> {
     private static final SafeLogger log = SafeLoggerFactory.get(AntithesisWorkflowValidatorRunner.class);
+    private static final int MAX_ATTEMPTS = 10;
+    private static final Duration SLEEP_BETWEEN_ATTEMPTS = Duration.ofSeconds(5);
     private final WorkflowRunner<Workflow> workflowRunner;
 
     public AntithesisWorkflowValidatorRunner(WorkflowRunner<Workflow> workflowRunner) {
@@ -64,16 +69,38 @@ public final class AntithesisWorkflowValidatorRunner implements WorkflowValidato
     }
 
     private void checkAndReportInvariantViolations(WorkflowHistoryValidator validator) {
-        validator.invariants().forEach(invariantReporter -> {
-            try {
-                invariantReporter.report(validator.history());
-            } catch (RuntimeException e) {
-                log.error("Caught an exception when running and reporting an invariant.", e);
-            }
-        });
+        validator.invariants().forEach(invariantReporter -> validateInvariant(invariantReporter, validator.history()));
         log.info(
                 "Dumping transaction log {}",
                 SafeArg.of("transactionLog", validator.history().history()));
+    }
+
+    private void validateInvariant(InvariantReporter<?> reporter, WorkflowHistory history) {
+        for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+            try {
+                reporter.report(history);
+                return;
+            } catch (RuntimeException e) {
+                if (attempt == MAX_ATTEMPTS - 1) {
+                    log.error(
+                            "Caught an exception when running and reporting an invariant; have retried the maximal"
+                                    + " number of times. Throwing.",
+                            SafeArg.of("numAttempts", MAX_ATTEMPTS),
+                            e);
+                } else {
+                    log.info(
+                            "Caught an exception when running and reporting an invariant. Will sleep and then retry.",
+                            SafeArg.of("attemptNumber", attempt),
+                            SafeArg.of("maxAttempts", MAX_ATTEMPTS),
+                            e);
+
+                    // A simple linear backoff. We don't need exponentiality, as we don't expect this to overload
+                    // Cassandra or other dependencies. We also don't need jitter, as we normally only deploy one
+                    // instance of the workload (and generally won't deploy more than a few).
+                    Uninterruptibles.sleepUninterruptibly(SLEEP_BETWEEN_ATTEMPTS.toSeconds(), TimeUnit.SECONDS);
+                }
+            }
+        }
     }
 
     private List<ListenableFuture<WorkflowHistoryValidator>> submitWorkflowValidators(
