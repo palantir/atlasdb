@@ -26,7 +26,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 public final class AtlasDbTransactionConcluder {
-    private static final int MAX_RETRIES = 5;
+    private static final int MAX_ATTEMPTS = 5;
 
     private final TransactionService transactionService;
 
@@ -40,7 +40,7 @@ public final class AtlasDbTransactionConcluder {
             return transactionStatus;
         }
 
-        for (int retry = 0; retry < MAX_RETRIES; retry++) {
+        for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
             if (tryAbortTransaction(startTimestamp)) {
                 return TransactionStatus.aborted();
             } else {
@@ -53,7 +53,7 @@ public final class AtlasDbTransactionConcluder {
         }
 
         throw new SafeIllegalStateException(
-                "Failed to force transaction conclusion", SafeArg.of("retries", MAX_RETRIES));
+                "Failed to force transaction conclusion", SafeArg.of("attempts", MAX_ATTEMPTS));
     }
 
     // Returns true iff we successfully aborted the transaction at this start timestamp
