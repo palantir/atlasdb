@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import com.google.common.collect.Multimap;
 import com.google.errorprone.annotations.MustBeClosed;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
 import com.palantir.atlasdb.metrics.Timed;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.annotation.Idempotent;
@@ -30,6 +31,7 @@ import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -717,5 +719,10 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
         // This is in general True, but we're setting to false to start rollout only for C* of stopping to check for
         // immutable timestamp lock on non empty reads on thoroughly swept tables.
         return false;
+    }
+
+    @DoDelegate
+    default Optional<TransactionKeyValueService> maybeValidationReadTarget() {
+        return Optional.empty();
     }
 }

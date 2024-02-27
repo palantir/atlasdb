@@ -33,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Map;
+import java.util.Optional;
 
 public final class DefaultTransactionKeyValueService implements TransactionKeyValueService {
 
@@ -99,5 +100,10 @@ public final class DefaultTransactionKeyValueService implements TransactionKeyVa
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
             throws KeyAlreadyExistsException {
         delegate.multiPut(valuesByTable, timestamp);
+    }
+
+    @Override
+    public Optional<TransactionKeyValueService> maybeValidationReadTarget() {
+        return delegate.maybeValidationReadTarget();
     }
 }
