@@ -1034,7 +1034,7 @@ public class SnapshotTransaction extends AbstractTransaction
                                 public void onSuccess(Map<Cell, byte[]> fromValidationReadTarget) {
                                     fromKeyValueService.forEach((cell, value) -> {
                                         byte[] otherValue = fromValidationReadTarget.get(cell);
-                                        if (otherValue == null || !Arrays.equals(value, otherValue)) {
+                                        if (!Arrays.equals(value, otherValue)) {
                                             // TODO(rhuffman): report a metric here instead of throwing
                                             throw new SafeIllegalStateException("Validation read conflict");
                                         }
