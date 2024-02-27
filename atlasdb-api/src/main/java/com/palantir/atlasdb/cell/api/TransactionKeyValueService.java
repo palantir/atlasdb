@@ -30,8 +30,10 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.processors.AutoDelegate;
+import com.palantir.processors.DoDelegate;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Key-Value API to be used with user data tables.
@@ -71,4 +73,9 @@ public interface TransactionKeyValueService {
 
     void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
             throws KeyAlreadyExistsException;
+
+    @DoDelegate
+    default Optional<TransactionKeyValueService> maybeValidationReadTarget() {
+        return Optional.empty();
+    }
 }

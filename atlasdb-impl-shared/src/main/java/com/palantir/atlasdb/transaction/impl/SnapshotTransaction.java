@@ -42,6 +42,7 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.google.common.io.Closer;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -127,6 +128,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import com.palantir.common.collect.IteratorUtils;
 import com.palantir.common.collect.MapEntries;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.common.streams.MoreStreams;
 import com.palantir.lock.AtlasCellLockDescriptor;
@@ -178,6 +180,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -198,6 +201,7 @@ import org.eclipse.collections.api.factory.primitive.LongSets;
 import org.eclipse.collections.api.map.primitive.LongLongMap;
 import org.eclipse.collections.api.set.primitive.ImmutableLongSet;
 import org.eclipse.collections.api.set.primitive.LongSet;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * This implements snapshot isolation for transactions.
@@ -301,6 +305,9 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TransactionKnowledgeComponents knowledge;
 
     protected final Closer closer = Closer.create();
+
+    // TODO(rhuffman): Properly pass an executor via the constructor
+    private static final Executor validationReadExecutor = PTExecutors.newCachedThreadPool("validation-read-executor");
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
@@ -1004,6 +1011,15 @@ public class SnapshotTransaction extends AbstractTransaction
 
         // We don't need to read any cells that were written locally.
         long expectedNumberOfPresentCellsToFetch = numberOfExpectedPresentCells - numberOfNonDeleteLocalWrites;
+
+        Optional<ListenableFuture<Map<Cell, byte[]>>> maybeFromValidationReadTarget = asyncKeyValueService
+                .maybeValidationReadTarget()
+                .map(validationReadTarget -> getFromKeyValueService(
+                        tableRef,
+                        Sets.difference(cells, result.keySet()),
+                        validationReadTarget,
+                        asyncTransactionService));
+
         return Futures.transform(
                 getFromKeyValueService(
                         tableRef,
@@ -1011,6 +1027,25 @@ public class SnapshotTransaction extends AbstractTransaction
                         asyncKeyValueService,
                         asyncTransactionService),
                 fromKeyValueService -> {
+                    maybeFromValidationReadTarget.ifPresent(fromValidationReadTargetFuture -> Futures.addCallback(
+                            fromValidationReadTargetFuture,
+                            new FutureCallback<>() {
+                                @Override
+                                public void onSuccess(Map<Cell, byte[]> fromValidationReadTarget) {
+                                    fromKeyValueService.forEach((cell, value) -> {
+                                        byte[] otherValue = fromValidationReadTarget.get(cell);
+                                        if (otherValue == null || !Arrays.equals(value, otherValue)) {
+                                            throw new SafeIllegalStateException("Validation read conflict");
+                                        }
+                                    });
+                                }
+
+                                @Override
+                                public void onFailure(@NotNull Throwable th) {
+                                    log.error("Failed to read from validation read target", th);
+                                }
+                            },
+                            validationReadExecutor));
                     result.putAll(fromKeyValueService);
 
                     long getMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
