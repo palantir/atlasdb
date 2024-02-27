@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -206,7 +207,8 @@ import org.mockito.Mockito;
 public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
     static final String SYNC = "sync";
     static final String ASYNC = "async";
-    private static final Consumer<Long> NO_OP_THROW_IF_CONDITION_INVALID = _timestamp -> {};
+    private static final Consumer<Long> NO_OP_THROW_IF_CONDITION_INVALID = _timestamp -> {
+    };
 
     private final String name;
     private final WrapperWithTracker<CallbackAwareTransaction> transactionWrapper;
@@ -318,7 +320,8 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
         }
 
         @Override
-        public void cleanup() {}
+        public void cleanup() {
+        }
     };
 
     static final TableReference TABLE = TableReference.createFromFullyQualifiedName("default.table");
@@ -1082,7 +1085,8 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
             }
 
             @Override
-            public void cleanup() {}
+            public void cleanup() {
+            }
         };
         Supplier<PreCommitCondition> conditionSupplier = Suppliers.ofInstance(nonRetriableFailure);
         try {
@@ -1142,15 +1146,15 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 counter::increment);
 
         assertThatThrownBy(() ->
-                        serializableTxManager.runTaskWithConditionThrowOnConflict(failsCondition, (tx, condition) -> {
-                            tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
-                            return null;
-                        }))
+                serializableTxManager.runTaskWithConditionThrowOnConflict(failsCondition, (tx, condition) -> {
+                    tx.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("value")));
+                    return null;
+                }))
                 .isInstanceOf(TransactionFailedRetriableException.class);
         assertThat(counter.intValue()).isEqualTo(1);
 
         assertThatThrownBy(() -> serializableTxManager.runTaskWithConditionReadOnly(
-                        failsCondition, (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL))))
+                failsCondition, (tx, condition) -> tx.get(TABLE, ImmutableSet.of(TEST_CELL))))
                 .isInstanceOf(TransactionFailedRetriableException.class);
         assertThat(counter.intValue()).isEqualTo(2);
     }
@@ -1200,19 +1204,20 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
         // this will write into the DB, because the protocol demands we write before we get a commit timestamp
         RuntimeException conditionFailure = new RuntimeException();
         assertThatThrownBy(() -> serializableTxManager.runTaskWithConditionWithRetry(
-                        () -> new PreCommitCondition() {
-                            @Override
-                            public void throwIfConditionInvalid(long timestamp) {
-                                throw conditionFailure;
-                            }
+                () -> new PreCommitCondition() {
+                    @Override
+                    public void throwIfConditionInvalid(long timestamp) {
+                        throw conditionFailure;
+                    }
 
-                            @Override
-                            public void cleanup() {}
-                        },
-                        (tx, condition) -> {
-                            tx.put(TABLE, ImmutableMap.of(firstCell, value));
-                            return null;
-                        }))
+                    @Override
+                    public void cleanup() {
+                    }
+                },
+                (tx, condition) -> {
+                    tx.put(TABLE, ImmutableMap.of(firstCell, value));
+                    return null;
+                }))
                 .isSameAs(conditionFailure);
 
         List<Cell> cells = serializableTxManager.runTaskReadOnly(tx -> BatchingVisitableView.of(tx.getRowsColumnRange(
@@ -1238,19 +1243,20 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
         // this will write into the DB, because the protocol demands we write before we get a commit timestamp
         RuntimeException conditionFailure = new RuntimeException();
         assertThatThrownBy(() -> serializableTxManager.runTaskWithConditionWithRetry(
-                        () -> new PreCommitCondition() {
-                            @Override
-                            public void throwIfConditionInvalid(long timestamp) {
-                                throw conditionFailure;
-                            }
+                () -> new PreCommitCondition() {
+                    @Override
+                    public void throwIfConditionInvalid(long timestamp) {
+                        throw conditionFailure;
+                    }
 
-                            @Override
-                            public void cleanup() {}
-                        },
-                        (tx, condition) -> {
-                            tx.put(TABLE, ImmutableMap.of(firstCell, value));
-                            return null;
-                        }))
+                    @Override
+                    public void cleanup() {
+                    }
+                },
+                (tx, condition) -> {
+                    tx.put(TABLE, ImmutableMap.of(firstCell, value));
+                    return null;
+                }))
                 .isSameAs(conditionFailure);
 
         List<Cell> cells = serializableTxManager.runTaskReadOnly(tx -> Lists.transform(
@@ -1807,8 +1813,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         eq(TABLE_SWEPT_THOROUGH),
                         eq(Set.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3)),
                         eq(2L),
-                        any(),
-                        any());
+                        anyBoolean());
     }
 
     @Test
@@ -1846,8 +1851,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         eq(TABLE_SWEPT_THOROUGH),
                         eq(Set.of(TEST_CELL_2, TEST_CELL_3)), // Don't expect to ask for cell1 because it's cached
                         eq(1L),
-                        any(),
-                        any());
+                        anyBoolean());
     }
 
     @Test
@@ -1885,8 +1889,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         eq(TABLE_SWEPT_THOROUGH),
                         eq(Set.of(TEST_CELL_2, TEST_CELL_3)), // Don't expect to ask for cell1 because it's cached
                         eq(2L),
-                        any(),
-                        any());
+                        anyBoolean());
     }
 
     @Test
@@ -1925,8 +1928,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         eq(TABLE_SWEPT_THOROUGH),
                         eq(ImmutableSet.of()),
                         anyLong(),
-                        any(),
-                        any());
+                        anyBoolean());
     }
 
     @Test
@@ -1966,7 +1968,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
         verify(spiedTimeLockService, never()).refreshLockLeases(any());
         verify(spiedSnapshotTransaction, never())
                 .getInternal(
-                        eq("getWithExpectedNumberOfCells"), eq(TABLE_SWEPT_THOROUGH), any(), anyLong(), any(), any());
+                        eq("getWithExpectedNumberOfCells"), eq(TABLE_SWEPT_THOROUGH), any(), anyLong(), anyBoolean());
     }
 
     @Test
@@ -2006,8 +2008,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         eq(TABLE_SWEPT_THOROUGH),
                         eq(Set.of(TEST_CELL, TEST_CELL_2)),
                         eq(1L),
-                        any(),
-                        any());
+                        anyBoolean());
     }
 
     private TransactionScopedCache createCacheWithEntry(TableReference table, Cell cell, byte[] value) {
@@ -2366,7 +2367,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 .hasMessageContaining("Tried to read a value that has been deleted.");
 
         assertThat(keyValueService.get(
-                        TABLE_SWEPT_THOROUGH, ImmutableMap.of(TEST_CELL, 0L, TEST_CELL_2, 0L, testCell3, 0L)))
+                TABLE_SWEPT_THOROUGH, ImmutableMap.of(TEST_CELL, 0L, TEST_CELL_2, 0L, testCell3, 0L)))
                 .containsExactlyEntriesOf(
                         ImmutableMap.of(TEST_CELL, Value.create(new byte[0], Value.INVALID_VALUE_TIMESTAMP)));
     }
@@ -2581,10 +2582,12 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
         Transaction abortingTransaction = txManager.createNewTransaction();
         abortingTransaction.abort();
 
-        assertThatThrownBy(() -> committingTransaction.onSuccess(() -> {}))
+        assertThatThrownBy(() -> committingTransaction.onSuccess(() -> {
+        }))
                 .isInstanceOf(CommittedTransactionException.class)
                 .hasMessageContaining("Transaction must be uncommitted");
-        assertThatThrownBy(() -> abortingTransaction.onSuccess(() -> {}))
+        assertThatThrownBy(() -> abortingTransaction.onSuccess(() -> {
+        }))
                 .isInstanceOf(CommittedTransactionException.class)
                 .hasMessageContaining("Transaction must be uncommitted");
     }
@@ -2630,12 +2633,12 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
     public void transactionStillCommittedEvenIfCallbackThrows() {
         RuntimeException exception = new RuntimeException("boom");
         assertThatThrownBy(() -> txManager.runTaskThrowOnConflict(txn -> {
-                    txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("tom")));
-                    txn.onSuccess(() -> {
-                        throw exception;
-                    });
-                    return null;
-                }))
+            txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("tom")));
+            txn.onSuccess(() -> {
+                throw exception;
+            });
+            return null;
+        }))
                 .isInstanceOf(exception.getClass())
                 .hasMessageContaining(exception.getMessage());
         txManager.runTaskReadOnly(txn -> {
@@ -2653,9 +2656,9 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
         });
 
         assertThatThrownBy(() -> txManager.runTaskWithConditionThrowOnConflict(preCommitCondition, (txn, condition) -> {
-                    txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("tom")));
-                    return null;
-                }))
+            txn.put(TABLE, ImmutableMap.of(TEST_CELL, PtBytes.toBytes("tom")));
+            return null;
+        }))
                 .isInstanceOf(exception.getClass())
                 .hasMessageContaining(exception.getMessage());
         txManager.runTaskReadOnly(txn -> {
@@ -2933,7 +2936,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
             putUncommittedAtFreshTimestamp(TABLE_NO_SWEEP, TEST_CELL);
         }
         assertThatLoggableExceptionThrownBy(
-                        () -> txManager.runTaskThrowOnConflict(txn -> txn.get(TABLE_NO_SWEEP, Set.of(TEST_CELL))))
+                () -> txManager.runTaskThrowOnConflict(txn -> txn.get(TABLE_NO_SWEEP, Set.of(TEST_CELL))))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageStartingWith("Unable to filter cells")
                 .hasExactlyArgs(
@@ -3279,7 +3282,8 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 timelockService,
                 () -> transactionTs,
                 lockImmutableTimestampResponse,
-                unused -> {},
+                unused -> {
+                },
                 true,
                 tableConflictHandlers);
     }
@@ -3501,7 +3505,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         argThat(lockRequest -> {
                             // We always acquire a lock on the transaction table
                             Set<LockDescriptor> locksWithTransactionTableLock = new ImmutableSet.Builder<
-                                            LockDescriptor>()
+                                    LockDescriptor>()
                                     .addAll(locksAndMetadata.lockDescriptors())
                                     .add(AtlasRowLockDescriptor.of(
                                             TransactionConstants.TRANSACTION_TABLE.getQualifiedName(),

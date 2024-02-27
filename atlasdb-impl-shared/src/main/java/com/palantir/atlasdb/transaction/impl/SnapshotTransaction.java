@@ -382,6 +382,8 @@ public class SnapshotTransaction extends AbstractTransaction
         this.transactionOutcomeMetrics =
                 TransactionOutcomeMetrics.create(transactionMetrics, metricsManager.getTaggedRegistry());
         this.expectationsDataCollectionMetrics = ExpectationsMetrics.of(metricsManager.getTaggedRegistry());
+
+        // TODO (jkong): Fix path type tracking for tests:
         this.keyValueSnapshotReader = new DefaultKeyValueSnapshotReader(
                 transactionKeyValueService,
                 transactionService,
@@ -450,8 +452,7 @@ public class SnapshotTransaction extends AbstractTransaction
                                 tableRef,
                                 cells,
                                 cells.size(),
-                                immediateTransactionKeyValueService,
-                                immediateTransactionService)),
+                                false)),
                         unCachedRows -> getRowsInternal(tableRef, unCachedRows, columnSelection));
     }
 
@@ -833,7 +834,7 @@ public class SnapshotTransaction extends AbstractTransaction
                     protected Map.Entry<Cell, Value> computeNext() {
                         if (!peekableRawResults.hasNext()
                                 || !Arrays.equals(
-                                        peekableRawResults.peek().getKey().getRowName(), nextRowName)) {
+                                peekableRawResults.peek().getKey().getRowName(), nextRowName)) {
                             return endOfData();
                         }
                         return peekableRawResults.next();
@@ -944,9 +945,7 @@ public class SnapshotTransaction extends AbstractTransaction
                                 "get",
                                 tableRef,
                                 uncached,
-                                uncached.size(),
-                                immediateTransactionKeyValueService,
-                                immediateTransactionService));
+                                uncached.size(), false));
     }
 
     @Override
@@ -962,9 +961,7 @@ public class SnapshotTransaction extends AbstractTransaction
                         "getWithExpectedNumberOfCells",
                         tableRef,
                         cacheLookupResult.missedCells(),
-                        numberOfCellsExpectingValuePostCache,
-                        immediateTransactionKeyValueService,
-                        immediateTransactionService);
+                        numberOfCellsExpectingValuePostCache, false);
             }));
         } catch (MoreCellsPresentThanExpectedException e) {
             return Result.err(e);
@@ -983,18 +980,17 @@ public class SnapshotTransaction extends AbstractTransaction
                                 tableRef,
                                 uncached,
                                 uncached.size(),
-                                transactionKeyValueService,
-                                defaultTransactionService)));
+                                true)));
     }
 
+    // TODO (jkong): Avoid splitting on PathTypeTracker chaos
     @VisibleForTesting
     ListenableFuture<Map<Cell, byte[]>> getInternal(
             String operationName,
             TableReference tableRef,
             Set<Cell> cells,
             long numberOfExpectedPresentCells,
-            TransactionKeyValueService asyncKeyValueService,
-            AsyncTransactionService asyncTransactionService) {
+            boolean performGetAsync) {
         Timer.Context timer = getTimer(operationName).time();
         checkGetPreconditions(tableRef);
         if (Iterables.isEmpty(cells)) {
@@ -1019,12 +1015,22 @@ public class SnapshotTransaction extends AbstractTransaction
 
         // We don't need to read any cells that were written locally.
         long expectedNumberOfPresentCellsToFetch = numberOfExpectedPresentCells - numberOfNonDeleteLocalWrites;
+
+        // TODO (jkong): This is a complete abomination, but I think untangling PathTypeTrackers is a question for
+        // another day. In the interest of velocity and Chesterton's fence, declaring bankruptcy for now.
+        ListenableFuture<Map<Cell, byte[]>> initialResults;
+        Map<Cell, Long> cellsToStartTimestamp = Cells.constantValueMap(Sets.difference(cells, result.keySet()),
+                getStartTimestamp());
+        if (performGetAsync) {
+            initialResults = keyValueSnapshotReader.getAsync(
+                    tableRef,
+                    cellsToStartTimestamp);
+        } else {
+            initialResults = Futures.immediateFuture(keyValueSnapshotReader.get(tableRef, cellsToStartTimestamp));
+        }
+
         return Futures.transform(
-                getFromKeyValueService(tableRef, cells, asyncKeyValueService, asyncTransactionService),
-                //                keyValueSnapshotReader.get(
-                //                        tableRef,
-                //                        Cells.constantValueMap(Sets.difference(cells, result.keySet()),
-                // getStartTimestamp())),
+                initialResults,
                 fromKeyValueService -> {
                     result.putAll(fromKeyValueService);
 
@@ -1298,7 +1304,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 postFiltered.entrySet(),
                 Predicates.compose(Predicates.in(prePostFilterCells.keySet()), MapEntries.getKeyFunction()));
         Collection<Map.Entry<Cell, byte[]>> localWritesInRange = getLocalWritesForRange(
-                        tableRef, rangeRequest.getStartInclusive(), endRowExclusive, rangeRequest.getColumnNames())
+                tableRef, rangeRequest.getStartInclusive(), endRowExclusive, rangeRequest.getColumnNames())
                 .entrySet();
         return mergeInLocalWrites(
                 tableRef, postFilteredCells.iterator(), localWritesInRange.iterator(), rangeRequest.isReverse());
@@ -1335,9 +1341,9 @@ public class SnapshotTransaction extends AbstractTransaction
             int preFilterBatchSize)
             throws K {
         try (ClosableIterator<RowResult<byte[]>> postFilterIterator =
-                postFilterIterator(tableRef, range, preFilterBatchSize, Value.GET_VALUE)) {
+                     postFilterIterator(tableRef, range, preFilterBatchSize, Value.GET_VALUE)) {
             Iterator<RowResult<byte[]>> localWritesInRange = Cells.createRowView(getLocalWritesForRange(
-                            tableRef, range.getStartInclusive(), range.getEndExclusive(), range.getColumnNames())
+                    tableRef, range.getStartInclusive(), range.getEndExclusive(), range.getColumnNames())
                     .entrySet());
             Iterator<RowResult<byte[]>> mergeIterators =
                     mergeInLocalWritesRows(postFilterIterator, localWritesInRange, range.isReverse(), tableRef);
@@ -2180,7 +2186,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private <T> T timedAndTraced(String timerName, Supplier<T> supplier) {
         try (Timer.Context timer = getTimer(timerName).time();
-                CloseableTracer tracer = CloseableTracer.startSpan(timerName)) {
+             CloseableTracer tracer = CloseableTracer.startSpan(timerName)) {
             return supplier.get();
         }
     }
@@ -2192,7 +2198,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private boolean hasWrites() {
         return !localWriteBuffer.getLocalWrites().isEmpty()
                 && localWriteBuffer.getLocalWrites().values().stream()
-                        .anyMatch(writesForTable -> !writesForTable.isEmpty());
+                .anyMatch(writesForTable -> !writesForTable.isEmpty());
     }
 
     protected boolean hasReads() {

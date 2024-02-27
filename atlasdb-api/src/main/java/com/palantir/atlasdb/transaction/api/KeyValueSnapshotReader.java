@@ -21,6 +21,21 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.util.Map;
 
+/**
+ * Reads state of a {@link com.palantir.atlasdb.keyvalue.api.KeyValueService} in accordance with the provided
+ * AtlasDB timestamp, following the AtlasDB read protocol. This includes reading the most recent committed value for
+ * each cell that would be visible at the provided timestamp(s) and filtering out versions that have been aborted or
+ * not committed yet.
+ *
+ * If used in the context of a transaction, users are responsible for validating that snapshots read are still
+ * guaranteed to be consistent (for example, transactions may need to validate their pre-commit conditions or check
+ * that sweep has not progressed).
+ *
+ * Although this interface performs user-level reads, internal writes may be performed (for example, as part of the
+ * read protocol, to abort a long-running transaction).
+ */
 public interface KeyValueSnapshotReader {
-    ListenableFuture<Map<Cell, byte[]>> get(TableReference tableReference, Map<Cell, Long> timestampsByCell);
+    Map<Cell, byte[]> get(TableReference tableReference, Map<Cell, Long> timestampsByCell);
+
+    ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableReference, Map<Cell, Long> timestampsByCell);
 }

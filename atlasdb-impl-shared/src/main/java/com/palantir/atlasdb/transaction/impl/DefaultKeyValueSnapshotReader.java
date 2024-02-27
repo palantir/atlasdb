@@ -32,6 +32,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -57,6 +58,7 @@ import org.eclipse.collections.api.factory.primitive.LongSets;
 import org.eclipse.collections.api.map.primitive.LongLongMap;
 import org.eclipse.collections.api.set.primitive.ImmutableLongSet;
 import org.eclipse.collections.api.set.primitive.LongSet;
+import org.jetbrains.annotations.NotNull;
 
 public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotReader {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultKeyValueSnapshotReader.class);
@@ -67,8 +69,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
     private final boolean allowHiddenTableAccess;
     private final ReadSentinelHandler readSentinelHandler;
     private final LongSupplier startTimestampSupplier;
-    private final PreCommitConditionValidator
-            preCommitConditionValidator; // TODO (jkong): This should be an interface...
+    private final PreCommitConditionValidator preCommitConditionValidator;
     private final DeleteExecutor deleteExecutor;
 
     public DefaultKeyValueSnapshotReader(
@@ -93,23 +94,29 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
     }
 
     @Override
-    public ListenableFuture<Map<Cell, byte[]>> get(TableReference tableReference, Map<Cell, Long> timestampsByCell) {
+    public Map<Cell, byte[]> get(TableReference tableReference, Map<Cell, Long> timestampsByCell) {
+        // TODO (jkong): This is bad, but a consequence of our legacy test infrastructure.
+        return AtlasFutures.getUnchecked(getInternal(
+                KeyValueServices.synchronousAsAsyncTransactionKeyValueService(transactionKeyValueService),
+                tableReference,
+                timestampsByCell));
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableReference, Map<Cell, Long> timestampsByCell) {
+        return getInternal(transactionKeyValueService, tableReference, timestampsByCell);
+    }
+
+    @NotNull
+    private ListenableFuture<Map<Cell, byte[]>> getInternal(
+            TransactionKeyValueService transactionKeyValueService,
+            TableReference tableReference, Map<Cell, Long> timestampsByCell) {
         ListenableFuture<Collection<Map.Entry<Cell, byte[]>>> postFilteredResults = Futures.transformAsync(
-                // TODO (jkong): Replace with an actual call to getAsync(). This is preserving behaviour.
-                wrapAsyncGetInImmediateFuture(tableReference, timestampsByCell),
+                transactionKeyValueService.getAsync(tableReference, timestampsByCell),
                 rawResults -> getWithPostFilteringAsync(tableReference, rawResults, Value.GET_VALUE),
                 MoreExecutors.directExecutor());
 
         return Futures.transform(postFilteredResults, ImmutableMap::copyOf, MoreExecutors.directExecutor());
-    }
-
-    private ListenableFuture<Map<Cell, Value>> wrapAsyncGetInImmediateFuture(
-            TableReference tableReference, Map<Cell, Long> timestampsByCell) {
-        try {
-            return Futures.immediateFuture(transactionKeyValueService.get(tableReference, timestampsByCell));
-        } catch (Exception e) {
-            return Futures.immediateFailedFuture(e);
-        }
     }
 
     private <T> ListenableFuture<Collection<Map.Entry<Cell, T>>> getWithPostFilteringAsync(
@@ -198,14 +205,14 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             Map<Cell, Value> rawResults,
             @Output Collection<Map.Entry<Cell, T>> resultsCollector,
             Function<Value, T> transformer,
-            TransactionKeyValueService asyncKeyValueService) {
+            TransactionKeyValueService transactionKeyValueService) {
         readSentinelHandler.trackAndMarkOrphanedSweepSentinelsForDeletion(tableRef, rawResults);
         LongSet valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
 
         return Futures.transformAsync(
                 getCommitTimestamps(tableRef, valuesStartTimestamps),
                 commitTimestamps -> collectCellsToPostFilter(
-                        tableRef, rawResults, resultsCollector, transformer, asyncKeyValueService, commitTimestamps),
+                        tableRef, rawResults, resultsCollector, transformer, transactionKeyValueService, commitTimestamps),
                 MoreExecutors.directExecutor());
     }
 
@@ -214,7 +221,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             Map<Cell, Value> rawResults,
             @Output Collection<Map.Entry<Cell, T>> resultsCollector,
             Function<Value, T> transformer,
-            TransactionKeyValueService asyncKeyValueService,
+            TransactionKeyValueService transactionKeyValueService,
             LongLongMap commitTimestamps) {
         Map<Cell, Long> keysToReload = Maps.newHashMapWithExpectedSize(0);
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
@@ -225,6 +232,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             Value value = e.getValue();
 
             if (isSweepSentinel(value)) {
+                // move to readSentinelHandler
                 //                getCounter(AtlasDbMetricNames.CellFilterMetrics.INVALID_START_TS, tableRef)
                 //                        .inc();
 
@@ -269,8 +277,9 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
         }
 
         if (!keysToReload.isEmpty()) {
+            // TODO (jkong): Do we still need to do this given we validate the output? Check with @lmeireles
             return Futures.transform(
-                    asyncKeyValueService.getAsync(tableRef, keysToReload),
+                    transactionKeyValueService.getAsync(tableRef, keysToReload),
                     nextRawResults -> {
                         boolean allPossibleCellsReadAndPresent = nextRawResults.size() == keysToReload.size();
                         preCommitConditionValidator.validatePreCommitRequirementsOnReadIfNecessary(
