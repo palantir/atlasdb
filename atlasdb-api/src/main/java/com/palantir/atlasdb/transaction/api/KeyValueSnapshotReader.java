@@ -20,6 +20,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Reads state of a {@link com.palantir.atlasdb.keyvalue.api.KeyValueService} in accordance with the provided
@@ -35,7 +36,7 @@ import java.util.Map;
  * read protocol, to abort a long-running transaction).
  */
 public interface KeyValueSnapshotReader {
-    Map<Cell, byte[]> get(TableReference tableReference, Map<Cell, Long> timestampsByCell);
+    Map<Cell, byte[]> get(TableReference tableReference, Set<Cell> cells);
 
-    ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableReference, Map<Cell, Long> timestampsByCell);
+    ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableReference, Set<Cell> cells);
 }

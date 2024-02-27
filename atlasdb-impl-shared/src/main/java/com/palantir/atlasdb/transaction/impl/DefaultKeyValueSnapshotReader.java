@@ -94,33 +94,37 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
     }
 
     @Override
-    public Map<Cell, byte[]> get(TableReference tableReference, Map<Cell, Long> timestampsByCell) {
+    public Map<Cell, byte[]> get(TableReference tableReference, Set<Cell> cells) {
         // TODO (jkong): This is bad, but a consequence of our legacy test infrastructure.
         return AtlasFutures.getUnchecked(getInternal(
                 KeyValueServices.synchronousAsAsyncTransactionKeyValueService(transactionKeyValueService),
                 tableReference,
-                timestampsByCell));
+                cells));
     }
 
     @Override
-    public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableReference, Map<Cell, Long> timestampsByCell) {
-        return getInternal(transactionKeyValueService, tableReference, timestampsByCell);
+    public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableReference, Set<Cell> cells) {
+        return getInternal(transactionKeyValueService, tableReference, cells);
     }
 
     @NotNull
     private ListenableFuture<Map<Cell, byte[]>> getInternal(
-            TransactionKeyValueService transactionKeyValueService,
-            TableReference tableReference, Map<Cell, Long> timestampsByCell) {
+            TransactionKeyValueService transactionKeyValueService, TableReference tableReference, Set<Cell> cells) {
+        Map<Cell, Long> timestampsByCell = Cells.constantValueMap(cells, startTimestampSupplier.getAsLong());
         ListenableFuture<Collection<Map.Entry<Cell, byte[]>>> postFilteredResults = Futures.transformAsync(
                 transactionKeyValueService.getAsync(tableReference, timestampsByCell),
-                rawResults -> getWithPostFilteringAsync(tableReference, rawResults, Value.GET_VALUE),
+                rawResults -> getWithPostFilteringAsync(
+                        transactionKeyValueService, tableReference, rawResults, Value.GET_VALUE),
                 MoreExecutors.directExecutor());
 
         return Futures.transform(postFilteredResults, ImmutableMap::copyOf, MoreExecutors.directExecutor());
     }
 
     private <T> ListenableFuture<Collection<Map.Entry<Cell, T>>> getWithPostFilteringAsync(
-            TableReference tableRef, Map<Cell, Value> rawResults, Function<Value, T> transformer) {
+            TransactionKeyValueService transactionKeyValueService,
+            TableReference tableRef,
+            Map<Cell, Value> rawResults,
+            Function<Value, T> transformer) {
         long bytes = 0;
         for (Map.Entry<Cell, Value> entry : rawResults.entrySet()) {
             bytes += entry.getValue().getContents().length + Cells.getApproxSizeOfCell(entry.getKey());
@@ -159,12 +163,13 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
 
         return Futures.transformAsync(
                 Futures.immediateFuture(rawResults),
-                resultsToPostFilter ->
-                        getWithPostFilteringIterate(tableRef, resultsToPostFilter, resultsAccumulator, transformer),
+                resultsToPostFilter -> getWithPostFilteringIterate(
+                        transactionKeyValueService, tableRef, resultsToPostFilter, resultsAccumulator, transformer),
                 MoreExecutors.directExecutor());
     }
 
     private <T> ListenableFuture<Collection<Map.Entry<Cell, T>>> getWithPostFilteringIterate(
+            TransactionKeyValueService transactionKeyValueService,
             TableReference tableReference,
             Map<Cell, Value> resultsToPostFilter,
             Collection<Map.Entry<Cell, T>> resultsAccumulator,
@@ -212,7 +217,12 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
         return Futures.transformAsync(
                 getCommitTimestamps(tableRef, valuesStartTimestamps),
                 commitTimestamps -> collectCellsToPostFilter(
-                        tableRef, rawResults, resultsCollector, transformer, transactionKeyValueService, commitTimestamps),
+                        tableRef,
+                        rawResults,
+                        resultsCollector,
+                        transformer,
+                        transactionKeyValueService,
+                        commitTimestamps),
                 MoreExecutors.directExecutor());
     }
 

@@ -447,12 +447,8 @@ public class SnapshotTransaction extends AbstractTransaction
                         tableRef,
                         rows,
                         columnSelection,
-                        cells -> AtlasFutures.getUnchecked(getInternal(
-                                "getRows",
-                                tableRef,
-                                cells,
-                                cells.size(),
-                                false)),
+                        cells ->
+                                AtlasFutures.getUnchecked(getInternal("getRows", tableRef, cells, cells.size(), false)),
                         unCachedRows -> getRowsInternal(tableRef, unCachedRows, columnSelection));
     }
 
@@ -834,7 +830,7 @@ public class SnapshotTransaction extends AbstractTransaction
                     protected Map.Entry<Cell, Value> computeNext() {
                         if (!peekableRawResults.hasNext()
                                 || !Arrays.equals(
-                                peekableRawResults.peek().getKey().getRowName(), nextRowName)) {
+                                        peekableRawResults.peek().getKey().getRowName(), nextRowName)) {
                             return endOfData();
                         }
                         return peekableRawResults.next();
@@ -938,14 +934,7 @@ public class SnapshotTransaction extends AbstractTransaction
     @Idempotent
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
         return getCache()
-                .get(
-                        tableRef,
-                        cells,
-                        uncached -> getInternal(
-                                "get",
-                                tableRef,
-                                uncached,
-                                uncached.size(), false));
+                .get(tableRef, cells, uncached -> getInternal("get", tableRef, uncached, uncached.size(), false));
     }
 
     @Override
@@ -961,7 +950,8 @@ public class SnapshotTransaction extends AbstractTransaction
                         "getWithExpectedNumberOfCells",
                         tableRef,
                         cacheLookupResult.missedCells(),
-                        numberOfCellsExpectingValuePostCache, false);
+                        numberOfCellsExpectingValuePostCache,
+                        false);
             }));
         } catch (MoreCellsPresentThanExpectedException e) {
             return Result.err(e);
@@ -975,12 +965,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 .getAsync(
                         tableRef,
                         cells,
-                        uncached -> getInternal(
-                                "getAsync",
-                                tableRef,
-                                uncached,
-                                uncached.size(),
-                                true)));
+                        uncached -> getInternal("getAsync", tableRef, uncached, uncached.size(), true)));
     }
 
     // TODO (jkong): Avoid splitting on PathTypeTracker chaos
@@ -1019,14 +1004,11 @@ public class SnapshotTransaction extends AbstractTransaction
         // TODO (jkong): This is a complete abomination, but I think untangling PathTypeTrackers is a question for
         // another day. In the interest of velocity and Chesterton's fence, declaring bankruptcy for now.
         ListenableFuture<Map<Cell, byte[]>> initialResults;
-        Map<Cell, Long> cellsToStartTimestamp = Cells.constantValueMap(Sets.difference(cells, result.keySet()),
-                getStartTimestamp());
+        Set<Cell> cellsToFetch = Sets.difference(cells, result.keySet());
         if (performGetAsync) {
-            initialResults = keyValueSnapshotReader.getAsync(
-                    tableRef,
-                    cellsToStartTimestamp);
+            initialResults = keyValueSnapshotReader.getAsync(tableRef, cellsToFetch);
         } else {
-            initialResults = Futures.immediateFuture(keyValueSnapshotReader.get(tableRef, cellsToStartTimestamp));
+            initialResults = Futures.immediateFuture(keyValueSnapshotReader.get(tableRef, cellsToFetch));
         }
 
         return Futures.transform(
@@ -1064,10 +1046,7 @@ public class SnapshotTransaction extends AbstractTransaction
         }
         hasReads = true;
 
-        ListenableFuture<Map<Cell, byte[]>> result = getFromKeyValueService(
-                tableRef, cells, immediateTransactionKeyValueService, immediateTransactionService);
-
-        Map<Cell, byte[]> unfiltered = Futures.getUnchecked(result);
+        Map<Cell, byte[]> unfiltered = keyValueSnapshotReader.get(tableRef, cells);
         Map<Cell, byte[]> filtered = Maps.filterValues(unfiltered, Predicates.not(Value::isTombstone));
 
         TraceStatistics.incEmptyValues(unfiltered.size() - filtered.size());
@@ -1076,26 +1055,6 @@ public class SnapshotTransaction extends AbstractTransaction
         validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp(), allPossibleCellsReadAndPresent);
 
         return filtered;
-    }
-
-    /**
-     * This will load the given keys from the underlying key value service and apply postFiltering so we have snapshot
-     * isolation.  If the value in the key value service is the empty array this will be included here and needs to be
-     * filtered out.
-     */
-    private ListenableFuture<Map<Cell, byte[]>> getFromKeyValueService(
-            TableReference tableRef,
-            Set<Cell> cells,
-            TransactionKeyValueService asyncKeyValueService,
-            AsyncTransactionService asyncTransactionService) {
-        Map<Cell, Long> toRead = Cells.constantValueMap(cells, getStartTimestamp());
-        ListenableFuture<Collection<Map.Entry<Cell, byte[]>>> postFilteredResults = Futures.transformAsync(
-                asyncKeyValueService.getAsync(tableRef, toRead),
-                rawResults -> getWithPostFilteringAsync(
-                        tableRef, rawResults, Value.GET_VALUE, asyncKeyValueService, asyncTransactionService),
-                MoreExecutors.directExecutor());
-
-        return Futures.transform(postFilteredResults, ImmutableMap::copyOf, MoreExecutors.directExecutor());
     }
 
     private static byte[] getNextStartRowName(
@@ -1304,7 +1263,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 postFiltered.entrySet(),
                 Predicates.compose(Predicates.in(prePostFilterCells.keySet()), MapEntries.getKeyFunction()));
         Collection<Map.Entry<Cell, byte[]>> localWritesInRange = getLocalWritesForRange(
-                tableRef, rangeRequest.getStartInclusive(), endRowExclusive, rangeRequest.getColumnNames())
+                        tableRef, rangeRequest.getStartInclusive(), endRowExclusive, rangeRequest.getColumnNames())
                 .entrySet();
         return mergeInLocalWrites(
                 tableRef, postFilteredCells.iterator(), localWritesInRange.iterator(), rangeRequest.isReverse());
@@ -1341,9 +1300,9 @@ public class SnapshotTransaction extends AbstractTransaction
             int preFilterBatchSize)
             throws K {
         try (ClosableIterator<RowResult<byte[]>> postFilterIterator =
-                     postFilterIterator(tableRef, range, preFilterBatchSize, Value.GET_VALUE)) {
+                postFilterIterator(tableRef, range, preFilterBatchSize, Value.GET_VALUE)) {
             Iterator<RowResult<byte[]>> localWritesInRange = Cells.createRowView(getLocalWritesForRange(
-                    tableRef, range.getStartInclusive(), range.getEndExclusive(), range.getColumnNames())
+                            tableRef, range.getStartInclusive(), range.getEndExclusive(), range.getColumnNames())
                     .entrySet());
             Iterator<RowResult<byte[]>> mergeIterators =
                     mergeInLocalWritesRows(postFilterIterator, localWritesInRange, range.isReverse(), tableRef);
@@ -2186,7 +2145,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private <T> T timedAndTraced(String timerName, Supplier<T> supplier) {
         try (Timer.Context timer = getTimer(timerName).time();
-             CloseableTracer tracer = CloseableTracer.startSpan(timerName)) {
+                CloseableTracer tracer = CloseableTracer.startSpan(timerName)) {
             return supplier.get();
         }
     }
@@ -2198,7 +2157,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private boolean hasWrites() {
         return !localWriteBuffer.getLocalWrites().isEmpty()
                 && localWriteBuffer.getLocalWrites().values().stream()
-                .anyMatch(writesForTable -> !writesForTable.isEmpty());
+                        .anyMatch(writesForTable -> !writesForTable.isEmpty());
     }
 
     protected boolean hasReads() {
