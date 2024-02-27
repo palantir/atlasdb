@@ -26,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,6 +40,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public final class AtlasDbTransactionConcluderTest {
     private static final long START_TS = 1L;
     private static final long COMMIT_TS = 5L;
+
+    private static final RuntimeException RUNTIME_EXCEPTION = new RuntimeException("sad times");
 
     @Mock
     private TransactionService transactionService;
@@ -96,14 +99,28 @@ public final class AtlasDbTransactionConcluderTest {
 
     @MethodSource("unconcludedTransactionStatuses")
     @ParameterizedTest
-    public void forceTransactionConclusionPropagatesGenericException(TransactionStatus status) {
-        RuntimeException exception = new RuntimeException("i am arbitrary");
-
+    public void forceTransactionConclusionRetriesOnExceptions(TransactionStatus status) {
         when(transactionService.getV2(START_TS)).thenReturn(status);
-        doThrow(exception).when(transactionService).putUnlessExists(START_TS, TransactionConstants.FAILED_COMMIT_TS);
+        doThrow(RUNTIME_EXCEPTION)
+                .doThrow(RUNTIME_EXCEPTION)
+                .doAnswer(invocation -> null)
+                .when(transactionService)
+                .putUnlessExists(START_TS, TransactionConstants.FAILED_COMMIT_TS);
+
+        assertThat(transactionConcluder.forceTransactionConclusion(START_TS)).isEqualTo(TransactionStatus.aborted());
+    }
+
+    @MethodSource("unconcludedTransactionStatuses")
+    @ParameterizedTest
+    public void forceTransactionConclusionThrowsIfRetryLimitReached(TransactionStatus status) {
+        when(transactionService.getV2(START_TS)).thenReturn(status);
+        doThrow(RUNTIME_EXCEPTION)
+                .when(transactionService)
+                .putUnlessExists(START_TS, TransactionConstants.FAILED_COMMIT_TS);
 
         assertThatThrownBy(() -> transactionConcluder.forceTransactionConclusion(START_TS))
-                .isEqualTo(exception);
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessageContaining("Failed to force transaction conclusion");
     }
 
     private static Stream<TransactionStatus> concludedTransactionStatuses() {
