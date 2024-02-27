@@ -389,8 +389,11 @@ public class SnapshotTransaction extends AbstractTransaction
                 transactionService,
                 commitTimestampLoader,
                 allowHiddenTableAccess,
-                readSentinelBehavior,
-                new OrphanedSentinelDeleter(sweepQueue::getSweepStrategy, deleteExecutor),
+                new ReadSentinelHandler(
+                        transactionKeyValueService,
+                        transactionService,
+                        readSentinelBehavior,
+                        new OrphanedSentinelDeleter(sweepQueue::getSweepStrategy, deleteExecutor)),
                 this::getStartTimestamp,
                 this::validatePreCommitRequirementsOnReadIfNecessary,
                 deleteExecutor);

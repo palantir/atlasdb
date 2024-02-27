@@ -35,7 +35,6 @@ import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
-import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Output;
 import com.palantir.logsafe.Preconditions;
@@ -76,8 +75,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             TransactionService transactionService,
             CommitTimestampLoader commitTimestampLoader,
             boolean allowHiddenTableAccess,
-            TransactionReadSentinelBehavior readSentinelBehavior,
-            OrphanedSentinelDeleter orphanedSentinelDeleter,
+            ReadSentinelHandler readSentinelHandler,
             LongSupplier startTimestampSupplier,
             PreCommitConditionValidator preCommitConditionValidator,
             DeleteExecutor deleteExecutor) {
@@ -85,8 +83,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
         this.transactionService = transactionService;
         this.commitTimestampLoader = commitTimestampLoader;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
-        this.readSentinelHandler = new ReadSentinelHandler(
-                transactionKeyValueService, transactionService, readSentinelBehavior, orphanedSentinelDeleter);
+        this.readSentinelHandler = readSentinelHandler;
         this.startTimestampSupplier = startTimestampSupplier;
         this.preCommitConditionValidator = preCommitConditionValidator;
         this.deleteExecutor = deleteExecutor;
