@@ -73,5 +73,5 @@ public interface TransactionKeyValueService {
     void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
             throws KeyAlreadyExistsException;
 
-    Optional<TransactionKeyValueService> maybeValidationReadTarget();
+    Optional<TransactionKeyValueService> maybeValidationReadTarget(TableReference tableRef);
 }

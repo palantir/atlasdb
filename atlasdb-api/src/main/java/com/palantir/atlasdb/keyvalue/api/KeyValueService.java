@@ -722,7 +722,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     }
 
     @DoDelegate
-    default Optional<TransactionKeyValueService> maybeValidationReadTarget() {
+    default Optional<TransactionKeyValueService> maybeValidationReadTarget(TableReference _tableRef) {
         return Optional.empty();
     }
 }

@@ -103,7 +103,7 @@ public final class DefaultTransactionKeyValueService implements TransactionKeyVa
     }
 
     @Override
-    public Optional<TransactionKeyValueService> maybeValidationReadTarget() {
-        return delegate.maybeValidationReadTarget();
+    public Optional<TransactionKeyValueService> maybeValidationReadTarget(TableReference tableRef) {
+        return delegate.maybeValidationReadTarget(tableRef);
     }
 }

@@ -1013,7 +1013,7 @@ public class SnapshotTransaction extends AbstractTransaction
         long expectedNumberOfPresentCellsToFetch = numberOfExpectedPresentCells - numberOfNonDeleteLocalWrites;
 
         Optional<ListenableFuture<Map<Cell, byte[]>>> maybeFromValidationReadTarget = asyncKeyValueService
-                .maybeValidationReadTarget()
+                .maybeValidationReadTarget(tableRef)
                 .map(validationReadTarget -> getFromKeyValueService(
                         tableRef,
                         Sets.difference(cells, result.keySet()),
