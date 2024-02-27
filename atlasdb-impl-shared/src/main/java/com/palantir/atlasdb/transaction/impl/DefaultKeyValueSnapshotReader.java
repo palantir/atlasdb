@@ -32,7 +32,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
-import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -63,7 +62,7 @@ import org.jetbrains.annotations.NotNull;
 public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotReader {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultKeyValueSnapshotReader.class);
 
-    private final TransactionKeyValueService directTransactionKeyValueService;
+    private final TransactionKeyValueService transactionKeyValueService;
     private final TransactionService transactionService;
     private final CommitTimestampLoader commitTimestampLoader;
     private final boolean allowHiddenTableAccess;
@@ -73,7 +72,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
     private final DeleteExecutor deleteExecutor;
 
     public DefaultKeyValueSnapshotReader(
-            TransactionKeyValueService directTransactionKeyValueService,
+            TransactionKeyValueService transactionKeyValueService,
             TransactionService transactionService,
             CommitTimestampLoader commitTimestampLoader,
             boolean allowHiddenTableAccess,
@@ -82,12 +81,12 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             LongSupplier startTimestampSupplier,
             PreCommitConditionValidator preCommitConditionValidator,
             DeleteExecutor deleteExecutor) {
-        this.directTransactionKeyValueService = directTransactionKeyValueService;
+        this.transactionKeyValueService = transactionKeyValueService;
         this.transactionService = transactionService;
         this.commitTimestampLoader = commitTimestampLoader;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
         this.readSentinelHandler = new ReadSentinelHandler(
-                directTransactionKeyValueService, transactionService, readSentinelBehavior, orphanedSentinelDeleter);
+                transactionKeyValueService, transactionService, readSentinelBehavior, orphanedSentinelDeleter);
         this.startTimestampSupplier = startTimestampSupplier;
         this.preCommitConditionValidator = preCommitConditionValidator;
         this.deleteExecutor = deleteExecutor;
@@ -95,33 +94,33 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
 
     @Override
     public Map<Cell, byte[]> get(TableReference tableReference, Set<Cell> cells) {
-        // TODO (jkong): This is bad, but a consequence of our legacy test infrastructure.
+        // TODO (jkong): This may seem strange, but is a consequence of our legacy infrastructure.
         return AtlasFutures.getUnchecked(getInternal(
-                KeyValueServices.synchronousAsAsyncTransactionKeyValueService(directTransactionKeyValueService),
+                (tableRef, cellsByTimestamp) ->
+                        Futures.immediateFuture(transactionKeyValueService.get(tableRef, cellsByTimestamp)),
                 tableReference,
                 cells));
     }
 
     @Override
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableReference, Set<Cell> cells) {
-        return getInternal(directTransactionKeyValueService, tableReference, cells);
+        return getInternal(transactionKeyValueService::getAsync, tableReference, cells);
     }
 
     @NotNull
     private ListenableFuture<Map<Cell, byte[]>> getInternal(
-            TransactionKeyValueService transactionKeyValueService, TableReference tableReference, Set<Cell> cells) {
+            CellGetter cellGetter, TableReference tableReference, Set<Cell> cells) {
         Map<Cell, Long> timestampsByCell = Cells.constantValueMap(cells, startTimestampSupplier.getAsLong());
         ListenableFuture<Collection<Map.Entry<Cell, byte[]>>> postFilteredResults = Futures.transformAsync(
-                transactionKeyValueService.getAsync(tableReference, timestampsByCell),
-                rawResults -> getWithPostFilteringAsync(
-                        transactionKeyValueService, tableReference, rawResults, Value.GET_VALUE),
+                cellGetter.get(tableReference, timestampsByCell),
+                rawResults -> getWithPostFilteringAsync(cellGetter, tableReference, rawResults, Value.GET_VALUE),
                 MoreExecutors.directExecutor());
 
         return Futures.transform(postFilteredResults, ImmutableMap::copyOf, MoreExecutors.directExecutor());
     }
 
     private <T> ListenableFuture<Collection<Map.Entry<Cell, T>>> getWithPostFilteringAsync(
-            TransactionKeyValueService transactionKeyValueService,
+            CellGetter cellGetter,
             TableReference tableRef,
             Map<Cell, Value> rawResults,
             Function<Value, T> transformer) {
@@ -164,12 +163,12 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
         return Futures.transformAsync(
                 Futures.immediateFuture(rawResults),
                 resultsToPostFilter -> getWithPostFilteringIterate(
-                        transactionKeyValueService, tableRef, resultsToPostFilter, resultsAccumulator, transformer),
+                        cellGetter, tableRef, resultsToPostFilter, resultsAccumulator, transformer),
                 MoreExecutors.directExecutor());
     }
 
     private <T> ListenableFuture<Collection<Map.Entry<Cell, T>>> getWithPostFilteringIterate(
-            TransactionKeyValueService transactionKeyValueService,
+            CellGetter cellGetter,
             TableReference tableReference,
             Map<Cell, Value> resultsToPostFilter,
             Collection<Map.Entry<Cell, T>> resultsAccumulator,
@@ -185,7 +184,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
                                 remainingResultsToPostFilter,
                                 resultsAccumulator,
                                 transformer,
-                                transactionKeyValueService));
+                                cellGetter));
                         Preconditions.checkState(
                                 ++iterations < SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS,
                                 "Unable to filter cells to find correct result after "
@@ -210,19 +209,14 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             Map<Cell, Value> rawResults,
             @Output Collection<Map.Entry<Cell, T>> resultsCollector,
             Function<Value, T> transformer,
-            TransactionKeyValueService transactionKeyValueService) {
+            CellGetter cellGetter) {
         readSentinelHandler.trackAndMarkOrphanedSweepSentinelsForDeletion(tableRef, rawResults);
         LongSet valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
 
         return Futures.transformAsync(
                 getCommitTimestamps(tableRef, valuesStartTimestamps),
                 commitTimestamps -> collectCellsToPostFilter(
-                        tableRef,
-                        rawResults,
-                        resultsCollector,
-                        transformer,
-                        transactionKeyValueService,
-                        commitTimestamps),
+                        tableRef, rawResults, resultsCollector, transformer, cellGetter, commitTimestamps),
                 MoreExecutors.directExecutor());
     }
 
@@ -231,7 +225,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             Map<Cell, Value> rawResults,
             @Output Collection<Map.Entry<Cell, T>> resultsCollector,
             Function<Value, T> transformer,
-            TransactionKeyValueService transactionKeyValueService,
+            CellGetter cellGetter,
             LongLongMap commitTimestamps) {
         Map<Cell, Long> keysToReload = Maps.newHashMapWithExpectedSize(0);
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
@@ -289,7 +283,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
         if (!keysToReload.isEmpty()) {
             // TODO (jkong): Do we still need to do this given we validate the output? Check with @lmeireles
             return Futures.transform(
-                    transactionKeyValueService.getAsync(tableRef, keysToReload),
+                    cellGetter.get(tableRef, keysToReload),
                     nextRawResults -> {
                         boolean allPossibleCellsReadAndPresent = nextRawResults.size() == keysToReload.size();
                         preCommitConditionValidator.validatePreCommitRequirementsOnReadIfNecessary(
@@ -366,5 +360,9 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
 
     private static boolean isSweepSentinel(Value value) {
         return value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP;
+    }
+
+    interface CellGetter {
+        ListenableFuture<Map<Cell, Value>> get(TableReference tableRef, Map<Cell, Long> timestampByCell);
     }
 }
