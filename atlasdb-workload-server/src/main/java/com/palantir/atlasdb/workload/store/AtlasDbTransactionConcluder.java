@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.workload.store;
 
-import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
@@ -48,7 +47,8 @@ public final class AtlasDbTransactionConcluder {
                 if (isConclusiveTransactionStatus(transactionStatus)) {
                     return transactionStatus;
                 }
-                // Otherwise try again: this can happen if we race with e.g. a Transactions4 start
+                // Otherwise try again: this can happen if we race with e.g. a Transactions4 start, or had issues
+                // connecting to the database
             }
         }
 
@@ -56,12 +56,12 @@ public final class AtlasDbTransactionConcluder {
                 "Failed to force transaction conclusion", SafeArg.of("attempts", MAX_ATTEMPTS));
     }
 
-    // Returns true iff we successfully aborted the transaction at this start timestamp
+    // Returns true if we successfully aborted the transaction at this start timestamp
     private boolean tryAbortTransaction(long startTimestamp) {
         try {
             transactionService.putUnlessExists(startTimestamp, TransactionConstants.FAILED_COMMIT_TS);
             return true;
-        } catch (KeyAlreadyExistsException keyAlreadyExistsException) {
+        } catch (RuntimeException e) {
             return false;
         }
     }

@@ -23,8 +23,8 @@ import java.util.Optional;
  * may implement more functionality.
  *
  * This store is read only, in the sense that it does not allow for users to directly write to the underlying data
- * tables. However, reads to the underlying store may require writes to be performed to the transactions table or other
- * AtlasDB internal tables, following the protocol.
+ * tables. However, determining conclusively if a transaction was committed (see
+ * {@link #isCommittedForcingTransactionConclusion(long)} may require writing to the transactions table.
  */
 public final class ReadOnlyTransactionStore implements ReadableTransactionStore {
     private final ReadableTransactionStore delegate;
