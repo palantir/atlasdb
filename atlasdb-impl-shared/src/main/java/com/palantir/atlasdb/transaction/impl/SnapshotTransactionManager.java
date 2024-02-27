@@ -86,7 +86,7 @@ import java.util.stream.Collectors;
     private static final int NUM_RETRIES = 10;
 
     final MetricsManager metricsManager;
-    final TransactionKeyValueServiceManager keyValueService;
+    final TransactionKeyValueServiceManager transactionKeyValueServiceManager;
     final TransactionService transactionService;
     final TimelockService timelockService;
     final LockWatchManagerInternal lockWatchManager;
@@ -115,7 +115,7 @@ import java.util.stream.Collectors;
 
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
-            TransactionKeyValueServiceManager keyValueService,
+            TransactionKeyValueServiceManager transactionKeyValueServiceManager,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TimestampManagementService timestampManagementService,
@@ -141,7 +141,7 @@ import java.util.stream.Collectors;
         this.lockWatchManager = lockWatchManager;
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
-        this.keyValueService = keyValueService;
+        this.transactionKeyValueServiceManager = transactionKeyValueServiceManager;
         this.timelockService = timelockService;
         this.timestampManagementService = timestampManagementService;
         this.lockService = lockService;
@@ -307,7 +307,7 @@ import java.util.stream.Collectors;
             PreCommitCondition condition) {
         return new SnapshotTransaction(
                 metricsManager,
-                keyValueService.getTransactionKeyValueService(startTimestampSupplier),
+                transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
                 timelockService,
                 lockWatchManager,
                 transactionService,
@@ -351,7 +351,7 @@ import java.util.stream.Collectors;
         LongSupplier startTimestampSupplier = getStartTimestampSupplier();
         SnapshotTransaction transaction = new SnapshotTransaction(
                 metricsManager,
-                keyValueService.getTransactionKeyValueService(startTimestampSupplier),
+                transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
                 timelockService,
                 NoOpLockWatchManager.create(),
                 transactionService,
@@ -409,7 +409,7 @@ import java.util.stream.Collectors;
                 SafeShutdownRunner.createWithCachedThreadpool(Duration.ofSeconds(20))) {
             shutdownRunner.shutdownSafely(super::close);
             shutdownRunner.shutdownSafely(cleaner::close);
-            shutdownRunner.shutdownSafely(keyValueService::close);
+            shutdownRunner.shutdownSafely(transactionKeyValueServiceManager::close);
             shutdownRunner.shutdownSafely(deleteExecutor::close);
             shutdownRunner.shutdownSafely(() -> shutdownExecutor(getRangesExecutor));
             shutdownRunner.shutdownSafely(this::closeLockServiceIfPossible);
@@ -511,7 +511,7 @@ import java.util.stream.Collectors;
 
     @Override
     public KeyValueService getKeyValueService() {
-        return keyValueService
+        return transactionKeyValueServiceManager
                 .getKeyValueService()
                 .orElseThrow(() -> new SafeIllegalStateException("KeyValueService is not supported"));
     }

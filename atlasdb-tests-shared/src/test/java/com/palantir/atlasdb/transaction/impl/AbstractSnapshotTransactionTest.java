@@ -210,7 +210,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
 
     private final String name;
     private final WrapperWithTracker<CallbackAwareTransaction> transactionWrapper;
-    private final WrapperWithTracker<TransactionKeyValueService> keyValueServiceWrapper;
+    private final WrapperWithTracker<TransactionKeyValueService> transactionKeyValueServiceWrapper;
 
     private final Map<String, ExpectationFactory> expectationsMapping =
             ImmutableMap.<String, ExpectationFactory>builder()
@@ -232,25 +232,28 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
     @FunctionalInterface
     interface ExpectationFactory {
         Expectations apply(
-                TransactionKeyValueService keyValueService, Cell cell, long transactionTs, LockService lockService)
+                TransactionKeyValueService transactionKeyValueService,
+                Cell cell,
+                long transactionTs,
+                LockService lockService)
                 throws InterruptedException;
     }
 
     private Expectations syncGetExpectation(
-            TransactionKeyValueService kvMock, Cell cell, long transactionTs, LockService lockMock) {
+            TransactionKeyValueService tkvMock, Cell cell, long transactionTs, LockService lockMock) {
         return new Expectations() {
             {
-                oneOf(kvMock).get(TABLE, ImmutableMap.of(cell, transactionTs));
+                oneOf(tkvMock).get(TABLE, ImmutableMap.of(cell, transactionTs));
                 will(throwException(new RuntimeException()));
             }
         };
     }
 
     private Expectations asyncGetExpectation(
-            TransactionKeyValueService kvMock, Cell cell, long transactionTs, LockService lockMock) {
+            TransactionKeyValueService tkvMock, Cell cell, long transactionTs, LockService lockMock) {
         return new Expectations() {
             {
-                oneOf(kvMock).getAsync(TABLE, ImmutableMap.of(cell, transactionTs));
+                oneOf(tkvMock).getAsync(TABLE, ImmutableMap.of(cell, transactionTs));
                 will(returnValue(Futures.immediateFailedFuture(new RuntimeException())));
             }
         };
@@ -259,10 +262,10 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
     public AbstractSnapshotTransactionTest(
             String name,
             WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
-            WrapperWithTracker<TransactionKeyValueService> keyValueServiceWrapper) {
+            WrapperWithTracker<TransactionKeyValueService> transactionKeyValueServiceWrapper) {
         this.name = name;
         this.transactionWrapper = transactionWrapper;
-        this.keyValueServiceWrapper = keyValueServiceWrapper;
+        this.transactionKeyValueServiceWrapper = transactionKeyValueServiceWrapper;
     }
 
     private static class UnstableKeyValueService implements AutoDelegate_KeyValueService {
@@ -386,7 +389,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 deleteExecutor,
                 transactionWrapper,
-                keyValueServiceWrapper,
+                transactionKeyValueServiceWrapper,
                 knowledge);
     }
 
@@ -455,11 +458,11 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
         });
 
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
-        TransactionKeyValueService kvs = keyValueServiceWrapper.apply(tkvsMock, pathTypeTracker);
+        TransactionKeyValueService tkvs = transactionKeyValueServiceWrapper.apply(tkvsMock, pathTypeTracker);
         Transaction snapshot = transactionWrapper.apply(
                 new SnapshotTransaction(
                         metricsManager,
-                        kvs,
+                        tkvs,
                         inMemoryTimelockExtension.getLegacyTimelockService(),
                         NoOpLockWatchManager.create(),
                         transactionService,
@@ -516,7 +519,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 MoreExecutors.newDirectExecutorService(),
                 transactionWrapper,
-                keyValueServiceWrapper,
+                transactionKeyValueServiceWrapper,
                 knowledge);
 
         ScheduledExecutorService service = PTExecutors.newScheduledThreadPool(20);
@@ -1048,7 +1051,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 executor,
                 transactionWrapper,
-                keyValueServiceWrapper,
+                transactionKeyValueServiceWrapper,
                 knowledge);
 
         Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);
@@ -3295,11 +3298,11 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
             LockWatchManagerInternal mockLockWatchManager,
             PathTypeTracker pathTypeTracker) {
         LongSupplier startTimestampSupplier = Suppliers.ofInstance(transactionTs)::get;
-        TransactionKeyValueService wrappedKeyValueService = keyValueServiceWrapper.apply(
+        TransactionKeyValueService wrappedTransactionKeyValueService = transactionKeyValueServiceWrapper.apply(
                 txnKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier), pathTypeTracker);
         return new SnapshotTransaction(
                 metricsManager,
-                wrappedKeyValueService,
+                wrappedTransactionKeyValueService,
                 timelockService,
                 mockLockWatchManager,
                 transactionService,
@@ -3352,11 +3355,11 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
             boolean validateLocksOnReads,
             Map<TableReference, ConflictHandler> tableConflictHandlers) {
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
-        TransactionKeyValueService wrappedKeyValueService = keyValueServiceWrapper.apply(
+        TransactionKeyValueService wrappedTransactionKeyValueService = transactionKeyValueServiceWrapper.apply(
                 txnKeyValueServiceManager.getTransactionKeyValueService(startTs::get), pathTypeTracker);
         SnapshotTransaction transaction = new SnapshotTransaction(
                 metricsManager,
-                wrappedKeyValueService,
+                wrappedTransactionKeyValueService,
                 timelockService,
                 inMemoryTimelockExtension.getLockWatchManager(),
                 transactionService,

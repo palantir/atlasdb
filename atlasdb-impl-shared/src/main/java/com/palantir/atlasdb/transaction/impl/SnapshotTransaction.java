@@ -106,8 +106,8 @@ import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionWriteMetadataInfo;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
 import com.palantir.atlasdb.transaction.impl.expectations.CellCountValidator;
-import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueService;
-import com.palantir.atlasdb.transaction.impl.expectations.TrackingKeyValueServiceImpl;
+import com.palantir.atlasdb.transaction.impl.expectations.TrackingTransactionKeyValueService;
+import com.palantir.atlasdb.transaction.impl.expectations.TrackingTransactionKeyValueServiceImpl;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionMetrics;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
@@ -241,8 +241,8 @@ public class SnapshotTransaction extends AbstractTransaction
 
     protected final TimelockService timelockService;
     protected final LockWatchManagerInternal lockWatchManager;
-    final TrackingKeyValueService keyValueService;
-    final TransactionKeyValueService immediateKeyValueService;
+    final TrackingTransactionKeyValueService transactionKeyValueService;
+    final TransactionKeyValueService immediateTransactionKeyValueService;
     final TransactionService defaultTransactionService;
     private final AsyncTransactionService immediateTransactionService;
     private final Cleaner cleaner;
@@ -309,7 +309,7 @@ public class SnapshotTransaction extends AbstractTransaction
      */
     /* package */ SnapshotTransaction(
             MetricsManager metricsManager,
-            TransactionKeyValueService delegateKeyValueService,
+            TransactionKeyValueService delegateTransactionKeyValueService,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TransactionService transactionService,
@@ -338,8 +338,10 @@ public class SnapshotTransaction extends AbstractTransaction
         this.lockWatchManager = lockWatchManager;
         this.conflictTracer = conflictTracer;
         this.transactionTimerContext = getTimer("transactionMillis").time();
-        this.keyValueService = new TrackingKeyValueServiceImpl(delegateKeyValueService);
-        this.immediateKeyValueService = KeyValueServices.synchronousAsAsyncKeyValueService(keyValueService);
+        this.transactionKeyValueService =
+                new TrackingTransactionKeyValueServiceImpl(delegateTransactionKeyValueService);
+        this.immediateTransactionKeyValueService =
+                KeyValueServices.synchronousAsAsyncTransactionKeyValueService(transactionKeyValueService);
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
         this.immediateTransactionService = TransactionServices.synchronousAsAsyncTransactionService(transactionService);
@@ -436,7 +438,7 @@ public class SnapshotTransaction extends AbstractTransaction
                                 tableRef,
                                 cells,
                                 cells.size(),
-                                immediateKeyValueService,
+                                immediateTransactionKeyValueService,
                                 immediateTransactionService)),
                         unCachedRows -> getRowsInternal(tableRef, unCachedRows, columnSelection));
     }
@@ -451,7 +453,7 @@ public class SnapshotTransaction extends AbstractTransaction
         hasReads = true;
         ImmutableSortedMap.Builder<Cell, byte[]> result = ImmutableSortedMap.naturalOrder();
         Map<Cell, Value> rawResults =
-                new HashMap<>(keyValueService.getRows(tableRef, rows, columnSelection, getStartTimestamp()));
+                new HashMap<>(transactionKeyValueService.getRows(tableRef, rows, columnSelection, getStartTimestamp()));
         NavigableMap<Cell, byte[]> writes = localWriteBuffer.getLocalWrites().get(tableRef);
         if (writes != null && !writes.isEmpty()) {
             for (byte[] row : rows) {
@@ -496,7 +498,7 @@ public class SnapshotTransaction extends AbstractTransaction
         }
         ImmutableList<byte[]> stableRows = ImmutableList.copyOf(rows);
         hasReads = true;
-        RowColumnRangeIterator rawResults = keyValueService.getRowsColumnRange(
+        RowColumnRangeIterator rawResults = transactionKeyValueService.getRowsColumnRange(
                 tableRef, stableRows, columnRangeSelection, batchHint, getStartTimestamp());
         if (!rawResults.hasNext()) {
             // we can't skip checks for range scans
@@ -518,7 +520,8 @@ public class SnapshotTransaction extends AbstractTransaction
         }
         hasReads = true;
         ImmutableSortedMap<byte[], RowColumnRangeIterator> rawResults = ImmutableSortedMap.copyOf(
-                keyValueService.getRowsColumnRange(tableRef, rows, columnRangeSelection, getStartTimestamp()),
+                transactionKeyValueService.getRowsColumnRange(
+                        tableRef, rows, columnRangeSelection, getStartTimestamp()),
                 PtBytes.BYTES_COMPARATOR);
         ImmutableSortedMap<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults = Streams.stream(rows)
                 .collect(ImmutableSortedMap.toImmutableSortedMap(PtBytes.BYTES_COMPARATOR, row -> row, row -> {
@@ -557,8 +560,8 @@ public class SnapshotTransaction extends AbstractTransaction
         BatchColumnRangeSelection perBatchSelection = BatchColumnRangeSelection.create(
                 batchColumnRangeSelection.getStartCol(), batchColumnRangeSelection.getEndCol(), batchSize);
 
-        Map<byte[], RowColumnRangeIterator> rawResults =
-                keyValueService.getRowsColumnRange(tableRef, distinctRows, perBatchSelection, getStartTimestamp());
+        Map<byte[], RowColumnRangeIterator> rawResults = transactionKeyValueService.getRowsColumnRange(
+                tableRef, distinctRows, perBatchSelection, getStartTimestamp());
 
         return scopeToTransaction(
                 getPostFilteredSortedColumns(tableRef, batchColumnRangeSelection, distinctRows, rawResults));
@@ -728,8 +731,8 @@ public class SnapshotTransaction extends AbstractTransaction
             byte[] row,
             BatchColumnRangeSelection columnRangeSelection,
             RowColumnRangeIterator rawIterator) {
-        ColumnRangeBatchProvider batchProvider =
-                new ColumnRangeBatchProvider(keyValueService, tableRef, row, columnRangeSelection, getStartTimestamp());
+        ColumnRangeBatchProvider batchProvider = new ColumnRangeBatchProvider(
+                transactionKeyValueService, tableRef, row, columnRangeSelection, getStartTimestamp());
         return GetRowsColumnRangeIterator.iterator(
                 batchProvider,
                 rawIterator,
@@ -867,8 +870,8 @@ public class SnapshotTransaction extends AbstractTransaction
         }
         hasReads = true;
 
-        Map<Cell, Value> rawResults =
-                new HashMap<>(keyValueService.getRows(tableRef, rows, ColumnSelection.all(), getStartTimestamp()));
+        Map<Cell, Value> rawResults = new HashMap<>(
+                transactionKeyValueService.getRows(tableRef, rows, ColumnSelection.all(), getStartTimestamp()));
 
         // can't skip lock check as we don't know how many cells to expect for the column selection
         validatePreCommitRequirementsOnNonExhaustiveReadIfNecessary(tableRef, getStartTimestamp());
@@ -930,7 +933,7 @@ public class SnapshotTransaction extends AbstractTransaction
                                 tableRef,
                                 uncached,
                                 uncached.size(),
-                                immediateKeyValueService,
+                                immediateTransactionKeyValueService,
                                 immediateTransactionService));
     }
 
@@ -948,7 +951,7 @@ public class SnapshotTransaction extends AbstractTransaction
                         tableRef,
                         cacheLookupResult.missedCells(),
                         numberOfCellsExpectingValuePostCache,
-                        immediateKeyValueService,
+                        immediateTransactionKeyValueService,
                         immediateTransactionService);
             }));
         } catch (MoreCellsPresentThanExpectedException e) {
@@ -968,7 +971,7 @@ public class SnapshotTransaction extends AbstractTransaction
                                 tableRef,
                                 uncached,
                                 uncached.size(),
-                                keyValueService,
+                                transactionKeyValueService,
                                 defaultTransactionService)));
     }
 
@@ -1043,8 +1046,8 @@ public class SnapshotTransaction extends AbstractTransaction
         }
         hasReads = true;
 
-        ListenableFuture<Map<Cell, byte[]>> result =
-                getFromKeyValueService(tableRef, cells, immediateKeyValueService, immediateTransactionService);
+        ListenableFuture<Map<Cell, byte[]>> result = getFromKeyValueService(
+                tableRef, cells, immediateTransactionKeyValueService, immediateTransactionService);
 
         Map<Cell, byte[]> unfiltered = Futures.getUnchecked(result);
         Map<Cell, byte[]> filtered = Maps.filterValues(unfiltered, Predicates.not(Value::isTombstone));
@@ -1105,7 +1108,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 .transformAndConcat(input -> {
                     Timer.Context timer = getTimer("processedRangeMillis").time();
                     Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> firstPages =
-                            keyValueService.getFirstBatchForRanges(tableRef, input, getStartTimestamp());
+                            transactionKeyValueService.getFirstBatchForRanges(tableRef, input, getStartTimestamp());
                     // can't skip lock check for range scans
                     validatePreCommitRequirementsOnNonExhaustiveReadIfNecessary(tableRef, getStartTimestamp());
 
@@ -1410,7 +1413,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected <T> ClosableIterator<RowResult<T>> postFilterIterator(
             TableReference tableRef, RangeRequest range, int preFilterBatchSize, Function<Value, T> transformer) {
         RowRangeBatchProvider batchProvider =
-                new RowRangeBatchProvider(keyValueService, tableRef, range, getStartTimestamp());
+                new RowRangeBatchProvider(transactionKeyValueService, tableRef, range, getStartTimestamp());
         BatchSizeIncreasingIterator<RowResult<Value>> results =
                 new BatchSizeIncreasingIterator<>(batchProvider, preFilterBatchSize, null);
         Iterator<Iterator<RowResult<T>>> batchedPostFiltered = new AbstractIterator<Iterator<RowResult<T>>>() {
@@ -1517,7 +1520,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private <T> Collection<Map.Entry<Cell, T>> getWithPostFilteringSync(
             TableReference tableRef, Map<Cell, Value> rawResults, Function<Value, T> transformer) {
         return AtlasFutures.getUnchecked(getWithPostFilteringAsync(
-                tableRef, rawResults, transformer, immediateKeyValueService, immediateTransactionService));
+                tableRef, rawResults, transformer, immediateTransactionKeyValueService, immediateTransactionService));
     }
 
     private <T> ListenableFuture<Collection<Map.Entry<Cell, T>>> getWithPostFilteringAsync(
@@ -1628,7 +1631,7 @@ public class SnapshotTransaction extends AbstractTransaction
         // if committed value seen, stop: the sentinel is not orphaned
         // if we get back -1, the sentinel is orphaned
         Map<Cell, Long> timestampCandidates = new HashMap<>(
-                keyValueService.getLatestTimestamps(table, Maps.asMap(sweepSentinels, x -> Long.MAX_VALUE)));
+                transactionKeyValueService.getLatestTimestamps(table, Maps.asMap(sweepSentinels, x -> Long.MAX_VALUE)));
         Set<Cell> actualOrphanedSentinels = new HashSet<>();
 
         while (!timestampCandidates.isEmpty()) {
@@ -1657,7 +1660,7 @@ public class SnapshotTransaction extends AbstractTransaction
             Map<Cell, Long> nextTimestampCandidates = KeyedStream.stream(cellsToQuery)
                     .filter(cellStartTimestamp -> !committedStartTimestamps.contains(cellStartTimestamp))
                     .collectToMap();
-            timestampCandidates = keyValueService.getLatestTimestamps(table, nextTimestampCandidates);
+            timestampCandidates = transactionKeyValueService.getLatestTimestamps(table, nextTimestampCandidates);
         }
 
         deleteOrphanedSentinelsAsync(table, actualOrphanedSentinels);
@@ -2108,7 +2111,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
                 // Write to the key value service. We must do this before getting the commit timestamp - otherwise
                 // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
-                timedAndTraced("commitWrite", () -> keyValueService.multiPut(writes, getStartTimestamp()));
+                timedAndTraced("commitWrite", () -> transactionKeyValueService.multiPut(writes, getStartTimestamp()));
 
                 // Now that all writes are done, get the commit timestamp
                 // We must do this before we check that our locks are still valid to ensure that other transactions that
@@ -2331,7 +2334,7 @@ public class SnapshotTransaction extends AbstractTransaction
         }
 
         Map<Cell, byte[]> oldValues = getIgnoringLocalWrites(table, cellToTs.keySet());
-        Map<Cell, Value> conflictingValues = keyValueService.get(table, cellToTs);
+        Map<Cell, Value> conflictingValues = transactionKeyValueService.get(table, cellToTs);
 
         Set<Cell> conflictingCells = new HashSet<>();
         for (Map.Entry<Cell, Long> cellEntry : cellToTs.entrySet()) {
@@ -2393,7 +2396,7 @@ public class SnapshotTransaction extends AbstractTransaction
             @Output Set<CellConflict> dominatingWrites,
             TransactionService transactionService) {
         long startTs = getStartTimestamp();
-        Map<Cell, Long> rawResults = keyValueService.getLatestTimestamps(tableRef, keysToLoad);
+        Map<Cell, Long> rawResults = transactionKeyValueService.getLatestTimestamps(tableRef, keysToLoad);
         LongLongMap commitTimestamps =
                 getCommitTimestampsSync(tableRef, LongLists.immutable.ofAll(rawResults.values()), false);
 
@@ -2786,7 +2789,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     @Override
     public TransactionReadInfo getReadInfo() {
-        return keyValueService.getOverallReadInfo();
+        return transactionKeyValueService.getOverallReadInfo();
     }
 
     @Override

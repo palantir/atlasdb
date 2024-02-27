@@ -54,7 +54,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
 
     private final Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
     private final WrapperWithTracker<CallbackAwareTransaction> transactionWrapper;
-    private final WrapperWithTracker<TransactionKeyValueService> keyValueServiceWrapper;
+    private final WrapperWithTracker<TransactionKeyValueService> transactionKeyValueServiceWrapper;
     private Optional<Long> unreadableTs = Optional.empty();
 
     public TestTransactionManagerImpl(
@@ -81,7 +81,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 sweepQueue,
                 deleteExecutor,
                 WrapperWithTracker.TRANSACTION_NO_OP,
-                WrapperWithTracker.KEY_VALUE_SERVICE_NO_OP,
+                WrapperWithTracker.TRANSACTION_KEY_VALUE_SERVICE_NO_OP,
                 knowledge);
     }
 
@@ -97,7 +97,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor,
             WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
-            WrapperWithTracker<TransactionKeyValueService> keyValueServiceWrapper,
+            WrapperWithTracker<TransactionKeyValueService> transactionKeyValueServiceWrapper,
             TransactionKnowledgeComponents knowledge) {
         this(
                 metricsManager,
@@ -111,7 +111,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 sweepQueue,
                 deleteExecutor,
                 transactionWrapper,
-                keyValueServiceWrapper,
+                transactionKeyValueServiceWrapper,
                 knowledge);
     }
 
@@ -127,7 +127,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor,
             WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
-            WrapperWithTracker<TransactionKeyValueService> keyValueServiceWrapper,
+            WrapperWithTracker<TransactionKeyValueService> transactionKeyValueServiceWrapper,
             TransactionKnowledgeComponents knowledge) {
         super(
                 metricsManager,
@@ -154,7 +154,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 Optional.empty(),
                 knowledge);
         this.transactionWrapper = transactionWrapper;
-        this.keyValueServiceWrapper = keyValueServiceWrapper;
+        this.transactionKeyValueServiceWrapper = transactionKeyValueServiceWrapper;
     }
 
     @Override
@@ -187,8 +187,9 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
         return transactionWrapper.apply(
                 new SerializableTransaction(
                         metricsManager,
-                        keyValueServiceWrapper.apply(
-                                keyValueService.getTransactionKeyValueService(startTimestampSupplier), pathTypeTracker),
+                        transactionKeyValueServiceWrapper.apply(
+                                transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
+                                pathTypeTracker),
                         timelockService,
                         lockWatchManager,
                         transactionService,

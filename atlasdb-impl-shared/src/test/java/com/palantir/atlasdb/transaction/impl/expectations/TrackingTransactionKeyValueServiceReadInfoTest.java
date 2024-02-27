@@ -57,7 +57,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * Note that the range of possible sizes will be larger if we use different sizes for different tests.
  */
 @ExtendWith(MockitoExtension.class)
-public final class TrackingKeyValueServiceReadInfoTest {
+public final class TrackingTransactionKeyValueServiceReadInfoTest {
     private static final String PARAMETERIZED_TEST_NAME = "size = {0}";
 
     public static List<Integer> sizes() {
@@ -73,14 +73,14 @@ public final class TrackingKeyValueServiceReadInfoTest {
     private RangeRequest rangeRequest;
 
     @Mock
-    private TransactionKeyValueService kvs;
+    private TransactionKeyValueService tkvs;
 
-    private TrackingKeyValueService trackingKvs;
+    private TrackingTransactionKeyValueService trackingKvs;
     private ImmutableMap<Cell, Value> valueByCellMapOfSize;
 
     @BeforeEach
     public void beforeEach() {
-        this.trackingKvs = new TrackingKeyValueServiceImpl(kvs);
+        this.trackingKvs = new TrackingTransactionKeyValueServiceImpl(tkvs);
     }
 
     @Mock
@@ -93,7 +93,7 @@ public final class TrackingKeyValueServiceReadInfoTest {
     @MethodSource("sizes")
     public void readInfoIsCorrectAfterGetAsyncCallAndFutureConsumption(int size) {
         setup(size);
-        when(kvs.getAsync(tableReference, timestampByCellMap))
+        when(tkvs.getAsync(tableReference, timestampByCellMap))
                 .thenReturn(Futures.immediateFuture(valueByCellMapOfSize));
 
         trackingKvs.getAsync(tableReference, timestampByCellMap);
@@ -106,7 +106,7 @@ public final class TrackingKeyValueServiceReadInfoTest {
     public void getAsyncTracksNothingBeforeDelegateResultCompletionAndTracksReadsAfterCompletion(int size) {
         setup(size);
         SettableFuture<Map<Cell, Value>> delegateFuture = SettableFuture.create();
-        when(kvs.getAsync(tableReference, timestampByCellMap)).thenReturn(delegateFuture);
+        when(tkvs.getAsync(tableReference, timestampByCellMap)).thenReturn(delegateFuture);
         trackingKvs.getAsync(tableReference, timestampByCellMap);
 
         // tracking nothing
@@ -127,7 +127,7 @@ public final class TrackingKeyValueServiceReadInfoTest {
     @MethodSource("sizes")
     public void throwingGetAsyncResultTracksNothing(int size) {
         setup(size);
-        when(kvs.getAsync(tableReference, timestampByCellMap))
+        when(tkvs.getAsync(tableReference, timestampByCellMap))
                 .thenReturn(Futures.immediateFailedFuture(new RuntimeException()));
 
         // ignore exception
@@ -147,7 +147,7 @@ public final class TrackingKeyValueServiceReadInfoTest {
     public void readInfoIsCorrectAfterGetRowsCall(int size) {
         setup(size);
         ColumnSelection columnSelection = mock(ColumnSelection.class);
-        when(kvs.getRows(tableReference, rows, columnSelection, TIMESTAMP)).thenReturn(valueByCellMapOfSize);
+        when(tkvs.getRows(tableReference, rows, columnSelection, TIMESTAMP)).thenReturn(valueByCellMapOfSize);
 
         trackingKvs.getRows(tableReference, rows, columnSelection, TIMESTAMP);
 
@@ -159,7 +159,7 @@ public final class TrackingKeyValueServiceReadInfoTest {
     public void readInfoIsCorrectAfterGetRowsBatchColumnRangeCallAndIteratorsConsumption(int size) {
         setup(size);
         BatchColumnRangeSelection batchColumnRangeSelection = mock(BatchColumnRangeSelection.class);
-        when(kvs.getRowsColumnRange(tableReference, rows, batchColumnRangeSelection, TIMESTAMP))
+        when(tkvs.getRowsColumnRange(tableReference, rows, batchColumnRangeSelection, TIMESTAMP))
                 .thenReturn(TrackingKeyValueServiceTestUtils.createRowColumnRangeIteratorByByteArrayMutableMapWithSize(
                         size));
 
@@ -177,7 +177,7 @@ public final class TrackingKeyValueServiceReadInfoTest {
         setup(size);
         int cellBatchHint = 17;
         ColumnRangeSelection columnRangeSelection = mock(ColumnRangeSelection.class);
-        when(kvs.getRowsColumnRange(tableReference, rows, columnRangeSelection, cellBatchHint, TIMESTAMP))
+        when(tkvs.getRowsColumnRange(tableReference, rows, columnRangeSelection, cellBatchHint, TIMESTAMP))
                 .thenReturn(new LocalRowColumnRangeIterator(
                         valueByCellMapOfSize.entrySet().iterator()));
 
@@ -192,7 +192,7 @@ public final class TrackingKeyValueServiceReadInfoTest {
     @MethodSource("sizes")
     public void readInfoIsCorrectAfterGetCall(int size) {
         setup(size);
-        when(kvs.get(tableReference, timestampByCellMap)).thenReturn(valueByCellMapOfSize);
+        when(tkvs.get(tableReference, timestampByCellMap)).thenReturn(valueByCellMapOfSize);
 
         trackingKvs.get(tableReference, timestampByCellMap);
 
@@ -204,7 +204,7 @@ public final class TrackingKeyValueServiceReadInfoTest {
     public void readInfoIsCorrectAfterGetLatestTimestampsCall(int size) {
         setup(size);
         Map<Cell, Long> timestampByCellMapOfSize = TrackingKeyValueServiceTestUtils.createLongByCellMapWithSize(size);
-        when(kvs.getLatestTimestamps(tableReference, timestampByCellMap)).thenReturn(timestampByCellMapOfSize);
+        when(tkvs.getLatestTimestamps(tableReference, timestampByCellMap)).thenReturn(timestampByCellMapOfSize);
 
         trackingKvs.getLatestTimestamps(tableReference, timestampByCellMap);
 
@@ -219,7 +219,7 @@ public final class TrackingKeyValueServiceReadInfoTest {
         List<RowResult<Value>> backingValueRowResultListOfSize =
                 TrackingKeyValueServiceTestUtils.createValueRowResultListWithSize(size);
 
-        when(kvs.getRange(tableReference, rangeRequest, TIMESTAMP))
+        when(tkvs.getRange(tableReference, rangeRequest, TIMESTAMP))
                 .thenReturn(ClosableIterators.wrapWithEmptyClose(backingValueRowResultListOfSize.iterator()));
 
         trackingKvs.getRange(tableReference, rangeRequest, TIMESTAMP).forEachRemaining(_unused -> {});
@@ -235,7 +235,7 @@ public final class TrackingKeyValueServiceReadInfoTest {
         Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> pageByRangeRequestMapOfSize =
                 TrackingKeyValueServiceTestUtils.createPageByRangeRequestMapWithSize(size);
 
-        when(kvs.getFirstBatchForRanges(tableReference, rangeRequests, TIMESTAMP))
+        when(tkvs.getFirstBatchForRanges(tableReference, rangeRequests, TIMESTAMP))
                 .thenReturn(pageByRangeRequestMapOfSize);
 
         trackingKvs.getFirstBatchForRanges(tableReference, rangeRequests, TIMESTAMP);

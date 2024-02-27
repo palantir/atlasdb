@@ -40,12 +40,12 @@ import java.util.Map;
 import java.util.function.ToLongFunction;
 import one.util.streamex.EntryStream;
 
-public final class TrackingKeyValueServiceImpl
-        implements AutoDelegate_TransactionKeyValueService, TrackingKeyValueService {
+public final class TrackingTransactionKeyValueServiceImpl
+        implements AutoDelegate_TransactionKeyValueService, TrackingTransactionKeyValueService {
     private final TransactionKeyValueService delegate;
     private final KeyValueServiceDataTracker tracker = new KeyValueServiceDataTracker();
 
-    public TrackingKeyValueServiceImpl(TransactionKeyValueService delegate) {
+    public TrackingTransactionKeyValueServiceImpl(TransactionKeyValueService delegate) {
         this.delegate = delegate;
     }
 

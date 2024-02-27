@@ -54,16 +54,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 /**
- * Broadly tests that {@link TrackingKeyValueServiceImpl} methods forward delegate results using: physical equality
+ * Broadly tests that {@link TrackingTransactionKeyValueServiceImpl} methods forward delegate results using: physical equality
  * when relevant, and element/component physical equality when the semantics are different (methods returning
  * iterators or collections of iterators).
  * Mocks are used whenever possible. Exceptions include: types which cannot be mocked (e.g. byte arrays),
  * interfaces/implementations annotated with {@link org.mockito.DoNotMock} or similar (e.g. {@link Multimap}), and
  * when the method semantics and resulting tests impose it (e.g. methods where an iterator is wrapped can only be tested
- * by equality/in-order testing of its components, {@link TrackingKeyValueServiceImpl#getCandidateCellsForSweeping}).
+ * by equality/in-order testing of its components, {@link TrackingTransactionKeyValueServiceImpl#getCandidateCellsForSweeping}).
  */
 @ExtendWith(MockitoExtension.class)
-public final class TrackingKeyValueServiceForwardingTest {
+public final class TrackingTransactionKeyValueServiceForwardingTest {
     private static final long TIMESTAMP = 12L;
     private static final byte[] BYTES_1 = new byte[1];
     private static final byte[] BYTES_2 = new byte[2];
@@ -90,11 +90,11 @@ public final class TrackingKeyValueServiceForwardingTest {
     @Mock
     private TransactionKeyValueService delegate;
 
-    private TrackingKeyValueService trackingKvs;
+    private TrackingTransactionKeyValueService trackingKvs;
 
     @BeforeEach
     public void setUp() {
-        trackingKvs = new TrackingKeyValueServiceImpl(delegate);
+        trackingKvs = new TrackingTransactionKeyValueServiceImpl(delegate);
     }
 
     @Test
