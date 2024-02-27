@@ -458,11 +458,12 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
         });
 
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
-        TransactionKeyValueService tkvs = transactionKeyValueServiceWrapper.apply(tkvsMock, pathTypeTracker);
+        TransactionKeyValueService wrappedTransactionKeyValueService =
+                transactionKeyValueServiceWrapper.apply(tkvsMock, pathTypeTracker);
         Transaction snapshot = transactionWrapper.apply(
                 new SnapshotTransaction(
                         metricsManager,
-                        tkvs,
+                        wrappedTransactionKeyValueService,
                         inMemoryTimelockExtension.getLegacyTimelockService(),
                         NoOpLockWatchManager.create(),
                         transactionService,
