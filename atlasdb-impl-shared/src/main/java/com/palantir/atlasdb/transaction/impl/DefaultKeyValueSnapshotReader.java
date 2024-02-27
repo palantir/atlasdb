@@ -63,7 +63,7 @@ import org.jetbrains.annotations.NotNull;
 public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotReader {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultKeyValueSnapshotReader.class);
 
-    private final TransactionKeyValueService transactionKeyValueService;
+    private final TransactionKeyValueService directTransactionKeyValueService;
     private final TransactionService transactionService;
     private final CommitTimestampLoader commitTimestampLoader;
     private final boolean allowHiddenTableAccess;
@@ -73,7 +73,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
     private final DeleteExecutor deleteExecutor;
 
     public DefaultKeyValueSnapshotReader(
-            TransactionKeyValueService transactionKeyValueService,
+            TransactionKeyValueService directTransactionKeyValueService,
             TransactionService transactionService,
             CommitTimestampLoader commitTimestampLoader,
             boolean allowHiddenTableAccess,
@@ -82,12 +82,12 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             LongSupplier startTimestampSupplier,
             PreCommitConditionValidator preCommitConditionValidator,
             DeleteExecutor deleteExecutor) {
-        this.transactionKeyValueService = transactionKeyValueService;
+        this.directTransactionKeyValueService = directTransactionKeyValueService;
         this.transactionService = transactionService;
         this.commitTimestampLoader = commitTimestampLoader;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
         this.readSentinelHandler = new ReadSentinelHandler(
-                transactionKeyValueService, transactionService, readSentinelBehavior, orphanedSentinelDeleter);
+                directTransactionKeyValueService, transactionService, readSentinelBehavior, orphanedSentinelDeleter);
         this.startTimestampSupplier = startTimestampSupplier;
         this.preCommitConditionValidator = preCommitConditionValidator;
         this.deleteExecutor = deleteExecutor;
@@ -97,14 +97,14 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
     public Map<Cell, byte[]> get(TableReference tableReference, Set<Cell> cells) {
         // TODO (jkong): This is bad, but a consequence of our legacy test infrastructure.
         return AtlasFutures.getUnchecked(getInternal(
-                KeyValueServices.synchronousAsAsyncTransactionKeyValueService(transactionKeyValueService),
+                KeyValueServices.synchronousAsAsyncTransactionKeyValueService(directTransactionKeyValueService),
                 tableReference,
                 cells));
     }
 
     @Override
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableReference, Set<Cell> cells) {
-        return getInternal(transactionKeyValueService, tableReference, cells);
+        return getInternal(directTransactionKeyValueService, tableReference, cells);
     }
 
     @NotNull
