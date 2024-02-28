@@ -19,7 +19,7 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
-import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueServiceManager;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -80,7 +80,7 @@ public final class SweepTestUtils {
                 TransactionKnowledgeComponents.createForTests(kvs, metricsManager.getTaggedRegistry());
         TransactionManager txManager = SerializableTransactionManager.createForTest(
                 metricsManager,
-                new DefaultTransactionKeyValueServiceManager(kvs),
+                new DelegatingTransactionKeyValueServiceManager(kvs),
                 legacyTimelockService,
                 tsmService,
                 lockService,
