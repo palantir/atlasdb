@@ -164,12 +164,6 @@ public final class TrackingTransactionKeyValueServiceForwardingTest {
     }
 
     @Test
-    public void getForwardsDelegateResult() {
-        when(delegate.get(tableReference, timestampByCellMap)).thenReturn(valueByCellMap);
-        assertThat(trackingKvs.get(tableReference, timestampByCellMap)).isSameAs(valueByCellMap);
-    }
-
-    @Test
     public void getRowsColumnRangeWrapsAndForwardsDelegateResult() {
         int cellBatchHint = 12;
         ColumnRangeSelection columnRangeSelection = mock(ColumnRangeSelection.class);
