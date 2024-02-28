@@ -35,7 +35,8 @@ public final class OnlyCommittedWitnessedTransactionVisitor
 
     @Override
     public Optional<FullyWitnessedTransaction> visit(MaybeWitnessedTransaction maybeWitnessedTransaction) {
-        return readOnlyTransactionStore.isCommitted(maybeWitnessedTransaction.startTimestamp())
+        return readOnlyTransactionStore.isCommittedForcingTransactionConclusion(
+                        maybeWitnessedTransaction.startTimestamp())
                 ? Optional.of(maybeWitnessedTransaction.toFullyWitnessed())
                 : Optional.empty();
     }
