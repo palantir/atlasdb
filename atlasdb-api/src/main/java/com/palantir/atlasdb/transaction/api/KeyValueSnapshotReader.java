@@ -30,13 +30,12 @@ import java.util.Set;
  *
  * If used in the context of a transaction, users are responsible for validating that snapshots read are still
  * guaranteed to be consistent (for example, transactions may need to validate their pre-commit conditions or check
- * that sweep has not progressed).
+ * that sweep has not progressed). Some methods may have partial, intermediate validation required as part of servicing
+ * a read; this class will carry out this intermediate validation.
  *
  * Although this interface performs user-level reads, internal writes may be performed (for example, as part of the
  * read protocol, to abort a long-running transaction).
  */
 public interface KeyValueSnapshotReader {
-    Map<Cell, byte[]> get(TableReference tableReference, Set<Cell> cells);
-
     ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableReference, Set<Cell> cells);
 }

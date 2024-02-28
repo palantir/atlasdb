@@ -21,6 +21,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
+import com.google.common.io.Closer;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -67,8 +68,9 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
     private final boolean allowHiddenTableAccess;
     private final ReadSentinelHandler readSentinelHandler;
     private final LongSupplier startTimestampSupplier;
-    private final PreCommitConditionValidator preCommitConditionValidator;
+    private final IntraReadSnapshotValidator intraReadSnapshotValidator;
     private final DeleteExecutor deleteExecutor;
+    private final Closer closer;
 
     public DefaultKeyValueSnapshotReader(
             TransactionKeyValueService transactionKeyValueService,
@@ -77,32 +79,49 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             boolean allowHiddenTableAccess,
             ReadSentinelHandler readSentinelHandler,
             LongSupplier startTimestampSupplier,
-            PreCommitConditionValidator preCommitConditionValidator,
-            DeleteExecutor deleteExecutor) {
+            IntraReadSnapshotValidator intraReadSnapshotValidator,
+            DeleteExecutor deleteExecutor,
+            Closer closer) {
         this.transactionKeyValueService = transactionKeyValueService;
         this.transactionService = transactionService;
         this.commitTimestampLoader = commitTimestampLoader;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
         this.readSentinelHandler = readSentinelHandler;
         this.startTimestampSupplier = startTimestampSupplier;
-        this.preCommitConditionValidator = preCommitConditionValidator;
+        this.intraReadSnapshotValidator = intraReadSnapshotValidator;
         this.deleteExecutor = deleteExecutor;
-    }
-
-    @Override
-    public Map<Cell, byte[]> get(TableReference tableReference, Set<Cell> cells) {
-        // TODO (jkong): This may seem strange, but is a consequence of our legacy infrastructure.
-        return AtlasFutures.getUnchecked(getInternal(
-                (tableRef, cellsByTimestamp) ->
-                        Futures.immediateFuture(transactionKeyValueService.get(tableRef, cellsByTimestamp)),
-                tableReference,
-                cells));
+        this.closer = closer;
     }
 
     @Override
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableReference, Set<Cell> cells) {
         return getInternal(transactionKeyValueService::getAsync, tableReference, cells);
     }
+
+    //    public Map<byte[], Iterator<Entry<Cell, byte[]>>> getRowsColumnRangeIterator(
+    //            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
+    //        ImmutableSortedMap<byte[], RowColumnRangeIterator> rawResults = ImmutableSortedMap.copyOf(
+    //                transactionKeyValueService.getRowsColumnRange(
+    //                        tableRef, rows, columnRangeSelection, startTimestampSupplier.getAsLong()),
+    //                PtBytes.BYTES_COMPARATOR);
+    //        ImmutableSortedMap<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults = Streams.stream(rows)
+    //                .collect(ImmutableSortedMap.toImmutableSortedMap(PtBytes.BYTES_COMPARATOR, row -> row, row -> {
+    //                    // explicitly not using Optional due to allocation perf overhead
+    //                    Iterator<Map.Entry<Cell, byte[]>> entryIterator;
+    //                    RowColumnRangeIterator rawIterator = rawResults.get(row);
+    //                    if (rawIterator != null) {
+    //                        entryIterator = closer.register(
+    //                                getPostFilteredColumns(tableRef, columnRangeSelection, row, rawIterator));
+    //                    } else {
+    //                        entryIterator = ClosableIterators.wrapWithEmptyClose(
+    //                                getLocalWritesForColumnRange(tableRef, columnRangeSelection, row)
+    //                                        .entrySet()
+    //                                        .iterator());
+    //                    }
+    //                    return scopeToTransaction(entryIterator);
+    //                }));
+    //        return postFilteredResults;
+    //    }
 
     @NotNull
     private ListenableFuture<Map<Cell, byte[]>> getInternal(
@@ -207,13 +226,13 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             @Output Collection<Map.Entry<Cell, T>> resultsCollector,
             Function<Value, T> transformer,
             CellGetter cellGetter) {
-        readSentinelHandler.trackAndMarkOrphanedSweepSentinelsForDeletion(tableRef, rawResults);
+        Set<Cell> orphans = readSentinelHandler.findAndMarkOrphanedSweepSentinelsForDeletion(tableRef, rawResults);
         LongSet valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
 
         return Futures.transformAsync(
                 getCommitTimestamps(tableRef, valuesStartTimestamps),
                 commitTimestamps -> collectCellsToPostFilter(
-                        tableRef, rawResults, resultsCollector, transformer, cellGetter, commitTimestamps),
+                        tableRef, rawResults, resultsCollector, transformer, cellGetter, commitTimestamps, orphans),
                 MoreExecutors.directExecutor());
     }
 
@@ -223,7 +242,8 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             @Output Collection<Map.Entry<Cell, T>> resultsCollector,
             Function<Value, T> transformer,
             CellGetter cellGetter,
-            LongLongMap commitTimestamps) {
+            LongLongMap commitTimestamps,
+            Set<Cell> knownOrphans) {
         Map<Cell, Long> keysToReload = Maps.newHashMapWithExpectedSize(0);
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
         ImmutableSet.Builder<Cell> keysAddedBuilder = ImmutableSet.builder();
@@ -232,14 +252,14 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             Cell key = e.getKey();
             Value value = e.getValue();
 
-            if (isSweepSentinel(value)) {
+            if (isSweepSentinel(value) && !knownOrphans.contains(key)) {
                 // move to readSentinelHandler
                 //                getCounter(AtlasDbMetricNames.CellFilterMetrics.INVALID_START_TS, tableRef)
                 //                        .inc();
 
                 // This means that this transaction started too long ago. When we do garbage collection,
                 // we clean up old values, and this transaction started at a timestamp before the garbage collection.
-                readSentinelHandler.handleReadSentinel(key);
+                readSentinelHandler.handleReadSentinel();
             } else {
                 long theirCommitTimestamp =
                         commitTimestamps.getIfAbsent(value.getTimestamp(), TransactionConstants.FAILED_COMMIT_TS);
@@ -272,19 +292,19 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
 
         if (!keysToDelete.isEmpty()) {
             // if we can't roll back the failed transactions, we should just try again
-            if (!rollbackFailedTransactions(tableRef, keysToDelete, commitTimestamps, transactionService)) {
+            if (!rollbackFailedTransactions(tableRef, keysToDelete, commitTimestamps)) {
                 return Futures.immediateFuture(getRemainingResults(rawResults, keysAddedToResults));
             }
         }
 
         if (!keysToReload.isEmpty()) {
-            // TODO (jkong): Do we still need to do this given we validate the output? Check with @lmeireles
+            // TODO (jkong): Consider removing when a decision on validating pre-commit requirements mid-read is made
             return Futures.transform(
                     cellGetter.get(tableRef, keysToReload),
                     nextRawResults -> {
                         boolean allPossibleCellsReadAndPresent = nextRawResults.size() == keysToReload.size();
-                        preCommitConditionValidator.validatePreCommitRequirementsOnReadIfNecessary(
-                                tableRef, startTimestampSupplier.getAsLong(), allPossibleCellsReadAndPresent);
+                        intraReadSnapshotValidator.validateInternalSnapshot(
+                                tableRef, startTimestampSupplier, allPossibleCellsReadAndPresent);
                         return getRemainingResults(nextRawResults, keysAddedToResults);
                     },
                     MoreExecutors.directExecutor());
@@ -313,10 +333,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
      * @return false if we cannot roll back the failed transactions because someone beat us to it
      */
     private boolean rollbackFailedTransactions(
-            TableReference tableRef,
-            Map<Cell, Long> keysToDelete,
-            LongLongMap commitTimestamps,
-            TransactionService transactionService) {
+            TableReference tableRef, Map<Cell, Long> keysToDelete, LongLongMap commitTimestamps) {
         ImmutableLongSet timestamps = LongSets.immutable.ofAll(keysToDelete.values());
         boolean allRolledBack = timestamps.allSatisfy(startTs -> {
             if (commitTimestamps.containsKey(startTs)) {
@@ -330,7 +347,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
                 return true;
             }
             log.warn("Rolling back transaction: {}", SafeArg.of("startTs", startTs));
-            return rollbackOtherTransaction(startTs, transactionService);
+            return rollbackOtherTransaction(startTs);
         });
 
         if (allRolledBack) {
@@ -339,7 +356,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
         return allRolledBack;
     }
 
-    private boolean rollbackOtherTransaction(long startTs, TransactionService transactionService) {
+    private boolean rollbackOtherTransaction(long startTs) {
         try {
             transactionService.putUnlessExists(startTs, TransactionConstants.FAILED_COMMIT_TS);
             // transactionMetrics.rolledBackOtherTransaction().mark();

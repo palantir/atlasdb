@@ -60,11 +60,11 @@ public final class ReadSentinelHandler {
      * it was truncated. In this case, there is a chance that we end up with a sentinel with no valid AtlasDB cell
      * covering it. In this case, we ignore it.
      */
-    public void trackAndMarkOrphanedSweepSentinelsForDeletion(TableReference table, Map<Cell, Value> rawResults) {
+    public Set<Cell> findAndMarkOrphanedSweepSentinelsForDeletion(TableReference table, Map<Cell, Value> rawResults) {
         Set<Cell> sweepSentinels = Maps.filterValues(rawResults, ReadSentinelHandler::isSweepSentinel)
                 .keySet();
         if (sweepSentinels.isEmpty()) {
-            return;
+            return sweepSentinels;
         }
 
         // for each sentinel, start at long max. Then iterate down with each found uncommitted value.
@@ -103,24 +103,21 @@ public final class ReadSentinelHandler {
         }
 
         orphanedSentinelDeleter.scheduleSentinelsForDeletion(table, actualOrphanedSentinels);
-        trackedOrphanedSentinels.addAll(actualOrphanedSentinels);
+        return actualOrphanedSentinels;
     }
 
-    public void handleReadSentinel(Cell cell) {
+    public void handleReadSentinel() {
         // This means that this transaction started too long ago. When we do garbage collection,
         // we clean up old values, and this transaction started at a timestamp before the garbage collection.
         switch (readSentinelBehavior) {
             case IGNORE:
                 break;
             case THROW_EXCEPTION:
-                if (!trackedOrphanedSentinels.contains(cell)) {
-                    throw new TransactionFailedRetriableException("Tried to read a value that has been "
-                            + "deleted. This can be caused by hard delete transactions using the type "
-                            + TransactionType.AGGRESSIVE_HARD_DELETE
-                            + ". It can also be caused by transactions taking too long, or"
-                            + " its locks expired. Retrying it should work.");
-                }
-                break;
+                throw new TransactionFailedRetriableException("Tried to read a value that has been "
+                        + "deleted. This can be caused by hard delete transactions using the type "
+                        + TransactionType.AGGRESSIVE_HARD_DELETE
+                        + ". It can also be caused by transactions taking too long, or"
+                        + " its locks expired. Retrying it should work.");
             default:
                 throw new SafeIllegalStateException(
                         "Invalid read sentinel behavior", SafeArg.of("readSentinelBehaviour", readSentinelBehavior));

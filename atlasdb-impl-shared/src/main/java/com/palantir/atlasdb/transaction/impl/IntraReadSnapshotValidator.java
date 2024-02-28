@@ -17,8 +17,13 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.function.LongSupplier;
 
-public interface PreCommitConditionValidator {
-    void validatePreCommitRequirementsOnReadIfNecessary(
-            TableReference tableRef, long timestamp, boolean allPossibleCellsReadAndPresent);
+public interface IntraReadSnapshotValidator {
+
+    /**
+     * Checks that a snapshot read is still valid, throwing an exception if it is not.
+     */
+    void validateInternalSnapshot(
+            TableReference tableReference, LongSupplier startTimestampSupplier, boolean allPossibleCellsReadAndPresent);
 }
