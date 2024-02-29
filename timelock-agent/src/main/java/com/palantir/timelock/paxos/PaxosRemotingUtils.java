@@ -25,7 +25,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import javax.ws.rs.core.UriBuilder;
 
 public final class PaxosRemotingUtils {
     private PaxosRemotingUtils() {
@@ -65,7 +64,7 @@ public final class PaxosRemotingUtils {
 
     public static URL convertAddressToUrl(ClusterConfiguration cluster, String address) {
         try {
-            return UriBuilder.fromPath(addProtocol(cluster, address)).build().toURL();
+            return new URL(addProtocol(cluster, address));
         } catch (MalformedURLException e) {
             throw new RuntimeException(e);
         }
