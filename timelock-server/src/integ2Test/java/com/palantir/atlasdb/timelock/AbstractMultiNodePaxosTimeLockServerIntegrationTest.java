@@ -123,8 +123,8 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
     public void nonLeadersReturn503_conjure() {
         cluster.nonLeaders(client.namespace()).forEach((namespace, server) -> {
             assertThatThrownBy(() -> server.client(namespace)
-                            .namespacedConjureTimelockService()
-                            .leaderTime())
+                    .namespacedConjureTimelockService()
+                    .leaderTime())
                     .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
         });
     }
@@ -369,18 +369,18 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
                         refreshed -> assertThat(refreshed.getTokenId()).isEqualTo(refreshed.getTokenId()));
         AuthHeader authHeader = AuthHeader.valueOf("Bearer unused");
         assertThat(client.conjureLegacyLockService()
-                        .refreshLockRefreshTokens(authHeader, client.namespace(), ImmutableList.of(conjureAnalogue)))
+                .refreshLockRefreshTokens(authHeader, client.namespace(), ImmutableList.of(conjureAnalogue)))
                 .as("it is possible to refresh a live token through the conjure API")
                 .hasOnlyOneElementSatisfying(
                         refreshed -> assertThat(refreshed.getTokenId()).isEqualTo(refreshed.getTokenId()));
 
         ConjureSimpleHeldLocksToken conjureHeldLocksToken = ConjureSimpleHeldLocksToken.of(token.getTokenId(), 0L);
         assertThat(client.conjureLegacyLockService()
-                        .unlockSimple(authHeader, client.namespace(), conjureHeldLocksToken))
+                .unlockSimple(authHeader, client.namespace(), conjureHeldLocksToken))
                 .as("it is possible to unlock a live token through the conjure API")
                 .isTrue();
         assertThat(client.conjureLegacyLockService()
-                        .unlockSimple(authHeader, client.namespace(), conjureHeldLocksToken))
+                .unlockSimple(authHeader, client.namespace(), conjureHeldLocksToken))
                 .as("a token unlocked through the conjure API stays unlocked")
                 .isFalse();
         assertThat(client.legacyLockService().unlockSimple(SimpleHeldLocksToken.fromLockRefreshToken(token)))
@@ -416,8 +416,8 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
                 .as("lock taken by conjure impl that was unlocked can now be acquired by legacy impl")
                 .isNotNull();
         assertThat(client.conjureLegacyLockService()
-                        .lockAndGetHeldLocks(
-                                AuthHeader.valueOf("Bearer unused"), client.namespace(), conjureLockRequest))
+                .lockAndGetHeldLocks(
+                        AuthHeader.valueOf("Bearer unused"), client.namespace(), conjureLockRequest))
                 .as("if the legacy impl has taken a lock, the conjure impl mustn't be able to take it")
                 .isEmpty();
     }
@@ -600,11 +600,17 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
         multiClientResponses.forEach((namespace, responseFromBatchedEndpoint) -> {
             GetCommitTimestampsResponse conjureGetCommitTimestampResponse =
                     client.namespacedConjureTimelockService().getCommitTimestamps(defaultCommitTimestampRequest());
-            assertThat(conjureGetCommitTimestampResponse.getLockWatchUpdate().logId())
-                    .isEqualTo(responseFromBatchedEndpoint.getLockWatchUpdate().logId());
-            assertThat(conjureGetCommitTimestampResponse.getInclusiveLower())
-                    .as("timestamps should contiguously increase per namespace if there are no elections.")
-                    .isEqualTo(responseFromBatchedEndpoint.getInclusiveUpper() + 1);
+            if (conjureGetCommitTimestampResponse.getLockWatchUpdate().logId()
+                    .equals(responseFromBatchedEndpoint.getLockWatchUpdate().logId())) {
+                assertThat(conjureGetCommitTimestampResponse.getInclusiveLower())
+                        .as("timestamps should contiguously increase per namespace if there are no elections.")
+                        .isEqualTo(responseFromBatchedEndpoint.getInclusiveUpper() + 1);
+            } else {
+                // There was an election, we cannot be sure about contiguity, but can still check timestamp guarantees
+                assertThat(conjureGetCommitTimestampResponse.getInclusiveLower())
+                        .as("timestamps should increase in the presence of elections.")
+                        .isLessThan(responseFromBatchedEndpoint.getInclusiveUpper());
+            }
         });
     }
 
@@ -785,10 +791,10 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
         assertThat(namespaces).hasSameElementsAs(expectedNamespaces);
 
         assertThat(startedTransactions.values().stream()
-                        .map(ConjureStartTransactionsResponse::getTimestamps)
-                        .mapToLong(partitionedTimestamps ->
-                                partitionedTimestamps.stream().count())
-                        .sum())
+                .map(ConjureStartTransactionsResponse::getTimestamps)
+                .mapToLong(partitionedTimestamps ->
+                        partitionedTimestamps.stream().count())
+                .sum())
                 .isEqualTo(namespaces.size() * numTransactions);
         return startedTransactions;
     }
