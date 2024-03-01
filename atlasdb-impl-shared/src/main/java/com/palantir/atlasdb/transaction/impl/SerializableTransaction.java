@@ -59,6 +59,7 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -173,7 +174,10 @@ public class SerializableTransaction extends SnapshotTransaction {
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
             TableLevelMetricsController tableLevelMetricsController,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            KeyValueSnapshotReader reader,
+            CommitTimestampLoader commitTimestampLoader,
+            PreCommitConditionValidator preCommitConditionValidator) {
         super(
                 metricsManager,
                 keyValueService,
@@ -200,7 +204,11 @@ public class SerializableTransaction extends SnapshotTransaction {
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
-                knowledge);
+                knowledge,
+                reader,
+                commitTimestampLoader,
+                preCommitConditionValidator
+        );
     }
 
     @Override
@@ -322,9 +330,9 @@ public class SerializableTransaction extends SnapshotTransaction {
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
         try {
             return getWithLoader(
-                            tableRef,
-                            cells,
-                            (tableReference, toRead) -> Futures.immediateFuture(super.get(tableRef, toRead)))
+                    tableRef,
+                    cells,
+                    (tableReference, toRead) -> Futures.immediateFuture(super.get(tableRef, toRead)))
                     .get();
         } catch (InterruptedException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
@@ -340,10 +348,10 @@ public class SerializableTransaction extends SnapshotTransaction {
             TableReference tableRef, Set<Cell> cells, long expectedNumberOfPresentCells) {
         try {
             return getWithResultLoader(
-                            tableRef,
-                            cells,
-                            (tableReference, toRead) -> Futures.immediateFuture(super.getWithExpectedNumberOfCells(
-                                    tableReference, toRead, expectedNumberOfPresentCells)))
+                    tableRef,
+                    cells,
+                    (tableReference, toRead) -> Futures.immediateFuture(super.getWithExpectedNumberOfCells(
+                            tableReference, toRead, expectedNumberOfPresentCells)))
                     .get();
         } catch (InterruptedException e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
@@ -676,11 +684,11 @@ public class SerializableTransaction extends SnapshotTransaction {
                 Iterable<Cell> batchWithoutWrites =
                         localWriteBuffer.getLocalWrites().get(table) != null
                                 ? Iterables.filter(
-                                        batch,
-                                        Predicates.not(Predicates.in(localWriteBuffer
-                                                .getLocalWrites()
-                                                .get(table)
-                                                .keySet())))
+                                batch,
+                                Predicates.not(Predicates.in(localWriteBuffer
+                                        .getLocalWrites()
+                                        .get(table)
+                                        .keySet())))
                                 : batch;
                 ImmutableSet<Cell> batchWithoutWritesSet = ImmutableSet.copyOf(batchWithoutWrites);
                 Map<Cell, byte[]> currentBatch = readOnlyTransaction.get(table, batchWithoutWritesSet);
@@ -938,7 +946,10 @@ public class SerializableTransaction extends SnapshotTransaction {
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
-                knowledge) {
+                knowledge,
+                keyValueSnapshotReader,
+                commitTimestampLoader,
+                preCommitConditionValidator) {
             @Override
             protected TransactionScopedCache getCache() {
                 return lockWatchManager.getReadOnlyTransactionScopedCache(SerializableTransaction.this.getTimestamp());

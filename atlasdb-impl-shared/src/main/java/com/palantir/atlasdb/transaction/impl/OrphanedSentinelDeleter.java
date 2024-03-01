@@ -19,24 +19,24 @@ package com.palantir.atlasdb.transaction.impl;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.table.description.SweeperStrategy;
+import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
 public final class OrphanedSentinelDeleter {
-    private final Function<TableReference, SweeperStrategy> sweepStrategyProvider;
+    private final Function<TableReference, SweepStrategy> sweepStrategyProvider;
     private final DeleteExecutor deleteExecutor;
 
     public OrphanedSentinelDeleter(
-            Function<TableReference, SweeperStrategy> sweepStrategyProvider, DeleteExecutor deleteExecutor) {
+            Function<TableReference, SweepStrategy> sweepStrategyProvider, DeleteExecutor deleteExecutor) {
         this.sweepStrategyProvider = sweepStrategyProvider;
         this.deleteExecutor = deleteExecutor;
     }
 
     public void scheduleSentinelsForDeletion(TableReference tableReference, Set<Cell> orphanedSentinels) {
-        if (sweepStrategyProvider.apply(tableReference) == SweeperStrategy.THOROUGH) {
+        if (sweepStrategyProvider.apply(tableReference) == SweepStrategy.THOROUGH) {
             Map<Cell, Long> sentinels = KeyedStream.of(orphanedSentinels)
                     .map(_ignore -> Value.INVALID_VALUE_TIMESTAMP)
                     .collectToMap();

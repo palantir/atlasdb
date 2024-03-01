@@ -33,13 +33,11 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public final class ReadSentinelHandler {
     private final TransactionKeyValueService transactionKeyValueService;
     private final TransactionService transactionService;
-    private final Set<Cell> trackedOrphanedSentinels;
     private final TransactionReadSentinelBehavior readSentinelBehavior;
     private final OrphanedSentinelDeleter orphanedSentinelDeleter;
 
@@ -50,7 +48,6 @@ public final class ReadSentinelHandler {
             OrphanedSentinelDeleter orphanedSentinelDeleter) {
         this.transactionKeyValueService = transactionKeyValueService;
         this.transactionService = transactionService;
-        this.trackedOrphanedSentinels = ConcurrentHashMap.newKeySet();
         this.readSentinelBehavior = readSentinelBehavior;
         this.orphanedSentinelDeleter = orphanedSentinelDeleter;
     }

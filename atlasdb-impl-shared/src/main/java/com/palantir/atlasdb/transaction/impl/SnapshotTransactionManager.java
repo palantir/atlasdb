@@ -24,6 +24,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
@@ -38,6 +39,7 @@ import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -254,7 +256,8 @@ import java.util.stream.Collectors;
         @Override
         public <T, E extends Exception> T finish(TransactionTask<T, E> task)
                 throws E, TransactionFailedRetriableException {
-            return finishWithCallback(task, () -> {});
+            return finishWithCallback(task, () -> {
+            });
         }
 
         @Override
@@ -305,9 +308,14 @@ import java.util.stream.Collectors;
             LongSupplier startTimestampSupplier,
             LockToken immutableTsLock,
             PreCommitCondition condition) {
+        TransactionKeyValueService transactionKeyValueService = transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier);
+        Optional<LockToken> optionalImmutableTsLock = Optional.of(immutableTsLock);
+        CommitTimestampLoader loader = createCommitTimestampLoader(immutableTimestamp, startTimestampSupplier, optionalImmutableTsLock);
+        PreCommitConditionValidator validator = createPreCommitConditionValidator(optionalImmutableTsLock, condition);
+
         return new SnapshotTransaction(
                 metricsManager,
-                transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
+                transactionKeyValueService,
                 timelockService,
                 lockWatchManager,
                 transactionService,
@@ -316,7 +324,7 @@ import java.util.stream.Collectors;
                 conflictDetectionManager,
                 sweepStrategyManager,
                 immutableTimestamp,
-                Optional.of(immutableTsLock),
+                optionalImmutableTsLock,
                 condition,
                 constraintModeSupplier.get(),
                 cleaner.getTransactionReadTimeoutMillis(),
@@ -331,7 +339,52 @@ import java.util.stream.Collectors;
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
+                knowledge,
+                createDefaultSnapshotReader(startTimestampSupplier, transactionKeyValueService, loader, validator),
+                loader,
+                validator);
+    }
+
+    private DefaultPreCommitConditionValidator createPreCommitConditionValidator(Optional<LockToken> immutableTsLock, PreCommitCondition condition) {
+        return new DefaultPreCommitConditionValidator(
+                condition,
+                sweepStrategyManager,
+                transactionConfig,
+                new DefaultLockRefresher(timelockService),
+                immutableTsLock,
+                validateLocksOnReads);
+    }
+
+    private CommitTimestampLoader createCommitTimestampLoader(long immutableTimestamp, LongSupplier startTimestampSupplier, Optional<LockToken> immutableTsLock) {
+        return new CommitTimestampLoader(
+                timestampValidationReadCache,
+                immutableTsLock,
+                startTimestampSupplier::getAsLong,
+                transactionConfig,
+                metricsManager,
+                timelockService,
+                immutableTimestamp,
                 knowledge);
+    }
+
+    private KeyValueSnapshotReader createDefaultSnapshotReader(LongSupplier startTimestampSupplier,
+                                                               TransactionKeyValueService transactionKeyValueService,
+                                                               CommitTimestampLoader commitTimestampLoader,
+                                                               PreCommitConditionValidator validator) {
+        return new DefaultKeyValueSnapshotReader(
+                transactionKeyValueService,
+                transactionService,
+                commitTimestampLoader,
+                allowHiddenTableAccess,
+                new ReadSentinelHandler(
+                        transactionKeyValueService,
+                        transactionService,
+                        TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                        new OrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor)),
+                startTimestampSupplier,
+                (table, timestampSupplier, allReadAndPresent) -> validator.throwIfPreCommitRequirementsNotMetOnRead(
+                        table, timestampSupplier.getAsLong(), allReadAndPresent),
+                deleteExecutor);
     }
 
     @Override
@@ -349,9 +402,14 @@ import java.util.stream.Collectors;
         checkOpen();
         long immutableTs = getApproximateImmutableTimestamp();
         LongSupplier startTimestampSupplier = getStartTimestampSupplier();
+
+        TransactionKeyValueService transactionKeyValueService = transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier);
+        CommitTimestampLoader loader = createCommitTimestampLoader(immutableTs, startTimestampSupplier, Optional.empty());
+        PreCommitConditionValidator validator = createPreCommitConditionValidator(Optional.empty(), condition);
+
         SnapshotTransaction transaction = new SnapshotTransaction(
                 metricsManager,
-                transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
+                transactionKeyValueService,
                 timelockService,
                 NoOpLockWatchManager.create(),
                 transactionService,
@@ -375,7 +433,10 @@ import java.util.stream.Collectors;
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
-                knowledge);
+                knowledge,
+                createDefaultSnapshotReader(startTimestampSupplier, transactionKeyValueService, loader, validator),
+                loader,
+                validator);
         return runTaskThrowOnConflictWithCallback(
                 txn -> task.execute(txn, condition),
                 new ReadTransaction(transaction, sweepStrategyManager),
@@ -406,7 +467,7 @@ import java.util.stream.Collectors;
         }
 
         try (SafeShutdownRunner shutdownRunner =
-                SafeShutdownRunner.createWithCachedThreadpool(Duration.ofSeconds(20))) {
+                     SafeShutdownRunner.createWithCachedThreadpool(Duration.ofSeconds(20))) {
             shutdownRunner.shutdownSafely(super::close);
             shutdownRunner.shutdownSafely(cleaner::close);
             shutdownRunner.shutdownSafely(transactionKeyValueServiceManager::close);

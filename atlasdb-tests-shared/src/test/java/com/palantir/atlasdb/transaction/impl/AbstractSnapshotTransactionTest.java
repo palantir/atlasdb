@@ -96,6 +96,7 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
 import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -139,6 +140,7 @@ import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.lock.watch.LockRequestMetadata;
@@ -441,6 +443,9 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
             }
         });
 
+        CommitTimestampLoader loader = createCommitTimestampLoader(immutableTimestamp, startTimestampSupplier, Optional.empty());
+        PreCommitConditionValidator validator = createPreCommitConditionValidator(Optional.empty(), PreCommitConditions.NO_OP);
+
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         Transaction snapshot = transactionWrapper.apply(
                 new SnapshotTransaction(
@@ -471,7 +476,8 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         () -> transactionConfig,
                         ConflictTracer.NO_OP,
                         tableLevelMetricsController,
-                        knowledge),
+                        knowledge,
+                        ),
                 pathTypeTracker);
         assertThatThrownBy(() -> snapshot.get(TABLE, ImmutableSet.of(cell))).isInstanceOf(RuntimeException.class);
 
@@ -3295,6 +3301,48 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 ConflictTracer.NO_OP,
                 tableLevelMetricsController,
                 knowledge);
+    }
+
+    private DefaultPreCommitConditionValidator createPreCommitConditionValidator(Optional<LockToken> immutableTsLock, PreCommitCondition condition) {
+        return new DefaultPreCommitConditionValidator(
+                condition,
+                sweepStrategyManager,
+                () -> transactionConfig,
+                new DefaultLockRefresher(timelockService),
+                immutableTsLock,
+                true);
+    }
+
+    private CommitTimestampLoader createCommitTimestampLoader(long immutableTimestamp, LongSupplier startTimestampSupplier, Optional<LockToken> immutableTsLock) {
+        return new CommitTimestampLoader(
+                timestampValidationReadCache,
+                immutableTsLock,
+                startTimestampSupplier::getAsLong,
+                transactionConfig,
+                metricsManager,
+                timelockService,
+                immutableTimestamp,
+                knowledge);
+    }
+
+    private KeyValueSnapshotReader createDefaultSnapshotReader(LongSupplier startTimestampSupplier,
+                                                               TransactionKeyValueService transactionKeyValueService,
+                                                               CommitTimestampLoader commitTimestampLoader,
+                                                               PreCommitConditionValidator validator) {
+        return new DefaultKeyValueSnapshotReader(
+                transactionKeyValueService,
+                transactionService,
+                commitTimestampLoader,
+                allowHiddenTableAccess,
+                new ReadSentinelHandler(
+                        transactionKeyValueService,
+                        transactionService,
+                        TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                        new OrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor)),
+                startTimestampSupplier,
+                (table, timestampSupplier, allReadAndPresent) -> validator.throwIfPreCommitRequirementsNotMetOnRead(
+                        table, timestampSupplier.getAsLong(), allReadAndPresent),
+                deleteExecutor);
     }
 
     private Transaction getSnapshotTransactionWith(

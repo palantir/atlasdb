@@ -21,7 +21,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
-import com.google.common.io.Closer;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -70,7 +69,6 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
     private final LongSupplier startTimestampSupplier;
     private final IntraReadSnapshotValidator intraReadSnapshotValidator;
     private final DeleteExecutor deleteExecutor;
-    private final Closer closer;
 
     public DefaultKeyValueSnapshotReader(
             TransactionKeyValueService transactionKeyValueService,
@@ -80,8 +78,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             ReadSentinelHandler readSentinelHandler,
             LongSupplier startTimestampSupplier,
             IntraReadSnapshotValidator intraReadSnapshotValidator,
-            DeleteExecutor deleteExecutor,
-            Closer closer) {
+            DeleteExecutor deleteExecutor) {
         this.transactionKeyValueService = transactionKeyValueService;
         this.transactionService = transactionService;
         this.commitTimestampLoader = commitTimestampLoader;
@@ -90,7 +87,6 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
         this.startTimestampSupplier = startTimestampSupplier;
         this.intraReadSnapshotValidator = intraReadSnapshotValidator;
         this.deleteExecutor = deleteExecutor;
-        this.closer = closer;
     }
 
     @Override
