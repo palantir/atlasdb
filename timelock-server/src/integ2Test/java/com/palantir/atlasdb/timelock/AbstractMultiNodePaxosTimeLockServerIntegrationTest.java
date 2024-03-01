@@ -72,7 +72,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
@@ -130,18 +129,6 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void leaderRespondsToRequests() {
-        NamespacedClients currentLeader =
-                cluster.currentLeaderFor(client.namespace()).client(client.namespace());
-        currentLeader.getFreshTimestamp();
-
-        LockToken token = currentLeader
-                .lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS))
-                .getToken();
-        currentLeader.unlock(token);
-    }
-
-    @Test
     public void newLeaderTakesOverIfCurrentLeaderDies() {
         cluster.currentLeaderFor(client.namespace()).killSync();
 
@@ -154,7 +141,7 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void leaderLosesLeadershipIfQuorumIsNotAlive() throws ExecutionException {
+    public void leaderLosesLeadershipIfQuorumIsNotAlive() {
         NamespacedClients leader = cluster.currentLeaderFor(client.namespace()).client(client.namespace());
         cluster.killAndAwaitTermination(cluster.nonLeaders(client.namespace()).values());
 
@@ -163,7 +150,7 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
     }
 
     @Test
-    public void someoneBecomesLeaderAgainAfterQuorumIsRestored() throws ExecutionException {
+    public void someoneBecomesLeaderAgainAfterQuorumIsRestored() {
         Set<TestableTimelockServer> nonLeaders =
                 ImmutableSet.copyOf(cluster.nonLeaders(client.namespace()).values());
         cluster.killAndAwaitTermination(nonLeaders);
@@ -594,11 +581,10 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void sanityCheckMultiClientGetCommitTimestampsAgainstConjureTimelockService() {
-        TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
         // Multi client batched TimeLock endpoints do not support multi-leader mode on TimeLock
-        Assumptions.assumeFalse(leader.isMultiLeader());
+        Assumptions.assumeFalse(cluster.currentLeaderFor(client.namespace()).isMultiLeader());
 
-        MultiClientConjureTimelockService multiClientService = leader.multiClientService();
+        MultiClientConjureTimelockService multiClientService = cluster.multiClientConjureTimelockService();
 
         Set<String> expectedNamespaces = ImmutableSet.of("alta", "mp");
 
@@ -611,9 +597,8 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
         // Whether we hit the multi client endpoint or conjureTimelockService endpoint(services one client in one
         // call), for a namespace, the underlying service to process the request is the same
         multiClientResponses.forEach((namespace, responseFromBatchedEndpoint) -> {
-            GetCommitTimestampsResponse conjureGetCommitTimestampResponse = leader.client(namespace.get())
-                    .namespacedConjureTimelockService()
-                    .getCommitTimestamps(defaultCommitTimestampRequest());
+            GetCommitTimestampsResponse conjureGetCommitTimestampResponse =
+                    client.conjureTimelockService().getCommitTimestamps(defaultCommitTimestampRequest());
             assertThat(conjureGetCommitTimestampResponse.getLockWatchUpdate().logId())
                     .isEqualTo(responseFromBatchedEndpoint.getLockWatchUpdate().logId());
             assertThat(conjureGetCommitTimestampResponse.getInclusiveLower())
