@@ -55,6 +55,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.ConjureLockRequests;
+import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LockRequest;
@@ -598,8 +599,9 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
         // Whether we hit the multi client endpoint or conjureTimelockService endpoint(services one client in one
         // call), for a namespace, the underlying service to process the request is the same
         multiClientResponses.forEach((namespace, responseFromBatchedEndpoint) -> {
-            GetCommitTimestampsResponse conjureGetCommitTimestampResponse =
-                    client.namespacedConjureTimelockService().getCommitTimestamps(defaultCommitTimestampRequest());
+            GetCommitTimestampsResponse conjureGetCommitTimestampResponse = new NamespacedConjureTimelockServiceImpl(
+                            client.conjureTimelockService(), namespace.get())
+                    .getCommitTimestamps(defaultCommitTimestampRequest());
             if (conjureGetCommitTimestampResponse
                     .getLockWatchUpdate()
                     .logId()
