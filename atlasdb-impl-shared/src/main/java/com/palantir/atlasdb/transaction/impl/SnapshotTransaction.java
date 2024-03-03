@@ -55,7 +55,6 @@ import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.futures.AtlasFutures;
-import com.palantir.atlasdb.futures.FutureSpliterator;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -168,6 +167,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -187,6 +187,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
@@ -1626,10 +1627,6 @@ public class SnapshotTransaction extends AbstractTransaction
         return value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP;
     }
 
-    /**
-     * This will return all the key-value pairs that still need to be postFiltered.  It will output properly post
-     * filtered keys to the {@code resultsCollector} output param.
-     */
     private EntryStream<Cell, Value> getWithPostFilteringInternal(
             TableReference tableRef,
             Map<Cell, Value> rawResults,
@@ -2919,6 +2916,38 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private static <K, V> EntryStream<K, V> streamFutureEntries(Future<Spliterator<Map.Entry<K, V>>> future) {
-        return EntryStream.of(new FutureSpliterator<>(future));
+        return EntryStream.of(new Spliterator<>() {
+            @Override
+            public boolean tryAdvance(Consumer<? super Entry<K, V>> action) {
+                return AtlasFutures.getUnchecked(future).tryAdvance(action);
+            }
+
+            @Override
+            public void forEachRemaining(Consumer<? super Entry<K, V>> action) {
+                AtlasFutures.getUnchecked(future).forEachRemaining(action);
+            }
+
+            @Override
+            public Spliterator<Entry<K, V>> trySplit() {
+                return null;
+            }
+
+            @Override
+            public long estimateSize() {
+                if (future.isDone()) {
+                    try {
+                        return future.get().estimateSize();
+                    } catch (Exception e) {
+                        // pass
+                    }
+                }
+                return Long.MAX_VALUE;
+            }
+
+            @Override
+            public int characteristics() {
+                return Spliterator.IMMUTABLE + Spliterator.NONNULL + Spliterator.ORDERED;
+            }
+        });
     }
 }
