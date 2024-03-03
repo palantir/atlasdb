@@ -998,8 +998,10 @@ public class SnapshotTransaction extends AbstractTransaction
 
         Map<Cell, byte[]> localWrites = Optional.ofNullable(
                         localWriteBuffer.getLocalWrites().get(tableRef))
-                .map(writes ->
-                        StreamEx.of(cells).mapToEntry(writes::get).nonNull().toImmutableMap())
+                .map(writes -> StreamEx.of(cells)
+                        .mapToEntry(writes::get)
+                        .nonNullValues()
+                        .toImmutableMap())
                 .orElseGet(ImmutableMap::of);
         long numberOfNonDeleteLocalWrites =
                 StreamEx.ofValues(localWrites).count(Predicates.not(PtBytes.EMPTY_BYTE_ARRAY::equals));
