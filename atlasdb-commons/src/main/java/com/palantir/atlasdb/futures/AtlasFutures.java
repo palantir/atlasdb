@@ -33,7 +33,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import org.jetbrains.annotations.NotNull;
 
 public final class AtlasFutures {
     private AtlasFutures() {}
@@ -169,7 +168,7 @@ public final class AtlasFutures {
             }
 
             @Override
-            public R get(long timeout, @NotNull TimeUnit unit)
+            public R get(long timeout, TimeUnit unit)
                     throws InterruptedException, ExecutionException, TimeoutException {
                 return completableFuture.get(timeout, unit);
             }
