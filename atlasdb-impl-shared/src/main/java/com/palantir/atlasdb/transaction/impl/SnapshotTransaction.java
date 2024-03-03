@@ -1599,7 +1599,7 @@ public class SnapshotTransaction extends AbstractTransaction
                         entry -> entry.getValue() == Value.INVALID_VALUE_TIMESTAMP, MoreCollectors.entriesToMap()));
         Map<Cell, Long> definiteOrphans = sentinelTypeToTimestamps.getOrDefault(true, ImmutableMap.of());
         StreamEx<Cell> resultStream = StreamEx.ofKeys(definiteOrphans);
-        Optional.ofNullable(sentinelTypeToTimestamps.get(false))
+        return Optional.ofNullable(sentinelTypeToTimestamps.get(false))
                 .map(cellsToQuery -> EntryStream.of(cellsToQuery)
                         .removeValues(EntryStream.of(defaultTransactionService.get(cellsToQuery.values()))
                                 .nonNullValues()
@@ -1607,8 +1607,8 @@ public class SnapshotTransaction extends AbstractTransaction
                                 .toImmutableSet()::contains)
                         .toImmutableMap())
                 .map(this::findOrphanedSweepSentinelsInternal)
-                .ifPresent(resultStream::append);
-        return resultStream;
+                .map(resultStream::append)
+                .orElse(resultStream);
     }
 
     private void deleteOrphanedSentinelsAsync(TableReference table, Set<Cell> actualOrphanedSentinels) {
@@ -1628,7 +1628,7 @@ public class SnapshotTransaction extends AbstractTransaction
      * This will return all the key-value pairs that still need to be postFiltered.  It will output properly post
      * filtered keys to the {@code resultsCollector} output param.
      */
-    private <T> EntryStream<Cell, Value> getWithPostFilteringInternal(
+    private EntryStream<Cell, Value> getWithPostFilteringInternal(
             TableReference tableRef,
             Map<Cell, Value> rawResults,
             TransactionKeyValueService asyncKeyValueService,
@@ -1676,7 +1676,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 MoreExecutors.directExecutor()));
     }
 
-    private <T> EntryStream<Cell, Value> collectCellsToPostFilter(
+    private EntryStream<Cell, Value> collectCellsToPostFilter(
             TableReference tableRef,
             Map<Cell, Value> rawResults,
             TransactionKeyValueService asyncKeyValueService,
