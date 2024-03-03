@@ -16,18 +16,24 @@
 
 package com.palantir.atlasdb.futures;
 
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.tracing.DeferredTracer;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import org.jetbrains.annotations.NotNull;
 
 public final class AtlasFutures {
     private AtlasFutures() {}
@@ -107,6 +113,67 @@ public final class AtlasFutures {
         } catch (Exception e) {
             throw Throwables.rewrapAndThrowUncheckedException(e);
         }
+    }
+
+    public static <R> CompletableFuture<R> toCompletableFuture(ListenableFuture<R> listenableFuture) {
+        CompletableFuture<R> completableFuture = new CompletableFuture<R>() {
+            @Override
+            public boolean cancel(boolean mayInterruptIfRunning) {
+                boolean result = listenableFuture.cancel(mayInterruptIfRunning);
+                super.cancel(mayInterruptIfRunning);
+                return result;
+            }
+        };
+        Futures.addCallback(
+                listenableFuture,
+                new FutureCallback<R>() {
+                    @Override
+                    public void onSuccess(R result) {
+                        completableFuture.complete(result);
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        completableFuture.completeExceptionally(t);
+                    }
+                },
+                MoreExecutors.directExecutor());
+        return completableFuture;
+    }
+
+    public static <R> ListenableFuture<R> toListenableFuture(CompletableFuture<R> completableFuture) {
+        return new ListenableFuture<R>() {
+            @Override
+            public void addListener(Runnable listener, Executor executor) {
+                completableFuture.thenRunAsync(listener, executor);
+            }
+
+            @Override
+            public boolean cancel(boolean mayInterruptIfRunning) {
+                return completableFuture.cancel(mayInterruptIfRunning);
+            }
+
+            @Override
+            public boolean isCancelled() {
+                return completableFuture.isCancelled();
+            }
+
+            @Override
+            public boolean isDone() {
+                return completableFuture.isDone();
+            }
+
+            @Override
+            public R get() throws InterruptedException, ExecutionException {
+                return completableFuture.get();
+            }
+
+            @Override
+            public R get(long timeout, @NotNull TimeUnit unit)
+                    throws InterruptedException, ExecutionException, TimeoutException {
+                return completableFuture.get(timeout, unit);
+            }
+        };
     }
 
     private static Executor traceRestoringExecutor(Executor executor, String operation) {

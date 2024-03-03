@@ -18,6 +18,7 @@ package com.palantir.atlasdb.cell.api;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.errorprone.annotations.MustBeClosed;
+import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -32,6 +33,7 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Key-Value API to be used with user data tables.
@@ -66,6 +68,11 @@ public interface TransactionKeyValueService {
     Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell);
 
     ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell);
+
+    default CompletableFuture<Map<Cell, Value>> getCompletableAsync(
+            TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return AtlasFutures.toCompletableFuture(getAsync(tableRef, timestampByCell));
+    }
 
     Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell);
 
