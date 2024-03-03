@@ -1709,19 +1709,20 @@ public class SnapshotTransaction extends AbstractTransaction
         keysToReload.putAll(keysToDelete);
 
         EntryStream<Cell, Value> resultStream = EntryStream.of(filteredResults);
-        if (shouldDeleteAndRollback()
-                && !keysToDelete.isEmpty()
-                && !rollbackFailedTransactions(tableRef, keysToDelete, commitTimestamps, defaultTransactionService)) {
+        if (shouldDeleteAndRollback()) {
             // These are from a failed transaction so we can roll it back and then reload it.
             getCounter(AtlasDbMetricNames.CellFilterMetrics.INVALID_COMMIT_TS, tableRef)
                     .inc(keysToDelete.size());
-            // if we can't roll back the failed transactions, we should just try again
-            return resultStream.append(getWithPostFilteringInternal(
-                    tableRef,
-                    Maps.difference(rawResults, filteredResults).entriesOnlyOnLeft(),
-                    asyncKeyValueService,
-                    asyncTransactionService,
-                    iterations + 1));
+            if (!keysToDelete.isEmpty()
+                    && !rollbackFailedTransactions(
+                            tableRef, keysToDelete, commitTimestamps, defaultTransactionService)) {
+                return resultStream.append(getWithPostFilteringInternal(
+                        tableRef,
+                        Maps.difference(rawResults, filteredResults).entriesOnlyOnLeft(),
+                        asyncKeyValueService,
+                        asyncTransactionService,
+                        iterations + 1));
+            }
         }
 
         Map<Cell, Long> keysToReloadOrDelete = ImmutableMap.<Cell, Long>builderWithExpectedSize(
