@@ -1527,7 +1527,8 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private <T> Map<Cell, T> getWithPostFiltering(
             TableReference tableRef,
-            Map<Cell, Value> rawResults,f
+            Map<Cell, Value> rawResults,
+            Function<Value, T> transformer,
             TransactionKeyValueService asyncKeyValueService,
             AsyncTransactionService asyncTransactionService) {
         long bytes = EntryStream.of(rawResults)
@@ -1566,7 +1567,7 @@ public class SnapshotTransaction extends AbstractTransaction
         Map<Cell, T> postFiltered = getWithPostFilteringInternal(
                         tableRef, rawResults, asyncKeyValueService, asyncTransactionService, 1)
                 .mapValues(transformer)
-                .toImmutableMap();
+                .toCustomMap(LinkedHashMap::new);
         getCounter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED, tableRef)
                 .inc(postFiltered.size());
         return postFiltered;

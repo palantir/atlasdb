@@ -149,6 +149,6 @@ public class GetRowsColumnRangeIteratorTest {
                 getInitialIterator(),
                 COLUMN_RANGE_SELECTION,
                 validationStep,
-                results -> Maps.transformValues(results, Value::getContents).entrySet());
+                results -> Maps.transformValues(results, Value::getContents));
     }
 }
