@@ -31,6 +31,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.processors.AutoDelegate;
+import com.palantir.processors.DoNotDelegate;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -69,6 +70,7 @@ public interface TransactionKeyValueService {
 
     ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell);
 
+    @DoNotDelegate
     default CompletableFuture<Map<Cell, Value>> getCompletableAsync(
             TableReference tableRef, Map<Cell, Long> timestampByCell) {
         return AtlasFutures.toCompletableFuture(getAsync(tableRef, timestampByCell));
