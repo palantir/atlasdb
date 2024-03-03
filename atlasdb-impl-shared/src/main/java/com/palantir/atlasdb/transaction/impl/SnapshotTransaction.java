@@ -1527,8 +1527,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private <T> Map<Cell, T> getWithPostFiltering(
             TableReference tableRef,
-            Map<Cell, Value> rawResults,
-            Function<Value, T> transformer,
+            Map<Cell, Value> rawResults,f
             TransactionKeyValueService asyncKeyValueService,
             AsyncTransactionService asyncTransactionService) {
         long bytes = EntryStream.of(rawResults)
@@ -1561,7 +1560,7 @@ public class SnapshotTransaction extends AbstractTransaction
             // hidden tables are used outside of the transaction protocol, and in general have invalid timestamps,
             // so do not apply post-filtering as post-filtering would rollback (actually delete) the data incorrectly
             // this case is hit when reading a hidden table from console
-            return EntryStream.of(rawResults).mapValues(transformer).toImmutableMap();
+            return Maps.transformValues(rawResults, transformer::apply);
         }
 
         Map<Cell, T> postFiltered = getWithPostFilteringInternal(
