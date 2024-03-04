@@ -45,7 +45,8 @@ public final class AntithesisWorkflowValidatorRunner implements WorkflowValidato
     private final WorkflowRunner<Workflow> workflowRunner;
     private final Duration validationRetryInterval;
 
-    private AntithesisWorkflowValidatorRunner(WorkflowRunner<Workflow> workflowRunner, Duration validationRetryInterval) {
+    private AntithesisWorkflowValidatorRunner(
+            WorkflowRunner<Workflow> workflowRunner, Duration validationRetryInterval) {
         this.workflowRunner = workflowRunner;
         this.validationRetryInterval = validationRetryInterval;
     }

@@ -83,9 +83,15 @@ public class AntithesisWorkflowValidatorRunnerTest {
 
     @Test
     public void runValidatesAllInvariantsRetryingOnExceptions() {
-        doThrow(new RuntimeException()).doAnswer(invocation -> null).when(invariantReporterOne).report(any());
-        doThrow(new RuntimeException()).doThrow(new RuntimeException()).doAnswer(invocation -> null).
-                when(invariantReporterTwo).report(any());
+        doThrow(new RuntimeException())
+                .doAnswer(invocation -> null)
+                .when(invariantReporterOne)
+                .report(any());
+        doThrow(new RuntimeException())
+                .doThrow(new RuntimeException())
+                .doAnswer(invocation -> null)
+                .when(invariantReporterTwo)
+                .report(any());
         AntithesisWorkflowValidatorRunner.createForTests(workflowRunner).run(workflowAndInvariants);
         verify(workflow, times(1)).run();
         verify(invariantReporterOne, times(2)).report(any());
@@ -120,11 +126,11 @@ public class AntithesisWorkflowValidatorRunnerTest {
         });
 
         doAnswer(_invocation -> {
-            assertThat(slowWorkflowIsDone.get())
-                    .as("the invariant reporter ran, even though the slow workflow was not done yet")
-                    .isTrue();
-            return null;
-        })
+                    assertThat(slowWorkflowIsDone.get())
+                            .as("the invariant reporter ran, even though the slow workflow was not done yet")
+                            .isTrue();
+                    return null;
+                })
                 .when(invariantReporterOne)
                 .report(any());
 
