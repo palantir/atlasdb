@@ -150,7 +150,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
         List<WorkflowAndInvariants<Workflow>> allWorkflowsAndInvariants =
                 createAllWorkflowsAndInvariants(configuration, environment, transactionStoreFactory);
 
-        new AntithesisWorkflowValidatorRunner(new DefaultWorkflowRunner(
+        AntithesisWorkflowValidatorRunner.create(new DefaultWorkflowRunner(
                         MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService)))
                 .run(() -> selectWorkflowsToRun(configuration, allWorkflowsAndInvariants));
 
