@@ -41,7 +41,6 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.Streams;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
@@ -101,7 +100,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -118,17 +116,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
     private static final byte[] BYTES_ONE = PtBytes.toBytes("a");
     private static final byte[] BYTES_TWO = PtBytes.toBytes("b");
 
-    private DefaultDeleteExecutor deleteExecutor;
-
     public AbstractSerializableTransactionTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
         super(kvsManager, tmManager);
-    }
-
-    @BeforeEach
-    public void setUpSerializableTest() {
-        deleteExecutor = new DefaultDeleteExecutor(
-                transactionKeyValueServiceManager.getKeyValueService().orElseThrow(),
-                MoreExecutors.newDirectExecutorService());
     }
 
     @Override

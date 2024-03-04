@@ -918,6 +918,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private Transaction getReadOnlyTransaction(final long commitTs) {
+        // TODO (jkong): This one is different. Need to create a different KVSR and CTL!
         return new SnapshotTransaction(
                 metricsManager,
                 transactionKeyValueService,
@@ -944,7 +945,21 @@ public class SerializableTransaction extends SnapshotTransaction {
                 conflictTracer,
                 tableLevelMetricsController,
                 knowledge,
-                keyValueSnapshotReader,
+                new DefaultKeyValueSnapshotReader(
+                        transactionKeyValueService,
+                        defaultTransactionService,
+                        commitTimestampLoader,
+                        allowHiddenTableAccess,
+                        new ReadSentinelHandler(
+                                transactionKeyValueService,
+                                defaultTransactionService,
+                                TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                                new OrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor)),
+                        () -> commitTs, // I am different
+                        (table, timestampSupplier, allReadAndPresent) ->
+                                preCommitConditionValidator.throwIfPreCommitRequirementsNotMetOnRead(
+                                        table, timestampSupplier.getAsLong(), allReadAndPresent),
+                        deleteExecutor),
                 commitTimestampLoader,
                 preCommitConditionValidator) {
             @Override
