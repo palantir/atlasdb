@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.workload.runner;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -40,8 +41,11 @@ import java.util.stream.Collectors;
 
 public final class AntithesisWorkflowValidatorRunner implements WorkflowValidatorRunner<Workflow> {
     private static final SafeLogger log = SafeLoggerFactory.get(AntithesisWorkflowValidatorRunner.class);
-    private static final int MAX_ATTEMPTS = 10;
     private static final Duration DEFAULT_VALIDATION_RETRY_INTERVAL = Duration.ofSeconds(5);
+
+    @VisibleForTesting
+    static final int MAX_ATTEMPTS = 10;
+
     private final WorkflowRunner<Workflow> workflowRunner;
     private final Duration validationRetryInterval;
 
@@ -55,7 +59,8 @@ public final class AntithesisWorkflowValidatorRunner implements WorkflowValidato
         return new AntithesisWorkflowValidatorRunner(workflowRunner, DEFAULT_VALIDATION_RETRY_INTERVAL);
     }
 
-    public static WorkflowValidatorRunner<Workflow> createForTests(WorkflowRunner<Workflow> workflowRunner) {
+    @VisibleForTesting
+    static WorkflowValidatorRunner<Workflow> createForTests(WorkflowRunner<Workflow> workflowRunner) {
         return new AntithesisWorkflowValidatorRunner(workflowRunner, Duration.ZERO);
     }
 
