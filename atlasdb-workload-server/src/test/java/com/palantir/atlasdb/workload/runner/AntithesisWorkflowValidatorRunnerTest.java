@@ -104,8 +104,10 @@ public class AntithesisWorkflowValidatorRunnerTest {
         doThrow(new RuntimeException()).when(invariantReporterTwo).report(any());
         AntithesisWorkflowValidatorRunner.createForTests(workflowRunner).run(workflowAndInvariants);
         verify(workflow, times(1)).run();
-        verify(invariantReporterOne, times(AntithesisWorkflowValidatorRunner.MAX_ATTEMPTS)).report(any());
-        verify(invariantReporterTwo, times(AntithesisWorkflowValidatorRunner.MAX_ATTEMPTS)).report(any());
+        verify(invariantReporterOne, times(AntithesisWorkflowValidatorRunner.MAX_ATTEMPTS))
+                .report(any());
+        verify(invariantReporterTwo, times(AntithesisWorkflowValidatorRunner.MAX_ATTEMPTS))
+                .report(any());
     }
 
     @Test
@@ -126,11 +128,11 @@ public class AntithesisWorkflowValidatorRunnerTest {
         });
 
         doAnswer(_invocation -> {
-            assertThat(slowWorkflowIsDone.get())
-                    .as("the invariant reporter ran, even though the slow workflow was not done yet")
-                    .isTrue();
-            return null;
-        })
+                    assertThat(slowWorkflowIsDone.get())
+                            .as("the invariant reporter ran, even though the slow workflow was not done yet")
+                            .isTrue();
+                    return null;
+                })
                 .when(invariantReporterOne)
                 .report(any());
 
