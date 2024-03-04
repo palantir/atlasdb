@@ -1706,7 +1706,6 @@ public class SnapshotTransaction extends AbstractTransaction
                 .removeValues(value -> value.getContents().length == 0)
                 // The value has a commit timestamp less than our start timestamp, and is visible and valid.
                 .collect(MoreCollectors.entriesToCustomMap(LinkedHashMap::new));
-        keysToReload.putAll(keysToDelete);
 
         EntryStream<Cell, Value> resultStream = EntryStream.of(filteredResults);
         if (shouldDeleteAndRollback()) {
