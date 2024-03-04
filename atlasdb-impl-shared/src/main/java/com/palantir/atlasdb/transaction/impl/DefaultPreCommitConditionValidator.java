@@ -24,6 +24,7 @@ import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
+import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -44,14 +45,23 @@ public class DefaultPreCommitConditionValidator implements PreCommitConditionVal
     private final LockRefresher lockRefresher;
     private final Optional<LockToken> immutableTimestampLock;
     private final boolean validateLocksOnReads;
+    private final TransactionOutcomeMetrics transactionOutcomeMetrics;
 
-    public DefaultPreCommitConditionValidator(PreCommitCondition userPreCommitCondition, SweepStrategyManager sweepStrategyManager, Supplier<TransactionConfig> transactionConfig, LockRefresher lockRefresher, Optional<LockToken> immutableTimestampLock, boolean validateLocksOnReads) {
+    public DefaultPreCommitConditionValidator(
+            PreCommitCondition userPreCommitCondition,
+            SweepStrategyManager sweepStrategyManager,
+            Supplier<TransactionConfig> transactionConfig,
+            LockRefresher lockRefresher,
+            Optional<LockToken> immutableTimestampLock,
+            boolean validateLocksOnReads,
+            TransactionOutcomeMetrics transactionOutcomeMetrics) {
         this.userPreCommitCondition = userPreCommitCondition;
         this.sweepStrategyManager = sweepStrategyManager;
         this.transactionConfig = transactionConfig;
         this.lockRefresher = lockRefresher;
         this.immutableTimestampLock = immutableTimestampLock;
         this.validateLocksOnReads = validateLocksOnReads;
+        this.transactionOutcomeMetrics = transactionOutcomeMetrics;
     }
 
     // TODO (jkong): The boolean means "are there unvalidated reads"?
@@ -59,7 +69,7 @@ public class DefaultPreCommitConditionValidator implements PreCommitConditionVal
     public boolean throwIfPreCommitRequirementsNotMetOnRead(
             TableReference tableRef, long timestamp, boolean allPossibleCellsReadAndPresent) {
         if (isValidationNecessaryOnReads(tableRef, allPossibleCellsReadAndPresent)) {
-            throwIfPreCommitRequirementsNotMet(null, timestamp);
+            throwIfPreCommitRequirementsNotMet(Optional.empty(), timestamp);
         }
         return !allPossibleCellsReadAndPresent;
     }
@@ -70,7 +80,7 @@ public class DefaultPreCommitConditionValidator implements PreCommitConditionVal
         try {
             userPreCommitCondition.throwIfConditionInvalid(mutations, timestamp);
         } catch (TransactionFailedException ex) {
-            //transactionOutcomeMetrics.markPreCommitCheckFailed();
+            transactionOutcomeMetrics.markPreCommitCheckFailed();
             throw ex;
         }
     }
@@ -83,7 +93,7 @@ public class DefaultPreCommitConditionValidator implements PreCommitConditionVal
             String expiredLocksErrorString = getExpiredLocksErrorString(commitLocksToken, expiredLocks);
             TransactionLockTimeoutException ex = new TransactionLockTimeoutException(baseMsg + expiredLocksErrorString);
             log.warn(baseMsg + "{}", UnsafeArg.of("expiredLocksErrorString", expiredLocksErrorString), ex);
-            //transactionOutcomeMetrics.markLocksExpired();
+            transactionOutcomeMetrics.markLocksExpired();
             throw ex;
         }
     }
@@ -94,6 +104,16 @@ public class DefaultPreCommitConditionValidator implements PreCommitConditionVal
         throwIfPreCommitConditionInvalid(timestamp);
     }
 
+    @Override
+    public void throwIfPreCommitConditionInvalid(long timestamp) {
+        try {
+            userPreCommitCondition.throwIfConditionInvalid(timestamp);
+        } catch (TransactionFailedException ex) {
+            transactionOutcomeMetrics.markPreCommitCheckFailed();
+            throw ex;
+        }
+    }
+
     private boolean isValidationNecessaryOnReads(TableReference tableRef, boolean allPossibleCellsReadAndPresent) {
         return validateLocksOnReads && requiresImmutableTimestampLocking(tableRef, allPossibleCellsReadAndPresent);
     }
@@ -101,15 +121,6 @@ public class DefaultPreCommitConditionValidator implements PreCommitConditionVal
     private boolean requiresImmutableTimestampLocking(TableReference tableRef, boolean allPossibleCellsReadAndPresent) {
         return sweepStrategyManager.get(tableRef).mustCheckImmutableLock(allPossibleCellsReadAndPresent)
                 || transactionConfig.get().lockImmutableTsOnReadOnlyTransactions();
-    }
-
-    private void throwIfPreCommitConditionInvalid(long timestamp) {
-        try {
-            userPreCommitCondition.throwIfConditionInvalid(timestamp);
-        } catch (TransactionFailedException ex) {
-            //transactionOutcomeMetrics.markPreCommitCheckFailed();
-            throw ex;
-        }
     }
 
     private String getExpiredLocksErrorString(Optional<LockToken> commitLocksToken, Set<LockToken> expiredLocks) {
@@ -132,8 +143,6 @@ public class DefaultPreCommitConditionValidator implements PreCommitConditionVal
             return ImmutableSet.of();
         }
 
-        return Sets.difference(toRefresh, lockRefresher.refreshLocks(toRefresh))
-                .immutableCopy();
+        return Sets.difference(toRefresh, lockRefresher.refreshLocks(toRefresh)).immutableCopy();
     }
-
 }

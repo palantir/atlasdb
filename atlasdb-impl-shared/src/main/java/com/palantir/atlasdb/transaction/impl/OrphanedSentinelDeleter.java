@@ -20,6 +20,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.table.description.SweepStrategy;
+import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 import java.util.Set;
@@ -36,7 +37,11 @@ public final class OrphanedSentinelDeleter {
     }
 
     public void scheduleSentinelsForDeletion(TableReference tableReference, Set<Cell> orphanedSentinels) {
-        if (sweepStrategyProvider.apply(tableReference) == SweepStrategy.THOROUGH) {
+        if (sweepStrategyProvider
+                .apply(tableReference)
+                .getSweeperStrategy()
+                .map(sweeperStrategy -> sweeperStrategy == SweeperStrategy.THOROUGH)
+                .orElse(false)) {
             Map<Cell, Long> sentinels = KeyedStream.of(orphanedSentinels)
                     .map(_ignore -> Value.INVALID_VALUE_TIMESTAMP)
                     .collectToMap();

@@ -217,6 +217,10 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                     .put(SYNC, AbstractSnapshotTransactionTest.this::asyncGetExpectation)
                     .put(ASYNC, AbstractSnapshotTransactionTest.this::asyncGetExpectation)
                     .buildOrThrow();
+
+    // WTF? But there's already a generic ExecutorService called deleteExecutor in the parent class...
+    private final DeleteExecutor typedDeleteExecutor = new DefaultDeleteExecutor(keyValueService, deleteExecutor);
+
     private final TimestampCache timestampCache = new DefaultTimestampCache(
             metricsManager.getRegistry(), () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     private final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(8);
@@ -443,8 +447,10 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
             }
         });
 
-        CommitTimestampLoader loader = createCommitTimestampLoader(immutableTimestamp, startTimestampSupplier, Optional.empty());
-        PreCommitConditionValidator validator = createPreCommitConditionValidator(Optional.empty(), PreCommitConditions.NO_OP);
+        CommitTimestampLoader loader =
+                createCommitTimestampLoader(transactionTs, () -> transactionTs, Optional.empty(), timelockService);
+        PreCommitConditionValidator validator =
+                createPreCommitConditionValidator(Optional.empty(), PreCommitConditions.NO_OP, timelockService, true);
 
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         Transaction snapshot = transactionWrapper.apply(
@@ -460,7 +466,6 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         SweepStrategyManagers.createDefault(keyValueService),
                         transactionTs,
                         Optional.empty(),
-                        PreCommitConditions.NO_OP,
                         AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                         null,
                         TransactionReadSentinelBehavior.THROW_EXCEPTION,
@@ -469,15 +474,15 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         getRangesExecutor,
                         defaultGetRangesConcurrency,
                         MultiTableSweepQueueWriter.NO_OP,
-                        new DefaultDeleteExecutor(
-                                txnKeyValueServiceManager.getKeyValueService().orElseThrow(),
-                                MoreExecutors.newDirectExecutorService()),
+                        typedDeleteExecutor,
                         true,
                         () -> transactionConfig,
                         ConflictTracer.NO_OP,
                         tableLevelMetricsController,
                         knowledge,
-                        ),
+                        createDefaultSnapshotReader(() -> transactionTs, tkvsMock, loader, validator),
+                        loader,
+                        validator),
                 pathTypeTracker);
         assertThatThrownBy(() -> snapshot.get(TABLE, ImmutableSet.of(cell))).isInstanceOf(RuntimeException.class);
 
@@ -1773,7 +1778,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
 
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         SnapshotTransaction spiedSnapshotTransaction =
-                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager));
         Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
 
         // Fetching 3 cells, but expect only 2 to be present, for example
@@ -1810,7 +1815,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
 
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         SnapshotTransaction spiedSnapshotTransaction =
-                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager));
         Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
 
         // Fetching 3 cells, but expect only 2 to be present, for example
@@ -1847,7 +1852,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
 
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         SnapshotTransaction spiedSnapshotTransaction =
-                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager));
         Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
 
         // Fetching 3 cells, but expect only 2 to be present, for example
@@ -1890,7 +1895,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
 
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         SnapshotTransaction spiedSnapshotTransaction =
-                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager));
         Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
 
         Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> result =
@@ -1924,7 +1929,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
 
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         SnapshotTransaction spiedSnapshotTransaction =
-                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager));
         Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
 
         Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> result =
@@ -1959,7 +1964,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
 
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         SnapshotTransaction spiedSnapshotTransaction =
-                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager));
         Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
 
         // Deleting existing cell and writing to a new one to simulate change from LOCAL -> REMOTE or vice versa.
@@ -3266,14 +3271,19 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     private SnapshotTransaction getSnapshotTransactionWith(
-            long transactionTs,
-            LockImmutableTimestampResponse res,
-            LockWatchManagerInternal mockLockWatchManager,
-            PathTypeTracker pathTypeTracker) {
+            long transactionTs, LockImmutableTimestampResponse res, LockWatchManagerInternal mockLockWatchManager) {
         LongSupplier startTimestampSupplier = Suppliers.ofInstance(transactionTs)::get;
+        TransactionKeyValueService transactionKeyValueService =
+                txnKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier);
+        Optional<LockToken> immutableTimestampLock = Optional.of(res.getLock());
+
+        CommitTimestampLoader commitTimestampLoader = createCommitTimestampLoader(
+                res.getImmutableTimestamp(), startTimestampSupplier, immutableTimestampLock, timelockService);
+        DefaultPreCommitConditionValidator preCommitConditionValidator = createPreCommitConditionValidator(
+                immutableTimestampLock, PreCommitConditions.NO_OP, timelockService, true);
         return new SnapshotTransaction(
                 metricsManager,
-                txnKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
+                transactionKeyValueService,
                 timelockService,
                 mockLockWatchManager,
                 transactionService,
@@ -3284,7 +3294,6 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 SweepStrategyManagers.createDefault(keyValueService),
                 res.getImmutableTimestamp(),
                 Optional.of(res.getLock()),
-                PreCommitConditions.NO_OP,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
@@ -3293,56 +3302,72 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
-                new DefaultDeleteExecutor(
-                        txnKeyValueServiceManager.getKeyValueService().orElseThrow(),
-                        MoreExecutors.newDirectExecutorService()),
+                typedDeleteExecutor,
                 true,
                 () -> transactionConfig,
                 ConflictTracer.NO_OP,
                 tableLevelMetricsController,
-                knowledge);
+                knowledge,
+                createDefaultSnapshotReader(
+                        startTimestampSupplier,
+                        transactionKeyValueService,
+                        commitTimestampLoader,
+                        preCommitConditionValidator),
+                commitTimestampLoader,
+                preCommitConditionValidator);
     }
 
-    private DefaultPreCommitConditionValidator createPreCommitConditionValidator(Optional<LockToken> immutableTsLock, PreCommitCondition condition) {
+    private DefaultPreCommitConditionValidator createPreCommitConditionValidator(
+            Optional<LockToken> immutableTsLock,
+            PreCommitCondition condition,
+            TimelockService timelockService,
+            boolean validateLocksOnReads) {
         return new DefaultPreCommitConditionValidator(
                 condition,
                 sweepStrategyManager,
                 () -> transactionConfig,
                 new DefaultLockRefresher(timelockService),
                 immutableTsLock,
-                true);
+                validateLocksOnReads,
+                TransactionOutcomeMetrics.create(
+                        TransactionMetrics.of(metricsManager.getTaggedRegistry()), metricsManager.getTaggedRegistry()));
     }
 
-    private CommitTimestampLoader createCommitTimestampLoader(long immutableTimestamp, LongSupplier startTimestampSupplier, Optional<LockToken> immutableTsLock) {
+    private CommitTimestampLoader createCommitTimestampLoader(
+            long immutableTimestamp,
+            LongSupplier startTimestampSupplier,
+            Optional<LockToken> immutableTsLock,
+            TimelockService timelockService) {
         return new CommitTimestampLoader(
-                timestampValidationReadCache,
+                timestampCache,
                 immutableTsLock,
                 startTimestampSupplier::getAsLong,
-                transactionConfig,
+                () -> transactionConfig,
                 metricsManager,
                 timelockService,
                 immutableTimestamp,
                 knowledge);
     }
 
-    private KeyValueSnapshotReader createDefaultSnapshotReader(LongSupplier startTimestampSupplier,
-                                                               TransactionKeyValueService transactionKeyValueService,
-                                                               CommitTimestampLoader commitTimestampLoader,
-                                                               PreCommitConditionValidator validator) {
+    private KeyValueSnapshotReader createDefaultSnapshotReader(
+            LongSupplier startTimestampSupplier,
+            TransactionKeyValueService transactionKeyValueService,
+            CommitTimestampLoader commitTimestampLoader,
+            PreCommitConditionValidator validator) {
         return new DefaultKeyValueSnapshotReader(
                 transactionKeyValueService,
                 transactionService,
                 commitTimestampLoader,
-                allowHiddenTableAccess,
+                false,
                 new ReadSentinelHandler(
                         transactionKeyValueService,
                         transactionService,
                         TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                        new OrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor)),
+                        new OrphanedSentinelDeleter(sweepStrategyManager::get, typedDeleteExecutor)),
                 startTimestampSupplier,
                 (table, timestampSupplier, allReadAndPresent) -> validator.throwIfPreCommitRequirementsNotMetOnRead(
                         table, timestampSupplier.getAsLong(), allReadAndPresent),
-                deleteExecutor);
+                typedDeleteExecutor);
     }
 
     private Transaction getSnapshotTransactionWith(
@@ -3368,9 +3393,22 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
             boolean validateLocksOnReads,
             Map<TableReference, ConflictHandler> tableConflictHandlers) {
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+
+        Optional<LockToken> immutableTimestampLock = Optional.of(lockImmutableTimestampResponse.getLock());
+
+        CommitTimestampLoader commitTimestampLoader = createCommitTimestampLoader(
+                lockImmutableTimestampResponse.getImmutableTimestamp(),
+                startTs::get,
+                immutableTimestampLock,
+                timelockService);
+        DefaultPreCommitConditionValidator preCommitConditionValidator = createPreCommitConditionValidator(
+                immutableTimestampLock, preCommitCondition, timelockService, validateLocksOnReads);
+
+        TransactionKeyValueService transactionKeyValueService =
+                txnKeyValueServiceManager.getTransactionKeyValueService(startTs::get);
         SnapshotTransaction transaction = new SnapshotTransaction(
                 metricsManager,
-                txnKeyValueServiceManager.getTransactionKeyValueService(startTs::get),
+                transactionKeyValueService,
                 timelockService,
                 inMemoryTimelockExtension.getLockWatchManager(),
                 transactionService,
@@ -3380,7 +3418,6 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 SweepStrategyManagers.createDefault(keyValueService),
                 lockImmutableTimestampResponse.getImmutableTimestamp(),
                 Optional.of(lockImmutableTimestampResponse.getLock()),
-                preCommitCondition,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
@@ -3389,14 +3426,16 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
-                new DefaultDeleteExecutor(
-                        txnKeyValueServiceManager.getKeyValueService().orElseThrow(),
-                        MoreExecutors.newDirectExecutorService()),
+                typedDeleteExecutor,
                 validateLocksOnReads,
                 () -> transactionConfig,
                 ConflictTracer.NO_OP,
                 tableLevelMetricsController,
-                knowledge);
+                knowledge,
+                createDefaultSnapshotReader(
+                        startTs::get, transactionKeyValueService, commitTimestampLoader, preCommitConditionValidator),
+                commitTimestampLoader,
+                preCommitConditionValidator);
         return transactionWrapper.apply(transaction, pathTypeTracker);
     }
 

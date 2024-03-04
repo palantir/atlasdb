@@ -27,6 +27,8 @@ public interface PreCommitConditionValidator {
     boolean throwIfPreCommitRequirementsNotMetOnRead(
             TableReference tableRef, long timestamp, boolean allPossibleCellsReadAndPresent);
 
+    void throwIfPreCommitConditionInvalid(long timestamp);
+
     void throwIfPreCommitConditionInvalidAtCommitOnWriteTransaction(
             Map<TableReference, ? extends Map<Cell, byte[]>> mutations, long timestamp);
 

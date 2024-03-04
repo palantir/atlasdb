@@ -19,6 +19,7 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -177,10 +178,17 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             LockToken immutableTsLock,
             PreCommitCondition preCommitCondition) {
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        CommitTimestampLoader loader =
+                createCommitTimestampLoader(immutableTimestamp, startTimestampSupplier, Optional.of(immutableTsLock));
+        PreCommitConditionValidator validator =
+                createPreCommitConditionValidator(Optional.of(immutableTsLock), preCommitCondition);
+
+        TransactionKeyValueService transactionKeyValueService =
+                transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier);
         return transactionWrapper.apply(
                 new SerializableTransaction(
                         metricsManager,
-                        transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
+                        transactionKeyValueService,
                         timelockService,
                         lockWatchManager,
                         transactionService,
@@ -204,7 +212,11 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         transactionConfig,
                         ConflictTracer.NO_OP,
                         tableLevelMetricsController,
-                        knowledge),
+                        knowledge,
+                        createDefaultSnapshotReader(
+                                startTimestampSupplier, transactionKeyValueService, loader, validator),
+                        loader,
+                        validator),
                 pathTypeTracker);
     }
 
