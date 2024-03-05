@@ -160,7 +160,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         CommitTimestampLoader commitTimestampLoader =
                 createCommitTimestampLoader(0L, startTimestampSupplier, options.immutableLockToken);
         DefaultPreCommitConditionValidator preCommitConditionValidator =
-                createPreCommitConditionValidator(options.immutableLockToken, PreCommitConditions.NO_OP);
+                createPreCommitConditionValidator(options.immutableLockToken, options.condition);
 
         return new SerializableTransaction(
                 MetricsManagers.createForTests(),
