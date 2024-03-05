@@ -197,13 +197,13 @@ public abstract class TransactionTestSetup {
         transactionService = createTransactionService(keyValueService, transactionSchemaManager, knowledge);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
-        txMgr = createAndRegisterManager();
         keyValueSnapshotReaderFactory = new DefaultKeyValueSnapshotReaderFactory(
                 transactionKeyValueServiceManager,
                 transactionService,
                 false,
                 new OrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
                 deleteExecutor);
+        txMgr = createAndRegisterManager();
     }
 
     protected KeyValueService getKeyValueService() {
