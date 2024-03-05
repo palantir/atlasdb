@@ -48,6 +48,7 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.impl.metrics.KeyValueSnapshotEventRecorder;
 import com.palantir.atlasdb.transaction.impl.metrics.MemoizingTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -391,7 +392,8 @@ import java.util.stream.Collectors;
                 startTimestampSupplier,
                 (table, timestampSupplier, allReadAndPresent) -> validator.throwIfPreCommitRequirementsNotMetOnRead(
                         table, timestampSupplier.getAsLong(), allReadAndPresent),
-                deleteExecutor);
+                deleteExecutor,
+                KeyValueSnapshotEventRecorder.create(metricsManager, tableLevelMetricsController));
     }
 
     @Override

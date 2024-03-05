@@ -113,6 +113,7 @@ import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpec
 import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionWriteMetadataInfo;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
+import com.palantir.atlasdb.transaction.impl.metrics.KeyValueSnapshotEventRecorder;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.ToplistDeltaFilteringTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionMetrics;
@@ -3367,7 +3368,8 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 startTimestampSupplier,
                 (table, timestampSupplier, allReadAndPresent) -> validator.throwIfPreCommitRequirementsNotMetOnRead(
                         table, timestampSupplier.getAsLong(), allReadAndPresent),
-                typedDeleteExecutor);
+                typedDeleteExecutor,
+                KeyValueSnapshotEventRecorder.create(metricsManager, tableLevelMetricsController));
     }
 
     private Transaction getSnapshotTransactionWith(

@@ -35,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.transaction.impl.metrics.KeyValueSnapshotEventRecorder;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Output;
 import com.palantir.logsafe.Preconditions;
@@ -69,6 +70,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
     private final LongSupplier startTimestampSupplier;
     private final IntraReadSnapshotValidator intraReadSnapshotValidator;
     private final DeleteExecutor deleteExecutor;
+    private final KeyValueSnapshotEventRecorder eventRecorder;
 
     public DefaultKeyValueSnapshotReader(
             TransactionKeyValueService transactionKeyValueService,
@@ -78,7 +80,8 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             ReadSentinelHandler readSentinelHandler,
             LongSupplier startTimestampSupplier,
             IntraReadSnapshotValidator intraReadSnapshotValidator,
-            DeleteExecutor deleteExecutor) {
+            DeleteExecutor deleteExecutor,
+            KeyValueSnapshotEventRecorder eventRecorder) {
         this.transactionKeyValueService = transactionKeyValueService;
         this.transactionService = transactionService;
         this.commitTimestampLoader = commitTimestampLoader;
@@ -87,6 +90,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
         this.startTimestampSupplier = startTimestampSupplier;
         this.intraReadSnapshotValidator = intraReadSnapshotValidator;
         this.deleteExecutor = deleteExecutor;
+        this.eventRecorder = eventRecorder;
     }
 
     @Override
@@ -153,11 +157,10 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
                         UnsafeArg.of("results", Iterables.limit(rawResults.entrySet(), 10)),
                         new SafeRuntimeException("This exception and stack trace are provided for debugging purposes"));
             }
-            //            getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_TOO_MANY_BYTES_READ, tableRef)
-            //                    .update(bytes);
+            eventRecorder.recordManyBytesReadForTable(tableRef, bytes);
         }
 
-        //        getCounter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_READ, tableRef).inc(rawResults.size());
+        eventRecorder.recordCellsRead(tableRef, rawResults.size());
 
         Collection<Map.Entry<Cell, T>> resultsAccumulator = new ArrayList<>();
 
@@ -207,10 +210,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
                                 SafeArg.of("table", tableReference),
                                 SafeArg.of("maxIterations", SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS));
                     }
-                    //                    getCounter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED,
-                    // tableReference)
-                    //                            .inc(resultsAccumulator.size());
-
+                    eventRecorder.recordCellsReturned(tableReference, resultsAccumulator.size());
                     return Futures.immediateFuture(resultsAccumulator);
                 },
                 MoreExecutors.directExecutor());
@@ -249,9 +249,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             Value value = e.getValue();
 
             if (isSweepSentinel(value) && !knownOrphans.contains(key)) {
-                // move to readSentinelHandler
-                //                getCounter(AtlasDbMetricNames.CellFilterMetrics.INVALID_START_TS, tableRef)
-                //                        .inc();
+                eventRecorder.recordFilteredSweepSentinel(tableRef);
 
                 // This means that this transaction started too long ago. When we do garbage collection,
                 // we clean up old values, and this transaction started at a timestamp before the garbage collection.
@@ -264,17 +262,14 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
 
                     // This is from a failed transaction so we can roll it back and then reload it.
                     keysToDelete.put(key, value.getTimestamp());
-                    //                    getCounter(AtlasDbMetricNames.CellFilterMetrics.INVALID_COMMIT_TS, tableRef)
-                    //                            .inc();
+                    eventRecorder.recordFilteredUncommittedTransaction(tableRef);
                 } else if (theirCommitTimestamp > startTimestampSupplier.getAsLong()) {
                     // The value's commit timestamp is after our start timestamp.
                     // This means the value is from a transaction which committed
                     // after our transaction began. We need to try reading at an
                     // earlier timestamp.
                     keysToReload.put(key, value.getTimestamp());
-                    //
-                    // getCounter(AtlasDbMetricNames.CellFilterMetrics.COMMIT_TS_GREATER_THAN_TRANSACTION_TS, tableRef)
-                    //                            .inc();
+                    eventRecorder.recordFilteredTransactionCommittingAfterOurStart(tableRef);
                 } else {
                     // The value has a commit timestamp less than our start timestamp, and is visible and valid.
                     if (value.getContents().length != 0) {
@@ -355,7 +350,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
     private boolean rollbackOtherTransaction(long startTs) {
         try {
             transactionService.putUnlessExists(startTs, TransactionConstants.FAILED_COMMIT_TS);
-            // transactionMetrics.rolledBackOtherTransaction().mark();
+            eventRecorder.recordRolledBackOtherTransaction();
             return true;
         } catch (KeyAlreadyExistsException e) {
             log.debug(

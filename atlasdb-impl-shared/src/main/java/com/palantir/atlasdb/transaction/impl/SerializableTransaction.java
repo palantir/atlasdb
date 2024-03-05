@@ -65,6 +65,7 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
+import com.palantir.atlasdb.transaction.impl.metrics.KeyValueSnapshotEventRecorder;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -954,7 +955,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                         (table, timestampSupplier, allReadAndPresent) ->
                                 preCommitConditionValidator.throwIfPreCommitRequirementsNotMetOnRead(
                                         table, timestampSupplier.getAsLong(), allReadAndPresent),
-                        deleteExecutor),
+                        deleteExecutor,
+                        KeyValueSnapshotEventRecorder.create(metricsManager, tableLevelMetricsController)),
                 readValidationLoader,
                 preCommitConditionValidator) {
             @Override
