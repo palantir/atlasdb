@@ -36,8 +36,8 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 // Transaction scoped. One instance should live for the duration of a transaction.
-public class DefaultPreCommitConditionValidator implements PreCommitConditionValidator {
-    private static final SafeLogger log = SafeLoggerFactory.get(DefaultPreCommitConditionValidator.class);
+public class DefaultPreCommitRequirementValidator implements PreCommitRequirementValidator {
+    private static final SafeLogger log = SafeLoggerFactory.get(DefaultPreCommitRequirementValidator.class);
 
     private final PreCommitCondition userPreCommitCondition;
     private final SweepStrategyManager sweepStrategyManager;
@@ -47,7 +47,7 @@ public class DefaultPreCommitConditionValidator implements PreCommitConditionVal
     private final boolean validateLocksOnReads;
     private final TransactionOutcomeMetrics transactionOutcomeMetrics;
 
-    public DefaultPreCommitConditionValidator(
+    public DefaultPreCommitRequirementValidator(
             PreCommitCondition userPreCommitCondition,
             SweepStrategyManager sweepStrategyManager,
             Supplier<TransactionConfig> transactionConfig,

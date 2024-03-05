@@ -33,10 +33,6 @@ public final class SnapshotTransactionMetricFactory {
     }
 
     // Using the SnapshotTransaction class and not this class, to preserve backwards compatibility
-    public Histogram getHistogram(String name) {
-        return metricsManager.registerOrGetHistogram(SnapshotTransaction.class, name);
-    }
-
     public Histogram getHistogram(String name, TableReference tableRef) {
         return metricsManager.registerOrGetTaggedHistogram(
                 SnapshotTransaction.class, name, metricsManager.getTableNameTagFor(tableRef));

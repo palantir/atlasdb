@@ -62,7 +62,6 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
@@ -160,7 +159,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier);
         CommitTimestampLoader commitTimestampLoader =
                 createCommitTimestampLoader(0L, startTimestampSupplier, options.immutableLockToken);
-        DefaultPreCommitConditionValidator preCommitConditionValidator =
+        DefaultPreCommitRequirementValidator preCommitConditionValidator =
                 createPreCommitConditionValidator(options.immutableLockToken, options.condition);
 
         return new SerializableTransaction(
@@ -1692,9 +1691,9 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 .collect(Collectors.toList());
     }
 
-    private DefaultPreCommitConditionValidator createPreCommitConditionValidator(
+    private DefaultPreCommitRequirementValidator createPreCommitConditionValidator(
             Optional<LockToken> immutableTsLock, PreCommitCondition condition) {
-        return new DefaultPreCommitConditionValidator(
+        return new DefaultPreCommitRequirementValidator(
                 condition,
                 sweepStrategyManager,
                 () -> ImmutableTransactionConfig.builder().build(),
@@ -1722,14 +1721,13 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
             LongSupplier startTimestampSupplier,
             TransactionKeyValueService transactionKeyValueService,
             CommitTimestampLoader commitTimestampLoader,
-            PreCommitConditionValidator validator) {
+            PreCommitRequirementValidator validator) {
         return new DefaultKeyValueSnapshotReader(
                 transactionKeyValueService,
                 transactionService,
                 commitTimestampLoader,
                 false,
                 new ReadSentinelHandler(
-                        transactionKeyValueService,
                         transactionService,
                         TransactionReadSentinelBehavior.THROW_EXCEPTION,
                         new OrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor)),

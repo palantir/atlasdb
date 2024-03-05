@@ -36,17 +36,14 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public final class ReadSentinelHandler {
-    private final TransactionKeyValueService transactionKeyValueService;
     private final TransactionService transactionService;
     private final TransactionReadSentinelBehavior readSentinelBehavior;
     private final OrphanedSentinelDeleter orphanedSentinelDeleter;
 
     public ReadSentinelHandler(
-            TransactionKeyValueService transactionKeyValueService,
             TransactionService transactionService,
             TransactionReadSentinelBehavior readSentinelBehavior,
             OrphanedSentinelDeleter orphanedSentinelDeleter) {
-        this.transactionKeyValueService = transactionKeyValueService;
         this.transactionService = transactionService;
         this.readSentinelBehavior = readSentinelBehavior;
         this.orphanedSentinelDeleter = orphanedSentinelDeleter;
@@ -57,7 +54,8 @@ public final class ReadSentinelHandler {
      * it was truncated. In this case, there is a chance that we end up with a sentinel with no valid AtlasDB cell
      * covering it. In this case, we ignore it.
      */
-    public Set<Cell> findAndMarkOrphanedSweepSentinelsForDeletion(TableReference table, Map<Cell, Value> rawResults) {
+    public Set<Cell> findAndMarkOrphanedSweepSentinelsForDeletion(
+            TransactionKeyValueService transactionKeyValueService, TableReference table, Map<Cell, Value> rawResults) {
         Set<Cell> sweepSentinels = Maps.filterValues(rawResults, ReadSentinelHandler::isSweepSentinel)
                 .keySet();
         if (sweepSentinels.isEmpty()) {

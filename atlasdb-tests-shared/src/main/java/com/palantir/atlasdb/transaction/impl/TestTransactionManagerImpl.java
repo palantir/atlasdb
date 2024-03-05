@@ -67,7 +67,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueue,
             TransactionKnowledgeComponents knowledge,
-            ExecutorService deleteExecutor) {
+            ExecutorService deleteExecutor,
+            KeyValueSnapshotReaderFactory keyValueSnapshotReaderFactory) {
         this(
                 metricsManager,
                 keyValueService,
@@ -80,7 +81,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 sweepQueue,
                 deleteExecutor,
                 WrapperWithTracker.TRANSACTION_NO_OP,
-                knowledge);
+                knowledge,
+                keyValueSnapshotReaderFactory);
     }
 
     public TestTransactionManagerImpl(
@@ -95,7 +97,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor,
             WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            KeyValueSnapshotReaderFactory keyValueSnapshotReaderFactory) {
         this(
                 metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
@@ -108,7 +111,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 sweepQueue,
                 deleteExecutor,
                 transactionWrapper,
-                knowledge);
+                knowledge,
+                keyValueSnapshotReaderFactory);
     }
 
     private TestTransactionManagerImpl(
@@ -123,7 +127,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor,
             WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            KeyValueSnapshotReaderFactory keyValueSnapshotReaderFactory) {
         super(
                 metricsManager,
                 keyValueService,
@@ -147,7 +152,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                keyValueSnapshotReaderFactory);
         this.transactionWrapper = transactionWrapper;
     }
 
@@ -180,7 +186,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         CommitTimestampLoader loader =
                 createCommitTimestampLoader(immutableTimestamp, startTimestampSupplier, Optional.of(immutableTsLock));
-        PreCommitConditionValidator validator =
+        PreCommitRequirementValidator validator =
                 createPreCommitConditionValidator(Optional.of(immutableTsLock), preCommitCondition);
 
         TransactionKeyValueService transactionKeyValueService =
@@ -213,8 +219,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         ConflictTracer.NO_OP,
                         tableLevelMetricsController,
                         knowledge,
-                        createDefaultSnapshotReader(
-                                startTimestampSupplier, transactionKeyValueService, loader, validator),
+                        createDefaultSnapshotReader(startTimestampSupplier, loader, validator),
                         loader,
                         validator),
                 pathTypeTracker);

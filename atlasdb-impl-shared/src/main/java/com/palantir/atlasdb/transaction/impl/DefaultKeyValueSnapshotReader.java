@@ -33,7 +33,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.impl.metrics.KeyValueSnapshotEventRecorder;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -222,7 +221,8 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             @Output Collection<Map.Entry<Cell, T>> resultsCollector,
             Function<Value, T> transformer,
             CellGetter cellGetter) {
-        Set<Cell> orphans = readSentinelHandler.findAndMarkOrphanedSweepSentinelsForDeletion(tableRef, rawResults);
+        Set<Cell> orphans = readSentinelHandler.findAndMarkOrphanedSweepSentinelsForDeletion(
+                transactionKeyValueService, tableRef, rawResults);
         LongSet valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
 
         return Futures.transformAsync(

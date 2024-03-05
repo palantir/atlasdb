@@ -22,7 +22,7 @@ import com.palantir.lock.v2.LockToken;
 import java.util.Map;
 import java.util.Optional;
 
-public interface PreCommitConditionValidator {
+public interface PreCommitRequirementValidator {
     // TODO (jkong): The boolean means "are there unvalidated reads"?
     boolean throwIfPreCommitRequirementsNotMetOnRead(
             TableReference tableRef, long timestamp, boolean allPossibleCellsReadAndPresent);

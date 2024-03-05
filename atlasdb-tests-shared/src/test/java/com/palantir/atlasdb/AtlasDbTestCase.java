@@ -33,6 +33,11 @@ import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.impl.CachingTestTransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
+import com.palantir.atlasdb.transaction.impl.DefaultDeleteExecutor;
+import com.palantir.atlasdb.transaction.impl.DefaultKeyValueSnapshotReaderFactory;
+import com.palantir.atlasdb.transaction.impl.DeleteExecutor;
+import com.palantir.atlasdb.transaction.impl.KeyValueSnapshotReaderFactory;
+import com.palantir.atlasdb.transaction.impl.OrphanedSentinelDeleter;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TestTransactionManager;
@@ -76,6 +81,7 @@ public class AtlasDbTestCase {
     protected int sweepQueueShards = 128;
 
     protected TransactionKnowledgeComponents knowledge;
+    protected KeyValueSnapshotReaderFactory keyValueSnapshotReaderFactory;
 
     protected ExecutorService deleteExecutor;
 
@@ -97,6 +103,13 @@ public class AtlasDbTestCase {
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         sweepQueue = spy(TargetedSweeper.createUninitializedForTest(() -> sweepQueueShards));
         knowledge = TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry());
+        DeleteExecutor typedDeleteExecutor = new DefaultDeleteExecutor(keyValueService, deleteExecutor);
+        keyValueSnapshotReaderFactory = new DefaultKeyValueSnapshotReaderFactory(
+                txnKeyValueServiceManager,
+                transactionService,
+                false,
+                new OrphanedSentinelDeleter(sweepStrategyManager::get, typedDeleteExecutor),
+                typedDeleteExecutor);
         setUpTransactionManagers();
         sweepQueue.initialize(serializableTxManager);
         sweepTimestampSupplier = new SpecialTimestampsSupplier(
@@ -125,7 +138,8 @@ public class AtlasDbTestCase {
                 DefaultTimestampCache.createForTests(),
                 sweepQueue,
                 knowledge,
-                MoreExecutors.newDirectExecutorService());
+                MoreExecutors.newDirectExecutorService(),
+                keyValueSnapshotReaderFactory);
     }
 
     protected KeyValueService getBaseKeyValueService() {

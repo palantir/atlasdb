@@ -85,7 +85,6 @@ import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
-import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict;
@@ -297,7 +296,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TimestampCache timestampCache;
 
     protected final TransactionKnowledgeComponents knowledge;
-    protected final PreCommitConditionValidator preCommitConditionValidator;
+    protected final PreCommitRequirementValidator preCommitRequirementValidator;
 
     protected final Closer closer = Closer.create();
 
@@ -333,7 +332,7 @@ public class SnapshotTransaction extends AbstractTransaction
             TransactionKnowledgeComponents knowledge,
             KeyValueSnapshotReader keyValueSnapshotReader,
             CommitTimestampLoader commitTimestampLoader,
-            PreCommitConditionValidator validator) {
+            PreCommitRequirementValidator validator) {
         this.metricsManager = metricsManager;
         this.lockWatchManager = lockWatchManager;
         this.conflictTracer = conflictTracer;
@@ -370,7 +369,7 @@ public class SnapshotTransaction extends AbstractTransaction
         this.expectationsDataCollectionMetrics = ExpectationsMetrics.of(metricsManager.getTaggedRegistry());
         this.keyValueSnapshotReader = keyValueSnapshotReader;
         this.commitTimestampLoader = commitTimestampLoader;
-        this.preCommitConditionValidator = validator;
+        this.preCommitRequirementValidator = validator;
     }
 
     protected TransactionScopedCache getCache() {
@@ -1195,7 +1194,7 @@ public class SnapshotTransaction extends AbstractTransaction
     */
     private void validatePreCommitRequirementsOnReadIfNecessary(
             TableReference tableRef, long timestamp, boolean allPossibleCellsReadAndPresent) {
-        boolean mayHaveUnvalidatedReads = preCommitConditionValidator.throwIfPreCommitRequirementsNotMetOnRead(
+        boolean mayHaveUnvalidatedReads = preCommitRequirementValidator.throwIfPreCommitRequirementsNotMetOnRead(
                 tableRef, timestamp, allPossibleCellsReadAndPresent);
 
         if (mayHaveUnvalidatedReads) {
@@ -1803,7 +1802,7 @@ public class SnapshotTransaction extends AbstractTransaction
             ensureUncommitted();
             if (state.compareAndSet(State.UNCOMMITTED, State.ABORTED)) {
                 if (hasWrites()) {
-                    preCommitConditionValidator.throwIfPreCommitRequirementsNotMet(
+                    preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(
                             Optional.empty(), getStartTimestamp());
                 }
                 transactionOutcomeMetrics.markAbort();
@@ -1980,12 +1979,12 @@ public class SnapshotTransaction extends AbstractTransaction
         if (!hasWrites()) {
             if (hasReads() || hasAnyInvolvedTables()) {
                 // verify any pre-commit conditions on the transaction
-                preCommitConditionValidator.throwIfPreCommitConditionInvalid(getStartTimestamp());
+                preCommitRequirementValidator.throwIfPreCommitConditionInvalid(getStartTimestamp());
 
                 // if there are no writes, we must still make sure the immutable timestamp lock is still valid,
                 // to ensure that sweep hasn't thoroughly deleted cells we tried to read
                 if (validationNecessaryForInvolvedTablesOnCommit()) {
-                    preCommitConditionValidator.throwIfImmutableTsOrCommitLocksExpired(Optional.empty());
+                    preCommitRequirementValidator.throwIfImmutableTsOrCommitLocksExpired(Optional.empty());
                 }
             }
             getTimer("nonWriteCommitTotalTimeSinceTxCreation")
@@ -2027,7 +2026,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 // this transaction before making progress.
                 traced(
                         "postSweepEnqueueLockCheck",
-                        () -> preCommitConditionValidator.throwIfImmutableTsOrCommitLocksExpired(
+                        () -> preCommitRequirementValidator.throwIfImmutableTsOrCommitLocksExpired(
                                 Optional.ofNullable(commitLocksToken)));
 
                 // Write to the key value service. We must do this before getting the commit timestamp - otherwise
@@ -2064,14 +2063,14 @@ public class SnapshotTransaction extends AbstractTransaction
                 // handling - we should check lock validity last to ensure that sweep hasn't affected the checks.
                 timedAndTraced(
                         "userPreCommitCondition",
-                        () -> preCommitConditionValidator.throwIfPreCommitConditionInvalidAtCommitOnWriteTransaction(
+                        () -> preCommitRequirementValidator.throwIfPreCommitConditionInvalidAtCommitOnWriteTransaction(
                                 writes, commitTimestamp));
 
                 // Not timed, because this just calls ConjureTimelockServiceBlocking.refreshLockLeases, and that is
                 // timed.
                 traced(
                         "preCommitLockCheck",
-                        () -> preCommitConditionValidator.throwIfImmutableTsOrCommitLocksExpired(
+                        () -> preCommitRequirementValidator.throwIfImmutableTsOrCommitLocksExpired(
                                 Optional.ofNullable(commitLocksToken)));
 
                 // Not timed, because this just calls TransactionService.putUnlessExists, and that is timed.
@@ -2234,14 +2233,14 @@ public class SnapshotTransaction extends AbstractTransaction
             }
             if (!conflictingValues.containsKey(cell)) {
                 // This error case could happen if our locks expired.
-                preCommitConditionValidator.throwIfPreCommitRequirementsNotMet(
+                preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(
                         Optional.ofNullable(commitLocksToken), getStartTimestamp());
                 Validate.isTrue(
                         false, "Missing conflicting value for cell: %s for table %s", cellToConflict.get(cell), table);
             }
             if (conflictingValues.get(cell).getTimestamp() != (cellEntry.getValue() - 1)) {
                 // This error case could happen if our locks expired.
-                preCommitConditionValidator.throwIfPreCommitRequirementsNotMet(
+                preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(
                         Optional.ofNullable(commitLocksToken), getStartTimestamp());
                 Validate.isTrue(
                         false,

@@ -127,6 +127,7 @@ public abstract class TransactionTestSetup {
     protected TimestampCache timestampCache;
 
     protected TransactionKnowledgeComponents knowledge;
+    protected KeyValueSnapshotReaderFactory keyValueSnapshotReaderFactory;
 
     @RegisterExtension
     public InMemoryTimelockExtension inMemoryTimelockExtension = new InMemoryTimelockExtension();
@@ -197,6 +198,12 @@ public abstract class TransactionTestSetup {
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         txMgr = createAndRegisterManager();
+        keyValueSnapshotReaderFactory = new DefaultKeyValueSnapshotReaderFactory(
+                transactionKeyValueServiceManager,
+                transactionService,
+                false,
+                new OrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
+                deleteExecutor);
     }
 
     protected KeyValueService getKeyValueService() {
@@ -225,7 +232,8 @@ public abstract class TransactionTestSetup {
                 timestampCache,
                 MultiTableSweepQueueWriter.NO_OP,
                 knowledge,
-                MoreExecutors.newDirectExecutorService());
+                MoreExecutors.newDirectExecutorService(),
+                keyValueSnapshotReaderFactory);
     }
 
     protected void put(Transaction txn, String rowName, String columnName, String value) {

@@ -274,6 +274,7 @@ public class SerializableTransactionManagerTest {
 
     private TransactionManager getManagerWithCallback(
             boolean initializeAsync, Callback<TransactionManager> callBack, ScheduledExecutorService executor) {
+        DeleteExecutor defaultDeleteExecutor = DefaultDeleteExecutor.createDefault(mockKvs);
         return SerializableTransactionManager.create(
                 metricsManager,
                 new DefaultTransactionKeyValueServiceManager(mockKvs),
@@ -300,7 +301,14 @@ public class SerializableTransactionManagerTest {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                defaultDeleteExecutor,
+                new DefaultKeyValueSnapshotReaderFactory(
+                        new DefaultTransactionKeyValueServiceManager(mockKvs),
+                        mock(TransactionService.class),
+                        false,
+                        mock(OrphanedSentinelDeleter.class),
+                        defaultDeleteExecutor));
     }
 
     private void nothingInitialized() {

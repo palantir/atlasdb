@@ -58,7 +58,6 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -172,7 +171,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             TransactionKnowledgeComponents knowledge,
             KeyValueSnapshotReader reader,
             CommitTimestampLoader commitTimestampLoader,
-            PreCommitConditionValidator preCommitConditionValidator) {
+            PreCommitRequirementValidator preCommitRequirementValidator) {
         super(
                 metricsManager,
                 keyValueService,
@@ -201,7 +200,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 knowledge,
                 reader,
                 commitTimestampLoader,
-                preCommitConditionValidator);
+                preCommitRequirementValidator);
     }
 
     @Override
@@ -947,18 +946,17 @@ public class SerializableTransaction extends SnapshotTransaction {
                         readValidationLoader,
                         allowHiddenTableAccess,
                         new ReadSentinelHandler(
-                                transactionKeyValueService,
                                 defaultTransactionService,
                                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                                 new OrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor)),
                         () -> commitTs, // I am different
                         (table, timestampSupplier, allReadAndPresent) ->
-                                preCommitConditionValidator.throwIfPreCommitRequirementsNotMetOnRead(
+                                preCommitRequirementValidator.throwIfPreCommitRequirementsNotMetOnRead(
                                         table, timestampSupplier.getAsLong(), allReadAndPresent),
                         deleteExecutor,
                         KeyValueSnapshotEventRecorder.create(metricsManager, tableLevelMetricsController)),
                 readValidationLoader,
-                preCommitConditionValidator) {
+                preCommitRequirementValidator) {
             @Override
             protected TransactionScopedCache getCache() {
                 return lockWatchManager.getReadOnlyTransactionScopedCache(SerializableTransaction.this.getTimestamp());

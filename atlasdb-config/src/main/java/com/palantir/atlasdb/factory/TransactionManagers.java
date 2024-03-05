@@ -100,6 +100,11 @@ import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
+import com.palantir.atlasdb.transaction.impl.DefaultDeleteExecutor;
+import com.palantir.atlasdb.transaction.impl.DefaultKeyValueSnapshotReaderFactory;
+import com.palantir.atlasdb.transaction.impl.DeleteExecutor;
+import com.palantir.atlasdb.transaction.impl.KeyValueSnapshotReaderFactory;
+import com.palantir.atlasdb.transaction.impl.OrphanedSentinelDeleter;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
@@ -535,6 +540,17 @@ public abstract class TransactionManagers {
                 asyncInitializationCallback(),
                 createClearsTable()));
 
+        // TODO (jkong): Allow user to inject here
+        DeleteExecutor deleteExecutor = DefaultDeleteExecutor.createDefault(keyValueService);
+        KeyValueSnapshotReaderFactory keyValueSnapshotReaderFactory = config().transactionKeyValueService()
+                .map(AtlasDbServiceDiscovery::createKeyValueSnapshotReaderFactoryOfCorrectType)
+                .orElseGet(() -> new DefaultKeyValueSnapshotReaderFactory(
+                        transactionKeyValueServiceManager,
+                        transactionService,
+                        allowHiddenTableAccess(),
+                        new OrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
+                        deleteExecutor));
+
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.createInstrumented(
                         metricsManager,
@@ -562,7 +578,9 @@ public abstract class TransactionManagers {
                         conflictTracer,
                         metricsFilterEvaluationContext(),
                         installConfig.sharedResourcesConfig().map(SharedResourcesConfig::sharedGetRangesPoolSize),
-                        knowledge),
+                        knowledge,
+                        deleteExecutor,
+                        keyValueSnapshotReaderFactory),
                 closeables);
 
         transactionManager.registerClosingCallback(runtimeConfigRefreshable::close);

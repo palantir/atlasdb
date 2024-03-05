@@ -82,6 +82,7 @@ import com.palantir.atlasdb.keyvalue.api.cache.ValueCacheSnapshotImpl;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.api.watch.LocksAndMetadata;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
+import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
@@ -96,7 +97,6 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
 import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
-import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -381,7 +381,8 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 deleteExecutor,
                 transactionWrapper,
-                knowledge);
+                knowledge,
+                keyValueSnapshotReaderFactory);
     }
 
     @Test
@@ -450,7 +451,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
 
         CommitTimestampLoader loader =
                 createCommitTimestampLoader(transactionTs, () -> transactionTs, Optional.empty(), timelockService);
-        PreCommitConditionValidator validator =
+        PreCommitRequirementValidator validator =
                 createPreCommitConditionValidator(Optional.empty(), PreCommitConditions.NO_OP, timelockService, true);
 
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
@@ -514,7 +515,13 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 MoreExecutors.newDirectExecutorService(),
                 transactionWrapper,
-                knowledge);
+                knowledge,
+                new DefaultKeyValueSnapshotReaderFactory(
+                        new DefaultTransactionKeyValueServiceManager(unstableKvs),
+                        transactionService,
+                        false,
+                        new OrphanedSentinelDeleter(sweepStrategyManager::get, typedDeleteExecutor),
+                        typedDeleteExecutor));
 
         ScheduledExecutorService service = PTExecutors.newScheduledThreadPool(20);
 
@@ -1033,6 +1040,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void transactionDeletesAsyncOnRollback() {
         DeterministicScheduler executor = new DeterministicScheduler();
+        DeleteExecutor typedDeleteExecutor = new DefaultDeleteExecutor(keyValueService, executor);
         TestTransactionManager deleteTxManager = new TestTransactionManagerImpl(
                 metricsManager,
                 keyValueService,
@@ -1045,7 +1053,13 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 executor,
                 transactionWrapper,
-                knowledge);
+                knowledge,
+                new DefaultKeyValueSnapshotReaderFactory(
+                        new DefaultTransactionKeyValueServiceManager(keyValueService),
+                        transactionService,
+                        false,
+                        new OrphanedSentinelDeleter(sweepStrategyManager::get, typedDeleteExecutor),
+                        typedDeleteExecutor));
 
         Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);
         when(conditionSupplier.get()).thenReturn(ALWAYS_FAILS_CONDITION).thenReturn(PreCommitConditions.NO_OP);
@@ -3280,7 +3294,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
 
         CommitTimestampLoader commitTimestampLoader = createCommitTimestampLoader(
                 res.getImmutableTimestamp(), startTimestampSupplier, immutableTimestampLock, timelockService);
-        DefaultPreCommitConditionValidator preCommitConditionValidator = createPreCommitConditionValidator(
+        DefaultPreCommitRequirementValidator preCommitConditionValidator = createPreCommitConditionValidator(
                 immutableTimestampLock, PreCommitConditions.NO_OP, timelockService, true);
         return new SnapshotTransaction(
                 metricsManager,
@@ -3318,12 +3332,12 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 preCommitConditionValidator);
     }
 
-    private DefaultPreCommitConditionValidator createPreCommitConditionValidator(
+    private DefaultPreCommitRequirementValidator createPreCommitConditionValidator(
             Optional<LockToken> immutableTsLock,
             PreCommitCondition condition,
             TimelockService timelockService,
             boolean validateLocksOnReads) {
-        return new DefaultPreCommitConditionValidator(
+        return new DefaultPreCommitRequirementValidator(
                 condition,
                 sweepStrategyManager,
                 () -> transactionConfig,
@@ -3354,14 +3368,13 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
             LongSupplier startTimestampSupplier,
             TransactionKeyValueService transactionKeyValueService,
             CommitTimestampLoader commitTimestampLoader,
-            PreCommitConditionValidator validator) {
+            PreCommitRequirementValidator validator) {
         return new DefaultKeyValueSnapshotReader(
                 transactionKeyValueService,
                 transactionService,
                 commitTimestampLoader,
                 false,
                 new ReadSentinelHandler(
-                        transactionKeyValueService,
                         transactionService,
                         TransactionReadSentinelBehavior.THROW_EXCEPTION,
                         new OrphanedSentinelDeleter(sweepStrategyManager::get, typedDeleteExecutor)),
@@ -3403,7 +3416,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 startTs::get,
                 immutableTimestampLock,
                 timelockService);
-        DefaultPreCommitConditionValidator preCommitConditionValidator = createPreCommitConditionValidator(
+        DefaultPreCommitRequirementValidator preCommitConditionValidator = createPreCommitConditionValidator(
                 immutableTimestampLock, preCommitCondition, timelockService, validateLocksOnReads);
 
         TransactionKeyValueService transactionKeyValueService =

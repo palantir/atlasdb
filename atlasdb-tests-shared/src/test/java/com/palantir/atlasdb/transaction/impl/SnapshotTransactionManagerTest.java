@@ -98,6 +98,7 @@ public class SnapshotTransactionManagerTest {
     @BeforeEach
     public void setUp() {
         timestampService = inMemoryTimelockClassExtension.getManagedTimestampService();
+        SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         snapshotTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -108,7 +109,7 @@ public class SnapshotTransactionManagerTest {
                 mock(TransactionService.class),
                 () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
                 null,
-                SweepStrategyManagers.createDefault(keyValueService),
+                sweepStrategyManager,
                 cleaner,
                 false,
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
@@ -121,7 +122,13 @@ public class SnapshotTransactionManagerTest {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                new DefaultKeyValueSnapshotReaderFactory(
+                        transactionKeyValueServiceManager,
+                        mock(TransactionService.class),
+                        false,
+                        new OrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
+                        deleteExecutor));
     }
 
     @Test
@@ -178,7 +185,14 @@ public class SnapshotTransactionManagerTest {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                new DefaultKeyValueSnapshotReaderFactory(
+                        transactionKeyValueServiceManager,
+                        mock(TransactionService.class),
+                        false,
+                        new OrphanedSentinelDeleter(
+                                SweepStrategyManagers.createDefault(keyValueService)::get, deleteExecutor),
+                        deleteExecutor));
         newTransactionManager.close(); // should not throw
     }
 
@@ -324,6 +338,13 @@ public class SnapshotTransactionManagerTest {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                new DefaultKeyValueSnapshotReaderFactory(
+                        transactionKeyValueServiceManager,
+                        mock(TransactionService.class),
+                        false,
+                        new OrphanedSentinelDeleter(
+                                SweepStrategyManagers.createDefault(keyValueService)::get, deleteExecutor),
+                        deleteExecutor));
     }
 }
