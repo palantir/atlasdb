@@ -52,6 +52,8 @@ import com.palantir.common.io.ConcatenatedInputStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import com.palantir.logsafe.exceptions.SafeUncheckedIoException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.AssertUtils;
@@ -283,12 +285,11 @@ public class StreamStoreRenderer {
                     }
                     line("} catch (RuntimeException e) {");
                     {
-                        line("log.error(");
-                        line("        \"Error storing block {} for stream id {}\",");
+                        line("throw new SafeRuntimeException(");
+                        line("        \"Error storing block for stream\",");
+                        line("        e,");
                         line("        SafeArg.of(\"blockId\", row.getBlockId()),");
-                        line("        SafeArg.of(\"id\", row.getId()),");
-                        line("        e);");
-                        line("throw e;");
+                        line("        SafeArg.of(\"id\", row.getId()));");
                     }
                     line("}");
                 }
@@ -409,26 +410,32 @@ public class StreamStoreRenderer {
                     line(StreamValueRow, " row = ", StreamValueRow, ".of(streamId, blockId);");
                     line("try {");
                     {
-                        line("os.write(getBlock(t, row));");
+                        line("byte[] block = getBlock(t, row);");
+                        line("if (block == null) {");
+                        line("throw new SafeRuntimeException(");
+                        line("        \"Block for stream not found. This is likely due to returning a stream "
+                                + " from a transaction and attempting to use it after it has been marked as"
+                                + " unused.\",");
+                        line("        SafeArg.of(\"blockId\", row.getBlockId()),");
+                        line("        SafeArg.of(\"id\", row.getId()));");
+                        line("}");
+                        line("os.write(block);");
                     }
                     line("} catch (RuntimeException e) {");
                     {
-                        line("log.error(");
-                        line("        \"Error storing block {} for stream id {}\",");
+                        line("throw new SafeRuntimeException(");
+                        line("        \"Error storing block for stream\",");
+                        line("        e,");
                         line("        SafeArg.of(\"blockId\", row.getBlockId()),");
-                        line("        SafeArg.of(\"id\", row.getId()),");
-                        line("        e);");
-                        line("throw e;");
+                        line("        SafeArg.of(\"id\", row.getId()));");
                     }
                     line("} catch (IOException e) {");
                     {
-                        line("log.error(");
-                        line("        \"Error writing block {} to file when getting stream id {}\",");
+                        line("throw new SafeUncheckedIoException(");
+                        line("        \"Error writing block to file when getting stream\",");
+                        line("        e,");
                         line("        SafeArg.of(\"blockId\", row.getBlockId()),");
-                        line("        SafeArg.of(\"id\", row.getId()),");
-                        line("        e);");
-                        line("throw Throwables.rewrapAndThrowUncheckedException(\"Error writing blocks to file when"
-                                + " creating stream.\", e);");
+                        line("        SafeArg.of(\"id\", row.getId()));");
                     }
                     line("}");
                 }
@@ -1035,6 +1042,8 @@ public class StreamStoreRenderer {
         BiConsumer.class,
         SafeArg.class,
         UnsafeArg.class,
+        SafeRuntimeException.class,
+        SafeUncheckedIoException.class,
         SafeLogger.class,
         SafeLoggerFactory.class,
         Preconditions.class,
