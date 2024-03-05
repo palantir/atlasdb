@@ -373,7 +373,7 @@ import java.util.stream.Collectors;
                 knowledge);
     }
 
-    protected final KeyValueSnapshotReader createDefaultSnapshotReader(
+    protected KeyValueSnapshotReader createDefaultSnapshotReader(
             LongSupplier startTimestampSupplier,
             TransactionKeyValueService transactionKeyValueService,
             CommitTimestampLoader commitTimestampLoader,

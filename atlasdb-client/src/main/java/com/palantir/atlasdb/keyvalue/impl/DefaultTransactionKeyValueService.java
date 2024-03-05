@@ -95,4 +95,9 @@ public final class DefaultTransactionKeyValueService implements TransactionKeyVa
             throws KeyAlreadyExistsException {
         delegate.multiPut(valuesByTable, timestamp);
     }
+
+    @Override
+    public KeyValueService getDelegate() {
+        return delegate;
+    }
 }

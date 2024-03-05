@@ -146,8 +146,7 @@ public class SerializableTransactionManagerTest {
 
         assertThat(executorService.isShutdown()).isTrue();
         assertThatThrownBy(() -> manager.runTaskWithRetry(ignore -> null)).isInstanceOf(IllegalStateException.class);
-        assertThat(((SerializableTransactionManager.InitializeCheckingWrapper) manager).isClosedByClose())
-                .isTrue();
+        assertThat(((InitializeCheckingWrapper) manager).isClosedByClose()).isTrue();
     }
 
     @Test
@@ -158,8 +157,7 @@ public class SerializableTransactionManagerTest {
 
         verify(mockCallback, never()).runWithRetry(any(SerializableTransactionManager.class));
         assertThatThrownBy(() -> manager.runTaskWithRetry(ignore -> null)).isInstanceOf(IllegalStateException.class);
-        assertThat(((SerializableTransactionManager.InitializeCheckingWrapper) manager).isClosedByClose())
-                .isTrue();
+        assertThat(((InitializeCheckingWrapper) manager).isClosedByClose()).isTrue();
     }
 
     @Test
@@ -201,7 +199,7 @@ public class SerializableTransactionManagerTest {
         everythingInitialized();
         tickInitializingThread();
 
-        assertThat(((SerializableTransactionManager.InitializeCheckingWrapper) manager).isClosedByCallbackFailure())
+        assertThat(((InitializeCheckingWrapper) manager).isClosedByCallbackFailure())
                 .isTrue();
         assertThatThrownBy(() -> manager.runTaskWithRetry($ -> null))
                 .isInstanceOf(IllegalStateException.class)

@@ -57,6 +57,15 @@ public final class AtlasDbServiceDiscovery {
                 config, NamespaceDeleterFactory::getType, NamespaceDeleterFactory.class);
     }
 
+    public static TransactionManagerFactory createTransactionManagerFactoryOfCorrectType(KeyValueServiceConfig config) {
+        try {
+            return createAtlasDbServiceOfCorrectType(
+                    config, TransactionManagerFactory::getType, TransactionManagerFactory.class);
+        } catch (SafeIllegalStateException _e) {
+            return new DefaultTransactionManagerFactory();
+        }
+    }
+
     private static <T> T createAtlasDbServiceOfCorrectType(
             KeyValueServiceConfig config, Function<T, String> typeExtractor, Class<T> clazz) {
         return createAtlasDbServiceOfCorrectType(config.type(), typeExtractor, clazz);

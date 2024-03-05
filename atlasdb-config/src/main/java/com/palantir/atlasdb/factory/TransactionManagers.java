@@ -100,7 +100,6 @@ import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
-import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
@@ -535,8 +534,10 @@ public abstract class TransactionManagers {
                 asyncInitializationCallback(),
                 createClearsTable()));
 
+        TransactionManagerFactory transactionManagerFactory =
+                AtlasDbServiceDiscovery.createTransactionManagerFactoryOfCorrectType(installConfig);
         TransactionManager transactionManager = initializeCloseable(
-                () -> SerializableTransactionManager.createInstrumented(
+                () -> transactionManagerFactory.createInstrumented(
                         metricsManager,
                         transactionKeyValueServiceManager,
                         lockAndTimestampServices.timelock(),

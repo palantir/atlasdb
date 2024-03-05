@@ -25,7 +25,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-final class DefaultTaskExecutors {
+public final class DefaultTaskExecutors {
     private static final Duration DEFAULT_IDLE_TIMEOUT = Duration.ofSeconds(5);
     private static final int SINGLE_THREAD = 1;
 
@@ -36,7 +36,7 @@ final class DefaultTaskExecutors {
         // factory
     }
 
-    static ExecutorService createDefaultDeleteExecutor() {
+    public static ExecutorService createDefaultDeleteExecutor() {
         return PTExecutors.newThreadPoolExecutor(
                 SINGLE_THREAD,
                 SINGLE_THREAD,
