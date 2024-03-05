@@ -3338,7 +3338,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
             LongSupplier startTimestampSupplier,
             Optional<LockToken> immutableTsLock,
             TimelockService timelockService) {
-        return new CommitTimestampLoader(
+        return new DefaultCommitTimestampLoader(
                 timestampCache,
                 immutableTsLock,
                 startTimestampSupplier::getAsLong,

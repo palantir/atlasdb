@@ -362,7 +362,7 @@ import java.util.stream.Collectors;
 
     protected final CommitTimestampLoader createCommitTimestampLoader(
             long immutableTimestamp, LongSupplier startTimestampSupplier, Optional<LockToken> immutableTsLock) {
-        return new CommitTimestampLoader(
+        return new DefaultCommitTimestampLoader(
                 timestampValidationReadCache,
                 immutableTsLock,
                 startTimestampSupplier::getAsLong,

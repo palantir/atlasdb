@@ -1706,7 +1706,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
     private CommitTimestampLoader createCommitTimestampLoader(
             long immutableTimestamp, LongSupplier startTimestampSupplier, Optional<LockToken> immutableTsLock) {
-        return new CommitTimestampLoader(
+        return new DefaultCommitTimestampLoader(
                 timestampCache,
                 immutableTsLock,
                 startTimestampSupplier::getAsLong,
