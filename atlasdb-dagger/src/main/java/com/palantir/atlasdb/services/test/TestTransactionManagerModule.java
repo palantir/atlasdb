@@ -36,8 +36,11 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.DefaultDeleteExecutor;
+import com.palantir.atlasdb.transaction.impl.DefaultKeyValueSnapshotReaderFactory;
+import com.palantir.atlasdb.transaction.impl.OrphanedSentinelDeleter;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
@@ -120,9 +123,13 @@ public class TestTransactionManagerModule {
             Cleaner cleaner,
             @Internal DerivedSnapshotConfig derivedSnapshotConfig,
             TransactionKnowledgeComponents knowledge) {
+        TransactionKeyValueServiceManager transactionKeyValueServiceManager =
+                new DefaultTransactionKeyValueServiceManager(kvs);
+        DefaultDeleteExecutor deleteExecutor =
+                new DefaultDeleteExecutor(kvs, PTExecutors.newSingleThreadExecutor(true));
         return new SerializableTransactionManager(
                 metricsManager,
-                new DefaultTransactionKeyValueServiceManager(kvs),
+                transactionKeyValueServiceManager,
                 lts.timelock(),
                 lts.lockWatcher(),
                 lts.managedTimestampService(),
@@ -138,12 +145,18 @@ public class TestTransactionManagerModule {
                 derivedSnapshotConfig.concurrentGetRangesThreadPoolSize(),
                 derivedSnapshotConfig.defaultGetRangesConcurrency(),
                 MultiTableSweepQueueWriter.NO_OP,
-                new DefaultDeleteExecutor(kvs, PTExecutors.newSingleThreadExecutor(true)),
+                deleteExecutor,
                 true,
                 () -> config.atlasDbRuntimeConfig().transaction(),
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                new DefaultKeyValueSnapshotReaderFactory(
+                        transactionKeyValueServiceManager,
+                        transactionService,
+                        config.allowAccessToHiddenTables(),
+                        new OrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
+                        deleteExecutor));
     }
 }

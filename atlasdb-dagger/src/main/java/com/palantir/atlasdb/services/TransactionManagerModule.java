@@ -62,8 +62,7 @@ import javax.inject.Singleton;
 public class TransactionManagerModule {
     @Qualifier
     @Retention(RetentionPolicy.RUNTIME)
-    private @interface Internal {
-    }
+    private @interface Internal {}
 
     @Provides
     @Singleton
@@ -123,7 +122,8 @@ public class TransactionManagerModule {
             @Internal DerivedSnapshotConfig derivedSnapshotConfig,
             TransactionKnowledgeComponents knowledge) {
         // todo(gmaretic): should this be using a real sweep queue?
-        DefaultTransactionKeyValueServiceManager transactionKeyValueServiceManager = new DefaultTransactionKeyValueServiceManager(kvs);
+        DefaultTransactionKeyValueServiceManager transactionKeyValueServiceManager =
+                new DefaultTransactionKeyValueServiceManager(kvs);
         DefaultDeleteExecutor deleteExecutor = new DefaultDeleteExecutor(
                 kvs,
                 Executors.newSingleThreadExecutor(
