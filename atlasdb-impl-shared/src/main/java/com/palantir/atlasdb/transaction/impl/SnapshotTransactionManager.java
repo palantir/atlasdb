@@ -40,9 +40,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
-import com.palantir.atlasdb.transaction.api.ImmutableTransactionContext;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
-import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
@@ -53,7 +51,6 @@ import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.atlasdb.transaction.impl.metrics.DefaultKeyValueSnapshotEventRecorder;
 import com.palantir.atlasdb.transaction.impl.metrics.MemoizingTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -325,9 +322,6 @@ import java.util.stream.Collectors;
                 createCommitTimestampLoader(immutableTimestamp, startTimestampSupplier, optionalImmutableTsLock);
         PreCommitRequirementValidator validator = createPreCommitConditionValidator(optionalImmutableTsLock, condition);
 
-        KeyValueSnapshotReader keyValueSnapshotReader =
-                createDefaultSnapshotReader(startTimestampSupplier, loader, validator);
-
         return new SnapshotTransaction(
                 metricsManager,
                 transactionKeyValueService,
@@ -354,7 +348,7 @@ import java.util.stream.Collectors;
                 conflictTracer,
                 tableLevelMetricsController,
                 knowledge,
-                keyValueSnapshotReader,
+                keyValueSnapshotReaderManager,
                 loader,
                 validator);
     }
@@ -383,20 +377,6 @@ import java.util.stream.Collectors;
                 timelockService,
                 immutableTimestamp,
                 knowledge);
-    }
-
-    protected final KeyValueSnapshotReader createDefaultSnapshotReader(
-            LongSupplier startTimestampSupplier,
-            CommitTimestampLoader commitTimestampLoader,
-            PreCommitRequirementValidator validator) {
-        return keyValueSnapshotReaderManager.createKeyValueSnapshotReader(ImmutableTransactionContext.builder()
-                .startTimestampSupplier(startTimestampSupplier)
-                .transactionReadSentinelBehavior(TransactionReadSentinelBehavior.THROW_EXCEPTION)
-                .commitTimestampLoader(commitTimestampLoader)
-                .preCommitRequirementValidator(validator)
-                .keyValueSnapshotEventRecorder(
-                        DefaultKeyValueSnapshotEventRecorder.create(metricsManager, tableLevelMetricsController))
-                .build());
     }
 
     @Override
@@ -447,7 +427,7 @@ import java.util.stream.Collectors;
                 conflictTracer,
                 tableLevelMetricsController,
                 knowledge,
-                createDefaultSnapshotReader(startTimestampSupplier, loader, validator),
+                keyValueSnapshotReaderManager,
                 loader,
                 validator);
         return runTaskThrowOnConflictWithCallback(

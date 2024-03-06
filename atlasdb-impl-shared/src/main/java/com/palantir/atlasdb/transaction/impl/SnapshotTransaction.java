@@ -87,7 +87,9 @@ import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
+import com.palantir.atlasdb.transaction.api.ImmutableTransactionContext;
 import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.api.PreCommitRequirementValidator;
 import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
@@ -110,6 +112,7 @@ import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
 import com.palantir.atlasdb.transaction.impl.expectations.CellCountValidator;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingTransactionKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingTransactionKeyValueServiceImpl;
+import com.palantir.atlasdb.transaction.impl.metrics.DefaultKeyValueSnapshotEventRecorder;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionMetrics;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
@@ -244,6 +247,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TimelockService timelockService;
     protected final LockWatchManagerInternal lockWatchManager;
     final TrackingTransactionKeyValueService transactionKeyValueService;
+    protected final KeyValueSnapshotReaderManager keyValueSnapshotReaderManager;
     final KeyValueSnapshotReader keyValueSnapshotReader;
     final TransactionService defaultTransactionService;
     private final AsyncTransactionService immediateTransactionService;
@@ -334,9 +338,9 @@ public class SnapshotTransaction extends AbstractTransaction
             ConflictTracer conflictTracer,
             TableLevelMetricsController tableLevelMetricsController,
             TransactionKnowledgeComponents knowledge,
-            KeyValueSnapshotReader keyValueSnapshotReader,
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager,
             CommitTimestampLoader commitTimestampLoader,
-            PreCommitRequirementValidator validator) {
+            PreCommitRequirementValidator preCommitRequirementValidator) {
         this.metricsManager = metricsManager;
         this.lockWatchManager = lockWatchManager;
         this.conflictTracer = conflictTracer;
@@ -371,9 +375,21 @@ public class SnapshotTransaction extends AbstractTransaction
         this.transactionOutcomeMetrics =
                 TransactionOutcomeMetrics.create(transactionMetrics, metricsManager.getTaggedRegistry());
         this.expectationsDataCollectionMetrics = ExpectationsMetrics.of(metricsManager.getTaggedRegistry());
-        this.keyValueSnapshotReader = keyValueSnapshotReader;
         this.commitTimestampLoader = commitTimestampLoader;
-        this.preCommitRequirementValidator = validator;
+        this.preCommitRequirementValidator = preCommitRequirementValidator;
+        this.keyValueSnapshotReaderManager = keyValueSnapshotReaderManager;
+        this.keyValueSnapshotReader = getDefaultKeyValueSnapshotReader();
+    }
+
+    private KeyValueSnapshotReader getDefaultKeyValueSnapshotReader() {
+        return keyValueSnapshotReaderManager.createKeyValueSnapshotReader(ImmutableTransactionContext.builder()
+                .startTimestampSupplier(startTimestamp)
+                .transactionReadSentinelBehavior(TransactionReadSentinelBehavior.THROW_EXCEPTION)
+                .commitTimestampLoader(commitTimestampLoader)
+                .preCommitRequirementValidator(preCommitRequirementValidator)
+                .keyValueSnapshotEventRecorder(
+                        DefaultKeyValueSnapshotEventRecorder.create(metricsManager, tableLevelMetricsController))
+                .build());
     }
 
     protected TransactionScopedCache getCache() {

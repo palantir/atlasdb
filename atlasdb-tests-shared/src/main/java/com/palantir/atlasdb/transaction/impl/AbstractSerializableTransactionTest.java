@@ -63,9 +63,7 @@ import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
-import com.palantir.atlasdb.transaction.api.PreCommitRequirementValidator;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -74,7 +72,6 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.transaction.impl.SerializableTransaction.CellLoader;
-import com.palantir.atlasdb.transaction.impl.metrics.DefaultKeyValueSnapshotEventRecorder;
 import com.palantir.atlasdb.transaction.impl.metrics.SimpleTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionMetrics;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
@@ -192,11 +189,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 ConflictTracer.NO_OP,
                 new SimpleTableLevelMetricsController(metricsManager),
                 knowledge,
-                createDefaultSnapshotReader(
-                        startTimestampSupplier,
-                        transactionKeyValueService,
-                        commitTimestampLoader,
-                        preCommitConditionValidator),
+                keyValueSnapshotReaderManager,
                 commitTimestampLoader,
                 preCommitConditionValidator) {
             @Override
@@ -1718,27 +1711,5 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 timelockService,
                 immutableTimestamp,
                 knowledge);
-    }
-
-    private KeyValueSnapshotReader createDefaultSnapshotReader(
-            LongSupplier startTimestampSupplier,
-            TransactionKeyValueService transactionKeyValueService,
-            CommitTimestampLoader commitTimestampLoader,
-            PreCommitRequirementValidator validator) {
-        return new DefaultKeyValueSnapshotReader(
-                transactionKeyValueService,
-                transactionService,
-                commitTimestampLoader,
-                false,
-                new ReadSentinelHandler(
-                        transactionService,
-                        TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor)),
-                startTimestampSupplier,
-                (table, timestampSupplier, allReadAndPresent) -> validator.throwIfPreCommitRequirementsNotMetOnRead(
-                        table, timestampSupplier.getAsLong(), allReadAndPresent),
-                deleteExecutor,
-                DefaultKeyValueSnapshotEventRecorder.create(
-                        metricsManager, new SimpleTableLevelMetricsController(metricsManager)));
     }
 }

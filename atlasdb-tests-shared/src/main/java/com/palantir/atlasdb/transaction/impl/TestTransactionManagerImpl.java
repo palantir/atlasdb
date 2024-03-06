@@ -222,7 +222,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         ConflictTracer.NO_OP,
                         tableLevelMetricsController,
                         knowledge,
-                        createDefaultSnapshotReader(startTimestampSupplier, loader, validator),
+                        keyValueSnapshotReaderManager,
                         loader,
                         validator),
                 pathTypeTracker);

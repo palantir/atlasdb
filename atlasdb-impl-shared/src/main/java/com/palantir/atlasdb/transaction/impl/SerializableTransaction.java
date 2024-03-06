@@ -60,7 +60,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
-import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.PreCommitRequirementValidator;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -68,7 +68,6 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
-import com.palantir.atlasdb.transaction.impl.metrics.DefaultKeyValueSnapshotEventRecorder;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -173,7 +172,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             ConflictTracer conflictTracer,
             TableLevelMetricsController tableLevelMetricsController,
             TransactionKnowledgeComponents knowledge,
-            KeyValueSnapshotReader reader,
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager,
             CommitTimestampLoader commitTimestampLoader,
             PreCommitRequirementValidator preCommitRequirementValidator) {
         super(
@@ -202,7 +201,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 conflictTracer,
                 tableLevelMetricsController,
                 knowledge,
-                reader,
+                keyValueSnapshotReaderManager,
                 commitTimestampLoader,
                 preCommitRequirementValidator);
     }
@@ -944,21 +943,25 @@ public class SerializableTransaction extends SnapshotTransaction {
                 conflictTracer,
                 tableLevelMetricsController,
                 knowledge,
-                new DefaultKeyValueSnapshotReader(
-                        transactionKeyValueService,
-                        defaultTransactionService,
-                        readValidationLoader,
-                        allowHiddenTableAccess,
-                        new ReadSentinelHandler(
-                                defaultTransactionService,
-                                TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                                new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor)),
-                        () -> commitTs, // I am different
-                        (table, timestampSupplier, allReadAndPresent) ->
-                                preCommitRequirementValidator.throwIfPreCommitRequirementsNotMetOnRead(
-                                        table, timestampSupplier.getAsLong(), allReadAndPresent),
-                        deleteExecutor,
-                        DefaultKeyValueSnapshotEventRecorder.create(metricsManager, tableLevelMetricsController)),
+                keyValueSnapshotReaderManager,
+                //                new DefaultKeyValueSnapshotReader(
+                //                        transactionKeyValueService,
+                //                        defaultTransactionService,
+                //                        readValidationLoader,
+                //                        allowHiddenTableAccess,
+                //                        new ReadSentinelHandler(
+                //                                defaultTransactionService,
+                //                                TransactionReadSentinelBehavior.THROW_EXCEPTION,
+                //                                new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get,
+                // deleteExecutor)),
+                //                        () -> commitTs, // I am different
+                //                        (table, timestampSupplier, allReadAndPresent) ->
+                //
+                // preCommitRequirementValidator.throwIfPreCommitRequirementsNotMetOnRead(
+                //                                        table, timestampSupplier.getAsLong(), allReadAndPresent),
+                //                        deleteExecutor,
+                //                        DefaultKeyValueSnapshotEventRecorder.create(metricsManager,
+                // tableLevelMetricsController)),
                 readValidationLoader,
                 preCommitRequirementValidator) {
             @Override

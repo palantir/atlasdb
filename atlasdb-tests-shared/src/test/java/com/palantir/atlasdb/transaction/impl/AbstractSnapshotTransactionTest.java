@@ -99,7 +99,7 @@ import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
-import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.PreCommitRequirementValidator;
@@ -108,6 +108,7 @@ import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
+import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutNonRetriableException;
@@ -116,7 +117,6 @@ import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
 import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionWriteMetadataInfo;
-import com.palantir.atlasdb.transaction.impl.metrics.DefaultKeyValueSnapshotEventRecorder;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.ToplistDeltaFilteringTableLevelMetricsController;
@@ -459,6 +459,27 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 createPreCommitConditionValidator(Optional.empty(), PreCommitConditions.NO_OP, timelockService, true);
 
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+
+        KeyValueSnapshotReaderManager manager = new DefaultKeyValueSnapshotReaderManager(
+                new TransactionKeyValueServiceManager() {
+                    @Override
+                    public TransactionKeyValueService getTransactionKeyValueService(LongSupplier timestampSupplier) {
+                        return tkvsMock;
+                    }
+
+                    @Override
+                    public Optional<KeyValueService> getKeyValueService() {
+                        return Optional.empty();
+                    }
+
+                    @Override
+                    public void close() {}
+                },
+                transactionService,
+                false,
+                new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, typedDeleteExecutor),
+                typedDeleteExecutor);
+
         Transaction snapshot = transactionWrapper.apply(
                 new SnapshotTransaction(
                         metricsManager,
@@ -486,7 +507,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         ConflictTracer.NO_OP,
                         tableLevelMetricsController,
                         knowledge,
-                        createDefaultSnapshotReader(() -> transactionTs, tkvsMock, loader, validator),
+                        manager, // Maybe not
                         loader,
                         validator),
                 pathTypeTracker);
@@ -3327,11 +3348,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 ConflictTracer.NO_OP,
                 tableLevelMetricsController,
                 knowledge,
-                createDefaultSnapshotReader(
-                        startTimestampSupplier,
-                        transactionKeyValueService,
-                        commitTimestampLoader,
-                        preCommitConditionValidator),
+                keyValueSnapshotReaderManager,
                 commitTimestampLoader,
                 preCommitConditionValidator);
     }
@@ -3366,27 +3383,6 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 timelockService,
                 immutableTimestamp,
                 knowledge);
-    }
-
-    private KeyValueSnapshotReader createDefaultSnapshotReader(
-            LongSupplier startTimestampSupplier,
-            TransactionKeyValueService transactionKeyValueService,
-            CommitTimestampLoader commitTimestampLoader,
-            PreCommitRequirementValidator validator) {
-        return new DefaultKeyValueSnapshotReader(
-                transactionKeyValueService,
-                transactionService,
-                commitTimestampLoader,
-                false,
-                new ReadSentinelHandler(
-                        transactionService,
-                        TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, typedDeleteExecutor)),
-                startTimestampSupplier,
-                (table, timestampSupplier, allReadAndPresent) -> validator.throwIfPreCommitRequirementsNotMetOnRead(
-                        table, timestampSupplier.getAsLong(), allReadAndPresent),
-                typedDeleteExecutor,
-                DefaultKeyValueSnapshotEventRecorder.create(metricsManager, tableLevelMetricsController));
     }
 
     private Transaction getSnapshotTransactionWith(
@@ -3451,8 +3447,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 ConflictTracer.NO_OP,
                 tableLevelMetricsController,
                 knowledge,
-                createDefaultSnapshotReader(
-                        startTs::get, transactionKeyValueService, commitTimestampLoader, preCommitConditionValidator),
+                keyValueSnapshotReaderManager,
                 commitTimestampLoader,
                 preCommitConditionValidator);
         return transactionWrapper.apply(transaction, pathTypeTracker);

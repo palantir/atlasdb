@@ -619,7 +619,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictTracer,
                 tableLevelMetricsController,
                 knowledge,
-                createDefaultSnapshotReader(startTimestampSupplier, loader, validator),
+                keyValueSnapshotReaderManager,
                 loader,
                 validator);
     }
