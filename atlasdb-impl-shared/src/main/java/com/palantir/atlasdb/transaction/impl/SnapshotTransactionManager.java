@@ -516,6 +516,10 @@ import java.util.stream.Collectors;
                 .orElseThrow(() -> new SafeIllegalStateException("KeyValueService is not supported"));
     }
 
+    public TransactionKeyValueServiceManager getTransactionKeyValueServiceManager() {
+        return transactionKeyValueServiceManager;
+    }
+
     @Override
     public TimestampService getTimestampService() {
         return new TimelockTimestampServiceAdapter(timelockService);

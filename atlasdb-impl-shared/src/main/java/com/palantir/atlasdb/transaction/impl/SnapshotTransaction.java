@@ -386,6 +386,10 @@ public class SnapshotTransaction extends AbstractTransaction
         return lockWatchManager.getTransactionScopedCache(getTimestamp());
     }
 
+    public TransactionKeyValueService getTransactionKeyValueService() {
+        return transactionKeyValueService;
+    }
+
     @Override
     public long getTimestamp() {
         return getStartTimestamp();

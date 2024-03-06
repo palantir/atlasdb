@@ -51,6 +51,11 @@ public final class DelegatingTransactionKeyValueServiceManager implements Transa
     }
 
     @Override
+    public boolean isInitialized() {
+        return delegate.get().isInitialized();
+    }
+
+    @Override
     public void close() {
         // TODO(jakubk): I don't think this is entirely correct, because we shouldn't own the KeyValueService,
         // especially if it's being reused in some way. However, the cleanup codepaths in SnapshotTransactionManager

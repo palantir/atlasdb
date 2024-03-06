@@ -38,6 +38,8 @@ public interface TransactionKeyValueServiceManagerFactory<T> {
     Class<T> coordinationValueClass();
 
     TransactionKeyValueServiceManager create(
+            String namespace,
+            // TODO(jakubk): Add user agent, dialogue factory etc.
             CoordinationService<T> coordinationService,
             KeyValueServiceManager keyValueServiceManager,
             TransactionKeyValueServiceConfig install,

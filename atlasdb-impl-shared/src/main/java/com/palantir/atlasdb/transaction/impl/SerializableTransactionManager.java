@@ -62,7 +62,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     private final ConflictTracer conflictTracer;
 
     public static class InitializeCheckingWrapper implements AutoDelegate_TransactionManager {
-        private final TransactionManager txManager;
+        private final SerializableTransactionManager txManager;
         private final Supplier<Boolean> initializationPrerequisite;
         private final Callback<TransactionManager> callback;
 
@@ -72,7 +72,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         private final ScheduledExecutorService executorService;
 
         InitializeCheckingWrapper(
-                TransactionManager manager,
+                SerializableTransactionManager manager,
                 Supplier<Boolean> initializationPrerequisite,
                 Callback<TransactionManager> callback,
                 ScheduledExecutorService initializer) {
@@ -162,7 +162,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             // TransactionManagers.create; however, this is not required for the TransactionManager to fulfil
             // requests (note that it is not accessible from any TransactionManager implementation), so we omit
             // checking here whether it is initialized.
-            return txManager.getKeyValueService().isInitialized()
+            return txManager.getTransactionKeyValueServiceManager().isInitialized()
                     && txManager.getTimelockService().isInitialized()
                     && txManager.getTimestampService().isInitialized()
                     && txManager.getCleaner().isInitialized()
@@ -415,7 +415,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
             TransactionKnowledgeComponents knowledge) {
-        TransactionManager transactionManager = new SerializableTransactionManager(
+        SerializableTransactionManager rawTransactionManager = new SerializableTransactionManager(
                 metricsManager,
                 transactionKeyValueServiceManager,
                 timelockService,
@@ -442,6 +442,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
                 knowledge);
+        TransactionManager transactionManager = rawTransactionManager;
 
         if (shouldInstrument) {
             transactionManager = AtlasDbMetrics.instrumentTimed(
@@ -453,7 +454,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         }
 
         return initializeAsync
-                ? new InitializeCheckingWrapper(transactionManager, initializationPrerequisite, callback, initializer)
+                ? new InitializeCheckingWrapper(
+                        rawTransactionManager, initializationPrerequisite, callback, initializer)
                 : transactionManager;
     }
 

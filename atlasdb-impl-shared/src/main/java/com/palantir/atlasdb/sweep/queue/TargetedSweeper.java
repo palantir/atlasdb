@@ -67,6 +67,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     private final AbandonedTransactionConsumer abandonedTransactionConsumer;
     private final BackgroundSweepScheduler noneScheduler;
 
+    private final KeyValueService internalKvs;
+
     private LastSweptTimestampUpdater lastSweptTimestampUpdater;
     private TargetedSweepMetrics metrics;
     private SweepQueue queue;
@@ -80,7 +82,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
             Supplier<TargetedSweepRuntimeConfig> runtime,
             TargetedSweepInstallConfig install,
             List<Follower> followers,
-            AbandonedTransactionConsumer abandonedTransactionConsumer) {
+            AbandonedTransactionConsumer abandonedTransactionConsumer,
+            KeyValueService internalKvs) {
         this.metricsManager = metricsManager;
         this.runtime = runtime;
         this.conservativeScheduler =
@@ -91,6 +94,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         this.followers = followers;
         this.metricsConfiguration = install.metricsConfiguration();
         this.abandonedTransactionConsumer = abandonedTransactionConsumer;
+        this.internalKvs = internalKvs;
     }
 
     public boolean isInitialized() {
@@ -113,8 +117,9 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
             Supplier<TargetedSweepRuntimeConfig> runtime,
             TargetedSweepInstallConfig install,
             List<Follower> followers,
-            AbandonedTransactionConsumer abandonedTransactionConsumer) {
-        return new TargetedSweeper(metrics, runtime, install, followers, abandonedTransactionConsumer);
+            AbandonedTransactionConsumer abandonedTransactionConsumer,
+            KeyValueService internalKvs) {
+        return new TargetedSweeper(metrics, runtime, install, followers, abandonedTransactionConsumer, internalKvs);
     }
 
     public static TargetedSweeper createUninitializedForTest(
@@ -123,7 +128,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 .conservativeThreads(0)
                 .thoroughThreads(0)
                 .build();
-        return createUninitialized(metricsManager, runtime, install, ImmutableList.of(), _unused -> {});
+        return createUninitialized(metricsManager, runtime, install, ImmutableList.of(), _unused -> {}, null);
     }
 
     public static TargetedSweeper createUninitializedForTest(Supplier<Integer> shards) {
@@ -143,7 +148,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         initializeWithoutRunning(
                 SpecialTimestampsSupplier.create(txManager),
                 txManager.getTimelockService(),
-                txManager.getKeyValueService(),
+                internalKvs,
                 txManager.getTransactionService(),
                 new TargetedSweepFollower(followers, txManager));
     }
