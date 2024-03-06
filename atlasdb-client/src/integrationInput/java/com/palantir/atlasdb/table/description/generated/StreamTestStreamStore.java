@@ -124,11 +124,12 @@ public final class StreamTestStreamStore extends AbstractPersistentStreamStore {
             touchMetadataWhileStoringForConflicts(t, row.getId(), row.getBlockId());
             tables.getStreamTestStreamValueTable(t).putValue(row, block);
         } catch (RuntimeException e) {
-            throw new SafeRuntimeException(
+            log.error(
                     "Error storing block for stream",
-                    e,
+                    SafeArg.of("streamId", row.getId()),
                     SafeArg.of("blockId", row.getBlockId()),
-                    SafeArg.of("id", row.getId()));
+                    e);
+            throw e;
         }
     }
 
@@ -136,7 +137,7 @@ public final class StreamTestStreamStore extends AbstractPersistentStreamStore {
         StreamTestStreamMetadataTable metaTable = tables.getStreamTestStreamMetadataTable(t);
         StreamTestStreamMetadataTable.StreamTestStreamMetadataRow row = StreamTestStreamMetadataTable.StreamTestStreamMetadataRow.of(id);
         StreamMetadata metadata = metaTable.getMetadatas(ImmutableSet.of(row)).values().iterator().next();
-        Preconditions.checkState(metadata.getStatus() == Status.STORING, "This stream is being cleaned up while storing blocks", SafeArg.of("id", id));
+        Preconditions.checkState(metadata.getStatus() == Status.STORING, "This stream is being cleaned up while storing blocks", SafeArg.of("streamId", id));
         StreamMetadata.Builder builder = StreamMetadata.newBuilder(metadata);
         builder.setLength(blockNumber * BLOCK_SIZE_IN_BYTES + 1);
         metaTable.putMetadata(row, builder.build());
@@ -194,23 +195,24 @@ public final class StreamTestStreamStore extends AbstractPersistentStreamStore {
             byte[] block = getBlock(t, row);
             if (block == null) {
                 throw new SafeRuntimeException(
-                        "Block for stream not found. This is likely due to returning a stream  from a transaction and attempting to use it after it has been marked as unused.",
-                        SafeArg.of("blockId", row.getBlockId()),
-                        SafeArg.of("id", row.getId()));
+                        "Block for stream not found. This is likely due to returning a stream from a transaction and attempting to use it after it has been marked as unused.",
+                        SafeArg.of("streamId", row.getId()),
+                        SafeArg.of("blockId", row.getBlockId()));
             }
             os.write(block);
         } catch (RuntimeException e) {
-            throw new SafeRuntimeException(
+            log.error(
                     "Error storing block for stream",
-                    e,
+                    SafeArg.of("streamId", row.getId()),
                     SafeArg.of("blockId", row.getBlockId()),
-                    SafeArg.of("id", row.getId()));
+                    e);
+            throw e;
         } catch (IOException e) {
             throw new SafeUncheckedIoException(
                     "Error writing block to file when getting stream",
                     e,
-                    SafeArg.of("blockId", row.getBlockId()),
-                    SafeArg.of("id", row.getId()));
+                    SafeArg.of("streamId", row.getId()),
+                    SafeArg.of("blockId", row.getBlockId()));
         }
     }
 
@@ -333,7 +335,7 @@ public final class StreamTestStreamStore extends AbstractPersistentStreamStore {
             } else {
                 log.error(
                         "Empty hash for stream {}",
-                        SafeArg.of("id", streamId));
+                        SafeArg.of("streamId", streamId));
             }
             StreamTestStreamHashAidxTable.StreamTestStreamHashAidxRow hashRow = StreamTestStreamHashAidxTable.StreamTestStreamHashAidxRow.of(hash);
             StreamTestStreamHashAidxTable.StreamTestStreamHashAidxColumn column = StreamTestStreamHashAidxTable.StreamTestStreamHashAidxColumn.of(streamId);

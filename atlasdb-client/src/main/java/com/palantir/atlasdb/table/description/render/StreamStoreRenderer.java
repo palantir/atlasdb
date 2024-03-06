@@ -285,11 +285,12 @@ public class StreamStoreRenderer {
                     }
                     line("} catch (RuntimeException e) {");
                     {
-                        line("throw new SafeRuntimeException(");
+                        line("log.error(");
                         line("        \"Error storing block for stream\",");
-                        line("        e,");
+                        line("        SafeArg.of(\"streamId\", row.getId()),");
                         line("        SafeArg.of(\"blockId\", row.getBlockId()),");
-                        line("        SafeArg.of(\"id\", row.getId()));");
+                        line("        e);");
+                        line("throw e;");
                     }
                     line("}");
                 }
@@ -307,7 +308,7 @@ public class StreamStoreRenderer {
                     line("StreamMetadata metadata ="
                             + " metaTable.getMetadatas(ImmutableSet.of(row)).values().iterator().next();");
                     line("Preconditions.checkState(metadata.getStatus() == Status.STORING, \"This stream is being"
-                            + " cleaned up while storing blocks\", SafeArg.of(\"id\", id));");
+                            + " cleaned up while storing blocks\", SafeArg.of(\"streamId\", id));");
                     line("StreamMetadata.Builder builder = StreamMetadata.newBuilder(metadata);");
                     line("builder.setLength(blockNumber * BLOCK_SIZE_IN_BYTES + 1);");
                     line("metaTable.putMetadata(row, builder.build());");
@@ -413,29 +414,30 @@ public class StreamStoreRenderer {
                         line("byte[] block = getBlock(t, row);");
                         line("if (block == null) {");
                         line("throw new SafeRuntimeException(");
-                        line("        \"Block for stream not found. This is likely due to returning a stream "
+                        line("        \"Block for stream not found. This is likely due to returning a stream"
                                 + " from a transaction and attempting to use it after it has been marked as"
                                 + " unused.\",");
-                        line("        SafeArg.of(\"blockId\", row.getBlockId()),");
-                        line("        SafeArg.of(\"id\", row.getId()));");
+                        line("        SafeArg.of(\"streamId\", row.getId()),");
+                        line("        SafeArg.of(\"blockId\", row.getBlockId()));");
                         line("}");
                         line("os.write(block);");
                     }
                     line("} catch (RuntimeException e) {");
                     {
-                        line("throw new SafeRuntimeException(");
+                        line("log.error(");
                         line("        \"Error storing block for stream\",");
-                        line("        e,");
+                        line("        SafeArg.of(\"streamId\", row.getId()),");
                         line("        SafeArg.of(\"blockId\", row.getBlockId()),");
-                        line("        SafeArg.of(\"id\", row.getId()));");
+                        line("        e);");
+                        line("throw e;");
                     }
                     line("} catch (IOException e) {");
                     {
                         line("throw new SafeUncheckedIoException(");
                         line("        \"Error writing block to file when getting stream\",");
                         line("        e,");
-                        line("        SafeArg.of(\"blockId\", row.getBlockId()),");
-                        line("        SafeArg.of(\"id\", row.getId()));");
+                        line("        SafeArg.of(\"streamId\", row.getId()),");
+                        line("        SafeArg.of(\"blockId\", row.getBlockId()));");
                     }
                     line("}");
                 }
@@ -666,7 +668,7 @@ public class StreamStoreRenderer {
                         {
                             line("log.error(");
                             line("        \"Empty hash for stream {}\",");
-                            line("        SafeArg.of(\"id\", streamId));");
+                            line("        SafeArg.of(\"streamId\", streamId));");
                         }
                         line("}");
                         line(StreamHashAidxRow, " hashRow = ", StreamHashAidxRow, ".of(hash);");
