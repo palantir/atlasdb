@@ -27,7 +27,6 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
@@ -110,6 +109,6 @@ final class GetRowsColumnRangeIterator extends AbstractIterator<Iterator<Map.Ent
 
     @FunctionalInterface
     interface PostFilterer {
-        Collection<Map.Entry<Cell, byte[]>> postFilter(Map<Cell, Value> rawResults);
+        Map<Cell, byte[]> postFilter(Map<Cell, Value> rawResults);
     }
 }

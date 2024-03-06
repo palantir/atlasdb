@@ -164,32 +164,39 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.Spliterator;
 import java.util.TreeMap;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
+import one.util.streamex.EntryStream;
+import one.util.streamex.MoreCollectors;
+import one.util.streamex.StreamEx;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Pair;
 import org.eclipse.collections.api.LongIterable;
@@ -720,7 +727,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 return Collections.emptyIterator();
             }
             SortedMap<Cell, Value> postFiltered = ImmutableSortedMap.copyOf(
-                    getWithPostFilteringSync(tableRef, raw, x -> x), preserveInputRowOrder(batch));
+                    getWithPostFiltering(tableRef, raw, x -> x), preserveInputRowOrder(batch));
             return postFiltered.entrySet().iterator();
         }));
     }
@@ -741,7 +748,7 @@ public class SnapshotTransaction extends AbstractTransaction
                     // we can't skip lock checks on range scans
                     validatePreCommitRequirementsOnNonExhaustiveReadIfNecessary(tableRef, getStartTimestamp());
                 },
-                raw -> getWithPostFilteringSync(tableRef, raw, Value.GET_VALUE));
+                raw -> getWithPostFiltering(tableRef, raw, Value.GET_VALUE));
     }
 
     private Iterator<Map.Entry<Cell, Value>> getRowColumnRangePostFilteredWithoutSorting(
@@ -756,7 +763,7 @@ public class SnapshotTransaction extends AbstractTransaction
             }
 
             SortedMap<Cell, Value> postFiltered =
-                    ImmutableSortedMap.copyOf(getWithPostFilteringSync(tableRef, raw, x -> x), cellComparator);
+                    ImmutableSortedMap.copyOf(getWithPostFiltering(tableRef, raw, x -> x), cellComparator);
             return postFiltered.entrySet().iterator();
         }));
     }
@@ -881,7 +888,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private NavigableMap<byte[], RowResult<byte[]>> filterRowResults(
             TableReference tableRef, Map<Cell, Value> rawResults, ImmutableMap.Builder<Cell, byte[]> resultCollector) {
         ImmutableMap<Cell, byte[]> collected = resultCollector
-                .putAll(getWithPostFilteringSync(tableRef, rawResults, Value.GET_VALUE))
+                .putAll(getWithPostFiltering(tableRef, rawResults, Value.GET_VALUE))
                 .buildOrThrow();
         Map<Cell, byte[]> filterDeletedValues = removeEmptyColumns(collected, tableRef);
         return RowResults.viewOfSortedMap(Cells.breakCellsUpByRow(filterDeletedValues));
@@ -990,52 +997,52 @@ public class SnapshotTransaction extends AbstractTransaction
         }
         hasReads = true;
 
-        Map<Cell, byte[]> result = new HashMap<>();
-        Map<Cell, byte[]> writes = localWriteBuffer.getLocalWrites().get(tableRef);
-        long numberOfNonDeleteLocalWrites = 0;
-        if (writes != null && !writes.isEmpty()) {
-            for (Cell cell : cells) {
-                byte[] value = writes.get(cell);
-                if (value != null) {
-                    result.put(cell, value);
-                    if (value != PtBytes.EMPTY_BYTE_ARRAY) {
-                        numberOfNonDeleteLocalWrites++;
-                    }
-                }
-            }
-        }
+        Map<Cell, byte[]> localWrites = Optional.ofNullable(
+                        localWriteBuffer.getLocalWrites().get(tableRef))
+                .map(writes -> StreamEx.of(cells)
+                        .mapToEntry(writes::get)
+                        .nonNullValues()
+                        .toImmutableMap())
+                .orElseGet(ImmutableMap::of);
+        long numberOfNonDeleteLocalWrites =
+                StreamEx.ofValues(localWrites).count(Predicates.not(PtBytes.EMPTY_BYTE_ARRAY::equals));
 
         // We don't need to read any cells that were written locally.
         long expectedNumberOfPresentCellsToFetch = numberOfExpectedPresentCells - numberOfNonDeleteLocalWrites;
-        return Futures.transform(
-                getFromKeyValueService(
+        return AtlasFutures.toListenableFuture(getFromKeyValueService(
                         tableRef,
-                        Sets.difference(cells, result.keySet()),
+                        Sets.difference(cells, localWrites.keySet()),
                         asyncKeyValueService,
-                        asyncTransactionService),
-                fromKeyValueService -> {
-                    result.putAll(fromKeyValueService);
-
-                    long getMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
+                        asyncTransactionService)
+                .whenComplete((maybeFromKeyValueService, _ex) -> Optional.ofNullable(maybeFromKeyValueService)
+                        .ifPresent(fromKeyValueService -> {
+                            CellCountValidator.validateFetchedLessOrEqualToExpected(
+                                    expectedNumberOfPresentCellsToFetch, fromKeyValueService);
+                            boolean allPossibleCellsReadAndPresent =
+                                    fromKeyValueService.size() == expectedNumberOfPresentCellsToFetch;
+                            validatePreCommitRequirementsOnReadIfNecessary(
+                                    tableRef, getStartTimestamp(), allPossibleCellsReadAndPresent);
+                        }))
+                .thenApply(fromKeyValueService -> ImmutableMap.<Cell, byte[]>builder()
+                        .putAll(localWrites)
+                        .putAll(fromKeyValueService)
+                        .buildKeepingLast())
+                .whenComplete((result, _e) -> {
                     if (perfLogger.isDebugEnabled()) {
                         perfLogger.debug(
                                 "Snapshot transaction get cells (some possibly deleted)",
                                 LoggingArgs.tableRef(tableRef),
                                 SafeArg.of("numberOfCells", cells.size()),
-                                SafeArg.of("numberOfCellsRetrieved", result.size()),
+                                SafeArg.of(
+                                        "numberOfCellsRetrieved",
+                                        Optional.ofNullable(result)
+                                                .map(Map::size)
+                                                .orElse(0)),
                                 SafeArg.of("getOperation", operationName),
-                                SafeArg.of("durationMillis", getMillis));
+                                SafeArg.of("durationMillis", TimeUnit.NANOSECONDS.toMillis(timer.stop())));
                     }
-
-                    CellCountValidator.validateFetchedLessOrEqualToExpected(
-                            expectedNumberOfPresentCellsToFetch, fromKeyValueService);
-                    boolean allPossibleCellsReadAndPresent =
-                            fromKeyValueService.size() == expectedNumberOfPresentCellsToFetch;
-                    validatePreCommitRequirementsOnReadIfNecessary(
-                            tableRef, getStartTimestamp(), allPossibleCellsReadAndPresent);
-                    return removeEmptyColumns(result, tableRef);
-                },
-                MoreExecutors.directExecutor());
+                })
+                .thenApply(result -> removeEmptyColumns(result, tableRef)));
     }
 
     @Override
@@ -1046,7 +1053,7 @@ public class SnapshotTransaction extends AbstractTransaction
         }
         hasReads = true;
 
-        ListenableFuture<Map<Cell, byte[]>> result = getFromKeyValueService(
+        Future<Map<Cell, byte[]>> result = getFromKeyValueService(
                 tableRef, cells, immediateTransactionKeyValueService, immediateTransactionService);
 
         Map<Cell, byte[]> unfiltered = Futures.getUnchecked(result);
@@ -1065,19 +1072,17 @@ public class SnapshotTransaction extends AbstractTransaction
      * isolation.  If the value in the key value service is the empty array this will be included here and needs to be
      * filtered out.
      */
-    private ListenableFuture<Map<Cell, byte[]>> getFromKeyValueService(
+    private CompletableFuture<Map<Cell, byte[]>> getFromKeyValueService(
             TableReference tableRef,
             Set<Cell> cells,
             TransactionKeyValueService asyncKeyValueService,
             AsyncTransactionService asyncTransactionService) {
         Map<Cell, Long> toRead = Cells.constantValueMap(cells, getStartTimestamp());
-        ListenableFuture<Collection<Map.Entry<Cell, byte[]>>> postFilteredResults = Futures.transformAsync(
-                asyncKeyValueService.getAsync(tableRef, toRead),
-                rawResults -> getWithPostFilteringAsync(
-                        tableRef, rawResults, Value.GET_VALUE, asyncKeyValueService, asyncTransactionService),
-                MoreExecutors.directExecutor());
-
-        return Futures.transform(postFilteredResults, ImmutableMap::copyOf, MoreExecutors.directExecutor());
+        return asyncKeyValueService
+                .getCompletableAsync(tableRef, toRead)
+                .thenApply(rawResults -> getWithPostFiltering(
+                        tableRef, rawResults, Value.GET_VALUE, asyncKeyValueService, asyncTransactionService))
+                .thenApply(ImmutableMap::copyOf);
     }
 
     private static byte[] getNextStartRowName(
@@ -1506,7 +1511,7 @@ public class SnapshotTransaction extends AbstractTransaction
             }
         }
 
-        return ImmutableSortedMap.copyOf(getWithPostFilteringSync(tableRef, rawResults, transformer));
+        return ImmutableSortedMap.copyOf(getWithPostFiltering(tableRef, rawResults, transformer));
     }
 
     private int estimateSize(List<RowResult<Value>> rangeRows) {
@@ -1517,22 +1522,24 @@ public class SnapshotTransaction extends AbstractTransaction
         return estimatedSize;
     }
 
-    private <T> Collection<Map.Entry<Cell, T>> getWithPostFilteringSync(
+    private <T> Map<Cell, T> getWithPostFiltering(
             TableReference tableRef, Map<Cell, Value> rawResults, Function<Value, T> transformer) {
-        return AtlasFutures.getUnchecked(getWithPostFilteringAsync(
-                tableRef, rawResults, transformer, immediateTransactionKeyValueService, immediateTransactionService));
+        return getWithPostFiltering(
+                tableRef, rawResults, transformer, immediateTransactionKeyValueService, immediateTransactionService);
     }
 
-    private <T> ListenableFuture<Collection<Map.Entry<Cell, T>>> getWithPostFilteringAsync(
+    private <T> Map<Cell, T> getWithPostFiltering(
             TableReference tableRef,
             Map<Cell, Value> rawResults,
             Function<Value, T> transformer,
             TransactionKeyValueService asyncKeyValueService,
             AsyncTransactionService asyncTransactionService) {
-        long bytes = 0;
-        for (Map.Entry<Cell, Value> entry : rawResults.entrySet()) {
-            bytes += entry.getValue().getContents().length + Cells.getApproxSizeOfCell(entry.getKey());
-        }
+        long bytes = EntryStream.of(rawResults)
+                .mapKeys(Cells::getApproxSizeOfCell)
+                .mapValues(value -> value.getContents().length)
+                .mapKeyValue(Long::sum)
+                .mapToLong(Long::longValue)
+                .sum();
         if (bytes > TransactionConstants.WARN_LEVEL_FOR_QUEUED_BYTES && log.isWarnEnabled()) {
             log.warn(
                     "A single get had quite a few bytes: {} for table {}. The number of results was {}. "
@@ -1552,67 +1559,21 @@ public class SnapshotTransaction extends AbstractTransaction
 
         getCounter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_READ, tableRef).inc(rawResults.size());
 
-        Collection<Map.Entry<Cell, T>> resultsAccumulator = new ArrayList<>();
-
         if (AtlasDbConstants.HIDDEN_TABLES.contains(tableRef)) {
             Preconditions.checkState(allowHiddenTableAccess, "hidden tables cannot be read in this transaction");
             // hidden tables are used outside of the transaction protocol, and in general have invalid timestamps,
             // so do not apply post-filtering as post-filtering would rollback (actually delete) the data incorrectly
             // this case is hit when reading a hidden table from console
-            for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
-                resultsAccumulator.add(Maps.immutableEntry(e.getKey(), transformer.apply(e.getValue())));
-            }
-            return Futures.immediateFuture(resultsAccumulator);
+            return Maps.transformValues(rawResults, transformer::apply);
         }
 
-        return Futures.transformAsync(
-                Futures.immediateFuture(rawResults),
-                resultsToPostFilter -> getWithPostFilteringIterate(
-                        tableRef,
-                        resultsToPostFilter,
-                        resultsAccumulator,
-                        transformer,
-                        asyncKeyValueService,
-                        asyncTransactionService),
-                MoreExecutors.directExecutor());
-    }
-
-    private <T> ListenableFuture<Collection<Map.Entry<Cell, T>>> getWithPostFilteringIterate(
-            TableReference tableReference,
-            Map<Cell, Value> resultsToPostFilter,
-            Collection<Map.Entry<Cell, T>> resultsAccumulator,
-            Function<Value, T> transformer,
-            TransactionKeyValueService asyncKeyValueService,
-            AsyncTransactionService asyncTransactionService) {
-        return Futures.transformAsync(
-                Futures.immediateFuture(resultsToPostFilter),
-                results -> {
-                    int iterations = 0;
-                    Map<Cell, Value> remainingResultsToPostFilter = results;
-                    while (!remainingResultsToPostFilter.isEmpty()) {
-                        remainingResultsToPostFilter = AtlasFutures.getUnchecked(getWithPostFilteringInternal(
-                                tableReference,
-                                remainingResultsToPostFilter,
-                                resultsAccumulator,
-                                transformer,
-                                asyncKeyValueService,
-                                asyncTransactionService));
-                        Preconditions.checkState(
-                                ++iterations < MAX_POST_FILTERING_ITERATIONS,
-                                "Unable to filter cells to find correct result after "
-                                        + "reaching max iterations. This is likely due to aborted cells lying around,"
-                                        + " or in the very rare case, could be due to transactions which constantly "
-                                        + "conflict but never commit. These values will be cleaned up eventually, but"
-                                        + " if the issue persists, ensure that sweep is caught up.",
-                                SafeArg.of("table", tableReference),
-                                SafeArg.of("maxIterations", MAX_POST_FILTERING_ITERATIONS));
-                    }
-                    getCounter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED, tableReference)
-                            .inc(resultsAccumulator.size());
-
-                    return Futures.immediateFuture(resultsAccumulator);
-                },
-                MoreExecutors.directExecutor());
+        Map<Cell, T> postFiltered = getWithPostFilteringInternal(
+                        tableRef, rawResults, asyncKeyValueService, asyncTransactionService, 1)
+                .mapValues(transformer)
+                .toCustomMap(LinkedHashMap::new);
+        getCounter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED, tableRef)
+                .inc(postFiltered.size());
+        return postFiltered;
     }
 
     /**
@@ -1620,52 +1581,37 @@ public class SnapshotTransaction extends AbstractTransaction
      * it was truncated. In this case, there is a chance that we end up with a sentinel with no valid AtlasDB cell
      * covering it. In this case, we ignore it.
      */
-    private Set<Cell> findOrphanedSweepSentinels(TableReference table, Map<Cell, Value> rawResults) {
-        Set<Cell> sweepSentinels = Maps.filterValues(rawResults, SnapshotTransaction::isSweepSentinel)
-                .keySet();
+    private Set<Cell> findOrphanedSweepSentinels(TableReference table, Set<Cell> sweepSentinels) {
         if (sweepSentinels.isEmpty()) {
             return Collections.emptySet();
         }
+        Set<Cell> actualOrphanedSentinels = findOrphanedSweepSentinelsInternal(
+                        ImmutableMap.copyOf(transactionKeyValueService.getLatestTimestamps(
+                                table, Maps.asMap(sweepSentinels, x -> Long.MAX_VALUE))))
+                .toImmutableSet();
+        deleteOrphanedSentinelsAsync(table, actualOrphanedSentinels);
+        return actualOrphanedSentinels;
+    }
 
+    private StreamEx<Cell> findOrphanedSweepSentinelsInternal(Map<Cell, Long> timestampCandidates) {
         // for each sentinel, start at long max. Then iterate down with each found uncommitted value.
         // if committed value seen, stop: the sentinel is not orphaned
         // if we get back -1, the sentinel is orphaned
-        Map<Cell, Long> timestampCandidates = new HashMap<>(
-                transactionKeyValueService.getLatestTimestamps(table, Maps.asMap(sweepSentinels, x -> Long.MAX_VALUE)));
-        Set<Cell> actualOrphanedSentinels = new HashSet<>();
-
-        while (!timestampCandidates.isEmpty()) {
-            Map<SentinelType, Map<Cell, Long>> sentinelTypeToTimestamps = timestampCandidates.entrySet().stream()
-                    .collect(Collectors.groupingBy(
-                            entry -> entry.getValue() == Value.INVALID_VALUE_TIMESTAMP
-                                    ? SentinelType.DEFINITE_ORPHANED
-                                    : SentinelType.INDETERMINATE,
-                            Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
-
-            Map<Cell, Long> definiteOrphans = sentinelTypeToTimestamps.get(SentinelType.DEFINITE_ORPHANED);
-            if (definiteOrphans != null) {
-                actualOrphanedSentinels.addAll(definiteOrphans.keySet());
-            }
-
-            Map<Cell, Long> cellsToQuery = sentinelTypeToTimestamps.get(SentinelType.INDETERMINATE);
-            if (cellsToQuery == null) {
-                break;
-            }
-            Set<Long> committedStartTimestamps = KeyedStream.stream(
-                            defaultTransactionService.get(cellsToQuery.values()))
-                    .filter(Objects::nonNull)
-                    .keys()
-                    .collect(Collectors.toSet());
-
-            Map<Cell, Long> nextTimestampCandidates = KeyedStream.stream(cellsToQuery)
-                    .filter(cellStartTimestamp -> !committedStartTimestamps.contains(cellStartTimestamp))
-                    .collectToMap();
-            timestampCandidates = transactionKeyValueService.getLatestTimestamps(table, nextTimestampCandidates);
-        }
-
-        deleteOrphanedSentinelsAsync(table, actualOrphanedSentinels);
-
-        return actualOrphanedSentinels;
+        Map<Boolean, Map<Cell, Long>> sentinelTypeToTimestamps = EntryStream.of(timestampCandidates)
+                .collect(MoreCollectors.partitioningBy(
+                        entry -> entry.getValue() == Value.INVALID_VALUE_TIMESTAMP, MoreCollectors.entriesToMap()));
+        Map<Cell, Long> definiteOrphans = sentinelTypeToTimestamps.getOrDefault(true, ImmutableMap.of());
+        StreamEx<Cell> resultStream = StreamEx.ofKeys(definiteOrphans);
+        return Optional.ofNullable(sentinelTypeToTimestamps.get(false))
+                .map(cellsToQuery -> EntryStream.of(cellsToQuery)
+                        .removeValues(EntryStream.of(defaultTransactionService.get(cellsToQuery.values()))
+                                .nonNullValues()
+                                .keys()
+                                .toImmutableSet()::contains)
+                        .toImmutableMap())
+                .map(this::findOrphanedSweepSentinelsInternal)
+                .map(resultStream::append)
+                .orElse(resultStream);
     }
 
     private void deleteOrphanedSentinelsAsync(TableReference table, Set<Cell> actualOrphanedSentinels) {
@@ -1681,125 +1627,126 @@ public class SnapshotTransaction extends AbstractTransaction
         return value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP;
     }
 
-    /**
-     * This will return all the key-value pairs that still need to be postFiltered.  It will output properly post
-     * filtered keys to the {@code resultsCollector} output param.
-     */
-    private <T> ListenableFuture<Map<Cell, Value>> getWithPostFilteringInternal(
+    private EntryStream<Cell, Value> getWithPostFilteringInternal(
             TableReference tableRef,
             Map<Cell, Value> rawResults,
-            @Output Collection<Map.Entry<Cell, T>> resultsCollector,
-            Function<Value, T> transformer,
             TransactionKeyValueService asyncKeyValueService,
-            AsyncTransactionService asyncTransactionService) {
-        Set<Cell> orphanedSentinels = findOrphanedSweepSentinels(tableRef, rawResults);
+            AsyncTransactionService asyncTransactionService,
+            int iterations) {
+        Preconditions.checkState(
+                iterations < MAX_POST_FILTERING_ITERATIONS,
+                "Unable to filter cells to find correct result after "
+                        + "reaching max iterations. This is likely due to aborted cells lying around,"
+                        + " or in the very rare case, could be due to transactions which constantly "
+                        + "conflict but never commit. These values will be cleaned up eventually, but"
+                        + " if the issue persists, ensure that sweep is caught up.",
+                SafeArg.of("table", tableRef),
+                SafeArg.of("maxIterations", MAX_POST_FILTERING_ITERATIONS));
+
+        Set<Cell> sweepSentinels = Maps.filterValues(rawResults, SnapshotTransaction::isSweepSentinel)
+                .keySet();
+        Set<Cell> orphanedSentinels = findOrphanedSweepSentinels(tableRef, sweepSentinels);
         LongSet valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
 
-        return Futures.transformAsync(
+        getCounter(AtlasDbMetricNames.CellFilterMetrics.INVALID_START_TS, tableRef)
+                .inc(sweepSentinels.size());
+        // This means that this transaction started too long ago. When we do garbage collection,
+        // we clean up old values, and this transaction started at a timestamp before the garbage
+        // collection.
+        if (getReadSentinelBehavior().equals(TransactionReadSentinelBehavior.THROW_EXCEPTION)
+                && StreamEx.ofKeys(rawResults).anyMatch(orphanedSentinels::contains)) {
+            throw new TransactionFailedRetriableException("Tried to read a value that has been "
+                    + "deleted. This can be caused by hard delete transactions using the type "
+                    + TransactionType.AGGRESSIVE_HARD_DELETE
+                    + ". It can also be caused by transactions taking too long, or"
+                    + " its locks expired. Retrying it should work.");
+        }
+
+        return streamFutureEntries(Futures.transform(
                 getCommitTimestamps(tableRef, valuesStartTimestamps, true, asyncTransactionService),
                 commitTimestamps -> collectCellsToPostFilter(
-                        tableRef,
-                        rawResults,
-                        resultsCollector,
-                        transformer,
-                        asyncKeyValueService,
-                        orphanedSentinels,
-                        commitTimestamps),
-                MoreExecutors.directExecutor());
+                                tableRef,
+                                Maps.filterValues(rawResults, Predicates.not(SnapshotTransaction::isSweepSentinel)),
+                                asyncKeyValueService,
+                                asyncTransactionService,
+                                commitTimestamps,
+                                iterations)
+                        .spliterator(),
+                MoreExecutors.directExecutor()));
     }
 
-    private <T> ListenableFuture<Map<Cell, Value>> collectCellsToPostFilter(
+    private EntryStream<Cell, Value> collectCellsToPostFilter(
             TableReference tableRef,
             Map<Cell, Value> rawResults,
-            @Output Collection<Map.Entry<Cell, T>> resultsCollector,
-            Function<Value, T> transformer,
             TransactionKeyValueService asyncKeyValueService,
-            Set<Cell> orphanedSentinels,
-            LongLongMap commitTimestamps) {
-        Map<Cell, Long> keysToReload = Maps.newHashMapWithExpectedSize(0);
-        Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
-        ImmutableSet.Builder<Cell> keysAddedBuilder = ImmutableSet.builder();
+            AsyncTransactionService asyncTransactionService,
+            LongLongMap commitTimestamps,
+            int iterations) {
+        Map<Cell, Long> keysToDelete = EntryStream.of(rawResults)
+                .mapValues(Value::getTimestamp)
+                .filterKeyValue((key, ts) -> commitTimestamps.getIfAbsent(ts, TransactionConstants.FAILED_COMMIT_TS)
+                        == TransactionConstants.FAILED_COMMIT_TS)
+                .toImmutableMap();
+        Map<Cell, Long> keysToReload = EntryStream.of(rawResults)
+                .removeKeys(keysToDelete::containsKey)
+                .mapValues(Value::getTimestamp)
+                .filterKeyValue((key, ts) ->
+                        // The value's commit timestamp is after our start timestamp.
+                        // This means the value is from a transaction which committed
+                        // after our transaction began. We need to try reading at an
+                        // earlier timestamp.
+                        commitTimestamps.get(ts) > getStartTimestamp())
+                .toImmutableMap();
+        getCounter(AtlasDbMetricNames.CellFilterMetrics.COMMIT_TS_GREATER_THAN_TRANSACTION_TS, tableRef)
+                .inc(keysToReload.size());
 
-        for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
-            Cell key = e.getKey();
-            Value value = e.getValue();
+        Map<Cell, Value> filteredResults = EntryStream.of(rawResults)
+                .removeKeys(keysToDelete::containsKey)
+                .removeKeys(keysToReload::containsKey)
+                .removeValues(value -> value.getContents().length == 0)
+                // The value has a commit timestamp less than our start timestamp, and is visible and valid.
+                .collect(MoreCollectors.entriesToCustomMap(LinkedHashMap::new));
 
-            if (isSweepSentinel(value)) {
-                getCounter(AtlasDbMetricNames.CellFilterMetrics.INVALID_START_TS, tableRef)
-                        .inc();
-
-                // This means that this transaction started too long ago. When we do garbage collection,
-                // we clean up old values, and this transaction started at a timestamp before the garbage collection.
-                switch (getReadSentinelBehavior()) {
-                    case IGNORE:
-                        break;
-                    case THROW_EXCEPTION:
-                        if (!orphanedSentinels.contains(key)) {
-                            throw new TransactionFailedRetriableException("Tried to read a value that has been "
-                                    + "deleted. This can be caused by hard delete transactions using the type "
-                                    + TransactionType.AGGRESSIVE_HARD_DELETE
-                                    + ". It can also be caused by transactions taking too long, or"
-                                    + " its locks expired. Retrying it should work.");
-                        }
-                        break;
-                    default:
-                        throw new IllegalStateException("Invalid read sentinel behavior " + getReadSentinelBehavior());
-                }
-            } else {
-                long theirCommitTimestamp =
-                        commitTimestamps.getIfAbsent(value.getTimestamp(), TransactionConstants.FAILED_COMMIT_TS);
-                if (theirCommitTimestamp == TransactionConstants.FAILED_COMMIT_TS) {
-                    keysToReload.put(key, value.getTimestamp());
-                    if (shouldDeleteAndRollback()) {
-                        // This is from a failed transaction so we can roll it back and then reload it.
-                        keysToDelete.put(key, value.getTimestamp());
-                        getCounter(AtlasDbMetricNames.CellFilterMetrics.INVALID_COMMIT_TS, tableRef)
-                                .inc();
-                    }
-                } else if (theirCommitTimestamp > getStartTimestamp()) {
-                    // The value's commit timestamp is after our start timestamp.
-                    // This means the value is from a transaction which committed
-                    // after our transaction began. We need to try reading at an
-                    // earlier timestamp.
-                    keysToReload.put(key, value.getTimestamp());
-                    getCounter(AtlasDbMetricNames.CellFilterMetrics.COMMIT_TS_GREATER_THAN_TRANSACTION_TS, tableRef)
-                            .inc();
-                } else {
-                    // The value has a commit timestamp less than our start timestamp, and is visible and valid.
-                    if (value.getContents().length != 0) {
-                        resultsCollector.add(Maps.immutableEntry(key, transformer.apply(value)));
-                        keysAddedBuilder.add(key);
-                    }
-                }
-            }
-        }
-        Set<Cell> keysAddedToResults = keysAddedBuilder.build();
-
-        if (!keysToDelete.isEmpty()) {
-            // if we can't roll back the failed transactions, we should just try again
-            if (!rollbackFailedTransactions(tableRef, keysToDelete, commitTimestamps, defaultTransactionService)) {
-                return Futures.immediateFuture(getRemainingResults(rawResults, keysAddedToResults));
+        EntryStream<Cell, Value> resultStream = EntryStream.of(filteredResults);
+        if (shouldDeleteAndRollback()) {
+            // These are from a failed transaction so we can roll it back and then reload it.
+            getCounter(AtlasDbMetricNames.CellFilterMetrics.INVALID_COMMIT_TS, tableRef)
+                    .inc(keysToDelete.size());
+            if (!keysToDelete.isEmpty()
+                    && !rollbackFailedTransactions(
+                            tableRef, keysToDelete, commitTimestamps, defaultTransactionService)) {
+                return resultStream.append(getWithPostFilteringInternal(
+                        tableRef,
+                        Maps.difference(rawResults, filteredResults).entriesOnlyOnLeft(),
+                        asyncKeyValueService,
+                        asyncTransactionService,
+                        iterations + 1));
             }
         }
 
-        if (!keysToReload.isEmpty()) {
-            return Futures.transform(
-                    asyncKeyValueService.getAsync(tableRef, keysToReload),
-                    nextRawResults -> {
-                        boolean allPossibleCellsReadAndPresent = nextRawResults.size() == keysToReload.size();
+        Map<Cell, Long> keysToReloadOrDelete = ImmutableMap.<Cell, Long>builderWithExpectedSize(
+                        keysToReload.size() + keysToDelete.size())
+                .putAll(keysToReload)
+                .putAll(keysToDelete)
+                .buildOrThrow();
+        if (!keysToReloadOrDelete.isEmpty()) {
+            return resultStream.append(streamFutureEntries(asyncKeyValueService
+                    .getCompletableAsync(tableRef, keysToReloadOrDelete)
+                    .thenApply(nextRawResults -> {
                         validatePreCommitRequirementsOnReadIfNecessary(
-                                tableRef, getStartTimestamp(), allPossibleCellsReadAndPresent);
-                        return getRemainingResults(nextRawResults, keysAddedToResults);
-                    },
-                    MoreExecutors.directExecutor());
+                                tableRef, getStartTimestamp(), nextRawResults.size() == keysToReloadOrDelete.size());
+                        return Maps.difference(rawResults, filteredResults).entriesOnlyOnLeft();
+                    })
+                    .thenApply(remainingRawResults -> getWithPostFilteringInternal(
+                            tableRef,
+                            remainingRawResults,
+                            asyncKeyValueService,
+                            asyncTransactionService,
+                            iterations + 1))
+                    .thenApply(EntryStream::spliterator)));
         }
-        return Futures.immediateFuture(ImmutableMap.of());
-    }
 
-    private Map<Cell, Value> getRemainingResults(Map<Cell, Value> rawResults, Set<Cell> keysAddedToResults) {
-        Map<Cell, Value> remainingResults = new HashMap<>(rawResults);
-        remainingResults.keySet().removeAll(keysAddedToResults);
-        return remainingResults;
+        return resultStream;
     }
 
     /**
@@ -2914,11 +2861,6 @@ public class SnapshotTransaction extends AbstractTransaction
         return tableLevelMetricsController.createAndRegisterCounter(SnapshotTransaction.class, name, tableRef);
     }
 
-    private enum SentinelType {
-        DEFINITE_ORPHANED,
-        INDETERMINATE;
-    }
-
     private final class SuccessCallbackManager {
         private final List<Runnable> callbacks = new CopyOnWriteArrayList<>();
 
@@ -2971,5 +2913,41 @@ public class SnapshotTransaction extends AbstractTransaction
                     return txnTaskResult;
                 },
                 MoreExecutors.directExecutor());
+    }
+
+    private static <K, V> EntryStream<K, V> streamFutureEntries(Future<Spliterator<Map.Entry<K, V>>> future) {
+        return EntryStream.of(new Spliterator<>() {
+            @Override
+            public boolean tryAdvance(Consumer<? super Entry<K, V>> action) {
+                return AtlasFutures.getUnchecked(future).tryAdvance(action);
+            }
+
+            @Override
+            public void forEachRemaining(Consumer<? super Entry<K, V>> action) {
+                AtlasFutures.getUnchecked(future).forEachRemaining(action);
+            }
+
+            @Override
+            public Spliterator<Entry<K, V>> trySplit() {
+                return null;
+            }
+
+            @Override
+            public long estimateSize() {
+                if (future.isDone()) {
+                    try {
+                        return future.get().estimateSize();
+                    } catch (Exception e) {
+                        // pass
+                    }
+                }
+                return Long.MAX_VALUE;
+            }
+
+            @Override
+            public int characteristics() {
+                return Spliterator.IMMUTABLE + Spliterator.NONNULL + Spliterator.ORDERED;
+            }
+        });
     }
 }
