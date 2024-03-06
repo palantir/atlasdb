@@ -22,7 +22,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig;
 import com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory;
 import com.palantir.atlasdb.timestamp.DbTimeLockFactory;
-import com.palantir.atlasdb.transaction.impl.KeyValueSnapshotReaderFactory;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManagerFactory;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.ServiceLoader;
@@ -46,10 +46,12 @@ public final class AtlasDbServiceDiscovery {
     }
 
     // TODO (jkong): A little cheaty, currently coupling usage of TKVSMF and KVSRF to be special or non-special...
-    public static KeyValueSnapshotReaderFactory createKeyValueSnapshotReaderFactoryOfCorrectType(
+    public static KeyValueSnapshotReaderManagerFactory createKeyValueSnapshotReaderManagerFactoryOfCorrectType(
             TransactionKeyValueServiceConfig config) {
         return createAtlasDbServiceOfCorrectType(
-                config.type(), KeyValueSnapshotReaderFactory::getType, KeyValueSnapshotReaderFactory.class);
+                config.type(),
+                KeyValueSnapshotReaderManagerFactory::getType,
+                KeyValueSnapshotReaderManagerFactory.class);
     }
 
     public static DbTimeLockFactory createDbTimeLockFactoryOfCorrectType(KeyValueServiceConfig config) {

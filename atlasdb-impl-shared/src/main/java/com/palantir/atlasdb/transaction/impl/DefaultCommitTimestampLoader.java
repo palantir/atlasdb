@@ -26,6 +26,7 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.TransactionConfig;
+import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.knowledge.KnownAbandonedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;

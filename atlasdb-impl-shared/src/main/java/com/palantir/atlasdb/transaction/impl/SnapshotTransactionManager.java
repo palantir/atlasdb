@@ -37,17 +37,23 @@ import com.palantir.atlasdb.monitoring.TimestampTracker;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
+import com.palantir.atlasdb.transaction.api.DeleteExecutor;
+import com.palantir.atlasdb.transaction.api.ImmutableTransactionContext;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.PreCommitRequirementValidator;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.atlasdb.transaction.impl.metrics.KeyValueSnapshotEventRecorder;
+import com.palantir.atlasdb.transaction.impl.metrics.DefaultKeyValueSnapshotEventRecorder;
 import com.palantir.atlasdb.transaction.impl.metrics.MemoizingTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -116,7 +122,7 @@ import java.util.stream.Collectors;
     private final ConflictTracer conflictTracer;
 
     protected final TransactionKnowledgeComponents knowledge;
-    protected final KeyValueSnapshotReaderFactory keyValueSnapshotReaderFactory;
+    protected final KeyValueSnapshotReaderManager keyValueSnapshotReaderManager;
 
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
@@ -142,7 +148,7 @@ import java.util.stream.Collectors;
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
             TransactionKnowledgeComponents knowledge,
-            KeyValueSnapshotReaderFactory keyValueSnapshotReaderFactory) {
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         this.lockWatchManager = lockWatchManager;
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
@@ -172,7 +178,7 @@ import java.util.stream.Collectors;
         this.openTransactionCounter =
                 metricsManager.registerOrGetCounter(SnapshotTransactionManager.class, "openTransactionCounter");
         this.knowledge = knowledge;
-        this.keyValueSnapshotReaderFactory = keyValueSnapshotReaderFactory;
+        this.keyValueSnapshotReaderManager = keyValueSnapshotReaderManager;
     }
 
     @Override
@@ -320,14 +326,7 @@ import java.util.stream.Collectors;
         PreCommitRequirementValidator validator = createPreCommitConditionValidator(optionalImmutableTsLock, condition);
 
         KeyValueSnapshotReader keyValueSnapshotReader =
-                keyValueSnapshotReaderFactory.createKeyValueSnapshotReader(ImmutableTransactionContext.builder()
-                        .startTimestampSupplier(startTimestampSupplier)
-                        .transactionReadSentinelBehavior(TransactionReadSentinelBehavior.THROW_EXCEPTION)
-                        .commitTimestampLoader(loader)
-                        .preCommitRequirementValidator(validator)
-                        .keyValueSnapshotEventRecorder(
-                                KeyValueSnapshotEventRecorder.create(metricsManager, tableLevelMetricsController))
-                        .build());
+                createDefaultSnapshotReader(startTimestampSupplier, loader, validator);
 
         return new SnapshotTransaction(
                 metricsManager,
@@ -390,13 +389,13 @@ import java.util.stream.Collectors;
             LongSupplier startTimestampSupplier,
             CommitTimestampLoader commitTimestampLoader,
             PreCommitRequirementValidator validator) {
-        return keyValueSnapshotReaderFactory.createKeyValueSnapshotReader(ImmutableTransactionContext.builder()
+        return keyValueSnapshotReaderManager.createKeyValueSnapshotReader(ImmutableTransactionContext.builder()
                 .startTimestampSupplier(startTimestampSupplier)
                 .transactionReadSentinelBehavior(TransactionReadSentinelBehavior.THROW_EXCEPTION)
                 .commitTimestampLoader(commitTimestampLoader)
                 .preCommitRequirementValidator(validator)
                 .keyValueSnapshotEventRecorder(
-                        KeyValueSnapshotEventRecorder.create(metricsManager, tableLevelMetricsController))
+                        DefaultKeyValueSnapshotEventRecorder.create(metricsManager, tableLevelMetricsController))
                 .build());
     }
 

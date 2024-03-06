@@ -39,6 +39,7 @@ import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueServiceManag
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
 import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
@@ -123,11 +124,11 @@ public class SnapshotTransactionManagerTest {
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
                 knowledge,
-                new DefaultKeyValueSnapshotReaderFactory(
+                new DefaultKeyValueSnapshotReaderManager(
                         transactionKeyValueServiceManager,
                         mock(TransactionService.class),
                         false,
-                        new OrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
+                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
                         deleteExecutor));
     }
 
@@ -186,11 +187,11 @@ public class SnapshotTransactionManagerTest {
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
                 knowledge,
-                new DefaultKeyValueSnapshotReaderFactory(
+                new DefaultKeyValueSnapshotReaderManager(
                         transactionKeyValueServiceManager,
                         mock(TransactionService.class),
                         false,
-                        new OrphanedSentinelDeleter(
+                        new DefaultOrphanedSentinelDeleter(
                                 SweepStrategyManagers.createDefault(keyValueService)::get, deleteExecutor),
                         deleteExecutor));
         newTransactionManager.close(); // should not throw
@@ -339,11 +340,11 @@ public class SnapshotTransactionManagerTest {
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
                 knowledge,
-                new DefaultKeyValueSnapshotReaderFactory(
+                new DefaultKeyValueSnapshotReaderManager(
                         transactionKeyValueServiceManager,
                         mock(TransactionService.class),
                         false,
-                        new OrphanedSentinelDeleter(
+                        new DefaultOrphanedSentinelDeleter(
                                 SweepStrategyManagers.createDefault(keyValueService)::get, deleteExecutor),
                         deleteExecutor));
     }

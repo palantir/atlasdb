@@ -21,6 +21,7 @@ import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;

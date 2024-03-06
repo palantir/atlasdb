@@ -35,13 +35,13 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.DefaultDeleteExecutor;
-import com.palantir.atlasdb.transaction.impl.DefaultKeyValueSnapshotReaderFactory;
-import com.palantir.atlasdb.transaction.impl.DeleteExecutor;
-import com.palantir.atlasdb.transaction.impl.OrphanedSentinelDeleter;
+import com.palantir.atlasdb.transaction.impl.DefaultKeyValueSnapshotReaderManager;
+import com.palantir.atlasdb.transaction.impl.DefaultOrphanedSentinelDeleter;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TestTransactionManagerImpl;
@@ -110,11 +110,11 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 MultiTableSweepQueueWriter.NO_OP,
                 TransactionKnowledgeComponents.createForTests(kvs2, metricsManager.getTaggedRegistry()),
                 deleteExecutor2,
-                new DefaultKeyValueSnapshotReaderFactory(
+                new DefaultKeyValueSnapshotReaderManager(
                         new DefaultTransactionKeyValueServiceManager(kvs2),
                         transactionService,
                         false,
-                        new OrphanedSentinelDeleter(ssm2::get, typedDeleteExecutor2),
+                        new DefaultOrphanedSentinelDeleter(ssm2::get, typedDeleteExecutor2),
                         typedDeleteExecutor2));
         kvs2.createTable(tableRef, definition.toTableMetadata().persistToBytes());
         kvs2.createTable(namespacedTableRef, definition.toTableMetadata().persistToBytes());
@@ -156,11 +156,11 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 MultiTableSweepQueueWriter.NO_OP,
                 TransactionKnowledgeComponents.createForTests(kvs2, metricsManager.getTaggedRegistry()),
                 verifyDeleteExecutor,
-                new DefaultKeyValueSnapshotReaderFactory(
+                new DefaultKeyValueSnapshotReaderManager(
                         new DefaultTransactionKeyValueServiceManager(kvs2),
                         transactionService,
                         false,
-                        new OrphanedSentinelDeleter(verifySsm::get, verifyTypedDeleteExecutor),
+                        new DefaultOrphanedSentinelDeleter(verifySsm::get, verifyTypedDeleteExecutor),
                         verifyTypedDeleteExecutor));
         final MutableLong count = new MutableLong();
         for (final TableReference name : Lists.newArrayList(tableRef, namespacedTableRef)) {

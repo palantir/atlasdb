@@ -21,6 +21,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.transaction.impl.SerializableTransaction.PartitionedTimestamps;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;

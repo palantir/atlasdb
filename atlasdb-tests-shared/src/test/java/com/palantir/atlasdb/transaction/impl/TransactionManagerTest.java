@@ -270,7 +270,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
                 knowledge,
-                keyValueSnapshotReaderFactory);
+                keyValueSnapshotReaderManager);
 
         when(timelock.getFreshTimestamp()).thenReturn(1L);
         when(timelock.lockImmutableTimestamp())

@@ -39,8 +39,8 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.DefaultDeleteExecutor;
-import com.palantir.atlasdb.transaction.impl.DefaultKeyValueSnapshotReaderFactory;
-import com.palantir.atlasdb.transaction.impl.OrphanedSentinelDeleter;
+import com.palantir.atlasdb.transaction.impl.DefaultKeyValueSnapshotReaderManager;
+import com.palantir.atlasdb.transaction.impl.DefaultOrphanedSentinelDeleter;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
@@ -152,11 +152,11 @@ public class TestTransactionManagerModule {
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
                 knowledge,
-                new DefaultKeyValueSnapshotReaderFactory(
+                new DefaultKeyValueSnapshotReaderManager(
                         transactionKeyValueServiceManager,
                         transactionService,
                         config.allowAccessToHiddenTables(),
-                        new OrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
+                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
                         deleteExecutor));
     }
 }

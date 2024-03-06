@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;

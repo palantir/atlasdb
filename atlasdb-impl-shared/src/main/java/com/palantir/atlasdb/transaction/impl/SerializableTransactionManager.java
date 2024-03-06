@@ -29,7 +29,11 @@ import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionManager;
+import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
+import com.palantir.atlasdb.transaction.api.DeleteExecutor;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.PreCommitRequirementValidator;
 import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -245,7 +249,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Optional<Integer> sharedGetRangesPoolSize,
             TransactionKnowledgeComponents knowledge,
             DeleteExecutor deleteExecutor,
-            KeyValueSnapshotReaderFactory keyValueSnapshotReaderFactory) {
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         return create(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -276,7 +280,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sharedGetRangesPoolSize,
                 knowledge,
                 deleteExecutor,
-                keyValueSnapshotReaderFactory);
+                keyValueSnapshotReaderManager);
     }
 
     public static TransactionManager create(
@@ -305,7 +309,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
             TransactionKnowledgeComponents knowledge,
-            KeyValueSnapshotReaderFactory keyValueSnapshotReaderFactory) {
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         return create(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -337,7 +341,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 new DefaultDeleteExecutor(
                         transactionKeyValueServiceManager.getKeyValueService().orElseThrow(),
                         DefaultTaskExecutors.createDefaultDeleteExecutor()),
-                keyValueSnapshotReaderFactory);
+                keyValueSnapshotReaderManager);
     }
 
     public static TransactionManager create(
@@ -368,7 +372,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Optional<Integer> sharedGetRangesPoolSize,
             TransactionKnowledgeComponents knowledge,
             DeleteExecutor deleteExecutor,
-            KeyValueSnapshotReaderFactory keyValueSnapshotReaderFactory) {
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         return create(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -398,7 +402,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sharedGetRangesPoolSize,
                 knowledge,
                 deleteExecutor,
-                keyValueSnapshotReaderFactory);
+                keyValueSnapshotReaderManager);
     }
 
     private static TransactionManager create(
@@ -430,7 +434,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             Optional<Integer> sharedGetRangesPoolSize,
             TransactionKnowledgeComponents knowledge,
             DeleteExecutor deleteExecutor,
-            KeyValueSnapshotReaderFactory keyValueSnapshotReaderFactory) {
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         TransactionManager transactionManager = new SerializableTransactionManager(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -455,7 +459,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
                 knowledge,
-                keyValueSnapshotReaderFactory);
+                keyValueSnapshotReaderManager);
 
         if (shouldInstrument) {
             transactionManager = AtlasDbMetrics.instrumentTimed(
@@ -514,11 +518,11 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
                 knowledge,
-                new DefaultKeyValueSnapshotReaderFactory(
+                new DefaultKeyValueSnapshotReaderManager(
                         transactionKeyValueServiceManager,
                         transactionService,
                         false,
-                        new OrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
+                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
                         deleteExecutor));
     }
 
@@ -546,7 +550,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
             TransactionKnowledgeComponents knowledge,
-            KeyValueSnapshotReaderFactory keyValueSnapshotReaderFactory) {
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         super(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -571,7 +575,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
                 knowledge,
-                keyValueSnapshotReaderFactory);
+                keyValueSnapshotReaderManager);
         this.conflictTracer = conflictTracer;
     }
 

@@ -16,17 +16,21 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
+import com.palantir.atlasdb.transaction.api.DeleteExecutor;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager;
+import com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter;
 import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
-public class DefaultKeyValueSnapshotReaderFactory implements KeyValueSnapshotReaderFactory {
+public class DefaultKeyValueSnapshotReaderManager implements KeyValueSnapshotReaderManager {
     private final TransactionKeyValueServiceManager transactionKeyValueServiceManager;
     private final TransactionService transactionService;
     private final boolean allowHiddenTableAccess;
     private final OrphanedSentinelDeleter orphanedSentinelDeleter;
     private final DeleteExecutor deleteExecutor;
 
-    public DefaultKeyValueSnapshotReaderFactory(
+    public DefaultKeyValueSnapshotReaderManager(
             TransactionKeyValueServiceManager transactionKeyValueServiceManager,
             TransactionService transactionService,
             boolean allowHiddenTableAccess,
@@ -37,11 +41,6 @@ public class DefaultKeyValueSnapshotReaderFactory implements KeyValueSnapshotRea
         this.allowHiddenTableAccess = allowHiddenTableAccess;
         this.orphanedSentinelDeleter = orphanedSentinelDeleter;
         this.deleteExecutor = deleteExecutor;
-    }
-
-    @Override
-    public String getType() {
-        return "default";
     }
 
     @Override

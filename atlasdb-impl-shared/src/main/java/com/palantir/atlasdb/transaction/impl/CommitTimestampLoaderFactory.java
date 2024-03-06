@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.transaction.TransactionConfig;
+import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.v2.LockToken;

@@ -44,6 +44,8 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrat
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.DeleteExecutor;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -127,7 +129,7 @@ public abstract class TransactionTestSetup {
     protected TimestampCache timestampCache;
 
     protected TransactionKnowledgeComponents knowledge;
-    protected KeyValueSnapshotReaderFactory keyValueSnapshotReaderFactory;
+    protected KeyValueSnapshotReaderManager keyValueSnapshotReaderManager;
 
     @RegisterExtension
     public InMemoryTimelockExtension inMemoryTimelockExtension = new InMemoryTimelockExtension();
@@ -197,11 +199,11 @@ public abstract class TransactionTestSetup {
         transactionService = createTransactionService(keyValueService, transactionSchemaManager, knowledge);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
-        keyValueSnapshotReaderFactory = new DefaultKeyValueSnapshotReaderFactory(
+        keyValueSnapshotReaderManager = new DefaultKeyValueSnapshotReaderManager(
                 transactionKeyValueServiceManager,
                 transactionService,
                 false,
-                new OrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
+                new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
                 deleteExecutor);
         txMgr = createAndRegisterManager();
     }
@@ -233,7 +235,7 @@ public abstract class TransactionTestSetup {
                 MultiTableSweepQueueWriter.NO_OP,
                 knowledge,
                 MoreExecutors.newDirectExecutorService(),
-                keyValueSnapshotReaderFactory);
+                keyValueSnapshotReaderManager);
     }
 
     protected void put(Transaction txn, String rowName, String columnName, String value) {

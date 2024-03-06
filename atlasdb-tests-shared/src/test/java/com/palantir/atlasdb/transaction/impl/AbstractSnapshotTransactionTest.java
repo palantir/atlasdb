@@ -93,12 +93,16 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
+import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.PreCommitRequirementValidator;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
@@ -112,8 +116,8 @@ import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
 import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionWriteMetadataInfo;
+import com.palantir.atlasdb.transaction.impl.metrics.DefaultKeyValueSnapshotEventRecorder;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
-import com.palantir.atlasdb.transaction.impl.metrics.KeyValueSnapshotEventRecorder;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.ToplistDeltaFilteringTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionMetrics;
@@ -382,7 +386,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 deleteExecutor,
                 transactionWrapper,
                 knowledge,
-                keyValueSnapshotReaderFactory);
+                keyValueSnapshotReaderManager);
     }
 
     @Test
@@ -516,11 +520,11 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 MoreExecutors.newDirectExecutorService(),
                 transactionWrapper,
                 knowledge,
-                new DefaultKeyValueSnapshotReaderFactory(
+                new DefaultKeyValueSnapshotReaderManager(
                         new DefaultTransactionKeyValueServiceManager(unstableKvs),
                         transactionService,
                         false,
-                        new OrphanedSentinelDeleter(sweepStrategyManager::get, typedDeleteExecutor),
+                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, typedDeleteExecutor),
                         typedDeleteExecutor));
 
         ScheduledExecutorService service = PTExecutors.newScheduledThreadPool(20);
@@ -1054,11 +1058,11 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 executor,
                 transactionWrapper,
                 knowledge,
-                new DefaultKeyValueSnapshotReaderFactory(
+                new DefaultKeyValueSnapshotReaderManager(
                         new DefaultTransactionKeyValueServiceManager(keyValueService),
                         transactionService,
                         false,
-                        new OrphanedSentinelDeleter(sweepStrategyManager::get, typedDeleteExecutor),
+                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, typedDeleteExecutor),
                         typedDeleteExecutor));
 
         Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);
@@ -3377,12 +3381,12 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 new ReadSentinelHandler(
                         transactionService,
                         TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                        new OrphanedSentinelDeleter(sweepStrategyManager::get, typedDeleteExecutor)),
+                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, typedDeleteExecutor)),
                 startTimestampSupplier,
                 (table, timestampSupplier, allReadAndPresent) -> validator.throwIfPreCommitRequirementsNotMetOnRead(
                         table, timestampSupplier.getAsLong(), allReadAndPresent),
                 typedDeleteExecutor,
-                KeyValueSnapshotEventRecorder.create(metricsManager, tableLevelMetricsController));
+                DefaultKeyValueSnapshotEventRecorder.create(metricsManager, tableLevelMetricsController));
     }
 
     private Transaction getSnapshotTransactionWith(

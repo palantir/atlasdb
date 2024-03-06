@@ -14,16 +14,12 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl;
+package com.palantir.atlasdb.transaction.api;
 
-import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
-import com.palantir.atlasdb.transaction.impl.metrics.KeyValueSnapshotEventRecorder;
 import java.util.function.LongSupplier;
 import org.immutables.value.Value;
 
-public interface KeyValueSnapshotReaderFactory {
-    String getType();
-
+public interface KeyValueSnapshotReaderManager {
     KeyValueSnapshotReader createKeyValueSnapshotReader(TransactionContext transactionContext);
 
     @Value.Immutable

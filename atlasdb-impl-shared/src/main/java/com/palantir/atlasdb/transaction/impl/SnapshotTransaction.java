@@ -80,11 +80,15 @@ import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintExcept
 import com.palantir.atlasdb.tracing.TraceStatistics;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
+import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
+import com.palantir.atlasdb.transaction.api.PreCommitRequirementValidator;
 import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict;

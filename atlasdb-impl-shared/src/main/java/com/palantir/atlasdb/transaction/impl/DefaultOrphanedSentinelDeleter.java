@@ -21,21 +21,24 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
+import com.palantir.atlasdb.transaction.api.DeleteExecutor;
+import com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter;
 import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
-public final class OrphanedSentinelDeleter {
+public final class DefaultOrphanedSentinelDeleter implements OrphanedSentinelDeleter {
     private final Function<TableReference, SweepStrategy> sweepStrategyProvider;
     private final DeleteExecutor deleteExecutor;
 
-    public OrphanedSentinelDeleter(
+    public DefaultOrphanedSentinelDeleter(
             Function<TableReference, SweepStrategy> sweepStrategyProvider, DeleteExecutor deleteExecutor) {
         this.sweepStrategyProvider = sweepStrategyProvider;
         this.deleteExecutor = deleteExecutor;
     }
 
+    @Override
     public void scheduleSentinelsForDeletion(TableReference tableReference, Set<Cell> orphanedSentinels) {
         if (sweepStrategyProvider
                 .apply(tableReference)

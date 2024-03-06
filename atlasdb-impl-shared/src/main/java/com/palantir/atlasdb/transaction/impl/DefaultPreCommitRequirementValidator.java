@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.PreCommitRequirementValidator;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;

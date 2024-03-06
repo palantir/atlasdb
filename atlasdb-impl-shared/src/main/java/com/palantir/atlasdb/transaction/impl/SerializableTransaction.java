@@ -57,14 +57,18 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.DeleteExecutor;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.PreCommitRequirementValidator;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
-import com.palantir.atlasdb.transaction.impl.metrics.KeyValueSnapshotEventRecorder;
+import com.palantir.atlasdb.transaction.impl.metrics.DefaultKeyValueSnapshotEventRecorder;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -948,13 +952,13 @@ public class SerializableTransaction extends SnapshotTransaction {
                         new ReadSentinelHandler(
                                 defaultTransactionService,
                                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                                new OrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor)),
+                                new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor)),
                         () -> commitTs, // I am different
                         (table, timestampSupplier, allReadAndPresent) ->
                                 preCommitRequirementValidator.throwIfPreCommitRequirementsNotMetOnRead(
                                         table, timestampSupplier.getAsLong(), allReadAndPresent),
                         deleteExecutor,
-                        KeyValueSnapshotEventRecorder.create(metricsManager, tableLevelMetricsController)),
+                        DefaultKeyValueSnapshotEventRecorder.create(metricsManager, tableLevelMetricsController)),
                 readValidationLoader,
                 preCommitRequirementValidator) {
             @Override

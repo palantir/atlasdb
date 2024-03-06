@@ -61,8 +61,11 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.PreCommitRequirementValidator;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -71,7 +74,7 @@ import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.transaction.impl.SerializableTransaction.CellLoader;
-import com.palantir.atlasdb.transaction.impl.metrics.KeyValueSnapshotEventRecorder;
+import com.palantir.atlasdb.transaction.impl.metrics.DefaultKeyValueSnapshotEventRecorder;
 import com.palantir.atlasdb.transaction.impl.metrics.SimpleTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionMetrics;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
@@ -1730,12 +1733,12 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 new ReadSentinelHandler(
                         transactionService,
                         TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                        new OrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor)),
+                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor)),
                 startTimestampSupplier,
                 (table, timestampSupplier, allReadAndPresent) -> validator.throwIfPreCommitRequirementsNotMetOnRead(
                         table, timestampSupplier.getAsLong(), allReadAndPresent),
                 deleteExecutor,
-                KeyValueSnapshotEventRecorder.create(
+                DefaultKeyValueSnapshotEventRecorder.create(
                         metricsManager, new SimpleTableLevelMetricsController(metricsManager)));
     }
 }

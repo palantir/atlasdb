@@ -19,14 +19,15 @@ package com.palantir.atlasdb.transaction.impl.metrics;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.AtlasDbMetricNames.CellFilterMetrics;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotEventRecorder;
 import com.palantir.atlasdb.util.MetricsManager;
 
-public final class KeyValueSnapshotEventRecorder {
+public final class DefaultKeyValueSnapshotEventRecorder implements KeyValueSnapshotEventRecorder {
     // This dichotomy is unfortunate, but a result of us standing between the legacy and metric-schema worlds.
     private final SnapshotTransactionMetricFactory metricFactory;
     private final TransactionMetrics transactionMetrics;
 
-    private KeyValueSnapshotEventRecorder(
+    private DefaultKeyValueSnapshotEventRecorder(
             SnapshotTransactionMetricFactory metricFactory, TransactionMetrics transactionMetrics) {
         this.metricFactory = metricFactory;
         this.transactionMetrics = transactionMetrics;
@@ -34,47 +35,54 @@ public final class KeyValueSnapshotEventRecorder {
 
     public static KeyValueSnapshotEventRecorder create(
             MetricsManager metricsManager, TableLevelMetricsController tableLevelMetricsController) {
-        return new KeyValueSnapshotEventRecorder(
+        return new DefaultKeyValueSnapshotEventRecorder(
                 new SnapshotTransactionMetricFactory(metricsManager, tableLevelMetricsController),
                 TransactionMetrics.of(metricsManager.getTaggedRegistry()));
     }
 
+    @Override
     public void recordCellsRead(TableReference tableReference, long cellsRead) {
         metricFactory
                 .getCounter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_READ, tableReference)
                 .inc(cellsRead);
     }
 
+    @Override
     public void recordCellsReturned(TableReference tableReference, long cellsReturned) {
         metricFactory
                 .getCounter(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_CELLS_RETURNED, tableReference)
                 .inc(cellsReturned);
     }
 
+    @Override
     public void recordManyBytesReadForTable(TableReference tableReference, long bytesRead) {
         metricFactory
                 .getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_TOO_MANY_BYTES_READ, tableReference)
                 .update(bytesRead);
     }
 
+    @Override
     public void recordFilteredSweepSentinel(TableReference tableReference) {
         metricFactory
                 .getCounter(CellFilterMetrics.INVALID_START_TS, tableReference)
                 .inc();
     }
 
+    @Override
     public void recordFilteredUncommittedTransaction(TableReference tableReference) {
         metricFactory
                 .getCounter(CellFilterMetrics.INVALID_COMMIT_TS, tableReference)
                 .inc();
     }
 
+    @Override
     public void recordFilteredTransactionCommittingAfterOurStart(TableReference tableReference) {
         metricFactory
                 .getCounter(CellFilterMetrics.COMMIT_TS_GREATER_THAN_TRANSACTION_TS, tableReference)
                 .inc();
     }
 
+    @Override
     public void recordRolledBackOtherTransaction() {
         transactionMetrics.rolledBackOtherTransaction().mark();
     }
