@@ -535,7 +535,8 @@ public abstract class TransactionManagers {
                 .orElse(ConflictTracer.NO_OP);
 
         Callback<TransactionManager> callbacks = new Callback.CallChain<>(List.of(
-                timelockConsistencyCheckCallback(config(), runtime.get(), lockAndTimestampServices),
+                timelockConsistencyCheckCallback(
+                        config(), runtime.get(), lockAndTimestampServices, internalKeyValueService),
                 targetedSweep.singleAttemptCallback(),
                 asyncInitializationCallback(),
                 createClearsTable()));
@@ -950,7 +951,8 @@ public abstract class TransactionManagers {
     private static Callback<TransactionManager> timelockConsistencyCheckCallback(
             AtlasDbConfig atlasDbConfig,
             AtlasDbRuntimeConfig initialRuntimeConfig,
-            LockAndTimestampServices lockAndTimestampServices) {
+            LockAndTimestampServices lockAndTimestampServices,
+            KeyValueService internalKeyValueService) {
         // Only do the consistency check if we're using TimeLock.
         // This avoids a bootstrapping problem with leader-block services without async initialisation,
         // where you need a working timestamp service to check consistency, you need to check consistency
@@ -959,7 +961,7 @@ public abstract class TransactionManagers {
         if (isUsingTimeLock(atlasDbConfig, initialRuntimeConfig)) {
             ToLongFunction<TransactionManager> conservativeBoundSupplier = txnManager -> {
                 Clock clock = GlobalClock.create(txnManager.getTimelockService());
-                return KeyValueServicePuncherStore.get(txnManager.getKeyValueService(), clock.getTimeMillis());
+                return KeyValueServicePuncherStore.get(internalKeyValueService, clock.getTimeMillis());
             };
             return ConsistencyCheckRunner.create(ImmutableTimestampCorroborationConsistencyCheck.builder()
                     .conservativeBound(conservativeBoundSupplier)
