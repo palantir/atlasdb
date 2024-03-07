@@ -139,6 +139,7 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.DoNotLog;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
@@ -412,7 +413,7 @@ public abstract class TransactionManagers {
 
         Refreshable<SweepConfig> sweepConfig = runtime.map(AtlasDbRuntimeConfig::sweep);
 
-        KeyValueService keyValueService = initializeCloseable(
+        KeyValueService internalKeyValueService = initializeCloseable(
                 () -> {
                     KeyValueService kvs = atlasFactory.getKeyValueService(); // CassandraKeyValueServiceImpl
                     kvs = ProfilingKeyValueService.create(kvs); // Profiling, we think ok
@@ -453,7 +454,7 @@ public abstract class TransactionManagers {
                                 tkvsmfFactory,
                                 metricsManager,
                                 lockAndTimestampServices,
-                                keyValueService,
+                                internalKeyValueService,
                                 keyValueServiceManager,
                                 config().transactionKeyValueService().get(),
                                 runtimeConfig().get().map(optionalConfig -> optionalConfig
@@ -462,14 +463,14 @@ public abstract class TransactionManagers {
                                         .get()),
                                 config().initializeAsync());
                     } else {
-                        tkvsm = new DelegatingTransactionKeyValueServiceManager(keyValueService);
+                        tkvsm = new DelegatingTransactionKeyValueServiceManager(internalKeyValueService);
                     }
                     return tkvsm;
                 },
                 closeables);
 
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
-                keyValueService,
+                internalKeyValueService,
                 transactionKeyValueServiceManager,
                 schemas(),
                 config().initializeAsync(),
@@ -477,10 +478,10 @@ public abstract class TransactionManagers {
         CleanupFollower follower = CleanupFollower.create(schemas());
 
         CoordinationService<InternalSchemaMetadata> coordinationService =
-                getSchemaMetadataCoordinationService(metricsManager, lockAndTimestampServices, keyValueService);
+                getSchemaMetadataCoordinationService(metricsManager, lockAndTimestampServices, internalKeyValueService);
 
         TargetedSweeper targetedSweeper = uninitializedTargetedSweeper(
-                keyValueService,
+                internalKeyValueService,
                 metricsManager,
                 config().targetedSweep(),
                 follower,
@@ -490,21 +491,21 @@ public abstract class TransactionManagers {
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
 
         TransactionKnowledgeComponents knowledge = TransactionKnowledgeComponents.create(
-                keyValueService,
+                internalKeyValueService,
                 metricsManager.getTaggedRegistry(),
                 config().internalSchema(),
                 targetedSweeper::isInitialized);
 
         TransactionComponents components = createTransactionComponents(
-                closeables, metricsManager, knowledge, transactionSchemaManager, keyValueService, runtime);
+                closeables, metricsManager, knowledge, transactionSchemaManager, internalKeyValueService, runtime);
 
         TransactionService transactionService = components.transactionService();
-        ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
-        SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
+        ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(internalKeyValueService);
+        SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(internalKeyValueService);
 
         Cleaner cleaner = initializeCloseable(
                 () -> new DefaultCleanerBuilder(
-                                keyValueService,
+                                internalKeyValueService,
                                 lockAndTimestampServices.timelock(),
                                 ImmutableList.of(follower),
                                 transactionService,
@@ -585,7 +586,7 @@ public abstract class TransactionManagers {
                         metricsManager,
                         config(),
                         runtime,
-                        keyValueService,
+                        internalKeyValueService,
                         transactionService,
                         follower,
                         transactionManager,
@@ -595,7 +596,7 @@ public abstract class TransactionManagers {
                 initializeCompactBackgroundProcess(
                         metricsManager,
                         lockAndTimestampServices,
-                        keyValueService,
+                        internalKeyValueService,
                         transactionManager,
                         runtime.map(AtlasDbRuntimeConfig::compact)),
                 closeables);
@@ -621,7 +622,17 @@ public abstract class TransactionManagers {
                         metricsManager,
                         config().initializeAsync());
         return factory.create(
-                coordinationService, keyValueServiceManager, config, runtimeConfigRefreshable, initializeAsync);
+                config().namespace()
+                        .orElseThrow(() -> new SafeIllegalArgumentException(
+                                "Namespace must be set when using transactionKeyValueService")),
+                reloadingFactory()
+                        .withUserAgent(userAgent().addAgent(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT_AGENT)),
+                metricsManager,
+                coordinationService,
+                keyValueServiceManager,
+                config,
+                runtimeConfigRefreshable,
+                initializeAsync);
     }
 
     private MetricsManager setUpMetricsAndGetMetricsManager() {
