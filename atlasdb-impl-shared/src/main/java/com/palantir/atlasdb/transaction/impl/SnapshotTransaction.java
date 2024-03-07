@@ -906,7 +906,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * This will add any local writes for this row to the result map.
-     *
+     * <p>
      * If an empty value was written as a delete, this will also be included in the map.
      */
     private void extractLocalWritesForRow(
