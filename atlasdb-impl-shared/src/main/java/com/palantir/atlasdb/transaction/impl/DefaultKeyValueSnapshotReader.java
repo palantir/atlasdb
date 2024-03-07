@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -134,7 +135,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             readSnapshotValidator.validateInternalSnapshot(tableRef, startTimestampSupplier, false);
         }
 
-        return getRowColumnRangePostFiltered(tableRef, rawResults, batchColumnRangeSelection.getBatchHint());
+        return getRowColumnRangePostFiltered(tableRef, rawResults, batchColumnRangeSelection.getBatchHint(), this::preserveInputRowOrder);
     }
 
     @Override
@@ -151,6 +152,24 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
                     RowColumnRangeIterator rawResults = entry.getValue();
                     return getRowColumnRangePostFiltered(tableRef, row, batchColumnRangeSelection, rawResults);
                 }));
+    }
+
+    @Override
+    public Iterator<Map.Entry<Cell, byte[]>> getSortedColumns(
+            TableReference tableRef, List<byte[]> rows, BatchColumnRangeSelection perRowSelection) {
+        Map<byte[], RowColumnRangeIterator> rawResults = transactionKeyValueService.getRowsColumnRange(
+                tableRef, rows, perRowSelection, startTimestampSupplier.getAsLong());
+
+        Comparator<Cell> cellComparator = columnOrderThenPreserveInputRowOrder(rows);
+
+        Iterator<Map.Entry<Cell, Value>> postFilterIterator = getRowColumnRangePostFiltered(
+                tableRef,
+                mergeByComparator(rawResults.values(), cellComparator),
+                perRowSelection.getBatchHint(),
+                unused -> cellComparator);
+        return Iterators.transform(
+                postFilterIterator,
+                entry -> Maps.immutableEntry(entry.getKey(), entry.getValue().getContents()));
     }
 
     @NotNull
@@ -384,14 +403,18 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
     }
 
     private Iterator<Map.Entry<Cell, Value>> getRowColumnRangePostFiltered(
-            TableReference tableRef, RowColumnRangeIterator iterator, int batchHint) {
+            TableReference tableRef,
+            Iterator<Map.Entry<Cell, Value>> iterator,
+            int batchHint,
+            Function<List<Map.Entry<Cell, Value>>, Comparator<Cell>> cellComparatorFactory) {
         return Iterators.concat(Iterators.transform(Iterators.partition(iterator, batchHint), batch -> {
-            Map<Cell, Value> raw = validateBatch(tableRef, batch, false /* can't skip lock checks on range scans */);
+            Map<Cell, Value> raw = validateBatch(tableRef, batch, false /* can't skip lock check on range scans */);
             if (raw.isEmpty()) {
                 return Collections.emptyIterator();
             }
-            SortedMap<Cell, Value> postFiltered = ImmutableSortedMap.copyOf(
-                    getWithPostFilteringSync(tableRef, raw, x -> x), preserveInputRowOrder(batch));
+
+            SortedMap<Cell, Value> postFiltered =
+                    ImmutableSortedMap.copyOf(getWithPostFilteringSync(tableRef, raw, x -> x), cellComparatorFactory.apply(batch));
             return postFiltered.entrySet().iterator();
         }));
     }
@@ -440,6 +463,21 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
                     readSnapshotValidator.validateInternalSnapshot(tableRef, startTimestampSupplier, false);
                 },
                 raw -> getWithPostFilteringSync(tableRef, raw, Value.GET_VALUE));
+    }
+
+    @VisibleForTesting
+    static Comparator<Cell> columnOrderThenPreserveInputRowOrder(Iterable<byte[]> rows) {
+        return Cell.COLUMN_COMPARATOR.thenComparing(
+                (Cell cell) -> ByteBuffer.wrap(cell.getRowName()),
+                Ordering.explicit(Streams.stream(rows)
+                        .map(ByteBuffer::wrap)
+                        .distinct()
+                        .collect(ImmutableList.toImmutableList())));
+    }
+
+    private static <V> Iterator<Map.Entry<Cell, V>> mergeByComparator(
+            Iterable<? extends Iterator<Map.Entry<Cell, V>>> iterators, Comparator<Cell> cellComparator) {
+        return Iterators.mergeSorted(iterators, Map.Entry.comparingByKey(cellComparator));
     }
 
     private static boolean isSweepSentinel(Value value) {

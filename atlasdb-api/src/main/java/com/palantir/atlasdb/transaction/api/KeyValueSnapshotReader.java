@@ -52,4 +52,9 @@ public interface KeyValueSnapshotReader {
     // have their locks checked.
     Map<byte[], ClosableIterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIndividualIterators(
             TableReference tableRef, List<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection);
+
+    // The first batch returned by this method will not have its locks checked. Subsequent iterator batches will
+    // have their locks checked.
+    Iterator<Map.Entry<Cell, byte[]>> getSortedColumns(
+            TableReference tableRef, List<byte[]> rows, BatchColumnRangeSelection perRowSelection);
 }

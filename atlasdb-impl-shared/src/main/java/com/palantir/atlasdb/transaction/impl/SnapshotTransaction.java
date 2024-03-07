@@ -554,39 +554,33 @@ public class SnapshotTransaction extends AbstractTransaction
         if (Iterables.isEmpty(rows)) {
             return Collections.emptyIterator();
         }
-        Iterable<byte[]> distinctRows = getDistinctRows(rows);
+        List<byte[]> distinctRows = getDistinctRows(rows);
 
         hasReads = true;
         int batchSize = getPerRowBatchSize(batchColumnRangeSelection, Iterables.size(distinctRows));
-        BatchColumnRangeSelection perBatchSelection = BatchColumnRangeSelection.create(
+        BatchColumnRangeSelection perRowBatchColumnRangeSelection = BatchColumnRangeSelection.create(
                 batchColumnRangeSelection.getStartCol(), batchColumnRangeSelection.getEndCol(), batchSize);
 
-        Map<byte[], RowColumnRangeIterator> rawResults = transactionKeyValueService.getRowsColumnRange(
-                tableRef, distinctRows, perBatchSelection, getStartTimestamp());
+        Iterator<Map.Entry<Cell, byte[]>> postFilteredResults =
+                keyValueSnapshotReader.getSortedColumns(tableRef, distinctRows, perRowBatchColumnRangeSelection);
 
+        // TODO (jkong): Possible bug? If there are ZERO results entirely we don't trip the lock check.
+        // This won't mean a bad transaction commits but COULD mean a transaction does a dirty read!
         return scopeToTransaction(
-                getPostFilteredSortedColumns(tableRef, batchColumnRangeSelection, distinctRows, rawResults));
+                mergeLocalWritesToSortedColumnsQuery(tableRef, batchColumnRangeSelection, distinctRows, postFilteredResults));
     }
 
-    private ClosableIterator<Map.Entry<Cell, byte[]>> getPostFilteredSortedColumns(
+    private ClosableIterator<Map.Entry<Cell, byte[]>> mergeLocalWritesToSortedColumnsQuery(
             TableReference tableRef,
             BatchColumnRangeSelection batchColumnRangeSelection,
             Iterable<byte[]> distinctRows,
-            Map<byte[], RowColumnRangeIterator> rawResults) {
+            Iterator<Map.Entry<Cell, byte[]>> postFilteredResults) {
         Comparator<Cell> cellComparator = columnOrderThenPreserveInputRowOrder(distinctRows);
 
-        Iterator<Map.Entry<Cell, Value>> postFilterIterator = getRowColumnRangePostFilteredWithoutSorting(
-                tableRef,
-                mergeByComparator(rawResults.values(), cellComparator),
-                batchColumnRangeSelection.getBatchHint(),
-                cellComparator);
-        Iterator<Map.Entry<Cell, byte[]>> remoteWrites = Iterators.transform(
-                postFilterIterator,
-                entry -> Maps.immutableEntry(entry.getKey(), entry.getValue().getContents()));
         Iterator<Map.Entry<Cell, byte[]>> localWrites =
                 getSortedColumnsLocalWrites(tableRef, distinctRows, batchColumnRangeSelection, cellComparator);
         ClosableIterator<Map.Entry<Cell, byte[]>> merged = mergeLocalAndRemoteWrites(
-                localWrites, ClosableIterators.wrapWithEmptyClose(remoteWrites), cellComparator);
+                localWrites, ClosableIterators.wrapWithEmptyClose(postFilteredResults), cellComparator);
 
         return ClosableIterators.wrap(filterDeletedValues(merged, tableRef), merged);
     }
@@ -705,28 +699,28 @@ public class SnapshotTransaction extends AbstractTransaction
         });
     }
 
-    private Iterator<Map.Entry<Cell, Value>> getRowColumnRangePostFilteredWithoutSorting(
-            TableReference tableRef,
-            Iterator<Map.Entry<Cell, Value>> iterator,
-            int batchHint,
-            Comparator<Cell> cellComparator) {
-        return Iterators.concat(Iterators.transform(Iterators.partition(iterator, batchHint), batch -> {
-            Map<Cell, Value> raw = validateBatch(tableRef, batch, false /* can't skip lock check on range scans */);
-            if (raw.isEmpty()) {
-                return Collections.emptyIterator();
-            }
-
-            SortedMap<Cell, Value> postFiltered =
-                    ImmutableSortedMap.copyOf(getWithPostFilteringSync(tableRef, raw, x -> x), cellComparator);
-            return postFiltered.entrySet().iterator();
-        }));
-    }
-
-    private Map<Cell, Value> validateBatch(
-            TableReference tableRef, List<Map.Entry<Cell, Value>> batch, boolean allPossibleCellsReadAndPresent) {
-        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp(), allPossibleCellsReadAndPresent);
-        return ImmutableMap.copyOf(batch);
-    }
+//    private Iterator<Map.Entry<Cell, Value>> getRowColumnRangePostFilteredWithoutSorting(
+//            TableReference tableRef,
+//            Iterator<Map.Entry<Cell, Value>> iterator,
+//            int batchHint,
+//            Comparator<Cell> cellComparator) {
+//        return Iterators.concat(Iterators.transform(Iterators.partition(iterator, batchHint), batch -> {
+//            Map<Cell, Value> raw = validateBatch(tableRef, batch, false /* can't skip lock check on range scans */);
+//            if (raw.isEmpty()) {
+//                return Collections.emptyIterator();
+//            }
+//
+//            SortedMap<Cell, Value> postFiltered =
+//                    ImmutableSortedMap.copyOf(getWithPostFilteringSync(tableRef, raw, x -> x), cellComparator);
+//            return postFiltered.entrySet().iterator();
+//        }));
+//    }
+//
+//    private Map<Cell, Value> validateBatch(
+//            TableReference tableRef, List<Map.Entry<Cell, Value>> batch, boolean allPossibleCellsReadAndPresent) {
+//        validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp(), allPossibleCellsReadAndPresent);
+//        return ImmutableMap.copyOf(batch);
+//    }
 
     /**
      * Partitions a {@link RowColumnRangeIterator} into contiguous blocks that share the same row name. {@link
@@ -767,7 +761,7 @@ public class SnapshotTransaction extends AbstractTransaction
                     protected Map.Entry<Cell, Value> computeNext() {
                         if (!peekableRawResults.hasNext()
                                 || !Arrays.equals(
-                                        peekableRawResults.peek().getKey().getRowName(), nextRowName)) {
+                                peekableRawResults.peek().getKey().getRowName(), nextRowName)) {
                             return endOfData();
                         }
                         return peekableRawResults.next();
@@ -1175,7 +1169,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 postFiltered.entrySet(),
                 Predicates.compose(Predicates.in(prePostFilterCells.keySet()), MapEntries.getKeyFunction()));
         Collection<Map.Entry<Cell, byte[]>> localWritesInRange = getLocalWritesForRange(
-                        tableRef, rangeRequest.getStartInclusive(), endRowExclusive, rangeRequest.getColumnNames())
+                tableRef, rangeRequest.getStartInclusive(), endRowExclusive, rangeRequest.getColumnNames())
                 .entrySet();
         return mergeInLocalWrites(
                 tableRef, postFilteredCells.iterator(), localWritesInRange.iterator(), rangeRequest.isReverse());
@@ -1212,9 +1206,9 @@ public class SnapshotTransaction extends AbstractTransaction
             int preFilterBatchSize)
             throws K {
         try (ClosableIterator<RowResult<byte[]>> postFilterIterator =
-                postFilterIterator(tableRef, range, preFilterBatchSize, Value.GET_VALUE)) {
+                     postFilterIterator(tableRef, range, preFilterBatchSize, Value.GET_VALUE)) {
             Iterator<RowResult<byte[]>> localWritesInRange = Cells.createRowView(getLocalWritesForRange(
-                            tableRef, range.getStartInclusive(), range.getEndExclusive(), range.getColumnNames())
+                    tableRef, range.getStartInclusive(), range.getEndExclusive(), range.getColumnNames())
                     .entrySet());
             Iterator<RowResult<byte[]>> mergeIterators =
                     mergeInLocalWritesRows(postFilterIterator, localWritesInRange, range.isReverse(), tableRef);
@@ -2065,7 +2059,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private <T> T timedAndTraced(String timerName, Supplier<T> supplier) {
         try (Timer.Context timer = getTimer(timerName).time();
-                CloseableTracer tracer = CloseableTracer.startSpan(timerName)) {
+             CloseableTracer tracer = CloseableTracer.startSpan(timerName)) {
             return supplier.get();
         }
     }
@@ -2077,7 +2071,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private boolean hasWrites() {
         return !localWriteBuffer.getLocalWrites().isEmpty()
                 && localWriteBuffer.getLocalWrites().values().stream()
-                        .anyMatch(writesForTable -> !writesForTable.isEmpty());
+                .anyMatch(writesForTable -> !writesForTable.isEmpty());
     }
 
     protected boolean hasReads() {
