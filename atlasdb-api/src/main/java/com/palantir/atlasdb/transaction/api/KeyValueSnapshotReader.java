@@ -17,8 +17,13 @@
 package com.palantir.atlasdb.transaction.api;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.common.base.ClosableIterator;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -38,4 +43,13 @@ import java.util.Set;
  */
 public interface KeyValueSnapshotReader {
     ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableReference, Set<Cell> cells);
+
+    // The first batch returned by this method will have its locks checked.
+    Iterator<Map.Entry<Cell, Value>> getRowsColumnRange(
+            TableReference tableRef, List<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection);
+
+    // The first batch returned by this method will not have its locks checked. Subsequent iterator batches will
+    // have their locks checked.
+    Map<byte[], ClosableIterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIndividualIterators(
+            TableReference tableRef, List<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection);
 }

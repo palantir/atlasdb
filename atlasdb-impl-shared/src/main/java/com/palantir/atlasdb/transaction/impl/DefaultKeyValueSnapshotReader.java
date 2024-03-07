@@ -16,19 +16,28 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.Streams;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.errorprone.annotations.MustBeClosed;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
+import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.futures.AtlasFutures;
+import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
+import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
@@ -40,6 +49,7 @@ import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Output;
+import com.palantir.common.base.ClosableIterator;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -47,11 +57,18 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import org.eclipse.collections.api.LongIterable;
@@ -70,7 +87,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
     private final boolean allowHiddenTableAccess;
     private final ReadSentinelHandler readSentinelHandler;
     private final LongSupplier startTimestampSupplier;
-    private final IntraReadSnapshotValidator intraReadSnapshotValidator;
+    private final ReadSnapshotValidator readSnapshotValidator;
     private final DeleteExecutor deleteExecutor;
     private final KeyValueSnapshotEventRecorder eventRecorder;
 
@@ -81,7 +98,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             boolean allowHiddenTableAccess,
             ReadSentinelHandler readSentinelHandler,
             LongSupplier startTimestampSupplier,
-            IntraReadSnapshotValidator intraReadSnapshotValidator,
+            ReadSnapshotValidator readSnapshotValidator,
             DeleteExecutor deleteExecutor,
             KeyValueSnapshotEventRecorder eventRecorder) {
         this.transactionKeyValueService = transactionKeyValueService;
@@ -90,58 +107,65 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
         this.allowHiddenTableAccess = allowHiddenTableAccess;
         this.readSentinelHandler = readSentinelHandler;
         this.startTimestampSupplier = startTimestampSupplier;
-        this.intraReadSnapshotValidator = intraReadSnapshotValidator;
+        this.readSnapshotValidator = readSnapshotValidator;
         this.deleteExecutor = deleteExecutor;
         this.eventRecorder = eventRecorder;
     }
 
     @Override
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableReference, Set<Cell> cells) {
-        return getInternal(transactionKeyValueService::getAsync, tableReference, cells);
+        return getInternal(tableReference, cells);
     }
 
-    //    public Map<byte[], Iterator<Entry<Cell, byte[]>>> getRowsColumnRangeIterator(
-    //            TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
-    //        ImmutableSortedMap<byte[], RowColumnRangeIterator> rawResults = ImmutableSortedMap.copyOf(
-    //                transactionKeyValueService.getRowsColumnRange(
-    //                        tableRef, rows, columnRangeSelection, startTimestampSupplier.getAsLong()),
-    //                PtBytes.BYTES_COMPARATOR);
-    //        ImmutableSortedMap<byte[], Iterator<Map.Entry<Cell, byte[]>>> postFilteredResults = Streams.stream(rows)
-    //                .collect(ImmutableSortedMap.toImmutableSortedMap(PtBytes.BYTES_COMPARATOR, row -> row, row -> {
-    //                    // explicitly not using Optional due to allocation perf overhead
-    //                    Iterator<Map.Entry<Cell, byte[]>> entryIterator;
-    //                    RowColumnRangeIterator rawIterator = rawResults.get(row);
-    //                    if (rawIterator != null) {
-    //                        entryIterator = closer.register(
-    //                                getPostFilteredColumns(tableRef, columnRangeSelection, row, rawIterator));
-    //                    } else {
-    //                        entryIterator = ClosableIterators.wrapWithEmptyClose(
-    //                                getLocalWritesForColumnRange(tableRef, columnRangeSelection, row)
-    //                                        .entrySet()
-    //                                        .iterator());
-    //                    }
-    //                    return scopeToTransaction(entryIterator);
-    //                }));
-    //        return postFilteredResults;
-    //    }
+    @Override
+    public Iterator<Map.Entry<Cell, Value>> getRowsColumnRange(
+            TableReference tableRef, List<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection) {
+        RowColumnRangeIterator rawResults = transactionKeyValueService.getRowsColumnRange(
+                tableRef,
+                rows,
+                new ColumnRangeSelection(
+                        batchColumnRangeSelection.getStartCol(), batchColumnRangeSelection.getEndCol()),
+                batchColumnRangeSelection.getBatchHint(),
+                startTimestampSupplier.getAsLong());
+
+        // Feels weird to be here, but again avoiding semantic change
+        if (!rawResults.hasNext()) {
+            // we can't skip checks for range scans
+            readSnapshotValidator.validateInternalSnapshot(tableRef, startTimestampSupplier, false);
+        }
+
+        return getRowColumnRangePostFiltered(tableRef, rawResults, batchColumnRangeSelection.getBatchHint());
+    }
+
+    @Override
+    @SuppressWarnings("MustBeClosedChecker") // Not possible to validate as this may be returned to the user.
+    public Map<byte[], ClosableIterator<Map.Entry<Cell, byte[]>>> getRowsColumnRangeIndividualIterators(
+            TableReference tableRef, List<byte[]> rows, BatchColumnRangeSelection batchColumnRangeSelection) {
+        // Not using EntryStream because it doesn't support ImmutableSortedMap easily
+        return transactionKeyValueService
+                .getRowsColumnRange(tableRef, rows, batchColumnRangeSelection, startTimestampSupplier.getAsLong())
+                .entrySet()
+                .stream()
+                .collect(ImmutableSortedMap.toImmutableSortedMap(PtBytes.BYTES_COMPARATOR, Entry::getKey, entry -> {
+                    byte[] row = entry.getKey();
+                    RowColumnRangeIterator rawResults = entry.getValue();
+                    return getRowColumnRangePostFiltered(tableRef, row, batchColumnRangeSelection, rawResults);
+                }));
+    }
 
     @NotNull
-    private ListenableFuture<Map<Cell, byte[]>> getInternal(
-            CellGetter cellGetter, TableReference tableReference, Set<Cell> cells) {
+    private ListenableFuture<Map<Cell, byte[]>> getInternal(TableReference tableReference, Set<Cell> cells) {
         Map<Cell, Long> timestampsByCell = Cells.constantValueMap(cells, startTimestampSupplier.getAsLong());
         ListenableFuture<Collection<Map.Entry<Cell, byte[]>>> postFilteredResults = Futures.transformAsync(
-                cellGetter.get(tableReference, timestampsByCell),
-                rawResults -> getWithPostFilteringAsync(cellGetter, tableReference, rawResults, Value.GET_VALUE),
+                transactionKeyValueService.getAsync(tableReference, timestampsByCell),
+                rawResults -> getWithPostFilteringAsync(tableReference, rawResults, Value.GET_VALUE),
                 MoreExecutors.directExecutor());
 
         return Futures.transform(postFilteredResults, ImmutableMap::copyOf, MoreExecutors.directExecutor());
     }
 
     private <T> ListenableFuture<Collection<Map.Entry<Cell, T>>> getWithPostFilteringAsync(
-            CellGetter cellGetter,
-            TableReference tableRef,
-            Map<Cell, Value> rawResults,
-            Function<Value, T> transformer) {
+            TableReference tableRef, Map<Cell, Value> rawResults, Function<Value, T> transformer) {
         long bytes = 0;
         for (Map.Entry<Cell, Value> entry : rawResults.entrySet()) {
             bytes += entry.getValue().getContents().length + Cells.getApproxSizeOfCell(entry.getKey());
@@ -179,13 +203,12 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
 
         return Futures.transformAsync(
                 Futures.immediateFuture(rawResults),
-                resultsToPostFilter -> getWithPostFilteringIterate(
-                        cellGetter, tableRef, resultsToPostFilter, resultsAccumulator, transformer),
+                resultsToPostFilter ->
+                        getWithPostFilteringIterate(tableRef, resultsToPostFilter, resultsAccumulator, transformer),
                 MoreExecutors.directExecutor());
     }
 
     private <T> ListenableFuture<Collection<Map.Entry<Cell, T>>> getWithPostFilteringIterate(
-            CellGetter cellGetter,
             TableReference tableReference,
             Map<Cell, Value> resultsToPostFilter,
             Collection<Map.Entry<Cell, T>> resultsAccumulator,
@@ -197,11 +220,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
                     Map<Cell, Value> remainingResultsToPostFilter = results;
                     while (!remainingResultsToPostFilter.isEmpty()) {
                         remainingResultsToPostFilter = AtlasFutures.getUnchecked(getWithPostFilteringInternal(
-                                tableReference,
-                                remainingResultsToPostFilter,
-                                resultsAccumulator,
-                                transformer,
-                                cellGetter));
+                                tableReference, remainingResultsToPostFilter, resultsAccumulator, transformer));
                         Preconditions.checkState(
                                 ++iterations < SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS,
                                 "Unable to filter cells to find correct result after "
@@ -222,8 +241,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             TableReference tableRef,
             Map<Cell, Value> rawResults,
             @Output Collection<Map.Entry<Cell, T>> resultsCollector,
-            Function<Value, T> transformer,
-            CellGetter cellGetter) {
+            Function<Value, T> transformer) {
         Set<Cell> orphans = readSentinelHandler.findAndMarkOrphanedSweepSentinelsForDeletion(
                 transactionKeyValueService, tableRef, rawResults);
         LongSet valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
@@ -231,7 +249,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
         return Futures.transformAsync(
                 getCommitTimestamps(tableRef, valuesStartTimestamps),
                 commitTimestamps -> collectCellsToPostFilter(
-                        tableRef, rawResults, resultsCollector, transformer, cellGetter, commitTimestamps, orphans),
+                        tableRef, rawResults, resultsCollector, transformer, commitTimestamps, orphans),
                 MoreExecutors.directExecutor());
     }
 
@@ -240,7 +258,6 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             Map<Cell, Value> rawResults,
             @Output Collection<Map.Entry<Cell, T>> resultsCollector,
             Function<Value, T> transformer,
-            CellGetter cellGetter,
             LongLongMap commitTimestamps,
             Set<Cell> knownOrphans) {
         Map<Cell, Long> keysToReload = Maps.newHashMapWithExpectedSize(0);
@@ -294,10 +311,10 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
         if (!keysToReload.isEmpty()) {
             // TODO (jkong): Consider removing when a decision on validating pre-commit requirements mid-read is made
             return Futures.transform(
-                    cellGetter.get(tableRef, keysToReload),
+                    transactionKeyValueService.getAsync(tableRef, keysToReload),
                     nextRawResults -> {
                         boolean allPossibleCellsReadAndPresent = nextRawResults.size() == keysToReload.size();
-                        intraReadSnapshotValidator.validateInternalSnapshot(
+                        readSnapshotValidator.validateInternalSnapshot(
                                 tableRef, startTimestampSupplier, allPossibleCellsReadAndPresent);
                         return getRemainingResults(nextRawResults, keysAddedToResults);
                     },
@@ -366,11 +383,66 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
         }
     }
 
-    private static boolean isSweepSentinel(Value value) {
-        return value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP;
+    private Iterator<Map.Entry<Cell, Value>> getRowColumnRangePostFiltered(
+            TableReference tableRef, RowColumnRangeIterator iterator, int batchHint) {
+        return Iterators.concat(Iterators.transform(Iterators.partition(iterator, batchHint), batch -> {
+            Map<Cell, Value> raw = validateBatch(tableRef, batch, false /* can't skip lock checks on range scans */);
+            if (raw.isEmpty()) {
+                return Collections.emptyIterator();
+            }
+            SortedMap<Cell, Value> postFiltered = ImmutableSortedMap.copyOf(
+                    getWithPostFilteringSync(tableRef, raw, x -> x), preserveInputRowOrder(batch));
+            return postFiltered.entrySet().iterator();
+        }));
     }
 
-    interface CellGetter {
-        ListenableFuture<Map<Cell, Value>> get(TableReference tableRef, Map<Cell, Long> timestampByCell);
+    private Map<Cell, Value> validateBatch(
+            TableReference tableRef, List<Map.Entry<Cell, Value>> batch, boolean allPossibleCellsReadAndPresent) {
+        readSnapshotValidator.validateInternalSnapshot(
+                tableRef, startTimestampSupplier, allPossibleCellsReadAndPresent);
+        return ImmutableMap.copyOf(batch);
+    }
+
+    private <T> Collection<Map.Entry<Cell, T>> getWithPostFilteringSync(
+            TableReference tableRef, Map<Cell, Value> rawResults, Function<Value, T> transformer) {
+        return AtlasFutures.getUnchecked(getWithPostFilteringAsync(tableRef, rawResults, transformer));
+    }
+
+    private Comparator<Cell> preserveInputRowOrder(List<Map.Entry<Cell, Value>> inputEntries) {
+        // N.B. This batch could be spread across multiple rows, and those rows might extend into other
+        // batches. We are given cells for a row grouped together, so easiest way to ensure they stay together
+        // is to preserve the original row order.
+        return Comparator.comparing(
+                        (Cell cell) -> ByteBuffer.wrap(cell.getRowName()),
+                        Ordering.explicit(inputEntries.stream()
+                                .map(Map.Entry::getKey)
+                                .map(Cell::getRowName)
+                                .map(ByteBuffer::wrap)
+                                .distinct()
+                                .collect(ImmutableList.toImmutableList())))
+                .thenComparing(Cell::getColumnName, PtBytes.BYTES_COMPARATOR);
+    }
+
+    @MustBeClosed
+    private ClosableIterator<Entry<Cell, byte[]>> getRowColumnRangePostFiltered(
+            TableReference tableRef,
+            byte[] row,
+            BatchColumnRangeSelection columnRangeSelection,
+            RowColumnRangeIterator rawIterator) {
+        ColumnRangeBatchProvider batchProvider = new ColumnRangeBatchProvider(
+                transactionKeyValueService, tableRef, row, columnRangeSelection, startTimestampSupplier.getAsLong());
+        return GetRowsColumnRangeIterator.iterator(
+                batchProvider,
+                rawIterator,
+                columnRangeSelection,
+                () -> {
+                    // we can't skip lock checks on range scans
+                    readSnapshotValidator.validateInternalSnapshot(tableRef, startTimestampSupplier, false);
+                },
+                raw -> getWithPostFilteringSync(tableRef, raw, Value.GET_VALUE));
+    }
+
+    private static boolean isSweepSentinel(Value value) {
+        return value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP;
     }
 }

@@ -19,7 +19,7 @@ package com.palantir.atlasdb.transaction.impl;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.util.function.LongSupplier;
 
-public interface IntraReadSnapshotValidator {
+public interface ReadSnapshotValidator {
 
     /**
      * Checks that a snapshot read is still valid, throwing an exception if it is not.

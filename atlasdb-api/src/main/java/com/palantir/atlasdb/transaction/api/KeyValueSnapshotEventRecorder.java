@@ -27,6 +27,8 @@ public interface KeyValueSnapshotEventRecorder {
 
     void recordFilteredSweepSentinel(TableReference tableReference);
 
+    void recordTombstoneRead(TableReference tableReference);
+
     void recordFilteredUncommittedTransaction(TableReference tableReference);
 
     void recordFilteredTransactionCommittingAfterOurStart(TableReference tableReference);

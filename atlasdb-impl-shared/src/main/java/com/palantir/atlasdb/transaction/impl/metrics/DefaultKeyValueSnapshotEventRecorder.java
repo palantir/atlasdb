@@ -69,6 +69,11 @@ public final class DefaultKeyValueSnapshotEventRecorder implements KeyValueSnaps
     }
 
     @Override
+    public void recordTombstoneRead(TableReference tableReference) {
+        metricFactory.getCounter(CellFilterMetrics.EMPTY_VALUE, tableReference).inc();
+    }
+
+    @Override
     public void recordFilteredUncommittedTransaction(TableReference tableReference) {
         metricFactory
                 .getCounter(CellFilterMetrics.INVALID_COMMIT_TS, tableReference)
