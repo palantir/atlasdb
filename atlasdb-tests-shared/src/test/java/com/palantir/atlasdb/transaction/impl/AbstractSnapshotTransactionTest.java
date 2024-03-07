@@ -2448,6 +2448,23 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
+    @SuppressWarnings("ReturnValueIgnored") // Part of an assertion!
+    public void getSortedColumnsThrowsIfLockIsLostOnEmptyRead() {
+        ConjureStartTransactionsResponse conjureResponse = startTransactionWithWatches();
+        LockImmutableTimestampResponse res = conjureResponse.getImmutableTimestamp();
+        long transactionTs = conjureResponse.getTimestamps().start();
+        Transaction transaction =
+                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+
+        timelockService.unlock(ImmutableSet.of(res.getLock()));
+        assertThatThrownBy(() -> transaction.getSortedColumns(
+                        TABLE_SWEPT_THOROUGH,
+                        ImmutableList.of(ROW_FOO),
+                        BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1000)))
+                .isInstanceOf(TransactionLockTimeoutException.class);
+    }
+
+    @Test
     public void getSortedColumnsThrowsIfLockIsLostMidway() {
         List<byte[]> rows = LongStream.range(0, 10).mapToObj(PtBytes::toBytes).collect(Collectors.toList());
         List<Cell> cells = rows.stream().map(row -> Cell.create(row, COL_A)).collect(Collectors.toList());
