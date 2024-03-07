@@ -95,7 +95,7 @@ public class AtlasDbTestCase {
         transactionService = spy(TransactionServices.createRaw(keyValueService, timestampService, false));
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
-        sweepQueue = spy(TargetedSweeper.createUninitializedForTest(() -> sweepQueueShards));
+        sweepQueue = spy(TargetedSweeper.createUninitializedForTest(keyValueService, () -> sweepQueueShards));
         knowledge = TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry());
         setUpTransactionManagers();
         sweepQueue.initialize(serializableTxManager);
