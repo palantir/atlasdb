@@ -29,6 +29,8 @@ public interface TransactionKeyValueServiceManager extends AutoCloseable {
 
     DdlManager getDdlManager();
 
+    boolean isInitialized();
+
     @Override
     void close();
 }
