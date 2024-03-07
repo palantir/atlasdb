@@ -35,7 +35,7 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
-import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
+import com.palantir.atlasdb.transaction.impl.CachingConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
@@ -87,7 +87,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
         });
 
         final InMemoryKeyValueService kvs2 = new InMemoryKeyValueService(false);
-        final ConflictDetectionManager cdm2 = ConflictDetectionManagers.createWithNoConflictDetection();
+        final CachingConflictDetectionManager cdm2 = ConflictDetectionManagers.createWithNoConflictDetection();
         final SweepStrategyManager ssm2 = SweepStrategyManagers.completelyConservative(kvs2);
         final MetricsManager metricsManager = MetricsManagers.createForTests();
         final TestTransactionManagerImpl txManager2 = new TestTransactionManagerImpl(
@@ -126,7 +126,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
         }
         checkpointer.deleteCheckpoints();
 
-        final ConflictDetectionManager verifyCdm = ConflictDetectionManagers.createWithNoConflictDetection();
+        final CachingConflictDetectionManager verifyCdm = ConflictDetectionManagers.createWithNoConflictDetection();
         final SweepStrategyManager verifySsm = SweepStrategyManagers.completelyConservative(kvs2);
         final TestTransactionManagerImpl verifyTxManager = new TestTransactionManagerImpl(
                 metricsManager,

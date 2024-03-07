@@ -20,6 +20,7 @@ import com.palantir.atlasdb.cell.api.DdlManager;
 import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
 import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import java.util.Optional;
 import java.util.function.LongSupplier;
 
@@ -29,9 +30,10 @@ public final class DelegatingTransactionKeyValueServiceManager implements Transa
     private final TransactionKeyValueService transactionKeyValueService;
     private final DdlManager ddlManager;
 
-    public DelegatingTransactionKeyValueServiceManager(KeyValueService delegate) {
+    public DelegatingTransactionKeyValueServiceManager(
+            KeyValueService delegate, ConflictDetectionManager conflictDetectionManager) {
         this.delegate = Optional.of(delegate);
-        this.transactionKeyValueService = new DelegatingTransactionKeyValueService(delegate);
+        this.transactionKeyValueService = new DelegatingTransactionKeyValueService(delegate, conflictDetectionManager);
         this.ddlManager = new DelegatingDdlManager(delegate);
     }
 

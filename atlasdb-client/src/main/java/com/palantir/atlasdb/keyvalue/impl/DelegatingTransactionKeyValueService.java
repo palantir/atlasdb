@@ -30,16 +30,22 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Map;
+import java.util.Optional;
 
 public final class DelegatingTransactionKeyValueService implements TransactionKeyValueService {
 
     private final KeyValueService delegate;
+    private final ConflictDetectionManager conflictDetectionManager;
 
-    public DelegatingTransactionKeyValueService(KeyValueService delegate) {
+    public DelegatingTransactionKeyValueService(
+            KeyValueService delegate, ConflictDetectionManager conflictDetectionManager) {
         this.delegate = delegate;
+        this.conflictDetectionManager = conflictDetectionManager;
     }
 
     @Override
@@ -99,5 +105,10 @@ public final class DelegatingTransactionKeyValueService implements TransactionKe
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
             throws KeyAlreadyExistsException {
         delegate.multiPut(valuesByTable, timestamp);
+    }
+
+    @Override
+    public Optional<ConflictHandler> getConflictHandler(TableReference tableRef) {
+        return conflictDetectionManager.get(tableRef);
     }
 }

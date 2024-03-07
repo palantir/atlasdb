@@ -46,6 +46,7 @@ import com.palantir.atlasdb.services.AtlasDbServices;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.impl.CachingConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
@@ -94,6 +95,42 @@ public class KeyValueServiceMigratorsTest {
     private KeyValueService toKvs;
     private TransactionManager toTxManager;
     private ImmutableMigratorSpec migratorSpec;
+
+    private static AtlasDbServices createMock(KeyValueService kvs, InMemoryTimelockExtension timeLock) {
+        ManagedTimestampService timestampService = timeLock.getManagedTimestampService();
+        MetricsManager metricsManager = MetricsManagers.createForTests();
+
+        TransactionTables.createTables(kvs);
+        TransactionKnowledgeComponents knowledge =
+                TransactionKnowledgeComponents.createForTests(kvs, metricsManager.getTaggedRegistry());
+        TransactionService transactionService = spy(TransactionServices.createRaw(kvs, timestampService, false));
+
+        AtlasDbServices mockServices = mock(AtlasDbServices.class);
+        when(mockServices.getManagedTimestampService()).thenReturn(timestampService);
+        when(mockServices.getTransactionService()).thenReturn(transactionService);
+        when(mockServices.getKeyValueService()).thenReturn(kvs);
+        TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(() -> 1);
+        CachingConflictDetectionManager withoutWarmingCache = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
+        SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
+                metricsManager,
+                new DelegatingTransactionKeyValueServiceManager(kvs, withoutWarmingCache),
+                timeLock.getLegacyTimelockService(),
+                timestampService,
+                timeLock.getLockService(),
+                timeLock.getLockWatchManager(),
+                transactionService,
+                () -> AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
+                withoutWarmingCache,
+                SweepStrategyManagers.createDefault(kvs),
+                new NoOpCleaner(),
+                16,
+                4,
+                sweeper,
+                knowledge);
+        sweeper.initialize(txManager);
+        when(mockServices.getTransactionManager()).thenReturn(txManager);
+        return mockServices;
+    }
 
     @BeforeEach
     public void setUp() {
@@ -344,40 +381,5 @@ public class KeyValueServiceMigratorsTest {
         migrator.setup();
 
         assertThat(toSplittingServices.getTransactionService().get(100_000)).isEqualTo(100_001L);
-    }
-
-    private static AtlasDbServices createMock(KeyValueService kvs, InMemoryTimelockExtension timeLock) {
-        ManagedTimestampService timestampService = timeLock.getManagedTimestampService();
-        MetricsManager metricsManager = MetricsManagers.createForTests();
-
-        TransactionTables.createTables(kvs);
-        TransactionKnowledgeComponents knowledge =
-                TransactionKnowledgeComponents.createForTests(kvs, metricsManager.getTaggedRegistry());
-        TransactionService transactionService = spy(TransactionServices.createRaw(kvs, timestampService, false));
-
-        AtlasDbServices mockServices = mock(AtlasDbServices.class);
-        when(mockServices.getManagedTimestampService()).thenReturn(timestampService);
-        when(mockServices.getTransactionService()).thenReturn(transactionService);
-        when(mockServices.getKeyValueService()).thenReturn(kvs);
-        TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(() -> 1);
-        SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
-                metricsManager,
-                new DelegatingTransactionKeyValueServiceManager(kvs),
-                timeLock.getLegacyTimelockService(),
-                timestampService,
-                timeLock.getLockService(),
-                timeLock.getLockWatchManager(),
-                transactionService,
-                () -> AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
-                ConflictDetectionManagers.createWithoutWarmingCache(kvs),
-                SweepStrategyManagers.createDefault(kvs),
-                new NoOpCleaner(),
-                16,
-                4,
-                sweeper,
-                knowledge);
-        sweeper.initialize(txManager);
-        when(mockServices.getTransactionManager()).thenReturn(txManager);
-        return mockServices;
     }
 }

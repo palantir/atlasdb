@@ -42,7 +42,7 @@ public final class ConflictDetectionManagerTest {
 
     @BeforeEach
     public void before() {
-        conflictDetectionManager = new ConflictDetectionManager(delegate);
+        conflictDetectionManager = new CachingConflictDetectionManager(delegate);
     }
 
     @Test

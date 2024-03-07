@@ -24,8 +24,9 @@ public final class TestConflictDetectionManagers {
     private TestConflictDetectionManagers() {}
 
     @VisibleForTesting
-    static ConflictDetectionManager createWithStaticConflictDetection(Map<TableReference, ConflictHandler> staticMap) {
-        return new ConflictDetectionManager(
+    static CachingConflictDetectionManager createWithStaticConflictDetection(
+            Map<TableReference, ConflictHandler> staticMap) {
+        return new CachingConflictDetectionManager(
                 tableReference -> staticMap.getOrDefault(tableReference, ConflictHandler.RETRY_ON_WRITE_WRITE));
     }
 }

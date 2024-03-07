@@ -17,11 +17,13 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.Optional;
 
 public final class ConflictDetectionManagers {
     private static final SafeLogger log = SafeLoggerFactory.get(ConflictDetectionManagers.class);
@@ -29,7 +31,7 @@ public final class ConflictDetectionManagers {
     private ConflictDetectionManagers() {}
 
     public static ConflictDetectionManager createWithNoConflictDetection() {
-        return new ConflictDetectionManager(tableReference -> ConflictHandler.IGNORE_ALL);
+        return IgnoreAllConflictDetectionManager.INSTANCE;
     }
 
     /**
@@ -44,7 +46,7 @@ public final class ConflictDetectionManagers {
     /**
      * Creates a ConflictDetectionManager without warming the cache.
      */
-    public static ConflictDetectionManager createWithoutWarmingCache(KeyValueService kvs) {
+    public static CachingConflictDetectionManager createWithoutWarmingCache(KeyValueService kvs) {
         return create(kvs, false);
     }
 
@@ -52,22 +54,23 @@ public final class ConflictDetectionManagers {
      * Creates a ConflictDetectionManager and kicks off an asynchronous thread to warm the cache that is used for
      * conflict detection.
      */
-    public static ConflictDetectionManager create(KeyValueService kvs) {
+    public static CachingConflictDetectionManager create(KeyValueService kvs) {
         return create(kvs, true);
     }
 
-    private static ConflictDetectionManager create(KeyValueService kvs, boolean warmCache) {
-        ConflictDetectionManager conflictDetectionManager = new ConflictDetectionManager(tableReference -> {
-            byte[] metadata = kvs.getMetadataForTable(tableReference);
-            if (metadata.length == 0) {
-                log.error(
-                        "Tried to make a transaction over a table that has no metadata: {}.",
-                        LoggingArgs.tableRef("tableReference", tableReference));
-                return null;
-            } else {
-                return getConflictHandlerFromMetadata(metadata);
-            }
-        });
+    private static CachingConflictDetectionManager create(KeyValueService kvs, boolean warmCache) {
+        CachingConflictDetectionManager conflictDetectionManager =
+                new CachingConflictDetectionManager(tableReference -> {
+                    byte[] metadata = kvs.getMetadataForTable(tableReference);
+                    if (metadata.length == 0) {
+                        log.error(
+                                "Tried to make a transaction over a table that has no metadata: {}.",
+                                LoggingArgs.tableRef("tableReference", tableReference));
+                        return null;
+                    } else {
+                        return getConflictHandlerFromMetadata(metadata);
+                    }
+                });
         if (warmCache) {
             // kick off an async thread that attempts to fully warm this cache
             // if it fails (e.g. probably this user has way too many tables), that's okay,
@@ -103,5 +106,16 @@ public final class ConflictDetectionManagers {
 
     private static ConflictHandler getConflictHandlerFromMetadata(byte[] metadata) {
         return TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata).getConflictHandler();
+    }
+
+    private enum IgnoreAllConflictDetectionManager implements ConflictDetectionManager {
+        INSTANCE;
+
+        private static final Optional<ConflictHandler> IGNORE_ALL = Optional.of(ConflictHandler.IGNORE_ALL);
+
+        @Override
+        public Optional<ConflictHandler> get(TableReference tableReference) {
+            return IGNORE_ALL;
+        }
     }
 }

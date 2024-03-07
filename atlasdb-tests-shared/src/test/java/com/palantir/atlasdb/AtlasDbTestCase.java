@@ -30,8 +30,8 @@ import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.impl.CachingConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.CachingTestTransactionManager;
-import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
@@ -66,7 +66,7 @@ public class AtlasDbTestCase {
     protected TransactionKeyValueServiceManager txnKeyValueServiceManager;
     protected TimelockService timelockService;
     protected TimestampService timestampService;
-    protected ConflictDetectionManager conflictDetectionManager;
+    protected CachingConflictDetectionManager conflictDetectionManager;
     protected SweepStrategyManager sweepStrategyManager;
     protected TestTransactionManager serializableTxManager;
     protected TestTransactionManager txManager;

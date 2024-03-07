@@ -98,7 +98,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.LockWatchingCache;
 import com.palantir.atlasdb.transaction.api.NoOpLockWatchingCache;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
-import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
+import com.palantir.atlasdb.transaction.impl.CachingConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
@@ -166,8 +166,330 @@ import org.immutables.value.Value;
 @Value.Immutable
 @StagedBuilderStyle
 public abstract class TransactionManagers {
-    private static final SafeLogger log = SafeLoggerFactory.get(TransactionManagers.class);
     public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
+    private static final SafeLogger log = SafeLoggerFactory.get(TransactionManagers.class);
+
+    @SuppressWarnings("immutables:incompat")
+    @VisibleForTesting
+    static Consumer<Runnable> runAsync = task -> {
+        Thread thread = new Thread(task);
+        thread.setDaemon(true);
+        thread.start();
+    };
+
+    public static ImmutableTransactionManagers.ConfigBuildStage builder() {
+        return ImmutableTransactionManagers.builder();
+    }
+
+    /**
+     * Accepts a single {@link Schema}.
+     *
+     * @see TransactionManagers#createInMemory(Set)
+     */
+    public static TransactionManager createInMemory(Schema schema) {
+        return createInMemory(ImmutableSet.of(schema));
+    }
+
+    /**
+     * Create a {@link TransactionManager} backed by an
+     * {@link com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService}. This should be used for testing
+     * purposes only.
+     */
+    public static TransactionManager createInMemory(Set<Schema> schemas) {
+        return createInMemory(schemas, Optional.empty());
+    }
+
+    public static TransactionManager createInMemory(Schema schema, LockAndTimestampServiceFactory factory) {
+        return createInMemory(Set.of(schema), Optional.of(factory));
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private static TransactionManager createInMemory(
+            Set<Schema> schemas, Optional<LockAndTimestampServiceFactory> maybeFactory) {
+        AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
+                .keyValueService(new InMemoryAtlasDbConfig())
+                .collectThreadDumpOnTimestampServiceInit(false)
+                .build();
+        return builder()
+                .config(config)
+                .userAgent(AtlasDbRemotingConstants.DEFAULT_USER_AGENT)
+                .globalMetricsRegistry(new MetricRegistry())
+                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
+                .lockAndTimestampServiceFactory(maybeFactory)
+                .addAllSchemas(schemas)
+                .build()
+                .serializable();
+    }
+
+    @VisibleForTesting
+    static Refreshable<List<TimeLockClientFeedbackService>> getTimeLockClientFeedbackServices(
+            AtlasDbConfig config,
+            Refreshable<AtlasDbRuntimeConfig> runtimeConfig,
+            UserAgent userAgent,
+            DialogueClients.ReloadingFactory reloadingFactory) {
+        Refreshable<ServerListConfig> serverListConfigSupplier =
+                DefaultLockAndTimestampServiceFactory.getServerListConfigSupplierForTimeLock(config, runtimeConfig);
+
+        BroadcastDialogueClientFactory broadcastDialogueClientFactory = BroadcastDialogueClientFactory.create(
+                reloadingFactory,
+                serverListConfigSupplier,
+                userAgent,
+                AuxiliaryRemotingParameters.builder()
+                        .shouldRetry(true)
+                        .userAgent(userAgent)
+                        .shouldLimitPayload(true)
+                        .build());
+
+        return broadcastDialogueClientFactory.getSingleNodeProxies(TimeLockClientFeedbackService.class, true);
+    }
+
+    private static DialogueClients.ReloadingFactory newMinimalDialogueFactory() {
+        return DialogueClients.create(
+                        Refreshable.only(ServicesConfigBlock.builder().build()))
+                .withBlockingExecutor(PTExecutors.newCachedThreadPool("atlas-dialogue-blocking"));
+    }
+
+    private static Callback<TransactionManager> createClearsTable() {
+        TableReference clearsTableRef =
+                TargetedSweepTableFactory.of().getTableClearsTable(null).getTableRef();
+        byte[] clearsTableMetadata = TargetedSweepSchema.INSTANCE
+                .getLatestSchema()
+                .getAllTablesAndIndexMetadata()
+                .get(clearsTableRef)
+                .persistToBytes();
+        return LambdaCallback.of(tm -> tm.getKeyValueService().createTable(clearsTableRef, clearsTableMetadata));
+    }
+
+    private static boolean targetedSweepIsEnabled(Supplier<AtlasDbRuntimeConfig> runtime) {
+        return runtime.get().targetedSweep().enabled();
+    }
+
+    private static Optional<TransactionSchemaInstaller> getTransactionSchemaInstallerIfSupported(
+            @Output List<AutoCloseable> closeables,
+            KeyValueService keyValueService,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
+            TransactionSchemaManager transactionSchemaManager) {
+        CheckAndSetCompatibility compatibility = keyValueService.getCheckAndSetCompatibility();
+        if (compatibility.supportsCheckAndSetOperations() && compatibility.supportsDetailOnFailure()) {
+            return Optional.of(
+                    initializeTransactionSchemaInstaller(closeables, runtimeConfigSupplier, transactionSchemaManager));
+        }
+        runtimeConfigSupplier
+                .get()
+                .internalSchema()
+                .targetTransactionsSchemaVersion()
+                .filter(version -> version != TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION)
+                .ifPresent(version -> log.warn(
+                        "This service seems like it has been configured to use transaction schema version {},"
+                                + " which isn't supported as your KVS doesn't support details on CAS failures"
+                                + " (typically Postgres or Oracle). We will remain with transactions1.",
+                        SafeArg.of("configuredTransactionSchemaVersion", version)));
+        return Optional.empty();
+    }
+
+    private static TransactionSchemaInstaller initializeTransactionSchemaInstaller(
+            @Output List<AutoCloseable> closeables,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
+            TransactionSchemaManager transactionSchemaManager) {
+        return initializeCloseable(
+                () -> TransactionSchemaInstaller.createStarted(
+                        transactionSchemaManager,
+                        () -> runtimeConfigSupplier.get().internalSchema().targetTransactionsSchemaVersion()),
+                closeables);
+    }
+
+    private static Optional<BackgroundCompactor> initializeCompactBackgroundProcess(
+            MetricsManager metricsManager,
+            LockAndTimestampServices lockAndTimestampServices,
+            KeyValueService keyValueService,
+            TransactionManager transactionManager,
+            Supplier<CompactorConfig> compactorConfigSupplier) {
+        Optional<BackgroundCompactor> backgroundCompactorOptional = BackgroundCompactor.createAndRun(
+                metricsManager,
+                transactionManager,
+                keyValueService,
+                lockAndTimestampServices.lock(),
+                compactorConfigSupplier);
+
+        backgroundCompactorOptional.ifPresent(
+                backgroundCompactor -> transactionManager.registerClosingCallback(backgroundCompactor::close));
+
+        return backgroundCompactorOptional;
+    }
+
+    private static <T extends AutoCloseable> T initializeCloseable(
+            Supplier<T> closeableSupplier, @Output List<AutoCloseable> closeables) {
+        T ret = closeableSupplier.get();
+        closeables.add(ret);
+        return ret;
+    }
+
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    private static <T extends AutoCloseable> Optional<T> initializeCloseable(
+            Optional<T> closeableOptional, @Output List<AutoCloseable> closeables) {
+        closeableOptional.ifPresent(closeables::add);
+        return closeableOptional;
+    }
+
+    private static boolean areTransactionManagerInitializationPrerequisitesSatisfied(
+            AsyncInitializer initializer, LockAndTimestampServices lockAndTimestampServices) {
+        return initializer.isInitialized() && timeLockMigrationCompleteIfNeeded(lockAndTimestampServices);
+    }
+
+    @VisibleForTesting
+    static boolean timeLockMigrationCompleteIfNeeded(LockAndTimestampServices lockAndTimestampServices) {
+        return lockAndTimestampServices
+                .migrator()
+                .map(AsyncInitializer::isInitialized)
+                .orElse(true);
+    }
+
+    private static BackgroundSweeperImpl initializeSweepBackgroundProcess(
+            MetricsManager metricsManager,
+            AtlasDbConfig config,
+            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
+            KeyValueService kvs,
+            TransactionService transactionService,
+            CleanupFollower follower,
+            TransactionManager transactionManager,
+            boolean runInBackground) {
+        CellsSweeper cellsSweeper = new CellsSweeper(transactionManager, kvs, ImmutableList.of(follower));
+
+        LegacySweepMetrics sweepMetrics = new LegacySweepMetrics(metricsManager.getRegistry());
+
+        SweepTaskRunner sweepRunner = new SweepTaskRunner(
+                kvs,
+                transactionManager::getUnreadableTimestamp,
+                transactionManager::getImmutableTimestamp,
+                transactionService,
+                cellsSweeper,
+                sweepMetrics);
+        BackgroundSweeperPerformanceLogger sweepPerfLogger = new NoOpBackgroundSweeperPerformanceLogger();
+        AdjustableSweepBatchConfigSource sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(
+                metricsManager,
+                () -> getSweepBatchConfig(runtimeConfigSupplier.get().sweep()));
+
+        SpecificTableSweeper specificTableSweeper = SpecificTableSweeper.create(
+                transactionManager,
+                kvs,
+                sweepRunner,
+                SweepTableFactory.of(),
+                sweepPerfLogger,
+                sweepMetrics,
+                config.initializeAsync());
+
+        BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
+                metricsManager,
+                sweepBatchConfigSource,
+                () -> runtimeConfigSupplier.get().sweep().enabled(),
+                () -> runtimeConfigSupplier.get().sweep().sweepThreads(),
+                () -> runtimeConfigSupplier.get().sweep().pauseMillis(),
+                () -> runtimeConfigSupplier.get().sweep().sweepPriorityOverrides(),
+                specificTableSweeper);
+
+        transactionManager.registerClosingCallback(backgroundSweeper::shutdown);
+
+        if (runInBackground) {
+            backgroundSweeper.runInBackground();
+        }
+
+        return backgroundSweeper;
+    }
+
+    private static SweepBatchConfig getSweepBatchConfig(SweepConfig sweepConfig) {
+        return ImmutableSweepBatchConfig.builder()
+                .maxCellTsPairsToExamine(sweepConfig.readLimit())
+                .candidateBatchSize(
+                        sweepConfig.candidateBatchHint().orElse(AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT))
+                .deleteBatchSize(sweepConfig.deleteBatchHint())
+                .build();
+    }
+
+    private static Callback<TransactionManager> timelockConsistencyCheckCallback(
+            AtlasDbConfig atlasDbConfig,
+            AtlasDbRuntimeConfig initialRuntimeConfig,
+            LockAndTimestampServices lockAndTimestampServices) {
+        // Only do the consistency check if we're using TimeLock.
+        // This avoids a bootstrapping problem with leader-block services without async initialisation,
+        // where you need a working timestamp service to check consistency, you need to check consistency
+        // before you can return a TM, you need to return a TM to listen on ports, and you need to listen on
+        // ports in order to get a working timestamp service.
+        if (isUsingTimeLock(atlasDbConfig, initialRuntimeConfig)) {
+            ToLongFunction<TransactionManager> conservativeBoundSupplier = txnManager -> {
+                Clock clock = GlobalClock.create(txnManager.getTimelockService());
+                return KeyValueServicePuncherStore.get(txnManager.getKeyValueService(), clock.getTimeMillis());
+            };
+            return ConsistencyCheckRunner.create(ImmutableTimestampCorroborationConsistencyCheck.builder()
+                    .conservativeBound(conservativeBoundSupplier)
+                    .freshTimestampSource(
+                            unused -> lockAndTimestampServices.timelock().getFreshTimestamp())
+                    .build());
+        }
+        return Callback.noOp();
+    }
+
+    // TODO(gs): wrap install and runtime config objects to avoid passing them both in?
+    static boolean isUsingTimeLock(AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig runtimeConfig) {
+        return atlasDbConfig.timelock().isPresent()
+                || runtimeConfig.timelockRuntime().isPresent();
+    }
+
+    /**
+     * This method should not be used directly. It remains here to support the AtlasDB-Dagger module and the CLIs, but
+     * may be removed at some point in the future.
+     *
+     * @deprecated Not intended for public use outside of the AtlasDB CLIs
+     */
+    @Deprecated
+    public static LockAndTimestampServices createLockAndTimestampServicesForCli(
+            MetricsManager metricsManager,
+            AtlasDbConfig config,
+            Refreshable<AtlasDbRuntimeConfig> runtimeConfigSupplier,
+            Consumer<Object> registrar,
+            Supplier<LockService> lock,
+            Supplier<ManagedTimestampService> time,
+            TimestampStoreInvalidator invalidator,
+            String userAgent) {
+        LockAndTimestampServices lockAndTimestampServices =
+                DefaultLockAndTimestampServiceFactory.createRawInstrumentedServices(
+                        metricsManager,
+                        config,
+                        runtimeConfigSupplier,
+                        lock,
+                        time,
+                        invalidator,
+                        UserAgents.tryParse(userAgent),
+                        Optional.empty(),
+                        newMinimalDialogueFactory(),
+                        Optional.empty(),
+                        Optional.empty(),
+                        ImmutableSet.of());
+        TimeLockClient timeLockClient = TimeLockClient.withSynchronousUnlocker(lockAndTimestampServices.timelock());
+        return ImmutableLockAndTimestampServices.builder()
+                .from(lockAndTimestampServices)
+                .timelock(timeLockClient)
+                .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
+                .addResources(timeLockClient::close)
+                .build();
+    }
+
+    private static TargetedSweeper uninitializedTargetedSweeper(
+            KeyValueService kvs,
+            MetricsManager metricsManager,
+            TargetedSweepInstallConfig install,
+            Follower follower,
+            Supplier<TargetedSweepRuntimeConfig> runtime,
+            CoordinationService<InternalSchemaMetadata> coordinationService) {
+        CoordinationAwareKnownAbandonedTransactionsStore abandonedTxnStore =
+                new CoordinationAwareKnownAbandonedTransactionsStore(
+                        coordinationService, new AbandonedTimestampStoreImpl(kvs));
+        return TargetedSweeper.createUninitialized(
+                metricsManager,
+                runtime,
+                install,
+                ImmutableList.of(follower),
+                abandonedTxnStore::addAbandonedTimestamps);
+    }
 
     abstract AtlasDbConfig config();
 
@@ -273,63 +595,11 @@ public abstract class TransactionManagers {
         return newMinimalDialogueFactory();
     }
 
-    public static ImmutableTransactionManagers.ConfigBuildStage builder() {
-        return ImmutableTransactionManagers.builder();
-    }
-
-    @SuppressWarnings("immutables:incompat")
-    @VisibleForTesting
-    static Consumer<Runnable> runAsync = task -> {
-        Thread thread = new Thread(task);
-        thread.setDaemon(true);
-        thread.start();
-    };
-
     @Value.Check
     protected void check() {
         Preconditions.checkState(
                 !(runtimeConfigSupplier().isPresent() && runtimeConfig().isPresent()),
                 "Cannot provide both Refreshable and Supplier of runtime config");
-    }
-
-    /**
-     * Accepts a single {@link Schema}.
-     *
-     * @see TransactionManagers#createInMemory(Set)
-     */
-    public static TransactionManager createInMemory(Schema schema) {
-        return createInMemory(ImmutableSet.of(schema));
-    }
-
-    /**
-     * Create a {@link TransactionManager} backed by an
-     * {@link com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService}. This should be used for testing
-     * purposes only.
-     */
-    public static TransactionManager createInMemory(Set<Schema> schemas) {
-        return createInMemory(schemas, Optional.empty());
-    }
-
-    public static TransactionManager createInMemory(Schema schema, LockAndTimestampServiceFactory factory) {
-        return createInMemory(Set.of(schema), Optional.of(factory));
-    }
-
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    private static TransactionManager createInMemory(
-            Set<Schema> schemas, Optional<LockAndTimestampServiceFactory> maybeFactory) {
-        AtlasDbConfig config = ImmutableAtlasDbConfig.builder()
-                .keyValueService(new InMemoryAtlasDbConfig())
-                .collectThreadDumpOnTimestampServiceInit(false)
-                .build();
-        return builder()
-                .config(config)
-                .userAgent(AtlasDbRemotingConstants.DEFAULT_USER_AGENT)
-                .globalMetricsRegistry(new MetricRegistry())
-                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .lockAndTimestampServiceFactory(maybeFactory)
-                .addAllSchemas(schemas)
-                .build()
-                .serializable();
     }
 
     @JsonIgnore
@@ -442,6 +712,7 @@ public abstract class TransactionManagers {
                     return ValidatingQueryRewritingKeyValueService.create(kvs); // ok
                 },
                 closeables);
+        CachingConflictDetectionManager conflictManager = ConflictDetectionManagers.create(internalKeyValueService);
         KeyValueServiceManager keyValueServiceManager = new DefaultKeyValueServiceManager(metricsManager, adapter);
         TransactionKeyValueServiceManager transactionKeyValueServiceManager = initializeCloseable(
                 () -> {
@@ -463,7 +734,8 @@ public abstract class TransactionManagers {
                                         .get()),
                                 config().initializeAsync());
                     } else {
-                        tkvsm = new DelegatingTransactionKeyValueServiceManager(internalKeyValueService);
+                        tkvsm = new DelegatingTransactionKeyValueServiceManager(
+                                internalKeyValueService, conflictManager);
                     }
                     return tkvsm;
                 },
@@ -500,7 +772,6 @@ public abstract class TransactionManagers {
                 closeables, metricsManager, knowledge, transactionSchemaManager, internalKeyValueService, runtime);
 
         TransactionService transactionService = components.transactionService();
-        ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(internalKeyValueService);
         SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(internalKeyValueService);
 
         Cleaner cleaner = initializeCloseable(
@@ -680,34 +951,6 @@ public abstract class TransactionManagers {
         return Optional.empty();
     }
 
-    @VisibleForTesting
-    static Refreshable<List<TimeLockClientFeedbackService>> getTimeLockClientFeedbackServices(
-            AtlasDbConfig config,
-            Refreshable<AtlasDbRuntimeConfig> runtimeConfig,
-            UserAgent userAgent,
-            DialogueClients.ReloadingFactory reloadingFactory) {
-        Refreshable<ServerListConfig> serverListConfigSupplier =
-                DefaultLockAndTimestampServiceFactory.getServerListConfigSupplierForTimeLock(config, runtimeConfig);
-
-        BroadcastDialogueClientFactory broadcastDialogueClientFactory = BroadcastDialogueClientFactory.create(
-                reloadingFactory,
-                serverListConfigSupplier,
-                userAgent,
-                AuxiliaryRemotingParameters.builder()
-                        .shouldRetry(true)
-                        .userAgent(userAgent)
-                        .shouldLimitPayload(true)
-                        .build());
-
-        return broadcastDialogueClientFactory.getSingleNodeProxies(TimeLockClientFeedbackService.class, true);
-    }
-
-    private static DialogueClients.ReloadingFactory newMinimalDialogueFactory() {
-        return DialogueClients.create(
-                        Refreshable.only(ServicesConfigBlock.builder().build()))
-                .withBlockingExecutor(PTExecutors.newCachedThreadPool("atlas-dialogue-blocking"));
-    }
-
     abstract Optional<String> serviceIdentifierOverride();
 
     @VisibleForTesting
@@ -728,17 +971,6 @@ public abstract class TransactionManagers {
                 .orElse("UNKNOWN");
     }
 
-    private static Callback<TransactionManager> createClearsTable() {
-        TableReference clearsTableRef =
-                TargetedSweepTableFactory.of().getTableClearsTable(null).getTableRef();
-        byte[] clearsTableMetadata = TargetedSweepSchema.INSTANCE
-                .getLatestSchema()
-                .getAllTablesAndIndexMetadata()
-                .get(clearsTableRef)
-                .persistToBytes();
-        return LambdaCallback.of(tm -> tm.getKeyValueService().createTable(clearsTableRef, clearsTableMetadata));
-    }
-
     /**
      * If we decide to move a service to use thorough sweep; we need to make sure that background sweep won't cause any
      * trouble by deleting large number of empty values at once - causing Cassandra OOMs.
@@ -757,10 +989,6 @@ public abstract class TransactionManagers {
         return ImmutableTransactionConfig.copyOf(transactionConfig)
                 .withLockImmutableTsOnReadOnlyTransactions(lockImmutableTsOnReadOnlyTransactions()
                         || transactionConfig.lockImmutableTsOnReadOnlyTransactions());
-    }
-
-    private static boolean targetedSweepIsEnabled(Supplier<AtlasDbRuntimeConfig> runtime) {
-        return runtime.get().targetedSweep().enabled();
     }
 
     private TransactionComponents createTransactionComponents(
@@ -792,40 +1020,6 @@ public abstract class TransactionManagers {
                 .build();
     }
 
-    private static Optional<TransactionSchemaInstaller> getTransactionSchemaInstallerIfSupported(
-            @Output List<AutoCloseable> closeables,
-            KeyValueService keyValueService,
-            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
-            TransactionSchemaManager transactionSchemaManager) {
-        CheckAndSetCompatibility compatibility = keyValueService.getCheckAndSetCompatibility();
-        if (compatibility.supportsCheckAndSetOperations() && compatibility.supportsDetailOnFailure()) {
-            return Optional.of(
-                    initializeTransactionSchemaInstaller(closeables, runtimeConfigSupplier, transactionSchemaManager));
-        }
-        runtimeConfigSupplier
-                .get()
-                .internalSchema()
-                .targetTransactionsSchemaVersion()
-                .filter(version -> version != TransactionConstants.DIRECT_ENCODING_TRANSACTIONS_SCHEMA_VERSION)
-                .ifPresent(version -> log.warn(
-                        "This service seems like it has been configured to use transaction schema version {},"
-                                + " which isn't supported as your KVS doesn't support details on CAS failures"
-                                + " (typically Postgres or Oracle). We will remain with transactions1.",
-                        SafeArg.of("configuredTransactionSchemaVersion", version)));
-        return Optional.empty();
-    }
-
-    private static TransactionSchemaInstaller initializeTransactionSchemaInstaller(
-            @Output List<AutoCloseable> closeables,
-            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
-            TransactionSchemaManager transactionSchemaManager) {
-        return initializeCloseable(
-                () -> TransactionSchemaInstaller.createStarted(
-                        transactionSchemaManager,
-                        () -> runtimeConfigSupplier.get().internalSchema().targetTransactionsSchemaVersion()),
-                closeables);
-    }
-
     private CoordinationService<InternalSchemaMetadata> getSchemaMetadataCoordinationService(
             MetricsManager metricsManager,
             LockAndTimestampServices lockAndTimestampServices,
@@ -840,203 +1034,10 @@ public abstract class TransactionManagers {
         return metadataCoordinationService;
     }
 
-    private static Optional<BackgroundCompactor> initializeCompactBackgroundProcess(
-            MetricsManager metricsManager,
-            LockAndTimestampServices lockAndTimestampServices,
-            KeyValueService keyValueService,
-            TransactionManager transactionManager,
-            Supplier<CompactorConfig> compactorConfigSupplier) {
-        Optional<BackgroundCompactor> backgroundCompactorOptional = BackgroundCompactor.createAndRun(
-                metricsManager,
-                transactionManager,
-                keyValueService,
-                lockAndTimestampServices.lock(),
-                compactorConfigSupplier);
-
-        backgroundCompactorOptional.ifPresent(
-                backgroundCompactor -> transactionManager.registerClosingCallback(backgroundCompactor::close));
-
-        return backgroundCompactorOptional;
-    }
-
-    private static <T extends AutoCloseable> T initializeCloseable(
-            Supplier<T> closeableSupplier, @Output List<AutoCloseable> closeables) {
-        T ret = closeableSupplier.get();
-        closeables.add(ret);
-        return ret;
-    }
-
-    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    private static <T extends AutoCloseable> Optional<T> initializeCloseable(
-            Optional<T> closeableOptional, @Output List<AutoCloseable> closeables) {
-        closeableOptional.ifPresent(closeables::add);
-        return closeableOptional;
-    }
-
-    private static boolean areTransactionManagerInitializationPrerequisitesSatisfied(
-            AsyncInitializer initializer, LockAndTimestampServices lockAndTimestampServices) {
-        return initializer.isInitialized() && timeLockMigrationCompleteIfNeeded(lockAndTimestampServices);
-    }
-
-    @VisibleForTesting
-    static boolean timeLockMigrationCompleteIfNeeded(LockAndTimestampServices lockAndTimestampServices) {
-        return lockAndTimestampServices
-                .migrator()
-                .map(AsyncInitializer::isInitialized)
-                .orElse(true);
-    }
-
-    private static BackgroundSweeperImpl initializeSweepBackgroundProcess(
-            MetricsManager metricsManager,
-            AtlasDbConfig config,
-            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
-            KeyValueService kvs,
-            TransactionService transactionService,
-            CleanupFollower follower,
-            TransactionManager transactionManager,
-            boolean runInBackground) {
-        CellsSweeper cellsSweeper = new CellsSweeper(transactionManager, kvs, ImmutableList.of(follower));
-
-        LegacySweepMetrics sweepMetrics = new LegacySweepMetrics(metricsManager.getRegistry());
-
-        SweepTaskRunner sweepRunner = new SweepTaskRunner(
-                kvs,
-                transactionManager::getUnreadableTimestamp,
-                transactionManager::getImmutableTimestamp,
-                transactionService,
-                cellsSweeper,
-                sweepMetrics);
-        BackgroundSweeperPerformanceLogger sweepPerfLogger = new NoOpBackgroundSweeperPerformanceLogger();
-        AdjustableSweepBatchConfigSource sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(
-                metricsManager,
-                () -> getSweepBatchConfig(runtimeConfigSupplier.get().sweep()));
-
-        SpecificTableSweeper specificTableSweeper = SpecificTableSweeper.create(
-                transactionManager,
-                kvs,
-                sweepRunner,
-                SweepTableFactory.of(),
-                sweepPerfLogger,
-                sweepMetrics,
-                config.initializeAsync());
-
-        BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
-                metricsManager,
-                sweepBatchConfigSource,
-                () -> runtimeConfigSupplier.get().sweep().enabled(),
-                () -> runtimeConfigSupplier.get().sweep().sweepThreads(),
-                () -> runtimeConfigSupplier.get().sweep().pauseMillis(),
-                () -> runtimeConfigSupplier.get().sweep().sweepPriorityOverrides(),
-                specificTableSweeper);
-
-        transactionManager.registerClosingCallback(backgroundSweeper::shutdown);
-
-        if (runInBackground) {
-            backgroundSweeper.runInBackground();
-        }
-
-        return backgroundSweeper;
-    }
-
-    private static SweepBatchConfig getSweepBatchConfig(SweepConfig sweepConfig) {
-        return ImmutableSweepBatchConfig.builder()
-                .maxCellTsPairsToExamine(sweepConfig.readLimit())
-                .candidateBatchSize(
-                        sweepConfig.candidateBatchHint().orElse(AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT))
-                .deleteBatchSize(sweepConfig.deleteBatchHint())
-                .build();
-    }
-
-    private static Callback<TransactionManager> timelockConsistencyCheckCallback(
-            AtlasDbConfig atlasDbConfig,
-            AtlasDbRuntimeConfig initialRuntimeConfig,
-            LockAndTimestampServices lockAndTimestampServices) {
-        // Only do the consistency check if we're using TimeLock.
-        // This avoids a bootstrapping problem with leader-block services without async initialisation,
-        // where you need a working timestamp service to check consistency, you need to check consistency
-        // before you can return a TM, you need to return a TM to listen on ports, and you need to listen on
-        // ports in order to get a working timestamp service.
-        if (isUsingTimeLock(atlasDbConfig, initialRuntimeConfig)) {
-            ToLongFunction<TransactionManager> conservativeBoundSupplier = txnManager -> {
-                Clock clock = GlobalClock.create(txnManager.getTimelockService());
-                return KeyValueServicePuncherStore.get(txnManager.getKeyValueService(), clock.getTimeMillis());
-            };
-            return ConsistencyCheckRunner.create(ImmutableTimestampCorroborationConsistencyCheck.builder()
-                    .conservativeBound(conservativeBoundSupplier)
-                    .freshTimestampSource(
-                            unused -> lockAndTimestampServices.timelock().getFreshTimestamp())
-                    .build());
-        }
-        return Callback.noOp();
-    }
-
-    // TODO(gs): wrap install and runtime config objects to avoid passing them both in?
-    static boolean isUsingTimeLock(AtlasDbConfig atlasDbConfig, AtlasDbRuntimeConfig runtimeConfig) {
-        return atlasDbConfig.timelock().isPresent()
-                || runtimeConfig.timelockRuntime().isPresent();
-    }
-
     private boolean shouldGiveFeedbackToServer(AtlasDbConfig config) {
         return config.timelock()
                 .map(TimeLockClientConfig::shouldGiveFeedbackToTimeLockServer)
                 .orElse(false);
-    }
-
-    /**
-     * This method should not be used directly. It remains here to support the AtlasDB-Dagger module and the CLIs, but
-     * may be removed at some point in the future.
-     *
-     * @deprecated Not intended for public use outside of the AtlasDB CLIs
-     */
-    @Deprecated
-    public static LockAndTimestampServices createLockAndTimestampServicesForCli(
-            MetricsManager metricsManager,
-            AtlasDbConfig config,
-            Refreshable<AtlasDbRuntimeConfig> runtimeConfigSupplier,
-            Consumer<Object> registrar,
-            Supplier<LockService> lock,
-            Supplier<ManagedTimestampService> time,
-            TimestampStoreInvalidator invalidator,
-            String userAgent) {
-        LockAndTimestampServices lockAndTimestampServices =
-                DefaultLockAndTimestampServiceFactory.createRawInstrumentedServices(
-                        metricsManager,
-                        config,
-                        runtimeConfigSupplier,
-                        lock,
-                        time,
-                        invalidator,
-                        UserAgents.tryParse(userAgent),
-                        Optional.empty(),
-                        newMinimalDialogueFactory(),
-                        Optional.empty(),
-                        Optional.empty(),
-                        ImmutableSet.of());
-        TimeLockClient timeLockClient = TimeLockClient.withSynchronousUnlocker(lockAndTimestampServices.timelock());
-        return ImmutableLockAndTimestampServices.builder()
-                .from(lockAndTimestampServices)
-                .timelock(timeLockClient)
-                .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
-                .addResources(timeLockClient::close)
-                .build();
-    }
-
-    private static TargetedSweeper uninitializedTargetedSweeper(
-            KeyValueService kvs,
-            MetricsManager metricsManager,
-            TargetedSweepInstallConfig install,
-            Follower follower,
-            Supplier<TargetedSweepRuntimeConfig> runtime,
-            CoordinationService<InternalSchemaMetadata> coordinationService) {
-        CoordinationAwareKnownAbandonedTransactionsStore abandonedTxnStore =
-                new CoordinationAwareKnownAbandonedTransactionsStore(
-                        coordinationService, new AbandonedTimestampStoreImpl(kvs));
-        return TargetedSweeper.createUninitialized(
-                metricsManager,
-                runtime,
-                install,
-                ImmutableList.of(follower),
-                abandonedTxnStore::addAbandonedTimestamps);
     }
 
     @Value.Immutable

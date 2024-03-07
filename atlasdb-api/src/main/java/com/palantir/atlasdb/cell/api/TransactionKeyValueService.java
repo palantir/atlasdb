@@ -28,10 +28,12 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Key-Value API to be used with user data tables.
@@ -71,4 +73,6 @@ public interface TransactionKeyValueService {
 
     void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
             throws KeyAlreadyExistsException;
+
+    Optional<ConflictHandler> getConflictHandler(TableReference tableRef);
 }

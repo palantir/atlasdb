@@ -36,7 +36,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
+import com.palantir.atlasdb.transaction.impl.CachingConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.DefaultDeleteExecutor;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
@@ -115,7 +115,7 @@ public class TestTransactionManagerModule {
             @Named("kvs") KeyValueService kvs,
             LockAndTimestampServices lts,
             TransactionService transactionService,
-            ConflictDetectionManager conflictManager,
+            CachingConflictDetectionManager conflictManager,
             SweepStrategyManager sweepStrategyManager,
             Cleaner cleaner,
             @Internal DerivedSnapshotConfig derivedSnapshotConfig,

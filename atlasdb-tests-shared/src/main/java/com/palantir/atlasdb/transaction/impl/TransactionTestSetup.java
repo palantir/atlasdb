@@ -79,10 +79,44 @@ import org.rocksdb.RocksDBException;
  * - The key value services may not be disjoint across individual tests.
  */
 public abstract class TransactionTestSetup {
+    protected static final TableReference TEST_TABLE =
+            TableReference.createFromFullyQualifiedName("ns.atlasdb_transactions_test_table");
+    protected static final TableReference TEST_TABLE_THOROUGH =
+            TableReference.createFromFullyQualifiedName("ns.atlasdb_transactions_test_table_thorough");
+    protected static final TableReference TEST_TABLE_SERIALIZABLE =
+            TableReference.createFromFullyQualifiedName("ns.atlasdb_transactions_test_table_serializable");
+
     @TempDir
     public static File persistentStorageFolder;
 
     private static PersistentStore persistentStore;
+    protected final MetricsManager metricsManager = MetricsManagers.createForTests();
+    private final KvsManager kvsManager;
+    private final TransactionManagerManager tmManager;
+
+    @RegisterExtension
+    public InMemoryTimelockExtension inMemoryTimelockExtension = new InMemoryTimelockExtension();
+
+    protected LockClient lockClient;
+    protected LockService lockService;
+    protected TimelockService timelockService;
+    protected LockWatchManagerInternal lockWatchManager;
+    protected KeyValueService keyValueService;
+    protected TransactionKeyValueServiceManager transactionKeyValueServiceManager;
+    protected TimestampService timestampService;
+    protected TimestampManagementService timestampManagementService;
+    protected TransactionSchemaManager transactionSchemaManager;
+    protected TransactionService transactionService;
+    protected ConflictDetectionManager conflictDetectionManager;
+    protected SweepStrategyManager sweepStrategyManager;
+    protected TransactionManager txMgr;
+    protected TimestampCache timestampCache;
+    protected TransactionKnowledgeComponents knowledge;
+
+    protected TransactionTestSetup(KvsManager kvsManager, TransactionManagerManager tmManager) {
+        this.kvsManager = kvsManager;
+        this.tmManager = tmManager;
+    }
 
     @BeforeAll
     public static void storageSetUp() throws RocksDBException {
@@ -97,44 +131,6 @@ public abstract class TransactionTestSetup {
         persistentStore.close();
     }
 
-    protected static final TableReference TEST_TABLE =
-            TableReference.createFromFullyQualifiedName("ns.atlasdb_transactions_test_table");
-    protected static final TableReference TEST_TABLE_THOROUGH =
-            TableReference.createFromFullyQualifiedName("ns.atlasdb_transactions_test_table_thorough");
-    protected static final TableReference TEST_TABLE_SERIALIZABLE =
-            TableReference.createFromFullyQualifiedName("ns.atlasdb_transactions_test_table_serializable");
-
-    private final KvsManager kvsManager;
-    private final TransactionManagerManager tmManager;
-
-    protected LockClient lockClient;
-    protected LockService lockService;
-    protected TimelockService timelockService;
-    protected LockWatchManagerInternal lockWatchManager;
-
-    protected final MetricsManager metricsManager = MetricsManagers.createForTests();
-    protected KeyValueService keyValueService;
-    protected TransactionKeyValueServiceManager transactionKeyValueServiceManager;
-    protected TimestampService timestampService;
-    protected TimestampManagementService timestampManagementService;
-    protected TransactionSchemaManager transactionSchemaManager;
-    protected TransactionService transactionService;
-    protected ConflictDetectionManager conflictDetectionManager;
-    protected SweepStrategyManager sweepStrategyManager;
-    protected TransactionManager txMgr;
-
-    protected TimestampCache timestampCache;
-
-    protected TransactionKnowledgeComponents knowledge;
-
-    @RegisterExtension
-    public InMemoryTimelockExtension inMemoryTimelockExtension = new InMemoryTimelockExtension();
-
-    protected TransactionTestSetup(KvsManager kvsManager, TransactionManagerManager tmManager) {
-        this.kvsManager = kvsManager;
-        this.tmManager = tmManager;
-    }
-
     @BeforeEach
     public void setUp() {
         timestampCache = ComparingTimestampCache.comparingOffHeapForTests(metricsManager, persistentStore);
@@ -144,7 +140,9 @@ public abstract class TransactionTestSetup {
         lockClient = LockClient.of("test_client");
 
         keyValueService = getKeyValueService();
-        transactionKeyValueServiceManager = new DelegatingTransactionKeyValueServiceManager(keyValueService);
+        conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
+        transactionKeyValueServiceManager =
+                new DelegatingTransactionKeyValueServiceManager(keyValueService, conflictDetectionManager);
         keyValueService.createTables(ImmutableMap.of(
                 TEST_TABLE_THOROUGH,
                 TableMetadata.builder()
@@ -190,7 +188,6 @@ public abstract class TransactionTestSetup {
                 ImmutableInternalSchemaInstallConfig.builder().build(),
                 () -> true);
         transactionService = createTransactionService(keyValueService, transactionSchemaManager, knowledge);
-        conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         txMgr = createAndRegisterManager();
     }
@@ -216,7 +213,7 @@ public abstract class TransactionTestSetup {
                 inMemoryTimelockExtension,
                 lockService,
                 transactionService,
-                conflictDetectionManager,
+                (CachingConflictDetectionManager) conflictDetectionManager,
                 sweepStrategyManager,
                 timestampCache,
                 MultiTableSweepQueueWriter.NO_OP,

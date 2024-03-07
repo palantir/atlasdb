@@ -63,7 +63,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             AbstractInMemoryTimelockExtension abstractInMemoryTimelockExtension,
             LockService lockService,
             TransactionService transactionService,
-            ConflictDetectionManager conflictDetectionManager,
+            CachingConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueue,
@@ -91,7 +91,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             AbstractInMemoryTimelockExtension services,
             LockService lockService,
             TransactionService transactionService,
-            ConflictDetectionManager conflictDetectionManager,
+            CachingConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueue,
@@ -121,7 +121,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             AbstractInMemoryTimelockExtension services,
             LockService lockService,
             TransactionService transactionService,
-            ConflictDetectionManager conflictDetectionManager,
+            CachingConflictDetectionManager conflictDetectionManager,
             SweepStrategyManager sweepStrategyManager,
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueue,
@@ -218,7 +218,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     }
 
     @Override
-    ConflictDetectionManager getConflictDetectionManager() {
+    CachingConflictDetectionManager getConflictDetectionManager() {
         return TestConflictDetectionManagers.createWithStaticConflictDetection(getConflictHandlerWithOverrides());
     }
 
@@ -239,7 +239,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
 
     private Map<TableReference, ConflictHandler> getConflictHandlerWithOverrides() {
         Map<TableReference, ConflictHandler> conflictHandlersWithOverrides = new HashMap<>();
-        conflictHandlersWithOverrides.putAll(conflictDetectionManager.getCachedValues());
+        conflictHandlersWithOverrides.putAll(
+                ((CachingConflictDetectionManager) conflictDetectionManager).getCachedValues());
         conflictHandlersWithOverrides.putAll(conflictHandlerOverrides);
         return conflictHandlersWithOverrides;
     }

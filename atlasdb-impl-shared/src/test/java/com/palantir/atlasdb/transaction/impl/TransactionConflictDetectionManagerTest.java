@@ -47,7 +47,8 @@ public final class TransactionConflictDetectionManagerTest {
 
     @BeforeEach
     public void before() {
-        conflictDetectionManager = new TransactionConflictDetectionManager(new ConflictDetectionManager(delegate));
+        conflictDetectionManager =
+                new TransactionConflictDetectionManager(new CachingConflictDetectionManager(delegate));
     }
 
     @Test
