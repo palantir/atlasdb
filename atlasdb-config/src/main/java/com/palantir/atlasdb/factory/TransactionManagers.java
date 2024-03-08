@@ -555,7 +555,7 @@ public abstract class TransactionManagers {
                         sweepStrategyManager,
                         cleaner,
                         () -> areTransactionManagerInitializationPrerequisitesSatisfied(
-                                initializer, lockAndTimestampServices),
+                                initializer, internalKeyValueService, lockAndTimestampServices),
                         allowHiddenTableAccess(),
                         derivedSnapshotConfig.concurrentGetRangesThreadPoolSize(),
                         derivedSnapshotConfig.defaultGetRangesConcurrency(),
@@ -875,8 +875,12 @@ public abstract class TransactionManagers {
     }
 
     private static boolean areTransactionManagerInitializationPrerequisitesSatisfied(
-            AsyncInitializer initializer, LockAndTimestampServices lockAndTimestampServices) {
-        return initializer.isInitialized() && timeLockMigrationCompleteIfNeeded(lockAndTimestampServices);
+            AsyncInitializer initializer,
+            KeyValueService internalKeyValueService,
+            LockAndTimestampServices lockAndTimestampServices) {
+        return initializer.isInitialized()
+                && internalKeyValueService.isInitialized()
+                && timeLockMigrationCompleteIfNeeded(lockAndTimestampServices);
     }
 
     @VisibleForTesting

@@ -42,6 +42,11 @@ acceptedBreaks:
         \ com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig, com.palantir.refreshable.Refreshable<com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig>,\
         \ boolean)"
       justification: "Adding observability to TransactionKeyValueServiceManager"
+  "0.1047.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.addedToInterface"
+      new: "method boolean com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager::isInitialized()"
+      justification: "Adding async init to TransactionKeyValueServiceManager"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"
