@@ -455,20 +455,18 @@ public class SnapshotTransaction extends AbstractTransaction
             return AbstractTransaction.EMPTY_SORTED_ROWS;
         }
         hasReads = true;
-        ImmutableSortedMap.Builder<Cell, byte[]> result = ImmutableSortedMap.naturalOrder();
-        Map<Cell, Value> rawResults =
-                new HashMap<>(transactionKeyValueService.getRows(tableRef, rows, columnSelection, getStartTimestamp()));
+
+        ImmutableSortedMap.Builder<Cell, byte[]> resultCollector = ImmutableSortedMap.naturalOrder();
         NavigableMap<Cell, byte[]> writes = localWriteBuffer.getLocalWrites().get(tableRef);
         if (writes != null && !writes.isEmpty()) {
             for (byte[] row : rows) {
-                extractLocalWritesForRow(result, writes, row, columnSelection);
+                extractLocalWritesForRow(resultCollector, writes, row, columnSelection);
             }
         }
 
-        // We don't need to do work postFiltering if we have a write locally.
-        rawResults.keySet().removeAll(result.buildOrThrow().keySet());
+        NavigableMap<byte[], RowResult<byte[]>> results =
+                keyValueSnapshotReader.getRows(tableRef, rows, columnSelection, resultCollector);
 
-        NavigableMap<byte[], RowResult<byte[]>> results = filterRowResults(tableRef, rawResults, result);
         long getRowsMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
         if (perfLogger.isDebugEnabled()) {
             perfLogger.debug(

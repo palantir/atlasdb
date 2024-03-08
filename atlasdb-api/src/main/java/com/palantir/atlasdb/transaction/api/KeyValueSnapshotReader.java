@@ -16,10 +16,14 @@
 
 package com.palantir.atlasdb.transaction.api;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Set;
 
 /**
@@ -38,4 +42,11 @@ import java.util.Set;
  */
 public interface KeyValueSnapshotReader {
     ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableReference, Set<Cell> cells);
+
+    // TODO (jkong): This one is kind of awful, but it's used to avoid allocations and I'm not keen to add too many.
+    NavigableMap<byte[], RowResult<byte[]>> getRows(
+            TableReference tableReference,
+            Iterable<byte[]> rows,
+            ColumnSelection columnSelection,
+            ImmutableMap.Builder<Cell, byte[]> resultCollector);
 }

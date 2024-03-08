@@ -32,4 +32,6 @@ public interface KeyValueSnapshotEventRecorder {
     void recordFilteredTransactionCommittingAfterOurStart(TableReference tableReference);
 
     void recordRolledBackOtherTransaction();
+
+    void recordEmptyValueRead(TableReference tableReference);
 }

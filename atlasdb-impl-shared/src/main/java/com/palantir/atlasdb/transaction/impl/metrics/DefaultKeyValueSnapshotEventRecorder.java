@@ -86,4 +86,11 @@ public final class DefaultKeyValueSnapshotEventRecorder implements KeyValueSnaps
     public void recordRolledBackOtherTransaction() {
         transactionMetrics.rolledBackOtherTransaction().mark();
     }
+
+    @Override
+    public void recordEmptyValueRead(TableReference tableReference) {
+        metricFactory
+                .getCounter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableReference)
+                .inc();
+    }
 }
