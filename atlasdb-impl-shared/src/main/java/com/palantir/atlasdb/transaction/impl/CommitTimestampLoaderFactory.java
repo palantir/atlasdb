@@ -20,6 +20,7 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
+import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
@@ -32,16 +33,19 @@ public final class CommitTimestampLoaderFactory {
     private final MetricsManager metricsManager;
     private final TimelockService timelockService;
     private final TransactionKnowledgeComponents transactionKnowledgeComponents;
+    private final TransactionService transactionService;
 
     public CommitTimestampLoaderFactory(
             TimestampCache timestampCache,
             MetricsManager metricsManager,
             TimelockService timelockService,
-            TransactionKnowledgeComponents transactionKnowledgeComponents) {
+            TransactionKnowledgeComponents transactionKnowledgeComponents,
+            TransactionService transactionService) {
         this.timestampCache = timestampCache;
         this.metricsManager = metricsManager;
         this.timelockService = timelockService;
         this.transactionKnowledgeComponents = transactionKnowledgeComponents;
+        this.transactionService = transactionService;
     }
 
     public CommitTimestampLoader createCommitTimestampLoader(
@@ -57,6 +61,7 @@ public final class CommitTimestampLoaderFactory {
                 metricsManager,
                 timelockService,
                 immutableTimestamp,
-                transactionKnowledgeComponents);
+                transactionKnowledgeComponents,
+                transactionService);
     }
 }

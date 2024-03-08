@@ -325,7 +325,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
     }
 
     private ListenableFuture<LongLongMap> getCommitTimestamps(TableReference tableRef, LongIterable startTimestamps) {
-        return commitTimestampLoader.getCommitTimestamps(tableRef, startTimestamps, true, transactionService);
+        return commitTimestampLoader.getCommitTimestamps(tableRef, startTimestamps, true);
     }
 
     /**

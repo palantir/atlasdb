@@ -376,7 +376,8 @@ import java.util.stream.Collectors;
                 metricsManager,
                 timelockService,
                 immutableTimestamp,
-                knowledge);
+                knowledge,
+                transactionService);
     }
 
     @Override

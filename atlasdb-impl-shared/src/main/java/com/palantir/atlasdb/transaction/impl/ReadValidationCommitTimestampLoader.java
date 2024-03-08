@@ -26,6 +26,7 @@ import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictExcep
 import com.palantir.atlasdb.transaction.impl.SerializableTransaction.PartitionedTimestamps;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionService;
 import org.eclipse.collections.api.LongIterable;
 import org.eclipse.collections.api.factory.primitive.LongLongMaps;
 import org.eclipse.collections.api.factory.primitive.LongSets;
@@ -41,16 +42,19 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class ReadValidationCommitTimestampLoader implements CommitTimestampLoader {
     private final CommitTimestampLoader delegate;
+    private final TransactionService transactionService;
     private final long startTs;
     private final long commitTs;
     private final TransactionOutcomeMetrics transactionOutcomeMetrics;
 
     public ReadValidationCommitTimestampLoader(
             CommitTimestampLoader delegate,
+            TransactionService transactionService,
             long startTs,
             long commitTs,
             TransactionOutcomeMetrics transactionOutcomeMetrics) {
         this.delegate = delegate;
+        this.transactionService = transactionService;
         this.startTs = startTs;
         this.commitTs = commitTs;
         this.transactionOutcomeMetrics = transactionOutcomeMetrics;
@@ -58,22 +62,16 @@ public final class ReadValidationCommitTimestampLoader implements CommitTimestam
 
     @Override
     public ListenableFuture<LongLongMap> getCommitTimestamps(
-            @Nullable TableReference tableRef,
-            LongIterable startTimestamps,
-            boolean shouldWaitForCommitterToComplete,
-            AsyncTransactionService asyncTransactionService) {
+            @Nullable TableReference tableRef, LongIterable startTimestamps, boolean shouldWaitForCommitterToComplete) {
         PartitionedTimestamps partitionedTimestamps = splitTransactionBeforeAndAfter(startTs, startTimestamps);
 
         ListenableFuture<LongLongMap> postStartCommitTimestamps = getCommitTimestampsForTransactionsStartedAfterMe(
-                tableRef, asyncTransactionService, partitionedTimestamps.afterStart());
+                tableRef, transactionService, partitionedTimestamps.afterStart());
 
         // We are ok to block here because if there is a cycle of transactions that could result in a deadlock,
         // then at least one of them will be in the ab
         ListenableFuture<LongLongMap> preStartCommitTimestamps = delegate.getCommitTimestamps(
-                tableRef,
-                partitionedTimestamps.beforeStart(),
-                shouldWaitForCommitterToComplete,
-                asyncTransactionService);
+                tableRef, partitionedTimestamps.beforeStart(), shouldWaitForCommitterToComplete);
 
         return Futures.whenAllComplete(postStartCommitTimestamps, preStartCommitTimestamps)
                 .call(
@@ -97,7 +95,7 @@ public final class ReadValidationCommitTimestampLoader implements CommitTimestam
                 // We do not block when waiting for results that were written after our start timestamp.
                 // If we block here it may lead to deadlock if two transactions (or a cycle of any length) have
                 // all written their data and all doing checks before committing.
-                delegate.getCommitTimestamps(tableRef, startTimestamps, false, asyncTransactionService),
+                delegate.getCommitTimestamps(tableRef, startTimestamps, false),
                 startToCommitTimestamps -> {
                     if (startToCommitTimestamps.keySet().containsAll(startTimestamps)) {
                         return startToCommitTimestamps;

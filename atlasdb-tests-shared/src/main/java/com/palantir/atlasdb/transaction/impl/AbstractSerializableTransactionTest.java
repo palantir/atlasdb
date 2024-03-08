@@ -1710,6 +1710,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 metricsManager,
                 timelockService,
                 immutableTimestamp,
-                knowledge);
+                knowledge,
+                transactionService);
     }
 }

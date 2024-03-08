@@ -31,6 +31,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutExc
 import com.palantir.atlasdb.transaction.knowledge.KnownAbandonedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.AtlasRowLockDescriptor;
@@ -74,6 +75,8 @@ public final class DefaultCommitTimestampLoader implements CommitTimestampLoader
 
     private final KnownAbandonedTransactions abortedTransactionsCache;
 
+    private final TransactionService transactionService;
+
     public DefaultCommitTimestampLoader(
             TimestampCache timestampCache,
             Optional<LockToken> immutableTimestampLock,
@@ -82,7 +85,8 @@ public final class DefaultCommitTimestampLoader implements CommitTimestampLoader
             MetricsManager metricsManager,
             TimelockService timelockService,
             long immutableTimestamp,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            TransactionService transactionService) {
         this.timestampCache = timestampCache;
         this.immutableTimestampLock = immutableTimestampLock;
         this.startTimestampSupplier = startTimestampSupplier;
@@ -92,6 +96,7 @@ public final class DefaultCommitTimestampLoader implements CommitTimestampLoader
         this.immutableTimestamp = immutableTimestamp;
         this.lastSeenCommitTsSupplier = knowledge.lastSeenCommitSupplier();
         this.abortedTransactionsCache = knowledge.abandoned();
+        this.transactionService = transactionService;
     }
 
     /**
@@ -100,10 +105,7 @@ public final class DefaultCommitTimestampLoader implements CommitTimestampLoader
      */
     @Override
     public ListenableFuture<LongLongMap> getCommitTimestamps(
-            @Nullable TableReference tableRef,
-            LongIterable startTimestamps,
-            boolean shouldWaitForCommitterToComplete,
-            AsyncTransactionService asyncTransactionService) {
+            @Nullable TableReference tableRef, LongIterable startTimestamps, boolean shouldWaitForCommitterToComplete) {
         if (startTimestamps.isEmpty()) {
             return Futures.immediateFuture(LongLongMaps.immutable.of());
         }
@@ -129,7 +131,7 @@ public final class DefaultCommitTimestampLoader implements CommitTimestampLoader
         }
 
         return Futures.transform(
-                loadCommitTimestamps(asyncTransactionService, pendingGets),
+                loadCommitTimestamps(transactionService, pendingGets),
                 rawResults -> {
                     LongLongMap loadedCommitTs = cacheKnownLoadedValuesAndValidate(rawResults);
                     result.putAll(loadedCommitTs);

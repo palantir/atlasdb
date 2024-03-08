@@ -18,7 +18,6 @@ package com.palantir.atlasdb.transaction.api;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import javax.annotation.Nullable;
 import org.eclipse.collections.api.LongIterable;
 import org.eclipse.collections.api.map.primitive.LongLongMap;
@@ -29,8 +28,5 @@ public interface CommitTimestampLoader {
      * missing from the map. This method will block until the transactions for these start timestamps are complete.
      */
     ListenableFuture<LongLongMap> getCommitTimestamps(
-            @Nullable TableReference tableRef,
-            LongIterable startTimestamps,
-            boolean shouldWaitForCommitterToComplete,
-            AsyncTransactionService asyncTransactionService);
+            @Nullable TableReference tableRef, LongIterable startTimestamps, boolean shouldWaitForCommitterToComplete);
 }

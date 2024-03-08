@@ -32,7 +32,7 @@ import com.palantir.atlasdb.transaction.knowledge.ImmutableTransactionKnowledgeC
 import com.palantir.atlasdb.transaction.knowledge.KnownAbandonedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
-import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -51,7 +51,7 @@ public class DefaultCommitTimestampLoaderTest {
     private final TransactionConfig transactionConfig = mock(TransactionConfig.class);
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final TimelockService timelockService = mock(TimelockService.class);
-    private final AsyncTransactionService transactionService = mock(AsyncTransactionService.class);
+    private final TransactionService transactionService = mock(TransactionService.class);
 
     private final KnownAbandonedTransactions knownAbandonedTransactions = mock(KnownAbandonedTransactions.class);
 
@@ -97,7 +97,7 @@ public class DefaultCommitTimestampLoaderTest {
 
         assertThatExceptionOfType(ExecutionException.class)
                 .isThrownBy(() -> commitTimestampLoader
-                        .getCommitTimestamps(TABLE_REF, LongLists.immutable.of(startTs), false, transactionService)
+                        .getCommitTimestamps(TABLE_REF, LongLists.immutable.of(startTs), false)
                         .get())
                 .withRootCauseInstanceOf(SafeIllegalStateException.class)
                 .withMessageContaining("Sweep has swept some entries with a commit TS after us");
@@ -185,7 +185,7 @@ public class DefaultCommitTimestampLoaderTest {
     private void assertCanGetCommitTs(long startTs, long commitTs, DefaultCommitTimestampLoader commitTimestampLoader)
             throws InterruptedException, ExecutionException {
         LongLongMap loadedCommitTs = commitTimestampLoader
-                .getCommitTimestamps(TABLE_REF, LongLists.immutable.of(startTs), false, transactionService)
+                .getCommitTimestamps(TABLE_REF, LongLists.immutable.of(startTs), false)
                 .get();
         assertThat(loadedCommitTs.size()).isEqualTo(1);
         assertThat(loadedCommitTs.get(startTs)).isEqualTo(commitTs);
@@ -202,7 +202,8 @@ public class DefaultCommitTimestampLoaderTest {
                 metricsManager,
                 timelockService,
                 1l,
-                createKnowledgeComponents(lastSeenCommitTs));
+                createKnowledgeComponents(lastSeenCommitTs),
+                transactionService);
         return commitTimestampLoader;
     }
 

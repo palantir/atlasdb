@@ -3382,7 +3382,8 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 metricsManager,
                 timelockService,
                 immutableTimestamp,
-                knowledge);
+                knowledge,
+                transactionService);
     }
 
     private Transaction getSnapshotTransactionWith(

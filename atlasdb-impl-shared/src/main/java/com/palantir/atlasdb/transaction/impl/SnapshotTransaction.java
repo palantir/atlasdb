@@ -1464,16 +1464,15 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private <T> Collection<Map.Entry<Cell, T>> getWithPostFilteringSync(
             TableReference tableRef, Map<Cell, Value> rawResults, Function<Value, T> transformer) {
-        return AtlasFutures.getUnchecked(getWithPostFilteringAsync(
-                tableRef, rawResults, transformer, transactionKeyValueService, immediateTransactionService));
+        return AtlasFutures.getUnchecked(
+                getWithPostFilteringAsync(tableRef, rawResults, transformer, transactionKeyValueService));
     }
 
     private <T> ListenableFuture<Collection<Map.Entry<Cell, T>>> getWithPostFilteringAsync(
             TableReference tableRef,
             Map<Cell, Value> rawResults,
             Function<Value, T> transformer,
-            TransactionKeyValueService asyncKeyValueService,
-            AsyncTransactionService asyncTransactionService) {
+            TransactionKeyValueService asyncKeyValueService) {
         long bytes = 0;
         for (Map.Entry<Cell, Value> entry : rawResults.entrySet()) {
             bytes += entry.getValue().getContents().length + Cells.getApproxSizeOfCell(entry.getKey());
@@ -1513,12 +1512,7 @@ public class SnapshotTransaction extends AbstractTransaction
         return Futures.transformAsync(
                 Futures.immediateFuture(rawResults),
                 resultsToPostFilter -> getWithPostFilteringIterate(
-                        tableRef,
-                        resultsToPostFilter,
-                        resultsAccumulator,
-                        transformer,
-                        asyncKeyValueService,
-                        asyncTransactionService),
+                        tableRef, resultsToPostFilter, resultsAccumulator, transformer, asyncKeyValueService),
                 MoreExecutors.directExecutor());
     }
 
@@ -1527,8 +1521,7 @@ public class SnapshotTransaction extends AbstractTransaction
             Map<Cell, Value> resultsToPostFilter,
             Collection<Map.Entry<Cell, T>> resultsAccumulator,
             Function<Value, T> transformer,
-            TransactionKeyValueService asyncKeyValueService,
-            AsyncTransactionService asyncTransactionService) {
+            TransactionKeyValueService asyncKeyValueService) {
         return Futures.transformAsync(
                 Futures.immediateFuture(resultsToPostFilter),
                 results -> {
@@ -1540,8 +1533,7 @@ public class SnapshotTransaction extends AbstractTransaction
                                 remainingResultsToPostFilter,
                                 resultsAccumulator,
                                 transformer,
-                                asyncKeyValueService,
-                                asyncTransactionService));
+                                asyncKeyValueService));
                         Preconditions.checkState(
                                 ++iterations < MAX_POST_FILTERING_ITERATIONS,
                                 "Unable to filter cells to find correct result after "
@@ -1635,13 +1627,12 @@ public class SnapshotTransaction extends AbstractTransaction
             Map<Cell, Value> rawResults,
             @Output Collection<Map.Entry<Cell, T>> resultsCollector,
             Function<Value, T> transformer,
-            TransactionKeyValueService asyncKeyValueService,
-            AsyncTransactionService asyncTransactionService) {
+            TransactionKeyValueService asyncKeyValueService) {
         Set<Cell> orphanedSentinels = findOrphanedSweepSentinels(tableRef, rawResults);
         LongSet valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
 
         return Futures.transformAsync(
-                getCommitTimestamps(tableRef, valuesStartTimestamps, true, asyncTransactionService),
+                getCommitTimestamps(tableRef, valuesStartTimestamps, true),
                 commitTimestamps -> collectCellsToPostFilter(
                         tableRef,
                         rawResults,
@@ -2443,12 +2434,8 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     protected ListenableFuture<LongLongMap> getCommitTimestamps(
-            TableReference tableRef,
-            LongIterable startTimestamps,
-            boolean shouldWaitForCommitterToComplete,
-            AsyncTransactionService asyncTransactionService) {
-        return commitTimestampLoader.getCommitTimestamps(
-                tableRef, startTimestamps, shouldWaitForCommitterToComplete, asyncTransactionService);
+            TableReference tableRef, LongIterable startTimestamps, boolean shouldWaitForCommitterToComplete) {
+        return commitTimestampLoader.getCommitTimestamps(tableRef, startTimestamps, shouldWaitForCommitterToComplete);
     }
 
     private void logCommitLockTenureExceeded(
@@ -2578,8 +2565,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private LongLongMap getCommitTimestampsSync(
             @Nullable TableReference tableRef, LongIterable startTimestamps, boolean waitForCommitterToComplete) {
-        return AtlasFutures.getUnchecked(getCommitTimestamps(
-                tableRef, startTimestamps, waitForCommitterToComplete, immediateTransactionService));
+        return AtlasFutures.getUnchecked(getCommitTimestamps(tableRef, startTimestamps, waitForCommitterToComplete));
     }
 
     /**
