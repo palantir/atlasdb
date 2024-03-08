@@ -1042,7 +1042,8 @@ public abstract class TransactionManagers {
                 runtime,
                 install,
                 ImmutableList.of(follower),
-                abandonedTxnStore::addAbandonedTimestamps);
+                abandonedTxnStore::addAbandonedTimestamps,
+                kvs);
     }
 
     @Value.Immutable

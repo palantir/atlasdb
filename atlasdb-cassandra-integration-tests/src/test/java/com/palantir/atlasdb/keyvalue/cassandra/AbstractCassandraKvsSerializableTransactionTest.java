@@ -59,7 +59,7 @@ public abstract class AbstractCassandraKvsSerializableTransactionTest extends Ab
 
     @Override
     protected MultiTableSweepQueueWriter getSweepQueueWriterUninitialized() {
-        return TargetedSweeper.createUninitializedForTest(() -> 128);
+        return TargetedSweeper.createUninitializedForTest(keyValueService, () -> 128);
     }
 
     @Override

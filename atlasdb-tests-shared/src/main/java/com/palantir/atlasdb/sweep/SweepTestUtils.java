@@ -75,7 +75,7 @@ public final class SweepTestUtils {
                 () -> AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING;
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         Cleaner cleaner = new NoOpCleaner();
-        MultiTableSweepQueueWriter writer = TargetedSweeper.createUninitializedForTest(() -> 1);
+        MultiTableSweepQueueWriter writer = TargetedSweeper.createUninitializedForTest(kvs, () -> 1);
         TransactionKnowledgeComponents knowledge =
                 TransactionKnowledgeComponents.createForTests(kvs, metricsManager.getTaggedRegistry());
         TransactionManager txManager = SerializableTransactionManager.createForTest(

@@ -359,7 +359,7 @@ public class KeyValueServiceMigratorsTest {
         when(mockServices.getManagedTimestampService()).thenReturn(timestampService);
         when(mockServices.getTransactionService()).thenReturn(transactionService);
         when(mockServices.getKeyValueService()).thenReturn(kvs);
-        TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(() -> 1);
+        TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(kvs, () -> 1);
         SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
                 metricsManager,
                 new DelegatingTransactionKeyValueServiceManager(kvs),
