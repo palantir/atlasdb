@@ -11,6 +11,26 @@ acceptedBreaks:
         \ com.palantir.atlasdb.cell.api.TransactionKeyValueService::get(com.palantir.atlasdb.keyvalue.api.TableReference,\
         \ java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, java.lang.Long>)"
       justification: "TransactionKeyValueService API not widely used yet"
+  "0.1041.0-rc3":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.addedToInterface"
+      new: "method java.util.NavigableMap<byte[], com.palantir.atlasdb.keyvalue.api.RowResult<byte[]>>\
+        \ com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader::getRows(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.lang.Iterable<byte[]>, com.palantir.atlasdb.keyvalue.api.ColumnSelection,\
+        \ com.google.common.collect.ImmutableMap.Builder<com.palantir.atlasdb.keyvalue.api.Cell,\
+        \ byte[]>)"
+      justification: "SnapshotReader and TimestampLoader are new internal interfaces"
+    - code: "java.method.addedToInterface"
+      new: "method void com.palantir.atlasdb.transaction.api.KeyValueSnapshotEventRecorder::recordEmptyValueRead(com.palantir.atlasdb.keyvalue.api.TableReference)"
+      justification: "SnapshotReader and TimestampLoader are new internal interfaces"
+    - code: "java.method.numberOfParametersChanged"
+      old: "method com.google.common.util.concurrent.ListenableFuture<org.eclipse.collections.api.map.primitive.LongLongMap>\
+        \ com.palantir.atlasdb.transaction.api.CommitTimestampLoader::getCommitTimestamps(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ org.eclipse.collections.api.LongIterable, boolean, com.palantir.atlasdb.transaction.service.AsyncTransactionService)"
+      new: "method com.google.common.util.concurrent.ListenableFuture<org.eclipse.collections.api.map.primitive.LongLongMap>\
+        \ com.palantir.atlasdb.transaction.api.CommitTimestampLoader::getCommitTimestamps(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ org.eclipse.collections.api.LongIterable, boolean)"
+      justification: "SnapshotReader and TimestampLoader are new internal interfaces"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"
