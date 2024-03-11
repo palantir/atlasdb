@@ -25,7 +25,6 @@ import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.transaction.impl.SerializableTransaction.PartitionedTimestamps;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
-import com.palantir.atlasdb.transaction.service.TransactionService;
 import org.eclipse.collections.api.LongIterable;
 import org.eclipse.collections.api.factory.primitive.LongLongMaps;
 import org.eclipse.collections.api.factory.primitive.LongSets;
@@ -41,19 +40,16 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class ReadValidationCommitTimestampLoader implements CommitTimestampLoader {
     private final CommitTimestampLoader delegate;
-    private final TransactionService transactionService;
     private final long startTs;
     private final long commitTs;
     private final TransactionOutcomeMetrics transactionOutcomeMetrics;
 
     public ReadValidationCommitTimestampLoader(
             CommitTimestampLoader delegate,
-            TransactionService transactionService,
             long startTs,
             long commitTs,
             TransactionOutcomeMetrics transactionOutcomeMetrics) {
         this.delegate = delegate;
-        this.transactionService = transactionService;
         this.startTs = startTs;
         this.commitTs = commitTs;
         this.transactionOutcomeMetrics = transactionOutcomeMetrics;
@@ -85,7 +81,7 @@ public final class ReadValidationCommitTimestampLoader implements CommitTimestam
     }
 
     private ListenableFuture<LongLongMap> getCommitTimestampsForTransactionsStartedAfterMe(
-            TableReference tableRef, LongSet startTimestamps) {
+            @Nullable TableReference tableRef, LongSet startTimestamps) {
         if (startTimestamps.isEmpty()) {
             return Futures.immediateFuture(LongLongMaps.immutable.empty());
         }

@@ -938,7 +938,6 @@ public class SerializableTransaction extends SnapshotTransaction {
                 knowledge,
                 new ReadValidationCommitTimestampLoader(
                         commitTimestampLoader,
-                        defaultTransactionService,
                         getTimestamp(),
                         commitTs,
                         transactionOutcomeMetrics)) {
