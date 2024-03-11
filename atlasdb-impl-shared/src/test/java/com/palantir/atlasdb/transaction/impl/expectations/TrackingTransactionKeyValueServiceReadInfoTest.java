@@ -166,8 +166,7 @@ public final class TrackingTransactionKeyValueServiceReadInfoTest {
         trackingKvs
                 .getRowsColumnRange(tableReference, rows, batchColumnRangeSelection, TIMESTAMP)
                 .values()
-                .forEach(iterator -> iterator.forEachRemaining(_unused -> {
-                }));
+                .forEach(iterator -> iterator.forEachRemaining(_unused -> {}));
 
         validateReadInfoForLazyRead(size);
     }
@@ -184,8 +183,7 @@ public final class TrackingTransactionKeyValueServiceReadInfoTest {
 
         trackingKvs
                 .getRowsColumnRange(tableReference, rows, columnRangeSelection, cellBatchHint, TIMESTAMP)
-                .forEachRemaining(_unused -> {
-                });
+                .forEachRemaining(_unused -> {});
 
         validateReadInfoForLazyRead(size);
     }
@@ -213,8 +211,7 @@ public final class TrackingTransactionKeyValueServiceReadInfoTest {
         when(tkvs.getRange(tableReference, rangeRequest, TIMESTAMP))
                 .thenReturn(ClosableIterators.wrapWithEmptyClose(backingValueRowResultListOfSize.iterator()));
 
-        trackingKvs.getRange(tableReference, rangeRequest, TIMESTAMP).forEachRemaining(_unused -> {
-        });
+        trackingKvs.getRange(tableReference, rangeRequest, TIMESTAMP).forEachRemaining(_unused -> {});
 
         validateReadInfoForLazyRead(size);
     }
