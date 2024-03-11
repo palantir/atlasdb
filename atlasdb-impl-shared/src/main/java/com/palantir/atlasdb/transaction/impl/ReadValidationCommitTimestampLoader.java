@@ -105,10 +105,8 @@ public final class ReadValidationCommitTimestampLoader implements CommitTimestam
                     // than needed to break the deadlock cycle, but this should be pretty rare.
                     transactionOutcomeMetrics.markReadWriteConflict(tableRef);
                     throw new TransactionSerializableConflictException(
-                            "An uncommitted conflicting read was "
-                                    + "written after our start timestamp for table "
-                                    + tableRef + ".  "
-                                    + "This case can cause deadlock and is very likely to be a "
+                            "An uncommitted conflicting read was written after our start timestamp for table "
+                                    + tableRef + ".  This case can cause deadlock and is very likely to be a "
                                     + "read write conflict.",
                             tableRef);
                 },
