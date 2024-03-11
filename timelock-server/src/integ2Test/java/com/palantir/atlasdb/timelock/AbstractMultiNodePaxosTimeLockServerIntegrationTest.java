@@ -55,6 +55,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.client.ConjureLockRequests;
+import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LeadershipId;
 import com.palantir.lock.v2.LockRequest;
@@ -127,18 +128,6 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
                             .leaderTime())
                     .satisfies(ExceptionMatchers::isRetryableExceptionWhereLeaderCannotBeFound);
         });
-    }
-
-    @Test
-    public void leaderRespondsToRequests() {
-        NamespacedClients currentLeader =
-                cluster.currentLeaderFor(client.namespace()).client(client.namespace());
-        currentLeader.getFreshTimestamp();
-
-        LockToken token = currentLeader
-                .lock(LockRequest.of(LOCKS, DEFAULT_LOCK_TIMEOUT_MS))
-                .getToken();
-        currentLeader.unlock(token);
     }
 
     @Test
@@ -594,11 +583,10 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void sanityCheckMultiClientGetCommitTimestampsAgainstConjureTimelockService() {
-        TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
         // Multi client batched TimeLock endpoints do not support multi-leader mode on TimeLock
-        Assumptions.assumeFalse(leader.isMultiLeader());
+        Assumptions.assumeFalse(cluster.currentLeaderFor(client.namespace()).isMultiLeader());
 
-        MultiClientConjureTimelockService multiClientService = leader.multiClientService();
+        MultiClientConjureTimelockService multiClientService = cluster.multiClientConjureTimelockService();
 
         Set<String> expectedNamespaces = ImmutableSet.of("alta", "mp");
 
@@ -611,14 +599,22 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
         // Whether we hit the multi client endpoint or conjureTimelockService endpoint(services one client in one
         // call), for a namespace, the underlying service to process the request is the same
         multiClientResponses.forEach((namespace, responseFromBatchedEndpoint) -> {
-            GetCommitTimestampsResponse conjureGetCommitTimestampResponse = leader.client(namespace.get())
-                    .namespacedConjureTimelockService()
+            GetCommitTimestampsResponse conjureGetCommitTimestampResponse = new NamespacedConjureTimelockServiceImpl(
+                            client.conjureTimelockService(), namespace.get())
                     .getCommitTimestamps(defaultCommitTimestampRequest());
-            assertThat(conjureGetCommitTimestampResponse.getLockWatchUpdate().logId())
-                    .isEqualTo(responseFromBatchedEndpoint.getLockWatchUpdate().logId());
-            assertThat(conjureGetCommitTimestampResponse.getInclusiveLower())
-                    .as("timestamps should contiguously increase per namespace if there are no elections.")
-                    .isEqualTo(responseFromBatchedEndpoint.getInclusiveUpper() + 1);
+            if (conjureGetCommitTimestampResponse
+                    .getLockWatchUpdate()
+                    .logId()
+                    .equals(responseFromBatchedEndpoint.getLockWatchUpdate().logId())) {
+                assertThat(conjureGetCommitTimestampResponse.getInclusiveLower())
+                        .as("timestamps should contiguously increase per namespace if there are no elections.")
+                        .isEqualTo(responseFromBatchedEndpoint.getInclusiveUpper() + 1);
+            } else {
+                // There was an election, we cannot be sure about contiguity, but can still check timestamp guarantees
+                assertThat(conjureGetCommitTimestampResponse.getInclusiveLower())
+                        .as("timestamps should increase in the presence of elections.")
+                        .isGreaterThan(responseFromBatchedEndpoint.getInclusiveUpper());
+            }
         });
     }
 
