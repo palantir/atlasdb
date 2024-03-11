@@ -42,7 +42,6 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -113,13 +112,9 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-import org.eclipse.collections.api.LongIterable;
 import org.eclipse.collections.api.factory.primitive.LongLongMaps;
-import org.eclipse.collections.api.factory.primitive.LongSets;
 import org.eclipse.collections.api.map.primitive.LongLongMap;
-import org.eclipse.collections.api.map.primitive.MutableLongLongMap;
 import org.eclipse.collections.api.set.primitive.LongSet;
-import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.immutables.value.Value;
 
 /**
@@ -941,93 +936,15 @@ public class SerializableTransaction extends SnapshotTransaction {
                 conflictTracer,
                 tableLevelMetricsController,
                 knowledge,
-                // TODO (jkong): Remove when extracting a custom read-only commit timestamp loader
-                commitTimestampLoader) {
+                new ReadValidationCommitTimestampLoader(
+                        commitTimestampLoader,
+                        defaultTransactionService,
+                        getTimestamp(),
+                        commitTs,
+                        transactionOutcomeMetrics)) {
             @Override
             protected TransactionScopedCache getCache() {
                 return lockWatchManager.getReadOnlyTransactionScopedCache(SerializableTransaction.this.getTimestamp());
-            }
-
-            @Override
-            protected ListenableFuture<LongLongMap> getCommitTimestamps(
-                    TableReference tableRef, LongIterable startTimestamps, boolean shouldWaitForCommitterToComplete) {
-                long myStart = SerializableTransaction.this.getTimestamp();
-                PartitionedTimestamps partitionedTimestamps = splitTransactionBeforeAndAfter(myStart, startTimestamps);
-
-                ListenableFuture<LongLongMap> postStartCommitTimestamps =
-                        getCommitTimestampsForTransactionsStartedAfterMe(tableRef, partitionedTimestamps.afterStart());
-
-                // We are ok to block here because if there is a cycle of transactions that could result in a deadlock,
-                // then at least one of them will be in the ab
-                ListenableFuture<LongLongMap> preStartCommitTimestamps = super.getCommitTimestamps(
-                        tableRef, partitionedTimestamps.beforeStart(), shouldWaitForCommitterToComplete);
-
-                return Futures.whenAllComplete(postStartCommitTimestamps, preStartCommitTimestamps)
-                        .call(
-                                () -> {
-                                    MutableLongLongMap map = LongLongMaps.mutable.withAll(
-                                            AtlasFutures.getDone(preStartCommitTimestamps));
-                                    map.putAll(AtlasFutures.getDone(postStartCommitTimestamps));
-                                    map.putAll(partitionedTimestamps.myCommittedTransaction());
-                                    return map.toImmutable();
-                                },
-                                MoreExecutors.directExecutor());
-            }
-
-            private ListenableFuture<LongLongMap> getCommitTimestampsForTransactionsStartedAfterMe(
-                    TableReference tableRef, LongSet startTimestamps) {
-                if (startTimestamps.isEmpty()) {
-                    return Futures.immediateFuture(LongLongMaps.immutable.empty());
-                }
-
-                return Futures.transform(
-                        // We do not block when waiting for results that were written after our start timestamp.
-                        // If we block here it may lead to deadlock if two transactions (or a cycle of any length) have
-                        // all written their data and all doing checks before committing.
-                        super.getCommitTimestamps(tableRef, startTimestamps, false),
-                        startToCommitTimestamps -> {
-                            if (startToCommitTimestamps.keySet().containsAll(startTimestamps)) {
-                                return startToCommitTimestamps;
-                            }
-                            // If we do not get back all these results we may be in the deadlock case so we
-                            // should just fail out early.  It may be the case that abort more transactions
-                            // than needed to break the deadlock cycle, but this should be pretty rare.
-                            transactionOutcomeMetrics.markReadWriteConflict(tableRef);
-                            throw new TransactionSerializableConflictException(
-                                    "An uncommitted conflicting read was "
-                                            + "written after our start timestamp for table "
-                                            + tableRef + ".  "
-                                            + "This case can cause deadlock and is very likely to be a "
-                                            + "read write conflict.",
-                                    tableRef);
-                        },
-                        MoreExecutors.directExecutor());
-            }
-
-            /**
-             * Partitions {@code startTimestamps} in two sets, based on their relation to the start timestamp provided.
-             *
-             * @param myStart start timestamp of this transaction
-             * @param startTimestamps of transactions we are interested in
-             * @return a {@link PartitionedTimestamps} object containing split timestamps
-             */
-            private PartitionedTimestamps splitTransactionBeforeAndAfter(long myStart, LongIterable startTimestamps) {
-                ImmutablePartitionedTimestamps.Builder builder =
-                        ImmutablePartitionedTimestamps.builder().myCommitTimestamp(commitTs);
-                MutableLongSet beforeStart = LongSets.mutable.empty();
-                MutableLongSet afterStart = LongSets.mutable.empty();
-                startTimestamps.forEach(startTimestamp -> {
-                    if (startTimestamp == myStart) {
-                        builder.splittingStartTimestamp(myStart);
-                    } else if (startTimestamp < myStart) {
-                        beforeStart.add(startTimestamp);
-                    } else {
-                        afterStart.add(startTimestamp);
-                    }
-                });
-                builder.beforeStart(beforeStart.asUnmodifiable());
-                builder.afterStart(afterStart.asUnmodifiable());
-                return builder.build();
             }
         };
     }
