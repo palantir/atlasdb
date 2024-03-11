@@ -1,4 +1,11 @@
 acceptedBreaks:
+  "0.1023.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.numberOfParametersChanged"
+      old: "method void com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException::<init>(java.util.List<java.lang.Exception>)"
+      new: "method void com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException::<init>(java.util.List<java.lang.Exception>,\
+        \ java.util.Map<java.lang.String, java.lang.Integer>)"
+      justification: "Remove unused exception constructor"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"

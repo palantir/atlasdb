@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
@@ -32,13 +31,6 @@ public class RetryLimitReachedException extends AtlasDbDependencyException imple
 
     private final int numRetries;
     private final Map<String, Integer> hostsTried;
-
-    public RetryLimitReachedException(List<Exception> exceptions) {
-        super(MESSAGE);
-        exceptions.forEach(this::addSuppressed);
-        this.numRetries = exceptions.size();
-        this.hostsTried = ImmutableMap.of();
-    }
 
     public RetryLimitReachedException(List<Exception> exceptions, Map<String, Integer> hostsTried) {
         super(MESSAGE);
