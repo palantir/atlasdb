@@ -65,8 +65,13 @@ public final class ReadValidationCommitTimestampLoader implements CommitTimestam
 
         // We are ok to block here because if there is a cycle of transactions that could result in a deadlock,
         // then at least one of them will be in the ab
-        ListenableFuture<LongLongMap> preStartCommitTimestamps = delegate.getCommitTimestamps(
-                tableRef, partitionedTimestamps.beforeStart(), shouldWaitForCommitterToComplete);
+        ListenableFuture<LongLongMap> preStartCommitTimestamps;
+        if (partitionedTimestamps.beforeStart().isEmpty()) {
+            preStartCommitTimestamps = Futures.immediateFuture(LongLongMaps.immutable.empty());
+        } else {
+            preStartCommitTimestamps = delegate.getCommitTimestamps(
+                    tableRef, partitionedTimestamps.beforeStart(), shouldWaitForCommitterToComplete);
+        }
 
         return Futures.whenAllComplete(postStartCommitTimestamps, preStartCommitTimestamps)
                 .call(

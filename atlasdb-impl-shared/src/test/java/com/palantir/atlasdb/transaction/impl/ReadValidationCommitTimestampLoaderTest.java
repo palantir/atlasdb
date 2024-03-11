@@ -16,8 +16,12 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -27,13 +31,17 @@ import com.palantir.atlasdb.transaction.impl.metrics.TransactionMetrics;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import java.util.concurrent.ExecutionException;
 import org.eclipse.collections.api.LongIterable;
+import org.eclipse.collections.api.factory.primitive.LongLists;
+import org.eclipse.collections.api.list.primitive.LongList;
 import org.eclipse.collections.api.map.primitive.LongLongMap;
 import org.eclipse.collections.api.map.primitive.MutableLongLongMap;
 import org.eclipse.collections.impl.factory.primitive.LongLongMaps;
 import org.eclipse.collections.impl.factory.primitive.LongSets;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -47,8 +55,7 @@ public final class ReadValidationCommitTimestampLoaderTest {
     private static final long BETWEEN_START_AND_COMMIT_2 = 175L;
     private static final long AFTER_COMMIT = 250L;
 
-    private final LongLongMap committedTransactions = LongLongMaps.mutable.empty();
-
+    private final MutableLongLongMap committedTransactions = LongLongMaps.mutable.empty();
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
@@ -64,31 +71,112 @@ public final class ReadValidationCommitTimestampLoaderTest {
                 START_TS,
                 COMMIT_TS,
                 TransactionOutcomeMetrics.create(
-                        TransactionMetrics.of(metricsManager.getTaggedRegistry()),
-                        metricsManager.getTaggedRegistry()));
+                        TransactionMetrics.of(metricsManager.getTaggedRegistry()), metricsManager.getTaggedRegistry()));
+    }
+
+    @Test
+    public void returnsNothingIfQueriedForNothing() throws ExecutionException, InterruptedException {
+        LongLongMap result = commitTimestampLoader
+                .getCommitTimestamps(null, LongSets.immutable.empty(), false)
+                .get();
+
+        assertThat(result).isEqualTo(LongLongMaps.immutable.empty());
+        verifyNoInteractions(delegateCommitTimestampLoader);
+    }
+
+    @Test
+    public void returnsOurCommitTimestampIfQueriedForOurStart() throws ExecutionException, InterruptedException {
+        LongLongMap result = commitTimestampLoader
+                .getCommitTimestamps(null, LongSets.immutable.of(START_TS), false)
+                .get();
+
+        assertThat(result).isEqualTo(LongLongMaps.immutable.of(START_TS, COMMIT_TS));
+        verifyNoInteractions(delegateCommitTimestampLoader);
     }
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void doesNotWaitForTransactionsStartingAfterOurStart(boolean shouldWaitForCommitterToComplete) {
-        commitTimestampLoader.getCommitTimestamps(
-                null, LongSets.immutable.of(BEFORE_START_1, BEFORE_START_2), shouldWaitForCommitterToComplete);
+    public void waitsForTransactionsStartingBeforeOurStartDependingOnArgument(boolean shouldWaitForCommitterToComplete)
+            throws ExecutionException, InterruptedException {
+        committedTransactions.put(BEFORE_START_1, AFTER_COMMIT);
+        LongLongMap result = commitTimestampLoader
+                .getCommitTimestamps(null, LongSets.immutable.of(BEFORE_START_1), shouldWaitForCommitterToComplete)
+                .get();
 
-        verifyNoInteractions(delegateCommitTimestampLoader);
+        assertThat(result).isEqualTo(LongLongMaps.immutable.of(BEFORE_START_1, AFTER_COMMIT));
+        verify(delegateCommitTimestampLoader)
+                .getCommitTimestamps(
+                        eq(null), eq(LongSets.immutable.of(BEFORE_START_1)), eq(shouldWaitForCommitterToComplete));
+        verifyNoMoreInteractions(delegateCommitTimestampLoader);
     }
 
-    private class MemoryCommitTimestampLoader implements CommitTimestampLoader {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void doesNotWaitForTransactionsStartingAfterOurStart(boolean shouldWaitForCommitterToComplete)
+            throws ExecutionException, InterruptedException {
+        committedTransactions.put(BETWEEN_START_AND_COMMIT_1, BETWEEN_START_AND_COMMIT_2);
+        LongLongMap result = commitTimestampLoader
+                .getCommitTimestamps(
+                        null, LongSets.immutable.of(BETWEEN_START_AND_COMMIT_1), shouldWaitForCommitterToComplete)
+                .get();
+
+        assertThat(result).isEqualTo(LongLongMaps.immutable.of(BETWEEN_START_AND_COMMIT_1, BETWEEN_START_AND_COMMIT_2));
+        verify(delegateCommitTimestampLoader)
+                .getCommitTimestamps(eq(null), eq(LongSets.immutable.of(BETWEEN_START_AND_COMMIT_1)), eq(false));
+        verifyNoMoreInteractions(delegateCommitTimestampLoader);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void delegatesCallsToAppropriateRangesAndCombinesResults(boolean shouldWaitForCommitterToComplete)
+            throws ExecutionException, InterruptedException {
+        LongList startTimestamps = LongLists.immutable.of(
+                BEFORE_START_1,
+                BEFORE_START_2,
+                START_TS,
+                BETWEEN_START_AND_COMMIT_1,
+                BETWEEN_START_AND_COMMIT_2,
+                AFTER_COMMIT);
+        startTimestamps.forEach(startTimestamp -> {
+            committedTransactions.put(startTimestamp, startTimestamp + 42);
+        });
+
+        LongLongMap result = commitTimestampLoader
+                .getCommitTimestamps(null, startTimestamps, shouldWaitForCommitterToComplete)
+                .get();
+
+        assertThat(result).satisfies(startToCommitMap -> {
+            assertThat(startToCommitMap.keySet()).isEqualTo(startTimestamps.toSet());
+            startToCommitMap.forEachKeyValue((start, commit) -> {
+                long expectedCommit = start == START_TS ? COMMIT_TS : start + 42;
+                assertThat(commit).isEqualTo(expectedCommit);
+            });
+        });
+        verify(delegateCommitTimestampLoader)
+                .getCommitTimestamps(
+                        eq(null),
+                        eq(LongSets.immutable.of(BEFORE_START_1, BEFORE_START_2)),
+                        eq(shouldWaitForCommitterToComplete));
+        verify(delegateCommitTimestampLoader)
+                .getCommitTimestamps(
+                        eq(null),
+                        eq(LongSets.immutable.of(BETWEEN_START_AND_COMMIT_1, BETWEEN_START_AND_COMMIT_2, AFTER_COMMIT)),
+                        eq(false));
+        verifyNoMoreInteractions(delegateCommitTimestampLoader);
+    }
+
+    private final class MemoryCommitTimestampLoader implements CommitTimestampLoader {
         @Override
-        public ListenableFuture<LongLongMap> getCommitTimestamps(@Nullable TableReference tableRef, LongIterable startTimestamps, boolean shouldWaitForCommitterToComplete) {
+        public ListenableFuture<LongLongMap> getCommitTimestamps(
+                @Nullable TableReference tableRef,
+                LongIterable startTimestamps,
+                boolean shouldWaitForCommitterToComplete) {
             MutableLongLongMap result = LongLongMaps.mutable.empty();
-            startTimestamps.forEach(
-                    startTimestamp -> {
-                        if (committedTransactions.containsKey(startTimestamp)) {
-                            result.put(startTimestamp, committedTransactions.get(startTimestamp));
-                        }
-                        // else it is not committed
-                    }
-            );
+            startTimestamps.forEach(startTimestamp -> {
+                if (committedTransactions.containsKey(startTimestamp)) {
+                    result.put(startTimestamp, committedTransactions.get(startTimestamp));
+                }
+            });
             return Futures.immediateFuture(result);
         }
     }
