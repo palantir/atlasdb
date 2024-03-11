@@ -114,6 +114,9 @@ import com.palantir.atlasdb.transaction.impl.metrics.TransactionMetrics;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.impl.precommit.DefaultLockRefresher;
 import com.palantir.atlasdb.transaction.impl.precommit.DefaultPreCommitRequirementValidator;
+import com.palantir.atlasdb.transaction.impl.precommit.DefaultReadValidator;
+import com.palantir.atlasdb.transaction.impl.precommit.ReadValidator;
+import com.palantir.atlasdb.transaction.impl.precommit.ReadValidator.ValidationState;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -304,6 +307,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     protected final TransactionKnowledgeComponents knowledge;
     protected final PreCommitRequirementValidator preCommitRequirementValidator;
+    protected final ReadValidator readValidator;
 
     protected final Closer closer = Closer.create();
 
@@ -390,6 +394,8 @@ public class SnapshotTransaction extends AbstractTransaction
                 transactionOutcomeMetrics,
                 immutableTimestampLock,
                 new DefaultLockRefresher(timelockService));
+        this.readValidator = new DefaultReadValidator(
+                preCommitRequirementValidator, validateLocksOnReads, sweepStrategyManager, transactionConfig);
     }
 
     protected TransactionScopedCache getCache() {
@@ -834,7 +840,7 @@ public class SnapshotTransaction extends AbstractTransaction
                     protected Map.Entry<Cell, Value> computeNext() {
                         if (!peekableRawResults.hasNext()
                                 || !Arrays.equals(
-                                peekableRawResults.peek().getKey().getRowName(), nextRowName)) {
+                                        peekableRawResults.peek().getKey().getRowName(), nextRowName)) {
                             return endOfData();
                         }
                         return peekableRawResults.next();
@@ -1272,20 +1278,11 @@ public class SnapshotTransaction extends AbstractTransaction
     */
     private void validatePreCommitRequirementsOnReadIfNecessary(
             TableReference tableRef, long timestamp, boolean allPossibleCellsReadAndPresent) {
-        if (isValidationNecessaryOnReads(tableRef, allPossibleCellsReadAndPresent)) {
-            preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(null, timestamp);
-        } else if (!allPossibleCellsReadAndPresent) {
+        ReadValidator.ValidationState validationState = readValidator.throwIfPreCommitRequirementsNotMetOnRead(
+                tableRef, timestamp, allPossibleCellsReadAndPresent);
+        if (validationState.equals(ValidationState.NOT_COMPLETELY_VALIDATED)) {
             hasPossiblyUnvalidatedReads = true;
         }
-    }
-
-    private boolean isValidationNecessaryOnReads(TableReference tableRef, boolean allPossibleCellsReadAndPresent) {
-        return validateLocksOnReads && requiresImmutableTimestampLocking(tableRef, allPossibleCellsReadAndPresent);
-    }
-
-    private boolean requiresImmutableTimestampLocking(TableReference tableRef, boolean allPossibleCellsReadAndPresent) {
-        return sweepStrategyManager.get(tableRef).mustCheckImmutableLock(allPossibleCellsReadAndPresent)
-                || transactionConfig.get().lockImmutableTsOnReadOnlyTransactions();
     }
 
     private List<Map.Entry<Cell, byte[]>> getPostFilteredWithLocalWrites(
@@ -1299,7 +1296,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 postFiltered.entrySet(),
                 Predicates.compose(Predicates.in(prePostFilterCells.keySet()), MapEntries.getKeyFunction()));
         Collection<Map.Entry<Cell, byte[]>> localWritesInRange = getLocalWritesForRange(
-                tableRef, rangeRequest.getStartInclusive(), endRowExclusive, rangeRequest.getColumnNames())
+                        tableRef, rangeRequest.getStartInclusive(), endRowExclusive, rangeRequest.getColumnNames())
                 .entrySet();
         return mergeInLocalWrites(
                 tableRef, postFilteredCells.iterator(), localWritesInRange.iterator(), rangeRequest.isReverse());
@@ -1336,9 +1333,9 @@ public class SnapshotTransaction extends AbstractTransaction
             int preFilterBatchSize)
             throws K {
         try (ClosableIterator<RowResult<byte[]>> postFilterIterator =
-                     postFilterIterator(tableRef, range, preFilterBatchSize, Value.GET_VALUE)) {
+                postFilterIterator(tableRef, range, preFilterBatchSize, Value.GET_VALUE)) {
             Iterator<RowResult<byte[]>> localWritesInRange = Cells.createRowView(getLocalWritesForRange(
-                    tableRef, range.getStartInclusive(), range.getEndExclusive(), range.getColumnNames())
+                            tableRef, range.getStartInclusive(), range.getEndExclusive(), range.getColumnNames())
                     .entrySet());
             Iterator<RowResult<byte[]>> mergeIterators =
                     mergeInLocalWritesRows(postFilterIterator, localWritesInRange, range.isReverse(), tableRef);
@@ -2120,8 +2117,9 @@ public class SnapshotTransaction extends AbstractTransaction
                 // Introduced for txn4 - Prevents sweep from making progress beyond immutableTs before entries were
                 // put into the sweep queue. This ensures that sweep must process writes to the sweep queue done by
                 // this transaction before making progress.
-                traced("postSweepEnqueueLockCheck", () ->
-                        preCommitRequirementValidator.throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
+                traced(
+                        "postSweepEnqueueLockCheck",
+                        () -> preCommitRequirementValidator.throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
 
                 // Write to the key value service. We must do this before getting the commit timestamp - otherwise
                 // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
@@ -2157,12 +2155,14 @@ public class SnapshotTransaction extends AbstractTransaction
                 // handling - we should check lock validity last to ensure that sweep hasn't affected the checks.
                 timedAndTraced(
                         "userPreCommitCondition",
-                        () -> preCommitRequirementValidator.throwIfPreCommitConditionInvalidAtCommitOnWriteTransaction(writes, commitTimestamp));
+                        () -> preCommitRequirementValidator.throwIfPreCommitConditionInvalidAtCommitOnWriteTransaction(
+                                writes, commitTimestamp));
 
                 // Not timed, because this just calls ConjureTimelockServiceBlocking.refreshLockLeases, and that is
                 // timed.
-                traced("preCommitLockCheck", () ->
-                        preCommitRequirementValidator.throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
+                traced(
+                        "preCommitLockCheck",
+                        () -> preCommitRequirementValidator.throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
 
                 // Not timed, because this just calls TransactionService.putUnlessExists, and that is timed.
                 traced(
@@ -2194,7 +2194,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private <T> T timedAndTraced(String timerName, Supplier<T> supplier) {
         try (Timer.Context timer = getTimer(timerName).time();
-             CloseableTracer tracer = CloseableTracer.startSpan(timerName)) {
+                CloseableTracer tracer = CloseableTracer.startSpan(timerName)) {
             return supplier.get();
         }
     }
@@ -2206,7 +2206,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private boolean hasWrites() {
         return !localWriteBuffer.getLocalWrites().isEmpty()
                 && localWriteBuffer.getLocalWrites().values().stream()
-                .anyMatch(writesForTable -> !writesForTable.isEmpty());
+                        .anyMatch(writesForTable -> !writesForTable.isEmpty());
     }
 
     protected boolean hasReads() {
@@ -2756,7 +2756,8 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private boolean validationNecessaryForInvolvedTablesOnCommit() {
         boolean anyTableRequiresImmutableTimestampLocking = involvedTables.stream()
-                .anyMatch(tableRef -> requiresImmutableTimestampLocking(tableRef, !hasPossiblyUnvalidatedReads));
+                .anyMatch(tableRef ->
+                        readValidator.requiresImmutableTimestampLocking(tableRef, !hasPossiblyUnvalidatedReads));
         boolean needsToValidate = !validateLocksOnReads || !hasReads();
         return anyTableRequiresImmutableTimestampLocking && needsToValidate;
     }

@@ -34,7 +34,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-public class DefaultPreCommitRequirementValidator implements PreCommitRequirementValidator {
+public final class DefaultPreCommitRequirementValidator implements PreCommitRequirementValidator {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultPreCommitRequirementValidator.class);
 
     private final PreCommitCondition userPreCommitCondition;

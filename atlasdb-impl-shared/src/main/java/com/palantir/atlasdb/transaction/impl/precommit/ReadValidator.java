@@ -16,19 +16,16 @@
 
 package com.palantir.atlasdb.transaction.impl.precommit;
 
-import com.palantir.lock.v2.LockToken;
-import com.palantir.lock.v2.TimelockService;
-import java.util.Set;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-public final class DefaultLockRefresher implements LockRefresher {
-    private final TimelockService timelockService;
+public interface ReadValidator {
+    ValidationState throwIfPreCommitRequirementsNotMetOnRead(
+            TableReference tableRef, long timestamp, boolean allPossibleCellsReadAndPresent);
 
-    public DefaultLockRefresher(TimelockService timelockService) {
-        this.timelockService = timelockService;
-    }
+    boolean requiresImmutableTimestampLocking(TableReference tableRef, boolean allPossibleCellsReadAndPresent);
 
-    @Override
-    public Set<LockToken> refreshLocks(Set<LockToken> tokensToRefresh) {
-        return timelockService.refreshLockLeases(tokensToRefresh);
+    enum ValidationState {
+        COMPLETELY_VALIDATED,
+        NOT_COMPLETELY_VALIDATED
     }
 }
