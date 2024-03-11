@@ -25,6 +25,7 @@ import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.transaction.impl.SerializableTransaction.PartitionedTimestamps;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
+import javax.annotation.Nullable;
 import org.eclipse.collections.api.LongIterable;
 import org.eclipse.collections.api.factory.primitive.LongLongMaps;
 import org.eclipse.collections.api.factory.primitive.LongSets;
@@ -32,7 +33,6 @@ import org.eclipse.collections.api.map.primitive.LongLongMap;
 import org.eclipse.collections.api.map.primitive.MutableLongLongMap;
 import org.eclipse.collections.api.set.primitive.LongSet;
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Loads commit timestamps for read validation, considering a simulated state of the world where the serializable
