@@ -129,7 +129,7 @@ public final class DefaultCommitTimestampLoader implements CommitTimestampLoader
         }
 
         return Futures.transform(
-                loadCommitTimestamps(transactionService, pendingGets),
+                loadCommitTimestamps(pendingGets),
                 rawResults -> {
                     LongLongMap loadedCommitTs = cacheKnownLoadedValuesAndValidate(rawResults);
                     result.putAll(loadedCommitTs);
@@ -226,8 +226,7 @@ public final class DefaultCommitTimestampLoader implements CommitTimestampLoader
         return metricsManager.registerOrGetTimer(DefaultCommitTimestampLoader.class, name);
     }
 
-    private static ListenableFuture<Map<Long, TransactionStatus>> loadCommitTimestamps(
-            TransactionService transactionService, LongSet startTimestamps) {
+    private ListenableFuture<Map<Long, TransactionStatus>> loadCommitTimestamps(LongSet startTimestamps) {
         // distinguish between a single timestamp and a batch, for more granular metrics
         if (startTimestamps.size() == 1) {
             long singleTs = startTimestamps.longIterator().next();

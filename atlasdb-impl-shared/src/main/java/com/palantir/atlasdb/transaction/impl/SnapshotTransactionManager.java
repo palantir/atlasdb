@@ -308,6 +308,7 @@ import java.util.stream.Collectors;
             LongSupplier startTimestampSupplier,
             LockToken immutableTsLock,
             PreCommitCondition condition) {
+        Optional<LockToken> immutableTimestampLock = Optional.of(immutableTsLock);
         return new SnapshotTransaction(
                 metricsManager,
                 transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
@@ -319,7 +320,7 @@ import java.util.stream.Collectors;
                 conflictDetectionManager,
                 sweepStrategyManager,
                 immutableTimestamp,
-                Optional.of(immutableTsLock),
+                immutableTimestampLock,
                 condition,
                 constraintModeSupplier.get(),
                 cleaner.getTransactionReadTimeoutMillis(),
@@ -336,7 +337,7 @@ import java.util.stream.Collectors;
                 tableLevelMetricsController,
                 knowledge,
                 commitTimestampLoaderFactory.createCommitTimestampLoader(
-                        startTimestampSupplier, immutableTimestamp, Optional.of(immutableTsLock)));
+                        startTimestampSupplier, immutableTimestamp, immutableTimestampLock));
     }
 
     @Override
@@ -354,6 +355,7 @@ import java.util.stream.Collectors;
         checkOpen();
         long immutableTs = getApproximateImmutableTimestamp();
         LongSupplier startTimestampSupplier = getStartTimestampSupplier();
+        Optional<LockToken> immutableTimestampLock = Optional.empty();
         SnapshotTransaction transaction = new SnapshotTransaction(
                 metricsManager,
                 transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
@@ -365,7 +367,7 @@ import java.util.stream.Collectors;
                 conflictDetectionManager,
                 sweepStrategyManager,
                 immutableTs,
-                Optional.empty(),
+                immutableTimestampLock,
                 condition,
                 constraintModeSupplier.get(),
                 cleaner.getTransactionReadTimeoutMillis(),
@@ -382,7 +384,7 @@ import java.util.stream.Collectors;
                 tableLevelMetricsController,
                 knowledge,
                 commitTimestampLoaderFactory.createCommitTimestampLoader(
-                        startTimestampSupplier, immutableTs, Optional.empty()));
+                        startTimestampSupplier, immutableTs, immutableTimestampLock));
         return runTaskThrowOnConflictWithCallback(
                 txn -> task.execute(txn, condition),
                 new ReadTransaction(transaction, sweepStrategyManager),

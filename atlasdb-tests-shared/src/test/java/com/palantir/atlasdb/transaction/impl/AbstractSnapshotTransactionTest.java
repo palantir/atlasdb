@@ -3318,7 +3318,6 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
             LockImmutableTimestampResponse res,
             LockWatchManagerInternal mockLockWatchManager,
             PathTypeTracker pathTypeTracker) {
-        long immutableTimestamp = res.getImmutableTimestamp();
         LongSupplier startTimestampSupplier = Suppliers.ofInstance(transactionTs)::get;
         TransactionKeyValueService wrappedTransactionKeyValueService = transactionKeyValueServiceWrapper.apply(
                 txnKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier), pathTypeTracker);
@@ -3352,8 +3351,9 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 ConflictTracer.NO_OP,
                 tableLevelMetricsController,
                 knowledge,
+                // For tests this is fine - this keeps a reference to res, which is strictly speaking inefficient.
                 createCommitTimestampLoader(
-                        transactionTs, () -> immutableTimestamp, Optional.of(res.getLock()), timelockService));
+                        transactionTs, res::getImmutableTimestamp, Optional.of(res.getLock()), timelockService));
     }
 
     private Transaction getSnapshotTransactionWith(

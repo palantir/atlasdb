@@ -68,7 +68,6 @@ import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsa
 import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
-import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.ByteArrayUtilities;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -956,8 +955,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 PartitionedTimestamps partitionedTimestamps = splitTransactionBeforeAndAfter(myStart, startTimestamps);
 
                 ListenableFuture<LongLongMap> postStartCommitTimestamps =
-                        getCommitTimestampsForTransactionsStartedAfterMe(
-                                tableRef, defaultTransactionService, partitionedTimestamps.afterStart());
+                        getCommitTimestampsForTransactionsStartedAfterMe(tableRef, partitionedTimestamps.afterStart());
 
                 // We are ok to block here because if there is a cycle of transactions that could result in a deadlock,
                 // then at least one of them will be in the ab
@@ -977,7 +975,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             }
 
             private ListenableFuture<LongLongMap> getCommitTimestampsForTransactionsStartedAfterMe(
-                    TableReference tableRef, AsyncTransactionService asyncTransactionService, LongSet startTimestamps) {
+                    TableReference tableRef, LongSet startTimestamps) {
                 if (startTimestamps.isEmpty()) {
                     return Futures.immediateFuture(LongLongMaps.immutable.empty());
                 }
