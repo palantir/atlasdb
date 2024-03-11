@@ -20,7 +20,6 @@ import com.google.common.collect.Iterables;
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
-import com.palantir.atlasdb.keyvalue.impl.ImmutableCheckAndSetResult;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.cassandra.thrift.Column;
@@ -39,7 +38,7 @@ final class CheckAndSetResponseDecoder {
 
     static CheckAndSetResult<ByteString> decodeCqlResult(CqlResult cqlResult) {
         CqlRow resultRow = Iterables.getOnlyElement(cqlResult.getRows());
-        return ImmutableCheckAndSetResult.of(isResultSuccessful(resultRow), existingValues(resultRow));
+        return CheckAndSetResult.of(isResultSuccessful(resultRow), existingValues(resultRow));
     }
 
     private static boolean isResultSuccessful(CqlRow cqlRow) {

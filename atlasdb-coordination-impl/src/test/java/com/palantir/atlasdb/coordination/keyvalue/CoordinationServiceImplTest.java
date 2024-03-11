@@ -24,13 +24,11 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.coordination.CoordinationServiceImpl;
 import com.palantir.atlasdb.coordination.CoordinationStore;
+import com.palantir.atlasdb.coordination.TransformResult;
 import com.palantir.atlasdb.coordination.ValueAndBound;
-import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.common.concurrent.PTExecutors;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
@@ -89,17 +87,17 @@ public class CoordinationServiceImplTest {
     @Test
     public void delegatesTransformationToStore() {
         when(coordinationStore.transformAgreedValue(any()))
-                .thenReturn(CheckAndSetResult.of(true, ImmutableList.of(STRING_AND_ONE_HUNDRED)));
-        CheckAndSetResult<ValueAndBound<String>> casResult =
+                .thenReturn(TransformResult.of(true, STRING_AND_ONE_HUNDRED));
+        TransformResult<ValueAndBound<String>> casResult =
                 stringCoordinationService.tryTransformCurrentValue(unused -> STRING);
         assertThat(casResult.successful()).isTrue();
-        assertThat(Iterables.getOnlyElement(casResult.existingValues())).isEqualTo(STRING_AND_ONE_HUNDRED);
+        assertThat(casResult.value()).isEqualTo(STRING_AND_ONE_HUNDRED);
     }
 
     @Test
     public void successfulUpdateUpdatesCache() {
         when(coordinationStore.transformAgreedValue(any()))
-                .thenReturn(CheckAndSetResult.of(true, ImmutableList.of(STRING_AND_ONE_HUNDRED)));
+                .thenReturn(TransformResult.of(true, STRING_AND_ONE_HUNDRED));
         stringCoordinationService.tryTransformCurrentValue(unused -> STRING);
         stringCoordinationService.getValueForTimestamp(56);
         stringCoordinationService.getValueForTimestamp(88);
@@ -109,7 +107,7 @@ public class CoordinationServiceImplTest {
     @Test
     public void failedUpdateUpdatesCache() {
         when(coordinationStore.transformAgreedValue(any()))
-                .thenReturn(CheckAndSetResult.of(false, ImmutableList.of(STRING_AND_ONE_HUNDRED)));
+                .thenReturn(TransformResult.of(false, STRING_AND_ONE_HUNDRED));
         stringCoordinationService.tryTransformCurrentValue(unused -> STRING);
         stringCoordinationService.getValueForTimestamp(56);
         stringCoordinationService.getValueForTimestamp(88);

@@ -17,11 +17,13 @@ package com.palantir.atlasdb.config;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.annotations.Beta;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.compact.CompactorConfig;
 import com.palantir.atlasdb.internalschema.ImmutableInternalSchemaRuntimeConfig;
 import com.palantir.atlasdb.internalschema.InternalSchemaRuntimeConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
+import com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.stream.StreamStorePersistenceConfiguration;
 import com.palantir.atlasdb.stream.StreamStorePersistenceConfigurations;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
@@ -90,6 +92,9 @@ public abstract class AtlasDbRuntimeConfig {
     }
 
     public abstract Optional<KeyValueServiceRuntimeConfig> keyValueService();
+
+    @Beta
+    public abstract Optional<TransactionKeyValueServiceRuntimeConfig> transactionKeyValueService();
 
     /**
      * Runtime live-reloadable parameters for communicating with TimeLock.

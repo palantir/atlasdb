@@ -29,6 +29,7 @@ import com.google.common.hash.Hashing;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.timelock.NamespacedClients.ProxyFactory;
+import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.atlasdb.timelock.util.TestProxies.ProxyMode;
@@ -276,6 +277,10 @@ public class TestableTimelockCluster implements BeforeAllCallback, AfterAllCallb
 
     NamespacedClients uncachedNamespacedClients(String namespace) {
         return NamespacedClients.from(namespace, proxyFactory);
+    }
+
+    MultiClientConjureTimelockService multiClientConjureTimelockService() {
+        return proxyFactory.createProxy(MultiClientConjureTimelockService.class, ProxyMode.DIRECT);
     }
 
     private static final class FailoverProxyFactory implements ProxyFactory {

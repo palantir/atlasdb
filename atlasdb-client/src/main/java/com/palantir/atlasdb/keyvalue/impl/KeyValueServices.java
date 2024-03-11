@@ -24,7 +24,8 @@ import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
+import com.palantir.atlasdb.cell.api.AutoDelegate_TransactionKeyValueService;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -213,22 +214,23 @@ public final class KeyValueServices {
     }
 
     /**
-     * Constructs an {@link AsyncKeyValueService} such that methods are blocking and return immediate futures.
+     * Constructs an {@link TransactionKeyValueService} such that methods are blocking and return immediate futures.
      *
-     * @param keyValueService on which to call synchronous requests
-     * @return {@link AsyncKeyValueService} which delegates to synchronous methods
+     * @param transactionKeyValueService on which to call synchronous requests
+     * @return {@link TransactionKeyValueService} which delegates to synchronous methods
      */
-    public static AsyncKeyValueService synchronousAsAsyncKeyValueService(KeyValueService keyValueService) {
-        return new AsyncKeyValueService() {
+    public static TransactionKeyValueService synchronousAsAsyncTransactionKeyValueService(
+            TransactionKeyValueService transactionKeyValueService) {
+        return new AutoDelegate_TransactionKeyValueService() {
             @Override
-            public ListenableFuture<Map<Cell, Value>> getAsync(
-                    TableReference tableRef, Map<Cell, Long> timestampByCell) {
-                return Futures.immediateFuture(keyValueService.get(tableRef, timestampByCell));
+            public TransactionKeyValueService delegate() {
+                return transactionKeyValueService;
             }
 
             @Override
-            public void close() {
-                // NoOp
+            public ListenableFuture<Map<Cell, Value>> getAsync(
+                    TableReference tableRef, Map<Cell, Long> timestampByCell) {
+                return Futures.immediateFuture(transactionKeyValueService.get(tableRef, timestampByCell));
             }
         };
     }

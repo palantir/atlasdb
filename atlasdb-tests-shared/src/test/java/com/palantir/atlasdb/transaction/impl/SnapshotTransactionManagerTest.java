@@ -31,10 +31,12 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -57,13 +59,15 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.mockito.InOrder;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 public class SnapshotTransactionManagerTest {
     private static final String SETUP_TASK_METRIC_NAME =
             SnapshotTransactionManager.class.getCanonicalName() + ".setupTask";
@@ -74,8 +78,13 @@ public class SnapshotTransactionManagerTest {
     private final Cleaner cleaner = mock(Cleaner.class);
     private final KeyValueService keyValueService = mock(KeyValueService.class);
 
+    private final TransactionKeyValueServiceManager transactionKeyValueServiceManager =
+            new DelegatingTransactionKeyValueServiceManager(keyValueService);
+
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
-    private final ExecutorService deleteExecutor = Executors.newSingleThreadExecutor();
+
+    @Mock
+    private DeleteExecutor deleteExecutor;
 
     @RegisterExtension
     public static InMemoryTimelockClassExtension inMemoryTimelockClassExtension = new InMemoryTimelockClassExtension();
@@ -91,7 +100,7 @@ public class SnapshotTransactionManagerTest {
         timestampService = inMemoryTimelockClassExtension.getManagedTimestampService();
         snapshotTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
-                keyValueService,
+                transactionKeyValueServiceManager,
                 inMemoryTimelockClassExtension.getLegacyTimelockService(),
                 NoOpLockWatchManager.create(),
                 timestampService,
@@ -141,14 +150,14 @@ public class SnapshotTransactionManagerTest {
     @Test
     public void closesDeleteExecutorOnClosingTransactionManager() {
         snapshotTransactionManager.close();
-        assertThat(deleteExecutor.isTerminated()).isTrue();
+        verify(deleteExecutor, times(1)).close();
     }
 
     @Test
     public void canCloseTransactionManagerWithNonCloseableLockService() {
         SnapshotTransactionManager newTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
-                keyValueService,
+                transactionKeyValueServiceManager,
                 inMemoryTimelockClassExtension.getLegacyTimelockService(),
                 NoOpLockWatchManager.create(),
                 inMemoryTimelockClassExtension.getManagedTimestampService(),
@@ -292,7 +301,7 @@ public class SnapshotTransactionManagerTest {
             TimelockService timelockService, boolean grabImmutableTsLockOnReads) {
         return new SnapshotTransactionManager(
                 metricsManager,
-                keyValueService,
+                transactionKeyValueServiceManager,
                 timelockService,
                 NoOpLockWatchManager.create(),
                 timestampService,

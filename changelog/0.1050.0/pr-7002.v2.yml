@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: One of the flaky tests has been removed as its behaviour (the leader
+    services requests) is indirectly tested by many other nodes. The other was changed
+    to handle a leader election. Generally these 2 flakes relate to check then act
+    problems for which node of timelock the leader is.
+  links:
+  - https://github.com/palantir/atlasdb/pull/7002

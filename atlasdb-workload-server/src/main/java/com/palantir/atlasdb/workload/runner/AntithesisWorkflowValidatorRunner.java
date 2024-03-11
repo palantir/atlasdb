@@ -32,6 +32,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public final class AntithesisWorkflowValidatorRunner implements WorkflowValidatorRunner<Workflow> {
@@ -42,12 +43,15 @@ public final class AntithesisWorkflowValidatorRunner implements WorkflowValidato
         this.workflowRunner = workflowRunner;
     }
 
+    // The only reason this receives a supplier, is that we need to start faults before actually selecting the
+    // workflows. Otherwise, Antithesis fuzzer cannot appropriately branch before we select the workflows and we'll end
+    // up always running the same one, rather than trying all of them.
     @Override
-    public void run(List<WorkflowAndInvariants<Workflow>> workflowAndInvariants) {
+    public void run(Supplier<List<WorkflowAndInvariants<Workflow>>> workflowAndInvariants) {
         try {
             log.info("antithesis: start_faults");
             List<WorkflowHistoryValidator> workflowHistoryValidators = Futures.allAsList(
-                            submitWorkflowValidators(workflowAndInvariants))
+                            submitWorkflowValidators(workflowAndInvariants.get()))
                     .get();
             log.info("antithesis: stop_faults");
             workflowHistoryValidators.forEach(this::checkAndReportInvariantViolations);

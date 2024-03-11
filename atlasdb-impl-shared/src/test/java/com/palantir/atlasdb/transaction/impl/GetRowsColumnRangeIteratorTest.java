@@ -29,12 +29,13 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
@@ -58,9 +59,10 @@ public class GetRowsColumnRangeIteratorTest {
     public static final BatchColumnRangeSelection COLUMN_RANGE_SELECTION =
             BatchColumnRangeSelection.create(null, null, BATCH_SIZE);
 
-    private final KeyValueService kvs = new InMemoryKeyValueService(true);
+    private final TransactionKeyValueService tkvs =
+            new DelegatingTransactionKeyValueService(new InMemoryKeyValueService(true));
     private final ColumnRangeBatchProvider batchProvider =
-            new ColumnRangeBatchProvider(kvs, TABLE_REFERENCE, ROW, COLUMN_RANGE_SELECTION, Long.MAX_VALUE);
+            new ColumnRangeBatchProvider(tkvs, TABLE_REFERENCE, ROW, COLUMN_RANGE_SELECTION, Long.MAX_VALUE);
 
     @Test
     public void ifBatchIsEmptyNoValidateCallsAreMade() {
@@ -131,13 +133,13 @@ public class GetRowsColumnRangeIteratorTest {
                 .mapToObj(i -> String.format("cell%02d", i).getBytes(StandardCharsets.UTF_8))
                 .map(column -> Cell.create(ROW, column))
                 .collect(ImmutableMap.toImmutableMap(Function.identity(), _unused -> value));
-        kvs.put(TABLE_REFERENCE, puts, 1L);
+        tkvs.multiPut(Map.of(TABLE_REFERENCE, puts), 1L);
 
         return puts.keySet();
     }
 
     private RowColumnRangeIterator getInitialIterator() {
-        return kvs.getRowsColumnRange(TABLE_REFERENCE, ImmutableList.of(ROW), COLUMN_RANGE_SELECTION, Long.MAX_VALUE)
+        return tkvs.getRowsColumnRange(TABLE_REFERENCE, ImmutableList.of(ROW), COLUMN_RANGE_SELECTION, Long.MAX_VALUE)
                 .get(ROW);
     }
 

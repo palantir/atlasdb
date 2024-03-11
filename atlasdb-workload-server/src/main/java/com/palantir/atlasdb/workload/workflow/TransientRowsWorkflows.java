@@ -159,7 +159,7 @@ public final class TransientRowsWorkflows {
                 .filter(WitnessedSingleCellReadTransactionAction.class::isInstance)
                 .map(action -> (WitnessedSingleCellReadTransactionAction) action)
                 .collect(Collectors.toSet());
-        if (readTransactionActions.size() == 0) {
+        if (readTransactionActions.isEmpty()) {
             return Stream.empty();
         }
         WitnessedSingleCellReadTransactionAction summaryRowRead = readTransactionActions.stream()

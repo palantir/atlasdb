@@ -24,6 +24,7 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.conjure.java.config.ssl.TrustContext;
 import com.palantir.leader.PingableLeader;
+import com.palantir.leader.PingableLeaderEndpoints;
 import com.palantir.paxos.CoalescingPaxosLatestRoundVerifier;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosLatestRoundVerifierImpl;
@@ -111,10 +112,14 @@ public final class PaxosResourcesFactory {
                 .latestRoundVerifierFactory(latestRoundVerifierFactory)
                 .build();
 
+        BatchPingableLeaderResource batchPingableLeader =
+                new BatchPingableLeaderResource(install.nodeUuid(), factory.components());
+
         return resourcesBuilder
                 .leadershipContextFactory(factory)
                 .putLeadershipBatchComponents(PaxosUseCase.LEADER_FOR_EACH_CLIENT, factory.components())
-                .addAdhocResources(new BatchPingableLeaderResource(install.nodeUuid(), factory.components()))
+                .addAdhocResources(batchPingableLeader)
+                .addAdhocUndertowServices(BatchPingableLeaderEndpoints.of(batchPingableLeader))
                 .timeLockCorruptionComponents(timeLockCorruptionComponents(install.sqliteDataSource(), remoteClients))
                 .build();
     }
@@ -155,15 +160,25 @@ public final class PaxosResourcesFactory {
         LeaderAcceptorResource leaderAcceptorResource =
                 new LeaderAcceptorResource(factory.components().acceptor(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT));
 
+        BatchPingableLeaderResource batchPingableLeader =
+                new BatchPingableLeaderResource(install.nodeUuid(), factory.components());
+
+        PingableLeader pingableLeader = factory.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT);
+
+        LeaderLearnerResource leaderLearnerResource =
+                new LeaderLearnerResource(factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT));
+
         return resourcesBuilder
                 .leadershipContextFactory(factory)
                 .putLeadershipBatchComponents(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, factory.components())
-                .addAdhocResources(new BatchPingableLeaderResource(install.nodeUuid(), factory.components()))
-                .addAdhocResources(
-                        leaderAcceptorResource,
-                        new LeaderLearnerResource(factory.components().learner(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT)),
-                        factory.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT))
-                .addUndertowServices(LeaderAcceptorResourceEndpoints.of(leaderAcceptorResource))
+                .addAdhocResources(batchPingableLeader)
+                .addAdhocResources(pingableLeader)
+                .addAdhocResources(leaderAcceptorResource)
+                .addAdhocResources(leaderLearnerResource)
+                .addAdhocUndertowServices(BatchPingableLeaderEndpoints.of(batchPingableLeader))
+                .addAdhocUndertowServices(PingableLeaderEndpoints.of(pingableLeader))
+                .addAdhocUndertowServices(LeaderAcceptorResourceEndpoints.of(leaderAcceptorResource))
+                .addAdhocUndertowServices(LeaderLearnerResourceEndpoints.of(leaderLearnerResource))
                 .timeLockCorruptionComponents(timeLockCorruptionComponents(install.sqliteDataSource(), remoteClients))
                 .build();
     }
@@ -238,7 +253,12 @@ public final class PaxosResourcesFactory {
         };
 
         return ImmutablePaxosResources.builder()
-                .addAdhocResources(new TimestampPaxosResource(paxosComponents))
+                .addAdhocResources(new TimestampPaxosLearnerResource(paxosComponents))
+                .addAdhocResources(new TimestampPaxosAcceptorResource(paxosComponents))
+                .addAdhocUndertowServices(
+                        TimestampPaxosLearnerResourceEndpoints.of(new TimestampPaxosLearnerResource(paxosComponents)))
+                .addAdhocUndertowServices(
+                        TimestampPaxosAcceptorResourceEndpoints.of(new TimestampPaxosAcceptorResource(paxosComponents)))
                 .timestampPaxosComponents(paxosComponents)
                 .timestampServiceFactory(timestampFactory);
     }

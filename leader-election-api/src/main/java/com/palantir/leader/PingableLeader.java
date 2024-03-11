@@ -16,6 +16,17 @@
 package com.palantir.leader;
 
 import com.palantir.atlasdb.metrics.Timed;
+import com.palantir.conjure.java.undertow.annotations.Handle;
+import com.palantir.conjure.java.undertow.annotations.HttpMethod;
+import com.palantir.conjure.java.undertow.annotations.SerializerFactory;
+import com.palantir.conjure.java.undertow.lib.Endpoint;
+import com.palantir.conjure.java.undertow.lib.Serializer;
+import com.palantir.conjure.java.undertow.lib.TypeMarker;
+import com.palantir.conjure.java.undertow.lib.UndertowRuntime;
+import io.undertow.server.HttpServerExchange;
+import io.undertow.util.Headers;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -33,6 +44,7 @@ public interface PingableLeader {
     @Path("ping")
     @Produces(MediaType.APPLICATION_JSON)
     @Timed
+    @Handle(method = HttpMethod.GET, path = "/leader/ping")
     boolean ping();
 
     /**
@@ -43,6 +55,7 @@ public interface PingableLeader {
     @Produces(MediaType.TEXT_PLAIN)
     @SuppressWarnings("checkstyle:AbbreviationAsWordInName") // Avoiding API break
     @Timed
+    @Handle(method = HttpMethod.GET, path = "/leader/uuid", produces = TextPlainSerializer.class)
     String getUUID();
 
     /**
@@ -55,5 +68,21 @@ public interface PingableLeader {
     @Path("pingV2")
     @Produces(MediaType.APPLICATION_JSON)
     @Timed
+    @Handle(method = HttpMethod.GET, path = "/leader/pingV2")
     PingResult pingV2();
+
+    enum TextPlainSerializer implements SerializerFactory<String> {
+        INSTANCE;
+
+        @Override
+        public <T extends String> Serializer<T> serializer(
+                TypeMarker<T> type, UndertowRuntime runtime, Endpoint endpoint) {
+            return this::serialize;
+        }
+
+        private void serialize(String value, HttpServerExchange exchange) throws IOException {
+            exchange.getResponseHeaders().put(Headers.CONTENT_TYPE, MediaType.TEXT_PLAIN);
+            exchange.getOutputStream().write(value.getBytes(StandardCharsets.UTF_8));
+        }
+    }
 }

@@ -6,6 +6,54 @@ acceptedBreaks:
       new: "method void com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException::<init>(java.util.List<java.lang.Exception>,\
         \ java.util.Map<java.lang.String, java.lang.Integer>)"
       justification: "Remove unused exception constructor"
+  "0.1040.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.class.removed"
+      old: "interface com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionKeyValueServiceManager"
+      justification: "Still iterating on the APIs"
+    - code: "java.class.removed"
+      old: "interface com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager"
+      justification: "Still iterating on the APIs"
+    - code: "java.method.returnTypeChanged"
+      old: "method com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager\
+        \ com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory<T>::create(com.palantir.atlasdb.coordination.CoordinationService<T>,\
+        \ com.palantir.atlasdb.spi.KeyValueServiceManager, com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig,\
+        \ com.palantir.refreshable.Refreshable<com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig>,\
+        \ boolean)"
+      new: "method com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager\
+        \ com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory<T>::create(com.palantir.atlasdb.coordination.CoordinationService<T>,\
+        \ com.palantir.atlasdb.spi.KeyValueServiceManager, com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig,\
+        \ com.palantir.refreshable.Refreshable<com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig>,\
+        \ boolean)"
+      justification: "Still iterating on the APIs"
+    com.palantir.atlasdb:atlasdb-config:
+    - code: "java.method.numberOfParametersChanged"
+      old: "method com.palantir.atlasdb.factory.TransactionManagersInitializer com.palantir.atlasdb.factory.TransactionManagersInitializer::createInitialTables(com.palantir.atlasdb.keyvalue.api.KeyValueService,\
+        \ java.util.Set<com.palantir.atlasdb.table.description.Schema>, boolean, boolean)"
+      new: "method com.palantir.atlasdb.factory.TransactionManagersInitializer com.palantir.atlasdb.factory.TransactionManagersInitializer::createInitialTables(com.palantir.atlasdb.keyvalue.api.KeyValueService,\
+        \ com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager, java.util.Set<com.palantir.atlasdb.table.description.Schema>,\
+        \ boolean, boolean)"
+      justification: "New API"
+  "0.1045.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.numberOfParametersChanged"
+      old: "method com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager\
+        \ com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory<T>::create(com.palantir.atlasdb.coordination.CoordinationService<T>,\
+        \ com.palantir.atlasdb.spi.KeyValueServiceManager, com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig,\
+        \ com.palantir.refreshable.Refreshable<com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig>,\
+        \ boolean)"
+      new: "method com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager\
+        \ com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory<T>::create(java.lang.String,\
+        \ com.palantir.dialogue.clients.DialogueClients.ReloadingFactory, com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.coordination.CoordinationService<T>, com.palantir.atlasdb.spi.KeyValueServiceManager,\
+        \ com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig, com.palantir.refreshable.Refreshable<com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig>,\
+        \ boolean)"
+      justification: "Adding observability to TransactionKeyValueServiceManager"
+  "0.1047.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.addedToInterface"
+      new: "method boolean com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager::isInitialized()"
+      justification: "Adding async init to TransactionKeyValueServiceManager"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"

@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.ComparingTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.internalschema.ImmutableInternalSchemaInstallConfig;
@@ -35,6 +36,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.persistent.api.PersistentStore;
@@ -112,6 +114,7 @@ public abstract class TransactionTestSetup {
 
     protected final MetricsManager metricsManager = MetricsManagers.createForTests();
     protected KeyValueService keyValueService;
+    protected TransactionKeyValueServiceManager transactionKeyValueServiceManager;
     protected TimestampService timestampService;
     protected TimestampManagementService timestampManagementService;
     protected TransactionSchemaManager transactionSchemaManager;
@@ -141,6 +144,7 @@ public abstract class TransactionTestSetup {
         lockClient = LockClient.of("test_client");
 
         keyValueService = getKeyValueService();
+        transactionKeyValueServiceManager = new DelegatingTransactionKeyValueServiceManager(keyValueService);
         keyValueService.createTables(ImmutableMap.of(
                 TEST_TABLE_THOROUGH,
                 TableMetadata.builder()

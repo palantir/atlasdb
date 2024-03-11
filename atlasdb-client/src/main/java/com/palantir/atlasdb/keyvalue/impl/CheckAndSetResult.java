@@ -16,10 +16,12 @@
 
 package com.palantir.atlasdb.keyvalue.impl;
 
+import com.palantir.common.annotations.ImmutablesStyles.PackageVisibleImmutablesStyle;
 import java.util.List;
 import org.immutables.value.Value;
 
 @Value.Immutable
+@PackageVisibleImmutablesStyle
 public interface CheckAndSetResult<T> {
     @Value.Parameter
     boolean successful();

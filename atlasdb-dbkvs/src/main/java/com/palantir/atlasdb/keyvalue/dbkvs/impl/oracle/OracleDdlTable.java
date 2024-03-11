@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.google.common.primitives.Ints;
+import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -39,17 +40,20 @@ import com.palantir.common.base.RunnableCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.exception.TableMappingNotFoundException;
 import com.palantir.exception.PalantirSqlException;
+import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nexus.db.sql.AgnosticResultSet;
 import com.palantir.nexus.db.sql.SqlConnection;
 import com.palantir.util.VersionStrings;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -318,8 +322,17 @@ public final class OracleDdlTable implements DbDdlTable {
                                     + " (table_name, short_table_name) VALUES (?, ?)",
                             fullTableName,
                             shortTableName);
+            logDebugOrTrace(
+                    "created oracle table",
+                    UnsafeArg.of("fullTableName", fullTableName),
+                    UnsafeArg.of("shortTableName", shortTableName));
         } catch (PalantirSqlException ex) {
-            if (!isPrimaryKeyViolation(ex)) {
+            if (isPrimaryKeyViolation(ex)) {
+                logDebugOrTrace(
+                        "attempted to create oracle table that already existed",
+                        UnsafeArg.of("fullTableName", fullTableName),
+                        UnsafeArg.of("shortTableName", shortTableName));
+            } else {
                 log.error(
                         "Error occurred trying to create table mapping {} -> {}",
                         UnsafeArg.of("fullTableName", fullTableName),
@@ -419,6 +432,10 @@ public final class OracleDdlTable implements DbDdlTable {
                             fullTableName);
             oracleTableNameGetter.clearCacheForTable(fullTableName);
         }
+        logDebugOrTrace(
+                "dropped oracle table",
+                UnsafeArg.of("fullTableName", fullTableName),
+                UnsafeArg.of("shortTableName", shortTableName));
     }
 
     @Override
@@ -589,5 +606,13 @@ public final class OracleDdlTable implements DbDdlTable {
         }
 
         return sqlConnection;
+    }
+
+    private static void logDebugOrTrace(@CompileTimeConstant String message, Arg<?>... args) {
+        if (log.isTraceEnabled()) {
+            log.trace(message, Arrays.asList(args), new SafeRuntimeException("provided for stack trace"));
+        } else if (log.isDebugEnabled()) {
+            log.debug(message, Arrays.asList(args));
+        }
     }
 }

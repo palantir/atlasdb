@@ -16,7 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.google.errorprone.annotations.MustBeClosed;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
@@ -29,14 +29,17 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 public class RowRangeBatchProvider implements BatchProvider<RowResult<Value>> {
-    private final KeyValueService keyValueService;
+    private final TransactionKeyValueService transactionKeyValueService;
     private final TableReference tableRef;
     private final RangeRequest range;
     private final long timestamp;
 
     public RowRangeBatchProvider(
-            KeyValueService keyValueService, TableReference tableRef, RangeRequest range, long timestamp) {
-        this.keyValueService = keyValueService;
+            TransactionKeyValueService transactionKeyValueService,
+            TableReference tableRef,
+            RangeRequest range,
+            long timestamp) {
+        this.transactionKeyValueService = transactionKeyValueService;
         this.tableRef = tableRef;
         this.range = range;
         this.timestamp = timestamp;
@@ -50,7 +53,7 @@ public class RowRangeBatchProvider implements BatchProvider<RowResult<Value>> {
             newRange.startRowInclusive(RangeRequests.getNextStartRow(range.isReverse(), lastToken));
         }
         newRange.batchHint(batchSize);
-        return keyValueService.getRange(tableRef, newRange.build(), timestamp);
+        return transactionKeyValueService.getRange(tableRef, newRange.build(), timestamp);
     }
 
     @Override

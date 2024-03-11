@@ -42,11 +42,15 @@ import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
+// This test class invalidates the default timestamp bound store that is used by other test classes. Since the other
+// test classes rely on the default timestamp bound store being valid, this test class must be executed last.
 @ExtendWith(DbKvsPostgresExtension.class)
+@Order(Integer.MAX_VALUE)
 public class DbTimestampStoreInvalidatorCreationTest {
     private final MetricsManager metrics = MetricsManagers.createForTests();
 

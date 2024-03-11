@@ -20,9 +20,9 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
@@ -50,9 +50,9 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampManagementService;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 @SuppressWarnings("TooManyArguments") // Legacy
@@ -63,6 +63,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public static class InitializeCheckingWrapper implements AutoDelegate_TransactionManager {
         private final TransactionManager txManager;
+
+        private final TransactionKeyValueServiceManager transactionKeyValueServiceManager;
         private final Supplier<Boolean> initializationPrerequisite;
         private final Callback<TransactionManager> callback;
 
@@ -73,10 +75,12 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
         InitializeCheckingWrapper(
                 TransactionManager manager,
+                TransactionKeyValueServiceManager transactionKeyValueServiceManager,
                 Supplier<Boolean> initializationPrerequisite,
                 Callback<TransactionManager> callback,
                 ScheduledExecutorService initializer) {
             this.txManager = manager;
+            this.transactionKeyValueServiceManager = transactionKeyValueServiceManager;
             this.initializationPrerequisite = initializationPrerequisite;
             this.callback = callback;
             this.executorService = initializer;
@@ -162,7 +166,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             // TransactionManagers.create; however, this is not required for the TransactionManager to fulfil
             // requests (note that it is not accessible from any TransactionManager implementation), so we omit
             // checking here whether it is initialized.
-            return txManager.getKeyValueService().isInitialized()
+            return transactionKeyValueServiceManager.isInitialized()
                     && txManager.getTimelockService().isInitialized()
                     && txManager.getTimestampService().isInitialized()
                     && txManager.getCleaner().isInitialized()
@@ -219,7 +223,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public static TransactionManager createInstrumented(
             MetricsManager metricsManager,
-            KeyValueService keyValueService,
+            TransactionKeyValueServiceManager transactionKeyValueServiceManager,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TimestampManagementService timestampManagementService,
@@ -245,7 +249,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             TransactionKnowledgeComponents knowledge) {
         return create(
                 metricsManager,
-                keyValueService,
+                transactionKeyValueServiceManager,
                 timelockService,
                 lockWatchManager,
                 timestampManagementService,
@@ -276,7 +280,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public static TransactionManager create(
             MetricsManager metricsManager,
-            KeyValueService keyValueService,
+            TransactionKeyValueServiceManager transactionKeyValueServiceManager,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TimestampManagementService timestampManagementService,
@@ -302,7 +306,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             TransactionKnowledgeComponents knowledge) {
         return create(
                 metricsManager,
-                keyValueService,
+                transactionKeyValueServiceManager,
                 timelockService,
                 lockWatchManager,
                 timestampManagementService,
@@ -332,7 +336,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public static TransactionManager create(
             MetricsManager metricsManager,
-            KeyValueService keyValueService,
+            TransactionKeyValueServiceManager transactionKeyValueServiceManager,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TimestampManagementService timestampManagementService,
@@ -359,7 +363,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             TransactionKnowledgeComponents knowledge) {
         return create(
                 metricsManager,
-                keyValueService,
+                transactionKeyValueServiceManager,
                 timelockService,
                 lockWatchManager,
                 timestampManagementService,
@@ -389,7 +393,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     private static TransactionManager create(
             MetricsManager metricsManager,
-            KeyValueService keyValueService,
+            TransactionKeyValueServiceManager transactionKeyValueServiceManager,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TimestampManagementService timestampManagementService,
@@ -417,7 +421,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             TransactionKnowledgeComponents knowledge) {
         TransactionManager transactionManager = new SerializableTransactionManager(
                 metricsManager,
-                keyValueService,
+                transactionKeyValueServiceManager,
                 timelockService,
                 lockWatchManager,
                 timestampManagementService,
@@ -432,7 +436,10 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
-                DefaultTaskExecutors.createDefaultDeleteExecutor(),
+                // TODO(jakubk): This will be updated in further PRs as it needs to use the same API as sweep.
+                new DefaultDeleteExecutor(
+                        transactionKeyValueServiceManager.getKeyValueService().orElseThrow(),
+                        DefaultTaskExecutors.createDefaultDeleteExecutor()),
                 validateLocksOnReads,
                 transactionConfig,
                 conflictTracer,
@@ -450,13 +457,18 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         }
 
         return initializeAsync
-                ? new InitializeCheckingWrapper(transactionManager, initializationPrerequisite, callback, initializer)
+                ? new InitializeCheckingWrapper(
+                        transactionManager,
+                        transactionKeyValueServiceManager,
+                        initializationPrerequisite,
+                        callback,
+                        initializer)
                 : transactionManager;
     }
 
     public static SerializableTransactionManager createForTest(
             MetricsManager metricsManager,
-            KeyValueService keyValueService,
+            TransactionKeyValueServiceManager transactionKeyValueServiceManager,
             TimelockService legacyTimeLockService,
             TimestampManagementService timestampManagementService,
             LockService lockService,
@@ -472,7 +484,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             TransactionKnowledgeComponents knowledge) {
         return new SerializableTransactionManager(
                 metricsManager,
-                keyValueService,
+                transactionKeyValueServiceManager,
                 legacyTimeLockService,
                 lockWatchManager,
                 timestampManagementService,
@@ -487,7 +499,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 sweepQueue,
-                DefaultTaskExecutors.createDefaultDeleteExecutor(),
+                new DefaultDeleteExecutor(
+                        transactionKeyValueServiceManager.getKeyValueService().orElseThrow(),
+                        DefaultTaskExecutors.createDefaultDeleteExecutor()),
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,
@@ -498,7 +512,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public SerializableTransactionManager(
             MetricsManager metricsManager,
-            KeyValueService keyValueService,
+            TransactionKeyValueServiceManager transactionKeyValueServiceManager,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TimestampManagementService timestampManagementService,
@@ -513,7 +527,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int concurrentGetRangesThreadPoolSize,
             int defaultGetRangesConcurrency,
             MultiTableSweepQueueWriter sweepQueueWriter,
-            ExecutorService deleteExecutor,
+            DeleteExecutor deleteExecutor,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
@@ -522,7 +536,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             TransactionKnowledgeComponents knowledge) {
         super(
                 metricsManager,
-                keyValueService,
+                transactionKeyValueServiceManager,
                 timelockService,
                 lockWatchManager,
                 timestampManagementService,
@@ -550,12 +564,12 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
     @Override
     protected CallbackAwareTransaction createTransaction(
             long immutableTimestamp,
-            Supplier<Long> startTimestampSupplier,
+            LongSupplier startTimestampSupplier,
             LockToken immutableTsLock,
             PreCommitCondition preCommitCondition) {
         return new SerializableTransaction(
                 metricsManager,
-                keyValueService,
+                transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
                 timelockService,
                 lockWatchManager,
                 transactionService,

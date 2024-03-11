@@ -30,7 +30,11 @@ public interface ReadableTransactionStore {
     Optional<Integer> get(String table, WorkloadCell cell);
 
     /**
-     * Checks whether the transaction with the provided startTimestamp has committed.
+     * Attempts to retrieve the state of the transaction starting at the provided timestamp; if the transaction is
+     * still pending (neither committed nor aborted), attempts to abort the transaction. It is guaranteed that when
+     * this method returns normally, the transaction will have concluded (whether committed or aborted).
+     *
+     * @return true if the transaction was committed, false otherwise
      */
-    boolean isCommitted(long startTimestamp);
+    boolean isCommittedForcingTransactionConclusion(long startTimestamp);
 }

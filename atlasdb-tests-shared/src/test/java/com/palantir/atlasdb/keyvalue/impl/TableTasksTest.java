@@ -87,7 +87,7 @@ public class TableTasksTest {
         Cleaner cleaner = new NoOpCleaner();
         txManager = SerializableTransactionManager.createForTest(
                 metricsManager,
-                kvs,
+                new DelegatingTransactionKeyValueServiceManager(kvs),
                 inMemoryTimelockExtension.getLegacyTimelockService(),
                 inMemoryTimelockExtension.getTimestampManagementService(),
                 lockService,
