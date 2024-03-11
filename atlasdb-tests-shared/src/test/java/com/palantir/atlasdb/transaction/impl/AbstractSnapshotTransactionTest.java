@@ -179,6 +179,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
@@ -229,7 +230,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
             ToplistDeltaFilteringTableLevelMetricsController.create(
                     metricsManager, DefaultMetricsFilterEvaluationContext.createDefault());
 
-    private TransactionConfig transactionConfig;
+    private AtomicReference<TransactionConfig> transactionConfig = new AtomicReference<>();
 
     @FunctionalInterface
     interface ExpectationFactory {
@@ -357,7 +358,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
     public void setUp() throws Exception {
         super.setUp();
 
-        transactionConfig = ImmutableTransactionConfig.builder().build();
+        transactionConfig.set(ImmutableTransactionConfig.builder().build());
 
         keyValueService.createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(TABLE1, AtlasDbConstants.GENERIC_TABLE_METADATA);
@@ -487,7 +488,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                                 txnKeyValueServiceManager.getKeyValueService().orElseThrow(),
                                 MoreExecutors.newDirectExecutorService()),
                         true,
-                        () -> transactionConfig,
+                        transactionConfig::get,
                         ConflictTracer.NO_OP,
                         tableLevelMetricsController,
                         knowledge,
@@ -3287,7 +3288,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     private void setTransactionConfig(TransactionConfig config) {
-        transactionConfig = config;
+        transactionConfig.set(config);
     }
 
     private Transaction getSnapshotTransactionWith(
@@ -3347,7 +3348,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         txnKeyValueServiceManager.getKeyValueService().orElseThrow(),
                         MoreExecutors.newDirectExecutorService()),
                 true,
-                () -> transactionConfig,
+                transactionConfig::get,
                 ConflictTracer.NO_OP,
                 tableLevelMetricsController,
                 knowledge,
@@ -3406,7 +3407,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         txnKeyValueServiceManager.getKeyValueService().orElseThrow(),
                         MoreExecutors.newDirectExecutorService()),
                 validateLocksOnReads,
-                () -> transactionConfig,
+                transactionConfig::get,
                 ConflictTracer.NO_OP,
                 tableLevelMetricsController,
                 knowledge,
@@ -3560,6 +3561,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 .collectToMap();
     }
 
+    // Not using the factory, because some tests override the timelock service they talk to
     private CommitTimestampLoader createCommitTimestampLoader(
             long immutableTimestamp,
             LongSupplier startTimestampSupplier,
@@ -3569,7 +3571,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 timestampCache,
                 immutableTsLock,
                 startTimestampSupplier::getAsLong,
-                () -> transactionConfig,
+                transactionConfig::get,
                 metricsManager,
                 timelockService,
                 immutableTimestamp,
