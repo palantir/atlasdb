@@ -97,10 +97,6 @@ public final class DefaultCommitTimestampLoader implements CommitTimestampLoader
         this.transactionService = transactionService;
     }
 
-    /**
-     * Returns a map from start timestamp to commit timestamp. If a start timestamp wasn't committed, then it will be
-     * missing from the map. This method will block until the transactions for these start timestamps are complete.
-     */
     @Override
     public ListenableFuture<LongLongMap> getCommitTimestamps(
             @Nullable TableReference tableRef, LongIterable startTimestamps, boolean shouldWaitForCommitterToComplete) {
