@@ -132,7 +132,9 @@ public final class ReadValidationCommitTimestampLoaderTest {
         LongList startTimestamps = LongLists.immutable.of(
                 BEFORE_START_1,
                 BEFORE_START_2,
+                START_TS - 1,
                 START_TS,
+                START_TS + 1,
                 BETWEEN_START_AND_COMMIT_1,
                 BETWEEN_START_AND_COMMIT_2,
                 AFTER_COMMIT);
@@ -153,11 +155,14 @@ public final class ReadValidationCommitTimestampLoaderTest {
         });
         verify(delegateCommitTimestampLoader)
                 .getCommitTimestamps(
-                        null, LongSets.immutable.of(BEFORE_START_1, BEFORE_START_2), shouldWaitForCommitterToComplete);
+                        null,
+                        LongSets.immutable.of(BEFORE_START_1, BEFORE_START_2, START_TS - 1),
+                        shouldWaitForCommitterToComplete);
         verify(delegateCommitTimestampLoader)
                 .getCommitTimestamps(
                         null,
-                        LongSets.immutable.of(BETWEEN_START_AND_COMMIT_1, BETWEEN_START_AND_COMMIT_2, AFTER_COMMIT),
+                        LongSets.immutable.of(
+                                START_TS + 1, BETWEEN_START_AND_COMMIT_1, BETWEEN_START_AND_COMMIT_2, AFTER_COMMIT),
                         false);
         verifyNoMoreInteractions(delegateCommitTimestampLoader);
     }
