@@ -112,6 +112,7 @@ import java.util.stream.Collectors;
     private final ConflictTracer conflictTracer;
 
     protected final TransactionKnowledgeComponents knowledge;
+    protected final CommitTimestampLoaderFactory commitTimestampLoaderFactory;
 
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
@@ -166,6 +167,8 @@ import java.util.stream.Collectors;
         this.openTransactionCounter =
                 metricsManager.registerOrGetCounter(SnapshotTransactionManager.class, "openTransactionCounter");
         this.knowledge = knowledge;
+        this.commitTimestampLoaderFactory = new CommitTimestampLoaderFactory(
+                timestampCache, metricsManager, timelockService, knowledge, transactionService, transactionConfig);
     }
 
     @Override
@@ -331,7 +334,9 @@ import java.util.stream.Collectors;
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
-                knowledge);
+                knowledge,
+                commitTimestampLoaderFactory.createCommitTimestampLoader(
+                        startTimestampSupplier, immutableTimestamp, Optional.of(immutableTsLock)));
     }
 
     @Override
@@ -375,7 +380,9 @@ import java.util.stream.Collectors;
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
-                knowledge);
+                knowledge,
+                commitTimestampLoaderFactory.createCommitTimestampLoader(
+                        startTimestampSupplier, immutableTs, Optional.empty()));
         return runTaskThrowOnConflictWithCallback(
                 txn -> task.execute(txn, condition),
                 new ReadTransaction(transaction, sweepStrategyManager),
@@ -391,7 +398,7 @@ import java.util.stream.Collectors;
     /**
      * Frees resources used by this SnapshotTransactionManager, and invokes any callbacks registered to run on close.
      * This includes the cleaner, the key value service (and attendant thread pools), and possibly the lock service.
-     *
+     * <p>
      * Concurrency: If this method races with registerClosingCallback(closingCallback), then closingCallback
      * may be called (but is not necessarily called). Callbacks registered before the invocation of close() are
      * guaranteed to be executed (because we use a synchronized list) as long as no exceptions arise. If an exception

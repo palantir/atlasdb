@@ -58,6 +58,7 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -173,7 +174,8 @@ public class SerializableTransaction extends SnapshotTransaction {
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
             TableLevelMetricsController tableLevelMetricsController,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            CommitTimestampLoader commitTimestampLoader) {
         super(
                 metricsManager,
                 keyValueService,
@@ -200,7 +202,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
-                knowledge);
+                knowledge,
+                commitTimestampLoader);
     }
 
     @Override
@@ -938,7 +941,9 @@ public class SerializableTransaction extends SnapshotTransaction {
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
-                knowledge) {
+                knowledge,
+                // TODO (jkong): Remove when extracting a custom read-only commit timestamp loader
+                commitTimestampLoader) {
             @Override
             protected TransactionScopedCache getCache() {
                 return lockWatchManager.getReadOnlyTransactionScopedCache(SerializableTransaction.this.getTimestamp());
@@ -946,24 +951,18 @@ public class SerializableTransaction extends SnapshotTransaction {
 
             @Override
             protected ListenableFuture<LongLongMap> getCommitTimestamps(
-                    TableReference tableRef,
-                    LongIterable startTimestamps,
-                    boolean shouldWaitForCommitterToComplete,
-                    AsyncTransactionService asyncTransactionService) {
+                    TableReference tableRef, LongIterable startTimestamps, boolean shouldWaitForCommitterToComplete) {
                 long myStart = SerializableTransaction.this.getTimestamp();
                 PartitionedTimestamps partitionedTimestamps = splitTransactionBeforeAndAfter(myStart, startTimestamps);
 
                 ListenableFuture<LongLongMap> postStartCommitTimestamps =
                         getCommitTimestampsForTransactionsStartedAfterMe(
-                                tableRef, asyncTransactionService, partitionedTimestamps.afterStart());
+                                tableRef, defaultTransactionService, partitionedTimestamps.afterStart());
 
                 // We are ok to block here because if there is a cycle of transactions that could result in a deadlock,
                 // then at least one of them will be in the ab
                 ListenableFuture<LongLongMap> preStartCommitTimestamps = super.getCommitTimestamps(
-                        tableRef,
-                        partitionedTimestamps.beforeStart(),
-                        shouldWaitForCommitterToComplete,
-                        asyncTransactionService);
+                        tableRef, partitionedTimestamps.beforeStart(), shouldWaitForCommitterToComplete);
 
                 return Futures.whenAllComplete(postStartCommitTimestamps, preStartCommitTimestamps)
                         .call(
@@ -987,7 +986,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                         // We do not block when waiting for results that were written after our start timestamp.
                         // If we block here it may lead to deadlock if two transactions (or a cycle of any length) have
                         // all written their data and all doing checks before committing.
-                        super.getCommitTimestamps(tableRef, startTimestamps, false, asyncTransactionService),
+                        super.getCommitTimestamps(tableRef, startTimestamps, false),
                         startToCommitTimestamps -> {
                             if (startToCommitTimestamps.keySet().containsAll(startTimestamps)) {
                                 return startToCommitTimestamps;

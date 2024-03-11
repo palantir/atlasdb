@@ -81,6 +81,7 @@ import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintExcept
 import com.palantir.atlasdb.tracing.TraceStatistics;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
@@ -283,7 +284,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final Supplier<TransactionConfig> transactionConfig;
     protected final TableLevelMetricsController tableLevelMetricsController;
     protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
-    private final CommitTimestampLoader commitTimestampLoader;
+    protected final CommitTimestampLoader commitTimestampLoader;
     private final TransactionMetrics transactionMetrics;
     private final ExpectationsMetrics expectationsDataCollectionMetrics;
     private volatile long cellCommitLocksRequested = 0L;
@@ -305,7 +306,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
-     *                           lock for it because we know that no writers exist.
+     * lock for it because we know that no writers exist.
      * @param preCommitCondition This check must pass for this transaction to commit.
      */
     /* package */ SnapshotTransaction(
@@ -334,7 +335,8 @@ public class SnapshotTransaction extends AbstractTransaction
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
             TableLevelMetricsController tableLevelMetricsController,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            CommitTimestampLoader commitTimestampLoader) {
         this.metricsManager = metricsManager;
         this.lockWatchManager = lockWatchManager;
         this.conflictTracer = conflictTracer;
@@ -368,19 +370,11 @@ public class SnapshotTransaction extends AbstractTransaction
         this.tableLevelMetricsController = tableLevelMetricsController;
         this.timestampCache = timestampValidationReadCache;
         this.knowledge = knowledge;
-        this.commitTimestampLoader = new CommitTimestampLoader(
-                timestampValidationReadCache,
-                immutableTimestampLock,
-                this::getStartTimestamp,
-                transactionConfig,
-                metricsManager,
-                timelockService,
-                immutableTimestamp,
-                knowledge);
         this.transactionMetrics = TransactionMetrics.of(metricsManager.getTaggedRegistry());
         this.transactionOutcomeMetrics =
                 TransactionOutcomeMetrics.create(transactionMetrics, metricsManager.getTaggedRegistry());
         this.expectationsDataCollectionMetrics = ExpectationsMetrics.of(metricsManager.getTaggedRegistry());
+        this.commitTimestampLoader = commitTimestampLoader;
     }
 
     protected TransactionScopedCache getCache() {
@@ -623,7 +617,7 @@ public class SnapshotTransaction extends AbstractTransaction
     /**
      * Provides comparator to sort cells by columns (sorted lexicographically on byte ordering) and then in the order
      * of input rows.
-     * */
+     */
     @VisibleForTesting
     static Comparator<Cell> columnOrderThenPreserveInputRowOrder(Iterable<byte[]> rows) {
         return Cell.COLUMN_COMPARATOR.thenComparing(
@@ -644,7 +638,7 @@ public class SnapshotTransaction extends AbstractTransaction
      * possibility of needing a second batch of fetching.
      * If the batch hint is large, split batch size across rows to avoid loading too much data, while accepting that
      * second fetches may be needed to get everyone their data.
-     * */
+     */
     private static int getPerRowBatchSize(BatchColumnRangeSelection columnRangeSelection, int distinctRowCount) {
         return Math.max(
                 Math.min(MIN_BATCH_SIZE_FOR_DISTRIBUTED_LOAD, columnRangeSelection.getBatchHint()),
@@ -1444,7 +1438,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * This includes deleted writes as zero length byte arrays, be sure to strip them out.
-     *
+     * <p>
      * For the selectedColumns parameter, empty set means all columns. This is unfortunate, but follows the semantics of
      * {@link RangeRequest}.
      */
@@ -1700,7 +1694,7 @@ public class SnapshotTransaction extends AbstractTransaction
         LongSet valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
 
         return Futures.transformAsync(
-                getCommitTimestamps(tableRef, valuesStartTimestamps, true, asyncTransactionService),
+                getCommitTimestamps(tableRef, valuesStartTimestamps, true),
                 commitTimestamps -> collectCellsToPostFilter(
                         tableRef,
                         rawResults,
@@ -1947,7 +1941,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * Returns true iff the transaction is known to have successfully committed.
-     *
+     * <p>
      * Be careful when using this method! A transaction that the client thinks has failed could actually have
      * committed as far as the key-value service is concerned.
      */
@@ -2538,12 +2532,8 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     protected ListenableFuture<LongLongMap> getCommitTimestamps(
-            TableReference tableRef,
-            LongIterable startTimestamps,
-            boolean shouldWaitForCommitterToComplete,
-            AsyncTransactionService asyncTransactionService) {
-        return commitTimestampLoader.getCommitTimestamps(
-                tableRef, startTimestamps, shouldWaitForCommitterToComplete, asyncTransactionService);
+            TableReference tableRef, LongIterable startTimestamps, boolean shouldWaitForCommitterToComplete) {
+        return commitTimestampLoader.getCommitTimestamps(tableRef, startTimestamps, shouldWaitForCommitterToComplete);
     }
 
     private void logCommitLockTenureExceeded(
@@ -2673,14 +2663,13 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private LongLongMap getCommitTimestampsSync(
             @Nullable TableReference tableRef, LongIterable startTimestamps, boolean waitForCommitterToComplete) {
-        return AtlasFutures.getUnchecked(getCommitTimestamps(
-                tableRef, startTimestamps, waitForCommitterToComplete, immediateTransactionService));
+        return AtlasFutures.getUnchecked(getCommitTimestamps(tableRef, startTimestamps, waitForCommitterToComplete));
     }
 
     /**
      * This will attempt to put the commitTimestamp into the DB.
      *
-     * @throws TransactionLockTimeoutException  If our locks timed out while trying to commit.
+     * @throws TransactionLockTimeoutException If our locks timed out while trying to commit.
      * @throws TransactionCommitFailedException failed when committing in a way that isn't retriable
      */
     private void putCommitTimestamp(long commitTimestamp, LockToken locksToken, TransactionService transactionService)

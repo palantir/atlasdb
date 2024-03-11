@@ -44,6 +44,8 @@ import com.palantir.atlasdb.persistent.rocksdb.RocksDbPersistentStore;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
+import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -64,6 +66,7 @@ import com.palantir.util.Pair;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -126,6 +129,8 @@ public abstract class TransactionTestSetup {
     protected TimestampCache timestampCache;
 
     protected TransactionKnowledgeComponents knowledge;
+    protected Supplier<TransactionConfig> transactionConfigSupplier;
+    protected CommitTimestampLoaderFactory commitTimestampLoaderFactory;
 
     @RegisterExtension
     public InMemoryTimelockExtension inMemoryTimelockExtension = new InMemoryTimelockExtension();
@@ -190,6 +195,14 @@ public abstract class TransactionTestSetup {
                 ImmutableInternalSchemaInstallConfig.builder().build(),
                 () -> true);
         transactionService = createTransactionService(keyValueService, transactionSchemaManager, knowledge);
+        transactionConfigSupplier = () -> ImmutableTransactionConfig.builder().build();
+        commitTimestampLoaderFactory = new CommitTimestampLoaderFactory(
+                timestampCache,
+                metricsManager,
+                timelockService,
+                knowledge,
+                transactionService,
+                transactionConfigSupplier);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         txMgr = createAndRegisterManager();

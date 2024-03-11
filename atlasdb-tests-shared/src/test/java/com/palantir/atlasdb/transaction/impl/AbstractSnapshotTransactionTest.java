@@ -94,6 +94,7 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
@@ -141,6 +142,7 @@ import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.lock.watch.LockRequestMetadata;
@@ -488,7 +490,9 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         () -> transactionConfig,
                         ConflictTracer.NO_OP,
                         tableLevelMetricsController,
-                        knowledge),
+                        knowledge,
+                        createCommitTimestampLoader(
+                                transactionTs, () -> transactionTs, Optional.empty(), timelockService)),
                 pathTypeTracker);
         assertThatThrownBy(() -> snapshot.get(TABLE, ImmutableSet.of(cell))).isInstanceOf(RuntimeException.class);
 
@@ -3314,6 +3318,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
             LockImmutableTimestampResponse res,
             LockWatchManagerInternal mockLockWatchManager,
             PathTypeTracker pathTypeTracker) {
+        long immutableTimestamp = res.getImmutableTimestamp();
         LongSupplier startTimestampSupplier = Suppliers.ofInstance(transactionTs)::get;
         TransactionKeyValueService wrappedTransactionKeyValueService = transactionKeyValueServiceWrapper.apply(
                 txnKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier), pathTypeTracker);
@@ -3346,7 +3351,9 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 () -> transactionConfig,
                 ConflictTracer.NO_OP,
                 tableLevelMetricsController,
-                knowledge);
+                knowledge,
+                createCommitTimestampLoader(
+                        transactionTs, () -> immutableTimestamp, Optional.of(res.getLock()), timelockService));
     }
 
     private Transaction getSnapshotTransactionWith(
@@ -3402,7 +3409,12 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 () -> transactionConfig,
                 ConflictTracer.NO_OP,
                 tableLevelMetricsController,
-                knowledge);
+                knowledge,
+                createCommitTimestampLoader(
+                        startTs.get(),
+                        lockImmutableTimestampResponse::getImmutableTimestamp,
+                        Optional.of(lockImmutableTimestampResponse.getLock()),
+                        timelockService));
         return transactionWrapper.apply(transaction, pathTypeTracker);
     }
 
@@ -3546,6 +3558,23 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 })
                 .map(i -> ConflictHandler.values()[i])
                 .collectToMap();
+    }
+
+    private CommitTimestampLoader createCommitTimestampLoader(
+            long immutableTimestamp,
+            LongSupplier startTimestampSupplier,
+            Optional<LockToken> immutableTsLock,
+            TimelockService timelockService) {
+        return new DefaultCommitTimestampLoader(
+                timestampCache,
+                immutableTsLock,
+                startTimestampSupplier::getAsLong,
+                () -> transactionConfig,
+                metricsManager,
+                timelockService,
+                immutableTimestamp,
+                knowledge,
+                transactionService);
     }
 
     private static Set<LockDescriptor> getExpectedLocks(
