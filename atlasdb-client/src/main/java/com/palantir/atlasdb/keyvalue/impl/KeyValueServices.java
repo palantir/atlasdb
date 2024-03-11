@@ -22,10 +22,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.palantir.atlasdb.cell.api.AutoDelegate_TransactionKeyValueService;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -211,27 +207,5 @@ public final class KeyValueServices {
         // Return results in the same order as the provided rows.
         Iterable<RowColumnRangeIterator> orderedRanges = Iterables.transform(rows, rowsColumnRanges::get);
         return new LocalRowColumnRangeIterator(Iterators.concat(orderedRanges.iterator()));
-    }
-
-    /**
-     * Constructs an {@link TransactionKeyValueService} such that methods are blocking and return immediate futures.
-     *
-     * @param transactionKeyValueService on which to call synchronous requests
-     * @return {@link TransactionKeyValueService} which delegates to synchronous methods
-     */
-    public static TransactionKeyValueService synchronousAsAsyncTransactionKeyValueService(
-            TransactionKeyValueService transactionKeyValueService) {
-        return new AutoDelegate_TransactionKeyValueService() {
-            @Override
-            public TransactionKeyValueService delegate() {
-                return transactionKeyValueService;
-            }
-
-            @Override
-            public ListenableFuture<Map<Cell, Value>> getAsync(
-                    TableReference tableRef, Map<Cell, Long> timestampByCell) {
-                return Futures.immediateFuture(transactionKeyValueService.get(tableRef, timestampByCell));
-            }
-        };
     }
 }
