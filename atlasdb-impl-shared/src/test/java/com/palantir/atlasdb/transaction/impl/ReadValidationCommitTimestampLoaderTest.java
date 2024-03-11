@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -54,6 +53,7 @@ public final class ReadValidationCommitTimestampLoaderTest {
     private static final long BETWEEN_START_AND_COMMIT_1 = 125L;
     private static final long BETWEEN_START_AND_COMMIT_2 = 175L;
     private static final long AFTER_COMMIT = 250L;
+    private static final long TRANSACTION_INTERVAL = 42L;
 
     private final MutableLongLongMap committedTransactions = LongLongMaps.mutable.empty();
 
@@ -105,8 +105,7 @@ public final class ReadValidationCommitTimestampLoaderTest {
 
         assertThat(result).isEqualTo(LongLongMaps.immutable.of(BEFORE_START_1, AFTER_COMMIT));
         verify(delegateCommitTimestampLoader)
-                .getCommitTimestamps(
-                        eq(null), eq(LongSets.immutable.of(BEFORE_START_1)), eq(shouldWaitForCommitterToComplete));
+                .getCommitTimestamps(null, LongSets.immutable.of(BEFORE_START_1), shouldWaitForCommitterToComplete);
         verifyNoMoreInteractions(delegateCommitTimestampLoader);
     }
 
@@ -122,7 +121,7 @@ public final class ReadValidationCommitTimestampLoaderTest {
 
         assertThat(result).isEqualTo(LongLongMaps.immutable.of(BETWEEN_START_AND_COMMIT_1, BETWEEN_START_AND_COMMIT_2));
         verify(delegateCommitTimestampLoader)
-                .getCommitTimestamps(eq(null), eq(LongSets.immutable.of(BETWEEN_START_AND_COMMIT_1)), eq(false));
+                .getCommitTimestamps(null, LongSets.immutable.of(BETWEEN_START_AND_COMMIT_1), false);
         verifyNoMoreInteractions(delegateCommitTimestampLoader);
     }
 
@@ -138,7 +137,7 @@ public final class ReadValidationCommitTimestampLoaderTest {
                 BETWEEN_START_AND_COMMIT_2,
                 AFTER_COMMIT);
         startTimestamps.forEach(startTimestamp -> {
-            committedTransactions.put(startTimestamp, startTimestamp + 42);
+            committedTransactions.put(startTimestamp, startTimestamp + TRANSACTION_INTERVAL);
         });
 
         LongLongMap result = commitTimestampLoader
@@ -148,20 +147,18 @@ public final class ReadValidationCommitTimestampLoaderTest {
         assertThat(result).satisfies(startToCommitMap -> {
             assertThat(startToCommitMap.keySet()).isEqualTo(startTimestamps.toSet());
             startToCommitMap.forEachKeyValue((start, commit) -> {
-                long expectedCommit = start == START_TS ? COMMIT_TS : start + 42;
+                long expectedCommit = start == START_TS ? COMMIT_TS : start + TRANSACTION_INTERVAL;
                 assertThat(commit).isEqualTo(expectedCommit);
             });
         });
         verify(delegateCommitTimestampLoader)
                 .getCommitTimestamps(
-                        eq(null),
-                        eq(LongSets.immutable.of(BEFORE_START_1, BEFORE_START_2)),
-                        eq(shouldWaitForCommitterToComplete));
+                        null, LongSets.immutable.of(BEFORE_START_1, BEFORE_START_2), shouldWaitForCommitterToComplete);
         verify(delegateCommitTimestampLoader)
                 .getCommitTimestamps(
-                        eq(null),
-                        eq(LongSets.immutable.of(BETWEEN_START_AND_COMMIT_1, BETWEEN_START_AND_COMMIT_2, AFTER_COMMIT)),
-                        eq(false));
+                        null,
+                        LongSets.immutable.of(BETWEEN_START_AND_COMMIT_1, BETWEEN_START_AND_COMMIT_2, AFTER_COMMIT),
+                        false);
         verifyNoMoreInteractions(delegateCommitTimestampLoader);
     }
 
