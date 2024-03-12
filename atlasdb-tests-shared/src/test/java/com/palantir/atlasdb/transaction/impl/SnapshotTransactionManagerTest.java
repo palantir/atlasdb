@@ -31,17 +31,17 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
-import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueServiceManager;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
-import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -80,7 +80,7 @@ public class SnapshotTransactionManagerTest {
     private final KeyValueService keyValueService = mock(KeyValueService.class);
 
     private final TransactionKeyValueServiceManager transactionKeyValueServiceManager =
-            new DefaultTransactionKeyValueServiceManager(keyValueService);
+            new DelegatingTransactionKeyValueServiceManager(keyValueService);
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
 

@@ -21,6 +21,7 @@ import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
@@ -34,7 +35,6 @@ import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.PreCommitRequirementValidator;
-import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
@@ -68,6 +68,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
     public static class InitializeCheckingWrapper implements AutoDelegate_TransactionManager {
         private final TransactionManager txManager;
+
+        private final TransactionKeyValueServiceManager transactionKeyValueServiceManager;
         private final Supplier<Boolean> initializationPrerequisite;
         private final Callback<TransactionManager> callback;
 
@@ -78,10 +80,12 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
 
         InitializeCheckingWrapper(
                 TransactionManager manager,
+                TransactionKeyValueServiceManager transactionKeyValueServiceManager,
                 Supplier<Boolean> initializationPrerequisite,
                 Callback<TransactionManager> callback,
                 ScheduledExecutorService initializer) {
             this.txManager = manager;
+            this.transactionKeyValueServiceManager = transactionKeyValueServiceManager;
             this.initializationPrerequisite = initializationPrerequisite;
             this.callback = callback;
             this.executorService = initializer;
@@ -167,7 +171,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             // TransactionManagers.create; however, this is not required for the TransactionManager to fulfil
             // requests (note that it is not accessible from any TransactionManager implementation), so we omit
             // checking here whether it is initialized.
-            return txManager.getKeyValueService().isInitialized()
+            return transactionKeyValueServiceManager.isInitialized()
                     && txManager.getTimelockService().isInitialized()
                     && txManager.getTimestampService().isInitialized()
                     && txManager.getCleaner().isInitialized()
@@ -471,7 +475,12 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
         }
 
         return initializeAsync
-                ? new InitializeCheckingWrapper(transactionManager, initializationPrerequisite, callback, initializer)
+                ? new InitializeCheckingWrapper(
+                        transactionManager,
+                        transactionKeyValueServiceManager,
+                        initializationPrerequisite,
+                        callback,
+                        initializer)
                 : transactionManager;
     }
 

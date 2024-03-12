@@ -54,7 +54,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
-import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueServiceManager;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -125,7 +125,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         MultiTableSweepQueueWriter sweepQueue = getSweepQueueWriterUninitialized();
         SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
                 MetricsManagers.createForTests(),
-                new DefaultTransactionKeyValueServiceManager(keyValueService),
+                new DelegatingTransactionKeyValueServiceManager(keyValueService),
                 timelockService,
                 timestampManagementService,
                 lockService,

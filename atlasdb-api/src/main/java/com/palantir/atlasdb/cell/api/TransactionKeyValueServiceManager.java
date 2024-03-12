@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.atlasdb.cell.api;
 
-import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.processors.AutoDelegate;
 import java.util.Optional;
@@ -27,6 +26,10 @@ public interface TransactionKeyValueServiceManager extends AutoCloseable {
     TransactionKeyValueService getTransactionKeyValueService(LongSupplier timestampSupplier);
 
     Optional<KeyValueService> getKeyValueService();
+
+    DdlManager getDdlManager();
+
+    boolean isInitialized();
 
     @Override
     void close();

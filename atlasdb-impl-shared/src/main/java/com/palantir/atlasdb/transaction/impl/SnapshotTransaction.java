@@ -171,6 +171,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NoSuchElementException;
 import java.util.Objects;
@@ -576,11 +577,14 @@ public class SnapshotTransaction extends AbstractTransaction
             Map<byte[], RowColumnRangeIterator> rawResults) {
         Comparator<Cell> cellComparator = columnOrderThenPreserveInputRowOrder(distinctRows);
 
+        Iterator<Entry<Cell, Value>> mergeSortedIterator = mergeByComparator(rawResults.values(), cellComparator);
+        if (!mergeSortedIterator.hasNext()) {
+            // we can't skip checks on range scans
+            validatePreCommitRequirementsOnNonExhaustiveReadIfNecessary(tableRef, getStartTimestamp());
+        } // else the postFiltered iterator will check for each batch.
+
         Iterator<Map.Entry<Cell, Value>> postFilterIterator = getRowColumnRangePostFilteredWithoutSorting(
-                tableRef,
-                mergeByComparator(rawResults.values(), cellComparator),
-                batchColumnRangeSelection.getBatchHint(),
-                cellComparator);
+                tableRef, mergeSortedIterator, batchColumnRangeSelection.getBatchHint(), cellComparator);
         Iterator<Map.Entry<Cell, byte[]>> remoteWrites = Iterators.transform(
                 postFilterIterator,
                 entry -> Maps.immutableEntry(entry.getKey(), entry.getValue().getContents()));

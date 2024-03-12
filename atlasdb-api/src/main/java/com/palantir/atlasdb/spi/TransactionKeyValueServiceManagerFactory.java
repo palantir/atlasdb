@@ -16,8 +16,10 @@
 
 package com.palantir.atlasdb.spi;
 
+import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.coordination.CoordinationService;
-import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
+import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.refreshable.Refreshable;
 
 /**
@@ -38,6 +40,9 @@ public interface TransactionKeyValueServiceManagerFactory<T> {
     Class<T> coordinationValueClass();
 
     TransactionKeyValueServiceManager create(
+            String namespace,
+            DialogueClients.ReloadingFactory reloadingFactory,
+            MetricsManager metricsManager,
             CoordinationService<T> coordinationService,
             KeyValueServiceManager keyValueServiceManager,
             TransactionKeyValueServiceConfig install,

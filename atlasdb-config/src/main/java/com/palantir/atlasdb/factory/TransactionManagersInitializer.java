@@ -17,6 +17,7 @@ package com.palantir.atlasdb.factory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.async.initializer.AsyncInitializer;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.Schema;
@@ -27,21 +28,32 @@ import java.util.Set;
 
 public final class TransactionManagersInitializer extends AsyncInitializer {
 
-    private KeyValueService keyValueService;
+    private KeyValueService internalKeyValueService;
+
+    private TransactionKeyValueServiceManager transactionKeyValueServiceManager;
     private Set<Schema> schemas;
     private final boolean allSafeForLogging;
 
     public static TransactionManagersInitializer createInitialTables(
-            KeyValueService keyValueService, Set<Schema> schemas, boolean initializeAsync, boolean allSafeForLogging) {
-        TransactionManagersInitializer initializer =
-                new TransactionManagersInitializer(keyValueService, schemas, allSafeForLogging);
+            KeyValueService internalKeyValueService,
+            TransactionKeyValueServiceManager transactionKeyValueServiceManager,
+            Set<Schema> schemas,
+            boolean initializeAsync,
+            boolean allSafeForLogging) {
+        TransactionManagersInitializer initializer = new TransactionManagersInitializer(
+                internalKeyValueService, transactionKeyValueServiceManager, schemas, allSafeForLogging);
         initializer.initialize(initializeAsync);
         return initializer;
     }
 
     @VisibleForTesting
-    TransactionManagersInitializer(KeyValueService keyValueService, Set<Schema> schemas, boolean allSafeForLogging) {
-        this.keyValueService = keyValueService;
+    TransactionManagersInitializer(
+            KeyValueService internalKeyValueService,
+            TransactionKeyValueServiceManager transactionKeyValueServiceManager,
+            Set<Schema> schemas,
+            boolean allSafeForLogging) {
+        this.internalKeyValueService = internalKeyValueService;
+        this.transactionKeyValueServiceManager = transactionKeyValueServiceManager;
         this.schemas = schemas;
         this.allSafeForLogging = allSafeForLogging;
     }
@@ -49,7 +61,7 @@ public final class TransactionManagersInitializer extends AsyncInitializer {
     @Override
     @Idempotent
     public synchronized void tryInitialize() {
-        TransactionTables.createTables(keyValueService);
+        TransactionTables.createTables(internalKeyValueService);
 
         createTablesAndIndexes();
         populateLoggingContext();
@@ -57,7 +69,7 @@ public final class TransactionManagersInitializer extends AsyncInitializer {
 
     private void createTablesAndIndexes() {
         for (Schema schema : schemas) {
-            Schemas.createTablesAndIndexes(schema, keyValueService);
+            Schemas.createUserTablesAndIndexes(schema, transactionKeyValueServiceManager.getDdlManager());
         }
     }
 
@@ -65,7 +77,7 @@ public final class TransactionManagersInitializer extends AsyncInitializer {
         // TODO (jkong): Needs to be changed if/when we support dynamic table creation.
         LoggingArgs.combineAndSetNewAllSafeForLoggingFlag(allSafeForLogging);
         if (!allSafeForLogging) {
-            LoggingArgs.hydrate(keyValueService.getMetadataForTables());
+            LoggingArgs.hydrate(internalKeyValueService.getMetadataForTables());
         }
     }
 

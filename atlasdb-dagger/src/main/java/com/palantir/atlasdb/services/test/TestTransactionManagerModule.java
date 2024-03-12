@@ -18,6 +18,7 @@ package com.palantir.atlasdb.services.test;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
@@ -28,7 +29,7 @@ import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.factory.AtlasDbServiceDiscovery;
 import com.palantir.atlasdb.factory.LockAndTimestampServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueServiceManager;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.services.ServicesConfig;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
@@ -36,7 +37,6 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
-import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.DefaultDeleteExecutor;
 import com.palantir.atlasdb.transaction.impl.DefaultKeyValueSnapshotReaderManager;
@@ -124,12 +124,12 @@ public class TestTransactionManagerModule {
             @Internal DerivedSnapshotConfig derivedSnapshotConfig,
             TransactionKnowledgeComponents knowledge) {
         TransactionKeyValueServiceManager transactionKeyValueServiceManager =
-                new DefaultTransactionKeyValueServiceManager(kvs);
+                new DelegatingTransactionKeyValueServiceManager(kvs);
         DefaultDeleteExecutor deleteExecutor =
                 new DefaultDeleteExecutor(kvs, PTExecutors.newSingleThreadExecutor(true));
         return new SerializableTransactionManager(
                 metricsManager,
-                transactionKeyValueServiceManager,
+                new DelegatingTransactionKeyValueServiceManager(kvs),
                 lts.timelock(),
                 lts.lockWatcher(),
                 lts.managedTimestampService(),

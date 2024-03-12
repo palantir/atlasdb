@@ -16,20 +16,23 @@
 
 package com.palantir.atlasdb.keyvalue.impl;
 
+import com.palantir.atlasdb.cell.api.DdlManager;
 import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import java.util.Optional;
 import java.util.function.LongSupplier;
 
-public final class DefaultTransactionKeyValueServiceManager implements TransactionKeyValueServiceManager {
+public final class DelegatingTransactionKeyValueServiceManager implements TransactionKeyValueServiceManager {
 
     private final Optional<KeyValueService> delegate;
     private final TransactionKeyValueService transactionKeyValueService;
+    private final DdlManager ddlManager;
 
-    public DefaultTransactionKeyValueServiceManager(KeyValueService delegate) {
+    public DelegatingTransactionKeyValueServiceManager(KeyValueService delegate) {
         this.delegate = Optional.of(delegate);
-        this.transactionKeyValueService = new DefaultTransactionKeyValueService(delegate);
+        this.transactionKeyValueService = new DelegatingTransactionKeyValueService(delegate);
+        this.ddlManager = new DelegatingDdlManager(delegate);
     }
 
     @Override
@@ -40,6 +43,18 @@ public final class DefaultTransactionKeyValueServiceManager implements Transacti
     @Override
     public Optional<KeyValueService> getKeyValueService() {
         return delegate;
+    }
+
+    @Override
+    public DdlManager getDdlManager() {
+        return ddlManager;
+    }
+
+    @Override
+    public boolean isInitialized() {
+        // TODO(jakubk): This is already covered by code in TransactionManagers,
+        // but again it does not hurt to be explicit for now.
+        return delegate.get().isInitialized();
     }
 
     @Override

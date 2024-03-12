@@ -27,6 +27,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
@@ -57,7 +58,7 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueServiceManager;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
@@ -100,7 +101,6 @@ import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManagerFactory
 import com.palantir.atlasdb.transaction.api.LockWatchingCache;
 import com.palantir.atlasdb.transaction.api.NoOpLockWatchingCache;
 import com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter;
-import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
@@ -146,6 +146,7 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.DoNotLog;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
@@ -419,7 +420,7 @@ public abstract class TransactionManagers {
 
         Refreshable<SweepConfig> sweepConfig = runtime.map(AtlasDbRuntimeConfig::sweep);
 
-        KeyValueService keyValueService = initializeCloseable(
+        KeyValueService internalKeyValueService = initializeCloseable(
                 () -> {
                     KeyValueService kvs = atlasFactory.getKeyValueService(); // CassandraKeyValueServiceImpl
                     kvs = ProfilingKeyValueService.create(kvs); // Profiling, we think ok
@@ -460,7 +461,7 @@ public abstract class TransactionManagers {
                                 tkvsmfFactory,
                                 metricsManager,
                                 lockAndTimestampServices,
-                                keyValueService,
+                                internalKeyValueService,
                                 keyValueServiceManager,
                                 config().transactionKeyValueService().get(),
                                 runtimeConfig().get().map(optionalConfig -> optionalConfig
@@ -469,21 +470,25 @@ public abstract class TransactionManagers {
                                         .get()),
                                 config().initializeAsync());
                     } else {
-                        tkvsm = new DefaultTransactionKeyValueServiceManager(keyValueService);
+                        tkvsm = new DelegatingTransactionKeyValueServiceManager(internalKeyValueService);
                     }
                     return tkvsm;
                 },
                 closeables);
 
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
-                keyValueService, schemas(), config().initializeAsync(), allSafeForLogging());
+                internalKeyValueService,
+                transactionKeyValueServiceManager,
+                schemas(),
+                config().initializeAsync(),
+                allSafeForLogging());
         CleanupFollower follower = CleanupFollower.create(schemas());
 
         CoordinationService<InternalSchemaMetadata> coordinationService =
-                getSchemaMetadataCoordinationService(metricsManager, lockAndTimestampServices, keyValueService);
+                getSchemaMetadataCoordinationService(metricsManager, lockAndTimestampServices, internalKeyValueService);
 
         TargetedSweeper targetedSweeper = uninitializedTargetedSweeper(
-                keyValueService,
+                internalKeyValueService,
                 metricsManager,
                 config().targetedSweep(),
                 follower,
@@ -493,21 +498,21 @@ public abstract class TransactionManagers {
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
 
         TransactionKnowledgeComponents knowledge = TransactionKnowledgeComponents.create(
-                keyValueService,
+                internalKeyValueService,
                 metricsManager.getTaggedRegistry(),
                 config().internalSchema(),
                 targetedSweeper::isInitialized);
 
         TransactionComponents components = createTransactionComponents(
-                closeables, metricsManager, knowledge, transactionSchemaManager, keyValueService, runtime);
+                closeables, metricsManager, knowledge, transactionSchemaManager, internalKeyValueService, runtime);
 
         TransactionService transactionService = components.transactionService();
-        ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(keyValueService);
-        SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
+        ConflictDetectionManager conflictManager = ConflictDetectionManagers.create(internalKeyValueService);
+        SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(internalKeyValueService);
 
         Cleaner cleaner = initializeCloseable(
                 () -> new DefaultCleanerBuilder(
-                                keyValueService,
+                                internalKeyValueService,
                                 lockAndTimestampServices.timelock(),
                                 ImmutableList.of(follower),
                                 transactionService,
@@ -537,7 +542,8 @@ public abstract class TransactionManagers {
                 .orElse(ConflictTracer.NO_OP);
 
         Callback<TransactionManager> callbacks = new Callback.CallChain<>(List.of(
-                timelockConsistencyCheckCallback(config(), runtime.get(), lockAndTimestampServices),
+                timelockConsistencyCheckCallback(
+                        config(), runtime.get(), lockAndTimestampServices, internalKeyValueService),
                 targetedSweep.singleAttemptCallback(),
                 asyncInitializationCallback(),
                 createClearsTable()));
@@ -561,7 +567,7 @@ public abstract class TransactionManagers {
                         sweepStrategyManager,
                         cleaner,
                         () -> areTransactionManagerInitializationPrerequisitesSatisfied(
-                                initializer, lockAndTimestampServices),
+                                initializer, internalKeyValueService, lockAndTimestampServices),
                         allowHiddenTableAccess(),
                         derivedSnapshotConfig.concurrentGetRangesThreadPoolSize(),
                         derivedSnapshotConfig.defaultGetRangesConcurrency(),
@@ -595,7 +601,7 @@ public abstract class TransactionManagers {
                         metricsManager,
                         config(),
                         runtime,
-                        keyValueService,
+                        internalKeyValueService,
                         transactionService,
                         follower,
                         transactionManager,
@@ -605,7 +611,7 @@ public abstract class TransactionManagers {
                 initializeCompactBackgroundProcess(
                         metricsManager,
                         lockAndTimestampServices,
-                        keyValueService,
+                        internalKeyValueService,
                         transactionManager,
                         runtime.map(AtlasDbRuntimeConfig::compact)),
                 closeables);
@@ -655,7 +661,17 @@ public abstract class TransactionManagers {
                         metricsManager,
                         config().initializeAsync());
         return factory.create(
-                coordinationService, keyValueServiceManager, config, runtimeConfigRefreshable, initializeAsync);
+                config().namespace()
+                        .orElseThrow(() -> new SafeIllegalArgumentException(
+                                "Namespace must be set when using transactionKeyValueService")),
+                reloadingFactory()
+                        .withUserAgent(userAgent().addAgent(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT_AGENT)),
+                metricsManager,
+                coordinationService,
+                keyValueServiceManager,
+                config,
+                runtimeConfigRefreshable,
+                initializeAsync);
     }
 
     private MetricsManager setUpMetricsAndGetMetricsManager() {
@@ -897,8 +913,12 @@ public abstract class TransactionManagers {
     }
 
     private static boolean areTransactionManagerInitializationPrerequisitesSatisfied(
-            AsyncInitializer initializer, LockAndTimestampServices lockAndTimestampServices) {
-        return initializer.isInitialized() && timeLockMigrationCompleteIfNeeded(lockAndTimestampServices);
+            AsyncInitializer initializer,
+            KeyValueService internalKeyValueService,
+            LockAndTimestampServices lockAndTimestampServices) {
+        return initializer.isInitialized()
+                && internalKeyValueService.isInitialized()
+                && timeLockMigrationCompleteIfNeeded(lockAndTimestampServices);
     }
 
     @VisibleForTesting
@@ -973,7 +993,8 @@ public abstract class TransactionManagers {
     private static Callback<TransactionManager> timelockConsistencyCheckCallback(
             AtlasDbConfig atlasDbConfig,
             AtlasDbRuntimeConfig initialRuntimeConfig,
-            LockAndTimestampServices lockAndTimestampServices) {
+            LockAndTimestampServices lockAndTimestampServices,
+            KeyValueService internalKeyValueService) {
         // Only do the consistency check if we're using TimeLock.
         // This avoids a bootstrapping problem with leader-block services without async initialisation,
         // where you need a working timestamp service to check consistency, you need to check consistency
@@ -982,7 +1003,7 @@ public abstract class TransactionManagers {
         if (isUsingTimeLock(atlasDbConfig, initialRuntimeConfig)) {
             ToLongFunction<TransactionManager> conservativeBoundSupplier = txnManager -> {
                 Clock clock = GlobalClock.create(txnManager.getTimelockService());
-                return KeyValueServicePuncherStore.get(txnManager.getKeyValueService(), clock.getTimeMillis());
+                return KeyValueServicePuncherStore.get(internalKeyValueService, clock.getTimeMillis());
             };
             return ConsistencyCheckRunner.create(ImmutableTimestampCorroborationConsistencyCheck.builder()
                     .conservativeBound(conservativeBoundSupplier)
@@ -1059,7 +1080,8 @@ public abstract class TransactionManagers {
                 runtime,
                 install,
                 ImmutableList.of(follower),
-                abandonedTxnStore::addAbandonedTimestamps);
+                abandonedTxnStore::addAbandonedTimestamps,
+                kvs);
     }
 
     @Value.Immutable

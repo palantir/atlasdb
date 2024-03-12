@@ -51,14 +51,16 @@ public class OnlyCommittedWitnessedTransactionVisitorTest {
 
     @Test
     public void maybeCommittedTransactionReturnsEmptyWhenNotCommitted() {
-        when(transactionStore.isCommitted(anyLong())).thenReturn(false);
+        when(transactionStore.isCommittedForcingTransactionConclusion(anyLong()))
+                .thenReturn(false);
         assertThat(MAYBE_WITNESSED_TRANSACTION.accept(new OnlyCommittedWitnessedTransactionVisitor(transactionStore)))
                 .isEmpty();
     }
 
     @Test
     public void maybeCommittedTransactionReturnsFullyWitnessedWhenCommitted() {
-        when(transactionStore.isCommitted(anyLong())).thenReturn(true);
+        when(transactionStore.isCommittedForcingTransactionConclusion(anyLong()))
+                .thenReturn(true);
         assertThat(MAYBE_WITNESSED_TRANSACTION.accept(new OnlyCommittedWitnessedTransactionVisitor(transactionStore)))
                 .contains(MAYBE_WITNESSED_TRANSACTION.toFullyWitnessed());
     }

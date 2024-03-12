@@ -20,12 +20,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AssertLockedKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueServiceManager;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -36,7 +37,6 @@ import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.PreCommitRequirementValidator;
 import com.palantir.atlasdb.transaction.api.Transaction;
-import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
@@ -166,7 +166,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
     }
 
     private static TransactionKeyValueServiceManager createAssertKeyValue(KeyValueService kv, LockService lock) {
-        return new DefaultTransactionKeyValueServiceManager(new AssertLockedKeyValueService(kv, lock));
+        return new DelegatingTransactionKeyValueServiceManager(new AssertLockedKeyValueService(kv, lock));
     }
 
     @Override

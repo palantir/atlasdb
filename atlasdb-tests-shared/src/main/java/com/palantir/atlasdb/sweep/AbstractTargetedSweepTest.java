@@ -60,7 +60,7 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
 
         MetricsManager metricsManager = MetricsManagers.createForTests();
         sweepQueue = TargetedSweeper.createUninitializedForTest(
-                metricsManager, () -> ImmutableTargetedSweepRuntimeConfig.builder()
+                kvs, metricsManager, () -> ImmutableTargetedSweepRuntimeConfig.builder()
                         .shards(1)
                         .maximumPartitionsToBatchInSingleRead(8)
                         .build());

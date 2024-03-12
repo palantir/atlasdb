@@ -18,6 +18,7 @@ package com.palantir.atlasdb.services;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
@@ -28,7 +29,7 @@ import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.factory.AtlasDbServiceDiscovery;
 import com.palantir.atlasdb.factory.LockAndTimestampServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueServiceManager;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -122,8 +123,8 @@ public class TransactionManagerModule {
             @Internal DerivedSnapshotConfig derivedSnapshotConfig,
             TransactionKnowledgeComponents knowledge) {
         // todo(gmaretic): should this be using a real sweep queue?
-        DefaultTransactionKeyValueServiceManager transactionKeyValueServiceManager =
-                new DefaultTransactionKeyValueServiceManager(kvs);
+        TransactionKeyValueServiceManager transactionKeyValueServiceManager =
+                new DelegatingTransactionKeyValueServiceManager(kvs);
         DefaultDeleteExecutor deleteExecutor = new DefaultDeleteExecutor(
                 kvs,
                 Executors.newSingleThreadExecutor(

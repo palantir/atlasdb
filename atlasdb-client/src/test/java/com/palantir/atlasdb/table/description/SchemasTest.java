@@ -18,12 +18,12 @@ package com.palantir.atlasdb.table.description;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.cell.api.DdlManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -32,21 +32,24 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import java.util.Map;
 import java.util.Set;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly", "checkstyle:WhitespaceAround"})
 public class SchemasTest {
     private static final String TABLE_NAME = "testTable";
     private static final TableReference TABLE_REF = TableReference.createWithEmptyNamespace("testTable");
     private static final Namespace NAMESPACE = Namespace.create("testNamespace");
-    private KeyValueService kvs;
 
-    @BeforeEach
-    public void before() {
-        kvs = mock(KeyValueService.class);
-    }
+    @Mock
+    private DdlManager ddlManager;
+
+    @Mock
+    private KeyValueService kvs;
 
     @Test
     public void testGetFullTableReferenceString() {
@@ -70,10 +73,10 @@ public class SchemasTest {
     @Test
     public void testCreateTable() {
         ArgumentCaptor<Map<TableReference, byte[]>> argumentCaptor = ArgumentCaptor.forClass(Map.class);
-        doNothing().when(kvs).createTables(argumentCaptor.capture());
+        doNothing().when(ddlManager).createTables(argumentCaptor.capture());
 
-        Schemas.createTable(kvs, TABLE_REF, getSimpleTableDefinition(TABLE_REF));
-        verify(kvs).createTables(eq(argumentCaptor.getValue()));
+        Schemas.createUserTable(ddlManager, TABLE_REF, getSimpleTableDefinition(TABLE_REF));
+        verify(ddlManager).createTables(eq(argumentCaptor.getValue()));
         assertThat(argumentCaptor.getValue())
                 .extractingByKey(TABLE_REF)
                 .asInstanceOf(InstanceOfAssertFactories.BYTE_ARRAY)
@@ -83,7 +86,7 @@ public class SchemasTest {
     @Test
     public void testCreateTables() {
         ArgumentCaptor<Map<TableReference, byte[]>> argumentCaptor = ArgumentCaptor.forClass(Map.class);
-        doNothing().when(kvs).createTables(argumentCaptor.capture());
+        doNothing().when(ddlManager).createTables(argumentCaptor.capture());
 
         TableReference tableName1 = TableReference.createWithEmptyNamespace(TABLE_NAME + "1");
         TableReference tableName2 = TableReference.createWithEmptyNamespace(TABLE_NAME + "2");
@@ -92,8 +95,8 @@ public class SchemasTest {
                 tableName1, getSimpleTableDefinition(tableName1),
                 tableName2, getSimpleTableDefinition(tableName2));
 
-        Schemas.createTables(kvs, tables);
-        verify(kvs).createTables(eq(argumentCaptor.getValue()));
+        Schemas.createUserTables(ddlManager, tables);
+        verify(ddlManager).createTables(eq(argumentCaptor.getValue()));
         assertThat(argumentCaptor.getValue())
                 .extractingByKey(tableName1)
                 .asInstanceOf(InstanceOfAssertFactories.BYTE_ARRAY)
