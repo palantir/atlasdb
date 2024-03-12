@@ -41,12 +41,17 @@ public interface MultipleBusyCellWorkflowConfiguration extends WorkflowConfigura
     }
 
     @Value.Default
-    default int maxWritesPerCell() {
-        return 1000;
+    default double proportionOfIterationCountAsUpdates() {
+        return 0.9;
     }
 
-    @Value.Default
-    default int maxReadsPerCell() {
-        return 50;
+    @Value.Lazy
+    default int maxUpdates() {
+        return Math.toIntExact(Math.round(proportionOfIterationCountAsUpdates() * iterationCount()));
+    }
+
+    @Value.Lazy
+    default int maxReads() {
+        return iterationCount() - maxUpdates();
     }
 }

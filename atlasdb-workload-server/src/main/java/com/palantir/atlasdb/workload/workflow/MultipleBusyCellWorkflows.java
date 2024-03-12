@@ -43,7 +43,9 @@ import java.util.stream.Stream;
  * possible, even as Cassandra nodes die, without overwhelming the cluster. This differs from SingleRow/SingleCell
  * workflows as it attempts to spread data across nodes, and also intends to do a far greater number of writes to
  * create a large number of AtlasDB tombstones.
- * TODO: Check that we don't run just a 3 node Cassandra cluster
+ * We're a bit sneaky here, and interpret the iteration count as _per cell_, rather than the total number of iterations
+ * across all cells
+ * TODO(mdaudali): Configure Cassandra so that we run with more than just 3 Cassandra nodes.
  */
 public final class MultipleBusyCellWorkflows {
     private static final SecureRandom SECURE_RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();
@@ -58,14 +60,32 @@ public final class MultipleBusyCellWorkflows {
             ListeningExecutorService readExecutor,
             ListeningExecutorService writeExecutor) {
         return () -> {
-            List<WorkloadCell> cells = IntStream.range(0, configuration.maxCells())
+            int actualNumberOfCells = SECURE_RANDOM.nextInt(configuration.maxCells()) + 1;
+            List<WorkloadCell> cells = IntStream.range(0, actualNumberOfCells)
                     .mapToObj(_x -> ImmutableWorkloadCell.of(SECURE_RANDOM.nextInt(), SECURE_RANDOM.nextInt()))
                     .collect(Collectors.toList());
+            int maxUpdatesPerCell =
+                    Math.toIntExact(Math.round(configuration.maxUpdates() / (double) actualNumberOfCells));
+            int maxReadsPerCell =
+                    Math.toIntExact(Math.round(configuration.maxUpdates() / (double) actualNumberOfCells));
             List<ListenableFuture<Optional<WitnessedTransaction>>> writes = cells.stream()
-                    .flatMap(cell -> scheduleWrites(store, cell, configuration, writeExecutor).stream())
+                    .flatMap(cell -> scheduleUpdates(
+                            store,
+                            cell,
+                            maxUpdatesPerCell,
+                            configuration.tableConfiguration().tableName(),
+                            configuration.deleteProbability(),
+                            writeExecutor)
+                            .stream())
                     .collect(Collectors.toList());
             List<ListenableFuture<Optional<WitnessedTransaction>>> reads = cells.stream()
-                    .flatMap(cell -> scheduleReads(store, cell, configuration, readExecutor).stream())
+                    .flatMap(cell -> scheduleReads(
+                            store,
+                            cell,
+                            maxReadsPerCell,
+                            configuration.tableConfiguration().tableName(),
+                            readExecutor)
+                            .stream())
                     .collect(Collectors.toList());
             ListenableFuture<List<WitnessedTransaction>> witnessedTransactions = Futures.transform(
                     Futures.allAsList(
@@ -86,27 +106,31 @@ public final class MultipleBusyCellWorkflows {
     private static List<ListenableFuture<Optional<WitnessedTransaction>>> scheduleReads(
             InteractiveTransactionStore store,
             WorkloadCell cell,
-            MultipleBusyCellWorkflowConfiguration configuration,
+            int maxReadsPerCell,
+            String tableName,
             ListeningExecutorService readExecutor) {
-        return IntStream.range(0, configuration.maxReadsPerCell())
-                .mapToObj(idx -> readExecutor.submit(() -> store.readWrite(
-                        txn -> txn.read(configuration.tableConfiguration().tableName(), cell))))
+        int actualNumberOfReads = SECURE_RANDOM.nextInt(maxReadsPerCell) + 1;
+        return IntStream.range(0, actualNumberOfReads)
+                .mapToObj(idx -> readExecutor.submit(() -> store.readWrite(txn -> txn.read(tableName, cell))))
                 .collect(Collectors.toList());
     }
 
-    private static List<ListenableFuture<Optional<WitnessedTransaction>>> scheduleWrites(
+    private static List<ListenableFuture<Optional<WitnessedTransaction>>> scheduleUpdates(
             InteractiveTransactionStore store,
             WorkloadCell cell,
-            MultipleBusyCellWorkflowConfiguration configuration,
+            int maxUpdatesPerCell,
+            String tableName,
+            double deleteProbability,
             ListeningExecutorService writeExecutor) {
-        return IntStream.range(0, configuration.maxWritesPerCell())
+        int actualNumberOfWrites = SECURE_RANDOM.nextInt(maxUpdatesPerCell) + 1;
+        return IntStream.range(0, actualNumberOfWrites)
                 .mapToObj(index -> {
-                    if (SECURE_RANDOM.nextDouble() < configuration.deleteProbability()) {
-                        return writeExecutor.submit(() -> store.readWrite(List.of(DeleteTransactionAction.of(
-                                configuration.tableConfiguration().tableName(), cell))));
+                    if (SECURE_RANDOM.nextDouble() < deleteProbability) {
+                        return writeExecutor.submit(
+                                () -> store.readWrite(List.of(DeleteTransactionAction.of(tableName, cell))));
                     } else {
-                        return writeExecutor.submit(() -> store.readWrite(List.of(WriteTransactionAction.of(
-                                configuration.tableConfiguration().tableName(), cell, index))));
+                        return writeExecutor.submit(
+                                () -> store.readWrite(List.of(WriteTransactionAction.of(tableName, cell, index))));
                     }
                 })
                 .collect(Collectors.toList());

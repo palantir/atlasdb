@@ -19,6 +19,7 @@ package com.palantir.atlasdb.workload.config;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.config.AtlasDbConfig;
+import com.palantir.atlasdb.workload.workflow.MultipleBusyCellWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.RandomWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleBusyCellReadNoTouchWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.SingleBusyCellWorkflowConfiguration;
@@ -52,6 +53,8 @@ public interface WorkloadServerInstallConfiguration {
     SingleBusyCellReadNoTouchWorkflowConfiguration singleBusyCellReadsNoTouchConfig();
 
     WriteOnceDeleteOnceWorkflowConfiguration writeOnceDeleteOnceConfig();
+
+    MultipleBusyCellWorkflowConfiguration multipleBusyCellConfig();
 
     WorkflowExecutionConfiguration workflowExecutionConfig();
 
