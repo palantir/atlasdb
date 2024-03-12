@@ -193,7 +193,8 @@ public abstract class TransactionManagers {
      */
     @Value.Default
     Consumer<Object> registrar() {
-        return resource -> {};
+        return resource -> {
+        };
     }
 
     @Value.Default
@@ -512,11 +513,11 @@ public abstract class TransactionManagers {
 
         Cleaner cleaner = initializeCloseable(
                 () -> new DefaultCleanerBuilder(
-                                internalKeyValueService,
-                                lockAndTimestampServices.timelock(),
-                                ImmutableList.of(follower),
-                                transactionService,
-                                metricsManager)
+                        internalKeyValueService,
+                        lockAndTimestampServices.timelock(),
+                        ImmutableList.of(follower),
+                        transactionService,
+                        metricsManager)
                         .setBackgroundScrubAggressively(config().backgroundScrubAggressively())
                         .setBackgroundScrubBatchSize(config().getBackgroundScrubBatchSize())
                         .setBackgroundScrubFrequencyMillis(config().getBackgroundScrubFrequencyMillis())
@@ -549,7 +550,7 @@ public abstract class TransactionManagers {
                 createClearsTable()));
 
         // TODO (jkong): Allow user to inject here
-        DeleteExecutor deleteExecutor = DefaultDeleteExecutor.createDefault(keyValueService);
+        DeleteExecutor deleteExecutor = DefaultDeleteExecutor.createDefault(internalKeyValueService);
         KeyValueSnapshotReaderManager keyValueSnapshotReaderManager = createKeyValueSnapshotReaderManager(
                 transactionKeyValueServiceManager, transactionService, sweepStrategyManager, deleteExecutor);
 

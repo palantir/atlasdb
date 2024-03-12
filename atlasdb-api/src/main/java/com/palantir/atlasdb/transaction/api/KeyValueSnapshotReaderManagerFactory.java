@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.transaction.api;
 
+import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
 public interface KeyValueSnapshotReaderManagerFactory {

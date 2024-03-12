@@ -16,11 +16,11 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
+import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter;
-import com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
 public class DefaultKeyValueSnapshotReaderManager implements KeyValueSnapshotReaderManager {

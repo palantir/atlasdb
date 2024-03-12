@@ -305,7 +305,7 @@ public class SerializableTransactionManagerTest {
                 knowledge,
                 defaultDeleteExecutor,
                 new DefaultKeyValueSnapshotReaderManager(
-                        new DefaultTransactionKeyValueServiceManager(mockKvs),
+                        new DelegatingTransactionKeyValueServiceManager(mockKvs),
                         mock(TransactionService.class),
                         false,
                         mock(DefaultOrphanedSentinelDeleter.class),

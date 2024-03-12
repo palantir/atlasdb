@@ -30,7 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.DefaultTransactionKeyValueServiceManager;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableDefinition;
@@ -111,7 +111,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 TransactionKnowledgeComponents.createForTests(kvs2, metricsManager.getTaggedRegistry()),
                 deleteExecutor2,
                 new DefaultKeyValueSnapshotReaderManager(
-                        new DefaultTransactionKeyValueServiceManager(kvs2),
+                        new DelegatingTransactionKeyValueServiceManager(kvs2),
                         transactionService,
                         false,
                         new DefaultOrphanedSentinelDeleter(ssm2::get, typedDeleteExecutor2),
@@ -157,7 +157,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 TransactionKnowledgeComponents.createForTests(kvs2, metricsManager.getTaggedRegistry()),
                 verifyDeleteExecutor,
                 new DefaultKeyValueSnapshotReaderManager(
-                        new DefaultTransactionKeyValueServiceManager(kvs2),
+                        new DelegatingTransactionKeyValueServiceManager(kvs2),
                         transactionService,
                         false,
                         new DefaultOrphanedSentinelDeleter(verifySsm::get, verifyTypedDeleteExecutor),
