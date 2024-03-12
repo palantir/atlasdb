@@ -147,12 +147,14 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 Refreshable.only(configuration.runtime().atlas()),
                 USER_AGENT,
                 metricsManager);
-        List<WorkflowAndInvariants<Workflow>> allWorkflowsAndInvariants =
-                createAllWorkflowsAndInvariants(configuration, environment, transactionStoreFactory);
 
         new AntithesisWorkflowValidatorRunner(new DefaultWorkflowRunner(
                         MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService)))
-                .run(() -> selectWorkflowsToRun(configuration, allWorkflowsAndInvariants));
+                .run(() -> selectWorkflowsToRun(
+                        configuration,
+                        // We intentionally add randomness when creating the workflows (e.g., the executor pool size)
+                        // and so we must create the workflows under the fuzzer
+                        createAllWorkflowsAndInvariants(configuration, environment, transactionStoreFactory)));
 
         log.info("Finished running desired workflows successfully");
         log.info("antithesis: terminate");
