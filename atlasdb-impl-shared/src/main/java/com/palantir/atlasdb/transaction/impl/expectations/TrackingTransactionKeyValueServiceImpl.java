@@ -114,13 +114,6 @@ public final class TrackingTransactionKeyValueServiceImpl
     }
 
     @Override
-    public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        Map<Cell, Value> result = delegate.get(tableRef, timestampByCell);
-        tracker.recordReadForTable(tableRef, "get", MeasuringUtils.sizeOf(result));
-        return result;
-    }
-
-    @Override
     public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         Map<Cell, Long> result = delegate.getLatestTimestamps(tableRef, timestampByCell);
         tracker.recordReadForTable(tableRef, "getLatestTimestamps", MeasuringUtils.sizeOfMeasurableLongMap(result));

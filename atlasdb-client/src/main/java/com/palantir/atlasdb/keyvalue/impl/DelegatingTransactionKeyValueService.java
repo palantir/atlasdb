@@ -81,11 +81,6 @@ public final class DelegatingTransactionKeyValueService implements TransactionKe
     }
 
     @Override
-    public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        return delegate.get(tableRef, timestampByCell);
-    }
-
-    @Override
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         return delegate.getAsync(tableRef, timestampByCell);
     }

@@ -36,8 +36,8 @@ import java.util.Map;
 /**
  * Key-Value API to be used with user data tables.
  *
- * Close cousin of {@link com.palantir.atlasdb.keyvalue.api.KeyValueService}
- * but severely restricts the API available to transactions.
+ * Close cousin of {@link com.palantir.atlasdb.keyvalue.api.KeyValueService} but severely restricts the API available
+ * to transactions.
  */
 @AutoDelegate
 public interface TransactionKeyValueService {
@@ -62,8 +62,6 @@ public interface TransactionKeyValueService {
 
     @MustBeClosed
     ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long timestamp);
-
-    Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell);
 
     ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell);
 

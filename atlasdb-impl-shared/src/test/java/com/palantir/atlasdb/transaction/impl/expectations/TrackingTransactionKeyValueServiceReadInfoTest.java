@@ -190,17 +190,6 @@ public final class TrackingTransactionKeyValueServiceReadInfoTest {
 
     @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @MethodSource("sizes")
-    public void readInfoIsCorrectAfterGetCall(int size) {
-        setup(size);
-        when(tkvs.get(tableReference, timestampByCellMap)).thenReturn(valueByCellMapOfSize);
-
-        trackingKvs.get(tableReference, timestampByCellMap);
-
-        validateReadInfoForReadForTable("get", size);
-    }
-
-    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
-    @MethodSource("sizes")
     public void readInfoIsCorrectAfterGetLatestTimestampsCall(int size) {
         setup(size);
         Map<Cell, Long> timestampByCellMapOfSize = TrackingKeyValueServiceTestUtils.createLongByCellMapWithSize(size);
