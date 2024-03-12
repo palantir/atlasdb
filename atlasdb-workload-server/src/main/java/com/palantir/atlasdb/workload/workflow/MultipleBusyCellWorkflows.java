@@ -29,6 +29,9 @@ import com.palantir.atlasdb.workload.transaction.DeleteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.WriteTransactionAction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactions;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.List;
@@ -49,6 +52,7 @@ import java.util.stream.Stream;
  */
 public final class MultipleBusyCellWorkflows {
     private static final SecureRandom SECURE_RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();
+    private static final SafeLogger log = SafeLoggerFactory.get(SingleRowTwoCellsWorkflows.class);
 
     private MultipleBusyCellWorkflows() {
         // utility
@@ -61,6 +65,7 @@ public final class MultipleBusyCellWorkflows {
             ListeningExecutorService writeExecutor) {
         return () -> {
             int actualNumberOfCells = SECURE_RANDOM.nextInt(configuration.maxCells()) + 1;
+            log.info("Number of cells to write to: {}", SafeArg.of("numberOfCells", actualNumberOfCells));
             List<WorkloadCell> cells = IntStream.range(0, actualNumberOfCells)
                     .mapToObj(_x -> ImmutableWorkloadCell.of(SECURE_RANDOM.nextInt(), SECURE_RANDOM.nextInt()))
                     .collect(Collectors.toList());
@@ -110,6 +115,11 @@ public final class MultipleBusyCellWorkflows {
             String tableName,
             ListeningExecutorService readExecutor) {
         int actualNumberOfReads = SECURE_RANDOM.nextInt(maxReadsPerCell) + 1;
+        log.info(
+                "Number of reads for cell {}: {}",
+                SafeArg.of("cell", cell),
+                SafeArg.of("numberOfReads", actualNumberOfReads));
+
         return IntStream.range(0, actualNumberOfReads)
                 .mapToObj(idx -> readExecutor.submit(() -> store.readWrite(txn -> txn.read(tableName, cell))))
                 .collect(Collectors.toList());
@@ -123,12 +133,19 @@ public final class MultipleBusyCellWorkflows {
             double deleteProbability,
             ListeningExecutorService writeExecutor) {
         int actualNumberOfWrites = SECURE_RANDOM.nextInt(maxUpdatesPerCell) + 1;
+        log.info(
+                "Number of writes for cell {}: {}",
+                SafeArg.of("cell", cell),
+                SafeArg.of("numberOfWrites", actualNumberOfWrites));
+
         return IntStream.range(0, actualNumberOfWrites)
                 .mapToObj(index -> {
                     if (SECURE_RANDOM.nextDouble() < deleteProbability) {
+                        log.info("Issuing delete for cell {}", SafeArg.of("cell", cell));
                         return writeExecutor.submit(
                                 () -> store.readWrite(List.of(DeleteTransactionAction.of(tableName, cell))));
                     } else {
+                        log.info("Issuing write for cell {}", SafeArg.of("cell", cell));
                         return writeExecutor.submit(
                                 () -> store.readWrite(List.of(WriteTransactionAction.of(tableName, cell, index))));
                     }
