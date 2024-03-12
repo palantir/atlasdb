@@ -52,7 +52,7 @@ import java.util.stream.Stream;
  */
 public final class MultipleBusyCellWorkflows {
     private static final SecureRandom SECURE_RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();
-    private static final SafeLogger log = SafeLoggerFactory.get(SingleRowTwoCellsWorkflows.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(MultipleBusyCellWorkflows.class);
 
     private MultipleBusyCellWorkflows() {
         // utility
