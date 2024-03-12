@@ -417,8 +417,13 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
         // We add 1 to the random number to avoid creating an executor with 0 threads, and to include the maxThreadCount
         // as a possible result (given that the bound is exclusive).
         int numberOfThreads = SECURE_RANDOM.nextInt(maxThreadCount) + 1;
+        String executorName = workflowFactoryClass.getSimpleName() + suffix;
+        log.info(
+                "{} executor created with {} threads",
+                SafeArg.of("executorName", executorName),
+                SafeArg.of("numberOfThreads", numberOfThreads));
         return lifecycle
-                .executorService(workflowFactoryClass.getSimpleName() + suffix)
+                .executorService(executorName)
                 .minThreads(numberOfThreads)
                 .maxThreads(numberOfThreads)
                 .build();
