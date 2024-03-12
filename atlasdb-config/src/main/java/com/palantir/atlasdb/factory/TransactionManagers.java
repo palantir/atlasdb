@@ -193,8 +193,7 @@ public abstract class TransactionManagers {
      */
     @Value.Default
     Consumer<Object> registrar() {
-        return resource -> {
-        };
+        return resource -> {};
     }
 
     @Value.Default
@@ -513,11 +512,11 @@ public abstract class TransactionManagers {
 
         Cleaner cleaner = initializeCloseable(
                 () -> new DefaultCleanerBuilder(
-                        internalKeyValueService,
-                        lockAndTimestampServices.timelock(),
-                        ImmutableList.of(follower),
-                        transactionService,
-                        metricsManager)
+                                internalKeyValueService,
+                                lockAndTimestampServices.timelock(),
+                                ImmutableList.of(follower),
+                                transactionService,
+                                metricsManager)
                         .setBackgroundScrubAggressively(config().backgroundScrubAggressively())
                         .setBackgroundScrubBatchSize(config().getBackgroundScrubBatchSize())
                         .setBackgroundScrubFrequencyMillis(config().getBackgroundScrubFrequencyMillis())
