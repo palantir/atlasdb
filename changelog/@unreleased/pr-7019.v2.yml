@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: Workload server now randomly determines the max possible concurrency
+    for a given executor service, bound by the configured max. In practice, this means
+    we randomise the max concurrent reads/writes a given workflow does.
+  links:
+  - https://github.com/palantir/atlasdb/pull/7019
