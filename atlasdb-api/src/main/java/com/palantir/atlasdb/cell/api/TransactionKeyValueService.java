@@ -35,9 +35,9 @@ import java.util.Map;
 
 /**
  * Key-Value API to be used with user data tables.
- * <p>
- * Close cousin of {@link com.palantir.atlasdb.keyvalue.api.KeyValueService}
- * but severely restricts the API available to transactions.
+ *
+ * Close cousin of {@link com.palantir.atlasdb.keyvalue.api.KeyValueService} but severely restricts the API available
+ * to transactions.
  */
 @AutoDelegate
 public interface TransactionKeyValueService {
