@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl.metrics;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Timer;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.impl.SnapshotTransaction;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -30,6 +31,14 @@ public final class SnapshotTransactionMetricFactory {
             MetricsManager metricsManager, TableLevelMetricsController tableLevelMetricsController) {
         this.metricsManager = metricsManager;
         this.tableLevelMetricsController = tableLevelMetricsController;
+    }
+
+    public Timer getTimer(String name) {
+        return metricsManager.registerOrGetTimer(SnapshotTransaction.class, name);
+    }
+
+    public Histogram getHistogram(String name) {
+        return metricsManager.registerOrGetHistogram(SnapshotTransaction.class, name);
     }
 
     // Using the SnapshotTransaction class and not this class, to preserve backwards compatibility

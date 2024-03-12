@@ -20,24 +20,16 @@ import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.AtlasDbMetricNames.CellFilterMetrics;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.metrics.KeyValueSnapshotEventRecorder;
-import com.palantir.atlasdb.util.MetricsManager;
 
 public final class DefaultKeyValueSnapshotEventRecorder implements KeyValueSnapshotEventRecorder {
     // This dichotomy is unfortunate, but a result of us standing between the legacy and metric-schema worlds.
     private final SnapshotTransactionMetricFactory metricFactory;
     private final TransactionMetrics transactionMetrics;
 
-    private DefaultKeyValueSnapshotEventRecorder(
+    public DefaultKeyValueSnapshotEventRecorder(
             SnapshotTransactionMetricFactory metricFactory, TransactionMetrics transactionMetrics) {
         this.metricFactory = metricFactory;
         this.transactionMetrics = transactionMetrics;
-    }
-
-    public static KeyValueSnapshotEventRecorder create(
-            MetricsManager metricsManager, TableLevelMetricsController tableLevelMetricsController) {
-        return new DefaultKeyValueSnapshotEventRecorder(
-                new SnapshotTransactionMetricFactory(metricsManager, tableLevelMetricsController),
-                TransactionMetrics.of(metricsManager.getTaggedRegistry()));
     }
 
     @Override
