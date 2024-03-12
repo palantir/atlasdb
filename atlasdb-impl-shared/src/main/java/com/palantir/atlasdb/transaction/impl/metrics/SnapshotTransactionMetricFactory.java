@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.impl.SnapshotTransaction;
 import com.palantir.atlasdb.util.MetricsManager;
 
+// We continue to use the SnapshotTransaction origin to avoid a breaking change in our metric names.
 public final class SnapshotTransactionMetricFactory {
     private final MetricsManager metricsManager;
     private final TableLevelMetricsController tableLevelMetricsController;
@@ -41,7 +42,6 @@ public final class SnapshotTransactionMetricFactory {
         return metricsManager.registerOrGetHistogram(SnapshotTransaction.class, name);
     }
 
-    // Using the SnapshotTransaction class and not this class, to preserve backwards compatibility
     public Histogram getHistogram(String name, TableReference tableRef) {
         return metricsManager.registerOrGetTaggedHistogram(
                 SnapshotTransaction.class, name, metricsManager.getTableNameTagFor(tableRef));
