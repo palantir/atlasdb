@@ -300,8 +300,8 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TimestampCache timestampCache;
 
     protected final TransactionKnowledgeComponents knowledge;
-    protected final ImmutableTimestampLockManager immutableTimestampLockManager;
-    protected final PreCommitRequirementValidator preCommitRequirementValidator;
+    private final ImmutableTimestampLockManager immutableTimestampLockManager;
+    private final PreCommitRequirementValidator preCommitRequirementValidator;
 
     protected final Closer closer = Closer.create();
 
