@@ -108,7 +108,7 @@ public class MultipleBusyCellWorkflowsTest {
     }
 
     @Test
-    public void transactionWriteActionsConvergeToConfiguredProbabilities() {
+    public void transactionUpdateActionsConvergeToConfiguredProbabilities() {
         WorkflowHistory workflowHistory = workflow.run();
         AtomicInteger writes = new AtomicInteger();
         AtomicInteger deletes = new AtomicInteger();
