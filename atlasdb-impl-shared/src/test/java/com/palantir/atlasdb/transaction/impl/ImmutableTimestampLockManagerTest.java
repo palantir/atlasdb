@@ -19,6 +19,8 @@ package com.palantir.atlasdb.transaction.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
@@ -160,6 +162,15 @@ public final class ImmutableTimestampLockManagerTest {
                             .contains("the following locks are no longer valid: ["
                                     + DEFAULT_IMMUTABLE_TIMESTAMP_LOCK_TOKEN + "]");
                 });
+    }
+
+    @Test
+    public void doesNotCallLockRefresherIfNothingToCheck() {
+        LockValidityChecker validityChecker = mock(LockValidityChecker.class);
+        ImmutableTimestampLockManager immutableTimestampLockManager = new ImmutableTimestampLockManager(Optional.empty(), validityChecker);
+
+        assertThat(immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(Optional.empty())).isEmpty();
+        verify(validityChecker, never()).getStillValidLockTokens(anySet());
     }
 
     private static Stream<Arguments> lockManagerConfigurations() {
