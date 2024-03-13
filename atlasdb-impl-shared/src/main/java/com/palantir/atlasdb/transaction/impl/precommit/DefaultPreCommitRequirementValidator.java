@@ -32,7 +32,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
 import java.util.Optional;
 
-public class DefaultPreCommitRequirementValidator implements PreCommitRequirementValidator {
+public final class DefaultPreCommitRequirementValidator implements PreCommitRequirementValidator {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultPreCommitRequirementValidator.class);
 
     private final PreCommitCondition userPreCommitCondition;
