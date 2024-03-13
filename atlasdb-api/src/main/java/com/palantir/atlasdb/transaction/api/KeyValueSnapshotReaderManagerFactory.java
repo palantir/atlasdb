@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.api;
 
 import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.util.MetricsManager;
 
 public interface KeyValueSnapshotReaderManagerFactory {
     String getType();
@@ -27,5 +28,6 @@ public interface KeyValueSnapshotReaderManagerFactory {
             TransactionService transactionService,
             boolean allowHiddenTableAccess,
             OrphanedSentinelDeleter orphanedSentinelDeleter,
-            DeleteExecutor deleteExecutor);
+            DeleteExecutor deleteExecutor,
+            MetricsManager metricsManager);
 }

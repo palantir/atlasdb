@@ -551,7 +551,11 @@ public abstract class TransactionManagers {
         // TODO (jkong): Allow user to inject here
         DeleteExecutor deleteExecutor = DefaultDeleteExecutor.createDefault(internalKeyValueService);
         KeyValueSnapshotReaderManager keyValueSnapshotReaderManager = createKeyValueSnapshotReaderManager(
-                transactionKeyValueServiceManager, transactionService, sweepStrategyManager, deleteExecutor);
+                transactionKeyValueServiceManager,
+                transactionService,
+                sweepStrategyManager,
+                deleteExecutor,
+                metricsManager);
 
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.createInstrumented(
@@ -624,7 +628,8 @@ public abstract class TransactionManagers {
             TransactionKeyValueServiceManager transactionKeyValueServiceManager,
             TransactionService transactionService,
             SweepStrategyManager sweepStrategyManager,
-            DeleteExecutor deleteExecutor) {
+            DeleteExecutor deleteExecutor,
+            MetricsManager metricsManager) {
         Optional<KeyValueSnapshotReaderManagerFactory> serviceDiscoveredFactory = config().transactionKeyValueService()
                 .map(AtlasDbServiceDiscovery::createKeyValueSnapshotReaderManagerFactoryOfCorrectType);
         OrphanedSentinelDeleter orphanedSentinelDeleter =
@@ -635,7 +640,8 @@ public abstract class TransactionManagers {
                         transactionService,
                         allowHiddenTableAccess(),
                         orphanedSentinelDeleter,
-                        deleteExecutor))
+                        deleteExecutor,
+                        metricsManager))
                 .orElseGet(() -> new DefaultKeyValueSnapshotReaderManager(
                         transactionKeyValueServiceManager,
                         transactionService,
