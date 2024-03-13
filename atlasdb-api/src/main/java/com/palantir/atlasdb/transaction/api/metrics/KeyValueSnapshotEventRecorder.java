@@ -18,11 +18,26 @@ package com.palantir.atlasdb.transaction.api.metrics;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 
+/**
+ * Updates metrics for work done as part of reading a transactional snapshot from the key-value-service.
+ */
 public interface KeyValueSnapshotEventRecorder {
+    /**
+     * Track that for the given table, the given number of cells was read from the key-value-service (including
+     * cells that could not be returned due to filtering).
+     */
     void recordCellsRead(TableReference tableReference, long cellsRead);
 
+    /**
+     * Track that for the given table, the given number of cells was returned to the user (excluding cells that were
+     * filtered out internally).
+     */
     void recordCellsReturned(TableReference tableReference, long cellsReturned);
 
+    /**
+     * Track that a large number of bytes was read in a single call to an individual table, which could be indicative
+     * of unexpected behaviour.
+     */
     void recordManyBytesReadForTable(TableReference tableReference, long bytesRead);
 
     void recordFilteredSweepSentinel(TableReference tableReference);
@@ -31,7 +46,10 @@ public interface KeyValueSnapshotEventRecorder {
 
     void recordFilteredTransactionCommittingAfterOurStart(TableReference tableReference);
 
-    void recordRolledBackOtherTransaction();
+    /**
+     * Empty values are AtlasDB tombstones (only written on delete), and should not be returned to the user.
+     */
+    void recordFilteredEmptyValues(TableReference tableReference, long cellsRead);
 
-    void recordEmptyValuesRead(TableReference tableReference, long cellsRead);
+    void recordRolledBackOtherTransaction();
 }

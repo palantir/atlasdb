@@ -715,7 +715,7 @@ public class SnapshotTransaction extends AbstractTransaction
             Iterator<Map.Entry<Cell, byte[]>> unfiltered, TableReference tableReference) {
         return Iterators.filter(unfiltered, entry -> {
             if (entry.getValue().length == 0) {
-                snapshotEventRecorder.recordEmptyValuesRead(tableReference, 1);
+                snapshotEventRecorder.recordFilteredEmptyValues(tableReference, 1);
                 TraceStatistics.incEmptyValues(1);
                 return false;
             }
@@ -902,7 +902,7 @@ public class SnapshotTransaction extends AbstractTransaction
         Map<Cell, byte[]> filtered = Maps.filterValues(unfiltered, Predicates.not(Value::isTombstone));
 
         int emptyValues = unfiltered.size() - filtered.size();
-        snapshotEventRecorder.recordEmptyValuesRead(tableReference, emptyValues);
+        snapshotEventRecorder.recordFilteredEmptyValues(tableReference, emptyValues);
         TraceStatistics.incEmptyValues(emptyValues);
 
         return filtered;
@@ -1383,7 +1383,7 @@ public class SnapshotTransaction extends AbstractTransaction
                     Maps.filterValues(unfilteredRow.getColumns(), Predicates.not(Value::isTombstone));
 
             int emptyValues = unfilteredRow.getColumns().size() - filteredColumns.size();
-            snapshotEventRecorder.recordEmptyValuesRead(tableReference, emptyValues);
+            snapshotEventRecorder.recordFilteredEmptyValues(tableReference, emptyValues);
             TraceStatistics.incEmptyValues(emptyValues);
 
             return RowResult.create(unfilteredRow.getRowName(), filteredColumns);
@@ -1415,7 +1415,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 numEmptyValues++;
             }
         }
-        snapshotEventRecorder.recordEmptyValuesRead(tableRef, numEmptyValues);
+        snapshotEventRecorder.recordFilteredEmptyValues(tableRef, numEmptyValues);
         TraceStatistics.incEmptyValues(numEmptyValues);
 
         return mergedWritesWithoutEmptyValues;

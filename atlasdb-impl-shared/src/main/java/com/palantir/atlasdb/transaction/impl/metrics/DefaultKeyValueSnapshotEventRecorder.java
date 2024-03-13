@@ -80,7 +80,7 @@ public final class DefaultKeyValueSnapshotEventRecorder implements KeyValueSnaps
     }
 
     @Override
-    public void recordEmptyValuesRead(TableReference tableReference, long cellsRead) {
+    public void recordFilteredEmptyValues(TableReference tableReference, long cellsRead) {
         metricFactory
                 .getCounter(AtlasDbMetricNames.CellFilterMetrics.EMPTY_VALUE, tableReference)
                 .inc(cellsRead);
