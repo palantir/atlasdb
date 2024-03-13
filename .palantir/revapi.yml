@@ -113,6 +113,18 @@ acceptedBreaks:
     - code: "java.method.addedToInterface"
       new: "method boolean com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager::isInitialized()"
       justification: "Adding async init to TransactionKeyValueServiceManager"
+  "0.1051.0-rc1":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.numberOfParametersChanged"
+      old: "method com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager\
+        \ com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManagerFactory::createKeyValueSnapshotReaderManager(com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager,\
+        \ com.palantir.atlasdb.transaction.service.TransactionService, boolean, com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter,\
+        \ com.palantir.atlasdb.transaction.api.DeleteExecutor)"
+      new: "method com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager\
+        \ com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManagerFactory::createKeyValueSnapshotReaderManager(com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager,\
+        \ com.palantir.atlasdb.transaction.service.TransactionService, boolean, com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter,\
+        \ com.palantir.atlasdb.transaction.api.DeleteExecutor, com.palantir.atlasdb.util.MetricsManager)"
+      justification: "internal API"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"
