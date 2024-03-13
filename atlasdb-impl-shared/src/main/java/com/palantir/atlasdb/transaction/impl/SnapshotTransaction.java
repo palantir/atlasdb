@@ -307,7 +307,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
-     * lock for it because we know that no writers exist.
+     *                           lock for it because we know that no writers exist.
      * @param preCommitCondition This check must pass for this transaction to commit.
      */
     /* package */ SnapshotTransaction(
@@ -827,7 +827,7 @@ public class SnapshotTransaction extends AbstractTransaction
                     protected Map.Entry<Cell, Value> computeNext() {
                         if (!peekableRawResults.hasNext()
                                 || !Arrays.equals(
-                                        peekableRawResults.peek().getKey().getRowName(), nextRowName)) {
+                                peekableRawResults.peek().getKey().getRowName(), nextRowName)) {
                             return endOfData();
                         }
                         return peekableRawResults.next();
@@ -1292,7 +1292,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 postFiltered.entrySet(),
                 Predicates.compose(Predicates.in(prePostFilterCells.keySet()), MapEntries.getKeyFunction()));
         Collection<Map.Entry<Cell, byte[]>> localWritesInRange = getLocalWritesForRange(
-                        tableRef, rangeRequest.getStartInclusive(), endRowExclusive, rangeRequest.getColumnNames())
+                tableRef, rangeRequest.getStartInclusive(), endRowExclusive, rangeRequest.getColumnNames())
                 .entrySet();
         return mergeInLocalWrites(
                 tableRef, postFilteredCells.iterator(), localWritesInRange.iterator(), rangeRequest.isReverse());
@@ -1329,9 +1329,9 @@ public class SnapshotTransaction extends AbstractTransaction
             int preFilterBatchSize)
             throws K {
         try (ClosableIterator<RowResult<byte[]>> postFilterIterator =
-                postFilterIterator(tableRef, range, preFilterBatchSize, Value.GET_VALUE)) {
+                     postFilterIterator(tableRef, range, preFilterBatchSize, Value.GET_VALUE)) {
             Iterator<RowResult<byte[]>> localWritesInRange = Cells.createRowView(getLocalWritesForRange(
-                            tableRef, range.getStartInclusive(), range.getEndExclusive(), range.getColumnNames())
+                    tableRef, range.getStartInclusive(), range.getEndExclusive(), range.getColumnNames())
                     .entrySet());
             Iterator<RowResult<byte[]>> mergeIterators =
                     mergeInLocalWritesRows(postFilterIterator, localWritesInRange, range.isReverse(), tableRef);
@@ -1446,7 +1446,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * This includes deleted writes as zero length byte arrays, be sure to strip them out.
-     * <p>
+     *
      * For the selectedColumns parameter, empty set means all columns. This is unfortunate, but follows the semantics of
      * {@link RangeRequest}.
      */
@@ -1949,7 +1949,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * Returns true iff the transaction is known to have successfully committed.
-     * <p>
+     *
      * Be careful when using this method! A transaction that the client thinks has failed could actually have
      * committed as far as the key-value service is concerned.
      */
@@ -2190,7 +2190,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private <T> T timedAndTraced(String timerName, Supplier<T> supplier) {
         try (Timer.Context timer = getTimer(timerName).time();
-                CloseableTracer tracer = CloseableTracer.startSpan(timerName)) {
+             CloseableTracer tracer = CloseableTracer.startSpan(timerName)) {
             return supplier.get();
         }
     }
@@ -2202,7 +2202,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private boolean hasWrites() {
         return !localWriteBuffer.getLocalWrites().isEmpty()
                 && localWriteBuffer.getLocalWrites().values().stream()
-                        .anyMatch(writesForTable -> !writesForTable.isEmpty());
+                .anyMatch(writesForTable -> !writesForTable.isEmpty());
     }
 
     protected boolean hasReads() {
@@ -2626,7 +2626,7 @@ public class SnapshotTransaction extends AbstractTransaction
     /**
      * This will attempt to put the commitTimestamp into the DB.
      *
-     * @throws TransactionLockTimeoutException If our locks timed out while trying to commit.
+     * @throws TransactionLockTimeoutException  If our locks timed out while trying to commit.
      * @throws TransactionCommitFailedException failed when committing in a way that isn't retriable
      */
     private void putCommitTimestamp(long commitTimestamp, LockToken locksToken, TransactionService transactionService)
