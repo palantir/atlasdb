@@ -388,10 +388,7 @@ public class SnapshotTransaction extends AbstractTransaction
         this.preCommitRequirementValidator = new DefaultPreCommitRequirementValidator(
                 preCommitCondition, transactionOutcomeMetrics, immutableTimestampLockManager);
         this.readSnapshotValidator = new DefaultReadSnapshotValidator(
-                preCommitRequirementValidator,
-                validateLocksOnReads,
-                sweepStrategyManager,
-                transactionConfig);
+                preCommitRequirementValidator, validateLocksOnReads, sweepStrategyManager, transactionConfig);
     }
 
     protected TransactionScopedCache getCache() {
@@ -1274,7 +1271,8 @@ public class SnapshotTransaction extends AbstractTransaction
     */
     private void validatePreCommitRequirementsOnReadIfNecessary(
             TableReference tableRef, long timestamp, boolean allPossibleCellsReadAndPresent) {
-        ValidationState validationState = readSnapshotValidator.throwIfPreCommitRequirementsNotMetOnRead(tableRef, timestamp, allPossibleCellsReadAndPresent);
+        ValidationState validationState = readSnapshotValidator.throwIfPreCommitRequirementsNotMetOnRead(
+                tableRef, timestamp, allPossibleCellsReadAndPresent);
         if (validationState == ValidationState.NOT_COMPLETELY_VALIDATED) {
             hasPossiblyUnvalidatedReads = true;
         }
@@ -2730,7 +2728,8 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private boolean validationNecessaryForInvolvedTablesOnCommit() {
         boolean anyTableRequiresPreCommitValidation = involvedTables.stream()
-                .anyMatch(tableRef -> readSnapshotValidator.doesTableRequirePreCommitValidation(tableRef, !hasPossiblyUnvalidatedReads));
+                .anyMatch(tableRef -> readSnapshotValidator.doesTableRequirePreCommitValidation(
+                        tableRef, !hasPossiblyUnvalidatedReads));
         boolean needsToValidate = !validateLocksOnReads || !hasReads();
         return anyTableRequiresPreCommitValidation && needsToValidate;
     }
