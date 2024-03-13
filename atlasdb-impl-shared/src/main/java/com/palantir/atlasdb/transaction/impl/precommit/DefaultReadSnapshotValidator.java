@@ -22,7 +22,7 @@ import com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValida
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import java.util.function.Supplier;
 
-public class DefaultReadSnapshotValidator implements ReadSnapshotValidator {
+public final class DefaultReadSnapshotValidator implements ReadSnapshotValidator {
     private final PreCommitRequirementValidator preCommitRequirementValidator;
     private final boolean validateLocksOnReads;
     private final SweepStrategyManager sweepStrategyManager;
