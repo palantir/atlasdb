@@ -67,6 +67,7 @@ public final class ReadValidationCommitTimestampLoader implements CommitTimestam
         // then at least one of them will be in the ab
         ListenableFuture<LongLongMap> preStartCommitTimestamps;
         if (partitionedTimestamps.beforeStart().isEmpty()) {
+            // TODO (jkong): If called frequently, can consider memoisation.
             preStartCommitTimestamps = Futures.immediateFuture(LongLongMaps.immutable.empty());
         } else {
             preStartCommitTimestamps = delegate.getCommitTimestamps(
