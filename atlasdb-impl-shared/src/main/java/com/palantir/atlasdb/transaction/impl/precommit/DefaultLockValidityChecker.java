@@ -20,7 +20,7 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import java.util.Set;
 
-public class DefaultLockValidityChecker implements LockValidityChecker {
+public final class DefaultLockValidityChecker implements LockValidityChecker {
     private final TimelockService timelockService;
 
     public DefaultLockValidityChecker(TimelockService timelockService) {
