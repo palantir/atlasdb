@@ -71,8 +71,7 @@ public final class MultipleBusyCellWorkflows {
                     .collect(Collectors.toList());
             int maxUpdatesPerCell =
                     Math.toIntExact(Math.round(configuration.maxUpdates() / (double) actualNumberOfCells));
-            int maxReadsPerCell =
-                    Math.toIntExact(Math.round(configuration.maxUpdates() / (double) actualNumberOfCells));
+            int maxReadsPerCell = Math.toIntExact(Math.round(configuration.maxReads() / (double) actualNumberOfCells));
             List<ListenableFuture<Optional<WitnessedTransaction>>> writes = cells.stream()
                     .flatMap(cell -> scheduleUpdates(
                             store,

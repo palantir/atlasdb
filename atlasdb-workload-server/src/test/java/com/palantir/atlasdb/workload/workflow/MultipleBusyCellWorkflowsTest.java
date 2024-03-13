@@ -82,7 +82,7 @@ public class MultipleBusyCellWorkflowsTest {
     }
 
     @Test
-    public void transactionsWriteToAtMostMaxCells() {
+    public void transactionsAccessAtMostMaxCells() {
         WorkflowHistory workflowHistory = workflow.run();
         assertThat(workflowHistory.history().stream()
                         .flatMap(x -> x.actions().stream())
@@ -150,7 +150,7 @@ public class MultipleBusyCellWorkflowsTest {
     }
 
     @Test
-    public void transactionReadsAndWritesDoesNotExceedConfiguredLimits() {
+    public void transactionReadsAndUpdatesDoesNotExceedConfiguredLimits() {
         WorkflowHistory workflowHistory = workflow.run();
         AtomicInteger updates = new AtomicInteger();
         AtomicInteger reads = new AtomicInteger();

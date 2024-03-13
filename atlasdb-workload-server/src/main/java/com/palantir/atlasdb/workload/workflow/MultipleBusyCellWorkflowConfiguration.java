@@ -22,8 +22,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@JsonSerialize(as = ImmutableRandomWorkflowConfiguration.class)
-@JsonDeserialize(as = ImmutableRandomWorkflowConfiguration.class)
+@JsonSerialize(as = ImmutableMultipleBusyCellWorkflowConfiguration.class)
+@JsonDeserialize(as = ImmutableMultipleBusyCellWorkflowConfiguration.class)
 @JsonTypeName(MultipleBusyCellWorkflowConfiguration.TYPE)
 public interface MultipleBusyCellWorkflowConfiguration extends WorkflowConfiguration {
     String TYPE = "multiple-busy-cell";
@@ -35,11 +35,22 @@ public interface MultipleBusyCellWorkflowConfiguration extends WorkflowConfigura
         return 5;
     }
 
+    /**
+     * For a given _update_, this is the probability that the update will be a delete.
+     * Note that any fuzzer may elect not to obey the configured probability, and we're okay with that - the degenerate
+     * case of all writes or all deletes is still interesting.
+     */
     @Value.Default
     default double deleteProbability() {
         return 0.2;
     }
 
+    /**
+     * Unlike the above, the degenerate case of all reads is much less interesting for flexing Sweep related code.
+     * As a result, we pre-proportion the updates and reads across the cells and for each cell sample from
+     * [1, maxUpdates] or [1, maxReads], rather the sampling MAX_ITERATION i.i.d Bernoulli distributed random variables
+     * which has a non-zero probability of returning 0 writes.
+     */
     @Value.Default
     default double proportionOfIterationCountAsUpdates() {
         return 0.9;
