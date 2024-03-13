@@ -99,7 +99,7 @@ public final class DefaultPreCommitRequirementValidatorTest {
     public void throwIfPreCommitConditionInvalidAtCommitOnWriteTransactionPropagatesExceptions() {
         doThrow(RUNTIME_EXCEPTION).when(userPreCommitCondition).throwIfConditionInvalid(any(), anyLong());
         assertThatThrownBy(() ->
-                validator.throwIfPreCommitConditionInvalidAtCommitOnWriteTransaction(MUTATIONS, TIMESTAMP))
+                        validator.throwIfPreCommitConditionInvalidAtCommitOnWriteTransaction(MUTATIONS, TIMESTAMP))
                 .isEqualTo(RUNTIME_EXCEPTION);
     }
 

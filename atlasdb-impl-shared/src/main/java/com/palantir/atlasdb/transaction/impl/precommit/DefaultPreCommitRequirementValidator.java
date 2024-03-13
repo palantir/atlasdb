@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.transaction.impl.precommit;
 
-
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
@@ -86,8 +85,9 @@ public class DefaultPreCommitRequirementValidator implements PreCommitRequiremen
     }
 
     private RuntimeException createDefaultTransactionLockTimeoutException(ExpiredLocks expiredLocks) {
-        String baseMsg = "Locks acquired as part of the transaction protocol are no longer valid. ";
-        TransactionLockTimeoutException exception = new TransactionLockTimeoutException(baseMsg + expiredLocks.errorDescription());
+        final String baseMsg = "Locks acquired as part of the transaction protocol are no longer valid. ";
+        TransactionLockTimeoutException exception =
+                new TransactionLockTimeoutException(baseMsg + expiredLocks.errorDescription());
         log.warn(baseMsg + "{}", UnsafeArg.of("expiredLocksErrorString", expiredLocks.errorDescription()), exception);
         metrics.markLocksExpired();
         throw exception;
