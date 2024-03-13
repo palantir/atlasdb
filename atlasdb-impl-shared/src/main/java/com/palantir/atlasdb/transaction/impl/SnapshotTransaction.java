@@ -307,7 +307,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
-     *                           lock for it because we know that no writers exist.
+     * lock for it because we know that no writers exist.
      * @param preCommitCondition This check must pass for this transaction to commit.
      */
     /* package */ SnapshotTransaction(
@@ -646,7 +646,7 @@ public class SnapshotTransaction extends AbstractTransaction
      * possibility of needing a second batch of fetching.
      * If the batch hint is large, split batch size across rows to avoid loading too much data, while accepting that
      * second fetches may be needed to get everyone their data.
-     * */
+     */
     private static int getPerRowBatchSize(BatchColumnRangeSelection columnRangeSelection, int distinctRowCount) {
         return Math.max(
                 Math.min(MIN_BATCH_SIZE_FOR_DISTRIBUTED_LOAD, columnRangeSelection.getBatchHint()),
@@ -1446,7 +1446,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * This includes deleted writes as zero length byte arrays, be sure to strip them out.
-     *
+     * <p>
      * For the selectedColumns parameter, empty set means all columns. This is unfortunate, but follows the semantics of
      * {@link RangeRequest}.
      */
@@ -1949,7 +1949,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * Returns true iff the transaction is known to have successfully committed.
-     *
+     * <p>
      * Be careful when using this method! A transaction that the client thinks has failed could actually have
      * committed as far as the key-value service is concerned.
      */
@@ -2626,7 +2626,7 @@ public class SnapshotTransaction extends AbstractTransaction
     /**
      * This will attempt to put the commitTimestamp into the DB.
      *
-     * @throws TransactionLockTimeoutException  If our locks timed out while trying to commit.
+     * @throws TransactionLockTimeoutException If our locks timed out while trying to commit.
      * @throws TransactionCommitFailedException failed when committing in a way that isn't retriable
      */
     private void putCommitTimestamp(long commitTimestamp, LockToken locksToken, TransactionService transactionService)
@@ -2657,7 +2657,7 @@ public class SnapshotTransaction extends AbstractTransaction
             }
 
             SummarizedLockCheckResult lockCheckResult =
-                    immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocksTokensWithFullSummary(
+                    immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocksWithFullSummary(
                             commitLocksToken);
             if (lockCheckResult.expiredLocks().isPresent()) {
                 transactionOutcomeMetrics.markLocksExpired();
@@ -2674,8 +2674,7 @@ public class SnapshotTransaction extends AbstractTransaction
                                 .immutableTimestampLock()
                                 .map(token -> token.toSafeArg("immutableTimestampLock"))
                                 .orElseGet(() -> SafeArg.of("immutableTimestampLock", null)),
-                        // get is safe, because the user provided a non-null commit lock token
-                        lockCheckResult.userProvidedLock().get().toSafeArg("commitLocksToken"));
+                        lockCheckResult.userProvidedLock().toSafeArg("commitLocksToken"));
             }
         } catch (TransactionFailedException e1) {
             throw e1;

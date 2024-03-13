@@ -77,8 +77,8 @@ public class DefaultPreCommitRequirementValidator implements PreCommitRequiremen
 
     @Override
     public void throwIfImmutableTsOrCommitLocksExpired(LockToken commitLocksToken) {
-        Optional<ExpiredLocks> expiredLocks =
-                immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocksTokens(commitLocksToken);
+        Optional<ExpiredLocks> expiredLocks = immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(
+                Optional.ofNullable(commitLocksToken));
         if (expiredLocks.isPresent()) {
             throw createDefaultTransactionLockTimeoutException(expiredLocks.get());
         }
