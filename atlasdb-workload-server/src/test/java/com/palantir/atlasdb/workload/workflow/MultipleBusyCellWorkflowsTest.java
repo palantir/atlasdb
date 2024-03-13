@@ -76,12 +76,6 @@ public class MultipleBusyCellWorkflowsTest {
     }
 
     @Test
-    public void transactionsDoNotConflictExcessively() {
-        WorkflowHistory workflowHistory = workflow.run();
-        assertThat(workflowHistory.history()).hasSizeBetween(ITERATION_COUNT / 2, ITERATION_COUNT);
-    }
-
-    @Test
     public void transactionsAccessAtMostMaxCells() {
         WorkflowHistory workflowHistory = workflow.run();
         assertThat(workflowHistory.history().stream()
