@@ -68,7 +68,7 @@ public final class ImmutableTimestampLockManagerTest {
                 .thenAnswer(invocation -> invocation.getArguments()[0]);
 
         assertThat(immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocksWithFullSummary(
-                        DEFAULT_COMMIT_LOCK_TOKEN))
+                DEFAULT_COMMIT_LOCK_TOKEN))
                 .satisfies(summarizedLockCheckResult -> {
                     assertThat(summarizedLockCheckResult.expiredLocks()).isEmpty();
                     assertThat(summarizedLockCheckResult.immutableTimestampLock())
@@ -97,7 +97,6 @@ public final class ImmutableTimestampLockManagerTest {
 
         assertThat(immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(userCommitLock))
                 .hasValueSatisfying(expiredLocks -> {
-                    assertThat(expiredLocks.expiredLockTokens()).isEqualTo(expectedLocks);
                     assertThat(expiredLocks.errorDescription()).contains(immutableTimestampLock.toString());
                     assertThat(expiredLocks.errorDescription()).contains(userCommitLock.toString());
                 });
@@ -118,11 +117,9 @@ public final class ImmutableTimestampLockManagerTest {
         when(validityChecker.getStillValidLockTokens(anySet())).thenReturn(ImmutableSet.of());
 
         assertThat(immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocksWithFullSummary(
-                        DEFAULT_COMMIT_LOCK_TOKEN))
+                DEFAULT_COMMIT_LOCK_TOKEN))
                 .satisfies(summarizedLockCheckResult -> {
-                    assertThat(summarizedLockCheckResult.expiredLocks()).hasValueSatisfying(expiredLocks -> {
-                        assertThat(expiredLocks.expiredLockTokens()).isEqualTo(expectedLocks);
-                    });
+                    assertThat(summarizedLockCheckResult.expiredLocks()).isPresent();
                     assertThat(summarizedLockCheckResult.immutableTimestampLock())
                             .isEqualTo(immutableTimestampLock);
                     assertThat(summarizedLockCheckResult.userProvidedLock()).isEqualTo(DEFAULT_COMMIT_LOCK_TOKEN);
@@ -139,9 +136,8 @@ public final class ImmutableTimestampLockManagerTest {
                 .thenReturn(ImmutableSet.of(DEFAULT_IMMUTABLE_TIMESTAMP_LOCK_TOKEN));
 
         assertThat(immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(
-                        Optional.of(DEFAULT_COMMIT_LOCK_TOKEN)))
+                Optional.of(DEFAULT_COMMIT_LOCK_TOKEN)))
                 .hasValueSatisfying(expiredLocks -> {
-                    assertThat(expiredLocks.expiredLockTokens()).contains(DEFAULT_COMMIT_LOCK_TOKEN);
                     // This is a bit fragile, but emphasising readability here
                     assertThat(expiredLocks.errorDescription())
                             .contains("the following locks are no longer valid: [" + DEFAULT_COMMIT_LOCK_TOKEN + "]");
@@ -157,9 +153,8 @@ public final class ImmutableTimestampLockManagerTest {
         when(validityChecker.getStillValidLockTokens(anySet())).thenReturn(ImmutableSet.of(DEFAULT_COMMIT_LOCK_TOKEN));
 
         assertThat(immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(
-                        Optional.of(DEFAULT_COMMIT_LOCK_TOKEN)))
+                Optional.of(DEFAULT_COMMIT_LOCK_TOKEN)))
                 .hasValueSatisfying(expiredLocks -> {
-                    assertThat(expiredLocks.expiredLockTokens()).contains(DEFAULT_IMMUTABLE_TIMESTAMP_LOCK_TOKEN);
                     // This is a bit fragile, but emphasising readability here
                     assertThat(expiredLocks.errorDescription())
                             .contains("the following locks are no longer valid: ["

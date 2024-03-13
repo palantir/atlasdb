@@ -51,8 +51,7 @@ public class ImmutableTimestampLockManager {
         if (expiredLocks.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(
-                ImmutableExpiredLocks.of(getExpiredLocksErrorString(commitLocksToken, expiredLocks)));
+        return Optional.of(ImmutableExpiredLocks.of(getExpiredLocksErrorString(commitLocksToken, expiredLocks)));
     }
 
     public SummarizedLockCheckResult getExpiredImmutableTimestampAndCommitLocksWithFullSummary(
