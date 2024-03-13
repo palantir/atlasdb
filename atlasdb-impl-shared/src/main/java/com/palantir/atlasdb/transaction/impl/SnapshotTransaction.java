@@ -104,12 +104,15 @@ import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockIn
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionWriteMetadataInfo;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
+import com.palantir.atlasdb.transaction.impl.ImmutableTimestampLockManager.ExpiredLocks;
+import com.palantir.atlasdb.transaction.impl.ImmutableTimestampLockManager.SummarizedLockCheckResult;
 import com.palantir.atlasdb.transaction.impl.expectations.CellCountValidator;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingTransactionKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingTransactionKeyValueServiceImpl;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionMetrics;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
+import com.palantir.atlasdb.transaction.impl.precommit.DefaultLockValidityChecker;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -298,6 +301,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TimestampCache timestampCache;
 
     protected final TransactionKnowledgeComponents knowledge;
+    protected final ImmutableTimestampLockManager immutableTimestampLockManager;
 
     protected final Closer closer = Closer.create();
 
@@ -377,6 +381,8 @@ public class SnapshotTransaction extends AbstractTransaction
         this.transactionOutcomeMetrics =
                 TransactionOutcomeMetrics.create(transactionMetrics, metricsManager.getTaggedRegistry());
         this.expectationsDataCollectionMetrics = ExpectationsMetrics.of(metricsManager.getTaggedRegistry());
+        this.immutableTimestampLockManager = new ImmutableTimestampLockManager(
+                immutableTimestampLock, new DefaultLockValidityChecker(timelockService));
     }
 
     protected TransactionScopedCache getCache() {
@@ -2207,12 +2213,6 @@ public class SnapshotTransaction extends AbstractTransaction
                         LoggingArgs.tableRef(tableRef)));
     }
 
-    private String getExpiredLocksErrorString(@Nullable LockToken commitLocksToken, Set<LockToken> expiredLocks) {
-        return "The following immutable timestamp lock was required: " + immutableTimestampLock
-                + "; the following commit locks were required: " + commitLocksToken
-                + "; the following locks are no longer valid: " + expiredLocks;
-    }
-
     private void throwIfPreCommitRequirementsNotMet(@Nullable LockToken commitLocksToken, long timestamp) {
         throwIfImmutableTsOrCommitLocksExpired(commitLocksToken);
         throwIfPreCommitConditionInvalid(timestamp);
@@ -2259,14 +2259,19 @@ public class SnapshotTransaction extends AbstractTransaction
         if (commitLocksToken != null) {
             toRefresh.add(commitLocksToken);
         }
-        immutableTimestampLock.ifPresent(toRefresh::add);
+        Optional<ExpiredLocks> expiredLocks = immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(
+                Optional.ofNullable(commitLocksToken));
 
-        if (toRefresh.isEmpty()) {
+        if (expiredLocks.isEmpty()) {
             return ImmutableSet.of();
         }
+        return expiredLocks.get().expiredLockTokens();
+    }
 
-        return Sets.difference(toRefresh, timelockService.refreshLockLeases(toRefresh))
-                .immutableCopy();
+    private String getExpiredLocksErrorString(@Nullable LockToken commitLocksToken, Set<LockToken> expiredLocks) {
+        return "The following immutable timestamp lock was required: " + immutableTimestampLock
+                + "; the following commit locks were required: " + commitLocksToken
+                + "; the following locks are no longer valid: " + expiredLocks;
     }
 
     /**
@@ -2706,22 +2711,26 @@ public class SnapshotTransaction extends AbstractTransaction
                 // for putUnlessExists did a retry and we had committed already
                 return;
             }
-            Set<LockToken> expiredLocks = refreshCommitAndImmutableTsLocks(commitLocksToken);
-            if (!expiredLocks.isEmpty()) {
+
+            SummarizedLockCheckResult lockCheckResult =
+                    immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocksWithFullSummary(
+                            commitLocksToken);
+            if (lockCheckResult.expiredLocks().isPresent()) {
                 transactionOutcomeMetrics.markLocksExpired();
                 throw new TransactionLockTimeoutException(
                         "Our commit was already rolled back at commit time"
                                 + " because our locks timed out. startTs: " + getStartTimestamp() + ".  "
-                                + getExpiredLocksErrorString(commitLocksToken, expiredLocks),
+                                + lockCheckResult.expiredLocks().get().errorString(),
                         ex);
             } else {
                 log.info(
                         "This transaction has been rolled back by someone else, even though we believe we still hold "
                                 + "the locks. This is not expected to occur frequently.",
-                        immutableTimestampLock
+                        lockCheckResult
+                                .immutableTimestampLock()
                                 .map(token -> token.toSafeArg("immutableTimestampLock"))
                                 .orElseGet(() -> SafeArg.of("immutableTimestampLock", null)),
-                        commitLocksToken.toSafeArg("commitLocksToken"));
+                        lockCheckResult.userProvidedLock().toSafeArg("commitLocksToken"));
             }
         } catch (TransactionFailedException e1) {
             throw e1;
