@@ -2238,30 +2238,17 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private void throwIfImmutableTsOrCommitLocksExpired(@Nullable LockToken commitLocksToken) {
-        Set<LockToken> expiredLocks = refreshCommitAndImmutableTsLocks(commitLocksToken);
-        if (!expiredLocks.isEmpty()) {
+        Optional<ExpiredLocks> maybeExpiredLocks =
+                immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(
+                        Optional.ofNullable(commitLocksToken));
+        if (maybeExpiredLocks.isPresent()) {
             final String baseMsg = "Locks acquired as part of the transaction protocol are no longer valid. ";
-            String expiredLocksErrorString = getExpiredLocksErrorString(commitLocksToken, expiredLocks);
+            String expiredLocksErrorString = maybeExpiredLocks.get().errorString();
             TransactionLockTimeoutException ex = new TransactionLockTimeoutException(baseMsg + expiredLocksErrorString);
             log.warn(baseMsg + "{}", UnsafeArg.of("expiredLocksErrorString", expiredLocksErrorString), ex);
             transactionOutcomeMetrics.markLocksExpired();
             throw ex;
         }
-    }
-
-    /**
-     * Refreshes external and commit locks.
-     *
-     * @return set of locks that could not be refreshed
-     */
-    private Set<LockToken> refreshCommitAndImmutableTsLocks(@Nullable LockToken commitLocksToken) {
-        Optional<ExpiredLocks> expiredLocks = immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(
-                Optional.ofNullable(commitLocksToken));
-
-        if (expiredLocks.isEmpty()) {
-            return ImmutableSet.of();
-        }
-        return expiredLocks.get().expiredLockTokens();
     }
 
     private String getExpiredLocksErrorString(@Nullable LockToken commitLocksToken, Set<LockToken> expiredLocks) {
