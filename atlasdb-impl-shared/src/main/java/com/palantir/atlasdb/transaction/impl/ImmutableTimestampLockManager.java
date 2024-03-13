@@ -52,7 +52,7 @@ public class ImmutableTimestampLockManager {
             return Optional.empty();
         }
         return Optional.of(
-                ImmutableExpiredLocks.of(expiredLocks, getExpiredLocksErrorString(commitLocksToken, expiredLocks)));
+                ImmutableExpiredLocks.of(getExpiredLocksErrorString(commitLocksToken, expiredLocks)));
     }
 
     public SummarizedLockCheckResult getExpiredImmutableTimestampAndCommitLocksWithFullSummary(
@@ -78,14 +78,15 @@ public class ImmutableTimestampLockManager {
 
     @Value.Immutable
     public interface ExpiredLocks {
-        @Value.Parameter
-        Set<LockToken> expiredLockTokens();
+        // It seems perverse not to include the actual tokens that have expired, but these are not currently actually
+        // used by any caller; we can subsequently include them later if necessary. This API is only intended for
+        // internal usage.
 
         @Value.Parameter
-        String errorString();
+        String errorDescription();
 
-        static ExpiredLocks of(Set<LockToken> expiredLockTokens, String errorString) {
-            return ImmutableExpiredLocks.of(expiredLockTokens, errorString);
+        static ExpiredLocks of(String errorDescription) {
+            return ImmutableExpiredLocks.of(errorDescription);
         }
     }
 
