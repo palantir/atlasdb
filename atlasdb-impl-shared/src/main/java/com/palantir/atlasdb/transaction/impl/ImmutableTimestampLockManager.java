@@ -26,7 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 import org.immutables.value.Value;
 
-public class ImmutableTimestampLockManager {
+public final class ImmutableTimestampLockManager {
     private final Optional<LockToken> immutableTimestampLock;
     private final LockValidityChecker lockValidityChecker;
 
