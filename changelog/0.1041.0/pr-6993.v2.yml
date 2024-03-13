@@ -1,0 +1,11 @@
+type: fix
+fix:
+  description: We've fixed at least one known source of durable writes violations.
+    Specifically, the issue is that a MaybeWitnessedTransaction is currently filtered
+    out if it has not definitively committed. However, that is not a guarantee that
+    it won't subsequently commit if e.g. cassandra is slow and it told the worker
+    thread that it failed, but it actually did not. Future AtlasDB readers will normally
+    force the question of whether a given value committed or was definitely aborted
+    before returning, but the workload server generally did not do this.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6993

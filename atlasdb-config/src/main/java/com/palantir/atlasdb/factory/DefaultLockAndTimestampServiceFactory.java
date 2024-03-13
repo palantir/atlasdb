@@ -32,11 +32,9 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
 import com.palantir.atlasdb.transaction.impl.InstrumentedTimelockService;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.dialogue.clients.DialogueClients.ReloadingFactory;
-import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.NamespaceAgnosticLockRpcClient;
 import com.palantir.lock.client.AuthenticatedInternalMultiClientConjureTimelockService;
@@ -47,7 +45,6 @@ import com.palantir.lock.client.LeaderTimeCoalescingBatcher;
 import com.palantir.lock.client.LeaderTimeGetter;
 import com.palantir.lock.client.LegacyLeaderTimeGetter;
 import com.palantir.lock.client.LegacyLockTokenUnlocker;
-import com.palantir.lock.client.LockRefreshingLockService;
 import com.palantir.lock.client.LockTokenUnlocker;
 import com.palantir.lock.client.MultiClientTimeLockUnlocker;
 import com.palantir.lock.client.NamespacedCoalescingLeaderTimeGetter;
@@ -170,10 +167,10 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 timeLockFeedbackBackgroundTask,
                 timelockRequestBatcherProviders,
                 schemas);
-        return withMetrics(metricsManager, withRefreshingLockService(lockAndTimestampServices));
+        return withMetrics(metricsManager, withDecoratedLockService(lockAndTimestampServices));
     }
 
-    private LockAndTimestampServices withRefreshingLockService(LockAndTimestampServices lockAndTimestampServices) {
+    private LockAndTimestampServices withDecoratedLockService(LockAndTimestampServices lockAndTimestampServices) {
         TimeLockClient timeLockClient = timelockClientFactory.apply(
                 lockAndTimestampServices.timelock(), lockAndTimestampServices.managedTimestampService());
         ProfilingTimelockService profilingService = ProfilingTimelockService.create(timeLockClient);
@@ -181,7 +178,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 .from(lockAndTimestampServices)
                 .timestamp(new TimelockTimestampServiceAdapter(profilingService))
                 .timelock(profilingService)
-                .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
+                .lock(LockServices.wrapWithDefaultDecorators(lockAndTimestampServices.lock()))
                 .addResources(timeLockClient::close)
                 .addResources(profilingService::close)
                 .build();
@@ -306,11 +303,8 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
         AtlasDbDialogueServiceProvider serviceProvider = AtlasDbDialogueServiceProvider.create(
                 timelockServerListConfig, reloadingFactory, userAgent, metricsManager.getTaggedRegistry());
 
-        LockRpcClient lockRpcClient = serviceProvider.getLockRpcClient();
-        LockService lockService = AtlasDbMetrics.instrumentTimed(
-                metricsManager.getRegistry(),
-                LockService.class,
-                RemoteLockServiceAdapter.create(lockRpcClient, timelockNamespace));
+        LockService lockService = LockServices.createRawLockServiceClient(
+                serviceProvider, metricsManager.getRegistry(), timelockNamespace);
 
         ConjureTimelockService conjureTimelockService = serviceProvider.getConjureTimelockService();
         TimelockRpcClient timelockClient = serviceProvider.getTimelockRpcClient();

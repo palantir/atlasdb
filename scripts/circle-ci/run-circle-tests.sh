@@ -82,7 +82,7 @@ if [ "$test_suite_index" -eq "15" ]; then
 elif [ "$test_suite_index" -eq "4" ]; then
     export _JAVA_OPTIONS="-Xms8g -Xmx8g -XX:ActiveProcessorCount=8 ${JAVA_GC_LOGGING_OPTIONS}"
 elif [ "$test_suite_index" -eq "3" ]; then
-    export _JAVA_OPTIONS="-Xms8g -Xmx8g -XX:ActiveProcessorCount=8 ${JAVA_GC_LOGGING_OPTIONS}"
+    export _JAVA_OPTIONS="-Xms16g -Xmx16g -XX:ActiveProcessorCount=8 ${JAVA_GC_LOGGING_OPTIONS}"
     BASE_GRADLE_ARGS+=" --scan --parallel"
 else
     export _JAVA_OPTIONS="-Xmx4g ${JAVA_GC_LOGGING_OPTIONS}"

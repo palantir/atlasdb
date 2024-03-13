@@ -24,6 +24,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
@@ -60,6 +61,7 @@ import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampManagementService;
@@ -74,6 +76,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -83,7 +86,7 @@ import java.util.stream.Collectors;
     private static final int NUM_RETRIES = 10;
 
     final MetricsManager metricsManager;
-    final KeyValueService keyValueService;
+    final TransactionKeyValueServiceManager transactionKeyValueServiceManager;
     final TransactionService transactionService;
     final TimelockService timelockService;
     final LockWatchManagerInternal lockWatchManager;
@@ -96,7 +99,7 @@ import java.util.stream.Collectors;
     final Cleaner cleaner;
     final boolean allowHiddenTableAccess;
     final ExecutorService getRangesExecutor;
-    final ExecutorService deleteExecutor;
+    final DeleteExecutor deleteExecutor;
     final int defaultGetRangesConcurrency;
     final MultiTableSweepQueueWriter sweepQueueWriter;
     final boolean validateLocksOnReads;
@@ -112,7 +115,7 @@ import java.util.stream.Collectors;
 
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
-            KeyValueService keyValueService,
+            TransactionKeyValueServiceManager transactionKeyValueServiceManager,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TimestampManagementService timestampManagementService,
@@ -127,7 +130,7 @@ import java.util.stream.Collectors;
             int defaultGetRangesConcurrency,
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueueWriter,
-            ExecutorService deleteExecutor,
+            DeleteExecutor deleteExecutor,
             boolean validateLocksOnReads,
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
@@ -138,7 +141,7 @@ import java.util.stream.Collectors;
         this.lockWatchManager = lockWatchManager;
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
-        this.keyValueService = keyValueService;
+        this.transactionKeyValueServiceManager = transactionKeyValueServiceManager;
         this.timelockService = timelockService;
         this.timestampManagementService = timestampManagementService;
         this.lockService = lockService;
@@ -212,8 +215,7 @@ import java.util.stream.Collectors;
                             responses.stream(), conditions.stream(), (response, condition) -> {
                                 LockToken immutableTsLock =
                                         response.immutableTimestamp().getLock();
-                                Supplier<Long> startTimestampSupplier = Suppliers.ofInstance(
-                                        response.startTimestampAndPartition().timestamp());
+                                LongSupplier startTimestampSupplier = response.startTimestampAndPartition()::timestamp;
 
                                 CallbackAwareTransaction transaction = createTransaction(
                                         immutableTs, startTimestampSupplier, immutableTsLock, condition);
@@ -300,12 +302,12 @@ import java.util.stream.Collectors;
 
     protected CallbackAwareTransaction createTransaction(
             long immutableTimestamp,
-            Supplier<Long> startTimestampSupplier,
+            LongSupplier startTimestampSupplier,
             LockToken immutableTsLock,
             PreCommitCondition condition) {
         return new SnapshotTransaction(
                 metricsManager,
-                keyValueService,
+                transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
                 timelockService,
                 lockWatchManager,
                 transactionService,
@@ -346,14 +348,15 @@ import java.util.stream.Collectors;
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E {
         checkOpen();
         long immutableTs = getApproximateImmutableTimestamp();
+        LongSupplier startTimestampSupplier = getStartTimestampSupplier();
         SnapshotTransaction transaction = new SnapshotTransaction(
                 metricsManager,
-                keyValueService,
+                transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
                 timelockService,
                 NoOpLockWatchManager.create(),
                 transactionService,
                 NoOpCleaner.INSTANCE,
-                getStartTimestampSupplier(),
+                startTimestampSupplier,
                 conflictDetectionManager,
                 sweepStrategyManager,
                 immutableTs,
@@ -406,8 +409,8 @@ import java.util.stream.Collectors;
                 SafeShutdownRunner.createWithCachedThreadpool(Duration.ofSeconds(20))) {
             shutdownRunner.shutdownSafely(super::close);
             shutdownRunner.shutdownSafely(cleaner::close);
-            shutdownRunner.shutdownSafely(keyValueService::close);
-            shutdownRunner.shutdownSafely(() -> shutdownExecutor(deleteExecutor));
+            shutdownRunner.shutdownSafely(transactionKeyValueServiceManager::close);
+            shutdownRunner.shutdownSafely(deleteExecutor::close);
             shutdownRunner.shutdownSafely(() -> shutdownExecutor(getRangesExecutor));
             shutdownRunner.shutdownSafely(this::closeLockServiceIfPossible);
 
@@ -448,12 +451,12 @@ import java.util.stream.Collectors;
         }
     }
 
-    private Supplier<Long> getStartTimestampSupplier() {
+    private LongSupplier getStartTimestampSupplier() {
         return Suppliers.memoize(() -> {
             long freshTimestamp = timelockService.getFreshTimestamp();
             cleaner.punch(freshTimestamp);
             return freshTimestamp;
-        });
+        })::get;
     }
 
     @Override
@@ -508,7 +511,9 @@ import java.util.stream.Collectors;
 
     @Override
     public KeyValueService getKeyValueService() {
-        return keyValueService;
+        return transactionKeyValueServiceManager
+                .getKeyValueService()
+                .orElseThrow(() -> new SafeIllegalStateException("KeyValueService is not supported"));
     }
 
     @Override
@@ -528,7 +533,8 @@ import java.util.stream.Collectors;
 
     @Override
     public KeyValueServiceStatus getKeyValueServiceStatus() {
-        ClusterAvailabilityStatus clusterAvailabilityStatus = keyValueService.getClusterAvailabilityStatus();
+        ClusterAvailabilityStatus clusterAvailabilityStatus =
+                getKeyValueService().getClusterAvailabilityStatus();
         switch (clusterAvailabilityStatus) {
             case TERMINAL:
                 return KeyValueServiceStatus.TERMINAL;

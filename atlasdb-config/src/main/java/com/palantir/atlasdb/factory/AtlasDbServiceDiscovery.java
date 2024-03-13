@@ -19,6 +19,8 @@ package com.palantir.atlasdb.factory;
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleterFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig;
+import com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory;
 import com.palantir.atlasdb.timestamp.DbTimeLockFactory;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -32,6 +34,14 @@ public final class AtlasDbServiceDiscovery {
 
     public static AtlasDbFactory createAtlasFactoryOfCorrectType(KeyValueServiceConfig config) {
         return createAtlasDbServiceOfCorrectType(config, AtlasDbFactory::getType, AtlasDbFactory.class);
+    }
+
+    public static TransactionKeyValueServiceManagerFactory<?>
+            createTransactionKeyValueServiceManagerFactoryOfCorrectType(TransactionKeyValueServiceConfig config) {
+        return createAtlasDbServiceOfCorrectType(
+                config.type(),
+                TransactionKeyValueServiceManagerFactory::getType,
+                TransactionKeyValueServiceManagerFactory.class);
     }
 
     public static DbTimeLockFactory createDbTimeLockFactoryOfCorrectType(KeyValueServiceConfig config) {
@@ -49,8 +59,13 @@ public final class AtlasDbServiceDiscovery {
 
     private static <T> T createAtlasDbServiceOfCorrectType(
             KeyValueServiceConfig config, Function<T, String> typeExtractor, Class<T> clazz) {
+        return createAtlasDbServiceOfCorrectType(config.type(), typeExtractor, clazz);
+    }
+
+    private static <T> T createAtlasDbServiceOfCorrectType(
+            String type, Function<T, String> typeExtractor, Class<T> clazz) {
         for (T element : ServiceLoader.load(clazz)) {
-            if (config.type().equalsIgnoreCase(typeExtractor.apply(element))) {
+            if (type.equalsIgnoreCase(typeExtractor.apply(element))) {
                 return element;
             }
         }
@@ -59,6 +74,6 @@ public final class AtlasDbServiceDiscovery {
                         + "Ensure that the implementation of the AtlasDbFactory is annotated "
                         + "@AutoService with a suitable class as parameter and that it is on your classpath.",
                 SafeArg.of("class", clazz),
-                SafeArg.of("type", config.type()));
+                SafeArg.of("type", type));
     }
 }

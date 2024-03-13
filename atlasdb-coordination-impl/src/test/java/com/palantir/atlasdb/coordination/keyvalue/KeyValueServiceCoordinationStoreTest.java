@@ -31,11 +31,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.coordination.CoordinationStore;
 import com.palantir.atlasdb.coordination.ImmutableSequenceAndBound;
 import com.palantir.atlasdb.coordination.SequenceAndBound;
+import com.palantir.atlasdb.coordination.TransformResult;
 import com.palantir.atlasdb.coordination.ValueAndBound;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
@@ -43,7 +43,6 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
-import com.palantir.atlasdb.keyvalue.impl.ImmutableCheckAndSetResult;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import java.util.Optional;
@@ -75,9 +74,9 @@ public class KeyValueServiceCoordinationStoreTest {
 
     @Test
     public void canStoreAndRetrieveValues() {
-        CheckAndSetResult<ValueAndBound<String>> casResult = coordinationStore.transformAgreedValue(unused -> VALUE_1);
+        TransformResult<ValueAndBound<String>> casResult = coordinationStore.transformAgreedValue(unused -> VALUE_1);
         assertThat(casResult.successful()).isTrue();
-        assertThat(Iterables.getOnlyElement(casResult.existingValues()).value()).contains(VALUE_1);
+        assertThat(casResult.value().value()).hasValue(VALUE_1);
         assertThat(coordinationStore.getAgreedValue()).hasValueSatisfying(valueAndBound -> {
             assertThat(valueAndBound.value()).contains(VALUE_1);
             assertThat(valueAndBound.bound()).isGreaterThanOrEqualTo(0);
@@ -174,14 +173,14 @@ public class KeyValueServiceCoordinationStoreTest {
         coordinationStore.checkAndSetCoordinationValue(Optional.empty(), SEQUENCE_AND_BOUND_1);
         assertThat(coordinationStore.checkAndSetCoordinationValue(
                         Optional.of(SEQUENCE_AND_BOUND_1), SEQUENCE_AND_BOUND_2))
-                .isEqualTo(ImmutableCheckAndSetResult.of(true, ImmutableList.of(SEQUENCE_AND_BOUND_2)));
+                .isEqualTo(CheckAndSetResult.of(true, ImmutableList.of(SEQUENCE_AND_BOUND_2)));
     }
 
     @Test
     public void checkAndSetFailsIfOldValueNotCorrect() {
         coordinationStore.checkAndSetCoordinationValue(Optional.empty(), SEQUENCE_AND_BOUND_1);
         assertThat(coordinationStore.checkAndSetCoordinationValue(Optional.empty(), SEQUENCE_AND_BOUND_2))
-                .isEqualTo(ImmutableCheckAndSetResult.of(false, ImmutableList.of(SEQUENCE_AND_BOUND_1)));
+                .isEqualTo(CheckAndSetResult.of(false, ImmutableList.of(SEQUENCE_AND_BOUND_1)));
     }
 
     @Test
@@ -250,10 +249,10 @@ public class KeyValueServiceCoordinationStoreTest {
         KeyValueServiceCoordinationStore<String> store = coordinationStoreForKvs(mockKvs);
         setupOnceFailingMockKvs(mockKvs, store);
 
-        CheckAndSetResult<ValueAndBound<String>> casResult = store.transformAgreedValue(
+        TransformResult<ValueAndBound<String>> casResult = store.transformAgreedValue(
                 value -> value.value().orElseThrow(() -> new RuntimeException("unexpected absent value")) + ".");
         assertThat(casResult.successful()).isTrue();
-        assertThat(Iterables.getOnlyElement(casResult.existingValues()).value()).contains(VALUE_2 + ".");
+        assertThat(casResult.value().value()).hasValue(VALUE_2 + ".");
 
         verifyReadsOnOnceFailingMockKvs(mockKvs, store);
     }

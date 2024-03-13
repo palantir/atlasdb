@@ -56,10 +56,10 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
-import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.AutoDelegate_KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -82,7 +82,6 @@ import com.palantir.atlasdb.keyvalue.api.cache.ValueCacheSnapshotImpl;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.api.watch.LocksAndMetadata;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
-import com.palantir.atlasdb.keyvalue.impl.ForwardingKeyValueService;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
@@ -178,6 +177,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -208,13 +208,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
 
     private final String name;
     private final WrapperWithTracker<CallbackAwareTransaction> transactionWrapper;
-    private final WrapperWithTracker<KeyValueService> keyValueServiceWrapper;
 
-    private final Map<String, ExpectationFactory> expectationsMapping =
-            ImmutableMap.<String, ExpectationFactory>builder()
-                    .put(SYNC, AbstractSnapshotTransactionTest.this::syncGetExpectation)
-                    .put(ASYNC, AbstractSnapshotTransactionTest.this::asyncGetExpectation)
-                    .buildOrThrow();
     private final TimestampCache timestampCache = new DefaultTimestampCache(
             metricsManager.getRegistry(), () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     private final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(8);
@@ -229,37 +223,28 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
 
     @FunctionalInterface
     interface ExpectationFactory {
-        Expectations apply(KeyValueService keyValueService, Cell cell, long transactionTs, LockService lockService)
+        Expectations apply(
+                TransactionKeyValueService transactionKeyValueService,
+                Cell cell,
+                long transactionTs,
+                LockService lockService)
                 throws InterruptedException;
     }
 
-    private Expectations syncGetExpectation(
-            KeyValueService kvMock, Cell cell, long transactionTs, LockService lockMock) {
-        return new Expectations() {
-            {
-                oneOf(kvMock).get(TABLE, ImmutableMap.of(cell, transactionTs));
-                will(throwException(new RuntimeException()));
-            }
-        };
-    }
-
     private Expectations asyncGetExpectation(
-            KeyValueService kvMock, Cell cell, long transactionTs, LockService lockMock) {
+            TransactionKeyValueService tkvMock, Cell cell, long transactionTs, LockService lockMock) {
         return new Expectations() {
             {
-                oneOf(kvMock).getAsync(TABLE, ImmutableMap.of(cell, transactionTs));
+                oneOf(tkvMock).getAsync(TABLE, ImmutableMap.of(cell, transactionTs));
                 will(returnValue(Futures.immediateFailedFuture(new RuntimeException())));
             }
         };
     }
 
     public AbstractSnapshotTransactionTest(
-            String name,
-            WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
-            WrapperWithTracker<KeyValueService> keyValueServiceWrapper) {
+            String name, WrapperWithTracker<CallbackAwareTransaction> transactionWrapper) {
         this.name = name;
         this.transactionWrapper = transactionWrapper;
-        this.keyValueServiceWrapper = keyValueServiceWrapper;
     }
 
     private static class UnstableKeyValueService implements AutoDelegate_KeyValueService {
@@ -383,7 +368,6 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 deleteExecutor,
                 transactionWrapper,
-                keyValueServiceWrapper,
                 knowledge);
     }
 
@@ -434,7 +418,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
         byte[] rowName = PtBytes.toBytes("1");
         Mockery mockery = new Mockery();
         mockery.setThreadingPolicy(new Synchroniser());
-        final KeyValueService kvMock = mockery.mock(KeyValueService.class);
+        final TransactionKeyValueService tkvsMock = mockery.mock(TransactionKeyValueService.class);
         final LockService lockMock = mockery.mock(LockService.class);
         LockService lock = MultiDelegateProxy.newProxyInstance(LockService.class, lockService, lockMock);
 
@@ -444,7 +428,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
         final long transactionTs = timestampService.getFreshTimestamp();
         keyValueService.put(TABLE, ImmutableMap.of(cell, PtBytes.EMPTY_BYTE_ARRAY), startTs);
 
-        mockery.checking(expectationsMapping.get(name).apply(kvMock, cell, transactionTs, lockMock));
+        mockery.checking(asyncGetExpectation(tkvsMock, cell, transactionTs, lockMock));
         mockery.checking(new Expectations() {
             {
                 never(lockMock).lockWithFullLockResponse(with(LockClient.ANONYMOUS), with(any(LockRequest.class)));
@@ -452,11 +436,10 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
         });
 
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
-        KeyValueService kvs = keyValueServiceWrapper.apply(kvMock, pathTypeTracker);
         Transaction snapshot = transactionWrapper.apply(
                 new SnapshotTransaction(
                         metricsManager,
-                        kvs,
+                        tkvsMock,
                         inMemoryTimelockExtension.getLegacyTimelockService(),
                         NoOpLockWatchManager.create(),
                         transactionService,
@@ -475,7 +458,9 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         getRangesExecutor,
                         defaultGetRangesConcurrency,
                         MultiTableSweepQueueWriter.NO_OP,
-                        MoreExecutors.newDirectExecutorService(),
+                        new DefaultDeleteExecutor(
+                                txnKeyValueServiceManager.getKeyValueService().orElseThrow(),
+                                MoreExecutors.newDirectExecutorService()),
                         true,
                         () -> transactionConfig,
                         ConflictTracer.NO_OP,
@@ -511,7 +496,6 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 MoreExecutors.newDirectExecutorService(),
                 transactionWrapper,
-                keyValueServiceWrapper,
                 knowledge);
 
         ScheduledExecutorService service = PTExecutors.newScheduledThreadPool(20);
@@ -1043,7 +1027,6 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 executor,
                 transactionWrapper,
-                keyValueServiceWrapper,
                 knowledge);
 
         Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);
@@ -2440,6 +2423,23 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
+    @SuppressWarnings("ReturnValueIgnored") // Part of an assertion!
+    public void getSortedColumnsThrowsIfLockIsLostOnEmptyRead() {
+        ConjureStartTransactionsResponse conjureResponse = startTransactionWithWatches();
+        LockImmutableTimestampResponse res = conjureResponse.getImmutableTimestamp();
+        long transactionTs = conjureResponse.getTimestamps().start();
+        Transaction transaction =
+                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+
+        timelockService.unlock(ImmutableSet.of(res.getLock()));
+        assertThatThrownBy(() -> transaction.getSortedColumns(
+                        TABLE_SWEPT_THOROUGH,
+                        ImmutableList.of(ROW_FOO),
+                        BatchColumnRangeSelection.create(PtBytes.EMPTY_BYTE_ARRAY, PtBytes.EMPTY_BYTE_ARRAY, 1000)))
+                .isInstanceOf(TransactionLockTimeoutException.class);
+    }
+
+    @Test
     public void getSortedColumnsThrowsIfLockIsLostMidway() {
         List<byte[]> rows = LongStream.range(0, 10).mapToObj(PtBytes::toBytes).collect(Collectors.toList());
         List<Cell> cells = rows.stream().map(row -> Cell.create(row, COL_A)).collect(Collectors.toList());
@@ -3289,14 +3289,15 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
             LockImmutableTimestampResponse res,
             LockWatchManagerInternal mockLockWatchManager,
             PathTypeTracker pathTypeTracker) {
+        LongSupplier startTimestampSupplier = Suppliers.ofInstance(transactionTs)::get;
         return new SnapshotTransaction(
                 metricsManager,
-                keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
+                txnKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
                 timelockService,
                 mockLockWatchManager,
                 transactionService,
                 NoOpCleaner.INSTANCE,
-                () -> transactionTs,
+                startTimestampSupplier,
                 TestConflictDetectionManagers.createWithStaticConflictDetection(
                         ImmutableMap.of(TABLE, ConflictHandler.RETRY_ON_WRITE_WRITE)),
                 SweepStrategyManagers.createDefault(keyValueService),
@@ -3311,7 +3312,9 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
-                MoreExecutors.newDirectExecutorService(),
+                new DefaultDeleteExecutor(
+                        txnKeyValueServiceManager.getKeyValueService().orElseThrow(),
+                        MoreExecutors.newDirectExecutorService()),
                 true,
                 () -> transactionConfig,
                 ConflictTracer.NO_OP,
@@ -3344,12 +3347,12 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         SnapshotTransaction transaction = new SnapshotTransaction(
                 metricsManager,
-                keyValueServiceWrapper.apply(keyValueService, pathTypeTracker),
+                txnKeyValueServiceManager.getTransactionKeyValueService(startTs::get),
                 timelockService,
                 inMemoryTimelockExtension.getLockWatchManager(),
                 transactionService,
                 NoOpCleaner.INSTANCE,
-                startTs,
+                startTs::get,
                 TestConflictDetectionManagers.createWithStaticConflictDetection(tableConflictHandlers),
                 SweepStrategyManagers.createDefault(keyValueService),
                 lockImmutableTimestampResponse.getImmutableTimestamp(),
@@ -3363,7 +3366,9 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
-                MoreExecutors.newDirectExecutorService(),
+                new DefaultDeleteExecutor(
+                        txnKeyValueServiceManager.getKeyValueService().orElseThrow(),
+                        MoreExecutors.newDirectExecutorService()),
                 validateLocksOnReads,
                 () -> transactionConfig,
                 ConflictTracer.NO_OP,
@@ -3538,32 +3543,5 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 .mapToObj(i ->
                         Cell.create(PtBytes.toBytes("row" + (i % numberOfCellsPerRow)), PtBytes.toBytes("column" + i)))
                 .collect(Collectors.toUnmodifiableList());
-    }
-
-    static class VerifyingKeyValueServiceDelegate extends ForwardingKeyValueService {
-        private final KeyValueService delegate;
-        private final PathTypeTracker pathTypeTracker;
-
-        VerifyingKeyValueServiceDelegate(KeyValueService keyValueService, PathTypeTracker pathTypeTracker) {
-            this.delegate = keyValueService;
-            this.pathTypeTracker = pathTypeTracker;
-        }
-
-        @Override
-        public KeyValueService delegate() {
-            return delegate;
-        }
-
-        @Override
-        public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-            pathTypeTracker.checkNotInAsync();
-            return AtlasFutures.getUnchecked(delegate.getAsync(tableRef, timestampByCell));
-        }
-
-        @Override
-        public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-            pathTypeTracker.expectedToBeInAsync();
-            return delegate.getAsync(tableRef, timestampByCell);
-        }
     }
 }

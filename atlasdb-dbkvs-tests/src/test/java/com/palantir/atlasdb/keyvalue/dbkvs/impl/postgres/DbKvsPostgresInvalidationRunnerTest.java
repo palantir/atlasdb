@@ -31,6 +31,7 @@ import com.palantir.timestamp.TimestampBoundStore;
 import java.time.Duration;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,21 +39,25 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 
 @ExtendWith(DbKvsPostgresExtension.class)
 public class DbKvsPostgresInvalidationRunnerTest {
+    private static final AtomicInteger prefixCounter = new AtomicInteger(0);
+
     @RegisterExtension
     public static final TestResourceManager TRM = new TestResourceManager(DbKvsPostgresExtension::createKvs);
 
     private final ConnectionManagerAwareDbKvs kvs = (ConnectionManagerAwareDbKvs) TRM.getDefaultKvs();
-    private final TimestampBoundStore store = getStore();
-    private final InvalidationRunner invalidationRunner = new InvalidationRunner(
-            kvs.getConnectionManager(),
-            AtlasDbConstants.TIMESTAMP_TABLE,
-            DbKvsPostgresExtension.getKvsConfig().ddl().tablePrefix());
+    private TimestampBoundStore store;
+    private InvalidationRunner invalidationRunner;
     private static final long TIMESTAMP_1 = 12000;
 
     @BeforeEach
     public void setUp() {
-        kvs.dropTable(AtlasDbConstants.TIMESTAMP_TABLE);
+        long nextPrefixCount = prefixCounter.incrementAndGet();
+        String prefix = "n" + nextPrefixCount;
+
+        invalidationRunner =
+                new InvalidationRunner(kvs.getConnectionManager(), AtlasDbConstants.TIMESTAMP_TABLE, prefix);
         invalidationRunner.createTableIfDoesNotExist();
+        store = getStoreWithPrefix(prefix);
     }
 
     @Test
@@ -98,11 +103,8 @@ public class DbKvsPostgresInvalidationRunnerTest {
         assertBoundNotReadableAfterBeingPoisoned();
     }
 
-    public TimestampBoundStore getStore() {
-        return InDbTimestampBoundStore.create(
-                kvs.getConnectionManager(),
-                AtlasDbConstants.TIMESTAMP_TABLE,
-                DbKvsPostgresExtension.getKvsConfig().ddl().tablePrefix());
+    public TimestampBoundStore getStoreWithPrefix(String prefix) {
+        return InDbTimestampBoundStore.create(kvs.getConnectionManager(), AtlasDbConstants.TIMESTAMP_TABLE, prefix);
     }
 
     private void assertBoundNotReadableAfterBeingPoisoned() {

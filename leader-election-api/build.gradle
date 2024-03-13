@@ -4,10 +4,14 @@ libsDirName = file('build/artifacts')
 
 dependencies {
   api project(":atlasdb-commons")
+  api 'com.palantir.conjure.java:conjure-undertow-annotations'
+
   implementation project(":leader-election-api-protobufs")
-  implementation 'org.apache.commons:commons-lang3'
-  implementation 'javax.ws.rs:javax.ws.rs-api'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
+  implementation 'com.palantir.conjure.java:conjure-undertow-lib'
+  implementation 'org.apache.commons:commons-lang3'
+  implementation 'io.undertow:undertow-core'
+  implementation 'javax.ws.rs:javax.ws.rs-api'
 
   implementation 'com.palantir.sls.versions:sls-versions'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
@@ -18,6 +22,7 @@ dependencies {
   implementation 'com.palantir.safe-logging:safe-logging'
   implementation project(':commons-annotations')
 
+  annotationProcessor 'com.palantir.conjure.java:conjure-undertow-processor'
   annotationProcessor 'org.immutables:value'
   compileOnly 'org.immutables:value::annotations'
 }

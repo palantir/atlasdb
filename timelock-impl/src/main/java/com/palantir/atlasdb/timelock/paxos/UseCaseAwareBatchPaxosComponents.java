@@ -18,24 +18,20 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import java.util.EnumMap;
 import javax.ws.rs.NotFoundException;
-import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
-@Path("/" + PaxosTimeLockConstants.INTERNAL_NAMESPACE)
-public class UseCaseAwareBatchPaxosResource {
+public class UseCaseAwareBatchPaxosComponents {
 
     private final EnumMap<PaxosUseCase, BatchPaxosResources> resourcesByUseCase;
 
-    UseCaseAwareBatchPaxosResource(EnumMap<PaxosUseCase, BatchPaxosResources> resourcesByUseCase) {
+    UseCaseAwareBatchPaxosComponents(EnumMap<PaxosUseCase, BatchPaxosResources> resourcesByUseCase) {
         this.resourcesByUseCase = resourcesByUseCase;
     }
 
-    @Path("{useCase}/" + PaxosTimeLockConstants.BATCH_INTERNAL_NAMESPACE + "/acceptor")
     public BatchPaxosAcceptorResource acceptor(@PathParam("useCase") PaxosUseCase useCase) {
         return getResourcesForUseCase(useCase).batchAcceptor();
     }
 
-    @Path("{useCase}/" + PaxosTimeLockConstants.BATCH_INTERNAL_NAMESPACE + "/learner")
     public BatchPaxosLearnerResource learner(@PathParam("useCase") PaxosUseCase useCase) {
         return getResourcesForUseCase(useCase).batchLearner();
     }

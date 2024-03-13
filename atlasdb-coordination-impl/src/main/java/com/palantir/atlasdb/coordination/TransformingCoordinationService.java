@@ -16,10 +16,8 @@
 
 package com.palantir.atlasdb.coordination;
 
-import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * A {@link TransformingCoordinationService} is a {@link CoordinationService} for T2 objects that uses an underlying
@@ -45,14 +43,12 @@ public class TransformingCoordinationService<T1, T2> implements CoordinationServ
     }
 
     @Override
-    public CheckAndSetResult<ValueAndBound<T2>> tryTransformCurrentValue(Function<ValueAndBound<T2>, T2> valueUpdater) {
-        CheckAndSetResult<ValueAndBound<T1>> delegateResult = delegate.tryTransformCurrentValue(
+    public TransformResult<ValueAndBound<T2>> tryTransformCurrentValue(Function<ValueAndBound<T2>, T2> valueUpdater) {
+        TransformResult<ValueAndBound<T1>> delegateResult = delegate.tryTransformCurrentValue(
                 preservingBounds(transformFromUnderlying).andThen(valueUpdater).andThen(transformToUnderlying));
-        return CheckAndSetResult.of(
+        return TransformResult.of(
                 delegateResult.successful(),
-                delegateResult.existingValues().stream()
-                        .map(preservingBounds(transformFromUnderlying))
-                        .collect(Collectors.toList()));
+                preservingBounds(transformFromUnderlying).apply(delegateResult.value()));
     }
 
     @Override

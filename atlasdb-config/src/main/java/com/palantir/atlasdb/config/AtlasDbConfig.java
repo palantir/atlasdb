@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.annotations.Beta;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.internalschema.ImmutableInternalSchemaInstallConfig;
@@ -26,6 +27,7 @@ import com.palantir.atlasdb.internalschema.InternalSchemaInstallConfig;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
+import com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.DoNotLog;
@@ -47,6 +49,9 @@ public abstract class AtlasDbConfig {
     private static final SafeLogger log = SafeLoggerFactory.get(AtlasDbConfig.class);
 
     public abstract KeyValueServiceConfig keyValueService();
+
+    @Beta
+    public abstract Optional<TransactionKeyValueServiceConfig> transactionKeyValueService();
 
     public abstract Optional<LeaderConfig> leader();
 

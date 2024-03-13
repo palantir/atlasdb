@@ -129,6 +129,34 @@ public class TimeLockAgent {
             UserAgent userAgent,
             int threadPoolSize,
             long blockingTimeoutMs,
+            Consumer<UndertowService> undertowRegistrar,
+            OrderableSlsVersion timeLockVersion,
+            ObjectMapper objectMapper,
+            Runnable serviceStopper) {
+        return create(
+                metricsManager,
+                install,
+                runtime,
+                cluster,
+                userAgent,
+                threadPoolSize,
+                blockingTimeoutMs,
+                _unused -> {},
+                Optional.of(undertowRegistrar),
+                timeLockVersion,
+                objectMapper,
+                serviceStopper);
+    }
+
+    @SuppressWarnings("TooManyArguments") // Legacy
+    public static TimeLockAgent create(
+            MetricsManager metricsManager,
+            TimeLockInstallConfiguration install,
+            Refreshable<TimeLockRuntimeConfiguration> runtime,
+            ClusterConfiguration cluster,
+            UserAgent userAgent,
+            int threadPoolSize,
+            long blockingTimeoutMs,
             Consumer<Object> registrar,
             Optional<Consumer<UndertowService>> undertowRegistrar,
             OrderableSlsVersion timeLockVersion,

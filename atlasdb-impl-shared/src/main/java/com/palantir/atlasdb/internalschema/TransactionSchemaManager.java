@@ -17,18 +17,16 @@
 package com.palantir.atlasdb.internalschema;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Range;
 import com.palantir.atlasdb.coordination.CoordinationService;
+import com.palantir.atlasdb.coordination.TransformResult;
 import com.palantir.atlasdb.coordination.ValueAndBound;
-import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -36,12 +34,12 @@ public class TransactionSchemaManager {
     private static final SafeLogger log = SafeLoggerFactory.get(TransactionSchemaManager.class);
 
     private final CoordinationService<InternalSchemaMetadata> coordinationService;
-    private final CoalescingSupplier<List<ValueAndBound<InternalSchemaMetadata>>> boundPerpetuator;
+    private final CoalescingSupplier<ValueAndBound<InternalSchemaMetadata>> boundPerpetuator;
 
     public TransactionSchemaManager(CoordinationService<InternalSchemaMetadata> coordinationService) {
         this.coordinationService = coordinationService;
         this.boundPerpetuator =
-                new CoalescingSupplier<>(() -> tryPerpetuateExistingState().existingValues());
+                new CoalescingSupplier<>(() -> tryPerpetuateExistingState().value());
     }
 
     /**
@@ -63,13 +61,10 @@ public class TransactionSchemaManager {
         }
         Optional<Integer> possibleVersion =
                 extractTimestampVersion(coordinationService.getValueForTimestamp(timestamp), timestamp);
-        while (!possibleVersion.isPresent()) {
-            List<ValueAndBound<InternalSchemaMetadata>> existingValues = boundPerpetuator.get();
+        while (possibleVersion.isEmpty()) {
+            ValueAndBound<InternalSchemaMetadata> existingValue = boundPerpetuator.get();
             possibleVersion = extractTimestampVersion(
-                    existingValues.stream()
-                            .filter(valueAndBound -> valueAndBound.bound() >= timestamp)
-                            .findAny(),
-                    timestamp);
+                    Optional.of(existingValue).filter(valueAndBound -> valueAndBound.bound() >= timestamp), timestamp);
         }
         return possibleVersion.get();
     }
@@ -82,10 +77,9 @@ public class TransactionSchemaManager {
      * bound, the transactions schema version is equal to newVersion.
      */
     public boolean tryInstallNewTransactionsSchemaVersion(int newVersion) {
-        CheckAndSetResult<ValueAndBound<InternalSchemaMetadata>> transformResult = tryInstallNewVersion(newVersion);
+        TransformResult<ValueAndBound<InternalSchemaMetadata>> transformResult = tryInstallNewVersion(newVersion);
 
-        Map.Entry<Range<Long>, Integer> finalVersion =
-                getRangeAtBoundThreshold(Iterables.getOnlyElement(transformResult.existingValues()));
+        Map.Entry<Range<Long>, Integer> finalVersion = getRangeAtBoundThreshold(transformResult.value());
         long finalVersionTimestampThreshold = finalVersion.getKey().lowerEndpoint();
 
         if (transformResult.successful() && finalVersion.getValue() == newVersion) {
@@ -130,14 +124,14 @@ public class TransactionSchemaManager {
                 .getEntry(valueAndBound.bound());
     }
 
-    private CheckAndSetResult<ValueAndBound<InternalSchemaMetadata>> tryInstallNewVersion(int newVersion) {
+    private TransformResult<ValueAndBound<InternalSchemaMetadata>> tryInstallNewVersion(int newVersion) {
         return coordinationService.tryTransformCurrentValue(
                 valueAndBound -> installNewVersionInMapOrDefault(newVersion, valueAndBound));
     }
 
     private InternalSchemaMetadata installNewVersionInMapOrDefault(
             int newVersion, ValueAndBound<InternalSchemaMetadata> valueAndBound) {
-        if (!valueAndBound.value().isPresent()) {
+        if (valueAndBound.value().isEmpty()) {
             log.warn(
                     "Attempting to install a new transactions schema version {}, but no past data was found,"
                             + " so we attempt to install default instead. This should normally only happen once per"
@@ -168,7 +162,7 @@ public class TransactionSchemaManager {
         return sourceMap.copyInstallingNewValue(bound, newVersion);
     }
 
-    private CheckAndSetResult<ValueAndBound<InternalSchemaMetadata>> tryPerpetuateExistingState() {
+    private TransformResult<ValueAndBound<InternalSchemaMetadata>> tryPerpetuateExistingState() {
         return coordinationService.tryTransformCurrentValue(
                 valueAndBound -> valueAndBound.value().orElseGet(InternalSchemaMetadata::defaultValue));
     }

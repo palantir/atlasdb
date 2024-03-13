@@ -23,11 +23,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.coordination.CoordinationService;
+import com.palantir.atlasdb.coordination.TransformResult;
 import com.palantir.atlasdb.coordination.TransformingCoordinationService;
 import com.palantir.atlasdb.coordination.ValueAndBound;
-import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import java.util.Optional;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
@@ -74,24 +73,24 @@ public class TransformingCoordinationServiceTest {
     @Test
     public void checkAndSetSuccessfulCase() {
         when(delegate.tryTransformCurrentValue(any()))
-                .thenReturn(CheckAndSetResult.of(true, ImmutableList.of(ValueAndBound.of(INTEGER_1, BOUND))));
+                .thenReturn(TransformResult.of(true, ValueAndBound.of(INTEGER_1, BOUND)));
 
-        CheckAndSetResult<ValueAndBound<String>> casResult =
+        TransformResult<ValueAndBound<String>> casResult =
                 coordinationService.tryTransformCurrentValue(DUMMY_TRANSFORMATION);
         assertThat(casResult.successful()).isTrue();
-        assertThat(casResult.existingValues()).containsExactly(ValueAndBound.of(STRING_1, BOUND));
+        assertThat(casResult.value()).isEqualTo(ValueAndBound.of(STRING_1, BOUND));
         verify(delegate).tryTransformCurrentValue(any());
     }
 
     @Test
     public void checkAndSetFailureCase() {
         when(delegate.tryTransformCurrentValue(any()))
-                .thenReturn(CheckAndSetResult.of(false, ImmutableList.of(ValueAndBound.of(INTEGER_1, BOUND))));
+                .thenReturn(TransformResult.of(false, ValueAndBound.of(INTEGER_1, BOUND)));
 
-        CheckAndSetResult<ValueAndBound<String>> casResult =
+        TransformResult<ValueAndBound<String>> casResult =
                 coordinationService.tryTransformCurrentValue(DUMMY_TRANSFORMATION);
         assertThat(casResult.successful()).isFalse();
-        assertThat(casResult.existingValues()).containsExactly(ValueAndBound.of(STRING_1, BOUND));
+        assertThat(casResult.value()).isEqualTo(ValueAndBound.of(STRING_1, BOUND));
         verify(delegate).tryTransformCurrentValue(any());
     }
 

@@ -111,7 +111,8 @@ public class WitnessedTransactionsTest {
 
     private MaybeWitnessedTransaction createMaybeWitnessedTransactionWithoutActions(
             long start, long commit, boolean committed) {
-        when(readOnlyTransactionStore.isCommitted(eq(start))).thenReturn(committed);
+        when(readOnlyTransactionStore.isCommittedForcingTransactionConclusion(eq(start)))
+                .thenReturn(committed);
         return MaybeWitnessedTransaction.builder()
                 .startTimestamp(start)
                 .commitTimestamp(commit)

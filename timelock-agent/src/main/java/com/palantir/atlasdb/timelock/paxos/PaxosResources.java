@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.timelock.paxos.api.NamespaceLeadershipTakeoverServiceEndpoints;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -39,9 +40,14 @@ public abstract class PaxosResources {
 
     abstract List<Object> adhocResources();
 
-    public abstract List<UndertowService> undertowServices();
+    abstract List<UndertowService> adhocUndertowServices();
 
     public abstract TimeLockCorruptionComponents timeLockCorruptionComponents();
+
+    @Value.Derived
+    NamespaceTakeoverComponent namespaceTakeoverComponent() {
+        return new NamespaceTakeoverComponent(leadershipComponents());
+    }
 
     @Value.Derived
     Map<PaxosUseCase, BatchPaxosResources> leadershipBatchResources() {
@@ -51,20 +57,44 @@ public abstract class PaxosResources {
     }
 
     @Value.Derived
-    public List<Object> resourcesForRegistration() {
+    UseCaseAwareBatchPaxosComponents combinedBatchComponents() {
         Map<PaxosUseCase, BatchPaxosResources> batchPaxosResourcesByUseCase =
                 ImmutableMap.<PaxosUseCase, BatchPaxosResources>builder()
                         .put(PaxosUseCase.TIMESTAMP, batchResourcesFromComponents(timestampPaxosComponents()))
                         .putAll(leadershipBatchResources())
                         .buildOrThrow();
 
-        UseCaseAwareBatchPaxosResource combinedBatchResource =
-                new UseCaseAwareBatchPaxosResource(new EnumMap<>(batchPaxosResourcesByUseCase));
+        return new UseCaseAwareBatchPaxosComponents(new EnumMap<>(batchPaxosResourcesByUseCase));
+    }
 
+    @Value.Derived
+    UseCaseAwareBatchPaxosAcceptorResource combinedBatchPaxosAcceptorResource() {
+        return new UseCaseAwareBatchPaxosAcceptorResource(combinedBatchComponents()::acceptor);
+    }
+
+    @Value.Derived
+    UseCaseAwareBatchPaxosLearnerResource combinedBatchPaxosLearnerResource() {
+        return new UseCaseAwareBatchPaxosLearnerResource(combinedBatchComponents()::learner);
+    }
+
+    @Value.Derived
+    public List<UndertowService> undertowServices() {
+        return ImmutableList.<UndertowService>builder()
+                .addAll(adhocUndertowServices())
+                .add(UseCaseAwareBatchPaxosAcceptorResourceEndpoints.of(combinedBatchPaxosAcceptorResource()))
+                .add(UseCaseAwareBatchPaxosLearnerResourceEndpoints.of(combinedBatchPaxosLearnerResource()))
+                .add(NamespaceLeadershipTakeoverServiceEndpoints.of(
+                        new NamespaceTakeoverService(namespaceTakeoverComponent())))
+                .build();
+    }
+
+    @Value.Derived
+    public List<Object> resourcesForRegistration() {
         return ImmutableList.builder()
                 .addAll(adhocResources())
-                .add(combinedBatchResource)
-                .add(new NamespaceTakeoverResource(leadershipComponents()))
+                .add(combinedBatchPaxosAcceptorResource())
+                .add(combinedBatchPaxosLearnerResource())
+                .add(new NamespaceTakeoverResource(namespaceTakeoverComponent()))
                 .build();
     }
 

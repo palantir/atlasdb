@@ -17,6 +17,6 @@ package com.palantir.atlasdb.transaction.impl;
 
 public class AsyncSnapshotTransactionTest extends AbstractSnapshotTransactionTest {
     public AsyncSnapshotTransactionTest() {
-        super(ASYNC, GetAsyncCallbackAwareDelegate::new, VerifyingKeyValueServiceDelegate::new);
+        super(ASYNC, GetAsyncCallbackAwareDelegate::new);
     }
 }

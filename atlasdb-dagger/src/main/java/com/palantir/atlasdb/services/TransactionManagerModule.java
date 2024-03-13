@@ -28,6 +28,7 @@ import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.factory.AtlasDbServiceDiscovery;
 import com.palantir.atlasdb.factory.LockAndTimestampServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -35,6 +36,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
+import com.palantir.atlasdb.transaction.impl.DefaultDeleteExecutor;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
@@ -120,7 +122,7 @@ public class TransactionManagerModule {
         // todo(gmaretic): should this be using a real sweep queue?
         return new SerializableTransactionManager(
                 metricsManager,
-                kvs,
+                new DelegatingTransactionKeyValueServiceManager(kvs),
                 lts.timelock(),
                 lts.lockWatcher(),
                 lts.managedTimestampService(),
@@ -136,8 +138,10 @@ public class TransactionManagerModule {
                 derivedSnapshotConfig.concurrentGetRangesThreadPoolSize(),
                 derivedSnapshotConfig.defaultGetRangesConcurrency(),
                 MultiTableSweepQueueWriter.NO_OP,
-                Executors.newSingleThreadExecutor(
-                        new NamedThreadFactory(TransactionManagerModule.class + "-delete-executor", true)),
+                new DefaultDeleteExecutor(
+                        kvs,
+                        Executors.newSingleThreadExecutor(
+                                new NamedThreadFactory(TransactionManagerModule.class + "-delete-executor", true))),
                 true,
                 () -> config.atlasDbRuntimeConfig().transaction(),
                 ConflictTracer.NO_OP,

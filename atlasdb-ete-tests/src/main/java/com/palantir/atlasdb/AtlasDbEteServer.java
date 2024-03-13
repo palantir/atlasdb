@@ -97,7 +97,7 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         TaggedMetricRegistry taggedMetrics = SharedTaggedMetricRegistries.getSingleton();
         TransactionManager txManager = tryToCreateTransactionManager(config, environment, taggedMetrics);
         Supplier<SweepTaskRunner> sweepTaskRunner = Suppliers.memoize(() -> getSweepTaskRunner(txManager));
-        TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(() -> 1);
+        TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(txManager.getKeyValueService(), () -> 1);
         Supplier<TargetedSweeper> sweeperSupplier = Suppliers.memoize(() -> initializeAndGet(sweeper, txManager));
         ensureTransactionSchemaVersionInstalled(config.getAtlasDbConfig(), config.getAtlasDbRuntimeConfig(), txManager);
 
