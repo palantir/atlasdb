@@ -114,6 +114,9 @@ import com.palantir.atlasdb.transaction.impl.metrics.TransactionMetrics;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.impl.precommit.DefaultLockValidityChecker;
 import com.palantir.atlasdb.transaction.impl.precommit.DefaultPreCommitRequirementValidator;
+import com.palantir.atlasdb.transaction.impl.precommit.DefaultReadSnapshotValidator;
+import com.palantir.atlasdb.transaction.impl.precommit.ReadSnapshotValidator;
+import com.palantir.atlasdb.transaction.impl.precommit.ReadSnapshotValidator.ValidationState;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -302,6 +305,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TransactionKnowledgeComponents knowledge;
     private final ImmutableTimestampLockManager immutableTimestampLockManager;
     private final PreCommitRequirementValidator preCommitRequirementValidator;
+    private final ReadSnapshotValidator readSnapshotValidator;
 
     protected final Closer closer = Closer.create();
 
@@ -383,6 +387,11 @@ public class SnapshotTransaction extends AbstractTransaction
                 immutableTimestampLock, new DefaultLockValidityChecker(timelockService));
         this.preCommitRequirementValidator = new DefaultPreCommitRequirementValidator(
                 preCommitCondition, transactionOutcomeMetrics, immutableTimestampLockManager);
+        this.readSnapshotValidator = new DefaultReadSnapshotValidator(
+                preCommitRequirementValidator,
+                validateLocksOnReads,
+                sweepStrategyManager,
+                transactionConfig);
     }
 
     protected TransactionScopedCache getCache() {
@@ -1265,20 +1274,10 @@ public class SnapshotTransaction extends AbstractTransaction
     */
     private void validatePreCommitRequirementsOnReadIfNecessary(
             TableReference tableRef, long timestamp, boolean allPossibleCellsReadAndPresent) {
-        if (isValidationNecessaryOnReads(tableRef, allPossibleCellsReadAndPresent)) {
-            preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(null, timestamp);
-        } else if (!allPossibleCellsReadAndPresent) {
+        ValidationState validationState = readSnapshotValidator.throwIfPreCommitRequirementsNotMetOnRead(tableRef, timestamp, allPossibleCellsReadAndPresent);
+        if (validationState == ValidationState.NOT_COMPLETELY_VALIDATED) {
             hasPossiblyUnvalidatedReads = true;
         }
-    }
-
-    private boolean isValidationNecessaryOnReads(TableReference tableRef, boolean allPossibleCellsReadAndPresent) {
-        return validateLocksOnReads && requiresImmutableTimestampLocking(tableRef, allPossibleCellsReadAndPresent);
-    }
-
-    private boolean requiresImmutableTimestampLocking(TableReference tableRef, boolean allPossibleCellsReadAndPresent) {
-        return sweepStrategyManager.get(tableRef).mustCheckImmutableLock(allPossibleCellsReadAndPresent)
-                || transactionConfig.get().lockImmutableTsOnReadOnlyTransactions();
     }
 
     private List<Map.Entry<Cell, byte[]>> getPostFilteredWithLocalWrites(
@@ -2730,10 +2729,10 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private boolean validationNecessaryForInvolvedTablesOnCommit() {
-        boolean anyTableRequiresImmutableTimestampLocking = involvedTables.stream()
-                .anyMatch(tableRef -> requiresImmutableTimestampLocking(tableRef, !hasPossiblyUnvalidatedReads));
+        boolean anyTableRequiresPreCommitValidation = involvedTables.stream()
+                .anyMatch(tableRef -> readSnapshotValidator.doesTableRequirePreCommitValidation(tableRef, !hasPossiblyUnvalidatedReads));
         boolean needsToValidate = !validateLocksOnReads || !hasReads();
-        return anyTableRequiresImmutableTimestampLocking && needsToValidate;
+        return anyTableRequiresPreCommitValidation && needsToValidate;
     }
 
     @Override
