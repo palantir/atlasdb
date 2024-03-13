@@ -625,7 +625,7 @@ public class SnapshotTransaction extends AbstractTransaction
     /**
      * Provides comparator to sort cells by columns (sorted lexicographically on byte ordering) and then in the order
      * of input rows.
-     */
+     * */
     @VisibleForTesting
     static Comparator<Cell> columnOrderThenPreserveInputRowOrder(Iterable<byte[]> rows) {
         return Cell.COLUMN_COMPARATOR.thenComparing(
@@ -646,7 +646,7 @@ public class SnapshotTransaction extends AbstractTransaction
      * possibility of needing a second batch of fetching.
      * If the batch hint is large, split batch size across rows to avoid loading too much data, while accepting that
      * second fetches may be needed to get everyone their data.
-     */
+     * */
     private static int getPerRowBatchSize(BatchColumnRangeSelection columnRangeSelection, int distinctRowCount) {
         return Math.max(
                 Math.min(MIN_BATCH_SIZE_FOR_DISTRIBUTED_LOAD, columnRangeSelection.getBatchHint()),
