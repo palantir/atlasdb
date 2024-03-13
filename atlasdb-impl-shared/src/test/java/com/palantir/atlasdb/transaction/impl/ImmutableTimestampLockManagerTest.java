@@ -35,8 +35,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-// TODO (jkong): Reduce duplication of test setup after https://github.com/junit-team/junit5/issues/944 is resolved
 
+// TODO (jkong): Reduce duplication of test setup after https://github.com/junit-team/junit5/issues/944 is resolved
 public final class ImmutableTimestampLockManagerTest {
     private static final LockToken DEFAULT_IMMUTABLE_TIMESTAMP_LOCK_TOKEN = LockToken.of(UUID.randomUUID());
     private static final LockToken DEFAULT_COMMIT_LOCK_TOKEN = LockToken.of(UUID.randomUUID());

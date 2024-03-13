@@ -2255,10 +2255,6 @@ public class SnapshotTransaction extends AbstractTransaction
      * @return set of locks that could not be refreshed
      */
     private Set<LockToken> refreshCommitAndImmutableTsLocks(@Nullable LockToken commitLocksToken) {
-        Set<LockToken> toRefresh = new HashSet<>();
-        if (commitLocksToken != null) {
-            toRefresh.add(commitLocksToken);
-        }
         Optional<ExpiredLocks> expiredLocks = immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(
                 Optional.ofNullable(commitLocksToken));
 
