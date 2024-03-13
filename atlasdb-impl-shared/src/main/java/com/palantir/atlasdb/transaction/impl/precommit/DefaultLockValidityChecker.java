@@ -20,15 +20,15 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import java.util.Set;
 
-public class DefaultLockRefresher implements LockRefresher {
+public class DefaultLockValidityChecker implements LockValidityChecker {
     private final TimelockService timelockService;
 
-    public DefaultLockRefresher(TimelockService timelockService) {
+    public DefaultLockValidityChecker(TimelockService timelockService) {
         this.timelockService = timelockService;
     }
 
     @Override
-    public Set<LockToken> refreshLocks(Set<LockToken> tokensToRefresh) {
+    public Set<LockToken> getStillValidLockTokens(Set<LockToken> tokensToRefresh) {
         return timelockService.refreshLockLeases(tokensToRefresh);
     }
 }

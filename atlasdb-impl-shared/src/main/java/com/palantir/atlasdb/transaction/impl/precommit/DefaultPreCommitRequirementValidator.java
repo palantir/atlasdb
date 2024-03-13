@@ -40,17 +40,17 @@ public class DefaultPreCommitRequirementValidator implements PreCommitRequiremen
     private final PreCommitCondition userPreCommitCondition;
     private final TransactionOutcomeMetrics metrics;
     private final Optional<LockToken> immutableTimestampLock;
-    private final LockRefresher lockRefresher;
+    private final LockValidityChecker lockValidityChecker;
 
     public DefaultPreCommitRequirementValidator(
             PreCommitCondition userPreCommitCondition,
             TransactionOutcomeMetrics metrics,
             Optional<LockToken> immutableTimestampLock,
-            LockRefresher lockRefresher) {
+            LockValidityChecker lockValidityChecker) {
         this.userPreCommitCondition = userPreCommitCondition;
         this.metrics = metrics;
         this.immutableTimestampLock = immutableTimestampLock;
-        this.lockRefresher = lockRefresher;
+        this.lockValidityChecker = lockValidityChecker;
     }
 
     @Override
@@ -110,6 +110,7 @@ public class DefaultPreCommitRequirementValidator implements PreCommitRequiremen
             return ImmutableSet.of();
         }
 
-        return Sets.difference(toRefresh, lockRefresher.refreshLocks(toRefresh)).immutableCopy();
+        return Sets.difference(toRefresh, lockValidityChecker.getStillValidLockTokens(toRefresh))
+                .immutableCopy();
     }
 }

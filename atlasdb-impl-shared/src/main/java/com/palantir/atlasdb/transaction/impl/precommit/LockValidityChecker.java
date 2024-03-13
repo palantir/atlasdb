@@ -20,11 +20,13 @@ import com.palantir.lock.v2.LockToken;
 import java.util.Set;
 
 /**
- * Facade of {@link com.palantir.lock.v2.TimelockService} that only allows for refreshing of locks.
+ * Facade of {@link com.palantir.lock.v2.TimelockService} that only allows for checking that locks are still valid.
  */
-public interface LockRefresher {
+public interface LockValidityChecker {
     /**
-     * Returns lock tokens from the provided set that were successfully refreshed.
+     * Returns lock tokens from the provided set that were still valid at some point in time during this method call.
+     * Note that users must not assume that the locks are still held; validity here implies that the locks were held
+     * up to some point in time during this method call.
      */
-    Set<LockToken> refreshLocks(Set<LockToken> tokensToRefresh);
+    Set<LockToken> getStillValidLockTokens(Set<LockToken> tokensToRefresh);
 }
