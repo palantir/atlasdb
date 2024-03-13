@@ -219,7 +219,8 @@ public final class DefaultCommitTimestampLoader implements CommitTimestampLoader
     }
 
     private Timer getTimer(String name) {
-        return metricsManager.registerOrGetTimer(DefaultCommitTimestampLoader.class, name);
+        // Maintaining for backward compatibility
+        return metricsManager.registerOrGetTimer(CommitTimestampLoader.class, name);
     }
 
     private ListenableFuture<Map<Long, TransactionStatus>> loadCommitTimestamps(LongSet startTimestamps) {
