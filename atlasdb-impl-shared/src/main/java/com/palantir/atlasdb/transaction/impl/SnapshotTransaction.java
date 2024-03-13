@@ -300,7 +300,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TimestampCache timestampCache;
 
     protected final TransactionKnowledgeComponents knowledge;
-    protected final ImmutableTimestampLockManager immutableTimestampLockManager;
+    private final ImmutableTimestampLockManager immutableTimestampLockManager;
 
     protected final Closer closer = Closer.create();
 
