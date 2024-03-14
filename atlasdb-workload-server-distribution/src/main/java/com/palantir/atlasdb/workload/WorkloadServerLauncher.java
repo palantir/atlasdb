@@ -150,7 +150,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 USER_AGENT,
                 metricsManager);
 
-        new AntithesisWorkflowValidatorRunner(new DefaultWorkflowRunner(
+        AntithesisWorkflowValidatorRunner.create(new DefaultWorkflowRunner(
                         MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService)))
                 .run(() -> selectWorkflowsToRun(
                         configuration,
