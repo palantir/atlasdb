@@ -17,11 +17,9 @@
 package com.palantir.atlasdb.workload.invariant;
 
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
- * Check for an invariant given the provided {@link WorkflowHistory},
- * and call the provided consumer after checking if any violations are detected.
+ * Check for an invariant given the provided {@link WorkflowHistory}, and returns an object indicating any violations.
  */
-public interface Invariant<Violations> extends BiConsumer<WorkflowHistory, Consumer<Violations>> {}
+public interface Invariant<Violations> extends Function<WorkflowHistory, Violations> {}

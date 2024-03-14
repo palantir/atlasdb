@@ -33,7 +33,6 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedSingleCellRe
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.workflow.ImmutableWorkflowHistory;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -49,7 +48,6 @@ public final class SerializableInvariantTest {
 
     @Test
     public void handlesLocalWrites() {
-        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
                 .startTransaction()
                 .read(5, 10)
@@ -61,13 +59,11 @@ public final class SerializableInvariantTest {
                 .history(transactions)
                 .transactionStore(readableTransactionStore)
                 .build();
-        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
-        assertThat(invalidTransactions).isEmpty();
+        assertThat(SerializableInvariant.INSTANCE.apply(workflowHistory)).isEmpty();
     }
 
     @Test
     public void noInvalidTransactionsWhenSerializable() {
-        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
                 .startTransaction()
                 .write(5, 10, 15)
@@ -87,13 +83,11 @@ public final class SerializableInvariantTest {
                 .history(transactions)
                 .transactionStore(readableTransactionStore)
                 .build();
-        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
-        assertThat(invalidTransactions).isEmpty();
+        assertThat(SerializableInvariant.INSTANCE.apply(workflowHistory)).isEmpty();
     }
 
     @Test
     public void catchesWriteSkew() {
-        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
                 .startTransaction()
                 .write(5, 10, 15)
@@ -114,9 +108,9 @@ public final class SerializableInvariantTest {
                 .history(transactions)
                 .transactionStore(readableTransactionStore)
                 .build();
-        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+
         InvalidWitnessedTransactionAction invalidWitnessedTransactionAction =
-                getSingularFinalInvalidAction(invalidTransactions, transactions);
+                getSingularFinalInvalidAction(SerializableInvariant.INSTANCE.apply(workflowHistory), transactions);
 
         assertThat(invalidWitnessedTransactionAction)
                 .isInstanceOfSatisfying(
@@ -134,7 +128,6 @@ public final class SerializableInvariantTest {
 
     @Test
     public void handlesDeletes() {
-        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
                 .startTransaction()
                 .write(5, 10, 15)
@@ -153,13 +146,11 @@ public final class SerializableInvariantTest {
                 .history(transactions)
                 .transactionStore(readableTransactionStore)
                 .build();
-        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
-        assertThat(invalidTransactions).isEmpty();
+        assertThat(SerializableInvariant.INSTANCE.apply(workflowHistory)).isEmpty();
     }
 
     @Test
     public void readsEmptyRowRangeIfNoCellsInRange() {
-        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
                 .startTransaction()
                 .write(5, 10, 15)
@@ -178,13 +169,11 @@ public final class SerializableInvariantTest {
                 .history(transactions)
                 .transactionStore(readableTransactionStore)
                 .build();
-        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
-        assertThat(invalidTransactions).isEmpty();
+        assertThat(SerializableInvariant.INSTANCE.apply(workflowHistory)).isEmpty();
     }
 
     @Test
     public void readsEmptyRowRangeIfNoCellsInRow() {
-        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
                 .startTransaction()
                 .write(5, 10, 15)
@@ -198,13 +187,11 @@ public final class SerializableInvariantTest {
                 .history(transactions)
                 .transactionStore(readableTransactionStore)
                 .build();
-        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
-        assertThat(invalidTransactions).isEmpty();
+        assertThat(SerializableInvariant.INSTANCE.apply(workflowHistory)).isEmpty();
     }
 
     @Test
     public void readsRowRangeToExhaustion() {
-        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
                 .startTransaction()
                 .write(5, 10, 15)
@@ -221,13 +208,11 @@ public final class SerializableInvariantTest {
                 .history(transactions)
                 .transactionStore(readableTransactionStore)
                 .build();
-        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
-        assertThat(invalidTransactions).isEmpty();
+        assertThat(SerializableInvariant.INSTANCE.apply(workflowHistory)).isEmpty();
     }
 
     @Test
     public void incorporatesLocalWritesIntoRowColumnRangeQueries() {
-        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
                 .startTransaction()
                 .write(5, 10, 15)
@@ -258,13 +243,11 @@ public final class SerializableInvariantTest {
                 .history(transactions)
                 .transactionStore(readableTransactionStore)
                 .build();
-        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
-        assertThat(invalidTransactions).isEmpty();
+        assertThat(SerializableInvariant.INSTANCE.apply(workflowHistory)).isEmpty();
     }
 
     @Test
     public void identifiesUnexpectedMissingCellInRowColumnRangeRead() {
-        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
                 .startTransaction()
                 .write(5, 10, 15)
@@ -282,9 +265,10 @@ public final class SerializableInvariantTest {
                 .history(transactions)
                 .transactionStore(readableTransactionStore)
                 .build();
-        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        List<InvalidWitnessedTransaction> invalidWitnessedTransactions =
+                SerializableInvariant.INSTANCE.apply(workflowHistory);
         InvalidWitnessedTransactionAction invalidWitnessedTransactionAction =
-                getSingularFinalInvalidAction(invalidTransactions, transactions);
+                getSingularFinalInvalidAction(invalidWitnessedTransactions, transactions);
         assertThat(invalidWitnessedTransactionAction)
                 .isInstanceOfSatisfying(InvalidWitnessedRowColumnRangeReadTransactionAction.class, action -> assertThat(
                                 action.expectedColumnsAndValues())
@@ -294,7 +278,6 @@ public final class SerializableInvariantTest {
 
     @Test
     public void identifiesUnexpectedAdditionalCellInRowColumnRangeRead() {
-        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
                 .startTransaction()
                 .write(5, 10, 15)
@@ -312,9 +295,10 @@ public final class SerializableInvariantTest {
                 .history(transactions)
                 .transactionStore(readableTransactionStore)
                 .build();
-        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        List<InvalidWitnessedTransaction> invalidWitnessedTransactions =
+                SerializableInvariant.INSTANCE.apply(workflowHistory);
         InvalidWitnessedTransactionAction invalidWitnessedTransactionAction =
-                getSingularFinalInvalidAction(invalidTransactions, transactions);
+                getSingularFinalInvalidAction(invalidWitnessedTransactions, transactions);
         assertThat(invalidWitnessedTransactionAction)
                 .isInstanceOfSatisfying(InvalidWitnessedRowColumnRangeReadTransactionAction.class, action -> assertThat(
                                 action.expectedColumnsAndValues())
@@ -323,7 +307,6 @@ public final class SerializableInvariantTest {
 
     @Test
     public void identifiesIncorrectCellValuesInRowColumnRangeRead() {
-        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
                 .startTransaction()
                 .write(5, 10, 15)
@@ -340,9 +323,10 @@ public final class SerializableInvariantTest {
                 .history(transactions)
                 .transactionStore(readableTransactionStore)
                 .build();
-        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        List<InvalidWitnessedTransaction> invalidWitnessedTransactions =
+                SerializableInvariant.INSTANCE.apply(workflowHistory);
         InvalidWitnessedTransactionAction invalidWitnessedTransactionAction =
-                getSingularFinalInvalidAction(invalidTransactions, transactions);
+                getSingularFinalInvalidAction(invalidWitnessedTransactions, transactions);
         assertThat(invalidWitnessedTransactionAction)
                 .isInstanceOfSatisfying(InvalidWitnessedRowColumnRangeReadTransactionAction.class, action -> assertThat(
                                 action.expectedColumnsAndValues())
@@ -351,7 +335,6 @@ public final class SerializableInvariantTest {
 
     @Test
     public void identifiesIncorrectOrderingInRowColumnRangeRead() {
-        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder("table")
                 .startTransaction()
                 .write(5, 20, 34)
@@ -368,9 +351,10 @@ public final class SerializableInvariantTest {
                 .history(transactions)
                 .transactionStore(readableTransactionStore)
                 .build();
-        SerializableInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        List<InvalidWitnessedTransaction> invalidWitnessedTransactions =
+                SerializableInvariant.INSTANCE.apply(workflowHistory);
         InvalidWitnessedTransactionAction invalidWitnessedTransactionAction =
-                getSingularFinalInvalidAction(invalidTransactions, transactions);
+                getSingularFinalInvalidAction(invalidWitnessedTransactions, transactions);
         assertThat(invalidWitnessedTransactionAction)
                 .isInstanceOfSatisfying(InvalidWitnessedRowColumnRangeReadTransactionAction.class, action -> assertThat(
                                 action.expectedColumnsAndValues())

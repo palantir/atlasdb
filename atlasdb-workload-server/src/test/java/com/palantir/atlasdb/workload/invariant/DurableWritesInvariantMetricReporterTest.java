@@ -73,7 +73,7 @@ public final class DurableWritesInvariantMetricReporterTest {
                                 WorkloadTestHelpers.VALUE_ONE))
                         .build()))
                 .build();
-        reporter.report(workflowHistory);
+        reporter.consumer().accept(reporter.invariant().apply(workflowHistory));
         assertThat(getViolationCount(WorkloadTestHelpers.WORKFLOW, WorkloadTestHelpers.TABLE_1))
                 .isEqualTo(1);
         assertThat(getViolationCount(WorkloadTestHelpers.WORKFLOW, WorkloadTestHelpers.TABLE_2))

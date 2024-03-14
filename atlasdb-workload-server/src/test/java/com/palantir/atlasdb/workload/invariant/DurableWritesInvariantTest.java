@@ -40,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -57,7 +56,6 @@ public final class DurableWritesInvariantTest {
 
     @Test
     public void cellsExpectedToBeDeletedAreFound() {
-        AtomicReference<Map<TableAndWorkloadCell, MismatchedValue>> mismatchingCells = new AtomicReference<>();
         List<WitnessedTransaction> witnessedTransactions = List.of(
                 FullyWitnessedTransaction.builder()
                         .addActions(WitnessedDeleteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE))
@@ -75,8 +73,7 @@ public final class DurableWritesInvariantTest {
                 .build();
 
         store.readWrite(List.of(WriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO, VALUE_ONE)));
-        DurableWritesInvariant.INSTANCE.accept(history, mismatchingCells::set);
-        assertThat(mismatchingCells.get())
+        assertThat(DurableWritesInvariant.INSTANCE.apply(history))
                 .containsExactlyInAnyOrderEntriesOf(Map.of(
                         TableAndWorkloadCell.of(TABLE_1, WORKLOAD_CELL_TWO),
                         MismatchedValue.of(Optional.of(VALUE_ONE), Optional.empty())));
@@ -84,7 +81,6 @@ public final class DurableWritesInvariantTest {
 
     @Test
     public void cellsThatDoNotMatchAreFoundAndMatchingAreIgnored() {
-        AtomicReference<Map<TableAndWorkloadCell, MismatchedValue>> mismatchingCells = new AtomicReference<>();
         List<WitnessedTransaction> witnessedTransactions = List.of(
                 FullyWitnessedTransaction.builder()
                         .addActions(WitnessedWriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, VALUE_ONE))
@@ -104,8 +100,7 @@ public final class DurableWritesInvariantTest {
         store.readWrite(List.of(
                 WriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_ONE, VALUE_ONE),
                 WriteTransactionAction.of(TABLE_1, WORKLOAD_CELL_TWO, VALUE_ONE)));
-        DurableWritesInvariant.INSTANCE.accept(history, mismatchingCells::set);
-        assertThat(mismatchingCells.get())
+        assertThat(DurableWritesInvariant.INSTANCE.apply(history))
                 .containsExactlyInAnyOrderEntriesOf(Map.of(
                         TableAndWorkloadCell.of(TABLE_1, WORKLOAD_CELL_TWO),
                         MismatchedValue.of(Optional.of(VALUE_ONE), Optional.of(VALUE_TWO))));
