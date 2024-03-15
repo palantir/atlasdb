@@ -266,10 +266,7 @@ public final class CassandraClientPoolTest {
     public void resilientToRollingRestarts() {
         when(config.autoRefreshNodes()).thenReturn(false);
         CassandraClientPool cassandraClientPool = clientPoolWithServersInConfigAndCurrentPool(
-                Set.of(
-                        InetSocketAddress.createUnresolved(HOSTNAME_1, DEFAULT_PORT),
-                        InetSocketAddress.createUnresolved(HOSTNAME_2, DEFAULT_PORT)),
-                ImmutableSet.of(CASS_SERVER_1, CASS_SERVER_2));
+                Set.of(HOST_1, HOST_2), ImmutableSet.of(CASS_SERVER_1, CASS_SERVER_2));
 
         AtomicReference<CassandraServer> downHost = new AtomicReference<>(CASS_SERVER_1);
         cassandraClientPool
