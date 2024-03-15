@@ -136,7 +136,8 @@ public class AntithesisWorkflowValidatorRunnerTest {
     public void runPropagatesExceptionsThrownFromReporters() {
         when(invariantOne.apply(any())).thenReturn("wrong");
         doThrow(new RuntimeException()).when(reporterOne).accept(any());
-        assertThatThrownBy(() -> AntithesisWorkflowValidatorRunner.createForTests(workflowRunner).run(workflowAndInvariants))
+        assertThatThrownBy(() -> AntithesisWorkflowValidatorRunner.createForTests(workflowRunner)
+                        .run(workflowAndInvariants))
                 .isInstanceOf(RuntimeException.class);
     }
 
@@ -158,11 +159,11 @@ public class AntithesisWorkflowValidatorRunnerTest {
         });
 
         doAnswer(_invocation -> {
-            assertThat(slowWorkflowIsDone.get())
-                    .as("the invariant was checked, even though the slow workflow was not done yet")
-                    .isTrue();
-            return "sehr gut";
-        })
+                    assertThat(slowWorkflowIsDone.get())
+                            .as("the invariant was checked, even though the slow workflow was not done yet")
+                            .isTrue();
+                    return "sehr gut";
+                })
                 .when(invariantOne)
                 .apply(any());
         when(invariantTwo.apply(any())).thenReturn("+1");
