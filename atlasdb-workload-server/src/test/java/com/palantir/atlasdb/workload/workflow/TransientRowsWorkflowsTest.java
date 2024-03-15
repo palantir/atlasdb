@@ -186,7 +186,7 @@ public class TransientRowsWorkflowsTest {
                         .collect(Collectors.toList()))
                 .build();
 
-        assertThat(invariant.apply(history))
+        assertThat(invariant.apply(falseHistory))
                 .hasSize(ITERATION_COUNT - 1)
                 .allSatisfy(TransientRowsWorkflowsTest::inconsistencyInvolvesPairOfPrimaryAndSummaryCells);
     }
