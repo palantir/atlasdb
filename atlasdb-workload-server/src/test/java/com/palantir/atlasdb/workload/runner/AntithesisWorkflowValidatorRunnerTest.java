@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.workload.runner;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -54,7 +55,7 @@ public class AntithesisWorkflowValidatorRunnerTest {
     private static final ListeningExecutorService EXECUTOR_SERVICE =
             MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(8));
 
-    private WorkflowRunner<Workflow> workflowRunner = new DefaultWorkflowRunner(EXECUTOR_SERVICE);
+    private final WorkflowRunner<Workflow> workflowRunner = new DefaultWorkflowRunner(EXECUTOR_SERVICE);
 
     @Mock
     private Workflow workflow;
@@ -87,7 +88,7 @@ public class AntithesisWorkflowValidatorRunnerTest {
 
     @Test
     public void runExecutesWorkflowAndInvokesInvariantReporters() {
-        when(invariantOne.apply(any())).thenReturn("all good");
+        when(invariantOne.apply(any())).thenReturn("errors");
         when(invariantTwo.apply(any())).thenReturn("+1");
 
         AntithesisWorkflowValidatorRunner.createForTests(workflowRunner).run(workflowAndInvariants);
@@ -132,6 +133,14 @@ public class AntithesisWorkflowValidatorRunnerTest {
     }
 
     @Test
+    public void runPropagatesExceptionsThrownFromReporters() {
+        when(invariantOne.apply(any())).thenReturn("wrong");
+        doThrow(new RuntimeException()).when(reporterOne).accept(any());
+        assertThatThrownBy(() -> AntithesisWorkflowValidatorRunner.createForTests(workflowRunner).run(workflowAndInvariants))
+                .isInstanceOf(RuntimeException.class);
+    }
+
+    @Test
     public void runExecutesMultipleWorkflowsAndWaitsForAllToFinishBeforeInvokingInvariantReporter() {
         CountDownLatch slowWorkflowCanMakeProgress = new CountDownLatch(1);
         AtomicBoolean slowWorkflowIsDone = new AtomicBoolean(false);
@@ -149,11 +158,11 @@ public class AntithesisWorkflowValidatorRunnerTest {
         });
 
         doAnswer(_invocation -> {
-                    assertThat(slowWorkflowIsDone.get())
-                            .as("the invariant was checked, even though the slow workflow was not done yet")
-                            .isTrue();
-                    return "sehr gut";
-                })
+            assertThat(slowWorkflowIsDone.get())
+                    .as("the invariant was checked, even though the slow workflow was not done yet")
+                    .isTrue();
+            return "sehr gut";
+        })
                 .when(invariantOne)
                 .apply(any());
         when(invariantTwo.apply(any())).thenReturn("+1");
