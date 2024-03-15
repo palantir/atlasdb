@@ -181,7 +181,7 @@ workflows:
             alias: test-no-tl
             parameters:
               # intentionally excluding 13 (TimeLock migration ETE test) from this collection
-              suite: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+              suite: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15]
           filters:
             tags:
               only: /.*/
