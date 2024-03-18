@@ -76,7 +76,7 @@ public final class DefaultReadSnapshotValidatorTest {
     }
 
     @Test
-    public void conservativeTablesDoNotRequirePreCommitValidationByDefault() {
+    public void conservativeTablesDoNotRequirePreCommitValidation() {
         assertThat(readSnapshotValidator.doesTableRequirePreCommitValidation(CONSERVATIVE_TABLE, false))
                 .as("validation is not needed for a conservative table (with incomplete reads)")
                 .isFalse();
