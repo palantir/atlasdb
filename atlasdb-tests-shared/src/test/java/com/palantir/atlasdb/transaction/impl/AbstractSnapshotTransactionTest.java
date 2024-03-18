@@ -3381,7 +3381,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
         return new DefaultPreCommitRequirementValidator(
                 condition,
                 sweepStrategyManager,
-                () -> transactionConfig,
+                transactionConfig::get,
                 new DefaultLockRefresher(timelockService),
                 immutableTsLock,
                 validateLocksOnReads,
