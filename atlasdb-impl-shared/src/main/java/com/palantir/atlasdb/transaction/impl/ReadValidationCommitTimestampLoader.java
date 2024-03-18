@@ -55,8 +55,7 @@ public final class ReadValidationCommitTimestampLoader implements CommitTimestam
         this.transactionOutcomeMetrics = transactionOutcomeMetrics;
     }
 
-    @Override
-    public ListenableFuture<LongLongMap> getCommitTimestamps(
+    private ListenableFuture<LongLongMap> getCommitTimestampsInternal(
             @Nullable TableReference tableRef, LongIterable startTimestamps, boolean shouldWaitForCommitterToComplete) {
         PartitionedTimestamps partitionedTimestamps = splitTransactionBeforeAndAfter(startTs, startTimestamps);
 
@@ -70,8 +69,12 @@ public final class ReadValidationCommitTimestampLoader implements CommitTimestam
             // TODO (jkong): If called frequently, can consider memoisation.
             preStartCommitTimestamps = Futures.immediateFuture(LongLongMaps.immutable.empty());
         } else {
-            preStartCommitTimestamps = delegate.getCommitTimestamps(
-                    tableRef, partitionedTimestamps.beforeStart(), shouldWaitForCommitterToComplete);
+            if (shouldWaitForCommitterToComplete) {
+                preStartCommitTimestamps = delegate.getCommitTimestampsNonBlockingForValidation(
+                        tableRef, partitionedTimestamps.beforeStart());
+            } else {
+                preStartCommitTimestamps = delegate.getCommitTimestamps(tableRef, partitionedTimestamps.beforeStart());
+            }
         }
 
         return Futures.whenAllComplete(postStartCommitTimestamps, preStartCommitTimestamps)
@@ -96,7 +99,7 @@ public final class ReadValidationCommitTimestampLoader implements CommitTimestam
                 // We do not block when waiting for results that were written after our start timestamp.
                 // If we block here it may lead to deadlock if two transactions (or a cycle of any length) have
                 // all written their data and all doing checks before committing.
-                delegate.getCommitTimestamps(tableRef, startTimestamps, false),
+                delegate.getCommitTimestampsNonBlockingForValidation(tableRef, startTimestamps),
                 startToCommitTimestamps -> {
                     if (startToCommitTimestamps.keySet().containsAll(startTimestamps)) {
                         return startToCommitTimestamps;
@@ -138,5 +141,17 @@ public final class ReadValidationCommitTimestampLoader implements CommitTimestam
         builder.beforeStart(beforeStart.asUnmodifiable());
         builder.afterStart(afterStart.asUnmodifiable());
         return builder.build();
+    }
+
+    @Override
+    public ListenableFuture<LongLongMap> getCommitTimestamps(
+            @Nullable TableReference tableRef, LongIterable startTimestamps) {
+        return getCommitTimestampsInternal(tableRef, startTimestamps, true);
+    }
+
+    @Override
+    public ListenableFuture<LongLongMap> getCommitTimestampsNonBlockingForValidation(
+            @Nullable TableReference tableRef, LongIterable startTimestamps) {
+        return getCommitTimestampsInternal(tableRef, startTimestamps, false);
     }
 }

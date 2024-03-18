@@ -193,7 +193,6 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Pair;
-import org.eclipse.collections.api.LongIterable;
 import org.eclipse.collections.api.factory.primitive.LongLists;
 import org.eclipse.collections.api.factory.primitive.LongSets;
 import org.eclipse.collections.api.map.primitive.LongLongMap;
@@ -304,7 +303,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
-     *                           lock for it because we know that no writers exist.
+     * lock for it because we know that no writers exist.
      * @param preCommitCondition This check must pass for this transaction to commit.
      */
     /* package */ SnapshotTransaction(
@@ -1434,7 +1433,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * This includes deleted writes as zero length byte arrays, be sure to strip them out.
-     *
+     * <p>
      * For the selectedColumns parameter, empty set means all columns. This is unfortunate, but follows the semantics of
      * {@link RangeRequest}.
      */
@@ -1690,7 +1689,7 @@ public class SnapshotTransaction extends AbstractTransaction
         LongSet valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
 
         return Futures.transformAsync(
-                getCommitTimestamps(tableRef, valuesStartTimestamps, true),
+                commitTimestampLoader.getCommitTimestamps(tableRef, valuesStartTimestamps),
                 commitTimestamps -> collectCellsToPostFilter(
                         tableRef,
                         rawResults,
@@ -1937,7 +1936,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * Returns true iff the transaction is known to have successfully committed.
-     *
+     * <p>
      * Be careful when using this method! A transaction that the client thinks has failed could actually have
      * committed as far as the key-value service is concerned.
      */
@@ -2393,7 +2392,8 @@ public class SnapshotTransaction extends AbstractTransaction
         long startTs = getStartTimestamp();
         Map<Cell, Long> rawResults = transactionKeyValueService.getLatestTimestamps(tableRef, keysToLoad);
         LongLongMap commitTimestamps =
-                getCommitTimestampsSync(tableRef, LongLists.immutable.ofAll(rawResults.values()), false);
+                AtlasFutures.getUnchecked(commitTimestampLoader.getCommitTimestampsNonBlockingForValidation(
+                        tableRef, LongLists.immutable.ofAll(rawResults.values())));
 
         // TODO(fdesouza): Remove this once PDS-95791 is resolved.
         conflictTracer.collect(startTs, keysToLoad, rawResults, commitTimestamps);
@@ -2528,11 +2528,6 @@ public class SnapshotTransaction extends AbstractTransaction
         return lockResponse.getToken();
     }
 
-    protected ListenableFuture<LongLongMap> getCommitTimestamps(
-            TableReference tableRef, LongIterable startTimestamps, boolean shouldWaitForCommitterToComplete) {
-        return commitTimestampLoader.getCommitTimestamps(tableRef, startTimestamps, shouldWaitForCommitterToComplete);
-    }
-
     private void logCommitLockTenureExceeded(
             Set<LockDescriptor> lockDescriptors,
             TransactionConfig currentTransactionConfig,
@@ -2658,15 +2653,10 @@ public class SnapshotTransaction extends AbstractTransaction
         return LongSets.immutable.withAll(Streams.stream(values).mapToLong(Value::getTimestamp));
     }
 
-    private LongLongMap getCommitTimestampsSync(
-            @Nullable TableReference tableRef, LongIterable startTimestamps, boolean waitForCommitterToComplete) {
-        return AtlasFutures.getUnchecked(getCommitTimestamps(tableRef, startTimestamps, waitForCommitterToComplete));
-    }
-
     /**
      * This will attempt to put the commitTimestamp into the DB.
      *
-     * @throws TransactionLockTimeoutException  If our locks timed out while trying to commit.
+     * @throws TransactionLockTimeoutException If our locks timed out while trying to commit.
      * @throws TransactionCommitFailedException failed when committing in a way that isn't retriable
      */
     private void putCommitTimestamp(long commitTimestamp, LockToken locksToken, TransactionService transactionService)
@@ -2728,7 +2718,10 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private boolean wasCommitSuccessful(long commitTs) {
         long startTs = getStartTimestamp();
-        LongLongMap commitTimestamps = getCommitTimestampsSync(null, LongSets.immutable.of(startTs), false);
+
+        LongLongMap commitTimestamps =
+                AtlasFutures.getUnchecked(commitTimestampLoader.getCommitTimestampsNonBlockingForValidation(
+                        null, LongSets.immutable.of(startTs)));
         long storedCommit = commitTimestamps.get(startTs);
         if (storedCommit != commitTs && storedCommit != TransactionConstants.FAILED_COMMIT_TS) {
             throw new SafeIllegalArgumentException(

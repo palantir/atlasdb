@@ -31,6 +31,9 @@ import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import javax.annotation.Nullable;
 import org.eclipse.collections.api.LongIterable;
 import org.eclipse.collections.api.factory.primitive.LongLists;
 import org.eclipse.collections.api.list.primitive.LongList;
@@ -38,9 +41,8 @@ import org.eclipse.collections.api.map.primitive.LongLongMap;
 import org.eclipse.collections.api.map.primitive.MutableLongLongMap;
 import org.eclipse.collections.impl.factory.primitive.LongLongMaps;
 import org.eclipse.collections.impl.factory.primitive.LongSets;
-import org.jetbrains.annotations.Nullable;
+import org.immutables.value.Value;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -61,7 +63,7 @@ public final class ReadValidationCommitTimestampLoaderTest {
 
     private CommitTimestampLoader delegateCommitTimestampLoader;
 
-    private CommitTimestampLoader commitTimestampLoader;
+    private ReadValidationCommitTimestampLoader commitTimestampLoader;
 
     @BeforeEach
     public void setUp() {
@@ -74,20 +76,29 @@ public final class ReadValidationCommitTimestampLoaderTest {
                         TransactionMetrics.of(metricsManager.getTaggedRegistry()), metricsManager.getTaggedRegistry()));
     }
 
-    @Test
-    public void returnsNothingIfQueriedForNothing() throws ExecutionException, InterruptedException {
-        LongLongMap result = commitTimestampLoader
-                .getCommitTimestamps(null, LongSets.immutable.empty(), false)
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void returnsNothingIfQueriedForNothing(boolean shouldWaitForCommitterToComplete)
+            throws ExecutionException, InterruptedException {
+        CommitTimestampLoadingMethod commitTimestampLoadingMethod = getLoadingMethod(shouldWaitForCommitterToComplete);
+        LongLongMap result = commitTimestampLoadingMethod
+                .commitTimestampLoadingMethod()
+                .apply(LongLists.immutable.empty())
                 .get();
 
         assertThat(result).isEqualTo(LongLongMaps.immutable.empty());
         verifyNoInteractions(delegateCommitTimestampLoader);
     }
 
-    @Test
-    public void returnsOurCommitTimestampIfQueriedForOurStart() throws ExecutionException, InterruptedException {
-        LongLongMap result = commitTimestampLoader
-                .getCommitTimestamps(null, LongSets.immutable.of(START_TS), false)
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void returnsOurCommitTimestampIfQueriedForOurStart(boolean shouldWaitForCommitterToComplete)
+            throws ExecutionException, InterruptedException {
+        CommitTimestampLoadingMethod commitTimestampLoadingMethod = getLoadingMethod(shouldWaitForCommitterToComplete);
+
+        LongLongMap result = commitTimestampLoadingMethod
+                .commitTimestampLoadingMethod()
+                .apply(LongLists.immutable.of(START_TS))
                 .get();
 
         assertThat(result).isEqualTo(LongLongMaps.immutable.of(START_TS, COMMIT_TS));
@@ -96,16 +107,17 @@ public final class ReadValidationCommitTimestampLoaderTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void waitsForTransactionsStartingBeforeOurStartDependingOnArgument(boolean shouldWaitForCommitterToComplete)
+    public void waitsForTransactionsStartingBeforeOurStart(boolean shouldWaitForCommitterToComplete)
             throws ExecutionException, InterruptedException {
+        CommitTimestampLoadingMethod loadingMethod = getLoadingMethod(shouldWaitForCommitterToComplete);
         committedTransactions.put(BEFORE_START_1, AFTER_COMMIT);
-        LongLongMap result = commitTimestampLoader
-                .getCommitTimestamps(null, LongSets.immutable.of(BEFORE_START_1), shouldWaitForCommitterToComplete)
+        LongLongMap result = loadingMethod
+                .commitTimestampLoadingMethod()
+                .apply(LongSets.immutable.of(BEFORE_START_1))
                 .get();
 
         assertThat(result).isEqualTo(LongLongMaps.immutable.of(BEFORE_START_1, AFTER_COMMIT));
-        verify(delegateCommitTimestampLoader)
-                .getCommitTimestamps(null, LongSets.immutable.of(BEFORE_START_1), shouldWaitForCommitterToComplete);
+        loadingMethod.loaderVerification().accept(LongSets.immutable.of(BEFORE_START_1));
         verifyNoMoreInteractions(delegateCommitTimestampLoader);
     }
 
@@ -113,15 +125,16 @@ public final class ReadValidationCommitTimestampLoaderTest {
     @ValueSource(booleans = {true, false})
     public void doesNotWaitForTransactionsStartingAfterOurStart(boolean shouldWaitForCommitterToComplete)
             throws ExecutionException, InterruptedException {
+        CommitTimestampLoadingMethod loadingMethod = getLoadingMethod(shouldWaitForCommitterToComplete);
+
         committedTransactions.put(BETWEEN_START_AND_COMMIT_1, BETWEEN_START_AND_COMMIT_2);
-        LongLongMap result = commitTimestampLoader
-                .getCommitTimestamps(
-                        null, LongSets.immutable.of(BETWEEN_START_AND_COMMIT_1), shouldWaitForCommitterToComplete)
+        LongLongMap result = loadingMethod
+                .commitTimestampLoadingMethod()
+                .apply(LongSets.immutable.of(BETWEEN_START_AND_COMMIT_1))
                 .get();
 
         assertThat(result).isEqualTo(LongLongMaps.immutable.of(BETWEEN_START_AND_COMMIT_1, BETWEEN_START_AND_COMMIT_2));
-        verify(delegateCommitTimestampLoader)
-                .getCommitTimestamps(null, LongSets.immutable.of(BETWEEN_START_AND_COMMIT_1), false);
+        loadingMethod.loaderVerification().accept(LongSets.immutable.of(BETWEEN_START_AND_COMMIT_1));
         verifyNoMoreInteractions(delegateCommitTimestampLoader);
     }
 
@@ -142,8 +155,11 @@ public final class ReadValidationCommitTimestampLoaderTest {
             committedTransactions.put(startTimestamp, startTimestamp + TRANSACTION_INTERVAL);
         });
 
-        LongLongMap result = commitTimestampLoader
-                .getCommitTimestamps(null, startTimestamps, shouldWaitForCommitterToComplete)
+        CommitTimestampLoadingMethod loadingMethod = getLoadingMethod(shouldWaitForCommitterToComplete);
+
+        LongLongMap result = loadingMethod
+                .commitTimestampLoadingMethod()
+                .apply(startTimestamps)
                 .get();
 
         assertThat(result).satisfies(startToCommitMap -> {
@@ -153,26 +169,26 @@ public final class ReadValidationCommitTimestampLoaderTest {
                 assertThat(commit).isEqualTo(expectedCommit);
             });
         });
+
+        loadingMethod.loaderVerification().accept(LongSets.immutable.of(BEFORE_START_1, BEFORE_START_2, START_TS - 1));
+
+        // Not using the loader verification as reads starting after our start are always intended to be non-blocking
+        // to avoid deadlocks.
         verify(delegateCommitTimestampLoader)
-                .getCommitTimestamps(
-                        null,
-                        LongSets.immutable.of(BEFORE_START_1, BEFORE_START_2, START_TS - 1),
-                        shouldWaitForCommitterToComplete);
-        verify(delegateCommitTimestampLoader)
-                .getCommitTimestamps(
+                .getCommitTimestampsNonBlockingForValidation(
                         null,
                         LongSets.immutable.of(
-                                START_TS + 1, BETWEEN_START_AND_COMMIT_1, BETWEEN_START_AND_COMMIT_2, AFTER_COMMIT),
-                        false);
+                                START_TS + 1, BETWEEN_START_AND_COMMIT_1, BETWEEN_START_AND_COMMIT_2, AFTER_COMMIT));
         verifyNoMoreInteractions(delegateCommitTimestampLoader);
     }
 
+    private CommitTimestampLoadingMethod getLoadingMethod(boolean shouldWaitForCommitterToComplete) {
+        return CommitTimestampLoadingMethod.create(
+                commitTimestampLoader, delegateCommitTimestampLoader, shouldWaitForCommitterToComplete);
+    }
+
     private final class MemoryCommitTimestampLoader implements CommitTimestampLoader {
-        @Override
-        public ListenableFuture<LongLongMap> getCommitTimestamps(
-                @Nullable TableReference tableRef,
-                LongIterable startTimestamps,
-                boolean shouldWaitForCommitterToComplete) {
+        public ListenableFuture<LongLongMap> getCommitTimestamps(LongIterable startTimestamps) {
             MutableLongLongMap result = LongLongMaps.mutable.empty();
             startTimestamps.forEach(startTimestamp -> {
                 if (committedTransactions.containsKey(startTimestamp)) {
@@ -180,6 +196,54 @@ public final class ReadValidationCommitTimestampLoaderTest {
                 }
             });
             return Futures.immediateFuture(result);
+        }
+
+        @Override
+        public ListenableFuture<LongLongMap> getCommitTimestamps(
+                @Nullable TableReference tableRef, LongIterable startTimestamps) {
+            return getCommitTimestamps(startTimestamps);
+        }
+
+        @Override
+        public ListenableFuture<LongLongMap> getCommitTimestampsNonBlockingForValidation(
+                @Nullable TableReference tableRef, LongIterable startTimestamps) {
+            return getCommitTimestamps(startTimestamps);
+        }
+    }
+
+    @Value.Immutable
+    interface CommitTimestampLoadingMethod {
+        Function<LongIterable, ListenableFuture<LongLongMap>> commitTimestampLoadingMethod();
+
+        Consumer<LongIterable> loaderVerification();
+
+        static CommitTimestampLoadingMethod create(
+                ReadValidationCommitTimestampLoader readValidationLoader,
+                CommitTimestampLoader underlying,
+                boolean shouldWaitForCommitterToComplete) {
+            return shouldWaitForCommitterToComplete
+                    ? blocking(readValidationLoader, underlying)
+                    : nonBlocking(readValidationLoader, underlying);
+        }
+
+        static CommitTimestampLoadingMethod blocking(
+                ReadValidationCommitTimestampLoader readValidationLoader, CommitTimestampLoader underlying) {
+            return ImmutableCommitTimestampLoadingMethod.builder()
+                    .commitTimestampLoadingMethod(
+                            startTimestamps -> readValidationLoader.getCommitTimestamps(null, startTimestamps))
+                    .loaderVerification(
+                            startTimestamps -> verify(underlying).getCommitTimestamps(null, startTimestamps))
+                    .build();
+        }
+
+        static CommitTimestampLoadingMethod nonBlocking(
+                ReadValidationCommitTimestampLoader readValidationLoader, CommitTimestampLoader underlying) {
+            return ImmutableCommitTimestampLoadingMethod.builder()
+                    .commitTimestampLoadingMethod(startTimestamps ->
+                            readValidationLoader.getCommitTimestampsNonBlockingForValidation(null, startTimestamps))
+                    .loaderVerification(startTimestamps ->
+                            verify(underlying).getCommitTimestampsNonBlockingForValidation(null, startTimestamps))
+                    .build();
         }
     }
 }
