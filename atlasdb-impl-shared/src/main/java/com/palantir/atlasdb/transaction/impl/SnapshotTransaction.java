@@ -71,7 +71,6 @@ import com.palantir.atlasdb.keyvalue.api.cache.TransactionScopedCache;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.api.watch.LocksAndMetadata;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
-import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -244,7 +243,6 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TimelockService timelockService;
     protected final LockWatchManagerInternal lockWatchManager;
     final TrackingTransactionKeyValueService transactionKeyValueService;
-    final TransactionKeyValueService immediateTransactionKeyValueService;
     final TransactionService defaultTransactionService;
     private final AsyncTransactionService immediateTransactionService;
     private final Cleaner cleaner;
@@ -343,8 +341,6 @@ public class SnapshotTransaction extends AbstractTransaction
         this.transactionTimerContext = getTimer("transactionMillis").time();
         this.transactionKeyValueService =
                 new TrackingTransactionKeyValueServiceImpl(delegateTransactionKeyValueService);
-        this.immediateTransactionKeyValueService =
-                KeyValueServices.synchronousAsAsyncTransactionKeyValueService(transactionKeyValueService);
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
         this.immediateTransactionService = TransactionServices.synchronousAsAsyncTransactionService(transactionService);
@@ -433,7 +429,7 @@ public class SnapshotTransaction extends AbstractTransaction
                                 tableRef,
                                 cells,
                                 cells.size(),
-                                immediateTransactionKeyValueService,
+                                transactionKeyValueService,
                                 immediateTransactionService)),
                         unCachedRows -> getRowsInternal(tableRef, unCachedRows, columnSelection));
     }
@@ -931,7 +927,7 @@ public class SnapshotTransaction extends AbstractTransaction
                                 tableRef,
                                 uncached,
                                 uncached.size(),
-                                immediateTransactionKeyValueService,
+                                transactionKeyValueService,
                                 immediateTransactionService));
     }
 
@@ -949,7 +945,7 @@ public class SnapshotTransaction extends AbstractTransaction
                         tableRef,
                         cacheLookupResult.missedCells(),
                         numberOfCellsExpectingValuePostCache,
-                        immediateTransactionKeyValueService,
+                        transactionKeyValueService,
                         immediateTransactionService);
             }));
         } catch (MoreCellsPresentThanExpectedException e) {
@@ -1044,8 +1040,8 @@ public class SnapshotTransaction extends AbstractTransaction
         }
         hasReads = true;
 
-        ListenableFuture<Map<Cell, byte[]>> result = getFromKeyValueService(
-                tableRef, cells, immediateTransactionKeyValueService, immediateTransactionService);
+        ListenableFuture<Map<Cell, byte[]>> result =
+                getFromKeyValueService(tableRef, cells, transactionKeyValueService, immediateTransactionService);
 
         Map<Cell, byte[]> unfiltered = Futures.getUnchecked(result);
         Map<Cell, byte[]> filtered = Maps.filterValues(unfiltered, Predicates.not(Value::isTombstone));
@@ -1518,7 +1514,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private <T> Collection<Map.Entry<Cell, T>> getWithPostFilteringSync(
             TableReference tableRef, Map<Cell, Value> rawResults, Function<Value, T> transformer) {
         return AtlasFutures.getUnchecked(getWithPostFilteringAsync(
-                tableRef, rawResults, transformer, immediateTransactionKeyValueService, immediateTransactionService));
+                tableRef, rawResults, transformer, transactionKeyValueService, immediateTransactionService));
     }
 
     private <T> ListenableFuture<Collection<Map.Entry<Cell, T>>> getWithPostFilteringAsync(
@@ -2332,7 +2328,8 @@ public class SnapshotTransaction extends AbstractTransaction
         }
 
         Map<Cell, byte[]> oldValues = getIgnoringLocalWrites(table, cellToTs.keySet());
-        Map<Cell, Value> conflictingValues = transactionKeyValueService.get(table, cellToTs);
+        Map<Cell, Value> conflictingValues =
+                AtlasFutures.getUnchecked(transactionKeyValueService.getAsync(table, cellToTs));
 
         Set<Cell> conflictingCells = new HashSet<>();
         for (Map.Entry<Cell, Long> cellEntry : cellToTs.entrySet()) {

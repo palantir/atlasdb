@@ -17,6 +17,6 @@ package com.palantir.atlasdb.transaction.impl;
 
 public class SyncSnapshotTransactionTest extends AbstractSnapshotTransactionTest {
     public SyncSnapshotTransactionTest() {
-        super(SYNC, WrapperWithTracker.TRANSACTION_NO_OP, WrapperWithTracker.TRANSACTION_KEY_VALUE_SERVICE_NO_OP);
+        super(SYNC, WrapperWithTracker.TRANSACTION_NO_OP);
     }
 }

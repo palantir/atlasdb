@@ -19,7 +19,6 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cache.TimestampCache;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
 import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
@@ -54,7 +53,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
 
     private final Map<TableReference, ConflictHandler> conflictHandlerOverrides = new HashMap<>();
     private final WrapperWithTracker<CallbackAwareTransaction> transactionWrapper;
-    private final WrapperWithTracker<TransactionKeyValueService> transactionKeyValueServiceWrapper;
     private Optional<Long> unreadableTs = Optional.empty();
 
     public TestTransactionManagerImpl(
@@ -81,7 +79,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 sweepQueue,
                 deleteExecutor,
                 WrapperWithTracker.TRANSACTION_NO_OP,
-                WrapperWithTracker.TRANSACTION_KEY_VALUE_SERVICE_NO_OP,
                 knowledge);
     }
 
@@ -97,7 +94,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor,
             WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
-            WrapperWithTracker<TransactionKeyValueService> transactionKeyValueServiceWrapper,
             TransactionKnowledgeComponents knowledge) {
         this(
                 metricsManager,
@@ -111,7 +107,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 sweepQueue,
                 deleteExecutor,
                 transactionWrapper,
-                transactionKeyValueServiceWrapper,
                 knowledge);
     }
 
@@ -127,7 +122,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor,
             WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
-            WrapperWithTracker<TransactionKeyValueService> transactionKeyValueServiceWrapper,
             TransactionKnowledgeComponents knowledge) {
         super(
                 metricsManager,
@@ -154,7 +148,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 Optional.empty(),
                 knowledge);
         this.transactionWrapper = transactionWrapper;
-        this.transactionKeyValueServiceWrapper = transactionKeyValueServiceWrapper;
     }
 
     @Override
@@ -187,9 +180,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
         return transactionWrapper.apply(
                 new SerializableTransaction(
                         metricsManager,
-                        transactionKeyValueServiceWrapper.apply(
-                                transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
-                                pathTypeTracker),
+                        transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
                         timelockService,
                         lockWatchManager,
                         transactionService,
