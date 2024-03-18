@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2024 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,10 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.transaction.impl;
 
-public class SyncSnapshotTransactionTest extends AbstractSnapshotTransactionTest {
-    public SyncSnapshotTransactionTest() {
-        super(SYNC, WrapperWithTracker.TRANSACTION_NO_OP);
-    }
+import com.palantir.lock.v2.LockToken;
+import java.util.Set;
+
+/**
+ * Facade of {@link com.palantir.lock.v2.TimelockService} that only allows for refreshing of locks.
+ */
+public interface LockRefresher {
+    /**
+     * Returns lock tokens from the provided set that were successfully refreshed.
+     */
+    Set<LockToken> refreshLocks(Set<LockToken> tokensToRefresh);
 }

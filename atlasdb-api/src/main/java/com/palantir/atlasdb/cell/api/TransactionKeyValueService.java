@@ -63,8 +63,6 @@ public interface TransactionKeyValueService {
     @MustBeClosed
     ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long timestamp);
 
-    Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell);
-
     ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell);
 
     Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell);

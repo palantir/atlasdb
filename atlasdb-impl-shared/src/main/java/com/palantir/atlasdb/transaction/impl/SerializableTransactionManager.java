@@ -20,6 +20,7 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
 import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
@@ -29,7 +30,11 @@ import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionManager;
+import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
+import com.palantir.atlasdb.transaction.api.DeleteExecutor;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.PreCommitRequirementValidator;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
@@ -246,7 +251,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            DeleteExecutor deleteExecutor,
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         return create(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -275,7 +282,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictTracer,
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
-                knowledge);
+                knowledge,
+                deleteExecutor,
+                keyValueSnapshotReaderManager);
     }
 
     public static TransactionManager create(
@@ -303,7 +312,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         return create(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -331,7 +341,11 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictTracer,
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
-                knowledge);
+                knowledge,
+                new DefaultDeleteExecutor(
+                        transactionKeyValueServiceManager.getKeyValueService().orElseThrow(),
+                        DefaultTaskExecutors.createDefaultDeleteExecutor()),
+                keyValueSnapshotReaderManager);
     }
 
     public static TransactionManager create(
@@ -360,7 +374,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            DeleteExecutor deleteExecutor,
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         return create(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -388,7 +404,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictTracer,
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
-                knowledge);
+                knowledge,
+                deleteExecutor,
+                keyValueSnapshotReaderManager);
     }
 
     private static TransactionManager create(
@@ -418,7 +436,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            DeleteExecutor deleteExecutor,
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         TransactionManager transactionManager = new SerializableTransactionManager(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -436,16 +456,14 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
-                // TODO(jakubk): This will be updated in further PRs as it needs to use the same API as sweep.
-                new DefaultDeleteExecutor(
-                        transactionKeyValueServiceManager.getKeyValueService().orElseThrow(),
-                        DefaultTaskExecutors.createDefaultDeleteExecutor()),
+                deleteExecutor,
                 validateLocksOnReads,
                 transactionConfig,
                 conflictTracer,
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
-                knowledge);
+                knowledge,
+                keyValueSnapshotReaderManager);
 
         if (shouldInstrument) {
             transactionManager = AtlasDbMetrics.instrumentTimed(
@@ -482,6 +500,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int defaultGetRangesConcurrency,
             MultiTableSweepQueueWriter sweepQueue,
             TransactionKnowledgeComponents knowledge) {
+        DeleteExecutor deleteExecutor = new DefaultDeleteExecutor(
+                transactionKeyValueServiceManager.getKeyValueService().orElseThrow(),
+                DefaultTaskExecutors.createDefaultDeleteExecutor());
         return new SerializableTransactionManager(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -499,15 +520,19 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 sweepQueue,
-                new DefaultDeleteExecutor(
-                        transactionKeyValueServiceManager.getKeyValueService().orElseThrow(),
-                        DefaultTaskExecutors.createDefaultDeleteExecutor()),
+                deleteExecutor,
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                new DefaultKeyValueSnapshotReaderManager(
+                        transactionKeyValueServiceManager,
+                        transactionService,
+                        false,
+                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
+                        deleteExecutor));
     }
 
     public SerializableTransactionManager(
@@ -533,7 +558,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         super(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -557,7 +583,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictTracer,
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
-                knowledge);
+                knowledge,
+                keyValueSnapshotReaderManager);
         this.conflictTracer = conflictTracer;
     }
 
@@ -567,9 +594,16 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             LongSupplier startTimestampSupplier,
             LockToken immutableTsLock,
             PreCommitCondition preCommitCondition) {
+        CommitTimestampLoader loader =
+                createCommitTimestampLoader(immutableTimestamp, startTimestampSupplier, Optional.of(immutableTsLock));
+        PreCommitRequirementValidator validator =
+                createPreCommitConditionValidator(Optional.of(immutableTsLock), preCommitCondition);
+
+        TransactionKeyValueService transactionKeyValueService =
+                transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier);
         return new SerializableTransaction(
                 metricsManager,
-                transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
+                transactionKeyValueService,
                 timelockService,
                 lockWatchManager,
                 transactionService,
@@ -593,7 +627,10 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
-                knowledge);
+                knowledge,
+                keyValueSnapshotReaderManager,
+                loader,
+                validator);
     }
 
     @VisibleForTesting

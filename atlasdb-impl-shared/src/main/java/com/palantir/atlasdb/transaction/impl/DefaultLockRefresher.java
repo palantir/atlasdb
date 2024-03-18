@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2024 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,10 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.transaction.impl;
 
-public class SyncSnapshotTransactionTest extends AbstractSnapshotTransactionTest {
-    public SyncSnapshotTransactionTest() {
-        super(SYNC, WrapperWithTracker.TRANSACTION_NO_OP);
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.TimelockService;
+import java.util.Set;
+
+public class DefaultLockRefresher implements LockRefresher {
+    private final TimelockService timelockService;
+
+    public DefaultLockRefresher(TimelockService timelockService) {
+        this.timelockService = timelockService;
+    }
+
+    @Override
+    public Set<LockToken> refreshLocks(Set<LockToken> tokensToRefresh) {
+        return timelockService.refreshLockLeases(tokensToRefresh);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2024 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,10 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.transaction.impl;
 
-public class SyncSnapshotTransactionTest extends AbstractSnapshotTransactionTest {
-    public SyncSnapshotTransactionTest() {
-        super(SYNC, WrapperWithTracker.TRANSACTION_NO_OP);
-    }
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.function.LongSupplier;
+
+public interface IntraReadSnapshotValidator {
+
+    /**
+     * Checks that a snapshot read is still valid, throwing an exception if it is not.
+     */
+    void validateInternalSnapshot(
+            TableReference tableReference, LongSupplier startTimestampSupplier, boolean allPossibleCellsReadAndPresent);
 }

@@ -45,6 +45,8 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrat
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.DeleteExecutor;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
@@ -122,10 +124,12 @@ public abstract class TransactionTestSetup {
     protected ConflictDetectionManager conflictDetectionManager;
     protected SweepStrategyManager sweepStrategyManager;
     protected TransactionManager txMgr;
+    protected DeleteExecutor deleteExecutor;
 
     protected TimestampCache timestampCache;
 
     protected TransactionKnowledgeComponents knowledge;
+    protected KeyValueSnapshotReaderManager keyValueSnapshotReaderManager;
 
     @RegisterExtension
     public InMemoryTimelockExtension inMemoryTimelockExtension = new InMemoryTimelockExtension();
@@ -145,6 +149,9 @@ public abstract class TransactionTestSetup {
 
         keyValueService = getKeyValueService();
         transactionKeyValueServiceManager = new DelegatingTransactionKeyValueServiceManager(keyValueService);
+        deleteExecutor = new DefaultDeleteExecutor(
+                transactionKeyValueServiceManager.getKeyValueService().orElseThrow(),
+                MoreExecutors.newDirectExecutorService());
         keyValueService.createTables(ImmutableMap.of(
                 TEST_TABLE_THOROUGH,
                 TableMetadata.builder()
@@ -192,6 +199,12 @@ public abstract class TransactionTestSetup {
         transactionService = createTransactionService(keyValueService, transactionSchemaManager, knowledge);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
+        keyValueSnapshotReaderManager = new DefaultKeyValueSnapshotReaderManager(
+                transactionKeyValueServiceManager,
+                transactionService,
+                false,
+                new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
+                deleteExecutor);
         txMgr = createAndRegisterManager();
     }
 
@@ -221,7 +234,8 @@ public abstract class TransactionTestSetup {
                 timestampCache,
                 MultiTableSweepQueueWriter.NO_OP,
                 knowledge,
-                MoreExecutors.newDirectExecutorService());
+                MoreExecutors.newDirectExecutorService(),
+                keyValueSnapshotReaderManager);
     }
 
     protected void put(Transaction txn, String rowName, String columnName, String value) {
