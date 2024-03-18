@@ -37,6 +37,7 @@ dependencies {
   api 'com.google.code.findbugs:jsr305'
   api 'com.google.guava:guava'
   api 'com.google.protobuf:protobuf-java'
+  api 'com.palantir.safe-logging:preconditions'
   api 'org.slf4j:slf4j-api'
   api project(':atlasdb-api')
   api project(':atlasdb-client-protobufs')
@@ -54,7 +55,6 @@ dependencies {
   implementation 'com.palantir.goethe:goethe'
   implementation 'com.palantir.nylon:nylon-threads'
   implementation 'com.palantir.refreshable:refreshable'
-  implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'
   implementation 'com.palantir.tracing:tracing'
   implementation 'com.palantir.tritium:tritium-api'
@@ -81,6 +81,7 @@ dependencies {
   testImplementation 'com.palantir.safe-logging:preconditions'
   testImplementation 'com.palantir.tracing:tracing-api'
   testImplementation 'com.palantir.tritium:tritium-api'
+  testImplementation 'commons-io:commons-io'
   testImplementation 'io.dropwizard.metrics:metrics-core'
   testImplementation 'org.apache.commons:commons-lang3'
   testImplementation 'org.slf4j:slf4j-api'

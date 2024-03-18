@@ -21,16 +21,20 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.table.description.render.Renderers;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.lock.watch.LockWatchReferences;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -43,7 +47,8 @@ public class SchemaTest {
     private static final String TEST_TABLE_NAME = "TestTable";
     private static final String TEST_PATH = TEST_PACKAGE + "/" + TEST_TABLE_NAME + "Table.java";
     private static final TableReference TABLE_REF = TableReference.createWithEmptyNamespace(TEST_TABLE_NAME);
-    private static final String EXPECTED_FILES_FOLDER_PATH = "src/integrationInput/java";
+    private static final Path EXPECTED_FILES_FOLDER_PATH = Path.of("src/integrationInput/java");
+    private static final Path GENEREATED_PATH = Path.of("com/palantir/atlasdb/table/description/generated");
 
     @Test
     public void testRendersGuavaOptionalsByDefault() throws IOException {
@@ -128,23 +133,15 @@ public class SchemaTest {
     }
 
     @Test
-    // If you are intentionally making Table API changes, please manually regenerate the ApiTestSchema
-    // and copy the new files to the ${EXPECTED_FILES_FOLDER_PATH} folder.
+    // If you are intentionally making Table API changes, regenerate the ApiTestSchema
+    // with `./gradlew :atlasdb-client:test --tests SchemaTest -Drecreate=true`
     public void checkAgainstAccidentalTableAPIChanges() throws IOException {
         // TODO (amarzoca): Add tests for schemas that use more of the rendering features (Triggers, StreamStores, etc)
         Schema schema = ApiTestSchema.getSchema();
         schema.renderTables(testFolder);
 
-        String schemaName = ApiTestSchema.getSchema().getName();
-        checkIfFilesAreTheSame(schemaName + "TableFactory");
-
-        ApiTestSchema.getSchema().getTableDefinitions().forEach((tableRef, tableDefinition) -> {
-            String tableName = Renderers.getClassTableName(tableRef.getTableName(), tableDefinition);
-            checkIfFilesAreTheSame(tableName + "Table");
-            if (tableDefinition.hasV2TableEnabled()) {
-                checkIfFilesAreTheSame(tableName + "V2Table");
-            }
-        });
+        assertGeneratedFiles(
+                testFolder.toPath().resolve(GENEREATED_PATH), EXPECTED_FILES_FOLDER_PATH.resolve(GENEREATED_PATH));
     }
 
     @Test
@@ -239,15 +236,6 @@ public class SchemaTest {
         assertThat(schema.getLockWatches()).isEmpty();
     }
 
-    private void checkIfFilesAreTheSame(String generatedFileName) {
-        String generatedFilePath =
-                String.format("com/palantir/atlasdb/table/description/generated/%s.java", generatedFileName);
-        File expectedFile = new File(EXPECTED_FILES_FOLDER_PATH, generatedFilePath);
-        File actualFile = new File(testFolder, generatedFilePath);
-
-        assertThat(expectedFile).hasSameTextualContentAs(actualFile);
-    }
-
     @SuppressWarnings({"checkstyle:Indentation", "checkstyle:RightCurly"})
     private TableDefinition getSimpleTableDefinition(TableReference tableRef) {
         return new TableDefinition() {
@@ -268,5 +256,29 @@ public class SchemaTest {
                         + "of the prefix with the internal table name is below the KVS limit. "
                         + "If running only against a different KVS, set the ignoreTableNameLength flag.",
                 tableName, StringUtils.join(kvsExceeded, ", "));
+    }
+
+    static void assertGeneratedFiles(Path actualDir, Path expectedDir) throws IOException {
+        if (Boolean.getBoolean("recreate")) {
+            FileUtils.deleteDirectory(expectedDir.toFile());
+            FileUtils.copyDirectory(actualDir.toFile(), expectedDir.toFile());
+        }
+
+        files(actualDir).forEach(path -> {
+            Path actualFile = actualDir.resolve(path);
+            Path expectedFile = expectedDir.resolve(path);
+            assertThat(actualFile).hasSameTextualContentAs(expectedFile);
+        });
+
+        files(expectedDir).forEach(path -> {
+            Path actualFile = actualDir.resolve(path);
+            assertThat(actualFile).exists();
+        });
+    }
+
+    private static List<Path> files(Path path) throws IOException {
+        try (Stream<Path> files = Files.walk(path)) {
+            return files.filter(Files::isRegularFile).map(path::relativize).collect(Collectors.toList());
+        }
     }
 }

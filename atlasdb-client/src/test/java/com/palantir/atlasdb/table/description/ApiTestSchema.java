@@ -17,6 +17,7 @@ package com.palantir.atlasdb.table.description;
 
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.schema.AtlasSchema;
+import com.palantir.atlasdb.schema.stream.StreamStoreDefinitionBuilder;
 import com.palantir.atlasdb.table.description.test.StringValuePersister;
 import java.io.File;
 import java.util.stream.Stream;
@@ -87,6 +88,9 @@ public class ApiTestSchema implements AtlasSchema {
                         .forEachOrdered(type -> column("column" + type.ordinal(), "c" + type.ordinal(), type));
             }
         });
+
+        schema.addStreamStoreDefinition(
+                new StreamStoreDefinitionBuilder("stream_test", "stream_test", ValueType.VAR_LONG).build());
 
         return schema;
     }
