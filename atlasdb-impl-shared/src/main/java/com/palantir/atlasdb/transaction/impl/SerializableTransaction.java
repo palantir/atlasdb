@@ -936,8 +936,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 conflictTracer,
                 tableLevelMetricsController,
                 knowledge,
-                new ReadValidationCommitTimestampLoader(
-                        commitTimestampLoader, getTimestamp(), commitTs, transactionOutcomeMetrics)) {
+                commitTimestampLoader) {
             @Override
             protected TransactionScopedCache getCache() {
                 return lockWatchManager.getReadOnlyTransactionScopedCache(SerializableTransaction.this.getTimestamp());
