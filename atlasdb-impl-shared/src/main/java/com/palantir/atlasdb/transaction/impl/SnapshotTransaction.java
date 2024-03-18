@@ -303,7 +303,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
-     * lock for it because we know that no writers exist.
+     *                           lock for it because we know that no writers exist.
      * @param preCommitCondition This check must pass for this transaction to commit.
      */
     /* package */ SnapshotTransaction(
@@ -1433,7 +1433,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * This includes deleted writes as zero length byte arrays, be sure to strip them out.
-     * <p>
+     *
      * For the selectedColumns parameter, empty set means all columns. This is unfortunate, but follows the semantics of
      * {@link RangeRequest}.
      */
@@ -1936,7 +1936,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * Returns true iff the transaction is known to have successfully committed.
-     * <p>
+     *
      * Be careful when using this method! A transaction that the client thinks has failed could actually have
      * committed as far as the key-value service is concerned.
      */
@@ -2656,7 +2656,7 @@ public class SnapshotTransaction extends AbstractTransaction
     /**
      * This will attempt to put the commitTimestamp into the DB.
      *
-     * @throws TransactionLockTimeoutException If our locks timed out while trying to commit.
+     * @throws TransactionLockTimeoutException  If our locks timed out while trying to commit.
      * @throws TransactionCommitFailedException failed when committing in a way that isn't retriable
      */
     private void putCommitTimestamp(long commitTimestamp, LockToken locksToken, TransactionService transactionService)
