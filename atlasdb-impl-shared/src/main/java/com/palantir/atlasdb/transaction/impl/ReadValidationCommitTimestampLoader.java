@@ -70,10 +70,10 @@ public final class ReadValidationCommitTimestampLoader implements CommitTimestam
             preStartCommitTimestamps = Futures.immediateFuture(LongLongMaps.immutable.empty());
         } else {
             if (shouldWaitForCommitterToComplete) {
+                preStartCommitTimestamps = delegate.getCommitTimestamps(tableRef, partitionedTimestamps.beforeStart());
+            } else {
                 preStartCommitTimestamps = delegate.getCommitTimestampsNonBlockingForValidation(
                         tableRef, partitionedTimestamps.beforeStart());
-            } else {
-                preStartCommitTimestamps = delegate.getCommitTimestamps(tableRef, partitionedTimestamps.beforeStart());
             }
         }
 

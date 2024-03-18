@@ -134,7 +134,9 @@ public final class ReadValidationCommitTimestampLoaderTest {
                 .get();
 
         assertThat(result).isEqualTo(LongLongMaps.immutable.of(BETWEEN_START_AND_COMMIT_1, BETWEEN_START_AND_COMMIT_2));
-        loadingMethod.loaderVerification().accept(LongSets.immutable.of(BETWEEN_START_AND_COMMIT_1));
+
+        verify(delegateCommitTimestampLoader)
+                .getCommitTimestampsNonBlockingForValidation(null, LongSets.immutable.of(BETWEEN_START_AND_COMMIT_1));
         verifyNoMoreInteractions(delegateCommitTimestampLoader);
     }
 
@@ -188,16 +190,6 @@ public final class ReadValidationCommitTimestampLoaderTest {
     }
 
     private final class MemoryCommitTimestampLoader implements CommitTimestampLoader {
-        public ListenableFuture<LongLongMap> getCommitTimestamps(LongIterable startTimestamps) {
-            MutableLongLongMap result = LongLongMaps.mutable.empty();
-            startTimestamps.forEach(startTimestamp -> {
-                if (committedTransactions.containsKey(startTimestamp)) {
-                    result.put(startTimestamp, committedTransactions.get(startTimestamp));
-                }
-            });
-            return Futures.immediateFuture(result);
-        }
-
         @Override
         public ListenableFuture<LongLongMap> getCommitTimestamps(
                 @Nullable TableReference tableRef, LongIterable startTimestamps) {
@@ -208,6 +200,16 @@ public final class ReadValidationCommitTimestampLoaderTest {
         public ListenableFuture<LongLongMap> getCommitTimestampsNonBlockingForValidation(
                 @Nullable TableReference tableRef, LongIterable startTimestamps) {
             return getCommitTimestamps(startTimestamps);
+        }
+
+        private ListenableFuture<LongLongMap> getCommitTimestamps(LongIterable startTimestamps) {
+            MutableLongLongMap result = LongLongMaps.mutable.empty();
+            startTimestamps.forEach(startTimestamp -> {
+                if (committedTransactions.containsKey(startTimestamp)) {
+                    result.put(startTimestamp, committedTransactions.get(startTimestamp));
+                }
+            });
+            return Futures.immediateFuture(result);
         }
     }
 
