@@ -480,7 +480,7 @@ public class ResilientCommitTimestampAtomicTableTest {
         }
 
         public void failPutsWithAtlasdbDependencyException() {
-            putException = Optional.of(new RetryLimitReachedException(ImmutableList.of()));
+            putException = Optional.of(new RetryLimitReachedException(ImmutableList.of(), ImmutableMap.of("host1", 1)));
         }
 
         public int maximumConcurrentTouches() {

@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: If an exception is thrown when validating an invariant, we sleep for
+    five seconds and then attempt validation again. This likely reduces the false
+    positive rate of the workload server.
+  links:
+  - https://github.com/palantir/atlasdb/pull/6994

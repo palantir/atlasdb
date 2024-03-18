@@ -59,7 +59,6 @@ import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
@@ -155,16 +154,9 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 TransactionConstants.TRANSACTION_TABLE,
                 ConflictHandler.IGNORE_ALL);
         LongSupplier startTimestampSupplier = Suppliers.ofInstance(timestampService.getFreshTimestamp())::get;
-        TransactionKeyValueService transactionKeyValueService =
-                transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier);
-        CommitTimestampLoader commitTimestampLoader =
-                createCommitTimestampLoader(0L, startTimestampSupplier, options.immutableLockToken);
-        DefaultPreCommitRequirementValidator preCommitConditionValidator =
-                createPreCommitConditionValidator(options.immutableLockToken, options.condition);
-
         return new SerializableTransaction(
                 MetricsManagers.createForTests(),
-                transactionKeyValueService,
+                transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
                 timelockService,
                 NoOpLockWatchManager.create(),
                 transactionService,
@@ -185,13 +177,14 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 getSweepQueueWriterInitialized(),
                 deleteExecutor,
                 true,
-                () -> ImmutableTransactionConfig.builder().build(),
+                transactionConfigSupplier,
                 ConflictTracer.NO_OP,
                 new SimpleTableLevelMetricsController(metricsManager),
                 knowledge,
                 keyValueSnapshotReaderManager,
-                commitTimestampLoader,
-                preCommitConditionValidator) {
+                commitTimestampLoaderFactory.createCommitTimestampLoader(
+                        startTimestampSupplier, 0L, options.immutableLockToken),
+                createPreCommitConditionValidator(options.immutableLockToken, options.condition)) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, byte[]::clone);
@@ -1698,19 +1691,5 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 true,
                 TransactionOutcomeMetrics.create(
                         TransactionMetrics.of(metricsManager.getTaggedRegistry()), metricsManager.getTaggedRegistry()));
-    }
-
-    private CommitTimestampLoader createCommitTimestampLoader(
-            long immutableTimestamp, LongSupplier startTimestampSupplier, Optional<LockToken> immutableTsLock) {
-        return new DefaultCommitTimestampLoader(
-                timestampCache,
-                immutableTsLock,
-                startTimestampSupplier::getAsLong,
-                () -> ImmutableTransactionConfig.builder().build(),
-                metricsManager,
-                timelockService,
-                immutableTimestamp,
-                knowledge,
-                transactionService);
     }
 }

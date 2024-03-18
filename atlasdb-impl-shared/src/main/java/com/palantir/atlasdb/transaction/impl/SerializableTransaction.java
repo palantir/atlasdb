@@ -944,24 +944,6 @@ public class SerializableTransaction extends SnapshotTransaction {
                 tableLevelMetricsController,
                 knowledge,
                 keyValueSnapshotReaderManager,
-                //                new DefaultKeyValueSnapshotReader(
-                //                        transactionKeyValueService,
-                //                        defaultTransactionService,
-                //                        readValidationLoader,
-                //                        allowHiddenTableAccess,
-                //                        new ReadSentinelHandler(
-                //                                defaultTransactionService,
-                //                                TransactionReadSentinelBehavior.THROW_EXCEPTION,
-                //                                new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get,
-                // deleteExecutor)),
-                //                        () -> commitTs, // I am different
-                //                        (table, timestampSupplier, allReadAndPresent) ->
-                //
-                // preCommitRequirementValidator.throwIfPreCommitRequirementsNotMetOnRead(
-                //                                        table, timestampSupplier.getAsLong(), allReadAndPresent),
-                //                        deleteExecutor,
-                //                        DefaultKeyValueSnapshotEventRecorder.create(metricsManager,
-                // tableLevelMetricsController)),
                 readValidationLoader,
                 preCommitRequirementValidator) {
             @Override

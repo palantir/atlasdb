@@ -594,16 +594,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             LongSupplier startTimestampSupplier,
             LockToken immutableTsLock,
             PreCommitCondition preCommitCondition) {
-        CommitTimestampLoader loader =
-                createCommitTimestampLoader(immutableTimestamp, startTimestampSupplier, Optional.of(immutableTsLock));
-        PreCommitRequirementValidator validator =
-                createPreCommitConditionValidator(Optional.of(immutableTsLock), preCommitCondition);
-
-        TransactionKeyValueService transactionKeyValueService =
-                transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier);
         return new SerializableTransaction(
                 metricsManager,
-                transactionKeyValueService,
+                transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
                 timelockService,
                 lockWatchManager,
                 transactionService,
@@ -629,8 +622,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 tableLevelMetricsController,
                 knowledge,
                 keyValueSnapshotReaderManager,
-                loader,
-                validator);
+                commitTimestampLoaderFactory.createCommitTimestampLoader(
+                        startTimestampSupplier, immutableTimestamp, Optional.of(immutableTsLock)),
+                createPreCommitConditionValidator(Optional.of(immutableTsLock), preCommitCondition));
     }
 
     @VisibleForTesting

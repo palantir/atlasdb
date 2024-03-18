@@ -34,25 +34,27 @@ public final class CommitTimestampLoaderFactory {
     private final TimelockService timelockService;
     private final TransactionKnowledgeComponents transactionKnowledgeComponents;
     private final TransactionService transactionService;
+    private final Supplier<TransactionConfig> transactionConfigSupplier;
 
     public CommitTimestampLoaderFactory(
             TimestampCache timestampCache,
             MetricsManager metricsManager,
             TimelockService timelockService,
             TransactionKnowledgeComponents transactionKnowledgeComponents,
-            TransactionService transactionService) {
+            TransactionService transactionService,
+            Supplier<TransactionConfig> transactionConfigSupplier) {
         this.timestampCache = timestampCache;
         this.metricsManager = metricsManager;
         this.timelockService = timelockService;
         this.transactionKnowledgeComponents = transactionKnowledgeComponents;
         this.transactionService = transactionService;
+        this.transactionConfigSupplier = transactionConfigSupplier;
     }
 
     public CommitTimestampLoader createCommitTimestampLoader(
             LongSupplier snapshotTimestampSupplier,
             long immutableTimestamp,
-            Optional<LockToken> immutableTimestampLock,
-            Supplier<TransactionConfig> transactionConfigSupplier) {
+            Optional<LockToken> immutableTimestampLock) {
         return new DefaultCommitTimestampLoader(
                 timestampCache,
                 immutableTimestampLock,

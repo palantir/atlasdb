@@ -546,7 +546,7 @@ public abstract class TransactionManagers {
                         config(), runtime.get(), lockAndTimestampServices, internalKeyValueService),
                 targetedSweep.singleAttemptCallback(),
                 asyncInitializationCallback(),
-                createClearsTable()));
+                createClearsTable(internalKeyValueService)));
 
         // TODO (jkong): Allow user to inject here
         DeleteExecutor deleteExecutor = DefaultDeleteExecutor.createDefault(internalKeyValueService);
@@ -773,7 +773,7 @@ public abstract class TransactionManagers {
                 .orElse("UNKNOWN");
     }
 
-    private static Callback<TransactionManager> createClearsTable() {
+    private static Callback<TransactionManager> createClearsTable(KeyValueService internalKeyValueService) {
         TableReference clearsTableRef =
                 TargetedSweepTableFactory.of().getTableClearsTable(null).getTableRef();
         byte[] clearsTableMetadata = TargetedSweepSchema.INSTANCE
@@ -781,7 +781,7 @@ public abstract class TransactionManagers {
                 .getAllTablesAndIndexMetadata()
                 .get(clearsTableRef)
                 .persistToBytes();
-        return LambdaCallback.of(tm -> tm.getKeyValueService().createTable(clearsTableRef, clearsTableMetadata));
+        return LambdaCallback.of(tm -> internalKeyValueService.createTable(clearsTableRef, clearsTableMetadata));
     }
 
     /**

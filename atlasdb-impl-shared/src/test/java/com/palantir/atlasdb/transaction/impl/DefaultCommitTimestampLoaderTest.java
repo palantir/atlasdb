@@ -193,8 +193,7 @@ public class DefaultCommitTimestampLoaderTest {
 
     private DefaultCommitTimestampLoader getCommitTsLoader(
             Optional<LockToken> lock, long transactionTs, long lastSeenCommitTs) {
-        createKnowledgeComponents(lastSeenCommitTs);
-        DefaultCommitTimestampLoader commitTimestampLoader = new DefaultCommitTimestampLoader(
+        return new DefaultCommitTimestampLoader(
                 timestampCache,
                 lock, // commitTsLoader does not care if the lock expires.
                 () -> transactionTs,
@@ -204,7 +203,6 @@ public class DefaultCommitTimestampLoaderTest {
                 1l,
                 createKnowledgeComponents(lastSeenCommitTs),
                 transactionService);
-        return commitTimestampLoader;
     }
 
     private TransactionKnowledgeComponents createKnowledgeComponents(long lastSeenCommitTs) {

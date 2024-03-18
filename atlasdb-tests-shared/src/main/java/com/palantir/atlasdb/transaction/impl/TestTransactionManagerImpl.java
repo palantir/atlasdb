@@ -19,7 +19,6 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cache.TimestampCache;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
 import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
@@ -187,17 +186,11 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             LockToken immutableTsLock,
             PreCommitCondition preCommitCondition) {
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
-        CommitTimestampLoader loader =
-                createCommitTimestampLoader(immutableTimestamp, startTimestampSupplier, Optional.of(immutableTsLock));
-        PreCommitRequirementValidator validator =
-                createPreCommitConditionValidator(Optional.of(immutableTsLock), preCommitCondition);
 
-        TransactionKeyValueService transactionKeyValueService =
-                transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier);
         return transactionWrapper.apply(
                 new SerializableTransaction(
                         metricsManager,
-                        transactionKeyValueService,
+                        transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
                         timelockService,
                         lockWatchManager,
                         transactionService,
@@ -223,8 +216,9 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         tableLevelMetricsController,
                         knowledge,
                         keyValueSnapshotReaderManager,
-                        loader,
-                        validator),
+                        commitTimestampLoaderFactory.createCommitTimestampLoader(
+                                startTimestampSupplier, immutableTimestamp, Optional.of(immutableTsLock)),
+                        createPreCommitConditionValidator(Optional.of(immutableTsLock), preCommitCondition)),
                 pathTypeTracker);
     }
 
