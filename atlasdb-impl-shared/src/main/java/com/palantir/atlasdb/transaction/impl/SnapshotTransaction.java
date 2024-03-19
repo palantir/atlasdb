@@ -282,7 +282,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final Supplier<TransactionConfig> transactionConfig;
     protected final TableLevelMetricsController tableLevelMetricsController;
     protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
-    private final CommitTimestampLoader commitTimestampLoader;
+    protected final CommitTimestampLoader commitTimestampLoader;
     private final TransactionMetrics transactionMetrics;
     private final ExpectationsMetrics expectationsDataCollectionMetrics;
     private volatile long cellCommitLocksRequested = 0L;
