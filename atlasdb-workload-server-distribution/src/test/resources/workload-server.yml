@@ -54,6 +54,12 @@ install:
       isolationLevel: SERIALIZABLE
     iterationCount: 100
     type: write-once-delete-once
+  multipleBusyCellConfig:
+    tableConfiguration:
+      tableName: multiple-busy-cell-test
+      isolationLevel: SERIALIZABLE
+    iterationCount: 100
+    type: multiple-busy-cell
   workflowExecutionConfig:
     runMode: ONE
   exitAfterRunning: false

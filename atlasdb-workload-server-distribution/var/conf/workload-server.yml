@@ -55,6 +55,12 @@ install:
       isolationLevel: SERIALIZABLE
     iterationCount: 100
     type: write-once-delete-once
+  multipleBusyCellConfig:
+    tableConfiguration:
+      tableName: multiple-busy-cell-test
+      isolationLevel: SERIALIZABLE
+    iterationCount: 1000  # We want _very_ busy cells to exercise sweep code paths
+    type: multiple-busy-cell
   workflowExecutionConfig:
     runMode: ONE
   exitAfterRunning: true

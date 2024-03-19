@@ -57,6 +57,26 @@ public final class ApiTestTableFactory {
         return SchemaApiTestTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
     }
 
+    public StreamTestStreamHashAidxTable getStreamTestStreamHashAidxTable(
+            Transaction t, StreamTestStreamHashAidxTable.StreamTestStreamHashAidxTrigger... triggers) {
+        return StreamTestStreamHashAidxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
+    public StreamTestStreamIdxTable getStreamTestStreamIdxTable(
+            Transaction t, StreamTestStreamIdxTable.StreamTestStreamIdxTrigger... triggers) {
+        return StreamTestStreamIdxTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
+    public StreamTestStreamMetadataTable getStreamTestStreamMetadataTable(
+            Transaction t, StreamTestStreamMetadataTable.StreamTestStreamMetadataTrigger... triggers) {
+        return StreamTestStreamMetadataTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
+    public StreamTestStreamValueTable getStreamTestStreamValueTable(
+            Transaction t, StreamTestStreamValueTable.StreamTestStreamValueTrigger... triggers) {
+        return StreamTestStreamValueTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
     public SchemaApiTestV2Table getSchemaApiTestV2Table(Transaction t) {
         return SchemaApiTestV2Table.of(t, namespace);
     }
@@ -64,7 +84,11 @@ public final class ApiTestTableFactory {
     public interface SharedTriggers
             extends AllValueTypesTestTable.AllValueTypesTestTrigger,
                     HashComponentsTestTable.HashComponentsTestTrigger,
-                    SchemaApiTestTable.SchemaApiTestTrigger {}
+                    SchemaApiTestTable.SchemaApiTestTrigger,
+                    StreamTestStreamHashAidxTable.StreamTestStreamHashAidxTrigger,
+                    StreamTestStreamIdxTable.StreamTestStreamIdxTrigger,
+                    StreamTestStreamMetadataTable.StreamTestStreamMetadataTrigger,
+                    StreamTestStreamValueTable.StreamTestStreamValueTrigger {}
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
         @Override
@@ -90,6 +114,42 @@ public final class ApiTestTableFactory {
                 Multimap<
                                 SchemaApiTestTable.SchemaApiTestRow,
                                 ? extends SchemaApiTestTable.SchemaApiTestNamedColumnValue<?>>
+                        newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putStreamTestStreamHashAidx(
+                Multimap<
+                                StreamTestStreamHashAidxTable.StreamTestStreamHashAidxRow,
+                                ? extends StreamTestStreamHashAidxTable.StreamTestStreamHashAidxColumnValue>
+                        newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putStreamTestStreamIdx(
+                Multimap<
+                                StreamTestStreamIdxTable.StreamTestStreamIdxRow,
+                                ? extends StreamTestStreamIdxTable.StreamTestStreamIdxColumnValue>
+                        newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putStreamTestStreamMetadata(
+                Multimap<
+                                StreamTestStreamMetadataTable.StreamTestStreamMetadataRow,
+                                ? extends StreamTestStreamMetadataTable.StreamTestStreamMetadataNamedColumnValue<?>>
+                        newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putStreamTestStreamValue(
+                Multimap<
+                                StreamTestStreamValueTable.StreamTestStreamValueRow,
+                                ? extends StreamTestStreamValueTable.StreamTestStreamValueNamedColumnValue<?>>
                         newRows) {
             // do nothing
         }

@@ -92,6 +92,7 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
@@ -139,6 +140,7 @@ import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.TimeDuration;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.lock.watch.LockRequestMetadata;
@@ -175,6 +177,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
@@ -219,7 +222,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
             ToplistDeltaFilteringTableLevelMetricsController.create(
                     metricsManager, DefaultMetricsFilterEvaluationContext.createDefault());
 
-    private TransactionConfig transactionConfig;
+    private AtomicReference<TransactionConfig> transactionConfig = new AtomicReference<>();
 
     @FunctionalInterface
     interface ExpectationFactory {
@@ -334,7 +337,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
     public void setUp() throws Exception {
         super.setUp();
 
-        transactionConfig = ImmutableTransactionConfig.builder().build();
+        transactionConfig.set(ImmutableTransactionConfig.builder().build());
 
         keyValueService.createTable(TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
         keyValueService.createTable(TABLE1, AtlasDbConstants.GENERIC_TABLE_METADATA);
@@ -462,10 +465,12 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                                 txnKeyValueServiceManager.getKeyValueService().orElseThrow(),
                                 MoreExecutors.newDirectExecutorService()),
                         true,
-                        () -> transactionConfig,
+                        transactionConfig::get,
                         ConflictTracer.NO_OP,
                         tableLevelMetricsController,
-                        knowledge),
+                        knowledge,
+                        createCommitTimestampLoader(
+                                transactionTs, () -> transactionTs, Optional.empty(), timelockService)),
                 pathTypeTracker);
         assertThatThrownBy(() -> snapshot.get(TABLE, ImmutableSet.of(cell))).isInstanceOf(RuntimeException.class);
 
@@ -3258,7 +3263,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     private void setTransactionConfig(TransactionConfig config) {
-        transactionConfig = config;
+        transactionConfig.set(config);
     }
 
     private Transaction getSnapshotTransactionWith(
@@ -3316,10 +3321,13 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         txnKeyValueServiceManager.getKeyValueService().orElseThrow(),
                         MoreExecutors.newDirectExecutorService()),
                 true,
-                () -> transactionConfig,
+                transactionConfig::get,
                 ConflictTracer.NO_OP,
                 tableLevelMetricsController,
-                knowledge);
+                knowledge,
+                // For tests this is fine - this keeps a reference to res, which is strictly speaking inefficient.
+                createCommitTimestampLoader(
+                        transactionTs, res::getImmutableTimestamp, Optional.of(res.getLock()), timelockService));
     }
 
     private Transaction getSnapshotTransactionWith(
@@ -3370,10 +3378,15 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         txnKeyValueServiceManager.getKeyValueService().orElseThrow(),
                         MoreExecutors.newDirectExecutorService()),
                 validateLocksOnReads,
-                () -> transactionConfig,
+                transactionConfig::get,
                 ConflictTracer.NO_OP,
                 tableLevelMetricsController,
-                knowledge);
+                knowledge,
+                createCommitTimestampLoader(
+                        startTs.get(),
+                        lockImmutableTimestampResponse::getImmutableTimestamp,
+                        Optional.of(lockImmutableTimestampResponse.getLock()),
+                        timelockService));
         return transactionWrapper.apply(transaction, pathTypeTracker);
     }
 
@@ -3517,6 +3530,24 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 })
                 .map(i -> ConflictHandler.values()[i])
                 .collectToMap();
+    }
+
+    // Not using the factory, because some tests override the timelock service they talk to
+    private CommitTimestampLoader createCommitTimestampLoader(
+            long immutableTimestamp,
+            LongSupplier startTimestampSupplier,
+            Optional<LockToken> immutableTsLock,
+            TimelockService timelockService) {
+        return new DefaultCommitTimestampLoader(
+                timestampCache,
+                immutableTsLock,
+                startTimestampSupplier::getAsLong,
+                transactionConfig::get,
+                metricsManager,
+                timelockService,
+                immutableTimestamp,
+                knowledge,
+                transactionService);
     }
 
     private static Set<LockDescriptor> getExpectedLocks(

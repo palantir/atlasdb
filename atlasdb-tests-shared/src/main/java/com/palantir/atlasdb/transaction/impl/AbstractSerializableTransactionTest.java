@@ -59,7 +59,6 @@ import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
@@ -177,10 +176,12 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                         transactionKeyValueServiceManager.getKeyValueService().orElseThrow(),
                         MoreExecutors.newDirectExecutorService()),
                 true,
-                () -> ImmutableTransactionConfig.builder().build(),
+                transactionConfigSupplier,
                 ConflictTracer.NO_OP,
                 new SimpleTableLevelMetricsController(metricsManager),
-                knowledge) {
+                knowledge,
+                commitTimestampLoaderFactory.createCommitTimestampLoader(
+                        startTimestampSupplier, 0L, options.immutableLockToken)) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, byte[]::clone);
