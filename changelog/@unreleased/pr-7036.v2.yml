@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: CassandraClientPoolTest resilientToRollingRestarts() method shouldn't
+    be flaky anymore.
+  links:
+  - https://github.com/palantir/atlasdb/pull/7036
