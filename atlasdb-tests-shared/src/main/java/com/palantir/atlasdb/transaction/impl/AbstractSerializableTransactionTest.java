@@ -41,7 +41,6 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.Streams;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
@@ -59,6 +58,7 @@ import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.ValueType;
+import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
@@ -71,6 +71,8 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.transaction.impl.SerializableTransaction.CellLoader;
 import com.palantir.atlasdb.transaction.impl.metrics.SimpleTableLevelMetricsController;
+import com.palantir.atlasdb.transaction.impl.metrics.TransactionMetrics;
+import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
@@ -172,16 +174,16 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AbstractTransactionTest.GET_RANGES_EXECUTOR,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 getSweepQueueWriterInitialized(),
-                new DefaultDeleteExecutor(
-                        transactionKeyValueServiceManager.getKeyValueService().orElseThrow(),
-                        MoreExecutors.newDirectExecutorService()),
+                deleteExecutor,
                 true,
                 transactionConfigSupplier,
                 ConflictTracer.NO_OP,
                 new SimpleTableLevelMetricsController(metricsManager),
                 knowledge,
+                keyValueSnapshotReaderManager,
                 commitTimestampLoaderFactory.createCommitTimestampLoader(
-                        startTimestampSupplier, 0L, options.immutableLockToken)) {
+                        startTimestampSupplier, 0L, options.immutableLockToken),
+                createPreCommitConditionValidator(options.immutableLockToken, options.condition)) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, byte[]::clone);
@@ -1675,5 +1677,18 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         return IntStream.range(0, colCount)
                 .mapToObj(idx -> PtBytes.toBytes(getColumnWithIndex(idx)))
                 .collect(Collectors.toList());
+    }
+
+    private DefaultPreCommitRequirementValidator createPreCommitConditionValidator(
+            Optional<LockToken> immutableTsLock, PreCommitCondition condition) {
+        return new DefaultPreCommitRequirementValidator(
+                condition,
+                sweepStrategyManager,
+                () -> ImmutableTransactionConfig.builder().build(),
+                new DefaultLockRefresher(timelockService),
+                immutableTsLock,
+                true,
+                TransactionOutcomeMetrics.create(
+                        TransactionMetrics.of(metricsManager.getTaggedRegistry()), metricsManager.getTaggedRegistry()));
     }
 }

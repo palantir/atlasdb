@@ -38,7 +38,9 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
+import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
@@ -50,6 +52,8 @@ import com.palantir.atlasdb.transaction.impl.metrics.MemoizingTableLevelMetricsC
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.ToplistDeltaFilteringTableLevelMetricsController;
+import com.palantir.atlasdb.transaction.impl.metrics.TransactionMetrics;
+import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -112,6 +116,7 @@ import java.util.stream.Collectors;
     private final ConflictTracer conflictTracer;
 
     protected final TransactionKnowledgeComponents knowledge;
+    protected final KeyValueSnapshotReaderManager keyValueSnapshotReaderManager;
     protected final CommitTimestampLoaderFactory commitTimestampLoaderFactory;
 
     protected SnapshotTransactionManager(
@@ -137,7 +142,8 @@ import java.util.stream.Collectors;
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         this.lockWatchManager = lockWatchManager;
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
@@ -167,6 +173,7 @@ import java.util.stream.Collectors;
         this.openTransactionCounter =
                 metricsManager.registerOrGetCounter(SnapshotTransactionManager.class, "openTransactionCounter");
         this.knowledge = knowledge;
+        this.keyValueSnapshotReaderManager = keyValueSnapshotReaderManager;
         this.commitTimestampLoaderFactory = new CommitTimestampLoaderFactory(
                 timestampCache, metricsManager, timelockService, knowledge, transactionService, transactionConfig);
     }
@@ -321,7 +328,6 @@ import java.util.stream.Collectors;
                 sweepStrategyManager,
                 immutableTimestamp,
                 immutableTimestampLock,
-                condition,
                 constraintModeSupplier.get(),
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
@@ -336,8 +342,23 @@ import java.util.stream.Collectors;
                 conflictTracer,
                 tableLevelMetricsController,
                 knowledge,
+                keyValueSnapshotReaderManager,
                 commitTimestampLoaderFactory.createCommitTimestampLoader(
-                        startTimestampSupplier, immutableTimestamp, immutableTimestampLock));
+                        startTimestampSupplier, immutableTimestamp, immutableTimestampLock),
+                createPreCommitConditionValidator(immutableTimestampLock, condition));
+    }
+
+    protected final DefaultPreCommitRequirementValidator createPreCommitConditionValidator(
+            Optional<LockToken> immutableTsLock, PreCommitCondition condition) {
+        return new DefaultPreCommitRequirementValidator(
+                condition,
+                sweepStrategyManager,
+                transactionConfig,
+                new DefaultLockRefresher(timelockService),
+                immutableTsLock,
+                validateLocksOnReads,
+                TransactionOutcomeMetrics.create(
+                        TransactionMetrics.of(metricsManager.getTaggedRegistry()), metricsManager.getTaggedRegistry()));
     }
 
     @Override
@@ -356,6 +377,7 @@ import java.util.stream.Collectors;
         long immutableTs = getApproximateImmutableTimestamp();
         LongSupplier startTimestampSupplier = getStartTimestampSupplier();
         Optional<LockToken> immutableTimestampLock = Optional.empty();
+
         SnapshotTransaction transaction = new SnapshotTransaction(
                 metricsManager,
                 transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
@@ -368,7 +390,6 @@ import java.util.stream.Collectors;
                 sweepStrategyManager,
                 immutableTs,
                 immutableTimestampLock,
-                condition,
                 constraintModeSupplier.get(),
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
@@ -383,8 +404,10 @@ import java.util.stream.Collectors;
                 conflictTracer,
                 tableLevelMetricsController,
                 knowledge,
+                keyValueSnapshotReaderManager,
                 commitTimestampLoaderFactory.createCommitTimestampLoader(
-                        startTimestampSupplier, immutableTs, immutableTimestampLock));
+                        startTimestampSupplier, immutableTs, immutableTimestampLock),
+                createPreCommitConditionValidator(immutableTimestampLock, condition));
         return runTaskThrowOnConflictWithCallback(
                 txn -> task.execute(txn, condition),
                 new ReadTransaction(transaction, sweepStrategyManager),
@@ -400,7 +423,7 @@ import java.util.stream.Collectors;
     /**
      * Frees resources used by this SnapshotTransactionManager, and invokes any callbacks registered to run on close.
      * This includes the cleaner, the key value service (and attendant thread pools), and possibly the lock service.
-     *
+     * <p>
      * Concurrency: If this method races with registerClosingCallback(closingCallback), then closingCallback
      * may be called (but is not necessarily called). Callbacks registered before the invocation of close() are
      * guaranteed to be executed (because we use a synchronized list) as long as no exceptions arise. If an exception

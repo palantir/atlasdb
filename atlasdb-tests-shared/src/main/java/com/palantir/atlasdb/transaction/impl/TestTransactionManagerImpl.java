@@ -31,6 +31,7 @@ import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -66,7 +67,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueue,
             TransactionKnowledgeComponents knowledge,
-            ExecutorService deleteExecutor) {
+            ExecutorService deleteExecutor,
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         this(
                 metricsManager,
                 keyValueService,
@@ -79,7 +81,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 sweepQueue,
                 deleteExecutor,
                 WrapperWithTracker.TRANSACTION_NO_OP,
-                knowledge);
+                knowledge,
+                keyValueSnapshotReaderManager);
     }
 
     public TestTransactionManagerImpl(
@@ -94,7 +97,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor,
             WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         this(
                 metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
@@ -107,7 +111,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 sweepQueue,
                 deleteExecutor,
                 transactionWrapper,
-                knowledge);
+                knowledge,
+                keyValueSnapshotReaderManager);
     }
 
     private TestTransactionManagerImpl(
@@ -122,7 +127,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             MultiTableSweepQueueWriter sweepQueue,
             ExecutorService deleteExecutor,
             WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         super(
                 metricsManager,
                 keyValueService,
@@ -146,7 +152,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                keyValueSnapshotReaderManager);
         this.transactionWrapper = transactionWrapper;
     }
 
@@ -177,6 +184,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             LockToken immutableTsLock,
             PreCommitCondition preCommitCondition) {
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+
         return transactionWrapper.apply(
                 new SerializableTransaction(
                         metricsManager,
@@ -205,8 +213,10 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         ConflictTracer.NO_OP,
                         tableLevelMetricsController,
                         knowledge,
+                        keyValueSnapshotReaderManager,
                         commitTimestampLoaderFactory.createCommitTimestampLoader(
-                                startTimestampSupplier, immutableTimestamp, Optional.of(immutableTsLock))),
+                                startTimestampSupplier, immutableTimestamp, Optional.of(immutableTsLock)),
+                        createPreCommitConditionValidator(Optional.of(immutableTsLock), preCommitCondition)),
                 pathTypeTracker);
     }
 
