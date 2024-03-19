@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: bump postgresql for CVE-2024-1597
+  links:
+  - https://github.com/palantir/atlasdb/pull/7034
