@@ -99,6 +99,17 @@ public final class DefaultCommitTimestampLoader implements CommitTimestampLoader
 
     @Override
     public ListenableFuture<LongLongMap> getCommitTimestamps(
+            @Nullable TableReference tableRef, LongIterable startTimestamps) {
+        return getCommitTimestampsInternal(tableRef, startTimestamps, true);
+    }
+
+    @Override
+    public ListenableFuture<LongLongMap> getCommitTimestampsNonBlockingForValidation(
+            @Nullable TableReference tableRef, LongIterable startTimestamps) {
+        return getCommitTimestampsInternal(tableRef, startTimestamps, false);
+    }
+
+    private ListenableFuture<LongLongMap> getCommitTimestampsInternal(
             @Nullable TableReference tableRef, LongIterable startTimestamps, boolean shouldWaitForCommitterToComplete) {
         if (startTimestamps.isEmpty()) {
             return Futures.immediateFuture(LongLongMaps.immutable.of());
