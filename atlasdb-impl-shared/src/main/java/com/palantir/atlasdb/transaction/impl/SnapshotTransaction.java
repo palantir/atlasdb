@@ -283,7 +283,6 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TableLevelMetricsController tableLevelMetricsController;
     protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
     protected final CommitTimestampLoader commitTimestampLoader;
-    private final TransactionMetrics transactionMetrics;
     private final ExpectationsMetrics expectationsDataCollectionMetrics;
     private volatile long cellCommitLocksRequested = 0L;
     private volatile long rowCommitLocksRequested = 0L;
@@ -378,7 +377,6 @@ public class SnapshotTransaction extends AbstractTransaction
 
         this.snapshotEventRecorder =
                 new DefaultKeyValueSnapshotMetricRecorder(snapshotTransactionMetricFactory, transactionMetrics);
-        this.transactionMetrics = TransactionMetrics.of(metricsManager.getTaggedRegistry());
         this.transactionOutcomeMetrics =
                 TransactionOutcomeMetrics.create(transactionMetrics, metricsManager.getTaggedRegistry());
         this.expectationsDataCollectionMetrics = ExpectationsMetrics.of(metricsManager.getTaggedRegistry());
