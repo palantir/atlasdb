@@ -101,12 +101,12 @@ import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionWri
 import com.palantir.atlasdb.transaction.api.expectations.TransactionCommitLockInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionWriteMetadataInfo;
-import com.palantir.atlasdb.transaction.api.metrics.KeyValueSnapshotEventRecorder;
+import com.palantir.atlasdb.transaction.api.metrics.KeyValueSnapshotMetricRecorder;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
 import com.palantir.atlasdb.transaction.impl.expectations.CellCountValidator;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingTransactionKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingTransactionKeyValueServiceImpl;
-import com.palantir.atlasdb.transaction.impl.metrics.DefaultKeyValueSnapshotEventRecorder;
+import com.palantir.atlasdb.transaction.impl.metrics.DefaultKeyValueSnapshotMetricRecorder;
 import com.palantir.atlasdb.transaction.impl.metrics.SnapshotTransactionMetricFactory;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionMetrics;
@@ -303,7 +303,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private final SnapshotTransactionMetricFactory snapshotTransactionMetricFactory;
 
-    private final KeyValueSnapshotEventRecorder snapshotEventRecorder;
+    private final KeyValueSnapshotMetricRecorder snapshotEventRecorder;
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
@@ -387,7 +387,7 @@ public class SnapshotTransaction extends AbstractTransaction
         this.expectationsDataCollectionMetrics = ExpectationsMetrics.of(metricsManager.getTaggedRegistry());
 
         this.snapshotEventRecorder =
-                new DefaultKeyValueSnapshotEventRecorder(snapshotTransactionMetricFactory, transactionMetrics);
+                new DefaultKeyValueSnapshotMetricRecorder(snapshotTransactionMetricFactory, transactionMetrics);
     }
 
     protected TransactionScopedCache getCache() {

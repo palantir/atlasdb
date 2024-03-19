@@ -19,14 +19,14 @@ package com.palantir.atlasdb.transaction.impl.metrics;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.AtlasDbMetricNames.CellFilterMetrics;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.metrics.KeyValueSnapshotEventRecorder;
+import com.palantir.atlasdb.transaction.api.metrics.KeyValueSnapshotMetricRecorder;
 
-public final class DefaultKeyValueSnapshotEventRecorder implements KeyValueSnapshotEventRecorder {
+public final class DefaultKeyValueSnapshotMetricRecorder implements KeyValueSnapshotMetricRecorder {
     // This dichotomy is unfortunate, but a result of us standing between the legacy and metric-schema worlds.
     private final SnapshotTransactionMetricFactory metricFactory;
     private final TransactionMetrics transactionMetrics;
 
-    public DefaultKeyValueSnapshotEventRecorder(
+    public DefaultKeyValueSnapshotMetricRecorder(
             SnapshotTransactionMetricFactory metricFactory, TransactionMetrics transactionMetrics) {
         this.metricFactory = metricFactory;
         this.transactionMetrics = transactionMetrics;

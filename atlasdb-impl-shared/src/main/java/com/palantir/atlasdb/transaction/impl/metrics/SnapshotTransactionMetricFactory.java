@@ -23,8 +23,10 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.impl.SnapshotTransaction;
 import com.palantir.atlasdb.util.MetricsManager;
 
-// We continue to use the SnapshotTransaction origin to avoid a breaking change in our metric names.
 public final class SnapshotTransactionMetricFactory {
+    // We continue to use the SnapshotTransaction origin to avoid a breaking change in our metric names.
+    private static final Class<SnapshotTransaction> DELEGATE_ORIGIN = SnapshotTransaction.class;
+
     private final MetricsManager metricsManager;
     private final TableLevelMetricsController tableLevelMetricsController;
 
@@ -35,19 +37,19 @@ public final class SnapshotTransactionMetricFactory {
     }
 
     public Timer getTimer(String name) {
-        return metricsManager.registerOrGetTimer(SnapshotTransaction.class, name);
+        return metricsManager.registerOrGetTimer(DELEGATE_ORIGIN, name);
     }
 
     public Histogram getHistogram(String name) {
-        return metricsManager.registerOrGetHistogram(SnapshotTransaction.class, name);
+        return metricsManager.registerOrGetHistogram(DELEGATE_ORIGIN, name);
     }
 
     public Histogram getHistogram(String name, TableReference tableRef) {
         return metricsManager.registerOrGetTaggedHistogram(
-                SnapshotTransaction.class, name, metricsManager.getTableNameTagFor(tableRef));
+                DELEGATE_ORIGIN, name, metricsManager.getTableNameTagFor(tableRef));
     }
 
     public Counter getCounter(String name, TableReference tableRef) {
-        return tableLevelMetricsController.createAndRegisterCounter(SnapshotTransaction.class, name, tableRef);
+        return tableLevelMetricsController.createAndRegisterCounter(DELEGATE_ORIGIN, name, tableRef);
     }
 }

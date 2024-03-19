@@ -21,7 +21,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 /**
  * Updates metrics for work done as part of reading a transactional snapshot from the key-value-service.
  */
-public interface KeyValueSnapshotEventRecorder {
+public interface KeyValueSnapshotMetricRecorder {
     /**
      * Track that for the given table, the given number of cells was read from the key-value-service (including
      * cells that could not be returned due to filtering).
