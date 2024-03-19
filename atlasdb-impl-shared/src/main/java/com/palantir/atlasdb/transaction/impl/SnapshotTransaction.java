@@ -78,6 +78,7 @@ import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintExcept
 import com.palantir.atlasdb.tracing.TraceStatistics;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
@@ -193,7 +194,6 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Pair;
-import org.eclipse.collections.api.LongIterable;
 import org.eclipse.collections.api.factory.primitive.LongLists;
 import org.eclipse.collections.api.factory.primitive.LongSets;
 import org.eclipse.collections.api.map.primitive.LongLongMap;
@@ -283,6 +283,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TableLevelMetricsController tableLevelMetricsController;
     protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
     private final CommitTimestampLoader commitTimestampLoader;
+    private final TransactionMetrics transactionMetrics;
     private final ExpectationsMetrics expectationsDataCollectionMetrics;
     private volatile long cellCommitLocksRequested = 0L;
     private volatile long rowCommitLocksRequested = 0L;
@@ -336,7 +337,8 @@ public class SnapshotTransaction extends AbstractTransaction
             Supplier<TransactionConfig> transactionConfig,
             ConflictTracer conflictTracer,
             TableLevelMetricsController tableLevelMetricsController,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            CommitTimestampLoader commitTimestampLoader) {
         this.metricsManager = metricsManager;
         this.lockWatchManager = lockWatchManager;
         this.conflictTracer = conflictTracer;
@@ -367,27 +369,20 @@ public class SnapshotTransaction extends AbstractTransaction
         this.tableLevelMetricsController = tableLevelMetricsController;
         this.timestampCache = timestampValidationReadCache;
         this.knowledge = knowledge;
-        this.commitTimestampLoader = new CommitTimestampLoader(
-                timestampValidationReadCache,
-                immutableTimestampLock,
-                this::getStartTimestamp,
-                transactionConfig,
-                metricsManager,
-                timelockService,
-                immutableTimestamp,
-                knowledge);
         this.snapshotTransactionMetricFactory =
                 new SnapshotTransactionMetricFactory(metricsManager, tableLevelMetricsController);
         this.transactionTimerContext =
                 snapshotTransactionMetricFactory.getTimer("transactionMillis").time();
 
         TransactionMetrics transactionMetrics = TransactionMetrics.of(metricsManager.getTaggedRegistry());
-        this.transactionOutcomeMetrics =
-                TransactionOutcomeMetrics.create(transactionMetrics, metricsManager.getTaggedRegistry());
-        this.expectationsDataCollectionMetrics = ExpectationsMetrics.of(metricsManager.getTaggedRegistry());
 
         this.snapshotEventRecorder =
                 new DefaultKeyValueSnapshotMetricRecorder(snapshotTransactionMetricFactory, transactionMetrics);
+        this.transactionMetrics = TransactionMetrics.of(metricsManager.getTaggedRegistry());
+        this.transactionOutcomeMetrics =
+                TransactionOutcomeMetrics.create(transactionMetrics, metricsManager.getTaggedRegistry());
+        this.expectationsDataCollectionMetrics = ExpectationsMetrics.of(metricsManager.getTaggedRegistry());
+        this.commitTimestampLoader = commitTimestampLoader;
     }
 
     protected TransactionScopedCache getCache() {
@@ -631,7 +626,7 @@ public class SnapshotTransaction extends AbstractTransaction
     /**
      * Provides comparator to sort cells by columns (sorted lexicographically on byte ordering) and then in the order
      * of input rows.
-     * */
+     */
     @VisibleForTesting
     static Comparator<Cell> columnOrderThenPreserveInputRowOrder(Iterable<byte[]> rows) {
         return Cell.COLUMN_COMPARATOR.thenComparing(
@@ -652,7 +647,7 @@ public class SnapshotTransaction extends AbstractTransaction
      * possibility of needing a second batch of fetching.
      * If the batch hint is large, split batch size across rows to avoid loading too much data, while accepting that
      * second fetches may be needed to get everyone their data.
-     * */
+     */
     private static int getPerRowBatchSize(BatchColumnRangeSelection columnRangeSelection, int distinctRowCount) {
         return Math.max(
                 Math.min(MIN_BATCH_SIZE_FOR_DISTRIBUTED_LOAD, columnRangeSelection.getBatchHint()),
@@ -1706,7 +1701,7 @@ public class SnapshotTransaction extends AbstractTransaction
         LongSet valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
 
         return Futures.transformAsync(
-                getCommitTimestamps(tableRef, valuesStartTimestamps, true, asyncTransactionService),
+                commitTimestampLoader.getCommitTimestamps(tableRef, valuesStartTimestamps),
                 commitTimestamps -> collectCellsToPostFilter(
                         tableRef,
                         rawResults,
@@ -2412,7 +2407,8 @@ public class SnapshotTransaction extends AbstractTransaction
         long startTs = getStartTimestamp();
         Map<Cell, Long> rawResults = transactionKeyValueService.getLatestTimestamps(tableRef, keysToLoad);
         LongLongMap commitTimestamps =
-                getCommitTimestampsSync(tableRef, LongLists.immutable.ofAll(rawResults.values()), false);
+                AtlasFutures.getUnchecked(commitTimestampLoader.getCommitTimestampsNonBlockingForValidation(
+                        tableRef, LongLists.immutable.ofAll(rawResults.values())));
 
         // TODO(fdesouza): Remove this once PDS-95791 is resolved.
         conflictTracer.collect(startTs, keysToLoad, rawResults, commitTimestamps);
@@ -2547,15 +2543,6 @@ public class SnapshotTransaction extends AbstractTransaction
         return lockResponse.getToken();
     }
 
-    protected ListenableFuture<LongLongMap> getCommitTimestamps(
-            TableReference tableRef,
-            LongIterable startTimestamps,
-            boolean shouldWaitForCommitterToComplete,
-            AsyncTransactionService asyncTransactionService) {
-        return commitTimestampLoader.getCommitTimestamps(
-                tableRef, startTimestamps, shouldWaitForCommitterToComplete, asyncTransactionService);
-    }
-
     private void logCommitLockTenureExceeded(
             Set<LockDescriptor> lockDescriptors,
             TransactionConfig currentTransactionConfig,
@@ -2681,12 +2668,6 @@ public class SnapshotTransaction extends AbstractTransaction
         return LongSets.immutable.withAll(Streams.stream(values).mapToLong(Value::getTimestamp));
     }
 
-    private LongLongMap getCommitTimestampsSync(
-            @Nullable TableReference tableRef, LongIterable startTimestamps, boolean waitForCommitterToComplete) {
-        return AtlasFutures.getUnchecked(getCommitTimestamps(
-                tableRef, startTimestamps, waitForCommitterToComplete, immediateTransactionService));
-    }
-
     /**
      * This will attempt to put the commitTimestamp into the DB.
      *
@@ -2752,7 +2733,10 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private boolean wasCommitSuccessful(long commitTs) {
         long startTs = getStartTimestamp();
-        LongLongMap commitTimestamps = getCommitTimestampsSync(null, LongSets.immutable.of(startTs), false);
+
+        LongLongMap commitTimestamps =
+                AtlasFutures.getUnchecked(commitTimestampLoader.getCommitTimestampsNonBlockingForValidation(
+                        null, LongSets.immutable.of(startTs)));
         long storedCommit = commitTimestamps.get(startTs);
         if (storedCommit != commitTs && storedCommit != TransactionConstants.FAILED_COMMIT_TS) {
             throw new SafeIllegalArgumentException(
