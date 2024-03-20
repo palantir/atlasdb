@@ -29,11 +29,8 @@ import com.palantir.common.collect.Maps2;
 import com.palantir.logsafe.Preconditions;
 import java.io.Serializable;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NavigableMap;
-import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 
@@ -130,7 +127,6 @@ public final class RowResult<T> implements Serializable {
         return result;
     }
 
-    @SuppressWarnings("rawtypes")
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
@@ -142,29 +138,18 @@ public final class RowResult<T> implements Serializable {
         if (getClass() != obj.getClass()) {
             return false;
         }
+        @SuppressWarnings("rawtypes")
         RowResult other = (RowResult) obj;
-        if (columns == null && other.columns == null) {
-            return Arrays.equals(row, other.row);
-        } else if (columns != null && other.columns != null) {
-            if (!Arrays.equals(row, other.row) || columns.size() != other.columns.size()) {
+        if (columns == null) {
+            if (other.columns != null) {
                 return false;
             }
-            Iterator<Entry<byte[], T>> left = columns.entrySet().iterator();
-            Iterator<Entry> right = other.columns.entrySet().iterator();
-
-            while (left.hasNext() && right.hasNext()) {
-                Entry<byte[], T> leftEntry = left.next();
-                Entry rightEntry = right.next();
-                if (!Objects.deepEquals(leftEntry.getKey(), rightEntry.getKey())) {
-                    return false;
-                }
-                if (!Objects.deepEquals(leftEntry.getValue(), rightEntry.getValue())) {
-                    return false;
-                }
-            }
-            return true;
-        } else {
+        } else if (!columns.equals(other.columns)) {
             return false;
         }
+        if (!Arrays.equals(row, other.row)) {
+            return false;
+        }
+        return true;
     }
 }
