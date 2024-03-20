@@ -24,13 +24,13 @@ public enum SweepOutcome {
     ERROR(5),
     FATAL(6);
 
-    private final int index;
+    private final int metricsIntRepresentation;
 
-    SweepOutcome(int index) {
-        this.index = index;
+    SweepOutcome(int metricsIntRepresentation) {
+        this.metricsIntRepresentation = metricsIntRepresentation;
     }
 
-    int getIndex() {
-        return index;
+    int getMetricsIntRepresentation() {
+        return metricsIntRepresentation;
     }
 }

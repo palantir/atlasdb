@@ -292,14 +292,14 @@ public final class BackgroundCompactor implements AutoCloseable {
         SHUTDOWN(5),
         DISABLED(6);
 
-        private final int index;
+        private final int metricsIntRepresentation;
 
-        CompactionOutcome(int index) {
-            this.index = index;
+        CompactionOutcome(int metricsIntRepresentation) {
+            this.metricsIntRepresentation = metricsIntRepresentation;
         }
 
-        int getIndex() {
-            return index;
+        int getMetricsIntRepresentation() {
+            return metricsIntRepresentation;
         }
     }
 }

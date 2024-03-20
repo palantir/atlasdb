@@ -44,7 +44,7 @@ class CompactionOutcomeMetrics {
         }
 
         return Arrays.stream(reservoir.getSnapshot().getValues())
-                .filter(l -> l == outcome.getIndex())
+                .filter(l -> l == outcome.getMetricsIntRepresentation())
                 .count();
     }
 
@@ -54,6 +54,6 @@ class CompactionOutcomeMetrics {
             return;
         }
 
-        reservoir.update(outcome.getIndex());
+        reservoir.update(outcome.getMetricsIntRepresentation());
     }
 }

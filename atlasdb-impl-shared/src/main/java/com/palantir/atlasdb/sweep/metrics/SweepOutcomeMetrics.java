@@ -65,7 +65,7 @@ public final class SweepOutcomeMetrics {
             return;
         }
 
-        metrics.get().reservoir().update(outcome.getIndex());
+        metrics.get().reservoir().update(outcome.getMetricsIntRepresentation());
     }
 
     private static Supplier<Metrics> buildMetrics(
@@ -96,7 +96,7 @@ public final class SweepOutcomeMetrics {
         }
 
         return Arrays.stream(metrics.reservoir().getSnapshot().getValues())
-                .filter(l -> l == outcome.getIndex())
+                .filter(l -> l == outcome.getMetricsIntRepresentation())
                 .count();
     }
 
