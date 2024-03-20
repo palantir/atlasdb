@@ -25,8 +25,8 @@ public class WorkloadServerConfiguration extends Configuration {
     private final WorkloadServerInstallConfiguration install;
 
     public WorkloadServerConfiguration(
-            @JsonProperty(value = "install", required = true) DefaultWorkloadServerInstallConfiguration install,
-            @JsonProperty(value = "runtime", required = true) DefaultWorkloadServerRuntimeConfiguration runtime) {
+            @JsonProperty(value = "install", required = true) WorkloadServerInstallConfiguration install,
+            @JsonProperty(value = "runtime", required = true) WorkloadServerRuntimeConfiguration runtime) {
         this.install = install;
         this.runtime = runtime;
     }
