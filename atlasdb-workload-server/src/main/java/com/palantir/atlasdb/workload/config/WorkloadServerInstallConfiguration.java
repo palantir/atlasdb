@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2023 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2024 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,6 @@
 
 package com.palantir.atlasdb.workload.config;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.workload.workflow.MultipleBusyCellWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.RandomWorkflowConfiguration;
@@ -28,13 +26,7 @@ import com.palantir.atlasdb.workload.workflow.TransientRowsWorkflowConfiguration
 import com.palantir.atlasdb.workload.workflow.WriteOnceDeleteOnceWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.bank.BankBalanceWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.ring.RingWorkflowConfiguration;
-import com.palantir.logsafe.DoNotLog;
-import org.immutables.value.Value;
 
-@DoNotLog
-@JsonDeserialize(as = ImmutableWorkloadServerInstallConfiguration.class)
-@JsonSerialize(as = ImmutableWorkloadServerInstallConfiguration.class)
-@Value.Immutable
 public interface WorkloadServerInstallConfiguration {
     AtlasDbConfig atlas();
 

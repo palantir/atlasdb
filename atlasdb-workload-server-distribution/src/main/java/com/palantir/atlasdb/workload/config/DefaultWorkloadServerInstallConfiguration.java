@@ -16,9 +16,13 @@
 
 package com.palantir.atlasdb.workload.config;
 
-import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
-import java.util.Optional;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.logsafe.DoNotLog;
+import org.immutables.value.Value;
 
-public interface WorkloadServerRuntimeConfiguration {
-    Optional<AtlasDbRuntimeConfig> atlas();
-}
+@DoNotLog
+@JsonDeserialize(as = ImmutableDefaultWorkloadServerInstallConfiguration.class)
+@JsonSerialize(as = ImmutableDefaultWorkloadServerInstallConfiguration.class)
+@Value.Immutable
+public interface DefaultWorkloadServerInstallConfiguration extends WorkloadServerInstallConfiguration {}

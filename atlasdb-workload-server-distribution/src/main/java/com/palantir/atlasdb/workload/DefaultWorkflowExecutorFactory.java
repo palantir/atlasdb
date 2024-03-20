@@ -25,14 +25,14 @@ import io.dropwizard.lifecycle.setup.LifecycleEnvironment;
 import java.security.SecureRandom;
 import java.util.concurrent.ExecutorService;
 
-public class DropwizardWorkflowExecutorFactory implements WorkflowExecutorFactory {
+public class DefaultWorkflowExecutorFactory implements WorkflowExecutorFactory {
 
-    private static final SafeLogger log = SafeLoggerFactory.get(DropwizardWorkflowExecutorFactory.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(DefaultWorkflowExecutorFactory.class);
 
     private static final SecureRandom SECURE_RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();
     private final LifecycleEnvironment lifecycle;
 
-    public DropwizardWorkflowExecutorFactory(LifecycleEnvironment lifecycle) {
+    public DefaultWorkflowExecutorFactory(LifecycleEnvironment lifecycle) {
         this.lifecycle = lifecycle;
     }
 

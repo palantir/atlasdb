@@ -125,8 +125,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 USER_AGENT,
                 metricsManager);
 
-        WorkflowFactory workflowFactory = new WorkflowFactory(
-                taggedMetricRegistry, new DropwizardWorkflowExecutorFactory(environment.lifecycle()));
+        WorkflowFactory workflowFactory =
+                new WorkflowFactory(taggedMetricRegistry, new DefaultWorkflowExecutorFactory(environment.lifecycle()));
 
         AntithesisWorkflowValidatorRunner.create(new DefaultWorkflowRunner(
                         MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService)))
