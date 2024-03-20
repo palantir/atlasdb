@@ -38,6 +38,8 @@ import com.palantir.atlasdb.workload.runner.DefaultWorkflowRunner;
 import com.palantir.atlasdb.workload.store.AtlasDbTransactionStoreFactory;
 import com.palantir.atlasdb.workload.store.InteractiveTransactionStore;
 import com.palantir.atlasdb.workload.store.TransactionStore;
+import com.palantir.atlasdb.workload.workflow.MultipleBusyCellWorkflowConfiguration;
+import com.palantir.atlasdb.workload.workflow.MultipleBusyCellWorkflows;
 import com.palantir.atlasdb.workload.workflow.RandomWorkflowConfiguration;
 import com.palantir.atlasdb.workload.workflow.RandomWorkflows;
 import com.palantir.atlasdb.workload.workflow.SingleBusyCellReadNoTouchWorkflowConfiguration;
@@ -148,7 +150,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 USER_AGENT,
                 metricsManager);
 
-        new AntithesisWorkflowValidatorRunner(new DefaultWorkflowRunner(
+        AntithesisWorkflowValidatorRunner.create(new DefaultWorkflowRunner(
                         MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService)))
                 .run(() -> selectWorkflowsToRun(
                         configuration,
@@ -206,6 +208,8 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 configuration.install().randomConfig();
         WriteOnceDeleteOnceWorkflowConfiguration writeOnceDeleteOnceConfig =
                 configuration.install().writeOnceDeleteOnceConfig();
+        MultipleBusyCellWorkflowConfiguration multipleBusyCellWorkflowConfig =
+                configuration.install().multipleBusyCellConfig();
 
         waitForTransactionStoreFactoryToBeInitialized(transactionStoreFactory);
         transactionStoreFactory.fastForwardTimestampToSupportTransactions3();
@@ -226,7 +230,9 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 createBankBalanceWorkflow(transactionStoreFactory, bankBalanceConfig, environment.lifecycle()),
                 createRandomWorkflow(transactionStoreFactory, randomWorkflowConfig, environment.lifecycle()),
                 createWriteOnceDeleteOnceWorkflow(
-                        transactionStoreFactory, writeOnceDeleteOnceConfig, environment.lifecycle())));
+                        transactionStoreFactory, writeOnceDeleteOnceConfig, environment.lifecycle()),
+                createMultipleBusyCellsWorkflow(
+                        transactionStoreFactory, multipleBusyCellWorkflowConfig, environment.lifecycle())));
     }
 
     private static void waitForTransactionStoreFactoryToBeInitialized(AtlasDbTransactionStoreFactory factory) {
@@ -395,6 +401,26 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 .addInvariantReporters(new DurableWritesInvariantMetricReporter(
                         WriteOnceDeleteOnceWorkflows.class.getSimpleName(),
                         DurableWritesMetrics.of(taggedMetricRegistry)))
+                .addInvariantReporters(SerializableInvariantLogReporter.INSTANCE)
+                .build();
+    }
+
+    private WorkflowAndInvariants<Workflow> createMultipleBusyCellsWorkflow(
+            AtlasDbTransactionStoreFactory transactionStoreFactory,
+            MultipleBusyCellWorkflowConfiguration workflowConfig,
+            LifecycleEnvironment lifecycle) {
+        ExecutorService readExecutorService = createExecutorService(
+                workflowConfig.maxThreadCount() / 2, lifecycle, MultipleBusyCellWorkflows.class, "-read");
+        ExecutorService writeExecutorService = createExecutorService(
+                workflowConfig.maxThreadCount() / 2, lifecycle, MultipleBusyCellWorkflows.class, "-write");
+        return WorkflowAndInvariants.builder()
+                .workflow(MultipleBusyCellWorkflows.create(
+                        transactionStoreFactory.create(workflowConfig.tableConfiguration()),
+                        workflowConfig,
+                        MoreExecutors.listeningDecorator(readExecutorService),
+                        MoreExecutors.listeningDecorator(writeExecutorService)))
+                .addInvariantReporters(new DurableWritesInvariantMetricReporter(
+                        MultipleBusyCellWorkflows.class.getSimpleName(), DurableWritesMetrics.of(taggedMetricRegistry)))
                 .addInvariantReporters(SerializableInvariantLogReporter.INSTANCE)
                 .build();
     }

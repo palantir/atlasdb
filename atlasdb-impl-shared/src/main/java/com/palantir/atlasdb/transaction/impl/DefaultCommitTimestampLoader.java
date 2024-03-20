@@ -26,10 +26,11 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.TransactionConfig;
+import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutException;
 import com.palantir.atlasdb.transaction.knowledge.KnownAbandonedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
-import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.AtlasRowLockDescriptor;
@@ -59,8 +60,8 @@ import org.eclipse.collections.impl.factory.primitive.LongLongMaps;
 import org.eclipse.collections.impl.factory.primitive.LongSets;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 
-public final class CommitTimestampLoader {
-    private static final SafeLogger log = SafeLoggerFactory.get(CommitTimestampLoader.class);
+public final class DefaultCommitTimestampLoader implements CommitTimestampLoader {
+    private static final SafeLogger log = SafeLoggerFactory.get(DefaultCommitTimestampLoader.class);
     private static final SafeLogger perfLogger = SafeLoggerFactory.get("dualschema.perf");
     private final TimestampCache timestampCache;
     private final Optional<LockToken> immutableTimestampLock;
@@ -70,10 +71,11 @@ public final class CommitTimestampLoader {
     private final TimelockService timelockService;
     private final long immutableTimestamp;
     private final Supplier<Long> lastSeenCommitTsSupplier;
+    private final TransactionService transactionService;
 
     private final KnownAbandonedTransactions abortedTransactionsCache;
 
-    public CommitTimestampLoader(
+    public DefaultCommitTimestampLoader(
             TimestampCache timestampCache,
             Optional<LockToken> immutableTimestampLock,
             Supplier<Long> startTimestampSupplier,
@@ -81,7 +83,8 @@ public final class CommitTimestampLoader {
             MetricsManager metricsManager,
             TimelockService timelockService,
             long immutableTimestamp,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            TransactionService transactionService) {
         this.timestampCache = timestampCache;
         this.immutableTimestampLock = immutableTimestampLock;
         this.startTimestampSupplier = startTimestampSupplier;
@@ -91,17 +94,23 @@ public final class CommitTimestampLoader {
         this.immutableTimestamp = immutableTimestamp;
         this.lastSeenCommitTsSupplier = knowledge.lastSeenCommitSupplier();
         this.abortedTransactionsCache = knowledge.abandoned();
+        this.transactionService = transactionService;
     }
 
-    /**
-     * Returns a map from start timestamp to commit timestamp. If a start timestamp wasn't committed, then it will be
-     * missing from the map. This method will block until the transactions for these start timestamps are complete.
-     */
-    ListenableFuture<LongLongMap> getCommitTimestamps(
-            @Nullable TableReference tableRef,
-            LongIterable startTimestamps,
-            boolean shouldWaitForCommitterToComplete,
-            AsyncTransactionService asyncTransactionService) {
+    @Override
+    public ListenableFuture<LongLongMap> getCommitTimestamps(
+            @Nullable TableReference tableRef, LongIterable startTimestamps) {
+        return getCommitTimestampsInternal(tableRef, startTimestamps, true);
+    }
+
+    @Override
+    public ListenableFuture<LongLongMap> getCommitTimestampsNonBlockingForValidation(
+            @Nullable TableReference tableRef, LongIterable startTimestamps) {
+        return getCommitTimestampsInternal(tableRef, startTimestamps, false);
+    }
+
+    private ListenableFuture<LongLongMap> getCommitTimestampsInternal(
+            @Nullable TableReference tableRef, LongIterable startTimestamps, boolean shouldWaitForCommitterToComplete) {
         if (startTimestamps.isEmpty()) {
             return Futures.immediateFuture(LongLongMaps.immutable.of());
         }
@@ -127,7 +136,7 @@ public final class CommitTimestampLoader {
         }
 
         return Futures.transform(
-                loadCommitTimestamps(asyncTransactionService, pendingGets),
+                loadCommitTimestamps(pendingGets),
                 rawResults -> {
                     LongLongMap loadedCommitTs = cacheKnownLoadedValuesAndValidate(rawResults);
                     result.putAll(loadedCommitTs);
@@ -221,20 +230,20 @@ public final class CommitTimestampLoader {
     }
 
     private Timer getTimer(String name) {
+        // Maintaining for backward compatibility
         return metricsManager.registerOrGetTimer(CommitTimestampLoader.class, name);
     }
 
-    private static ListenableFuture<Map<Long, TransactionStatus>> loadCommitTimestamps(
-            AsyncTransactionService asyncTransactionService, LongSet startTimestamps) {
+    private ListenableFuture<Map<Long, TransactionStatus>> loadCommitTimestamps(LongSet startTimestamps) {
         // distinguish between a single timestamp and a batch, for more granular metrics
         if (startTimestamps.size() == 1) {
             long singleTs = startTimestamps.longIterator().next();
             return Futures.transform(
-                    asyncTransactionService.getAsyncV2(singleTs),
+                    transactionService.getAsyncV2(singleTs),
                     commitState -> ImmutableMap.of(singleTs, commitState),
                     MoreExecutors.directExecutor());
         } else {
-            return asyncTransactionService.getAsyncV2(startTimestamps.collect(Long::valueOf));
+            return transactionService.getAsyncV2(startTimestamps.collect(Long::valueOf));
         }
     }
 

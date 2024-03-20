@@ -27,6 +27,7 @@ dependencies {
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'
   implementation 'io.dropwizard.metrics:metrics-core'
+  implementation 'org.eclipse.collections:eclipse-collections-api'
   implementation project(':commons-annotations')
   implementation project(':lock-api-objects')
 
