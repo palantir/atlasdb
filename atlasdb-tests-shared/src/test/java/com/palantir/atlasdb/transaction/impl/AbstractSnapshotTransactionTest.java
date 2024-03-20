@@ -1994,20 +1994,20 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
         ConjureStartTransactionsResponse startedTransactions = startTransactionWithWatches();
         long transactionTs = startedTransactions.getTimestamps().start();
         LongSupplier startTimestampSupplier = () -> transactionTs;
-        InvalidatingTransactionKeyValueService invalidatingTransactionKeyValueService =
-                new InvalidatingTransactionKeyValueService(
+        InvalidatableTransactionKeyValueService invalidatableTransactionKeyValueService =
+                new InvalidatableTransactionKeyValueService(
                         txnKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier));
 
         SnapshotTransaction snapshotTransaction = getSnapshotTransactionWith(
                 startTimestampSupplier,
                 startedTransactions.getImmutableTimestamp(),
-                invalidatingTransactionKeyValueService);
+                invalidatableTransactionKeyValueService);
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         Transaction callbackAwareTransaction = transactionWrapper.apply(snapshotTransaction, pathTypeTracker);
 
         callbackAwareTransaction.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
 
-        invalidatingTransactionKeyValueService.invalidate();
+        invalidatableTransactionKeyValueService.invalidate();
         assertThatLoggableExceptionThrownBy(callbackAwareTransaction::commit)
                 .isInstanceOf(TransactionFailedRetriableException.class)
                 .hasLogMessage("Transaction key value service is no longer valid")
@@ -2021,19 +2021,19 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
         ConjureStartTransactionsResponse startedTransactions = startTransactionWithWatches();
         long transactionTs = startedTransactions.getTimestamps().start();
         LongSupplier startTimestampSupplier = () -> transactionTs;
-        InvalidatingTransactionKeyValueService invalidatingTransactionKeyValueService =
-                new InvalidatingTransactionKeyValueService(
+        InvalidatableTransactionKeyValueService invalidatableTransactionKeyValueService =
+                new InvalidatableTransactionKeyValueService(
                         txnKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier));
 
         SnapshotTransaction snapshotTransaction = getSnapshotTransactionWith(
                 startTimestampSupplier,
                 startedTransactions.getImmutableTimestamp(),
-                invalidatingTransactionKeyValueService);
+                invalidatableTransactionKeyValueService);
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         Transaction callbackAwareTransaction = transactionWrapper.apply(snapshotTransaction, pathTypeTracker);
 
         callbackAwareTransaction.get(TABLE, ImmutableSet.of(TEST_CELL));
-        invalidatingTransactionKeyValueService.invalidate();
+        invalidatableTransactionKeyValueService.invalidate();
 
         assertThatCode(callbackAwareTransaction::commit)
                 .as("although the transaction key value service was no longer valid, read transactions performed"
@@ -3354,12 +3354,12 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
     private SnapshotTransaction getSnapshotTransactionWith(
             LongSupplier startTimestampSupplier,
             LockImmutableTimestampResponse lockImmutableTimestampResponse,
-            InvalidatingTransactionKeyValueService invalidatingTransactionKeyValueService) {
+            InvalidatableTransactionKeyValueService invalidatableTransactionKeyValueService) {
         return getSnapshotTransactionWith(
                 startTimestampSupplier,
                 lockImmutableTimestampResponse,
                 inMemoryTimelockExtension.getLockWatchManager(),
-                invalidatingTransactionKeyValueService);
+                invalidatableTransactionKeyValueService);
     }
 
     private SnapshotTransaction getSnapshotTransactionWith(

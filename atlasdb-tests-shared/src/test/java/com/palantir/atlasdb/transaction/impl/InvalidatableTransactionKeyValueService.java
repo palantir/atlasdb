@@ -20,11 +20,11 @@ import com.palantir.atlasdb.cell.api.AutoDelegate_TransactionKeyValueService;
 import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class InvalidatingTransactionKeyValueService implements AutoDelegate_TransactionKeyValueService {
+public final class InvalidatableTransactionKeyValueService implements AutoDelegate_TransactionKeyValueService {
     private final TransactionKeyValueService delegate;
     private final AtomicBoolean isStillValid;
 
-    public InvalidatingTransactionKeyValueService(TransactionKeyValueService delegate) {
+    public InvalidatableTransactionKeyValueService(TransactionKeyValueService delegate) {
         this.delegate = delegate;
         this.isStillValid = new AtomicBoolean(true);
     }
