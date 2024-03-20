@@ -2196,7 +2196,7 @@ public class SnapshotTransaction extends AbstractTransaction
         if (!transactionKeyValueService.isValid(commitTimestamp)) {
             throw new SafeTransactionFailedRetriableException(
                     "Transaction key value service is no longer valid",
-                    SafeArg.of("startTimestamp", startTimestamp),
+                    SafeArg.of("startTimestamp", getStartTimestamp()),
                     SafeArg.of("commitTimestamp", commitTimestamp));
         }
     }
