@@ -30,7 +30,7 @@ public interface ReadSnapshotValidator {
      * whether a further validation check may be necessary (i.e., if the read was not completely validated).
      * Typically, further validation is necessary if validation was not performed and if the read was to a table
      * that requires pre-commit validation, but not validations on reads themselves.
-     * 
+     *
      * By default, we validate locks on reads to tables that require pre-commit validation, so under default
      * settings all reads should be completely validated, whether because the validation was performed, all possible
      * cells were read and present, or it was skipped because the table as a whole does not require pre-commit
