@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -32,12 +33,13 @@ import com.palantir.atlasdb.transaction.knowledge.ImmutableTransactionKnowledgeC
 import com.palantir.atlasdb.transaction.knowledge.KnownAbandonedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.KnownConcludedTransactions;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
-import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
+import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionStatus;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
@@ -45,13 +47,13 @@ import org.eclipse.collections.api.factory.primitive.LongLists;
 import org.eclipse.collections.api.map.primitive.LongLongMap;
 import org.junit.jupiter.api.Test;
 
-public class CommitTimestampLoaderTest {
+public class DefaultCommitTimestampLoaderTest {
     private static final TableReference TABLE_REF = TableReference.fromString("table");
     private final TimestampCache timestampCache = mock(TimestampCache.class);
     private final TransactionConfig transactionConfig = mock(TransactionConfig.class);
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final TimelockService timelockService = mock(TimelockService.class);
-    private final AsyncTransactionService transactionService = mock(AsyncTransactionService.class);
+    private final TransactionService transactionService = mock(TransactionService.class);
 
     private final KnownAbandonedTransactions knownAbandonedTransactions = mock(KnownAbandonedTransactions.class);
 
@@ -66,6 +68,7 @@ public class CommitTimestampLoaderTest {
         when(timestampCache.getCommitTimestampIfPresent(anyLong())).thenReturn(null);
         when(knownAbandonedTransactions.isKnownAbandoned(anyLong())).thenReturn(isAborted);
         when(transactionService.getAsyncV2(startTs)).thenReturn(Futures.immediateFuture(commitStatus));
+        when(timelockService.waitForLocks(any())).thenReturn(WaitForLocksResponse.successful());
     }
 
     @Test
@@ -77,7 +80,8 @@ public class CommitTimestampLoaderTest {
         setup(startTs, commitTs);
 
         // no immutableTs lock for read-only transaction
-        CommitTimestampLoader commitTimestampLoader = getCommitTsLoader(Optional.empty(), transactionTs, commitTs - 1);
+        DefaultCommitTimestampLoader commitTimestampLoader =
+                getCommitTsLoader(Optional.empty(), transactionTs, commitTs - 1);
 
         assertCanGetCommitTs(startTs, commitTs, commitTimestampLoader);
     }
@@ -91,12 +95,12 @@ public class CommitTimestampLoaderTest {
         setup(startTs, commitStatus, true);
 
         // no immutableTs lock for read-only transaction
-        CommitTimestampLoader commitTimestampLoader =
+        DefaultCommitTimestampLoader commitTimestampLoader =
                 getCommitTsLoader(Optional.empty(), transactionTs, transactionTs + 1);
 
         assertThatExceptionOfType(ExecutionException.class)
                 .isThrownBy(() -> commitTimestampLoader
-                        .getCommitTimestamps(TABLE_REF, LongLists.immutable.of(startTs), false, transactionService)
+                        .getCommitTimestamps(TABLE_REF, LongLists.immutable.of(startTs))
                         .get())
                 .withRootCauseInstanceOf(SafeIllegalStateException.class)
                 .withMessageContaining("Sweep has swept some entries with a commit TS after us");
@@ -111,7 +115,7 @@ public class CommitTimestampLoaderTest {
         setup(startTs, commitTs);
 
         // no immutableTs lock for read-only transaction
-        CommitTimestampLoader commitTimestampLoader =
+        DefaultCommitTimestampLoader commitTimestampLoader =
                 getCommitTsLoader(Optional.empty(), transactionTs, transactionTs + 1);
 
         assertCanGetCommitTs(startTs, commitTs, commitTimestampLoader);
@@ -128,7 +132,7 @@ public class CommitTimestampLoaderTest {
         LockToken lock = mock(LockToken.class);
 
         // no immutableTs lock for read-only transaction
-        CommitTimestampLoader commitTimestampLoader =
+        DefaultCommitTimestampLoader commitTimestampLoader =
                 getCommitTsLoader(Optional.of(lock), transactionTs, transactionTs + 1);
 
         // the transaction will eventually throw at commit time. In this test we are only concerned with per read
@@ -147,7 +151,8 @@ public class CommitTimestampLoaderTest {
         LockToken lock = mock(LockToken.class);
 
         // no immutableTs lock for read-only transaction
-        CommitTimestampLoader commitTimestampLoader = getCommitTsLoader(Optional.of(lock), transactionTs, commitTs + 1);
+        DefaultCommitTimestampLoader commitTimestampLoader =
+                getCommitTsLoader(Optional.of(lock), transactionTs, commitTs + 1);
         assertCanGetCommitTs(startTs, commitTs, commitTimestampLoader);
     }
 
@@ -161,7 +166,7 @@ public class CommitTimestampLoaderTest {
         long startTsUnknown = 7l;
         TransactionStatus commitUnknown = TransactionStatus.unknown();
 
-        CommitTimestampLoader commitTimestampLoader =
+        DefaultCommitTimestampLoader commitTimestampLoader =
                 getCommitTsLoader(Optional.empty(), transactionTs, transactionTs - 1);
 
         setup(startTsKnown, commitTsKnown);
@@ -180,19 +185,18 @@ public class CommitTimestampLoaderTest {
         verifyNoMoreInteractions(timestampCache);
     }
 
-    private void assertCanGetCommitTs(long startTs, long commitTs, CommitTimestampLoader commitTimestampLoader)
+    private void assertCanGetCommitTs(long startTs, long commitTs, DefaultCommitTimestampLoader commitTimestampLoader)
             throws InterruptedException, ExecutionException {
         LongLongMap loadedCommitTs = commitTimestampLoader
-                .getCommitTimestamps(TABLE_REF, LongLists.immutable.of(startTs), false, transactionService)
+                .getCommitTimestamps(TABLE_REF, LongLists.immutable.of(startTs))
                 .get();
         assertThat(loadedCommitTs.size()).isEqualTo(1);
         assertThat(loadedCommitTs.get(startTs)).isEqualTo(commitTs);
     }
 
-    private CommitTimestampLoader getCommitTsLoader(
+    private DefaultCommitTimestampLoader getCommitTsLoader(
             Optional<LockToken> lock, long transactionTs, long lastSeenCommitTs) {
-        createKnowledgeComponents(lastSeenCommitTs);
-        CommitTimestampLoader commitTimestampLoader = new CommitTimestampLoader(
+        return new DefaultCommitTimestampLoader(
                 timestampCache,
                 lock, // commitTsLoader does not care if the lock expires.
                 () -> transactionTs,
@@ -200,8 +204,8 @@ public class CommitTimestampLoaderTest {
                 metricsManager,
                 timelockService,
                 1l,
-                createKnowledgeComponents(lastSeenCommitTs));
-        return commitTimestampLoader;
+                createKnowledgeComponents(lastSeenCommitTs),
+                transactionService);
     }
 
     private TransactionKnowledgeComponents createKnowledgeComponents(long lastSeenCommitTs) {

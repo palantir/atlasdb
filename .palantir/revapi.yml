@@ -59,6 +59,21 @@ acceptedBreaks:
         \ com.palantir.atlasdb.cell.api.TransactionKeyValueService::get(com.palantir.atlasdb.keyvalue.api.TableReference,\
         \ java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, java.lang.Long>)"
       justification: "TransactionKeyValueService is largely internal"
+  "0.1059.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.addedToInterface"
+      new: "method com.google.common.util.concurrent.ListenableFuture<org.eclipse.collections.api.map.primitive.LongLongMap>\
+        \ com.palantir.atlasdb.transaction.api.CommitTimestampLoader::getCommitTimestampsNonBlockingForValidation(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ org.eclipse.collections.api.LongIterable)"
+      justification: "CommitTimestampLoader is an internal interface"
+    - code: "java.method.numberOfParametersChanged"
+      old: "method com.google.common.util.concurrent.ListenableFuture<org.eclipse.collections.api.map.primitive.LongLongMap>\
+        \ com.palantir.atlasdb.transaction.api.CommitTimestampLoader::getCommitTimestamps(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ org.eclipse.collections.api.LongIterable, boolean)"
+      new: "method com.google.common.util.concurrent.ListenableFuture<org.eclipse.collections.api.map.primitive.LongLongMap>\
+        \ com.palantir.atlasdb.transaction.api.CommitTimestampLoader::getCommitTimestamps(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ org.eclipse.collections.api.LongIterable)"
+      justification: "CommitTimestampLoader is an internal interface"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"

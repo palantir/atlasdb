@@ -204,7 +204,9 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         transactionConfig,
                         ConflictTracer.NO_OP,
                         tableLevelMetricsController,
-                        knowledge),
+                        knowledge,
+                        commitTimestampLoaderFactory.createCommitTimestampLoader(
+                                startTimestampSupplier, immutableTimestamp, Optional.of(immutableTsLock))),
                 pathTypeTracker);
     }
 

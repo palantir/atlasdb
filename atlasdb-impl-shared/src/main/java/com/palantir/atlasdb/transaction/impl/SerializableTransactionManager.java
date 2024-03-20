@@ -593,7 +593,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 transactionConfig,
                 conflictTracer,
                 tableLevelMetricsController,
-                knowledge);
+                knowledge,
+                commitTimestampLoaderFactory.createCommitTimestampLoader(
+                        startTimestampSupplier, immutableTimestamp, Optional.of(immutableTsLock)));
     }
 
     @VisibleForTesting
