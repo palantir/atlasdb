@@ -46,7 +46,7 @@ public final class ByteArrayUtilities {
         return true;
     }
 
-    private static boolean areByteMapsEqual(SortedMap<byte[], byte[]> map1, SortedMap<byte[], byte[]> map2) {
+    public static boolean areByteMapsEqual(SortedMap<byte[], byte[]> map1, SortedMap<byte[], byte[]> map2) {
         if (map1.size() != map2.size()) {
             return false;
         }
