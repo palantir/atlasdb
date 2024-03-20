@@ -257,6 +257,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final MultiTableSweepQueueWriter sweepQueue;
 
     protected final long immutableTimestamp;
+    private final PreCommitCondition preCommitCondition;
     protected final long timeCreated = System.currentTimeMillis();
 
     protected final LocalWriteBuffer localWriteBuffer = new LocalWriteBuffer();
@@ -355,6 +356,7 @@ public class SnapshotTransaction extends AbstractTransaction
         this.conflictDetectionManager = new TransactionConflictDetectionManager(conflictDetectionManager);
         this.sweepStrategyManager = sweepStrategyManager;
         this.immutableTimestamp = immutableTimestamp;
+        this.preCommitCondition = preCommitCondition;
         this.constraintCheckingMode = constraintCheckingMode;
         this.transactionReadTimeoutMillis = transactionTimeoutMillis;
         this.readSentinelBehavior = readSentinelBehavior;

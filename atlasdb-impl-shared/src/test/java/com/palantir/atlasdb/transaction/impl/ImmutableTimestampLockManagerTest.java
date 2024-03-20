@@ -26,11 +26,8 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.transaction.impl.precommit.LockValidityChecker;
 import com.palantir.lock.v2.LockToken;
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
@@ -83,10 +80,6 @@ public final class ImmutableTimestampLockManagerTest {
     @MethodSource("lockManagerConfigurations")
     public void returnsExpiredLocksWhenLocksNoLongerValid(
             Optional<LockToken> immutableTimestampLock, Optional<LockToken> userCommitLock, String testDescription) {
-        Set<LockToken> expectedLocks = Stream.of(immutableTimestampLock, userCommitLock)
-                .flatMap(Optional::stream)
-                .collect(Collectors.toSet());
-
         Assumptions.assumeTrue(
                 immutableTimestampLock.isPresent() || userCommitLock.isPresent(),
                 "Test not significant if both locks are not present");
@@ -108,10 +101,6 @@ public final class ImmutableTimestampLockManagerTest {
     @MethodSource("lockManagerConfigurationsWithPresentUserCommitLock")
     public void returnsLocksThatWereCheckedWhenGettingFullSummaryAndExpired(
             Optional<LockToken> immutableTimestampLock, String testDescription) {
-        Set<LockToken> expectedLocks = new HashSet<>();
-        immutableTimestampLock.ifPresent(expectedLocks::add);
-        expectedLocks.add(DEFAULT_COMMIT_LOCK_TOKEN);
-
         LockValidityChecker validityChecker = mock(LockValidityChecker.class);
         ImmutableTimestampLockManager immutableTimestampLockManager =
                 new ImmutableTimestampLockManager(immutableTimestampLock, validityChecker);
