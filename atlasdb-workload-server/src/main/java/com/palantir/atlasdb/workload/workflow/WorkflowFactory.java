@@ -40,7 +40,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class WorkflowFactory {
+public final class WorkflowFactory {
 
     private static final SafeLogger log = SafeLoggerFactory.get(WorkflowFactory.class);
     private final TaggedMetricRegistry taggedMetricRegistry;

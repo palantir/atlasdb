@@ -25,7 +25,7 @@ import io.dropwizard.lifecycle.setup.LifecycleEnvironment;
 import java.security.SecureRandom;
 import java.util.concurrent.ExecutorService;
 
-public class DefaultWorkflowExecutorFactory implements WorkflowExecutorFactory {
+public final class DefaultWorkflowExecutorFactory implements WorkflowExecutorFactory {
 
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultWorkflowExecutorFactory.class);
 
