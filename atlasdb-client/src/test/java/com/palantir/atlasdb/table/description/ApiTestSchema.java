@@ -78,13 +78,13 @@ public class ApiTestSchema implements AtlasSchema {
                 rowName();
                 Stream.of(ValueType.values())
                         .filter(type -> type != ValueType.BLOB && type != ValueType.STRING)
-                        .forEachOrdered(type -> rowComponent("component" + type.ordinal(), type));
+                        .forEachOrdered(type -> rowComponent("component" + type.getIndex(), type));
 
                 rowComponent("blobComponent", ValueType.BLOB); // has to be the last one
 
                 columns();
                 Stream.of(ValueType.values())
-                        .forEachOrdered(type -> column("column" + type.ordinal(), "c" + type.ordinal(), type));
+                        .forEachOrdered(type -> column("column" + type.getIndex(), "c" + type.getIndex(), type));
             }
         });
 

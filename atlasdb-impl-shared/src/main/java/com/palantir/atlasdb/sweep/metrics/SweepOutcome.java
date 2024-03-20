@@ -16,11 +16,21 @@
 package com.palantir.atlasdb.sweep.metrics;
 
 public enum SweepOutcome {
-    SUCCESS,
-    NOTHING_TO_SWEEP,
-    UNABLE_TO_ACQUIRE_LOCKS,
-    NOT_ENOUGH_DB_NODES_ONLINE,
-    TABLE_DROPPED_WHILE_SWEEPING,
-    ERROR,
-    FATAL
+    SUCCESS(0),
+    NOTHING_TO_SWEEP(1),
+    UNABLE_TO_ACQUIRE_LOCKS(2),
+    NOT_ENOUGH_DB_NODES_ONLINE(3),
+    TABLE_DROPPED_WHILE_SWEEPING(4),
+    ERROR(5),
+    FATAL(6);
+
+    private final int index;
+
+    SweepOutcome(int index) {
+        this.index = index;
+    }
+
+    int getIndex() {
+        return index;
+    }
 }

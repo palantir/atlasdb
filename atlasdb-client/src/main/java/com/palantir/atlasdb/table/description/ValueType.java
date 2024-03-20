@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.table.description;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
@@ -35,7 +36,7 @@ public enum ValueType {
      *
      * This value type supports range scans.
      */
-    VAR_LONG {
+    VAR_LONG(0) {
         @Override
         public int getMaxValueSize() {
             return 10;
@@ -115,7 +116,7 @@ public enum ValueType {
      * is to zero, the more efficiently it is encoded.  This also does correct sorting of negative
      * numbers, so they occur before positive numbers.
      */
-    VAR_SIGNED_LONG {
+    VAR_SIGNED_LONG(1) {
         @Override
         public int getMaxValueSize() {
             return 10;
@@ -194,7 +195,7 @@ public enum ValueType {
      * This encoding is for fixed long values.  It is always 8 bytes.
      * It correctly sorts negative numbers before positive numbers in it's encoding.
      */
-    FIXED_LONG {
+    FIXED_LONG(2) {
         @Override
         public int getMaxValueSize() {
             return 8;
@@ -274,7 +275,7 @@ public enum ValueType {
      * to each other won't be written next to each other.  This is good because it will spread out
      * the load of writes to many different ranges.
      */
-    FIXED_LONG_LITTLE_ENDIAN {
+    FIXED_LONG_LITTLE_ENDIAN(3) {
         @Override
         public int getMaxValueSize() {
             return 8;
@@ -360,7 +361,7 @@ public enum ValueType {
      *
      * Until Sha256Hash gets moved, you'll need to manually import Sha256Hash to your rendered class.
      */
-    SHA256HASH {
+    SHA256HASH(4) {
         @Override
         public int getMaxValueSize() {
             return 32;
@@ -435,7 +436,7 @@ public enum ValueType {
      * This value type DOES NOT support range scans.
      * Strings are sorted first by length and then alphabetically, which is probably not what you expected
      */
-    VAR_STRING {
+    VAR_STRING(5) {
         @Override
         public Pair<String, Integer> convertToString(byte[] value, int offset) {
             String str = EncodingUtils.decodeVarString(value, offset);
@@ -505,7 +506,7 @@ public enum ValueType {
             return "EncodingUtils.encodeVarString(" + variableName + ")";
         }
     },
-    STRING {
+    STRING(6) {
         @Override
         public Pair<String, Integer> convertToString(byte[] value, int offset) {
             int size = value.length - offset;
@@ -575,7 +576,7 @@ public enum ValueType {
             return "PtBytes.toBytes(" + variableName + ")";
         }
     },
-    BLOB {
+    BLOB(7) {
         @Override
         public Pair<String, Integer> convertToString(byte[] value, int offset) {
             int size = value.length - offset;
@@ -647,7 +648,7 @@ public enum ValueType {
     /**
      * This value type DOES NOT support range scans.
      */
-    SIZED_BLOB {
+    SIZED_BLOB(8) {
         @Override
         public Pair<String, Integer> convertToString(byte[] value, int offset) {
             byte[] bytes = EncodingUtils.decodeSizedBytes(value, offset);
@@ -717,7 +718,7 @@ public enum ValueType {
             return "EncodingUtils.sizeOfSizedBytes(" + variableName + ")";
         }
     },
-    NULLABLE_FIXED_LONG {
+    NULLABLE_FIXED_LONG(9) {
         @Override
         public int getMaxValueSize() {
             return 9;
@@ -790,7 +791,7 @@ public enum ValueType {
             return String.format("EncodingUtils.encodeNullableFixedLong(%s)", variableName);
         }
     },
-    UUID {
+    UUID(10) {
         @Override
         public java.util.UUID convertToJava(byte[] value, int offset) {
             com.palantir.logsafe.Preconditions.checkArgument(
@@ -857,6 +858,12 @@ public enum ValueType {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
+    private final int index;
+
+    ValueType(int index) {
+        this.index = index;
+    }
+
     public abstract Object convertToJava(byte[] value, int offset);
 
     public abstract Pair<String, Integer> convertToJson(byte[] value, int offset);
@@ -920,6 +927,11 @@ public enum ValueType {
 
     public TableMetadataPersistence.ValueType persistToProto() {
         return TableMetadataPersistence.ValueType.valueOf(name());
+    }
+
+    @VisibleForTesting
+    int getIndex() {
+        return index;
     }
 
     public static ValueType hydrateFromProto(TableMetadataPersistence.ValueType message) {
