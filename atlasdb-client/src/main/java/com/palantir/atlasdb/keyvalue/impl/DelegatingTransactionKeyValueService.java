@@ -95,4 +95,10 @@ public final class DelegatingTransactionKeyValueService implements TransactionKe
             throws KeyAlreadyExistsException {
         delegate.multiPut(valuesByTable, timestamp);
     }
+
+    @Override
+    public boolean isValid(long timestamp) {
+        // An individual key-value-service is going to be valid unless restricted above this layer.
+        return true;
+    }
 }
