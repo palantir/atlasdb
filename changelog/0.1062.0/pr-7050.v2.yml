@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: make ByteArrayUtilities#areByteMapsEqual public
+  links:
+  - https://github.com/palantir/atlasdb/pull/7050
