@@ -69,4 +69,10 @@ public interface TransactionKeyValueService {
 
     void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
             throws KeyAlreadyExistsException;
+
+    /**
+     * Returns whether this transaction key value service is guaranteed to be a source of truth for the broader system
+     * at the given timestamp.
+     */
+    boolean isValid(long timestamp);
 }

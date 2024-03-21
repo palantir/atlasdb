@@ -1766,7 +1766,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
 
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         SnapshotTransaction spiedSnapshotTransaction =
-                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager));
         Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
 
         // Fetching 3 cells, but expect only 2 to be present, for example
@@ -1805,7 +1805,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
 
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         SnapshotTransaction spiedSnapshotTransaction =
-                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager));
         Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
 
         // Fetching 3 cells, but expect only 2 to be present, for example
@@ -1844,7 +1844,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
 
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         SnapshotTransaction spiedSnapshotTransaction =
-                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager));
         Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
 
         // Fetching 3 cells, but expect only 2 to be present, for example
@@ -1889,7 +1889,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
 
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         SnapshotTransaction spiedSnapshotTransaction =
-                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager));
         Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
 
         Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> result =
@@ -1928,7 +1928,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
 
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         SnapshotTransaction spiedSnapshotTransaction =
-                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager));
         Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
 
         Result<Map<Cell, byte[]>, MoreCellsPresentThanExpectedException> result =
@@ -1964,7 +1964,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
 
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         SnapshotTransaction spiedSnapshotTransaction =
-                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager, pathTypeTracker));
+                spy(getSnapshotTransactionWith(transactionTs, res, mockLockWatchManager));
         Transaction transaction = transactionWrapper.apply(spiedSnapshotTransaction, pathTypeTracker);
 
         // Deleting existing cell and writing to a new one to simulate change from LOCAL -> REMOTE or vice versa.
@@ -1987,6 +1987,58 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         eq(1L),
                         any(),
                         any());
+    }
+
+    @Test
+    public void throwsRetriableExceptionIfTransactionKeyValueServiceNoLongerValid() {
+        ConjureStartTransactionsResponse startedTransactions = startTransactionWithWatches();
+        long transactionTs = startedTransactions.getTimestamps().start();
+        LongSupplier startTimestampSupplier = () -> transactionTs;
+        InvalidatableTransactionKeyValueService invalidatableTransactionKeyValueService =
+                new InvalidatableTransactionKeyValueService(
+                        txnKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier));
+
+        SnapshotTransaction snapshotTransaction = getSnapshotTransactionWith(
+                startTimestampSupplier,
+                startedTransactions.getImmutableTimestamp(),
+                invalidatableTransactionKeyValueService);
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        Transaction callbackAwareTransaction = transactionWrapper.apply(snapshotTransaction, pathTypeTracker);
+
+        callbackAwareTransaction.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
+
+        invalidatableTransactionKeyValueService.invalidate();
+        assertThatLoggableExceptionThrownBy(callbackAwareTransaction::commit)
+                .isInstanceOf(TransactionFailedRetriableException.class)
+                .hasLogMessage("Transaction key value service is no longer valid")
+                .args()
+                .contains(SafeArg.of("startTimestamp", transactionTs))
+                .anyMatch(arg -> arg.getName().equals("commitTimestamp") && ((long) arg.getValue()) > transactionTs);
+    }
+
+    @Test
+    public void doesNotThrowExceptionIfTransactionKeyValueServiceNoLongerValidOnTransactionNotPerformingWrites() {
+        ConjureStartTransactionsResponse startedTransactions = startTransactionWithWatches();
+        long transactionTs = startedTransactions.getTimestamps().start();
+        LongSupplier startTimestampSupplier = () -> transactionTs;
+        InvalidatableTransactionKeyValueService invalidatableTransactionKeyValueService =
+                new InvalidatableTransactionKeyValueService(
+                        txnKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier));
+
+        SnapshotTransaction snapshotTransaction = getSnapshotTransactionWith(
+                startTimestampSupplier,
+                startedTransactions.getImmutableTimestamp(),
+                invalidatableTransactionKeyValueService);
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        Transaction callbackAwareTransaction = transactionWrapper.apply(snapshotTransaction, pathTypeTracker);
+
+        callbackAwareTransaction.get(TABLE, ImmutableSet.of(TEST_CELL));
+        invalidatableTransactionKeyValueService.invalidate();
+
+        assertThatCode(callbackAwareTransaction::commit)
+                .as("although the transaction key value service was no longer valid, read transactions performed"
+                        + " all their reads effectively at the start timestamp, so these would still be valid.")
+                .doesNotThrowAnyException();
     }
 
     private TransactionScopedCache createCacheWithEntry(TableReference table, Cell cell, byte[] value) {
@@ -3290,16 +3342,36 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     private SnapshotTransaction getSnapshotTransactionWith(
-            long transactionTs,
-            LockImmutableTimestampResponse res,
-            LockWatchManagerInternal mockLockWatchManager,
-            PathTypeTracker pathTypeTracker) {
+            long transactionTs, LockImmutableTimestampResponse res, LockWatchManagerInternal mockLockWatchManager) {
         LongSupplier startTimestampSupplier = Suppliers.ofInstance(transactionTs)::get;
+        return getSnapshotTransactionWith(
+                startTimestampSupplier,
+                res,
+                mockLockWatchManager,
+                txnKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier));
+    }
+
+    private SnapshotTransaction getSnapshotTransactionWith(
+            LongSupplier startTimestampSupplier,
+            LockImmutableTimestampResponse lockImmutableTimestampResponse,
+            InvalidatableTransactionKeyValueService invalidatableTransactionKeyValueService) {
+        return getSnapshotTransactionWith(
+                startTimestampSupplier,
+                lockImmutableTimestampResponse,
+                inMemoryTimelockExtension.getLockWatchManager(),
+                invalidatableTransactionKeyValueService);
+    }
+
+    private SnapshotTransaction getSnapshotTransactionWith(
+            LongSupplier startTimestampSupplier,
+            LockImmutableTimestampResponse res,
+            LockWatchManagerInternal lockWatchManagerInternal,
+            TransactionKeyValueService transactionKeyValueService) {
         return new SnapshotTransaction(
                 metricsManager,
-                txnKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
+                transactionKeyValueService,
                 timelockService,
-                mockLockWatchManager,
+                lockWatchManagerInternal,
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 startTimestampSupplier,
@@ -3327,7 +3399,10 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 knowledge,
                 // For tests this is fine - this keeps a reference to res, which is strictly speaking inefficient.
                 createCommitTimestampLoader(
-                        transactionTs, res::getImmutableTimestamp, Optional.of(res.getLock()), timelockService));
+                        startTimestampSupplier.getAsLong(),
+                        res::getImmutableTimestamp,
+                        Optional.of(res.getLock()),
+                        timelockService));
     }
 
     private Transaction getSnapshotTransactionWith(

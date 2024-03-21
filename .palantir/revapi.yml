@@ -74,6 +74,11 @@ acceptedBreaks:
         \ com.palantir.atlasdb.transaction.api.CommitTimestampLoader::getCommitTimestamps(com.palantir.atlasdb.keyvalue.api.TableReference,\
         \ org.eclipse.collections.api.LongIterable)"
       justification: "CommitTimestampLoader is an internal interface"
+  "0.1060.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.addedToInterface"
+      new: "method boolean com.palantir.atlasdb.cell.api.TransactionKeyValueService::isValid(long)"
+      justification: "internal API"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"

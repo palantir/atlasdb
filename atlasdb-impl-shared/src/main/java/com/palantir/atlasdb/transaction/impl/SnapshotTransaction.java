@@ -95,6 +95,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
 import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
+import com.palantir.atlasdb.transaction.api.exceptions.SafeTransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsData;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableExpectationsData;
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionCommitLockInfo;
@@ -2141,6 +2142,15 @@ public class SnapshotTransaction extends AbstractTransaction
                 // Not timed as this is generally an asynchronous operation.
                 traced("microsForPunch", () -> cleaner.punch(commitTimestamp));
 
+                // Check the transactional key-value-service is still the source of truth at the commit timestamp.
+                // This can take place anytime before the actual commit (the putUnlessExists). However, situations
+                // in which the transaction key-value-service is invalid may also affect subsequent checks, and we
+                // would prefer for these to be flagged explicitly as such.
+                // Timed; this may in some implementations end up requiring external RPCs or database calls.
+                timedAndTraced(
+                        "transactionKvsValidityCheck",
+                        () -> throwIfTransactionKeyValueServiceNoLongerValid(commitTimestamp));
+
                 // Serializable transactions need to check their reads haven't changed, by reading again at
                 // commitTs + 1. This must happen before the lock check for thorough tables, because the lock check
                 // verifies the immutable timestamp hasn't moved forward - thorough sweep might sweep a conflict out
@@ -2180,6 +2190,15 @@ public class SnapshotTransaction extends AbstractTransaction
                 traced("postCommitUnlock", () -> timelockService.tryUnlock(ImmutableSet.of(commitLocksToken)));
             }
         });
+    }
+
+    private void throwIfTransactionKeyValueServiceNoLongerValid(long commitTimestamp) {
+        if (!transactionKeyValueService.isValid(commitTimestamp)) {
+            throw new SafeTransactionFailedRetriableException(
+                    "Transaction key value service is no longer valid",
+                    SafeArg.of("startTimestamp", getStartTimestamp()),
+                    SafeArg.of("commitTimestamp", commitTimestamp));
+        }
     }
 
     private void traced(String spanName, Runnable runnable) {
