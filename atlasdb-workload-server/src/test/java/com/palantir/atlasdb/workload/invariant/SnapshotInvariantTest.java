@@ -34,7 +34,6 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedRowColumnRan
 import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransaction;
 import com.palantir.atlasdb.workload.workflow.ImmutableWorkflowHistory;
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
@@ -49,7 +48,6 @@ public final class SnapshotInvariantTest {
 
     @Test
     public void catchesWriteWriteConflict() {
-        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder(WorkloadTestHelpers.TABLE_1)
                 .startTransaction(1L)
                 .write(5, 10, WorkloadTestHelpers.VALUE_ONE)
@@ -62,9 +60,10 @@ public final class SnapshotInvariantTest {
                 .history(transactions)
                 .transactionStore(readableTransactionStore)
                 .build();
-        SnapshotInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        List<InvalidWitnessedTransaction> invalidWitnessedTransactions =
+                SnapshotInvariant.INSTANCE.apply(workflowHistory);
 
-        InvalidWitnessedTransaction invalidTransaction = Iterables.getOnlyElement(invalidTransactions);
+        InvalidWitnessedTransaction invalidTransaction = Iterables.getOnlyElement(invalidWitnessedTransactions);
         assertThat(invalidTransaction.transaction().startTimestamp()).isEqualTo(5L);
         assertThat(invalidTransaction.transaction().commitTimestamp()).contains(20L);
 
@@ -81,7 +80,6 @@ public final class SnapshotInvariantTest {
 
     @Test
     public void catchesAbaWriteWriteConflictForDeletes() {
-        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder(WorkloadTestHelpers.TABLE_1)
                 .startTransaction(1L)
                 .delete(5, 10)
@@ -94,9 +92,10 @@ public final class SnapshotInvariantTest {
                 .history(transactions)
                 .transactionStore(readableTransactionStore)
                 .build();
-        SnapshotInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        List<InvalidWitnessedTransaction> invalidWitnessedTransactions =
+                SnapshotInvariant.INSTANCE.apply(workflowHistory);
 
-        InvalidWitnessedTransaction invalidTransaction = Iterables.getOnlyElement(invalidTransactions);
+        InvalidWitnessedTransaction invalidTransaction = Iterables.getOnlyElement(invalidWitnessedTransactions);
         assertThat(invalidTransaction.transaction().startTimestamp()).isEqualTo(5L);
         assertThat(invalidTransaction.transaction().commitTimestamp()).contains(20L);
 
@@ -112,7 +111,6 @@ public final class SnapshotInvariantTest {
 
     @Test
     public void doesNotCatchWriteSkew() {
-        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder(WorkloadTestHelpers.TABLE_1)
                 .startTransaction(1L)
                 .write(5, 10, WorkloadTestHelpers.VALUE_ONE)
@@ -126,13 +124,11 @@ public final class SnapshotInvariantTest {
                 .history(transactions)
                 .transactionStore(readableTransactionStore)
                 .build();
-        SnapshotInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
-        assertThat(invalidTransactions).isEmpty();
+        assertThat(SnapshotInvariant.INSTANCE.apply(workflowHistory)).isEmpty();
     }
 
     @Test
     public void doesNotCatchReadOnlyTransactionAnomaly() {
-        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder(WorkloadTestHelpers.TABLE_1)
                 .startTransaction(1L)
                 .write(5, 10, WorkloadTestHelpers.VALUE_ONE)
@@ -148,13 +144,11 @@ public final class SnapshotInvariantTest {
                 .history(transactions)
                 .transactionStore(readableTransactionStore)
                 .build();
-        SnapshotInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
-        assertThat(invalidTransactions).isEmpty();
+        assertThat(SnapshotInvariant.INSTANCE.apply(workflowHistory)).isEmpty();
     }
 
     @Test
     public void properlyReplaysReadsAndWrites() {
-        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder(WorkloadTestHelpers.TABLE_1)
                 .startTransaction(1L)
                 .write(5, 10, WorkloadTestHelpers.VALUE_ONE)
@@ -170,13 +164,11 @@ public final class SnapshotInvariantTest {
                 .history(transactions)
                 .transactionStore(readableTransactionStore)
                 .build();
-        SnapshotInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
-        assertThat(invalidTransactions).isEmpty();
+        assertThat(SnapshotInvariant.INSTANCE.apply(workflowHistory)).isEmpty();
     }
 
     @Test
     public void rowColumnRangeScanNotExpectedToReadColumnsCommittingAfterOurStart() {
-        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder(WorkloadTestHelpers.TABLE_1)
                 .startTransaction(1L)
                 .write(5, 10, WorkloadTestHelpers.VALUE_ONE)
@@ -198,13 +190,11 @@ public final class SnapshotInvariantTest {
                 .history(transactions)
                 .transactionStore(readableTransactionStore)
                 .build();
-        SnapshotInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
-        assertThat(invalidTransactions).isEmpty();
+        assertThat(SnapshotInvariant.INSTANCE.apply(workflowHistory)).isEmpty();
     }
 
     @Test
     public void rowColumnRangeScanFlagsColumnCommittingAfterOurStartAsViolating() {
-        List<InvalidWitnessedTransaction> invalidTransactions = new ArrayList<>();
         List<WitnessedTransaction> transactions = new WitnessedTransactionsBuilder(WorkloadTestHelpers.TABLE_1)
                 .startTransaction(5L)
                 .write(5, 20, WorkloadTestHelpers.VALUE_TWO)
@@ -223,9 +213,10 @@ public final class SnapshotInvariantTest {
                 .history(transactions)
                 .transactionStore(readableTransactionStore)
                 .build();
-        SnapshotInvariant.INSTANCE.accept(workflowHistory, invalidTransactions::addAll);
+        List<InvalidWitnessedTransaction> invalidWitnessedTransactions =
+                SnapshotInvariant.INSTANCE.apply(workflowHistory);
 
-        InvalidWitnessedTransaction invalidTransaction = Iterables.getOnlyElement(invalidTransactions);
+        InvalidWitnessedTransaction invalidTransaction = Iterables.getOnlyElement(invalidWitnessedTransactions);
         assertThat(invalidTransaction.transaction().startTimestamp()).isEqualTo(12L);
         assertThat(invalidTransaction.transaction().commitTimestamp()).contains(21L);
 

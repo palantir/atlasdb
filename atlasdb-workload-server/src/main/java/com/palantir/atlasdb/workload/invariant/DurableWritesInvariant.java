@@ -24,17 +24,15 @@ import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
 import io.vavr.Tuple;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
 
 public enum DurableWritesInvariant implements Invariant<Map<TableAndWorkloadCell, MismatchedValue>> {
     INSTANCE;
 
     @Override
-    public void accept(
-            WorkflowHistory workflowHistory, Consumer<Map<TableAndWorkloadCell, MismatchedValue>> invariantListener) {
+    public Map<TableAndWorkloadCell, MismatchedValue> apply(WorkflowHistory workflowHistory) {
         ValidationStore expectedState = InMemoryValidationStore.create(workflowHistory.history());
         ReadableTransactionStore storeToValidate = workflowHistory.transactionStore();
-        Map<TableAndWorkloadCell, MismatchedValue> cellsThatDoNotMatch = expectedState
+        return expectedState
                 .values()
                 .map((writtenCell, expectedValue) -> {
                     Optional<MismatchedValue> maybeMismatchedValue = Optional.empty();
@@ -49,6 +47,5 @@ public enum DurableWritesInvariant implements Invariant<Map<TableAndWorkloadCell
                 .filterValues(Optional::isPresent)
                 .mapValues(Optional::get)
                 .toJavaMap();
-        invariantListener.accept(cellsThatDoNotMatch);
     }
 }
