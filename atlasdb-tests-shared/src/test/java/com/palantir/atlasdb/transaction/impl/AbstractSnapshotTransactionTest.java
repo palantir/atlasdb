@@ -199,6 +199,8 @@ import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.jmock.lib.concurrent.Synchroniser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
@@ -2196,48 +2198,52 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 .doesNotThrowAnyException();
     }
 
-    @Test
-    public void getSweepSentinelUnderLateUncommittedWriteDoesNotThrow() {
+    @ParameterizedTest
+    @EnumSource(UncommittedValueType.class)
+    public void getSweepSentinelUnderLateUncommittedWriteDoesNotThrow(UncommittedValueType uncommittedValueType) {
         Transaction t1 = txManager.createNewTransaction();
         writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
-        putUncommittedAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
+        putUncommittedAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, TEST_CELL, uncommittedValueType);
 
         assertThatCode(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
                 .doesNotThrowAnyException();
     }
 
-    @Test
-    public void getSweepSentinelUnderEarlyUncommittedWriteDoesNotThrow() {
+    @ParameterizedTest
+    @EnumSource(UncommittedValueType.class)
+    public void getSweepSentinelUnderEarlyUncommittedWriteDoesNotThrow(UncommittedValueType uncommittedValueType) {
         writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
-        putUncommittedAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
+        putUncommittedAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, TEST_CELL, uncommittedValueType);
         Transaction t1 = txManager.createNewTransaction();
 
         assertThatCode(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
                 .doesNotThrowAnyException();
     }
 
-    @Test
-    public void getSweepSentinelUnderMultipleUncommittedWritesDoesNotThrow() {
+    @ParameterizedTest
+    @EnumSource(UncommittedValueType.class)
+    public void getSweepSentinelUnderMultipleUncommittedWritesDoesNotThrow(UncommittedValueType uncommittedValueType) {
         Transaction t1 = txManager.createNewTransaction();
         writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
 
         for (int transaction = 1; transaction <= 10; transaction++) {
-            putUncommittedAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
+            putUncommittedAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, TEST_CELL, uncommittedValueType);
         }
 
         assertThatCode(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
                 .doesNotThrowAnyException();
     }
 
-    @Test
-    public void getSweepSentinelUnderHiddenCommittedWriteThrows() {
+    @ParameterizedTest
+    @EnumSource(UncommittedValueType.class)
+    public void getSweepSentinelUnderHiddenCommittedWriteThrows(UncommittedValueType uncommittedValueType) {
         Transaction t1 = txManager.createNewTransaction();
         writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
 
         commitWrite(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
 
         for (int transaction = 1; transaction <= 10; transaction++) {
-            putUncommittedAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
+            putUncommittedAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, TEST_CELL, uncommittedValueType);
         }
 
         assertThatThrownBy(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL)))
@@ -2245,12 +2251,14 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 .hasMessageContaining("Tried to read a value that has been deleted.");
     }
 
-    @Test
-    public void getOrphanedSentinelAndSentinelUnderUncommittedWriteDoesNotThrow() {
+    @ParameterizedTest
+    @EnumSource(UncommittedValueType.class)
+    public void getOrphanedSentinelAndSentinelUnderUncommittedWriteDoesNotThrow(
+            UncommittedValueType uncommittedValueType) {
         Transaction t1 = txManager.createNewTransaction();
         writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
         writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, TEST_CELL_2);
-        putUncommittedAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, TEST_CELL_2);
+        putUncommittedAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, TEST_CELL_2, uncommittedValueType);
 
         assertThatCode(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL, TEST_CELL_2)))
                 .doesNotThrowAnyException();
@@ -2268,12 +2276,14 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 .hasMessageContaining("Tried to read a value that has been deleted.");
     }
 
-    @Test
-    public void getSentinelUnderCommittedAndSentinelUnderUncommittedWriteThrows() {
+    @ParameterizedTest
+    @EnumSource(UncommittedValueType.class)
+    public void getSentinelUnderCommittedAndSentinelUnderUncommittedWriteThrows(
+            UncommittedValueType uncommittedValueType) {
         Transaction t1 = txManager.createNewTransaction();
         writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
         writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, TEST_CELL_2);
-        putUncommittedAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, TEST_CELL);
+        putUncommittedAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, TEST_CELL, uncommittedValueType);
         commitWrite(TABLE_SWEPT_CONSERVATIVE, TEST_CELL_2);
 
         assertThatThrownBy(() -> t1.get(TABLE_SWEPT_CONSERVATIVE, ImmutableSet.of(TEST_CELL, TEST_CELL_2)))
@@ -2299,7 +2309,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
             Cell cell = cellsUnderUncommittedWrites.get(index);
             writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, cell);
             for (int uncommittedValue = 0; uncommittedValue <= index; uncommittedValue++) {
-                putUncommittedAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, cell);
+                putValueWithNoEntryInTransactionsTableAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, cell);
             }
         }
 
@@ -2308,7 +2318,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
             writeSentinelToTestTable(TABLE_SWEPT_CONSERVATIVE, cell);
             commitWrite(TABLE_SWEPT_CONSERVATIVE, cell);
             for (int uncommittedValue = 0; uncommittedValue < index; uncommittedValue++) {
-                putUncommittedAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, cell);
+                putValueWithNoEntryInTransactionsTableAtFreshTimestamp(TABLE_SWEPT_CONSERVATIVE, cell);
             }
         }
 
@@ -2351,10 +2361,12 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 .isEmpty();
     }
 
-    @Test
-    public void orphanedSentinelsCoveredWithUncommitedGetDeletedAfterDetectionInThoroughlySweptTable() {
+    @ParameterizedTest
+    @EnumSource(UncommittedValueType.class)
+    public void orphanedSentinelsCoveredWithUncommittedGetDeletedAfterDetectionInThoroughlySweptTable(
+            UncommittedValueType uncommittedValueType) {
         writeSentinelToTestTable(TABLE_SWEPT_THOROUGH, TEST_CELL);
-        putUncommittedAtFreshTimestamp(TABLE_SWEPT_THOROUGH, TEST_CELL);
+        putUncommittedAtFreshTimestamp(TABLE_SWEPT_THOROUGH, TEST_CELL, uncommittedValueType);
 
         Transaction t1 = txManager.createNewTransaction();
         assertThatCode(() -> t1.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL)))
@@ -2379,8 +2391,9 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 .isNotEmpty();
     }
 
-    @Test
-    public void testSentinelsDeletionForDifferentCasesInThoroughTable() {
+    @ParameterizedTest
+    @EnumSource(UncommittedValueType.class)
+    public void testSentinelsDeletionForDifferentCasesInThoroughTable(UncommittedValueType uncommittedValueType) {
         Transaction t1 = txManager.createNewTransaction();
 
         Cell testCell3 = Cell.create(PtBytes.toBytes("super"), PtBytes.toBytes("ez"));
@@ -2390,7 +2403,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
         writeSentinelToTestTable(TABLE_SWEPT_THOROUGH, testCell3);
 
         commitWrite(TABLE_SWEPT_THOROUGH, TEST_CELL);
-        putUncommittedAtFreshTimestamp(TABLE_SWEPT_THOROUGH, TEST_CELL_2);
+        putUncommittedAtFreshTimestamp(TABLE_SWEPT_THOROUGH, TEST_CELL_2, uncommittedValueType);
 
         assertThatThrownBy(() -> t1.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL, TEST_CELL_2, testCell3)))
                 .isInstanceOf(TransactionFailedRetriableException.class)
@@ -2978,7 +2991,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
     @Test
     public void exceptionThrownWhenTooManyPostFilterIterationsOccur() {
         for (int idx = 0; idx < SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS; idx++) {
-            putUncommittedAtFreshTimestamp(TABLE_NO_SWEEP, TEST_CELL);
+            putValueWithNoEntryInTransactionsTableAtFreshTimestamp(TABLE_NO_SWEEP, TEST_CELL);
         }
         assertThatLoggableExceptionThrownBy(
                         () -> txManager.runTaskThrowOnConflict(txn -> txn.get(TABLE_NO_SWEEP, Set.of(TEST_CELL))))
@@ -3297,11 +3310,32 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
         });
     }
 
-    private void putUncommittedAtFreshTimestamp(TableReference tableRef, Cell cell) {
+    private void putUncommittedAtFreshTimestamp(
+            TableReference tableRef, Cell cell, UncommittedValueType uncommittedValueType) {
+        switch (uncommittedValueType) {
+            case NO_ENTRY_IN_TRANSACTIONS_TABLE:
+                putValueWithNoEntryInTransactionsTableAtFreshTimestamp(tableRef, cell);
+                break;
+            case EXPLICIT_ABORT:
+                putAbortedAtFreshTimestamp(tableRef, cell);
+                break;
+            default:
+                throw new SafeIllegalStateException(
+                        "Unexpected uncommitted value type", SafeArg.of("uncommittedValueType", uncommittedValueType));
+        }
+    }
+
+    private void putValueWithNoEntryInTransactionsTableAtFreshTimestamp(TableReference tableRef, Cell cell) {
         keyValueService.put(
                 tableRef,
                 ImmutableMap.of(cell, PtBytes.toBytes("i am uncommitted")),
                 txManager.createNewTransaction().getTimestamp());
+    }
+
+    private void putAbortedAtFreshTimestamp(TableReference tableRef, Cell cell) {
+        long timestamp = txManager.createNewTransaction().getTimestamp();
+        keyValueService.put(tableRef, ImmutableMap.of(cell, PtBytes.toBytes("i am uncommitted")), timestamp);
+        transactionService.putUnlessExists(timestamp, Value.INVALID_VALUE_TIMESTAMP);
     }
 
     private void writeSentinelToTestTable(TableReference tableRef, Cell cell) {
@@ -3649,5 +3683,10 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 .mapToObj(i ->
                         Cell.create(PtBytes.toBytes("row" + (i % numberOfCellsPerRow)), PtBytes.toBytes("column" + i)))
                 .collect(Collectors.toUnmodifiableList());
+    }
+
+    private enum UncommittedValueType {
+        EXPLICIT_ABORT,
+        NO_ENTRY_IN_TRANSACTIONS_TABLE;
     }
 }
