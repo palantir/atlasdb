@@ -50,7 +50,7 @@ task postgresTest(type: Test) {
 task oracleTest(type: Test) {
     maxHeapSize = "1024m"
     include '**/oracle/'
-    maxParallelForks 2
+    maxParallelForks 1
 }
 
 test {
