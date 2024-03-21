@@ -94,6 +94,7 @@ public class ApiTestSchema implements AtlasSchema {
         return GENERIC_TEST_SCHEMA;
     }
 
+    // While regenerating, disable formatting.
     public static void main(String[] args) throws Exception {
         GENERIC_TEST_SCHEMA.renderTables(new File("atlasdb-client/src/integrationInput/java"));
     }
