@@ -18,10 +18,12 @@ package com.palantir.atlasdb.keyvalue.dbkvs.impl.oracle;
 
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 @ExtendWith(DbKvsOracleExtension.class)
+@Order(1)
 public class DbKvsOracleSerializableTransactionTest extends AbstractSerializableTransactionTest {
 
     @RegisterExtension
