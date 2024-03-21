@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: '[Workload Server] move workflow creation out of distribution module'
+  links:
+  - https://github.com/palantir/atlasdb/pull/7047
