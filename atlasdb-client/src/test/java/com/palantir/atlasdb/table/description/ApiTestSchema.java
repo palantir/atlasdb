@@ -78,13 +78,12 @@ public class ApiTestSchema implements AtlasSchema {
                 rowName();
                 Stream.of(ValueType.values())
                         .filter(type -> type != ValueType.BLOB && type != ValueType.STRING)
-                        .forEachOrdered(type -> rowComponent("component" + type.getIndex(), type));
+                        .forEachOrdered(type -> rowComponent("component" + type, type));
 
                 rowComponent("blobComponent", ValueType.BLOB); // has to be the last one
 
                 columns();
-                Stream.of(ValueType.values())
-                        .forEachOrdered(type -> column("column" + type.getIndex(), "c" + type.getIndex(), type));
+                Stream.of(ValueType.values()).forEachOrdered(type -> column("column" + type, "c" + type, type));
             }
         });
 
@@ -96,7 +95,7 @@ public class ApiTestSchema implements AtlasSchema {
     }
 
     public static void main(String[] args) throws Exception {
-        GENERIC_TEST_SCHEMA.renderTables(new File("src/integrationInput/java"));
+        GENERIC_TEST_SCHEMA.renderTables(new File("atlasdb-client/src/integrationInput/java"));
     }
 
     @Override
