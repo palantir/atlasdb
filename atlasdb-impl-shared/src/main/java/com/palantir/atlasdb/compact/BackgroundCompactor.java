@@ -284,12 +284,22 @@ public final class BackgroundCompactor implements AutoCloseable {
     }
 
     enum CompactionOutcome {
-        SUCCESS,
-        NOTHING_TO_COMPACT,
-        COMPACTED_BUT_NOT_REGISTERED,
-        UNABLE_TO_ACQUIRE_LOCKS,
-        FAILED_TO_COMPACT,
-        SHUTDOWN,
-        DISABLED
+        SUCCESS(0),
+        NOTHING_TO_COMPACT(1),
+        COMPACTED_BUT_NOT_REGISTERED(2),
+        UNABLE_TO_ACQUIRE_LOCKS(3),
+        FAILED_TO_COMPACT(4),
+        SHUTDOWN(5),
+        DISABLED(6);
+
+        private final int metricsIntRepresentation;
+
+        CompactionOutcome(int metricsIntRepresentation) {
+            this.metricsIntRepresentation = metricsIntRepresentation;
+        }
+
+        int getMetricsIntRepresentation() {
+            return metricsIntRepresentation;
+        }
     }
 }
