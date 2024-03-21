@@ -97,7 +97,7 @@ public final class DelegatingTransactionKeyValueService implements TransactionKe
     }
 
     @Override
-    public boolean isValid(long timestamp) {
+    public boolean isValid(long _timestamp) {
         // An individual key-value-service is going to be valid unless restricted above this layer.
         return true;
     }
