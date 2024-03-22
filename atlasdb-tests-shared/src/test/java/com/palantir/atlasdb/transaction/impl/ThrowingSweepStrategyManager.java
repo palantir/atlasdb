@@ -26,6 +26,6 @@ public enum ThrowingSweepStrategyManager implements SweepStrategyManager {
     @Override
     public SweepStrategy get(TableReference tableRef) {
         throw new SafeIllegalStateException(
-                "This should not be called - please use a proper SweepStrategyManager" + " if your test requires it.");
+                "This should not be called - please use a proper SweepStrategyManager if your test requires it.");
     }
 }

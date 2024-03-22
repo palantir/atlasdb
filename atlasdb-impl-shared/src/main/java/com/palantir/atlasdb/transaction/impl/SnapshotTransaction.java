@@ -1674,9 +1674,11 @@ public class SnapshotTransaction extends AbstractTransaction
             Cell key = e.getKey();
             Value value = e.getValue();
 
-            if (ReadSentinelHandler.isSweepSentinel(value) && !orphanedSentinels.contains(key)) {
+            if (ReadSentinelHandler.isSweepSentinel(value)) {
                 snapshotEventRecorder.recordFilteredSweepSentinel(tableRef);
-                readSentinelHandler.handleReadSentinel();
+                if (!orphanedSentinels.contains(key)) {
+                    readSentinelHandler.handleReadSentinel();
+                }
             } else {
                 long theirCommitTimestamp =
                         commitTimestamps.getIfAbsent(value.getTimestamp(), TransactionConstants.FAILED_COMMIT_TS);
