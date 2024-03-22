@@ -18,11 +18,15 @@ package com.palantir.atlasdb.transaction.impl.metrics;
 
 import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Timer;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.impl.SnapshotTransaction;
 import com.palantir.atlasdb.util.MetricsManager;
 
 public final class SnapshotTransactionMetricFactory {
+    // We continue to use the SnapshotTransaction origin to avoid a breaking change in our metric names.
+    private static final Class<SnapshotTransaction> DELEGATE_ORIGIN = SnapshotTransaction.class;
+
     private final MetricsManager metricsManager;
     private final TableLevelMetricsController tableLevelMetricsController;
 
@@ -32,13 +36,20 @@ public final class SnapshotTransactionMetricFactory {
         this.tableLevelMetricsController = tableLevelMetricsController;
     }
 
-    // Using the SnapshotTransaction class and not this class, to preserve backwards compatibility
+    public Timer getTimer(String name) {
+        return metricsManager.registerOrGetTimer(DELEGATE_ORIGIN, name);
+    }
+
+    public Histogram getHistogram(String name) {
+        return metricsManager.registerOrGetHistogram(DELEGATE_ORIGIN, name);
+    }
+
     public Histogram getHistogram(String name, TableReference tableRef) {
         return metricsManager.registerOrGetTaggedHistogram(
-                SnapshotTransaction.class, name, metricsManager.getTableNameTagFor(tableRef));
+                DELEGATE_ORIGIN, name, metricsManager.getTableNameTagFor(tableRef));
     }
 
     public Counter getCounter(String name, TableReference tableRef) {
-        return tableLevelMetricsController.createAndRegisterCounter(SnapshotTransaction.class, name, tableRef);
+        return tableLevelMetricsController.createAndRegisterCounter(DELEGATE_ORIGIN, name, tableRef);
     }
 }

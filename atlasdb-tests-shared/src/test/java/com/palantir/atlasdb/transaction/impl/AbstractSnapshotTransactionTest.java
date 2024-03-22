@@ -499,6 +499,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         SweepStrategyManagers.createDefault(keyValueService),
                         transactionTs,
                         Optional.empty(),
+                        PreCommitConditions.NO_OP,
                         AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                         null,
                         TransactionReadSentinelBehavior.THROW_EXCEPTION,
@@ -515,9 +516,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         knowledge,
                         manager, // Maybe not
                         createCommitTimestampLoader(
-                                transactionTs, () -> transactionTs, Optional.empty(), timelockService),
-                        createPreCommitConditionValidator(
-                                Optional.empty(), PreCommitConditions.NO_OP, timelockService, true)),
+                                transactionTs, () -> transactionTs, Optional.empty(), timelockService)),
                 pathTypeTracker);
         assertThatThrownBy(() -> snapshot.get(TABLE, ImmutableSet.of(cell))).isInstanceOf(RuntimeException.class);
 
@@ -2035,6 +2034,58 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         eq(1L));
     }
 
+    @Test
+    public void throwsRetriableExceptionIfTransactionKeyValueServiceNoLongerValid() {
+        ConjureStartTransactionsResponse startedTransactions = startTransactionWithWatches();
+        long transactionTs = startedTransactions.getTimestamps().start();
+        LongSupplier startTimestampSupplier = () -> transactionTs;
+        InvalidatableTransactionKeyValueService invalidatableTransactionKeyValueService =
+                new InvalidatableTransactionKeyValueService(
+                        txnKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier));
+
+        SnapshotTransaction snapshotTransaction = getSnapshotTransactionWith(
+                startTimestampSupplier,
+                startedTransactions.getImmutableTimestamp(),
+                invalidatableTransactionKeyValueService);
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        Transaction callbackAwareTransaction = transactionWrapper.apply(snapshotTransaction, pathTypeTracker);
+
+        callbackAwareTransaction.put(TABLE, ImmutableMap.of(TEST_CELL, TEST_VALUE));
+
+        invalidatableTransactionKeyValueService.invalidate();
+        assertThatLoggableExceptionThrownBy(callbackAwareTransaction::commit)
+                .isInstanceOf(TransactionFailedRetriableException.class)
+                .hasLogMessage("Transaction key value service is no longer valid")
+                .args()
+                .contains(SafeArg.of("startTimestamp", transactionTs))
+                .anyMatch(arg -> arg.getName().equals("commitTimestamp") && ((long) arg.getValue()) > transactionTs);
+    }
+
+    @Test
+    public void doesNotThrowExceptionIfTransactionKeyValueServiceNoLongerValidOnTransactionNotPerformingWrites() {
+        ConjureStartTransactionsResponse startedTransactions = startTransactionWithWatches();
+        long transactionTs = startedTransactions.getTimestamps().start();
+        LongSupplier startTimestampSupplier = () -> transactionTs;
+        InvalidatableTransactionKeyValueService invalidatableTransactionKeyValueService =
+                new InvalidatableTransactionKeyValueService(
+                        txnKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier));
+
+        SnapshotTransaction snapshotTransaction = getSnapshotTransactionWith(
+                startTimestampSupplier,
+                startedTransactions.getImmutableTimestamp(),
+                invalidatableTransactionKeyValueService);
+        PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
+        Transaction callbackAwareTransaction = transactionWrapper.apply(snapshotTransaction, pathTypeTracker);
+
+        callbackAwareTransaction.get(TABLE, ImmutableSet.of(TEST_CELL));
+        invalidatableTransactionKeyValueService.invalidate();
+
+        assertThatCode(callbackAwareTransaction::commit)
+                .as("although the transaction key value service was no longer valid, read transactions performed"
+                        + " all their reads effectively at the start timestamp, so these would still be valid.")
+                .doesNotThrowAnyException();
+    }
+
     private TransactionScopedCache createCacheWithEntry(TableReference table, Cell cell, byte[] value) {
         return createCacheWithEntries(table, ImmutableMap.of(cell, value));
     }
@@ -3338,12 +3389,34 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
     private SnapshotTransaction getSnapshotTransactionWith(
             long transactionTs, LockImmutableTimestampResponse res, LockWatchManagerInternal mockLockWatchManager) {
         LongSupplier startTimestampSupplier = Suppliers.ofInstance(transactionTs)::get;
+        return getSnapshotTransactionWith(
+                startTimestampSupplier,
+                res,
+                mockLockWatchManager,
+                txnKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier));
+    }
 
+    private SnapshotTransaction getSnapshotTransactionWith(
+            LongSupplier startTimestampSupplier,
+            LockImmutableTimestampResponse lockImmutableTimestampResponse,
+            InvalidatableTransactionKeyValueService invalidatableTransactionKeyValueService) {
+        return getSnapshotTransactionWith(
+                startTimestampSupplier,
+                lockImmutableTimestampResponse,
+                inMemoryTimelockExtension.getLockWatchManager(),
+                invalidatableTransactionKeyValueService);
+    }
+
+    private SnapshotTransaction getSnapshotTransactionWith(
+            LongSupplier startTimestampSupplier,
+            LockImmutableTimestampResponse res,
+            LockWatchManagerInternal lockWatchManagerInternal,
+            TransactionKeyValueService transactionKeyValueService) {
         return new SnapshotTransaction(
                 metricsManager,
-                txnKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
+                transactionKeyValueService,
                 timelockService,
-                mockLockWatchManager,
+                lockWatchManagerInternal,
                 transactionService,
                 NoOpCleaner.INSTANCE,
                 startTimestampSupplier,
@@ -3352,6 +3425,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 SweepStrategyManagers.createDefault(keyValueService),
                 res.getImmutableTimestamp(),
                 Optional.of(res.getLock()),
+                PreCommitConditions.NO_OP,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
@@ -3368,25 +3442,10 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 knowledge,
                 keyValueSnapshotReaderManager,
                 createCommitTimestampLoader(
-                        transactionTs, res::getImmutableTimestamp, Optional.of(res.getLock()), timelockService),
-                createPreCommitConditionValidator(
-                        Optional.of(res.getLock()), PreCommitConditions.NO_OP, timelockService, true));
-    }
-
-    private DefaultPreCommitRequirementValidator createPreCommitConditionValidator(
-            Optional<LockToken> immutableTsLock,
-            PreCommitCondition condition,
-            TimelockService timelockService,
-            boolean validateLocksOnReads) {
-        return new DefaultPreCommitRequirementValidator(
-                condition,
-                sweepStrategyManager,
-                transactionConfig::get,
-                new DefaultLockRefresher(timelockService),
-                immutableTsLock,
-                validateLocksOnReads,
-                TransactionOutcomeMetrics.create(
-                        TransactionMetrics.of(metricsManager.getTaggedRegistry()), metricsManager.getTaggedRegistry()));
+                        startTimestampSupplier.getAsLong(),
+                        res::getImmutableTimestamp,
+                        Optional.of(res.getLock()),
+                        timelockService));
     }
 
     private Transaction getSnapshotTransactionWith(
@@ -3427,6 +3486,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 SweepStrategyManagers.createDefault(keyValueService),
                 lockImmutableTimestampResponse.getImmutableTimestamp(),
                 Optional.of(lockImmutableTimestampResponse.getLock()),
+                preCommitCondition,
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 null,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
@@ -3446,9 +3506,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         startTs.get(),
                         lockImmutableTimestampResponse::getImmutableTimestamp,
                         Optional.of(lockImmutableTimestampResponse.getLock()),
-                        timelockService),
-                createPreCommitConditionValidator(
-                        immutableTimestampLock, preCommitCondition, timelockService, validateLocksOnReads));
+                        timelockService));
         return transactionWrapper.apply(transaction, pathTypeTracker);
     }
 

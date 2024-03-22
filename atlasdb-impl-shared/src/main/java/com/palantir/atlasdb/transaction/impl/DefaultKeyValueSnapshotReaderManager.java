@@ -58,7 +58,7 @@ public class DefaultKeyValueSnapshotReaderManager implements KeyValueSnapshotRea
                         orphanedSentinelDeleter),
                 transactionContext.startTimestampSupplier(),
                 (tableReference, timestampSupplier, allCellsReadAndPresent) -> transactionContext
-                        .preCommitRequirementValidator()
+                        .readSnapshotValidator()
                         .throwIfPreCommitRequirementsNotMetOnRead(
                                 tableReference, timestampSupplier.getAsLong(), allCellsReadAndPresent),
                 deleteExecutor,

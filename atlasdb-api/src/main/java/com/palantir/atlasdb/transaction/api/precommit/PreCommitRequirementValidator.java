@@ -14,25 +14,37 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.atlasdb.transaction.api.precommit;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.lock.v2.LockToken;
 import java.util.Map;
-import java.util.Optional;
+import javax.annotation.Nullable;
 
 public interface PreCommitRequirementValidator {
-    // TODO (jkong): The boolean means "are there unvalidated reads"?
-    boolean throwIfPreCommitRequirementsNotMetOnRead(
-            TableReference tableRef, long timestamp, boolean allPossibleCellsReadAndPresent);
-
+    /**
+     * Throws a {@link TransactionFailedException} if a user-provided pre-commit condition is no longer valid.
+     */
     void throwIfPreCommitConditionInvalid(long timestamp);
 
+    /**
+     * Throws a {@link TransactionFailedException} if a user-provided pre-commit condition is no longer valid,
+     * considering the mutations that are about to be committed.
+     */
     void throwIfPreCommitConditionInvalidAtCommitOnWriteTransaction(
             Map<TableReference, ? extends Map<Cell, byte[]>> mutations, long timestamp);
 
-    void throwIfPreCommitRequirementsNotMet(Optional<LockToken> commitLocksToken, long timestamp);
+    /**
+     * Throws a {@link TransactionFailedException} if the transaction can no longer commit; this can be because a
+     * user pre-commit condition is no longer valid, or possibly because of other internal state such as commit
+     * locks having expired.
+     */
+    void throwIfPreCommitRequirementsNotMet(@Nullable LockToken commitLocksToken, long timestamp);
 
-    void throwIfImmutableTsOrCommitLocksExpired(Optional<LockToken> commitLocksToken);
+    /**
+     * Throws a {@link TransactionFailedException} if the immutable timestamp lock or commit locks have expired.
+     */
+    void throwIfImmutableTsOrCommitLocksExpired(@Nullable LockToken commitLocksToken);
 }

@@ -52,8 +52,6 @@ import com.palantir.atlasdb.transaction.impl.metrics.MemoizingTableLevelMetricsC
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.ToplistDeltaFilteringTableLevelMetricsController;
-import com.palantir.atlasdb.transaction.impl.metrics.TransactionMetrics;
-import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -328,6 +326,7 @@ import java.util.stream.Collectors;
                 sweepStrategyManager,
                 immutableTimestamp,
                 immutableTimestampLock,
+                condition,
                 constraintModeSupplier.get(),
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
@@ -344,21 +343,7 @@ import java.util.stream.Collectors;
                 knowledge,
                 keyValueSnapshotReaderManager,
                 commitTimestampLoaderFactory.createCommitTimestampLoader(
-                        startTimestampSupplier, immutableTimestamp, immutableTimestampLock),
-                createPreCommitConditionValidator(immutableTimestampLock, condition));
-    }
-
-    protected final DefaultPreCommitRequirementValidator createPreCommitConditionValidator(
-            Optional<LockToken> immutableTsLock, PreCommitCondition condition) {
-        return new DefaultPreCommitRequirementValidator(
-                condition,
-                sweepStrategyManager,
-                transactionConfig,
-                new DefaultLockRefresher(timelockService),
-                immutableTsLock,
-                validateLocksOnReads,
-                TransactionOutcomeMetrics.create(
-                        TransactionMetrics.of(metricsManager.getTaggedRegistry()), metricsManager.getTaggedRegistry()));
+                        startTimestampSupplier, immutableTimestamp, immutableTimestampLock));
     }
 
     @Override
@@ -390,6 +375,7 @@ import java.util.stream.Collectors;
                 sweepStrategyManager,
                 immutableTs,
                 immutableTimestampLock,
+                condition,
                 constraintModeSupplier.get(),
                 cleaner.getTransactionReadTimeoutMillis(),
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
@@ -406,8 +392,7 @@ import java.util.stream.Collectors;
                 knowledge,
                 keyValueSnapshotReaderManager,
                 commitTimestampLoaderFactory.createCommitTimestampLoader(
-                        startTimestampSupplier, immutableTs, immutableTimestampLock),
-                createPreCommitConditionValidator(immutableTimestampLock, condition));
+                        startTimestampSupplier, immutableTs, immutableTimestampLock));
         return runTaskThrowOnConflictWithCallback(
                 txn -> task.execute(txn, condition),
                 new ReadTransaction(transaction, sweepStrategyManager),

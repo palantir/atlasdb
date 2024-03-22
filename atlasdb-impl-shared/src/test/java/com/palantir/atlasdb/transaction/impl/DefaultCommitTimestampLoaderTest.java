@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -38,6 +39,7 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
@@ -66,6 +68,7 @@ public class DefaultCommitTimestampLoaderTest {
         when(timestampCache.getCommitTimestampIfPresent(anyLong())).thenReturn(null);
         when(knownAbandonedTransactions.isKnownAbandoned(anyLong())).thenReturn(isAborted);
         when(transactionService.getAsyncV2(startTs)).thenReturn(Futures.immediateFuture(commitStatus));
+        when(timelockService.waitForLocks(any())).thenReturn(WaitForLocksResponse.successful());
     }
 
     @Test
@@ -97,7 +100,7 @@ public class DefaultCommitTimestampLoaderTest {
 
         assertThatExceptionOfType(ExecutionException.class)
                 .isThrownBy(() -> commitTimestampLoader
-                        .getCommitTimestamps(TABLE_REF, LongLists.immutable.of(startTs), false)
+                        .getCommitTimestamps(TABLE_REF, LongLists.immutable.of(startTs))
                         .get())
                 .withRootCauseInstanceOf(SafeIllegalStateException.class)
                 .withMessageContaining("Sweep has swept some entries with a commit TS after us");
@@ -185,7 +188,7 @@ public class DefaultCommitTimestampLoaderTest {
     private void assertCanGetCommitTs(long startTs, long commitTs, DefaultCommitTimestampLoader commitTimestampLoader)
             throws InterruptedException, ExecutionException {
         LongLongMap loadedCommitTs = commitTimestampLoader
-                .getCommitTimestamps(TABLE_REF, LongLists.immutable.of(startTs), false)
+                .getCommitTimestamps(TABLE_REF, LongLists.immutable.of(startTs))
                 .get();
         assertThat(loadedCommitTs.size()).isEqualTo(1);
         assertThat(loadedCommitTs.get(startTs)).isEqualTo(commitTs);

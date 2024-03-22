@@ -58,7 +58,6 @@ import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.ValueType;
-import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
@@ -71,8 +70,6 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.transaction.impl.SerializableTransaction.CellLoader;
 import com.palantir.atlasdb.transaction.impl.metrics.SimpleTableLevelMetricsController;
-import com.palantir.atlasdb.transaction.impl.metrics.TransactionMetrics;
-import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.base.BatchingVisitables;
@@ -182,8 +179,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 knowledge,
                 keyValueSnapshotReaderManager,
                 commitTimestampLoaderFactory.createCommitTimestampLoader(
-                        startTimestampSupplier, 0L, options.immutableLockToken),
-                createPreCommitConditionValidator(options.immutableLockToken, options.condition)) {
+                        startTimestampSupplier, 0L, options.immutableLockToken)) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, byte[]::clone);
@@ -1677,18 +1673,5 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         return IntStream.range(0, colCount)
                 .mapToObj(idx -> PtBytes.toBytes(getColumnWithIndex(idx)))
                 .collect(Collectors.toList());
-    }
-
-    private DefaultPreCommitRequirementValidator createPreCommitConditionValidator(
-            Optional<LockToken> immutableTsLock, PreCommitCondition condition) {
-        return new DefaultPreCommitRequirementValidator(
-                condition,
-                sweepStrategyManager,
-                () -> ImmutableTransactionConfig.builder().build(),
-                new DefaultLockRefresher(timelockService),
-                immutableTsLock,
-                true,
-                TransactionOutcomeMetrics.create(
-                        TransactionMetrics.of(metricsManager.getTaggedRegistry()), metricsManager.getTaggedRegistry()));
     }
 }

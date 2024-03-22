@@ -620,8 +620,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 knowledge,
                 keyValueSnapshotReaderManager,
                 commitTimestampLoaderFactory.createCommitTimestampLoader(
-                        startTimestampSupplier, immutableTimestamp, Optional.of(immutableTsLock)),
-                createPreCommitConditionValidator(Optional.of(immutableTsLock), preCommitCondition));
+                        startTimestampSupplier, immutableTimestamp, Optional.of(immutableTsLock)));
     }
 
     @VisibleForTesting

@@ -16,6 +16,8 @@
 
 package com.palantir.atlasdb.transaction.api;
 
+import com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator;
+import com.palantir.atlasdb.transaction.api.precommit.ReadSnapshotValidator;
 import java.util.function.LongSupplier;
 import org.immutables.value.Value;
 
@@ -31,6 +33,8 @@ public interface KeyValueSnapshotReaderManager {
         CommitTimestampLoader commitTimestampLoader();
 
         PreCommitRequirementValidator preCommitRequirementValidator();
+
+        ReadSnapshotValidator readSnapshotValidator();
 
         KeyValueSnapshotEventRecorder keyValueSnapshotEventRecorder();
     }

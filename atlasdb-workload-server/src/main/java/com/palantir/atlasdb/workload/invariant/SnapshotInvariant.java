@@ -26,7 +26,6 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedTransactionA
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
 import io.vavr.collection.Map;
 import java.util.List;
-import java.util.function.Consumer;
 
 /**
  * This invariant checks that the snapshot isolation property is maintained.
@@ -49,8 +48,7 @@ public enum SnapshotInvariant implements TransactionInvariant {
     INSTANCE;
 
     @Override
-    public void accept(
-            WorkflowHistory workflowHistory, Consumer<List<InvalidWitnessedTransaction>> invalidWitnessedTransactions) {
+    public List<InvalidWitnessedTransaction> apply(WorkflowHistory workflowHistory) {
         ImmutableList.Builder<InvalidWitnessedTransaction> invalidTransactionsBuilder = new ImmutableList.Builder<>();
         VersionedTableView<TableAndWorkloadCell, ValueAndMaybeTimestamp> tableView = new VersionedTableView<>();
         for (WitnessedTransaction witnessedTransaction : workflowHistory.history()) {
@@ -80,6 +78,6 @@ public enum SnapshotInvariant implements TransactionInvariant {
                         InvalidWitnessedTransaction.of(witnessedTransaction, invalidTransactionActions));
             }
         }
-        invalidWitnessedTransactions.accept(invalidTransactionsBuilder.build());
+        return invalidTransactionsBuilder.build();
     }
 }

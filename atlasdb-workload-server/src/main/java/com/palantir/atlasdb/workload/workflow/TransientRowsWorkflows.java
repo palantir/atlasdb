@@ -134,14 +134,14 @@ public final class TransientRowsWorkflows {
 
     private static Invariant<List<CrossCellInconsistency>> createSummaryRowInvariant(
             TransientRowsWorkflowConfiguration configuration) {
-        return (workflowHistory, notifier) -> {
+        return workflowHistory -> {
             List<CrossCellInconsistency> violations = new ArrayList<>();
             ReadableTransactionStore store = workflowHistory.transactionStore();
 
             violations.addAll(findInconsistencyInTransactionHistory(workflowHistory.history()));
             violations.addAll(findInconsistencyInFinalIndexState(configuration, store));
 
-            notifier.accept(violations);
+            return violations;
         };
     }
 
