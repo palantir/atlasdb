@@ -96,7 +96,11 @@ public final class TwoPhaseEncodingStrategy
             return AtomicValue.staging(commitStatus);
         }
 
-        throw new SafeIllegalArgumentException("Unknown commit state.", SafeArg.of("bytes", Arrays.toString(tail)));
+        throw new SafeIllegalArgumentException(
+                "Unknown commit state.",
+                SafeArg.of("startTimestamp", startTimestamp),
+                SafeArg.of("value", Arrays.toString(value)),
+                SafeArg.of("bytes", Arrays.toString(tail)));
     }
 
     public Stream<byte[]> encodeRangeOfStartTimestampsAsRows(long fromInclusive, long toInclusive) {
