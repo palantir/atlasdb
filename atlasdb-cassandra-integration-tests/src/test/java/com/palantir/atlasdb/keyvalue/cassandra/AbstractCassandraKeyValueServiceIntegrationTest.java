@@ -561,7 +561,7 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
                 MultiCheckAndSetRequest.multipleCells(TEST_TABLE, TEST_CELL.getRowName(), expected, updates);
 
         MultiCheckAndSetException ex =
-                assertThrows(MultiCheckAndSetException.class, () -> keyValueService.multiCheckAndSet(request));
+                assertThatThrownBy(() -> keyValueService.multiCheckAndSet(request)).isInstanceOf(MultiCheckAndSetException.class);
 
         assertThat(ex.getExpectedValues()).containsExactlyEntriesOf(expected);
         assertThat(ex.getActualValues()).isEmpty();
@@ -647,10 +647,8 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
                 MultiCheckAndSetRequest.newCells(TEST_TABLE, firstTestCell.getRowName(), firstPut));
         verifyMultiCheckAndSet(firstPut);
 
-        MultiCheckAndSetException ex = assertThrows(
-                MultiCheckAndSetException.class,
-                () -> keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.newCells(
-                        TEST_TABLE, firstTestCell.getRowName(), ImmutableMap.of(firstTestCell, secondVal))));
+        MultiCheckAndSetException ex = assertThatThrownBy(() -> keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.newCells(
+                        TEST_TABLE, firstTestCell.getRowName(), ImmutableMap.of(firstTestCell, secondVal)))).isInstanceOf(MultiCheckAndSetException.class);
 
         verifyMultiCheckAndSet(firstPut);
         assertThat(ex.getExpectedValues()).isEmpty();
@@ -684,10 +682,8 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
                         TEST_TABLE, nextTestCell.getRowName(), ImmutableMap.of(nextTestCell, val(0, 2)))))
                 .isInstanceOf(MultiCheckAndSetException.class);
 
-        MultiCheckAndSetException ex = assertThrows(
-                MultiCheckAndSetException.class,
-                () -> keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.newCells(
-                        TEST_TABLE, nextTestCell.getRowName(), ImmutableMap.of(nextTestCell, val(0, 2)))));
+        MultiCheckAndSetException ex = assertThatThrownBy(() -> keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.newCells(
+                        TEST_TABLE, nextTestCell.getRowName(), ImmutableMap.of(nextTestCell, val(0, 2))))).isInstanceOf(MultiCheckAndSetException.class);
         assertThat(ex.getExpectedValues()).isEmpty();
         assertThat(ex.getActualValues()).containsExactlyEntriesOf(ImmutableMap.of(nextTestCell, val(0, 1)));
 

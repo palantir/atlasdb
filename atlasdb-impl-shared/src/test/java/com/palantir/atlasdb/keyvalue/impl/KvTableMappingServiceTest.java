@@ -344,7 +344,7 @@ public class KvTableMappingServiceTest {
         int queryIterations = 100;
         for (int iteration = 0; iteration < queryIterations; iteration++) {
             assertThat(tableMapping.mapToShortTableNames(ImmutableMap.of(FQ_TABLE2, 2, FQ_TABLE3, 3)))
-                    .isEqualTo(ImmutableMap.of(mappedTableTwo, 2, mappedTableThree, 3));
+                    .containsExactlyInAnyOrderEntriesOf(ImmutableMap.of(mappedTableTwo, 2, mappedTableThree, 3));
         }
 
         // Once on startup (where it's empty), and once on the first query, but not after that.

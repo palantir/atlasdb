@@ -733,8 +733,8 @@ public final class CassandraTopologyValidatorTest {
                                 .build())
                 .build();
 
-        assertThat(topologies.hostIds()).isEqualTo(Sets.union(UUIDS, MAYBE_SAME_AS_FIRST_CLUSTER));
-        assertThat(topologies.serversInConsensus()).isEqualTo(Sets.union(oldServers, newServers));
+        assertThat(topologies.hostIds()).containsExactlyInAnyOrderElementsOf(Sets.union(UUIDS, MAYBE_SAME_AS_FIRST_CLUSTER));
+        assertThat(topologies.serversInConsensus()).containsExactlyInAnyOrderElementsOf(Sets.union(oldServers, newServers));
     }
 
     @Test
@@ -752,8 +752,8 @@ public final class CassandraTopologyValidatorTest {
                 NonSoftFailureHostIdResult.wrap(HostIdResult.success(ImmutableSet.of("one", "five")))));
 
         assertThat(newTopologies.serversInConsensus())
-                .isEqualTo(Sets.union(original.serversInConsensus(), newTopologies.serversInConsensus()));
-        assertThat(newTopologies.hostIds()).isEqualTo(Sets.union(original.hostIds(), newTopologies.hostIds()));
+                .containsExactlyInAnyOrderElementsOf(Sets.union(original.serversInConsensus(), newTopologies.serversInConsensus()));
+        assertThat(newTopologies.hostIds()).containsExactlyInAnyOrderElementsOf(Sets.union(original.hostIds(), newTopologies.hostIds()));
     }
 
     @Test
