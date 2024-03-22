@@ -914,7 +914,7 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     private Transaction getReadOnlyTransaction(final long commitTs) {
         CommitTimestampLoader readValidationLoader = new ReadValidationCommitTimestampLoader(
-                commitTimestampLoader, defaultTransactionService, getTimestamp(), commitTs, transactionOutcomeMetrics);
+                commitTimestampLoader, getTimestamp(), commitTs, transactionOutcomeMetrics);
         return new SnapshotTransaction(
                 metricsManager,
                 transactionKeyValueService,
