@@ -401,10 +401,7 @@ public class SnapshotTransaction extends AbstractTransaction
         this.preCommitRequirementValidator = new DefaultPreCommitRequirementValidator(
                 preCommitCondition, transactionOutcomeMetrics, immutableTimestampLockManager);
         this.readSnapshotValidator = new DefaultReadSnapshotValidator(
-                preCommitRequirementValidator,
-                validateLocksOnReads,
-                sweepStrategyManager,
-                transactionConfig);
+                preCommitRequirementValidator, validateLocksOnReads, sweepStrategyManager, transactionConfig);
         this.commitTimestampLoader = commitTimestampLoader;
         this.keyValueSnapshotReaderManager = keyValueSnapshotReaderManager;
         this.keyValueSnapshotReader = getDefaultKeyValueSnapshotReader();
@@ -990,10 +987,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     @VisibleForTesting
     ListenableFuture<Map<Cell, byte[]>> getInternal(
-            String operationName,
-            TableReference tableRef,
-            Set<Cell> cells,
-            long numberOfExpectedPresentCells) {
+            String operationName, TableReference tableRef, Set<Cell> cells, long numberOfExpectedPresentCells) {
         Timer.Context timer =
                 snapshotTransactionMetricFactory.getTimer(operationName).time();
         checkGetPreconditions(tableRef);
@@ -1853,8 +1847,7 @@ public class SnapshotTransaction extends AbstractTransaction
             ensureUncommitted();
             if (state.compareAndSet(State.UNCOMMITTED, State.ABORTED)) {
                 if (hasWrites()) {
-                    preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(
-                            null, getStartTimestamp());
+                    preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(null, getStartTimestamp());
                 }
                 transactionOutcomeMetrics.markAbort();
                 if (transactionLengthLogger.isDebugEnabled()) {
@@ -2078,8 +2071,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 // this transaction before making progress.
                 traced(
                         "postSweepEnqueueLockCheck",
-                        () -> preCommitRequirementValidator.throwIfImmutableTsOrCommitLocksExpired(
-                                commitLocksToken));
+                        () -> preCommitRequirementValidator.throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
 
                 // Write to the key value service. We must do this before getting the commit timestamp - otherwise
                 // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
@@ -2131,8 +2123,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 // timed.
                 traced(
                         "preCommitLockCheck",
-                        () -> preCommitRequirementValidator.throwIfImmutableTsOrCommitLocksExpired(
-                                commitLocksToken));
+                        () -> preCommitRequirementValidator.throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
 
                 // Not timed, because this just calls TransactionService.putUnlessExists, and that is timed.
                 traced(
@@ -2170,15 +2161,15 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private void timedAndTraced(String timerName, Runnable runnable) {
         try (Timer.Context timer =
-                     snapshotTransactionMetricFactory.getTimer(timerName).time()) {
+                snapshotTransactionMetricFactory.getTimer(timerName).time()) {
             traced(timerName, runnable);
         }
     }
 
     private <T> T timedAndTraced(String timerName, Supplier<T> supplier) {
         try (Timer.Context timer =
-                     snapshotTransactionMetricFactory.getTimer(timerName).time();
-             CloseableTracer tracer = CloseableTracer.startSpan(timerName)) {
+                        snapshotTransactionMetricFactory.getTimer(timerName).time();
+                CloseableTracer tracer = CloseableTracer.startSpan(timerName)) {
             return supplier.get();
         }
     }
@@ -2282,15 +2273,13 @@ public class SnapshotTransaction extends AbstractTransaction
             }
             if (!conflictingValues.containsKey(cell)) {
                 // This error case could happen if our locks expired.
-                preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(
-                        commitLocksToken, getStartTimestamp());
+                preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(commitLocksToken, getStartTimestamp());
                 Validate.isTrue(
                         false, "Missing conflicting value for cell: %s for table %s", cellToConflict.get(cell), table);
             }
             if (conflictingValues.get(cell).getTimestamp() != (cellEntry.getValue() - 1)) {
                 // This error case could happen if our locks expired.
-                preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(
-                        commitLocksToken, getStartTimestamp());
+                preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(commitLocksToken, getStartTimestamp());
                 Validate.isTrue(
                         false,
                         "Wrong timestamp for cell in table %s Expected: %s Actual: %s",
