@@ -160,9 +160,4 @@ public final class ReadSentinelHandlerTest {
                         "Unexpected uncommitted value type", SafeArg.of("uncommittedValueType", uncommittedValueType));
         }
     }
-
-    private enum UncommittedValueType {
-        EXPLICIT_ABORT,
-        NO_ENTRY_IN_TRANSACTIONS_TABLE;
-    }
 }

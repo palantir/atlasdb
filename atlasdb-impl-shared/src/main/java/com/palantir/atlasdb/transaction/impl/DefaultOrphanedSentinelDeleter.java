@@ -42,11 +42,12 @@ public final class DefaultOrphanedSentinelDeleter implements OrphanedSentinelDel
         if (orphanedSentinels.isEmpty()) {
             return;
         }
-        if (sweepStrategyProvider
+        boolean tableIsKnownToBeThoroughlySwept = sweepStrategyProvider
                 .apply(tableReference)
                 .getSweeperStrategy()
                 .map(sweeperStrategy -> sweeperStrategy == SweeperStrategy.THOROUGH)
-                .orElse(false)) {
+                .orElse(false);
+        if (tableIsKnownToBeThoroughlySwept) {
             Map<Cell, Long> sentinels = KeyedStream.of(orphanedSentinels)
                     .map(_ignore -> Value.INVALID_VALUE_TIMESTAMP)
                     .collectToMap();

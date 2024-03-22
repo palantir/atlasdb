@@ -3684,9 +3684,4 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         Cell.create(PtBytes.toBytes("row" + (i % numberOfCellsPerRow)), PtBytes.toBytes("column" + i)))
                 .collect(Collectors.toUnmodifiableList());
     }
-
-    private enum UncommittedValueType {
-        EXPLICIT_ABORT,
-        NO_ENTRY_IN_TRANSACTIONS_TABLE;
-    }
 }
