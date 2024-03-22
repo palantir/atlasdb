@@ -1,12 +1,65 @@
 acceptedBreaks:
   "0.1040.0":
     com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.removed"
+      old: "method java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, com.palantir.atlasdb.keyvalue.api.Value>\
+        \ com.palantir.atlasdb.cell.api.AutoDelegate_TransactionKeyValueService::get(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, java.lang.Long>)"
+      justification: "TransactionKeyValueService API not widely used yet"
+    - code: "java.method.removed"
+      old: "method java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, com.palantir.atlasdb.keyvalue.api.Value>\
+        \ com.palantir.atlasdb.cell.api.TransactionKeyValueService::get(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, java.lang.Long>)"
+      justification: "TransactionKeyValueService API not widely used yet"
+  "0.1041.0-rc3":
+    com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"
       old: "interface com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionKeyValueServiceManager"
       justification: "Still iterating on the APIs"
     - code: "java.class.removed"
       old: "interface com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager"
       justification: "Still iterating on the APIs"
+    - code: "java.method.addedToInterface"
+      new: "method java.util.NavigableMap<byte[], com.palantir.atlasdb.keyvalue.api.RowResult<byte[]>>\
+        \ com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader::getRows(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.lang.Iterable<byte[]>, com.palantir.atlasdb.keyvalue.api.ColumnSelection,\
+        \ com.google.common.collect.ImmutableMap.Builder<com.palantir.atlasdb.keyvalue.api.Cell,\
+        \ byte[]>)"
+      justification: "SnapshotReader and TimestampLoader are new internal interfaces"
+    - code: "java.method.addedToInterface"
+      new: "method void com.palantir.atlasdb.transaction.api.KeyValueSnapshotEventRecorder::recordEmptyValueRead(com.palantir.atlasdb.keyvalue.api.TableReference)"
+      justification: "SnapshotReader and TimestampLoader are new internal interfaces"
+    - code: "java.method.numberOfParametersChanged"
+      old: "method com.google.common.util.concurrent.ListenableFuture<org.eclipse.collections.api.map.primitive.LongLongMap>\
+        \ com.palantir.atlasdb.transaction.api.CommitTimestampLoader::getCommitTimestamps(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ org.eclipse.collections.api.LongIterable, boolean, com.palantir.atlasdb.transaction.service.AsyncTransactionService)"
+      new: "method com.google.common.util.concurrent.ListenableFuture<org.eclipse.collections.api.map.primitive.LongLongMap>\
+        \ com.palantir.atlasdb.transaction.api.CommitTimestampLoader::getCommitTimestamps(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ org.eclipse.collections.api.LongIterable, boolean)"
+      justification: "SnapshotReader and TimestampLoader are new internal interfaces"
+    - code: "java.method.numberOfParametersChanged"
+      old: "method com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager\
+        \ com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory<T>::create(com.palantir.atlasdb.coordination.CoordinationService<T>,\
+        \ com.palantir.atlasdb.spi.KeyValueServiceManager, com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig,\
+        \ com.palantir.refreshable.Refreshable<com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig>,\
+        \ boolean)"
+      new: "method com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager\
+        \ com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory<T>::create(java.lang.String,\
+        \ com.palantir.dialogue.clients.DialogueClients.ReloadingFactory, com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.coordination.CoordinationService<T>, com.palantir.atlasdb.spi.KeyValueServiceManager,\
+        \ com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig, com.palantir.refreshable.Refreshable<com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig>,\
+        \ boolean)"
+      justification: "updating internal APIs"
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager\
+        \ com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManagerFactory::createKeyValueSnapshotReaderManager(===com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager===,\
+        \ com.palantir.atlasdb.transaction.service.TransactionService, boolean, com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter,\
+        \ com.palantir.atlasdb.transaction.api.DeleteExecutor)"
+      new: "parameter com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager\
+        \ com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManagerFactory::createKeyValueSnapshotReaderManager(===com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager===,\
+        \ com.palantir.atlasdb.transaction.service.TransactionService, boolean, com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter,\
+        \ com.palantir.atlasdb.transaction.api.DeleteExecutor)"
+      justification: "updating internal APIs"
     - code: "java.method.returnTypeChanged"
       old: "method com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager\
         \ com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory<T>::create(com.palantir.atlasdb.coordination.CoordinationService<T>,\
@@ -19,6 +72,19 @@ acceptedBreaks:
         \ com.palantir.refreshable.Refreshable<com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig>,\
         \ boolean)"
       justification: "Still iterating on the APIs"
+    - code: "java.method.returnTypeChanged"
+      old: "method com.palantir.atlasdb.transaction.api.TransactionKeyValueServiceManager\
+        \ com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory<T>::create(com.palantir.atlasdb.coordination.CoordinationService<T>,\
+        \ com.palantir.atlasdb.spi.KeyValueServiceManager, com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig,\
+        \ com.palantir.refreshable.Refreshable<com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig>,\
+        \ boolean)"
+      new: "method com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager\
+        \ com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory<T>::create(java.lang.String,\
+        \ com.palantir.dialogue.clients.DialogueClients.ReloadingFactory, com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.coordination.CoordinationService<T>, com.palantir.atlasdb.spi.KeyValueServiceManager,\
+        \ com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig, com.palantir.refreshable.Refreshable<com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig>,\
+        \ boolean)"
+      justification: "updating internal APIs"
     com.palantir.atlasdb:atlasdb-config:
     - code: "java.method.numberOfParametersChanged"
       old: "method com.palantir.atlasdb.factory.TransactionManagersInitializer com.palantir.atlasdb.factory.TransactionManagersInitializer::createInitialTables(com.palantir.atlasdb.keyvalue.api.KeyValueService,\
@@ -47,8 +113,18 @@ acceptedBreaks:
     - code: "java.method.addedToInterface"
       new: "method boolean com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager::isInitialized()"
       justification: "Adding async init to TransactionKeyValueServiceManager"
-  "0.1050.0":
+  "0.1051.0-rc1":
     com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.numberOfParametersChanged"
+      old: "method com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager\
+        \ com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManagerFactory::createKeyValueSnapshotReaderManager(com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager,\
+        \ com.palantir.atlasdb.transaction.service.TransactionService, boolean, com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter,\
+        \ com.palantir.atlasdb.transaction.api.DeleteExecutor)"
+      new: "method com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager\
+        \ com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManagerFactory::createKeyValueSnapshotReaderManager(com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager,\
+        \ com.palantir.atlasdb.transaction.service.TransactionService, boolean, com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter,\
+        \ com.palantir.atlasdb.transaction.api.DeleteExecutor, com.palantir.atlasdb.util.MetricsManager)"
+      justification: "TransactionKeyValueService is largely internal"
     - code: "java.method.removed"
       old: "method java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, com.palantir.atlasdb.keyvalue.api.Value>\
         \ com.palantir.atlasdb.cell.api.AutoDelegate_TransactionKeyValueService::get(com.palantir.atlasdb.keyvalue.api.TableReference,\

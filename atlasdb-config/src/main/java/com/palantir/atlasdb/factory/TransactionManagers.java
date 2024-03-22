@@ -95,11 +95,18 @@ import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackS
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.DeleteExecutor;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManagerFactory;
 import com.palantir.atlasdb.transaction.api.LockWatchingCache;
 import com.palantir.atlasdb.transaction.api.NoOpLockWatchingCache;
+import com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
+import com.palantir.atlasdb.transaction.impl.DefaultDeleteExecutor;
+import com.palantir.atlasdb.transaction.impl.DefaultKeyValueSnapshotReaderManager;
+import com.palantir.atlasdb.transaction.impl.DefaultOrphanedSentinelDeleter;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
@@ -541,6 +548,15 @@ public abstract class TransactionManagers {
                 asyncInitializationCallback(),
                 createClearsTable(internalKeyValueService)));
 
+        // TODO (jkong): Allow user to inject here
+        DeleteExecutor deleteExecutor = DefaultDeleteExecutor.createDefault(internalKeyValueService);
+        KeyValueSnapshotReaderManager keyValueSnapshotReaderManager = createKeyValueSnapshotReaderManager(
+                transactionKeyValueServiceManager,
+                transactionService,
+                sweepStrategyManager,
+                deleteExecutor,
+                metricsManager);
+
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.createInstrumented(
                         metricsManager,
@@ -568,7 +584,9 @@ public abstract class TransactionManagers {
                         conflictTracer,
                         metricsFilterEvaluationContext(),
                         installConfig.sharedResourcesConfig().map(SharedResourcesConfig::sharedGetRangesPoolSize),
-                        knowledge),
+                        knowledge,
+                        deleteExecutor,
+                        keyValueSnapshotReaderManager),
                 closeables);
 
         transactionManager.registerClosingCallback(runtimeConfigRefreshable::close);
@@ -604,6 +622,32 @@ public abstract class TransactionManagers {
 
         log.info("Successfully created, and now returning a transaction manager: this may not be fully initialised.");
         return transactionManager;
+    }
+
+    private KeyValueSnapshotReaderManager createKeyValueSnapshotReaderManager(
+            TransactionKeyValueServiceManager transactionKeyValueServiceManager,
+            TransactionService transactionService,
+            SweepStrategyManager sweepStrategyManager,
+            DeleteExecutor deleteExecutor,
+            MetricsManager metricsManager) {
+        Optional<KeyValueSnapshotReaderManagerFactory> serviceDiscoveredFactory = config().transactionKeyValueService()
+                .map(AtlasDbServiceDiscovery::createKeyValueSnapshotReaderManagerFactoryOfCorrectType);
+        OrphanedSentinelDeleter orphanedSentinelDeleter =
+                new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor);
+        return serviceDiscoveredFactory
+                .map(factory -> factory.createKeyValueSnapshotReaderManager(
+                        transactionKeyValueServiceManager,
+                        transactionService,
+                        allowHiddenTableAccess(),
+                        orphanedSentinelDeleter,
+                        deleteExecutor,
+                        metricsManager))
+                .orElseGet(() -> new DefaultKeyValueSnapshotReaderManager(
+                        transactionKeyValueServiceManager,
+                        transactionService,
+                        allowHiddenTableAccess(),
+                        orphanedSentinelDeleter,
+                        deleteExecutor));
     }
 
     private <T> TransactionKeyValueServiceManager createTransactionKeyValueServiceManager(
