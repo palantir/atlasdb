@@ -40,6 +40,7 @@ import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceMa
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
@@ -98,6 +99,7 @@ public class SnapshotTransactionManagerTest {
     @BeforeEach
     public void setUp() {
         timestampService = inMemoryTimelockClassExtension.getManagedTimestampService();
+        SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         snapshotTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -108,7 +110,7 @@ public class SnapshotTransactionManagerTest {
                 mock(TransactionService.class),
                 () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
                 null,
-                null,
+                sweepStrategyManager,
                 cleaner,
                 false,
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
@@ -121,7 +123,13 @@ public class SnapshotTransactionManagerTest {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                new DefaultKeyValueSnapshotReaderManager(
+                        transactionKeyValueServiceManager,
+                        mock(TransactionService.class),
+                        false,
+                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
+                        deleteExecutor));
     }
 
     @Test
@@ -178,7 +186,14 @@ public class SnapshotTransactionManagerTest {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                new DefaultKeyValueSnapshotReaderManager(
+                        transactionKeyValueServiceManager,
+                        mock(TransactionService.class),
+                        false,
+                        new DefaultOrphanedSentinelDeleter(
+                                SweepStrategyManagers.createDefault(keyValueService)::get, deleteExecutor),
+                        deleteExecutor));
         newTransactionManager.close(); // should not throw
     }
 
@@ -309,7 +324,7 @@ public class SnapshotTransactionManagerTest {
                 mock(TransactionService.class),
                 () -> null,
                 null,
-                null,
+                SweepStrategyManagers.createDefault(keyValueService),
                 cleaner,
                 false,
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
@@ -324,6 +339,13 @@ public class SnapshotTransactionManagerTest {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                new DefaultKeyValueSnapshotReaderManager(
+                        transactionKeyValueServiceManager,
+                        mock(TransactionService.class),
+                        false,
+                        new DefaultOrphanedSentinelDeleter(
+                                SweepStrategyManagers.createDefault(keyValueService)::get, deleteExecutor),
+                        deleteExecutor));
     }
 }

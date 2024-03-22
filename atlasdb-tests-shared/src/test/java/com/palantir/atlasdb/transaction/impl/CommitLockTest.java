@@ -179,7 +179,8 @@ public class CommitLockTest extends TransactionTestSetup {
                 timestampCache,
                 MultiTableSweepQueueWriter.NO_OP,
                 knowledge,
-                MoreExecutors.newDirectExecutorService());
+                MoreExecutors.newDirectExecutorService(),
+                keyValueSnapshotReaderManager);
         transactionManager.overrideConflictHandlerForTable(TEST_TABLE, conflictHandler);
         return transactionManager;
     }

@@ -37,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
+import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
@@ -274,6 +275,7 @@ public class SerializableTransactionManagerTest {
 
     private TransactionManager getManagerWithCallback(
             boolean initializeAsync, Callback<TransactionManager> callBack, ScheduledExecutorService executor) {
+        DeleteExecutor defaultDeleteExecutor = DefaultDeleteExecutor.createDefault(mockKvs);
         return SerializableTransactionManager.create(
                 metricsManager,
                 new DelegatingTransactionKeyValueServiceManager(mockKvs),
@@ -300,7 +302,14 @@ public class SerializableTransactionManagerTest {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                defaultDeleteExecutor,
+                new DefaultKeyValueSnapshotReaderManager(
+                        new DelegatingTransactionKeyValueServiceManager(mockKvs),
+                        mock(TransactionService.class),
+                        false,
+                        mock(DefaultOrphanedSentinelDeleter.class),
+                        defaultDeleteExecutor));
     }
 
     private void nothingInitialized() {

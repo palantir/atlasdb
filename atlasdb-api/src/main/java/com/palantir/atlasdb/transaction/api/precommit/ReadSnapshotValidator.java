@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl.precommit;
+package com.palantir.atlasdb.transaction.api.precommit;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 

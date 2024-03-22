@@ -1,2 +1,4 @@
 com.palantir.atlasdb.spi.KeyValueServiceConfig
 com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig
+com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig
+com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig
