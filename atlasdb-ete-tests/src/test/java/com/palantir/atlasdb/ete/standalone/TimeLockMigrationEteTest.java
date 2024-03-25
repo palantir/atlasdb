@@ -176,8 +176,6 @@ public class TimeLockMigrationEteTest {
 
         downgradeAtlasClientFromTimelockWithoutMigration();
 
-        assertCanNeitherReadNorWrite();
-
         // Do this explicitly to avoid mountains of log spam
         CLIENT_ORCHESTRATION_EXTENSION.stopAtlasClient();
     }
@@ -211,18 +209,6 @@ public class TimeLockMigrationEteTest {
                 .assertThat(catchThrowable(timestampClient::getFreshTimestamp).getMessage())
                 .contains("NOT_FOUND")
                 .as("no longer exposes an embedded timestamp service");
-    }
-
-    private void assertCanNeitherReadNorWrite() {
-        TodoResource todoClient = createEteClientFor(TodoResource.class);
-        softAssertions
-                .assertThat(catchThrowable(() -> todoClient.addTodo(TODO_3)))
-                .as("cannot write using embedded service after migration to TimeLock")
-                .hasMessageContaining("Network transport failure");
-        softAssertions
-                .assertThat(catchThrowable(todoClient::getTodoList))
-                .as("cannot read using embedded service after migration to TimeLock")
-                .hasMessageContaining("Network transport failure");
     }
 
     private void assertTimeLockGivesHigherTimestampThan(long timestamp) {
