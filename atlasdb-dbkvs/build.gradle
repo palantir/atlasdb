@@ -51,3 +51,12 @@ dependencies {
   compileOnly 'org.immutables:value::annotations'
   compileOnly project(":atlasdb-processors")
 }
+// AutoServiceProcessor can incorrectly throw error for local, incremental builds
+tasks.withType(JavaCompile).configureEach {
+  doFirst {
+    def isLocal = !System.getenv().containsKey("CI")
+    if (isLocal) {
+      options.compilerArgs << '-Averify=false'
+    }
+  }
+}
