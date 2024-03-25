@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2023 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2024 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.invariant;
+package com.palantir.atlasdb.transaction.api;
 
-import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
-import java.util.function.Function;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.Set;
 
-/**
- * Check for an invariant given the provided {@link WorkflowHistory}, and returns an object indicating any violations.
- */
-public interface Invariant<Violations> extends Function<WorkflowHistory, Violations> {}
+public interface OrphanedSentinelDeleter {
+    void scheduleSentinelsForDeletion(TableReference tableReference, Set<Cell> orphanedSentinels);
+}

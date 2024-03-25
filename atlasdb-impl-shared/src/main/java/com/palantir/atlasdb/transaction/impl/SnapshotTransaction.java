@@ -73,7 +73,6 @@ import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
-import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintException;
 import com.palantir.atlasdb.tracing.TraceStatistics;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -117,6 +116,9 @@ import com.palantir.atlasdb.transaction.impl.metrics.TransactionMetrics;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.impl.precommit.DefaultLockValidityChecker;
 import com.palantir.atlasdb.transaction.impl.precommit.DefaultPreCommitRequirementValidator;
+import com.palantir.atlasdb.transaction.impl.precommit.DefaultReadSnapshotValidator;
+import com.palantir.atlasdb.transaction.impl.precommit.ReadSnapshotValidator;
+import com.palantir.atlasdb.transaction.impl.precommit.ReadSnapshotValidator.ValidationState;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -175,7 +177,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -193,7 +194,6 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
@@ -258,7 +258,6 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final MultiTableSweepQueueWriter sweepQueue;
 
     protected final long immutableTimestamp;
-    private final PreCommitCondition preCommitCondition;
     protected final long timeCreated = System.currentTimeMillis();
 
     protected final LocalWriteBuffer localWriteBuffer = new LocalWriteBuffer();
@@ -304,12 +303,14 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TransactionKnowledgeComponents knowledge;
     private final ImmutableTimestampLockManager immutableTimestampLockManager;
     private final PreCommitRequirementValidator preCommitRequirementValidator;
+    private final ReadSnapshotValidator readSnapshotValidator;
 
     protected final Closer closer = Closer.create();
 
     private final SnapshotTransactionMetricFactory snapshotTransactionMetricFactory;
 
     private final KeyValueSnapshotMetricRecorder snapshotEventRecorder;
+    private final ReadSentinelHandler readSentinelHandler;
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
@@ -357,7 +358,6 @@ public class SnapshotTransaction extends AbstractTransaction
         this.conflictDetectionManager = new TransactionConflictDetectionManager(conflictDetectionManager);
         this.sweepStrategyManager = sweepStrategyManager;
         this.immutableTimestamp = immutableTimestamp;
-        this.preCommitCondition = preCommitCondition;
         this.constraintCheckingMode = constraintCheckingMode;
         this.transactionReadTimeoutMillis = transactionTimeoutMillis;
         this.readSentinelBehavior = readSentinelBehavior;
@@ -389,7 +389,14 @@ public class SnapshotTransaction extends AbstractTransaction
                 immutableTimestampLock, new DefaultLockValidityChecker(timelockService));
         this.preCommitRequirementValidator = new DefaultPreCommitRequirementValidator(
                 preCommitCondition, transactionOutcomeMetrics, immutableTimestampLockManager);
+        this.readSnapshotValidator = new DefaultReadSnapshotValidator(
+                preCommitRequirementValidator, validateLocksOnReads, sweepStrategyManager, transactionConfig);
         this.commitTimestampLoader = commitTimestampLoader;
+        this.readSentinelHandler = new ReadSentinelHandler(
+                transactionKeyValueService,
+                transactionService,
+                readSentinelBehavior,
+                new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor));
     }
 
     protected TransactionScopedCache getCache() {
@@ -1274,20 +1281,11 @@ public class SnapshotTransaction extends AbstractTransaction
     */
     private void validatePreCommitRequirementsOnReadIfNecessary(
             TableReference tableRef, long timestamp, boolean allPossibleCellsReadAndPresent) {
-        if (isValidationNecessaryOnReads(tableRef, allPossibleCellsReadAndPresent)) {
-            preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(null, timestamp);
-        } else if (!allPossibleCellsReadAndPresent) {
+        ValidationState validationState = readSnapshotValidator.throwIfPreCommitRequirementsNotMetOnRead(
+                tableRef, timestamp, allPossibleCellsReadAndPresent);
+        if (validationState == ValidationState.NOT_COMPLETELY_VALIDATED) {
             hasPossiblyUnvalidatedReads = true;
         }
-    }
-
-    private boolean isValidationNecessaryOnReads(TableReference tableRef, boolean allPossibleCellsReadAndPresent) {
-        return validateLocksOnReads && requiresImmutableTimestampLocking(tableRef, allPossibleCellsReadAndPresent);
-    }
-
-    private boolean requiresImmutableTimestampLocking(TableReference tableRef, boolean allPossibleCellsReadAndPresent) {
-        return sweepStrategyManager.get(tableRef).mustCheckImmutableLock(allPossibleCellsReadAndPresent)
-                || transactionConfig.get().lockImmutableTsOnReadOnlyTransactions();
     }
 
     private List<Map.Entry<Cell, byte[]>> getPostFilteredWithLocalWrites(
@@ -1628,72 +1626,6 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     /**
-     * A sentinel becomes orphaned if the table has been truncated between the time where the write occurred and where
-     * it was truncated. In this case, there is a chance that we end up with a sentinel with no valid AtlasDB cell
-     * covering it. In this case, we ignore it.
-     */
-    private Set<Cell> findOrphanedSweepSentinels(TableReference table, Map<Cell, Value> rawResults) {
-        Set<Cell> sweepSentinels = Maps.filterValues(rawResults, SnapshotTransaction::isSweepSentinel)
-                .keySet();
-        if (sweepSentinels.isEmpty()) {
-            return Collections.emptySet();
-        }
-
-        // for each sentinel, start at long max. Then iterate down with each found uncommitted value.
-        // if committed value seen, stop: the sentinel is not orphaned
-        // if we get back -1, the sentinel is orphaned
-        Map<Cell, Long> timestampCandidates = new HashMap<>(
-                transactionKeyValueService.getLatestTimestamps(table, Maps.asMap(sweepSentinels, x -> Long.MAX_VALUE)));
-        Set<Cell> actualOrphanedSentinels = new HashSet<>();
-
-        while (!timestampCandidates.isEmpty()) {
-            Map<SentinelType, Map<Cell, Long>> sentinelTypeToTimestamps = timestampCandidates.entrySet().stream()
-                    .collect(Collectors.groupingBy(
-                            entry -> entry.getValue() == Value.INVALID_VALUE_TIMESTAMP
-                                    ? SentinelType.DEFINITE_ORPHANED
-                                    : SentinelType.INDETERMINATE,
-                            Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
-
-            Map<Cell, Long> definiteOrphans = sentinelTypeToTimestamps.get(SentinelType.DEFINITE_ORPHANED);
-            if (definiteOrphans != null) {
-                actualOrphanedSentinels.addAll(definiteOrphans.keySet());
-            }
-
-            Map<Cell, Long> cellsToQuery = sentinelTypeToTimestamps.get(SentinelType.INDETERMINATE);
-            if (cellsToQuery == null) {
-                break;
-            }
-            Set<Long> committedStartTimestamps = KeyedStream.stream(
-                            defaultTransactionService.get(cellsToQuery.values()))
-                    .filter(Objects::nonNull)
-                    .keys()
-                    .collect(Collectors.toSet());
-
-            Map<Cell, Long> nextTimestampCandidates = KeyedStream.stream(cellsToQuery)
-                    .filter(cellStartTimestamp -> !committedStartTimestamps.contains(cellStartTimestamp))
-                    .collectToMap();
-            timestampCandidates = transactionKeyValueService.getLatestTimestamps(table, nextTimestampCandidates);
-        }
-
-        deleteOrphanedSentinelsAsync(table, actualOrphanedSentinels);
-
-        return actualOrphanedSentinels;
-    }
-
-    private void deleteOrphanedSentinelsAsync(TableReference table, Set<Cell> actualOrphanedSentinels) {
-        if (sweepQueue.getSweepStrategy(table) == SweeperStrategy.THOROUGH) {
-            Map<Cell, Long> sentinels = KeyedStream.of(actualOrphanedSentinels)
-                    .map(_ignore -> Value.INVALID_VALUE_TIMESTAMP)
-                    .collectToMap();
-            deleteExecutor.scheduleForDeletion(table, sentinels);
-        }
-    }
-
-    private static boolean isSweepSentinel(Value value) {
-        return value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP;
-    }
-
-    /**
      * This will return all the key-value pairs that still need to be postFiltered.  It will output properly post
      * filtered keys to the {@code resultsCollector} output param.
      */
@@ -1704,7 +1636,8 @@ public class SnapshotTransaction extends AbstractTransaction
             Function<Value, T> transformer,
             TransactionKeyValueService asyncKeyValueService,
             AsyncTransactionService asyncTransactionService) {
-        Set<Cell> orphanedSentinels = findOrphanedSweepSentinels(tableRef, rawResults);
+        Set<Cell> orphanedSentinels =
+                readSentinelHandler.findAndMarkOrphanedSweepSentinelsForDeletion(tableRef, rawResults);
         LongSet valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
 
         return Futures.transformAsync(
@@ -1736,25 +1669,10 @@ public class SnapshotTransaction extends AbstractTransaction
             Cell key = e.getKey();
             Value value = e.getValue();
 
-            if (isSweepSentinel(value)) {
+            if (ReadSentinelHandler.isSweepSentinel(value)) {
                 snapshotEventRecorder.recordFilteredSweepSentinel(tableRef);
-
-                // This means that this transaction started too long ago. When we do garbage collection,
-                // we clean up old values, and this transaction started at a timestamp before the garbage collection.
-                switch (getReadSentinelBehavior()) {
-                    case IGNORE:
-                        break;
-                    case THROW_EXCEPTION:
-                        if (!orphanedSentinels.contains(key)) {
-                            throw new TransactionFailedRetriableException("Tried to read a value that has been "
-                                    + "deleted. This can be caused by hard delete transactions using the type "
-                                    + TransactionType.AGGRESSIVE_HARD_DELETE
-                                    + ". It can also be caused by transactions taking too long, or"
-                                    + " its locks expired. Retrying it should work.");
-                        }
-                        break;
-                    default:
-                        throw new IllegalStateException("Invalid read sentinel behavior " + getReadSentinelBehavior());
+                if (!orphanedSentinels.contains(key)) {
+                    readSentinelHandler.handleReadSentinel();
                 }
             } else {
                 long theirCommitTimestamp =
@@ -2746,10 +2664,11 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private boolean validationNecessaryForInvolvedTablesOnCommit() {
-        boolean anyTableRequiresImmutableTimestampLocking = involvedTables.stream()
-                .anyMatch(tableRef -> requiresImmutableTimestampLocking(tableRef, !hasPossiblyUnvalidatedReads));
+        boolean anyTableRequiresPreCommitValidation = involvedTables.stream()
+                .anyMatch(tableRef -> readSnapshotValidator.doesTableRequirePreCommitValidation(
+                        tableRef, !hasPossiblyUnvalidatedReads));
         boolean needsToValidate = !validateLocksOnReads || !hasReads();
-        return anyTableRequiresImmutableTimestampLocking && needsToValidate;
+        return anyTableRequiresPreCommitValidation && needsToValidate;
     }
 
     @Override
@@ -2865,11 +2784,6 @@ public class SnapshotTransaction extends AbstractTransaction
             AssertUtils.assertAndLog(log, false, "Expected state: " + expectedState + "; actual state: " + actualState);
         }
         return tableRefToCells;
-    }
-
-    private enum SentinelType {
-        DEFINITE_ORPHANED,
-        INDETERMINATE;
     }
 
     private final class SuccessCallbackManager {

@@ -33,17 +33,15 @@ import com.palantir.atlasdb.workload.transaction.witnessed.WitnessedWriteTransac
 import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Consumer;
 import one.util.streamex.StreamEx;
 
 public enum SerializableInvariant implements TransactionInvariant {
     INSTANCE;
 
     @Override
-    public void accept(
-            WorkflowHistory workflowHistory, Consumer<List<InvalidWitnessedTransaction>> invalidWitnessedTransactions) {
+    public List<InvalidWitnessedTransaction> apply(WorkflowHistory workflowHistory) {
         SerializableInvariantVisitor visitor = new SerializableInvariantVisitor();
-        List<InvalidWitnessedTransaction> transactions = StreamEx.of(workflowHistory.history())
+        return StreamEx.of(workflowHistory.history())
                 .mapPartial(witnessedTransaction -> {
                     List<InvalidWitnessedTransactionAction> invalidTransactions = StreamEx.of(
                                     witnessedTransaction.actions())
@@ -57,7 +55,6 @@ public enum SerializableInvariant implements TransactionInvariant {
                     return Optional.of(InvalidWitnessedTransaction.of(witnessedTransaction, invalidTransactions));
                 })
                 .toList();
-        invalidWitnessedTransactions.accept(transactions);
     }
 
     private static final class SerializableInvariantVisitor

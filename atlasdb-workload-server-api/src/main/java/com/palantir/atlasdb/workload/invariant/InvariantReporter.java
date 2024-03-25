@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.workload.invariant;
 
-import com.palantir.atlasdb.workload.workflow.WorkflowHistory;
 import java.util.function.Consumer;
 import org.immutables.value.Value;
 
@@ -28,8 +27,4 @@ public interface InvariantReporter<ViolationsT> {
 
     @Value.Parameter
     Consumer<ViolationsT> consumer();
-
-    default void report(WorkflowHistory history) {
-        invariant().accept(history, consumer());
-    }
 }

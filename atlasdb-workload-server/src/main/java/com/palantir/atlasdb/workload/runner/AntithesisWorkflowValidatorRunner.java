@@ -21,6 +21,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.palantir.atlasdb.workload.invariant.Invariant;
 import com.palantir.atlasdb.workload.invariant.InvariantReporter;
 import com.palantir.atlasdb.workload.workflow.Workflow;
 import com.palantir.atlasdb.workload.workflow.WorkflowAndInvariants;
@@ -29,11 +30,13 @@ import com.palantir.atlasdb.workload.workflow.WorkflowHistoryValidator;
 import com.palantir.atlasdb.workload.workflow.WorkflowRunner;
 import com.palantir.atlasdb.workload.workflow.WorkflowValidatorRunner;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
@@ -91,11 +94,16 @@ public final class AntithesisWorkflowValidatorRunner implements WorkflowValidato
                 SafeArg.of("transactionLog", validator.history().history()));
     }
 
-    private void validateInvariant(InvariantReporter<?> reporter, WorkflowHistory history) {
+    private <ViolationsT> void validateInvariant(InvariantReporter<ViolationsT> reporter, WorkflowHistory history) {
+        Optional<ViolationsT> violations = getInvariantViolations(reporter.invariant(), history);
+        violations.ifPresent(presentViolations -> reporter.consumer().accept(presentViolations));
+    }
+
+    private <ViolationsT> Optional<ViolationsT> getInvariantViolations(
+            Invariant<ViolationsT> invariant, WorkflowHistory history) {
         for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
             try {
-                reporter.report(history);
-                return;
+                return Optional.of(invariant.apply(history));
             } catch (RuntimeException e) {
                 if (attempt == MAX_ATTEMPTS - 1) {
                     log.error(
@@ -103,6 +111,7 @@ public final class AntithesisWorkflowValidatorRunner implements WorkflowValidato
                                     + " number of times. Will no longer attempt to validate.",
                             SafeArg.of("numAttempts", MAX_ATTEMPTS),
                             e);
+                    return Optional.empty();
                 } else {
                     log.info(
                             "Caught an exception when running and reporting an invariant. Will sleep and then retry.",
@@ -117,6 +126,7 @@ public final class AntithesisWorkflowValidatorRunner implements WorkflowValidato
                 }
             }
         }
+        throw new SafeIllegalStateException("Should not reach here");
     }
 
     private List<ListenableFuture<WorkflowHistoryValidator>> submitWorkflowValidators(

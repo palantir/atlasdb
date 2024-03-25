@@ -138,165 +138,165 @@ public final class AllValueTypesTestTable implements
     /**
      * <pre>
      * AllValueTypesTestRow {
-     *   {@literal Long component0};
-     *   {@literal Long component1};
-     *   {@literal Long component2};
-     *   {@literal Long component3};
-     *   {@literal Sha256Hash component4};
-     *   {@literal String component5};
-     *   {@literal byte[] component8};
-     *   {@literal Long component9};
-     *   {@literal UUID component10};
+     *   {@literal Long componentVARLONG};
+     *   {@literal Long componentVARSIGNEDLONG};
+     *   {@literal Long componentFIXEDLONG};
+     *   {@literal Long componentFIXEDLONGLITTLEENDIAN};
+     *   {@literal Sha256Hash componentSHA256HASH};
+     *   {@literal String componentVARSTRING};
+     *   {@literal byte[] componentSIZEDBLOB};
+     *   {@literal Long componentNULLABLEFIXEDLONG};
+     *   {@literal UUID componentUUID};
      *   {@literal byte[] blobComponent};
      * }
      * </pre>
      */
     public static final class AllValueTypesTestRow implements Persistable, Comparable<AllValueTypesTestRow> {
-        private final long component0;
-        private final long component1;
-        private final long component2;
-        private final long component3;
-        private final Sha256Hash component4;
-        private final String component5;
-        private final byte[] component8;
-        private final @Nullable Long component9;
-        private final UUID component10;
+        private final long componentVARLONG;
+        private final long componentVARSIGNEDLONG;
+        private final long componentFIXEDLONG;
+        private final long componentFIXEDLONGLITTLEENDIAN;
+        private final Sha256Hash componentSHA256HASH;
+        private final String componentVARSTRING;
+        private final byte[] componentSIZEDBLOB;
+        private final @Nullable Long componentNULLABLEFIXEDLONG;
+        private final UUID componentUUID;
         private final byte[] blobComponent;
 
-        public static AllValueTypesTestRow of(long component0, long component1, long component2, long component3, Sha256Hash component4, String component5, byte[] component8, @Nullable Long component9, UUID component10, byte[] blobComponent) {
-            return new AllValueTypesTestRow(component0, component1, component2, component3, component4, component5, component8, component9, component10, blobComponent);
+        public static AllValueTypesTestRow of(long componentVARLONG, long componentVARSIGNEDLONG, long componentFIXEDLONG, long componentFIXEDLONGLITTLEENDIAN, Sha256Hash componentSHA256HASH, String componentVARSTRING, byte[] componentSIZEDBLOB, @Nullable Long componentNULLABLEFIXEDLONG, UUID componentUUID, byte[] blobComponent) {
+            return new AllValueTypesTestRow(componentVARLONG, componentVARSIGNEDLONG, componentFIXEDLONG, componentFIXEDLONGLITTLEENDIAN, componentSHA256HASH, componentVARSTRING, componentSIZEDBLOB, componentNULLABLEFIXEDLONG, componentUUID, blobComponent);
         }
 
-        private AllValueTypesTestRow(long component0, long component1, long component2, long component3, Sha256Hash component4, String component5, byte[] component8, @Nullable Long component9, UUID component10, byte[] blobComponent) {
-            this.component0 = component0;
-            this.component1 = component1;
-            this.component2 = component2;
-            this.component3 = component3;
-            this.component4 = component4;
-            this.component5 = component5;
-            this.component8 = component8;
-            this.component9 = component9;
-            this.component10 = component10;
+        private AllValueTypesTestRow(long componentVARLONG, long componentVARSIGNEDLONG, long componentFIXEDLONG, long componentFIXEDLONGLITTLEENDIAN, Sha256Hash componentSHA256HASH, String componentVARSTRING, byte[] componentSIZEDBLOB, @Nullable Long componentNULLABLEFIXEDLONG, UUID componentUUID, byte[] blobComponent) {
+            this.componentVARLONG = componentVARLONG;
+            this.componentVARSIGNEDLONG = componentVARSIGNEDLONG;
+            this.componentFIXEDLONG = componentFIXEDLONG;
+            this.componentFIXEDLONGLITTLEENDIAN = componentFIXEDLONGLITTLEENDIAN;
+            this.componentSHA256HASH = componentSHA256HASH;
+            this.componentVARSTRING = componentVARSTRING;
+            this.componentSIZEDBLOB = componentSIZEDBLOB;
+            this.componentNULLABLEFIXEDLONG = componentNULLABLEFIXEDLONG;
+            this.componentUUID = componentUUID;
             this.blobComponent = blobComponent;
         }
 
-        public long getComponent0() {
-            return component0;
+        public long getComponentVARLONG() {
+            return componentVARLONG;
         }
 
-        public long getComponent1() {
-            return component1;
+        public long getComponentVARSIGNEDLONG() {
+            return componentVARSIGNEDLONG;
         }
 
-        public long getComponent2() {
-            return component2;
+        public long getComponentFIXEDLONG() {
+            return componentFIXEDLONG;
         }
 
-        public long getComponent3() {
-            return component3;
+        public long getComponentFIXEDLONGLITTLEENDIAN() {
+            return componentFIXEDLONGLITTLEENDIAN;
         }
 
-        public Sha256Hash getComponent4() {
-            return component4;
+        public Sha256Hash getComponentSHA256HASH() {
+            return componentSHA256HASH;
         }
 
-        public String getComponent5() {
-            return component5;
+        public String getComponentVARSTRING() {
+            return componentVARSTRING;
         }
 
-        public byte[] getComponent8() {
-            return component8;
+        public byte[] getComponentSIZEDBLOB() {
+            return componentSIZEDBLOB;
         }
 
-        public @Nullable Long getComponent9() {
-            return component9;
+        public @Nullable Long getComponentNULLABLEFIXEDLONG() {
+            return componentNULLABLEFIXEDLONG;
         }
 
-        public UUID getComponent10() {
-            return component10;
+        public UUID getComponentUUID() {
+            return componentUUID;
         }
 
         public byte[] getBlobComponent() {
             return blobComponent;
         }
 
-        public static Function<AllValueTypesTestRow, Long> getComponent0Fun() {
+        public static Function<AllValueTypesTestRow, Long> getComponentVARLONGFun() {
             return new Function<AllValueTypesTestRow, Long>() {
                 @Override
                 public Long apply(AllValueTypesTestRow row) {
-                    return row.component0;
+                    return row.componentVARLONG;
                 }
             };
         }
 
-        public static Function<AllValueTypesTestRow, Long> getComponent1Fun() {
+        public static Function<AllValueTypesTestRow, Long> getComponentVARSIGNEDLONGFun() {
             return new Function<AllValueTypesTestRow, Long>() {
                 @Override
                 public Long apply(AllValueTypesTestRow row) {
-                    return row.component1;
+                    return row.componentVARSIGNEDLONG;
                 }
             };
         }
 
-        public static Function<AllValueTypesTestRow, Long> getComponent2Fun() {
+        public static Function<AllValueTypesTestRow, Long> getComponentFIXEDLONGFun() {
             return new Function<AllValueTypesTestRow, Long>() {
                 @Override
                 public Long apply(AllValueTypesTestRow row) {
-                    return row.component2;
+                    return row.componentFIXEDLONG;
                 }
             };
         }
 
-        public static Function<AllValueTypesTestRow, Long> getComponent3Fun() {
+        public static Function<AllValueTypesTestRow, Long> getComponentFIXEDLONGLITTLEENDIANFun() {
             return new Function<AllValueTypesTestRow, Long>() {
                 @Override
                 public Long apply(AllValueTypesTestRow row) {
-                    return row.component3;
+                    return row.componentFIXEDLONGLITTLEENDIAN;
                 }
             };
         }
 
-        public static Function<AllValueTypesTestRow, Sha256Hash> getComponent4Fun() {
+        public static Function<AllValueTypesTestRow, Sha256Hash> getComponentSHA256HASHFun() {
             return new Function<AllValueTypesTestRow, Sha256Hash>() {
                 @Override
                 public Sha256Hash apply(AllValueTypesTestRow row) {
-                    return row.component4;
+                    return row.componentSHA256HASH;
                 }
             };
         }
 
-        public static Function<AllValueTypesTestRow, String> getComponent5Fun() {
+        public static Function<AllValueTypesTestRow, String> getComponentVARSTRINGFun() {
             return new Function<AllValueTypesTestRow, String>() {
                 @Override
                 public String apply(AllValueTypesTestRow row) {
-                    return row.component5;
+                    return row.componentVARSTRING;
                 }
             };
         }
 
-        public static Function<AllValueTypesTestRow, byte[]> getComponent8Fun() {
+        public static Function<AllValueTypesTestRow, byte[]> getComponentSIZEDBLOBFun() {
             return new Function<AllValueTypesTestRow, byte[]>() {
                 @Override
                 public byte[] apply(AllValueTypesTestRow row) {
-                    return row.component8;
+                    return row.componentSIZEDBLOB;
                 }
             };
         }
 
-        public static Function<AllValueTypesTestRow, Long> getComponent9Fun() {
+        public static Function<AllValueTypesTestRow, Long> getComponentNULLABLEFIXEDLONGFun() {
             return new Function<AllValueTypesTestRow, Long>() {
                 @Override
                 public Long apply(AllValueTypesTestRow row) {
-                    return row.component9;
+                    return row.componentNULLABLEFIXEDLONG;
                 }
             };
         }
 
-        public static Function<AllValueTypesTestRow, UUID> getComponent10Fun() {
+        public static Function<AllValueTypesTestRow, UUID> getComponentUUIDFun() {
             return new Function<AllValueTypesTestRow, UUID>() {
                 @Override
                 public UUID apply(AllValueTypesTestRow row) {
-                    return row.component10;
+                    return row.componentUUID;
                 }
             };
         }
@@ -312,58 +312,58 @@ public final class AllValueTypesTestTable implements
 
         @Override
         public byte[] persistToBytes() {
-            byte[] component0Bytes = EncodingUtils.encodeUnsignedVarLong(component0);
-            byte[] component1Bytes = EncodingUtils.encodeSignedVarLong(component1);
-            byte[] component2Bytes = PtBytes.toBytes(Long.MIN_VALUE ^ component2);
-            byte[] component3Bytes = EncodingUtils.encodeLittleEndian(component3);
-            byte[] component4Bytes = component4.getBytes();
-            byte[] component5Bytes = EncodingUtils.encodeVarString(component5);
-            byte[] component8Bytes = EncodingUtils.encodeSizedBytes(component8);
-            byte[] component9Bytes = EncodingUtils.encodeNullableFixedLong(component9);
-            byte[] component10Bytes = EncodingUtils.encodeUUID(component10);
+            byte[] componentVARLONGBytes = EncodingUtils.encodeUnsignedVarLong(componentVARLONG);
+            byte[] componentVARSIGNEDLONGBytes = EncodingUtils.encodeSignedVarLong(componentVARSIGNEDLONG);
+            byte[] componentFIXEDLONGBytes = PtBytes.toBytes(Long.MIN_VALUE ^ componentFIXEDLONG);
+            byte[] componentFIXEDLONGLITTLEENDIANBytes = EncodingUtils.encodeLittleEndian(componentFIXEDLONGLITTLEENDIAN);
+            byte[] componentSHA256HASHBytes = componentSHA256HASH.getBytes();
+            byte[] componentVARSTRINGBytes = EncodingUtils.encodeVarString(componentVARSTRING);
+            byte[] componentSIZEDBLOBBytes = EncodingUtils.encodeSizedBytes(componentSIZEDBLOB);
+            byte[] componentNULLABLEFIXEDLONGBytes = EncodingUtils.encodeNullableFixedLong(componentNULLABLEFIXEDLONG);
+            byte[] componentUUIDBytes = EncodingUtils.encodeUUID(componentUUID);
             byte[] blobComponentBytes = blobComponent;
-            return EncodingUtils.add(component0Bytes, component1Bytes, component2Bytes, component3Bytes, component4Bytes, component5Bytes, component8Bytes, component9Bytes, component10Bytes, blobComponentBytes);
+            return EncodingUtils.add(componentVARLONGBytes, componentVARSIGNEDLONGBytes, componentFIXEDLONGBytes, componentFIXEDLONGLITTLEENDIANBytes, componentSHA256HASHBytes, componentVARSTRINGBytes, componentSIZEDBLOBBytes, componentNULLABLEFIXEDLONGBytes, componentUUIDBytes, blobComponentBytes);
         }
 
         public static final Hydrator<AllValueTypesTestRow> BYTES_HYDRATOR = new Hydrator<AllValueTypesTestRow>() {
             @Override
             public AllValueTypesTestRow hydrateFromBytes(byte[] __input) {
                 int __index = 0;
-                long component0 = EncodingUtils.decodeUnsignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfUnsignedVarLong(component0);
-                long component1 = EncodingUtils.decodeSignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfSignedVarLong(component1);
-                long component2 = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
+                long componentVARLONG = EncodingUtils.decodeUnsignedVarLong(__input, __index);
+                __index += EncodingUtils.sizeOfUnsignedVarLong(componentVARLONG);
+                long componentVARSIGNEDLONG = EncodingUtils.decodeSignedVarLong(__input, __index);
+                __index += EncodingUtils.sizeOfSignedVarLong(componentVARSIGNEDLONG);
+                long componentFIXEDLONG = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                long component3 = EncodingUtils.decodeLittleEndian(__input, __index);
+                long componentFIXEDLONGLITTLEENDIAN = EncodingUtils.decodeLittleEndian(__input, __index);
                 __index += 8;
-                Sha256Hash component4 = new Sha256Hash(EncodingUtils.get32Bytes(__input, __index));
+                Sha256Hash componentSHA256HASH = new Sha256Hash(EncodingUtils.get32Bytes(__input, __index));
                 __index += 32;
-                String component5 = EncodingUtils.decodeVarString(__input, __index);
-                __index += EncodingUtils.sizeOfVarString(component5);
-                byte[] component8 = EncodingUtils.decodeSizedBytes(__input, __index);
-                __index += EncodingUtils.sizeOfSizedBytes(component8);
-                @Nullable Long component9 = EncodingUtils.decodeNullableFixedLong(__input,__index);
+                String componentVARSTRING = EncodingUtils.decodeVarString(__input, __index);
+                __index += EncodingUtils.sizeOfVarString(componentVARSTRING);
+                byte[] componentSIZEDBLOB = EncodingUtils.decodeSizedBytes(__input, __index);
+                __index += EncodingUtils.sizeOfSizedBytes(componentSIZEDBLOB);
+                @Nullable Long componentNULLABLEFIXEDLONG = EncodingUtils.decodeNullableFixedLong(__input,__index);
                 __index += 9;
-                UUID component10 = EncodingUtils.decodeUUID(__input, __index);
+                UUID componentUUID = EncodingUtils.decodeUUID(__input, __index);
                 __index += 16;
                 byte[] blobComponent = EncodingUtils.getBytesFromOffsetToEnd(__input, __index);
-                return new AllValueTypesTestRow(component0, component1, component2, component3, component4, component5, component8, component9, component10, blobComponent);
+                return new AllValueTypesTestRow(componentVARLONG, componentVARSIGNEDLONG, componentFIXEDLONG, componentFIXEDLONGLITTLEENDIAN, componentSHA256HASH, componentVARSTRING, componentSIZEDBLOB, componentNULLABLEFIXEDLONG, componentUUID, blobComponent);
             }
         };
 
         @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("component0", component0)
-                .add("component1", component1)
-                .add("component2", component2)
-                .add("component3", component3)
-                .add("component4", component4)
-                .add("component5", component5)
-                .add("component8", component8)
-                .add("component9", component9)
-                .add("component10", component10)
+                .add("componentVARLONG", componentVARLONG)
+                .add("componentVARSIGNEDLONG", componentVARSIGNEDLONG)
+                .add("componentFIXEDLONG", componentFIXEDLONG)
+                .add("componentFIXEDLONGLITTLEENDIAN", componentFIXEDLONGLITTLEENDIAN)
+                .add("componentSHA256HASH", componentSHA256HASH)
+                .add("componentVARSTRING", componentVARSTRING)
+                .add("componentSIZEDBLOB", componentSIZEDBLOB)
+                .add("componentNULLABLEFIXEDLONG", componentNULLABLEFIXEDLONG)
+                .add("componentUUID", componentUUID)
                 .add("blobComponent", blobComponent)
                 .toString();
         }
@@ -380,26 +380,26 @@ public final class AllValueTypesTestTable implements
                 return false;
             }
             AllValueTypesTestRow other = (AllValueTypesTestRow) obj;
-            return Objects.equals(component0, other.component0) && Objects.equals(component1, other.component1) && Objects.equals(component2, other.component2) && Objects.equals(component3, other.component3) && Objects.equals(component4, other.component4) && Objects.equals(component5, other.component5) && Arrays.equals(component8, other.component8) && Objects.equals(component9, other.component9) && Objects.equals(component10, other.component10) && Arrays.equals(blobComponent, other.blobComponent);
+            return Objects.equals(componentVARLONG, other.componentVARLONG) && Objects.equals(componentVARSIGNEDLONG, other.componentVARSIGNEDLONG) && Objects.equals(componentFIXEDLONG, other.componentFIXEDLONG) && Objects.equals(componentFIXEDLONGLITTLEENDIAN, other.componentFIXEDLONGLITTLEENDIAN) && Objects.equals(componentSHA256HASH, other.componentSHA256HASH) && Objects.equals(componentVARSTRING, other.componentVARSTRING) && Arrays.equals(componentSIZEDBLOB, other.componentSIZEDBLOB) && Objects.equals(componentNULLABLEFIXEDLONG, other.componentNULLABLEFIXEDLONG) && Objects.equals(componentUUID, other.componentUUID) && Arrays.equals(blobComponent, other.blobComponent);
         }
 
         @Override
         public int hashCode() {
-            return Arrays.deepHashCode(new Object[]{ component0, component1, component2, component3, component4, component5, component8, component9, component10, blobComponent });
+            return Arrays.deepHashCode(new Object[]{ componentVARLONG, componentVARSIGNEDLONG, componentFIXEDLONG, componentFIXEDLONGLITTLEENDIAN, componentSHA256HASH, componentVARSTRING, componentSIZEDBLOB, componentNULLABLEFIXEDLONG, componentUUID, blobComponent });
         }
 
         @Override
         public int compareTo(AllValueTypesTestRow o) {
             return ComparisonChain.start()
-                .compare(this.component0, o.component0)
-                .compare(this.component1, o.component1)
-                .compare(this.component2, o.component2)
-                .compare(this.component3, o.component3)
-                .compare(this.component4, o.component4)
-                .compare(this.component5, o.component5)
-                .compare(this.component8, o.component8, UnsignedBytes.lexicographicalComparator())
-                .compare(this.component9, o.component9)
-                .compare(this.component10, o.component10)
+                .compare(this.componentVARLONG, o.componentVARLONG)
+                .compare(this.componentVARSIGNEDLONG, o.componentVARSIGNEDLONG)
+                .compare(this.componentFIXEDLONG, o.componentFIXEDLONG)
+                .compare(this.componentFIXEDLONGLITTLEENDIAN, o.componentFIXEDLONGLITTLEENDIAN)
+                .compare(this.componentSHA256HASH, o.componentSHA256HASH)
+                .compare(this.componentVARSTRING, o.componentVARSTRING)
+                .compare(this.componentSIZEDBLOB, o.componentSIZEDBLOB, UnsignedBytes.lexicographicalComparator())
+                .compare(this.componentNULLABLEFIXEDLONG, o.componentNULLABLEFIXEDLONG)
+                .compare(this.componentUUID, o.componentUUID)
                 .compare(this.blobComponent, o.blobComponent, UnsignedBytes.lexicographicalComparator())
                 .result();
         }
@@ -410,52 +410,52 @@ public final class AllValueTypesTestTable implements
     /**
      * <pre>
      * Column value description {
-     *   type: Long;
+     *   type: byte[];
      * }
      * </pre>
      */
-    public static final class Column0 implements AllValueTypesTestNamedColumnValue<Long> {
-        private final Long value;
+    public static final class ColumnBLOB implements AllValueTypesTestNamedColumnValue<byte[]> {
+        private final byte[] value;
 
-        public static Column0 of(Long value) {
-            return new Column0(value);
+        public static ColumnBLOB of(byte[] value) {
+            return new ColumnBLOB(value);
         }
 
-        private Column0(Long value) {
+        private ColumnBLOB(byte[] value) {
             this.value = value;
         }
 
         @Override
         public String getColumnName() {
-            return "column0";
+            return "columnBLOB";
         }
 
         @Override
         public String getShortColumnName() {
-            return "c0";
+            return "cBLOB";
         }
 
         @Override
-        public Long getValue() {
+        public byte[] getValue() {
             return value;
         }
 
         @Override
         public byte[] persistValue() {
-            byte[] bytes = EncodingUtils.encodeUnsignedVarLong(value);
+            byte[] bytes = value;
             return CompressionUtils.compress(bytes, Compression.NONE);
         }
 
         @Override
         public byte[] persistColumnName() {
-            return PtBytes.toCachedBytes("c0");
+            return PtBytes.toCachedBytes("cBLOB");
         }
 
-        public static final Hydrator<Column0> BYTES_HYDRATOR = new Hydrator<Column0>() {
+        public static final Hydrator<ColumnBLOB> BYTES_HYDRATOR = new Hydrator<ColumnBLOB>() {
             @Override
-            public Column0 hydrateFromBytes(byte[] bytes) {
+            public ColumnBLOB hydrateFromBytes(byte[] bytes) {
                 bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(EncodingUtils.decodeUnsignedVarLong(bytes, 0));
+                return of(EncodingUtils.getBytesFromOffsetToEnd(bytes, 0));
             }
         };
 
@@ -474,145 +474,25 @@ public final class AllValueTypesTestTable implements
      * }
      * </pre>
      */
-    public static final class Column1 implements AllValueTypesTestNamedColumnValue<Long> {
+    public static final class ColumnFIXEDLONG implements AllValueTypesTestNamedColumnValue<Long> {
         private final Long value;
 
-        public static Column1 of(Long value) {
-            return new Column1(value);
+        public static ColumnFIXEDLONG of(Long value) {
+            return new ColumnFIXEDLONG(value);
         }
 
-        private Column1(Long value) {
+        private ColumnFIXEDLONG(Long value) {
             this.value = value;
         }
 
         @Override
         public String getColumnName() {
-            return "column1";
+            return "columnFIXED_LONG";
         }
 
         @Override
         public String getShortColumnName() {
-            return "c1";
-        }
-
-        @Override
-        public Long getValue() {
-            return value;
-        }
-
-        @Override
-        public byte[] persistValue() {
-            byte[] bytes = EncodingUtils.encodeSignedVarLong(value);
-            return CompressionUtils.compress(bytes, Compression.NONE);
-        }
-
-        @Override
-        public byte[] persistColumnName() {
-            return PtBytes.toCachedBytes("c1");
-        }
-
-        public static final Hydrator<Column1> BYTES_HYDRATOR = new Hydrator<Column1>() {
-            @Override
-            public Column1 hydrateFromBytes(byte[] bytes) {
-                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(EncodingUtils.decodeSignedVarLong(bytes, 0));
-            }
-        };
-
-        @Override
-        public String toString() {
-            return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("Value", this.value)
-                .toString();
-        }
-    }
-
-    /**
-     * <pre>
-     * Column value description {
-     *   type: UUID;
-     * }
-     * </pre>
-     */
-    public static final class Column10 implements AllValueTypesTestNamedColumnValue<UUID> {
-        private final UUID value;
-
-        public static Column10 of(UUID value) {
-            return new Column10(value);
-        }
-
-        private Column10(UUID value) {
-            this.value = value;
-        }
-
-        @Override
-        public String getColumnName() {
-            return "column10";
-        }
-
-        @Override
-        public String getShortColumnName() {
-            return "c10";
-        }
-
-        @Override
-        public UUID getValue() {
-            return value;
-        }
-
-        @Override
-        public byte[] persistValue() {
-            byte[] bytes = EncodingUtils.encodeUUID(value);
-            return CompressionUtils.compress(bytes, Compression.NONE);
-        }
-
-        @Override
-        public byte[] persistColumnName() {
-            return PtBytes.toCachedBytes("c10");
-        }
-
-        public static final Hydrator<Column10> BYTES_HYDRATOR = new Hydrator<Column10>() {
-            @Override
-            public Column10 hydrateFromBytes(byte[] bytes) {
-                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(EncodingUtils.decodeUUID(bytes, 0));
-            }
-        };
-
-        @Override
-        public String toString() {
-            return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("Value", this.value)
-                .toString();
-        }
-    }
-
-    /**
-     * <pre>
-     * Column value description {
-     *   type: Long;
-     * }
-     * </pre>
-     */
-    public static final class Column2 implements AllValueTypesTestNamedColumnValue<Long> {
-        private final Long value;
-
-        public static Column2 of(Long value) {
-            return new Column2(value);
-        }
-
-        private Column2(Long value) {
-            this.value = value;
-        }
-
-        @Override
-        public String getColumnName() {
-            return "column2";
-        }
-
-        @Override
-        public String getShortColumnName() {
-            return "c2";
+            return "cFIXED_LONG";
         }
 
         @Override
@@ -628,12 +508,12 @@ public final class AllValueTypesTestTable implements
 
         @Override
         public byte[] persistColumnName() {
-            return PtBytes.toCachedBytes("c2");
+            return PtBytes.toCachedBytes("cFIXED_LONG");
         }
 
-        public static final Hydrator<Column2> BYTES_HYDRATOR = new Hydrator<Column2>() {
+        public static final Hydrator<ColumnFIXEDLONG> BYTES_HYDRATOR = new Hydrator<ColumnFIXEDLONG>() {
             @Override
-            public Column2 hydrateFromBytes(byte[] bytes) {
+            public ColumnFIXEDLONG hydrateFromBytes(byte[] bytes) {
                 bytes = CompressionUtils.decompress(bytes, Compression.NONE);
                 return of(Long.MIN_VALUE ^ PtBytes.toLong(bytes, 0));
             }
@@ -654,25 +534,25 @@ public final class AllValueTypesTestTable implements
      * }
      * </pre>
      */
-    public static final class Column3 implements AllValueTypesTestNamedColumnValue<Long> {
+    public static final class ColumnFIXEDLONGLITTLEENDIAN implements AllValueTypesTestNamedColumnValue<Long> {
         private final Long value;
 
-        public static Column3 of(Long value) {
-            return new Column3(value);
+        public static ColumnFIXEDLONGLITTLEENDIAN of(Long value) {
+            return new ColumnFIXEDLONGLITTLEENDIAN(value);
         }
 
-        private Column3(Long value) {
+        private ColumnFIXEDLONGLITTLEENDIAN(Long value) {
             this.value = value;
         }
 
         @Override
         public String getColumnName() {
-            return "column3";
+            return "columnFIXED_LONG_LITTLE_ENDIAN";
         }
 
         @Override
         public String getShortColumnName() {
-            return "c3";
+            return "cFIXED_LONG_LITTLE_ENDIAN";
         }
 
         @Override
@@ -688,314 +568,14 @@ public final class AllValueTypesTestTable implements
 
         @Override
         public byte[] persistColumnName() {
-            return PtBytes.toCachedBytes("c3");
+            return PtBytes.toCachedBytes("cFIXED_LONG_LITTLE_ENDIAN");
         }
 
-        public static final Hydrator<Column3> BYTES_HYDRATOR = new Hydrator<Column3>() {
+        public static final Hydrator<ColumnFIXEDLONGLITTLEENDIAN> BYTES_HYDRATOR = new Hydrator<ColumnFIXEDLONGLITTLEENDIAN>() {
             @Override
-            public Column3 hydrateFromBytes(byte[] bytes) {
+            public ColumnFIXEDLONGLITTLEENDIAN hydrateFromBytes(byte[] bytes) {
                 bytes = CompressionUtils.decompress(bytes, Compression.NONE);
                 return of(EncodingUtils.decodeLittleEndian(bytes, 0));
-            }
-        };
-
-        @Override
-        public String toString() {
-            return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("Value", this.value)
-                .toString();
-        }
-    }
-
-    /**
-     * <pre>
-     * Column value description {
-     *   type: Sha256Hash;
-     * }
-     * </pre>
-     */
-    public static final class Column4 implements AllValueTypesTestNamedColumnValue<Sha256Hash> {
-        private final Sha256Hash value;
-
-        public static Column4 of(Sha256Hash value) {
-            return new Column4(value);
-        }
-
-        private Column4(Sha256Hash value) {
-            this.value = value;
-        }
-
-        @Override
-        public String getColumnName() {
-            return "column4";
-        }
-
-        @Override
-        public String getShortColumnName() {
-            return "c4";
-        }
-
-        @Override
-        public Sha256Hash getValue() {
-            return value;
-        }
-
-        @Override
-        public byte[] persistValue() {
-            byte[] bytes = value.getBytes();
-            return CompressionUtils.compress(bytes, Compression.NONE);
-        }
-
-        @Override
-        public byte[] persistColumnName() {
-            return PtBytes.toCachedBytes("c4");
-        }
-
-        public static final Hydrator<Column4> BYTES_HYDRATOR = new Hydrator<Column4>() {
-            @Override
-            public Column4 hydrateFromBytes(byte[] bytes) {
-                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(new Sha256Hash(EncodingUtils.get32Bytes(bytes, 0)));
-            }
-        };
-
-        @Override
-        public String toString() {
-            return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("Value", this.value)
-                .toString();
-        }
-    }
-
-    /**
-     * <pre>
-     * Column value description {
-     *   type: String;
-     * }
-     * </pre>
-     */
-    public static final class Column5 implements AllValueTypesTestNamedColumnValue<String> {
-        private final String value;
-
-        public static Column5 of(String value) {
-            return new Column5(value);
-        }
-
-        private Column5(String value) {
-            this.value = value;
-        }
-
-        @Override
-        public String getColumnName() {
-            return "column5";
-        }
-
-        @Override
-        public String getShortColumnName() {
-            return "c5";
-        }
-
-        @Override
-        public String getValue() {
-            return value;
-        }
-
-        @Override
-        public byte[] persistValue() {
-            byte[] bytes = EncodingUtils.encodeVarString(value);
-            return CompressionUtils.compress(bytes, Compression.NONE);
-        }
-
-        @Override
-        public byte[] persistColumnName() {
-            return PtBytes.toCachedBytes("c5");
-        }
-
-        public static final Hydrator<Column5> BYTES_HYDRATOR = new Hydrator<Column5>() {
-            @Override
-            public Column5 hydrateFromBytes(byte[] bytes) {
-                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(EncodingUtils.decodeVarString(bytes, 0));
-            }
-        };
-
-        @Override
-        public String toString() {
-            return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("Value", this.value)
-                .toString();
-        }
-    }
-
-    /**
-     * <pre>
-     * Column value description {
-     *   type: String;
-     * }
-     * </pre>
-     */
-    public static final class Column6 implements AllValueTypesTestNamedColumnValue<String> {
-        private final String value;
-
-        public static Column6 of(String value) {
-            return new Column6(value);
-        }
-
-        private Column6(String value) {
-            this.value = value;
-        }
-
-        @Override
-        public String getColumnName() {
-            return "column6";
-        }
-
-        @Override
-        public String getShortColumnName() {
-            return "c6";
-        }
-
-        @Override
-        public String getValue() {
-            return value;
-        }
-
-        @Override
-        public byte[] persistValue() {
-            byte[] bytes = PtBytes.toBytes(value);
-            return CompressionUtils.compress(bytes, Compression.NONE);
-        }
-
-        @Override
-        public byte[] persistColumnName() {
-            return PtBytes.toCachedBytes("c6");
-        }
-
-        public static final Hydrator<Column6> BYTES_HYDRATOR = new Hydrator<Column6>() {
-            @Override
-            public Column6 hydrateFromBytes(byte[] bytes) {
-                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(PtBytes.toString(bytes, 0, bytes.length-0));
-            }
-        };
-
-        @Override
-        public String toString() {
-            return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("Value", this.value)
-                .toString();
-        }
-    }
-
-    /**
-     * <pre>
-     * Column value description {
-     *   type: byte[];
-     * }
-     * </pre>
-     */
-    public static final class Column7 implements AllValueTypesTestNamedColumnValue<byte[]> {
-        private final byte[] value;
-
-        public static Column7 of(byte[] value) {
-            return new Column7(value);
-        }
-
-        private Column7(byte[] value) {
-            this.value = value;
-        }
-
-        @Override
-        public String getColumnName() {
-            return "column7";
-        }
-
-        @Override
-        public String getShortColumnName() {
-            return "c7";
-        }
-
-        @Override
-        public byte[] getValue() {
-            return value;
-        }
-
-        @Override
-        public byte[] persistValue() {
-            byte[] bytes = value;
-            return CompressionUtils.compress(bytes, Compression.NONE);
-        }
-
-        @Override
-        public byte[] persistColumnName() {
-            return PtBytes.toCachedBytes("c7");
-        }
-
-        public static final Hydrator<Column7> BYTES_HYDRATOR = new Hydrator<Column7>() {
-            @Override
-            public Column7 hydrateFromBytes(byte[] bytes) {
-                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(EncodingUtils.getBytesFromOffsetToEnd(bytes, 0));
-            }
-        };
-
-        @Override
-        public String toString() {
-            return MoreObjects.toStringHelper(getClass().getSimpleName())
-                .add("Value", this.value)
-                .toString();
-        }
-    }
-
-    /**
-     * <pre>
-     * Column value description {
-     *   type: byte[];
-     * }
-     * </pre>
-     */
-    public static final class Column8 implements AllValueTypesTestNamedColumnValue<byte[]> {
-        private final byte[] value;
-
-        public static Column8 of(byte[] value) {
-            return new Column8(value);
-        }
-
-        private Column8(byte[] value) {
-            this.value = value;
-        }
-
-        @Override
-        public String getColumnName() {
-            return "column8";
-        }
-
-        @Override
-        public String getShortColumnName() {
-            return "c8";
-        }
-
-        @Override
-        public byte[] getValue() {
-            return value;
-        }
-
-        @Override
-        public byte[] persistValue() {
-            byte[] bytes = EncodingUtils.encodeSizedBytes(value);
-            return CompressionUtils.compress(bytes, Compression.NONE);
-        }
-
-        @Override
-        public byte[] persistColumnName() {
-            return PtBytes.toCachedBytes("c8");
-        }
-
-        public static final Hydrator<Column8> BYTES_HYDRATOR = new Hydrator<Column8>() {
-            @Override
-            public Column8 hydrateFromBytes(byte[] bytes) {
-                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(EncodingUtils.decodeSizedBytes(bytes, 0));
             }
         };
 
@@ -1014,25 +594,25 @@ public final class AllValueTypesTestTable implements
      * }
      * </pre>
      */
-    public static final class Column9 implements AllValueTypesTestNamedColumnValue<Long> {
+    public static final class ColumnNULLABLEFIXEDLONG implements AllValueTypesTestNamedColumnValue<Long> {
         private final Long value;
 
-        public static Column9 of(Long value) {
-            return new Column9(value);
+        public static ColumnNULLABLEFIXEDLONG of(Long value) {
+            return new ColumnNULLABLEFIXEDLONG(value);
         }
 
-        private Column9(Long value) {
+        private ColumnNULLABLEFIXEDLONG(Long value) {
             this.value = value;
         }
 
         @Override
         public String getColumnName() {
-            return "column9";
+            return "columnNULLABLE_FIXED_LONG";
         }
 
         @Override
         public String getShortColumnName() {
-            return "c9";
+            return "cNULLABLE_FIXED_LONG";
         }
 
         @Override
@@ -1048,14 +628,434 @@ public final class AllValueTypesTestTable implements
 
         @Override
         public byte[] persistColumnName() {
-            return PtBytes.toCachedBytes("c9");
+            return PtBytes.toCachedBytes("cNULLABLE_FIXED_LONG");
         }
 
-        public static final Hydrator<Column9> BYTES_HYDRATOR = new Hydrator<Column9>() {
+        public static final Hydrator<ColumnNULLABLEFIXEDLONG> BYTES_HYDRATOR = new Hydrator<ColumnNULLABLEFIXEDLONG>() {
             @Override
-            public Column9 hydrateFromBytes(byte[] bytes) {
+            public ColumnNULLABLEFIXEDLONG hydrateFromBytes(byte[] bytes) {
                 bytes = CompressionUtils.decompress(bytes, Compression.NONE);
                 return of(EncodingUtils.decodeNullableFixedLong(bytes,0));
+            }
+        };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
+    }
+
+    /**
+     * <pre>
+     * Column value description {
+     *   type: Sha256Hash;
+     * }
+     * </pre>
+     */
+    public static final class ColumnSHA256HASH implements AllValueTypesTestNamedColumnValue<Sha256Hash> {
+        private final Sha256Hash value;
+
+        public static ColumnSHA256HASH of(Sha256Hash value) {
+            return new ColumnSHA256HASH(value);
+        }
+
+        private ColumnSHA256HASH(Sha256Hash value) {
+            this.value = value;
+        }
+
+        @Override
+        public String getColumnName() {
+            return "columnSHA256HASH";
+        }
+
+        @Override
+        public String getShortColumnName() {
+            return "cSHA256HASH";
+        }
+
+        @Override
+        public Sha256Hash getValue() {
+            return value;
+        }
+
+        @Override
+        public byte[] persistValue() {
+            byte[] bytes = value.getBytes();
+            return CompressionUtils.compress(bytes, Compression.NONE);
+        }
+
+        @Override
+        public byte[] persistColumnName() {
+            return PtBytes.toCachedBytes("cSHA256HASH");
+        }
+
+        public static final Hydrator<ColumnSHA256HASH> BYTES_HYDRATOR = new Hydrator<ColumnSHA256HASH>() {
+            @Override
+            public ColumnSHA256HASH hydrateFromBytes(byte[] bytes) {
+                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
+                return of(new Sha256Hash(EncodingUtils.get32Bytes(bytes, 0)));
+            }
+        };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
+    }
+
+    /**
+     * <pre>
+     * Column value description {
+     *   type: byte[];
+     * }
+     * </pre>
+     */
+    public static final class ColumnSIZEDBLOB implements AllValueTypesTestNamedColumnValue<byte[]> {
+        private final byte[] value;
+
+        public static ColumnSIZEDBLOB of(byte[] value) {
+            return new ColumnSIZEDBLOB(value);
+        }
+
+        private ColumnSIZEDBLOB(byte[] value) {
+            this.value = value;
+        }
+
+        @Override
+        public String getColumnName() {
+            return "columnSIZED_BLOB";
+        }
+
+        @Override
+        public String getShortColumnName() {
+            return "cSIZED_BLOB";
+        }
+
+        @Override
+        public byte[] getValue() {
+            return value;
+        }
+
+        @Override
+        public byte[] persistValue() {
+            byte[] bytes = EncodingUtils.encodeSizedBytes(value);
+            return CompressionUtils.compress(bytes, Compression.NONE);
+        }
+
+        @Override
+        public byte[] persistColumnName() {
+            return PtBytes.toCachedBytes("cSIZED_BLOB");
+        }
+
+        public static final Hydrator<ColumnSIZEDBLOB> BYTES_HYDRATOR = new Hydrator<ColumnSIZEDBLOB>() {
+            @Override
+            public ColumnSIZEDBLOB hydrateFromBytes(byte[] bytes) {
+                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
+                return of(EncodingUtils.decodeSizedBytes(bytes, 0));
+            }
+        };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
+    }
+
+    /**
+     * <pre>
+     * Column value description {
+     *   type: String;
+     * }
+     * </pre>
+     */
+    public static final class ColumnSTRING implements AllValueTypesTestNamedColumnValue<String> {
+        private final String value;
+
+        public static ColumnSTRING of(String value) {
+            return new ColumnSTRING(value);
+        }
+
+        private ColumnSTRING(String value) {
+            this.value = value;
+        }
+
+        @Override
+        public String getColumnName() {
+            return "columnSTRING";
+        }
+
+        @Override
+        public String getShortColumnName() {
+            return "cSTRING";
+        }
+
+        @Override
+        public String getValue() {
+            return value;
+        }
+
+        @Override
+        public byte[] persistValue() {
+            byte[] bytes = PtBytes.toBytes(value);
+            return CompressionUtils.compress(bytes, Compression.NONE);
+        }
+
+        @Override
+        public byte[] persistColumnName() {
+            return PtBytes.toCachedBytes("cSTRING");
+        }
+
+        public static final Hydrator<ColumnSTRING> BYTES_HYDRATOR = new Hydrator<ColumnSTRING>() {
+            @Override
+            public ColumnSTRING hydrateFromBytes(byte[] bytes) {
+                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
+                return of(PtBytes.toString(bytes, 0, bytes.length-0));
+            }
+        };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
+    }
+
+    /**
+     * <pre>
+     * Column value description {
+     *   type: UUID;
+     * }
+     * </pre>
+     */
+    public static final class ColumnUUID implements AllValueTypesTestNamedColumnValue<UUID> {
+        private final UUID value;
+
+        public static ColumnUUID of(UUID value) {
+            return new ColumnUUID(value);
+        }
+
+        private ColumnUUID(UUID value) {
+            this.value = value;
+        }
+
+        @Override
+        public String getColumnName() {
+            return "columnUUID";
+        }
+
+        @Override
+        public String getShortColumnName() {
+            return "cUUID";
+        }
+
+        @Override
+        public UUID getValue() {
+            return value;
+        }
+
+        @Override
+        public byte[] persistValue() {
+            byte[] bytes = EncodingUtils.encodeUUID(value);
+            return CompressionUtils.compress(bytes, Compression.NONE);
+        }
+
+        @Override
+        public byte[] persistColumnName() {
+            return PtBytes.toCachedBytes("cUUID");
+        }
+
+        public static final Hydrator<ColumnUUID> BYTES_HYDRATOR = new Hydrator<ColumnUUID>() {
+            @Override
+            public ColumnUUID hydrateFromBytes(byte[] bytes) {
+                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
+                return of(EncodingUtils.decodeUUID(bytes, 0));
+            }
+        };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
+    }
+
+    /**
+     * <pre>
+     * Column value description {
+     *   type: Long;
+     * }
+     * </pre>
+     */
+    public static final class ColumnVARLONG implements AllValueTypesTestNamedColumnValue<Long> {
+        private final Long value;
+
+        public static ColumnVARLONG of(Long value) {
+            return new ColumnVARLONG(value);
+        }
+
+        private ColumnVARLONG(Long value) {
+            this.value = value;
+        }
+
+        @Override
+        public String getColumnName() {
+            return "columnVAR_LONG";
+        }
+
+        @Override
+        public String getShortColumnName() {
+            return "cVAR_LONG";
+        }
+
+        @Override
+        public Long getValue() {
+            return value;
+        }
+
+        @Override
+        public byte[] persistValue() {
+            byte[] bytes = EncodingUtils.encodeUnsignedVarLong(value);
+            return CompressionUtils.compress(bytes, Compression.NONE);
+        }
+
+        @Override
+        public byte[] persistColumnName() {
+            return PtBytes.toCachedBytes("cVAR_LONG");
+        }
+
+        public static final Hydrator<ColumnVARLONG> BYTES_HYDRATOR = new Hydrator<ColumnVARLONG>() {
+            @Override
+            public ColumnVARLONG hydrateFromBytes(byte[] bytes) {
+                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
+                return of(EncodingUtils.decodeUnsignedVarLong(bytes, 0));
+            }
+        };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
+    }
+
+    /**
+     * <pre>
+     * Column value description {
+     *   type: Long;
+     * }
+     * </pre>
+     */
+    public static final class ColumnVARSIGNEDLONG implements AllValueTypesTestNamedColumnValue<Long> {
+        private final Long value;
+
+        public static ColumnVARSIGNEDLONG of(Long value) {
+            return new ColumnVARSIGNEDLONG(value);
+        }
+
+        private ColumnVARSIGNEDLONG(Long value) {
+            this.value = value;
+        }
+
+        @Override
+        public String getColumnName() {
+            return "columnVAR_SIGNED_LONG";
+        }
+
+        @Override
+        public String getShortColumnName() {
+            return "cVAR_SIGNED_LONG";
+        }
+
+        @Override
+        public Long getValue() {
+            return value;
+        }
+
+        @Override
+        public byte[] persistValue() {
+            byte[] bytes = EncodingUtils.encodeSignedVarLong(value);
+            return CompressionUtils.compress(bytes, Compression.NONE);
+        }
+
+        @Override
+        public byte[] persistColumnName() {
+            return PtBytes.toCachedBytes("cVAR_SIGNED_LONG");
+        }
+
+        public static final Hydrator<ColumnVARSIGNEDLONG> BYTES_HYDRATOR = new Hydrator<ColumnVARSIGNEDLONG>() {
+            @Override
+            public ColumnVARSIGNEDLONG hydrateFromBytes(byte[] bytes) {
+                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
+                return of(EncodingUtils.decodeSignedVarLong(bytes, 0));
+            }
+        };
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass().getSimpleName())
+                .add("Value", this.value)
+                .toString();
+        }
+    }
+
+    /**
+     * <pre>
+     * Column value description {
+     *   type: String;
+     * }
+     * </pre>
+     */
+    public static final class ColumnVARSTRING implements AllValueTypesTestNamedColumnValue<String> {
+        private final String value;
+
+        public static ColumnVARSTRING of(String value) {
+            return new ColumnVARSTRING(value);
+        }
+
+        private ColumnVARSTRING(String value) {
+            this.value = value;
+        }
+
+        @Override
+        public String getColumnName() {
+            return "columnVAR_STRING";
+        }
+
+        @Override
+        public String getShortColumnName() {
+            return "cVAR_STRING";
+        }
+
+        @Override
+        public String getValue() {
+            return value;
+        }
+
+        @Override
+        public byte[] persistValue() {
+            byte[] bytes = EncodingUtils.encodeVarString(value);
+            return CompressionUtils.compress(bytes, Compression.NONE);
+        }
+
+        @Override
+        public byte[] persistColumnName() {
+            return PtBytes.toCachedBytes("cVAR_STRING");
+        }
+
+        public static final Hydrator<ColumnVARSTRING> BYTES_HYDRATOR = new Hydrator<ColumnVARSTRING>() {
+            @Override
+            public ColumnVARSTRING hydrateFromBytes(byte[] bytes) {
+                bytes = CompressionUtils.decompress(bytes, Compression.NONE);
+                return of(EncodingUtils.decodeVarString(bytes, 0));
             }
         };
 
@@ -1105,244 +1105,244 @@ public final class AllValueTypesTestTable implements
             };
         }
 
-        public boolean hasColumn0() {
-            return row.getColumns().containsKey(PtBytes.toCachedBytes("c0"));
+        public boolean hasColumnBLOB() {
+            return row.getColumns().containsKey(PtBytes.toCachedBytes("cBLOB"));
         }
 
-        public boolean hasColumn1() {
-            return row.getColumns().containsKey(PtBytes.toCachedBytes("c1"));
+        public boolean hasColumnFIXEDLONG() {
+            return row.getColumns().containsKey(PtBytes.toCachedBytes("cFIXED_LONG"));
         }
 
-        public boolean hasColumn10() {
-            return row.getColumns().containsKey(PtBytes.toCachedBytes("c10"));
+        public boolean hasColumnFIXEDLONGLITTLEENDIAN() {
+            return row.getColumns().containsKey(PtBytes.toCachedBytes("cFIXED_LONG_LITTLE_ENDIAN"));
         }
 
-        public boolean hasColumn2() {
-            return row.getColumns().containsKey(PtBytes.toCachedBytes("c2"));
+        public boolean hasColumnNULLABLEFIXEDLONG() {
+            return row.getColumns().containsKey(PtBytes.toCachedBytes("cNULLABLE_FIXED_LONG"));
         }
 
-        public boolean hasColumn3() {
-            return row.getColumns().containsKey(PtBytes.toCachedBytes("c3"));
+        public boolean hasColumnSHA256HASH() {
+            return row.getColumns().containsKey(PtBytes.toCachedBytes("cSHA256HASH"));
         }
 
-        public boolean hasColumn4() {
-            return row.getColumns().containsKey(PtBytes.toCachedBytes("c4"));
+        public boolean hasColumnSIZEDBLOB() {
+            return row.getColumns().containsKey(PtBytes.toCachedBytes("cSIZED_BLOB"));
         }
 
-        public boolean hasColumn5() {
-            return row.getColumns().containsKey(PtBytes.toCachedBytes("c5"));
+        public boolean hasColumnSTRING() {
+            return row.getColumns().containsKey(PtBytes.toCachedBytes("cSTRING"));
         }
 
-        public boolean hasColumn6() {
-            return row.getColumns().containsKey(PtBytes.toCachedBytes("c6"));
+        public boolean hasColumnUUID() {
+            return row.getColumns().containsKey(PtBytes.toCachedBytes("cUUID"));
         }
 
-        public boolean hasColumn7() {
-            return row.getColumns().containsKey(PtBytes.toCachedBytes("c7"));
+        public boolean hasColumnVARLONG() {
+            return row.getColumns().containsKey(PtBytes.toCachedBytes("cVAR_LONG"));
         }
 
-        public boolean hasColumn8() {
-            return row.getColumns().containsKey(PtBytes.toCachedBytes("c8"));
+        public boolean hasColumnVARSIGNEDLONG() {
+            return row.getColumns().containsKey(PtBytes.toCachedBytes("cVAR_SIGNED_LONG"));
         }
 
-        public boolean hasColumn9() {
-            return row.getColumns().containsKey(PtBytes.toCachedBytes("c9"));
+        public boolean hasColumnVARSTRING() {
+            return row.getColumns().containsKey(PtBytes.toCachedBytes("cVAR_STRING"));
         }
 
-        public Long getColumn0() {
-            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("c0"));
+        public byte[] getColumnBLOB() {
+            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("cBLOB"));
             if (bytes == null) {
                 return null;
             }
-            Column0 value = Column0.BYTES_HYDRATOR.hydrateFromBytes(bytes);
+            ColumnBLOB value = ColumnBLOB.BYTES_HYDRATOR.hydrateFromBytes(bytes);
             return value.getValue();
         }
 
-        public Long getColumn1() {
-            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("c1"));
+        public Long getColumnFIXEDLONG() {
+            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("cFIXED_LONG"));
             if (bytes == null) {
                 return null;
             }
-            Column1 value = Column1.BYTES_HYDRATOR.hydrateFromBytes(bytes);
+            ColumnFIXEDLONG value = ColumnFIXEDLONG.BYTES_HYDRATOR.hydrateFromBytes(bytes);
             return value.getValue();
         }
 
-        public UUID getColumn10() {
-            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("c10"));
+        public Long getColumnFIXEDLONGLITTLEENDIAN() {
+            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("cFIXED_LONG_LITTLE_ENDIAN"));
             if (bytes == null) {
                 return null;
             }
-            Column10 value = Column10.BYTES_HYDRATOR.hydrateFromBytes(bytes);
+            ColumnFIXEDLONGLITTLEENDIAN value = ColumnFIXEDLONGLITTLEENDIAN.BYTES_HYDRATOR.hydrateFromBytes(bytes);
             return value.getValue();
         }
 
-        public Long getColumn2() {
-            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("c2"));
+        public Long getColumnNULLABLEFIXEDLONG() {
+            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("cNULLABLE_FIXED_LONG"));
             if (bytes == null) {
                 return null;
             }
-            Column2 value = Column2.BYTES_HYDRATOR.hydrateFromBytes(bytes);
+            ColumnNULLABLEFIXEDLONG value = ColumnNULLABLEFIXEDLONG.BYTES_HYDRATOR.hydrateFromBytes(bytes);
             return value.getValue();
         }
 
-        public Long getColumn3() {
-            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("c3"));
+        public Sha256Hash getColumnSHA256HASH() {
+            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("cSHA256HASH"));
             if (bytes == null) {
                 return null;
             }
-            Column3 value = Column3.BYTES_HYDRATOR.hydrateFromBytes(bytes);
+            ColumnSHA256HASH value = ColumnSHA256HASH.BYTES_HYDRATOR.hydrateFromBytes(bytes);
             return value.getValue();
         }
 
-        public Sha256Hash getColumn4() {
-            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("c4"));
+        public byte[] getColumnSIZEDBLOB() {
+            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("cSIZED_BLOB"));
             if (bytes == null) {
                 return null;
             }
-            Column4 value = Column4.BYTES_HYDRATOR.hydrateFromBytes(bytes);
+            ColumnSIZEDBLOB value = ColumnSIZEDBLOB.BYTES_HYDRATOR.hydrateFromBytes(bytes);
             return value.getValue();
         }
 
-        public String getColumn5() {
-            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("c5"));
+        public String getColumnSTRING() {
+            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("cSTRING"));
             if (bytes == null) {
                 return null;
             }
-            Column5 value = Column5.BYTES_HYDRATOR.hydrateFromBytes(bytes);
+            ColumnSTRING value = ColumnSTRING.BYTES_HYDRATOR.hydrateFromBytes(bytes);
             return value.getValue();
         }
 
-        public String getColumn6() {
-            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("c6"));
+        public UUID getColumnUUID() {
+            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("cUUID"));
             if (bytes == null) {
                 return null;
             }
-            Column6 value = Column6.BYTES_HYDRATOR.hydrateFromBytes(bytes);
+            ColumnUUID value = ColumnUUID.BYTES_HYDRATOR.hydrateFromBytes(bytes);
             return value.getValue();
         }
 
-        public byte[] getColumn7() {
-            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("c7"));
+        public Long getColumnVARLONG() {
+            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("cVAR_LONG"));
             if (bytes == null) {
                 return null;
             }
-            Column7 value = Column7.BYTES_HYDRATOR.hydrateFromBytes(bytes);
+            ColumnVARLONG value = ColumnVARLONG.BYTES_HYDRATOR.hydrateFromBytes(bytes);
             return value.getValue();
         }
 
-        public byte[] getColumn8() {
-            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("c8"));
+        public Long getColumnVARSIGNEDLONG() {
+            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("cVAR_SIGNED_LONG"));
             if (bytes == null) {
                 return null;
             }
-            Column8 value = Column8.BYTES_HYDRATOR.hydrateFromBytes(bytes);
+            ColumnVARSIGNEDLONG value = ColumnVARSIGNEDLONG.BYTES_HYDRATOR.hydrateFromBytes(bytes);
             return value.getValue();
         }
 
-        public Long getColumn9() {
-            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("c9"));
+        public String getColumnVARSTRING() {
+            byte[] bytes = row.getColumns().get(PtBytes.toCachedBytes("cVAR_STRING"));
             if (bytes == null) {
                 return null;
             }
-            Column9 value = Column9.BYTES_HYDRATOR.hydrateFromBytes(bytes);
+            ColumnVARSTRING value = ColumnVARSTRING.BYTES_HYDRATOR.hydrateFromBytes(bytes);
             return value.getValue();
         }
 
-        public static Function<AllValueTypesTestRowResult, Long> getColumn0Fun() {
+        public static Function<AllValueTypesTestRowResult, byte[]> getColumnBLOBFun() {
+            return new Function<AllValueTypesTestRowResult, byte[]>() {
+                @Override
+                public byte[] apply(AllValueTypesTestRowResult rowResult) {
+                    return rowResult.getColumnBLOB();
+                }
+            };
+        }
+
+        public static Function<AllValueTypesTestRowResult, Long> getColumnFIXEDLONGFun() {
             return new Function<AllValueTypesTestRowResult, Long>() {
                 @Override
                 public Long apply(AllValueTypesTestRowResult rowResult) {
-                    return rowResult.getColumn0();
+                    return rowResult.getColumnFIXEDLONG();
                 }
             };
         }
 
-        public static Function<AllValueTypesTestRowResult, Long> getColumn1Fun() {
+        public static Function<AllValueTypesTestRowResult, Long> getColumnFIXEDLONGLITTLEENDIANFun() {
             return new Function<AllValueTypesTestRowResult, Long>() {
                 @Override
                 public Long apply(AllValueTypesTestRowResult rowResult) {
-                    return rowResult.getColumn1();
+                    return rowResult.getColumnFIXEDLONGLITTLEENDIAN();
                 }
             };
         }
 
-        public static Function<AllValueTypesTestRowResult, UUID> getColumn10Fun() {
-            return new Function<AllValueTypesTestRowResult, UUID>() {
-                @Override
-                public UUID apply(AllValueTypesTestRowResult rowResult) {
-                    return rowResult.getColumn10();
-                }
-            };
-        }
-
-        public static Function<AllValueTypesTestRowResult, Long> getColumn2Fun() {
+        public static Function<AllValueTypesTestRowResult, Long> getColumnNULLABLEFIXEDLONGFun() {
             return new Function<AllValueTypesTestRowResult, Long>() {
                 @Override
                 public Long apply(AllValueTypesTestRowResult rowResult) {
-                    return rowResult.getColumn2();
+                    return rowResult.getColumnNULLABLEFIXEDLONG();
                 }
             };
         }
 
-        public static Function<AllValueTypesTestRowResult, Long> getColumn3Fun() {
-            return new Function<AllValueTypesTestRowResult, Long>() {
-                @Override
-                public Long apply(AllValueTypesTestRowResult rowResult) {
-                    return rowResult.getColumn3();
-                }
-            };
-        }
-
-        public static Function<AllValueTypesTestRowResult, Sha256Hash> getColumn4Fun() {
+        public static Function<AllValueTypesTestRowResult, Sha256Hash> getColumnSHA256HASHFun() {
             return new Function<AllValueTypesTestRowResult, Sha256Hash>() {
                 @Override
                 public Sha256Hash apply(AllValueTypesTestRowResult rowResult) {
-                    return rowResult.getColumn4();
+                    return rowResult.getColumnSHA256HASH();
                 }
             };
         }
 
-        public static Function<AllValueTypesTestRowResult, String> getColumn5Fun() {
-            return new Function<AllValueTypesTestRowResult, String>() {
-                @Override
-                public String apply(AllValueTypesTestRowResult rowResult) {
-                    return rowResult.getColumn5();
-                }
-            };
-        }
-
-        public static Function<AllValueTypesTestRowResult, String> getColumn6Fun() {
-            return new Function<AllValueTypesTestRowResult, String>() {
-                @Override
-                public String apply(AllValueTypesTestRowResult rowResult) {
-                    return rowResult.getColumn6();
-                }
-            };
-        }
-
-        public static Function<AllValueTypesTestRowResult, byte[]> getColumn7Fun() {
+        public static Function<AllValueTypesTestRowResult, byte[]> getColumnSIZEDBLOBFun() {
             return new Function<AllValueTypesTestRowResult, byte[]>() {
                 @Override
                 public byte[] apply(AllValueTypesTestRowResult rowResult) {
-                    return rowResult.getColumn7();
+                    return rowResult.getColumnSIZEDBLOB();
                 }
             };
         }
 
-        public static Function<AllValueTypesTestRowResult, byte[]> getColumn8Fun() {
-            return new Function<AllValueTypesTestRowResult, byte[]>() {
+        public static Function<AllValueTypesTestRowResult, String> getColumnSTRINGFun() {
+            return new Function<AllValueTypesTestRowResult, String>() {
                 @Override
-                public byte[] apply(AllValueTypesTestRowResult rowResult) {
-                    return rowResult.getColumn8();
+                public String apply(AllValueTypesTestRowResult rowResult) {
+                    return rowResult.getColumnSTRING();
                 }
             };
         }
 
-        public static Function<AllValueTypesTestRowResult, Long> getColumn9Fun() {
+        public static Function<AllValueTypesTestRowResult, UUID> getColumnUUIDFun() {
+            return new Function<AllValueTypesTestRowResult, UUID>() {
+                @Override
+                public UUID apply(AllValueTypesTestRowResult rowResult) {
+                    return rowResult.getColumnUUID();
+                }
+            };
+        }
+
+        public static Function<AllValueTypesTestRowResult, Long> getColumnVARLONGFun() {
             return new Function<AllValueTypesTestRowResult, Long>() {
                 @Override
                 public Long apply(AllValueTypesTestRowResult rowResult) {
-                    return rowResult.getColumn9();
+                    return rowResult.getColumnVARLONG();
+                }
+            };
+        }
+
+        public static Function<AllValueTypesTestRowResult, Long> getColumnVARSIGNEDLONGFun() {
+            return new Function<AllValueTypesTestRowResult, Long>() {
+                @Override
+                public Long apply(AllValueTypesTestRowResult rowResult) {
+                    return rowResult.getColumnVARSIGNEDLONG();
+                }
+            };
+        }
+
+        public static Function<AllValueTypesTestRowResult, String> getColumnVARSTRINGFun() {
+            return new Function<AllValueTypesTestRowResult, String>() {
+                @Override
+                public String apply(AllValueTypesTestRowResult rowResult) {
+                    return rowResult.getColumnVARSTRING();
                 }
             };
         }
@@ -1351,86 +1351,86 @@ public final class AllValueTypesTestTable implements
         public String toString() {
             return MoreObjects.toStringHelper(getClass().getSimpleName())
                 .add("RowName", getRowName())
-                .add("Column0", getColumn0())
-                .add("Column1", getColumn1())
-                .add("Column10", getColumn10())
-                .add("Column2", getColumn2())
-                .add("Column3", getColumn3())
-                .add("Column4", getColumn4())
-                .add("Column5", getColumn5())
-                .add("Column6", getColumn6())
-                .add("Column7", getColumn7())
-                .add("Column8", getColumn8())
-                .add("Column9", getColumn9())
+                .add("ColumnBLOB", getColumnBLOB())
+                .add("ColumnFIXEDLONG", getColumnFIXEDLONG())
+                .add("ColumnFIXEDLONGLITTLEENDIAN", getColumnFIXEDLONGLITTLEENDIAN())
+                .add("ColumnNULLABLEFIXEDLONG", getColumnNULLABLEFIXEDLONG())
+                .add("ColumnSHA256HASH", getColumnSHA256HASH())
+                .add("ColumnSIZEDBLOB", getColumnSIZEDBLOB())
+                .add("ColumnSTRING", getColumnSTRING())
+                .add("ColumnUUID", getColumnUUID())
+                .add("ColumnVARLONG", getColumnVARLONG())
+                .add("ColumnVARSIGNEDLONG", getColumnVARSIGNEDLONG())
+                .add("ColumnVARSTRING", getColumnVARSTRING())
                 .toString();
         }
     }
 
     public enum AllValueTypesTestNamedColumn {
-        COLUMN0 {
+        COLUMN_B_L_O_B {
             @Override
             public byte[] getShortName() {
-                return PtBytes.toCachedBytes("c0");
+                return PtBytes.toCachedBytes("cBLOB");
             }
         },
-        COLUMN1 {
+        COLUMN_F_I_X_E_D__L_O_N_G {
             @Override
             public byte[] getShortName() {
-                return PtBytes.toCachedBytes("c1");
+                return PtBytes.toCachedBytes("cFIXED_LONG");
             }
         },
-        COLUMN10 {
+        COLUMN_F_I_X_E_D__L_O_N_G__L_I_T_T_L_E__E_N_D_I_A_N {
             @Override
             public byte[] getShortName() {
-                return PtBytes.toCachedBytes("c10");
+                return PtBytes.toCachedBytes("cFIXED_LONG_LITTLE_ENDIAN");
             }
         },
-        COLUMN2 {
+        COLUMN_N_U_L_L_A_B_L_E__F_I_X_E_D__L_O_N_G {
             @Override
             public byte[] getShortName() {
-                return PtBytes.toCachedBytes("c2");
+                return PtBytes.toCachedBytes("cNULLABLE_FIXED_LONG");
             }
         },
-        COLUMN3 {
+        COLUMN_S_H_A256_H_A_S_H {
             @Override
             public byte[] getShortName() {
-                return PtBytes.toCachedBytes("c3");
+                return PtBytes.toCachedBytes("cSHA256HASH");
             }
         },
-        COLUMN4 {
+        COLUMN_S_I_Z_E_D__B_L_O_B {
             @Override
             public byte[] getShortName() {
-                return PtBytes.toCachedBytes("c4");
+                return PtBytes.toCachedBytes("cSIZED_BLOB");
             }
         },
-        COLUMN5 {
+        COLUMN_S_T_R_I_N_G {
             @Override
             public byte[] getShortName() {
-                return PtBytes.toCachedBytes("c5");
+                return PtBytes.toCachedBytes("cSTRING");
             }
         },
-        COLUMN6 {
+        COLUMN_U_U_I_D {
             @Override
             public byte[] getShortName() {
-                return PtBytes.toCachedBytes("c6");
+                return PtBytes.toCachedBytes("cUUID");
             }
         },
-        COLUMN7 {
+        COLUMN_V_A_R__L_O_N_G {
             @Override
             public byte[] getShortName() {
-                return PtBytes.toCachedBytes("c7");
+                return PtBytes.toCachedBytes("cVAR_LONG");
             }
         },
-        COLUMN8 {
+        COLUMN_V_A_R__S_I_G_N_E_D__L_O_N_G {
             @Override
             public byte[] getShortName() {
-                return PtBytes.toCachedBytes("c8");
+                return PtBytes.toCachedBytes("cVAR_SIGNED_LONG");
             }
         },
-        COLUMN9 {
+        COLUMN_V_A_R__S_T_R_I_N_G {
             @Override
             public byte[] getShortName() {
-                return PtBytes.toCachedBytes("c9");
+                return PtBytes.toCachedBytes("cVAR_STRING");
             }
         };
 
@@ -1456,301 +1456,301 @@ public final class AllValueTypesTestTable implements
 
     private static final Map<String, Hydrator<? extends AllValueTypesTestNamedColumnValue<?>>> shortNameToHydrator =
             ImmutableMap.<String, Hydrator<? extends AllValueTypesTestNamedColumnValue<?>>>builder()
-                .put("c0", Column0.BYTES_HYDRATOR)
-                .put("c1", Column1.BYTES_HYDRATOR)
-                .put("c2", Column2.BYTES_HYDRATOR)
-                .put("c3", Column3.BYTES_HYDRATOR)
-                .put("c4", Column4.BYTES_HYDRATOR)
-                .put("c5", Column5.BYTES_HYDRATOR)
-                .put("c6", Column6.BYTES_HYDRATOR)
-                .put("c7", Column7.BYTES_HYDRATOR)
-                .put("c8", Column8.BYTES_HYDRATOR)
-                .put("c9", Column9.BYTES_HYDRATOR)
-                .put("c10", Column10.BYTES_HYDRATOR)
+                .put("cVAR_LONG", ColumnVARLONG.BYTES_HYDRATOR)
+                .put("cVAR_SIGNED_LONG", ColumnVARSIGNEDLONG.BYTES_HYDRATOR)
+                .put("cFIXED_LONG", ColumnFIXEDLONG.BYTES_HYDRATOR)
+                .put("cFIXED_LONG_LITTLE_ENDIAN", ColumnFIXEDLONGLITTLEENDIAN.BYTES_HYDRATOR)
+                .put("cSHA256HASH", ColumnSHA256HASH.BYTES_HYDRATOR)
+                .put("cVAR_STRING", ColumnVARSTRING.BYTES_HYDRATOR)
+                .put("cSTRING", ColumnSTRING.BYTES_HYDRATOR)
+                .put("cBLOB", ColumnBLOB.BYTES_HYDRATOR)
+                .put("cSIZED_BLOB", ColumnSIZEDBLOB.BYTES_HYDRATOR)
+                .put("cNULLABLE_FIXED_LONG", ColumnNULLABLEFIXEDLONG.BYTES_HYDRATOR)
+                .put("cUUID", ColumnUUID.BYTES_HYDRATOR)
                 .build();
 
-    public Map<AllValueTypesTestRow, Long> getColumn0s(Collection<AllValueTypesTestRow> rows) {
+    public Map<AllValueTypesTestRow, Long> getColumnVARLONGs(Collection<AllValueTypesTestRow> rows) {
         Map<Cell, AllValueTypesTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (AllValueTypesTestRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c0")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("cVAR_LONG")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AllValueTypesTestRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
-            Long val = Column0.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
+            Long val = ColumnVARLONG.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
         }
         return ret;
     }
 
-    public Map<AllValueTypesTestRow, Long> getColumn1s(Collection<AllValueTypesTestRow> rows) {
+    public Map<AllValueTypesTestRow, Long> getColumnVARSIGNEDLONGs(Collection<AllValueTypesTestRow> rows) {
         Map<Cell, AllValueTypesTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (AllValueTypesTestRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c1")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("cVAR_SIGNED_LONG")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AllValueTypesTestRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
-            Long val = Column1.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
+            Long val = ColumnVARSIGNEDLONG.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
         }
         return ret;
     }
 
-    public Map<AllValueTypesTestRow, Long> getColumn2s(Collection<AllValueTypesTestRow> rows) {
+    public Map<AllValueTypesTestRow, Long> getColumnFIXEDLONGs(Collection<AllValueTypesTestRow> rows) {
         Map<Cell, AllValueTypesTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (AllValueTypesTestRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c2")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("cFIXED_LONG")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AllValueTypesTestRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
-            Long val = Column2.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
+            Long val = ColumnFIXEDLONG.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
         }
         return ret;
     }
 
-    public Map<AllValueTypesTestRow, Long> getColumn3s(Collection<AllValueTypesTestRow> rows) {
+    public Map<AllValueTypesTestRow, Long> getColumnFIXEDLONGLITTLEENDIANs(Collection<AllValueTypesTestRow> rows) {
         Map<Cell, AllValueTypesTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (AllValueTypesTestRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c3")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("cFIXED_LONG_LITTLE_ENDIAN")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AllValueTypesTestRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
-            Long val = Column3.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
+            Long val = ColumnFIXEDLONGLITTLEENDIAN.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
         }
         return ret;
     }
 
-    public Map<AllValueTypesTestRow, Sha256Hash> getColumn4s(Collection<AllValueTypesTestRow> rows) {
+    public Map<AllValueTypesTestRow, Sha256Hash> getColumnSHA256HASHs(Collection<AllValueTypesTestRow> rows) {
         Map<Cell, AllValueTypesTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (AllValueTypesTestRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c4")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("cSHA256HASH")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AllValueTypesTestRow, Sha256Hash> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
-            Sha256Hash val = Column4.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
+            Sha256Hash val = ColumnSHA256HASH.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
         }
         return ret;
     }
 
-    public Map<AllValueTypesTestRow, String> getColumn5s(Collection<AllValueTypesTestRow> rows) {
+    public Map<AllValueTypesTestRow, String> getColumnVARSTRINGs(Collection<AllValueTypesTestRow> rows) {
         Map<Cell, AllValueTypesTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (AllValueTypesTestRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c5")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("cVAR_STRING")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AllValueTypesTestRow, String> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
-            String val = Column5.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
+            String val = ColumnVARSTRING.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
         }
         return ret;
     }
 
-    public Map<AllValueTypesTestRow, String> getColumn6s(Collection<AllValueTypesTestRow> rows) {
+    public Map<AllValueTypesTestRow, String> getColumnSTRINGs(Collection<AllValueTypesTestRow> rows) {
         Map<Cell, AllValueTypesTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (AllValueTypesTestRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c6")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("cSTRING")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AllValueTypesTestRow, String> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
-            String val = Column6.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
+            String val = ColumnSTRING.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
         }
         return ret;
     }
 
-    public Map<AllValueTypesTestRow, byte[]> getColumn7s(Collection<AllValueTypesTestRow> rows) {
+    public Map<AllValueTypesTestRow, byte[]> getColumnBLOBs(Collection<AllValueTypesTestRow> rows) {
         Map<Cell, AllValueTypesTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (AllValueTypesTestRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c7")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("cBLOB")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AllValueTypesTestRow, byte[]> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
-            byte[] val = Column7.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
+            byte[] val = ColumnBLOB.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
         }
         return ret;
     }
 
-    public Map<AllValueTypesTestRow, byte[]> getColumn8s(Collection<AllValueTypesTestRow> rows) {
+    public Map<AllValueTypesTestRow, byte[]> getColumnSIZEDBLOBs(Collection<AllValueTypesTestRow> rows) {
         Map<Cell, AllValueTypesTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (AllValueTypesTestRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c8")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("cSIZED_BLOB")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AllValueTypesTestRow, byte[]> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
-            byte[] val = Column8.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
+            byte[] val = ColumnSIZEDBLOB.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
         }
         return ret;
     }
 
-    public Map<AllValueTypesTestRow, Long> getColumn9s(Collection<AllValueTypesTestRow> rows) {
+    public Map<AllValueTypesTestRow, Long> getColumnNULLABLEFIXEDLONGs(Collection<AllValueTypesTestRow> rows) {
         Map<Cell, AllValueTypesTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (AllValueTypesTestRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c9")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("cNULLABLE_FIXED_LONG")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AllValueTypesTestRow, Long> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
-            Long val = Column9.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
+            Long val = ColumnNULLABLEFIXEDLONG.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
         }
         return ret;
     }
 
-    public Map<AllValueTypesTestRow, UUID> getColumn10s(Collection<AllValueTypesTestRow> rows) {
+    public Map<AllValueTypesTestRow, UUID> getColumnUUIDs(Collection<AllValueTypesTestRow> rows) {
         Map<Cell, AllValueTypesTestRow> cells = Maps.newHashMapWithExpectedSize(rows.size());
         for (AllValueTypesTestRow row : rows) {
-            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("c10")), row);
+            cells.put(Cell.create(row.persistToBytes(), PtBytes.toCachedBytes("cUUID")), row);
         }
         Map<Cell, byte[]> results = t.get(tableRef, cells.keySet());
         Map<AllValueTypesTestRow, UUID> ret = Maps.newHashMapWithExpectedSize(results.size());
         for (Entry<Cell, byte[]> e : results.entrySet()) {
-            UUID val = Column10.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
+            UUID val = ColumnUUID.BYTES_HYDRATOR.hydrateFromBytes(e.getValue()).getValue();
             ret.put(cells.get(e.getKey()), val);
         }
         return ret;
     }
 
-    public void putColumn0(AllValueTypesTestRow row, Long value) {
-        put(ImmutableMultimap.of(row, Column0.of(value)));
+    public void putColumnVARLONG(AllValueTypesTestRow row, Long value) {
+        put(ImmutableMultimap.of(row, ColumnVARLONG.of(value)));
     }
 
-    public void putColumn0(Map<AllValueTypesTestRow, Long> map) {
+    public void putColumnVARLONG(Map<AllValueTypesTestRow, Long> map) {
         Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<AllValueTypesTestRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column0.of(e.getValue()));
+            toPut.put(e.getKey(), ColumnVARLONG.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn1(AllValueTypesTestRow row, Long value) {
-        put(ImmutableMultimap.of(row, Column1.of(value)));
+    public void putColumnVARSIGNEDLONG(AllValueTypesTestRow row, Long value) {
+        put(ImmutableMultimap.of(row, ColumnVARSIGNEDLONG.of(value)));
     }
 
-    public void putColumn1(Map<AllValueTypesTestRow, Long> map) {
+    public void putColumnVARSIGNEDLONG(Map<AllValueTypesTestRow, Long> map) {
         Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<AllValueTypesTestRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column1.of(e.getValue()));
+            toPut.put(e.getKey(), ColumnVARSIGNEDLONG.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn2(AllValueTypesTestRow row, Long value) {
-        put(ImmutableMultimap.of(row, Column2.of(value)));
+    public void putColumnFIXEDLONG(AllValueTypesTestRow row, Long value) {
+        put(ImmutableMultimap.of(row, ColumnFIXEDLONG.of(value)));
     }
 
-    public void putColumn2(Map<AllValueTypesTestRow, Long> map) {
+    public void putColumnFIXEDLONG(Map<AllValueTypesTestRow, Long> map) {
         Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<AllValueTypesTestRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column2.of(e.getValue()));
+            toPut.put(e.getKey(), ColumnFIXEDLONG.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn3(AllValueTypesTestRow row, Long value) {
-        put(ImmutableMultimap.of(row, Column3.of(value)));
+    public void putColumnFIXEDLONGLITTLEENDIAN(AllValueTypesTestRow row, Long value) {
+        put(ImmutableMultimap.of(row, ColumnFIXEDLONGLITTLEENDIAN.of(value)));
     }
 
-    public void putColumn3(Map<AllValueTypesTestRow, Long> map) {
+    public void putColumnFIXEDLONGLITTLEENDIAN(Map<AllValueTypesTestRow, Long> map) {
         Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<AllValueTypesTestRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column3.of(e.getValue()));
+            toPut.put(e.getKey(), ColumnFIXEDLONGLITTLEENDIAN.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn4(AllValueTypesTestRow row, Sha256Hash value) {
-        put(ImmutableMultimap.of(row, Column4.of(value)));
+    public void putColumnSHA256HASH(AllValueTypesTestRow row, Sha256Hash value) {
+        put(ImmutableMultimap.of(row, ColumnSHA256HASH.of(value)));
     }
 
-    public void putColumn4(Map<AllValueTypesTestRow, Sha256Hash> map) {
+    public void putColumnSHA256HASH(Map<AllValueTypesTestRow, Sha256Hash> map) {
         Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<AllValueTypesTestRow, Sha256Hash> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column4.of(e.getValue()));
+            toPut.put(e.getKey(), ColumnSHA256HASH.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn5(AllValueTypesTestRow row, String value) {
-        put(ImmutableMultimap.of(row, Column5.of(value)));
+    public void putColumnVARSTRING(AllValueTypesTestRow row, String value) {
+        put(ImmutableMultimap.of(row, ColumnVARSTRING.of(value)));
     }
 
-    public void putColumn5(Map<AllValueTypesTestRow, String> map) {
+    public void putColumnVARSTRING(Map<AllValueTypesTestRow, String> map) {
         Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<AllValueTypesTestRow, String> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column5.of(e.getValue()));
+            toPut.put(e.getKey(), ColumnVARSTRING.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn6(AllValueTypesTestRow row, String value) {
-        put(ImmutableMultimap.of(row, Column6.of(value)));
+    public void putColumnSTRING(AllValueTypesTestRow row, String value) {
+        put(ImmutableMultimap.of(row, ColumnSTRING.of(value)));
     }
 
-    public void putColumn6(Map<AllValueTypesTestRow, String> map) {
+    public void putColumnSTRING(Map<AllValueTypesTestRow, String> map) {
         Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<AllValueTypesTestRow, String> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column6.of(e.getValue()));
+            toPut.put(e.getKey(), ColumnSTRING.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn7(AllValueTypesTestRow row, byte[] value) {
-        put(ImmutableMultimap.of(row, Column7.of(value)));
+    public void putColumnBLOB(AllValueTypesTestRow row, byte[] value) {
+        put(ImmutableMultimap.of(row, ColumnBLOB.of(value)));
     }
 
-    public void putColumn7(Map<AllValueTypesTestRow, byte[]> map) {
+    public void putColumnBLOB(Map<AllValueTypesTestRow, byte[]> map) {
         Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<AllValueTypesTestRow, byte[]> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column7.of(e.getValue()));
+            toPut.put(e.getKey(), ColumnBLOB.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn8(AllValueTypesTestRow row, byte[] value) {
-        put(ImmutableMultimap.of(row, Column8.of(value)));
+    public void putColumnSIZEDBLOB(AllValueTypesTestRow row, byte[] value) {
+        put(ImmutableMultimap.of(row, ColumnSIZEDBLOB.of(value)));
     }
 
-    public void putColumn8(Map<AllValueTypesTestRow, byte[]> map) {
+    public void putColumnSIZEDBLOB(Map<AllValueTypesTestRow, byte[]> map) {
         Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<AllValueTypesTestRow, byte[]> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column8.of(e.getValue()));
+            toPut.put(e.getKey(), ColumnSIZEDBLOB.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn9(AllValueTypesTestRow row, Long value) {
-        put(ImmutableMultimap.of(row, Column9.of(value)));
+    public void putColumnNULLABLEFIXEDLONG(AllValueTypesTestRow row, Long value) {
+        put(ImmutableMultimap.of(row, ColumnNULLABLEFIXEDLONG.of(value)));
     }
 
-    public void putColumn9(Map<AllValueTypesTestRow, Long> map) {
+    public void putColumnNULLABLEFIXEDLONG(Map<AllValueTypesTestRow, Long> map) {
         Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<AllValueTypesTestRow, Long> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column9.of(e.getValue()));
+            toPut.put(e.getKey(), ColumnNULLABLEFIXEDLONG.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
     }
 
-    public void putColumn10(AllValueTypesTestRow row, UUID value) {
-        put(ImmutableMultimap.of(row, Column10.of(value)));
+    public void putColumnUUID(AllValueTypesTestRow row, UUID value) {
+        put(ImmutableMultimap.of(row, ColumnUUID.of(value)));
     }
 
-    public void putColumn10(Map<AllValueTypesTestRow, UUID> map) {
+    public void putColumnUUID(Map<AllValueTypesTestRow, UUID> map) {
         Map<AllValueTypesTestRow, AllValueTypesTestNamedColumnValue<?>> toPut = Maps.newHashMapWithExpectedSize(map.size());
         for (Entry<AllValueTypesTestRow, UUID> e : map.entrySet()) {
-            toPut.put(e.getKey(), Column10.of(e.getValue()));
+            toPut.put(e.getKey(), ColumnUUID.of(e.getValue()));
         }
         put(Multimaps.forMap(toPut));
     }
@@ -1764,112 +1764,112 @@ public final class AllValueTypesTestTable implements
         }
     }
 
-    public void deleteColumn0(AllValueTypesTestRow row) {
-        deleteColumn0(ImmutableSet.of(row));
+    public void deleteColumnVARLONG(AllValueTypesTestRow row) {
+        deleteColumnVARLONG(ImmutableSet.of(row));
     }
 
-    public void deleteColumn0(Iterable<AllValueTypesTestRow> rows) {
-        byte[] col = PtBytes.toCachedBytes("c0");
+    public void deleteColumnVARLONG(Iterable<AllValueTypesTestRow> rows) {
+        byte[] col = PtBytes.toCachedBytes("cVAR_LONG");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
         t.delete(tableRef, cells);
     }
 
-    public void deleteColumn1(AllValueTypesTestRow row) {
-        deleteColumn1(ImmutableSet.of(row));
+    public void deleteColumnVARSIGNEDLONG(AllValueTypesTestRow row) {
+        deleteColumnVARSIGNEDLONG(ImmutableSet.of(row));
     }
 
-    public void deleteColumn1(Iterable<AllValueTypesTestRow> rows) {
-        byte[] col = PtBytes.toCachedBytes("c1");
+    public void deleteColumnVARSIGNEDLONG(Iterable<AllValueTypesTestRow> rows) {
+        byte[] col = PtBytes.toCachedBytes("cVAR_SIGNED_LONG");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
         t.delete(tableRef, cells);
     }
 
-    public void deleteColumn2(AllValueTypesTestRow row) {
-        deleteColumn2(ImmutableSet.of(row));
+    public void deleteColumnFIXEDLONG(AllValueTypesTestRow row) {
+        deleteColumnFIXEDLONG(ImmutableSet.of(row));
     }
 
-    public void deleteColumn2(Iterable<AllValueTypesTestRow> rows) {
-        byte[] col = PtBytes.toCachedBytes("c2");
+    public void deleteColumnFIXEDLONG(Iterable<AllValueTypesTestRow> rows) {
+        byte[] col = PtBytes.toCachedBytes("cFIXED_LONG");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
         t.delete(tableRef, cells);
     }
 
-    public void deleteColumn3(AllValueTypesTestRow row) {
-        deleteColumn3(ImmutableSet.of(row));
+    public void deleteColumnFIXEDLONGLITTLEENDIAN(AllValueTypesTestRow row) {
+        deleteColumnFIXEDLONGLITTLEENDIAN(ImmutableSet.of(row));
     }
 
-    public void deleteColumn3(Iterable<AllValueTypesTestRow> rows) {
-        byte[] col = PtBytes.toCachedBytes("c3");
+    public void deleteColumnFIXEDLONGLITTLEENDIAN(Iterable<AllValueTypesTestRow> rows) {
+        byte[] col = PtBytes.toCachedBytes("cFIXED_LONG_LITTLE_ENDIAN");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
         t.delete(tableRef, cells);
     }
 
-    public void deleteColumn4(AllValueTypesTestRow row) {
-        deleteColumn4(ImmutableSet.of(row));
+    public void deleteColumnSHA256HASH(AllValueTypesTestRow row) {
+        deleteColumnSHA256HASH(ImmutableSet.of(row));
     }
 
-    public void deleteColumn4(Iterable<AllValueTypesTestRow> rows) {
-        byte[] col = PtBytes.toCachedBytes("c4");
+    public void deleteColumnSHA256HASH(Iterable<AllValueTypesTestRow> rows) {
+        byte[] col = PtBytes.toCachedBytes("cSHA256HASH");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
         t.delete(tableRef, cells);
     }
 
-    public void deleteColumn5(AllValueTypesTestRow row) {
-        deleteColumn5(ImmutableSet.of(row));
+    public void deleteColumnVARSTRING(AllValueTypesTestRow row) {
+        deleteColumnVARSTRING(ImmutableSet.of(row));
     }
 
-    public void deleteColumn5(Iterable<AllValueTypesTestRow> rows) {
-        byte[] col = PtBytes.toCachedBytes("c5");
+    public void deleteColumnVARSTRING(Iterable<AllValueTypesTestRow> rows) {
+        byte[] col = PtBytes.toCachedBytes("cVAR_STRING");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
         t.delete(tableRef, cells);
     }
 
-    public void deleteColumn6(AllValueTypesTestRow row) {
-        deleteColumn6(ImmutableSet.of(row));
+    public void deleteColumnSTRING(AllValueTypesTestRow row) {
+        deleteColumnSTRING(ImmutableSet.of(row));
     }
 
-    public void deleteColumn6(Iterable<AllValueTypesTestRow> rows) {
-        byte[] col = PtBytes.toCachedBytes("c6");
+    public void deleteColumnSTRING(Iterable<AllValueTypesTestRow> rows) {
+        byte[] col = PtBytes.toCachedBytes("cSTRING");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
         t.delete(tableRef, cells);
     }
 
-    public void deleteColumn7(AllValueTypesTestRow row) {
-        deleteColumn7(ImmutableSet.of(row));
+    public void deleteColumnBLOB(AllValueTypesTestRow row) {
+        deleteColumnBLOB(ImmutableSet.of(row));
     }
 
-    public void deleteColumn7(Iterable<AllValueTypesTestRow> rows) {
-        byte[] col = PtBytes.toCachedBytes("c7");
+    public void deleteColumnBLOB(Iterable<AllValueTypesTestRow> rows) {
+        byte[] col = PtBytes.toCachedBytes("cBLOB");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
         t.delete(tableRef, cells);
     }
 
-    public void deleteColumn8(AllValueTypesTestRow row) {
-        deleteColumn8(ImmutableSet.of(row));
+    public void deleteColumnSIZEDBLOB(AllValueTypesTestRow row) {
+        deleteColumnSIZEDBLOB(ImmutableSet.of(row));
     }
 
-    public void deleteColumn8(Iterable<AllValueTypesTestRow> rows) {
-        byte[] col = PtBytes.toCachedBytes("c8");
+    public void deleteColumnSIZEDBLOB(Iterable<AllValueTypesTestRow> rows) {
+        byte[] col = PtBytes.toCachedBytes("cSIZED_BLOB");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
         t.delete(tableRef, cells);
     }
 
-    public void deleteColumn9(AllValueTypesTestRow row) {
-        deleteColumn9(ImmutableSet.of(row));
+    public void deleteColumnNULLABLEFIXEDLONG(AllValueTypesTestRow row) {
+        deleteColumnNULLABLEFIXEDLONG(ImmutableSet.of(row));
     }
 
-    public void deleteColumn9(Iterable<AllValueTypesTestRow> rows) {
-        byte[] col = PtBytes.toCachedBytes("c9");
+    public void deleteColumnNULLABLEFIXEDLONG(Iterable<AllValueTypesTestRow> rows) {
+        byte[] col = PtBytes.toCachedBytes("cNULLABLE_FIXED_LONG");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
         t.delete(tableRef, cells);
     }
 
-    public void deleteColumn10(AllValueTypesTestRow row) {
-        deleteColumn10(ImmutableSet.of(row));
+    public void deleteColumnUUID(AllValueTypesTestRow row) {
+        deleteColumnUUID(ImmutableSet.of(row));
     }
 
-    public void deleteColumn10(Iterable<AllValueTypesTestRow> rows) {
-        byte[] col = PtBytes.toCachedBytes("c10");
+    public void deleteColumnUUID(Iterable<AllValueTypesTestRow> rows) {
+        byte[] col = PtBytes.toCachedBytes("cUUID");
         Set<Cell> cells = Cells.cellsWithConstantColumn(Persistables.persistAll(rows), col);
         t.delete(tableRef, cells);
     }
@@ -1883,17 +1883,17 @@ public final class AllValueTypesTestTable implements
     public void delete(Iterable<AllValueTypesTestRow> rows) {
         List<byte[]> rowBytes = Persistables.persistAll(rows);
         Set<Cell> cells = Sets.newHashSetWithExpectedSize(rowBytes.size() * 11);
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c0")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c1")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c10")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c2")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c3")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c4")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c5")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c6")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c7")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c8")));
-        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("c9")));
+        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("cBLOB")));
+        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("cFIXED_LONG")));
+        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("cFIXED_LONG_LITTLE_ENDIAN")));
+        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("cNULLABLE_FIXED_LONG")));
+        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("cSHA256HASH")));
+        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("cSIZED_BLOB")));
+        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("cSTRING")));
+        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("cUUID")));
+        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("cVAR_LONG")));
+        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("cVAR_SIGNED_LONG")));
+        cells.addAll(Cells.cellsWithConstantColumn(rowBytes, PtBytes.toCachedBytes("cVAR_STRING")));
         t.delete(tableRef, cells);
     }
 
@@ -2131,5 +2131,5 @@ public final class AllValueTypesTestTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "GNa7QR9a3hsUi6ceRV6hCw==";
+    static String __CLASS_HASH = "8h+42FefKe+9M/lArw1DGg==";
 }
