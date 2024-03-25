@@ -704,8 +704,7 @@ public abstract class TransactionManagers {
     }
 
     private static DialogueClients.ReloadingFactory newMinimalDialogueFactory() {
-        return DialogueClients.create(
-                        Refreshable.only(ServicesConfigBlock.builder().build()))
+        return DialogueClients.create(Refreshable.only(ServicesConfigBlock.empty()))
                 .withBlockingExecutor(PTExecutors.newCachedThreadPool("atlas-dialogue-blocking"));
     }
 
