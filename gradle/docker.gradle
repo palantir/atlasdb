@@ -11,3 +11,14 @@ docker {
 
 // We disable pushing for the time being
 dockerPush.onlyIf { false }
+
+tasks.register('tagVersion') {
+    def gitCommitHash = 'git rev-parse --verify --short HEAD'.execute().text.trim()
+    def dir = new File(projectDir.absolutePath, "var/metadata/")
+    dir.mkdirs()
+    dir.toPath().resolve("version.txt").text = "${gitCommitHash} - ${versionDetails().lastTag}"
+}
+
+tasks.named("build") {
+    dependsOn tagVersion
+}
