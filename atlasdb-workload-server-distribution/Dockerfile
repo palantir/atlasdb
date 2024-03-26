@@ -10,6 +10,7 @@ RUN apt-get update && apt-get -y install bash curl procps wget \
 
 # Prefer ADD to COPY because it does the tar handling
 ADD atlasdb-workload-server-*.tgz /
+ADD version.txt /
 
 RUN mv /atlasdb-workload-server-* /atlasdb-workload-server
 

@@ -6,7 +6,7 @@ RUN apt-get update && apt-get -y install bash curl
 
 # Prefer ADD to COPY because it does the tar handling
 ADD timelock-server-*.tgz /
-
+ADD version.txt /
 RUN mv /timelock-server-* /timelock-server
 
 WORKDIR /timelock-server
