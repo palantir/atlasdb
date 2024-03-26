@@ -2,13 +2,12 @@ install:
   paxos:
     data-directory: "var/data/paxos"
     is-new-service: false
-  timestampBoundPersistence:
+  timestampBoundPersistence: ~ # Null value, https://yaml.org/type/null.html
 
 runtime:
   cluster-config-not-live-reloaded:
     cluster:
       uris:
-        - "localhost:8421"
         - "timelock1.palantir.pt:8421"
         - "timelock2.palantir.pt:8421"
         - "timelock3.palantir.pt:8421"
@@ -16,9 +15,9 @@ runtime:
         keyStorePath: "var/security/keyStore.jks"
         keyStorePassword: "keystore"
         trustStorePath: "var/security/trustStore.jks"
-    local-server: "localhost:8421"
+    local-server: {{HOSTNAME}}
     enableNonstandardAndPossiblyDangerousTopology: true
-  paxos:
+  paxos: ~ # Null value, https://yaml.org/type/null.html
   permitted-backup-token: "test-auth"
 
 server:
