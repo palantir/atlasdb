@@ -1,13 +1,12 @@
 apply plugin: 'com.palantir.docker'
 
 def imageVersion = "${project.version.toString().replaceAll('\\+', '-')}"
-def versionFile = new File(buildDir, "version.txt")
 
 docker {
     name "palantirtechnologies/${project.name}:${imageVersion}"
     tags 'latest', 'snapshot'
     labels(['version': imageVersion])
-    files distTar.outputs, versionFile
+    files distTar.outputs
 }
 
 // We disable pushing for the time being
@@ -15,9 +14,11 @@ dockerPush.onlyIf { false }
 
 tasks.register('tagVersion') {
     def gitCommitHash = 'git rev-parse --verify --short HEAD'.execute().text.trim()
-    versionFile.text = "${gitCommitHash} - ${versionDetails().lastTag}"
+    def dir = new File(projectDir.absolutePath, "var/metadata/")
+    dir.mkdirs()
+    dir.toPath().resolve("version.txt").text = "${gitCommitHash} - ${versionDetails().lastTag}"
 }
 
-tasks.named("dockerPrepare") {
+tasks.named("build") {
     dependsOn tagVersion
 }
