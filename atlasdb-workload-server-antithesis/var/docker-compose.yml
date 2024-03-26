@@ -57,9 +57,7 @@ services:
 
   timelock1.palantir.pt:
     image: palantirtechnologies/timelock-server-distribution:unspecified
-    environment:
-      - HOSTNAME="timelock1.palantir.pt:8421"
-    command: [ bash, -c, 'sed "s/{{HOSTNAME}}/$HOSTNAME/g" var/conf/timelock.distributed.yml > var/conf/timelock.yml
+    command: [ bash, -c, 'sed "s/{{HOSTNAME}}/timelock1.palantir.pt:8421/g" var/conf/timelock.distributed.yml > var/conf/timelock.yml
                           && service/bin/init.sh console' ]
     ports:
       - "8421"
@@ -71,9 +69,7 @@ services:
 
   timelock2.palantir.pt:
     image: palantirtechnologies/timelock-server-distribution:unspecified
-    environment:
-      - HOSTNAME="timelock2.palantir.pt:8421"
-    command: [ bash, -c, 'sed "s/{{HOSTNAME}}/$HOSTNAME/g" var/conf/timelock.distributed.yml > var/conf/timelock.yml
+    command: [ bash, -c, 'sed "s/{{HOSTNAME}}/timelock2.palantir.pt:8421/g" var/conf/timelock.distributed.yml > var/conf/timelock.yml
                           && service/bin/init.sh console' ]
     ports:
       - "8421"
@@ -85,9 +81,7 @@ services:
 
   timelock3.palantir.pt:
     image: palantirtechnologies/timelock-server-distribution:unspecified
-    environment:
-      - HOSTNAME="timelock3.palantir.pt:8421"
-    command: [ bash, -c, 'sed "s/{{HOSTNAME}}/$HOSTNAME/g" var/conf/timelock.distributed.yml > var/conf/timelock.yml
+    command: [ bash, -c, 'sed "s/{{HOSTNAME}}/timelock3.palantir.pt:8421/g" var/conf/timelock.distributed.yml > var/conf/timelock.yml
                           && service/bin/init.sh console' ]
     ports:
       - "8421"
