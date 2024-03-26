@@ -41,6 +41,7 @@ dependencies {
     testImplementation 'io.dropwizard:dropwizard-testing'
 }
 
+
 distribution {
     serviceName "atlasdb-workload-server"
     mainClass 'com.palantir.atlasdb.workload.WorkloadServerLauncher'
