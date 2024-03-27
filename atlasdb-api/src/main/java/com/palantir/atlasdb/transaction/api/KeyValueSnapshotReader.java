@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.processors.AutoDelegate;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
@@ -40,6 +41,7 @@ import java.util.Set;
  * Although this interface performs user-level reads, internal writes may be performed (for example, as part of the
  * read protocol, to abort a long-running transaction).
  */
+@AutoDelegate
 public interface KeyValueSnapshotReader {
     ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableReference, Set<Cell> cells);
 
