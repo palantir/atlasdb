@@ -4,7 +4,7 @@ publishing {
     publications {
         maven(MavenPublication) {
             artifact(testJarForPublishing) {
-                classifier 'tests'
+                archiveClassifier = 'tests'
             }
 
             // This interfaces between Shadow and Nebula
