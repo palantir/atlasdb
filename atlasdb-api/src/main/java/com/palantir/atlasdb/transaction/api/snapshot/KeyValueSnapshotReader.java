@@ -30,20 +30,21 @@ import java.util.Set;
  * Reads state of a {@link com.palantir.atlasdb.keyvalue.api.KeyValueService} in accordance with the provided
  * AtlasDB timestamp, following the AtlasDB read protocol. This includes reading the most recent committed value for
  * each cell that would be visible at the provided timestamp(s) and filtering out versions that have been aborted or
- * not committed yet.
- *
+ * not committed yet. For legacy reasons, this does NOT remove empty values: these must be filtered out before returning
+ * to the user.
+ * <p>
  * If used in the context of a transaction, users are responsible for validating that snapshots read are still
  * guaranteed to be consistent (for example, transactions may need to validate their pre-commit conditions or check
  * that sweep has not progressed). Some methods may have partial, intermediate validation required as part of servicing
  * a read; this class will carry out this intermediate validation.
- *
+ * <p>
  * Although this interface performs user-level reads, internal writes may be performed (for example, as part of the
  * read protocol, to abort a long-running transaction).
  */
 public interface KeyValueSnapshotReader {
     ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableReference, Set<Cell> cells);
 
-    // TODO (jkong): This one is kind of awful, but it's used to avoid allocations and I'm not keen to add too many.
+    // TODO (jkong): This should be removed as it's an awful API, but needs to be done with a lot of caution.
     NavigableMap<byte[], RowResult<byte[]>> getRows(
             TableReference tableReference,
             Iterable<byte[]> rows,

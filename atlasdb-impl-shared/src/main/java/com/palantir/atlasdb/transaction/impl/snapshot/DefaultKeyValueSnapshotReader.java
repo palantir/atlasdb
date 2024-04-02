@@ -69,7 +69,6 @@ import org.eclipse.collections.api.factory.primitive.LongSets;
 import org.eclipse.collections.api.map.primitive.LongLongMap;
 import org.eclipse.collections.api.set.primitive.ImmutableLongSet;
 import org.eclipse.collections.api.set.primitive.LongSet;
-import org.jetbrains.annotations.NotNull;
 
 public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotReader {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultKeyValueSnapshotReader.class);
@@ -126,7 +125,6 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
         return filterRowResults(tableReference, rawResults, resultCollector);
     }
 
-    @NotNull
     private ListenableFuture<Map<Cell, byte[]>> getInternal(TableReference tableReference, Set<Cell> cells) {
         Map<Cell, Long> timestampsByCell = Cells.constantValueMap(cells, startTimestampSupplier.getAsLong());
         ListenableFuture<Collection<Map.Entry<Cell, byte[]>>> postFilteredResults = Futures.transformAsync(
@@ -215,8 +213,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             Map<Cell, Value> rawResults,
             @Output Collection<Map.Entry<Cell, T>> resultsCollector,
             Function<Value, T> transformer) {
-        Set<Cell> orphans = readSentinelHandler.findAndMarkOrphanedSweepSentinelsForDeletion(
-                tableRef, rawResults);
+        Set<Cell> orphans = readSentinelHandler.findAndMarkOrphanedSweepSentinelsForDeletion(tableRef, rawResults);
         LongSet valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
 
         return Futures.transformAsync(
@@ -382,9 +379,5 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
 
     private static boolean isSweepSentinel(Value value) {
         return value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP;
-    }
-
-    interface CellGetter {
-        ListenableFuture<Map<Cell, Value>> get(TableReference tableRef, Map<Cell, Long> timestampByCell);
     }
 }
