@@ -65,10 +65,10 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import org.eclipse.collections.api.LongIterable;
-import org.eclipse.collections.api.factory.primitive.LongSets;
 import org.eclipse.collections.api.map.primitive.LongLongMap;
 import org.eclipse.collections.api.set.primitive.ImmutableLongSet;
 import org.eclipse.collections.api.set.primitive.LongSet;
+import org.eclipse.collections.impl.factory.primitive.LongSets;
 
 public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotReader {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultKeyValueSnapshotReader.class);
@@ -199,7 +199,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
                                         + " or in the very rare case, could be due to transactions which constantly "
                                         + "conflict but never commit. These values will be cleaned up eventually, but"
                                         + " if the issue persists, ensure that sweep is caught up.",
-                                SafeArg.of("table", tableReference),
+                                LoggingArgs.tableRef(tableReference),
                                 SafeArg.of("maxIterations", MAX_POST_FILTERING_ITERATIONS));
                     }
                     metricRecorder.recordCellsReturned(tableReference, resultsAccumulator.size());
