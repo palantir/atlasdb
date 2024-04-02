@@ -52,8 +52,8 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
-import org.eclipse.collections.api.factory.primitive.ObjectLongMaps;
 import org.eclipse.collections.api.map.primitive.MutableObjectLongMap;
+import org.eclipse.collections.impl.factory.primitive.ObjectLongMaps;
 import org.immutables.value.Value;
 
 public class ResilientCommitTimestampAtomicTable implements AtomicTable<Long, TransactionStatus> {

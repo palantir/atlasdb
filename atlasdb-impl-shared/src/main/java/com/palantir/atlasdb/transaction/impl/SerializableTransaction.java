@@ -112,9 +112,9 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-import org.eclipse.collections.api.factory.primitive.LongLongMaps;
 import org.eclipse.collections.api.map.primitive.LongLongMap;
 import org.eclipse.collections.api.set.primitive.LongSet;
+import org.eclipse.collections.impl.factory.primitive.LongLongMaps;
 import org.immutables.value.Value;
 
 /**
