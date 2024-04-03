@@ -272,11 +272,17 @@ public class AsyncInitializerTest {
 
         private AlwaysFailingInitializerAssert isInitialized() {
             assertThat(actual.isInitialized()).isTrue();
+            assertThat(actual.isInitializedAsync().isDone()
+                            && !actual.isInitializedAsync().isCancelled())
+                    .isTrue();
             return this;
         }
 
         private AlwaysFailingInitializerAssert isNotInitialized() {
             assertThat(actual.isInitialized()).isFalse();
+            assertThat(actual.isInitializedAsync().isDone()
+                            && !actual.isInitializedAsync().isCancelled())
+                    .isFalse();
             return this;
         }
 

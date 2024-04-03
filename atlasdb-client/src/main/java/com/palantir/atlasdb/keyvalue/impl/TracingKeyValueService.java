@@ -156,6 +156,11 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
+    public ListenableFuture<?> isInitializedAsync() {
+        return delegate().isInitializedAsync();
+    }
+
+    @Override
     public void createTable(TableReference tableRef, byte[] tableMetadata) {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.createTable", tableRef)) {

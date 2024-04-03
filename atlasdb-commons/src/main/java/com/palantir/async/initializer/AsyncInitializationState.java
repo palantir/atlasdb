@@ -16,23 +16,29 @@
 
 package com.palantir.async.initializer;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
+
 public class AsyncInitializationState {
-    private volatile State state = State.INITIALIZING;
     private volatile Runnable cleanupTask = null;
+    private final SettableFuture<Void> future = SettableFuture.create();
+    private final ListenableFuture<Void> nonCancelPropagating = Futures.nonCancellationPropagating(future);
 
     synchronized State initToDone() {
-        if (state == State.INITIALIZING) {
-            state = State.DONE;
-        }
-        return state;
+        future.set(null);
+        return getState();
     }
 
     synchronized State initToCancelWithCleanupTask(Runnable runnable) {
-        if (state == State.INITIALIZING) {
-            state = State.CANCELLED;
+        if (future.cancel(true)) {
             cleanupTask = runnable;
         }
-        return state;
+        return getState();
+    }
+
+    ListenableFuture<?> getFuture() {
+        return nonCancelPropagating;
     }
 
     void performCleanupTask() {
@@ -42,16 +48,24 @@ public class AsyncInitializationState {
     }
 
     boolean isDone() {
-        return state == State.DONE;
+        return getState() == State.DONE;
     }
 
     boolean isCancelled() {
-        return state == State.CANCELLED;
+        return getState() == State.CANCELLED;
     }
 
     public enum State {
         INITIALIZING,
         DONE,
         CANCELLED
+    }
+
+    private synchronized State getState() {
+        if (future.isCancelled()) {
+            return State.CANCELLED;
+        } else {
+            return future.isDone() ? State.DONE : State.INITIALIZING;
+        }
     }
 }

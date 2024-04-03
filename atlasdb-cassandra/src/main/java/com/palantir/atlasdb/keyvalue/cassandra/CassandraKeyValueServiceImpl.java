@@ -499,8 +499,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     @Override
-    public boolean isInitialized() {
-        return wrapper.isInitialized();
+    public ListenableFuture<?> isInitializedAsync() {
+        return wrapper.isInitializedAsync();
     }
 
     protected void initialize(boolean asyncInitialize) {

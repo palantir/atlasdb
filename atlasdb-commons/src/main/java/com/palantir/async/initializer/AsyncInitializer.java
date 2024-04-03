@@ -15,6 +15,7 @@
  */
 package com.palantir.async.initializer;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.exception.NotInitializedException;
@@ -37,7 +38,7 @@ public abstract class AsyncInitializer {
 
     private final ScheduledExecutorService singleThreadedExecutor = createExecutorService();
     private final AtomicBoolean isInitializing = new AtomicBoolean(false);
-    private AsyncInitializationState state = new AsyncInitializationState();
+    private final AsyncInitializationState state = new AsyncInitializationState();
     private int numberOfInitializationAttempts = 1;
     private Long initializationStartTime;
 
@@ -189,6 +190,10 @@ public abstract class AsyncInitializer {
     // Not final for tests.
     public boolean isInitialized() {
         return state.isDone();
+    }
+
+    public ListenableFuture<?> isInitializedAsync() {
+        return state.getFuture();
     }
 
     /**
