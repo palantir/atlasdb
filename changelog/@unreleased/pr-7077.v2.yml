@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: '`SnapshotTransaction`''s filtering limit now respects table logging
+    safety correctly.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/7077
