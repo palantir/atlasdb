@@ -1568,7 +1568,7 @@ public class SnapshotTransaction extends AbstractTransaction
                                         + " or in the very rare case, could be due to transactions which constantly "
                                         + "conflict but never commit. These values will be cleaned up eventually, but"
                                         + " if the issue persists, ensure that sweep is caught up.",
-                                SafeArg.of("table", tableReference),
+                                LoggingArgs.tableRef(tableReference),
                                 SafeArg.of("maxIterations", MAX_POST_FILTERING_ITERATIONS));
                     }
                     snapshotEventRecorder.recordCellsReturned(tableReference, resultsAccumulator.size());

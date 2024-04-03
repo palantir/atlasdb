@@ -2984,7 +2984,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageStartingWith("Unable to filter cells")
                 .hasExactlyArgs(
-                        SafeArg.of("table", TABLE_NO_SWEEP),
+                        UnsafeArg.of("tableRef", TABLE_NO_SWEEP.toString()),
                         SafeArg.of("maxIterations", SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS));
     }
 
