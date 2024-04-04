@@ -909,8 +909,12 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private Map<Cell, byte[]> removeEmptyColumns(Map<Cell, byte[]> unfiltered, TableReference tableReference) {
         Map<Cell, byte[]> filtered = Maps.filterValues(unfiltered, Predicates.not(Value::isTombstone));
+        // compute filtered size without traversing lazily transformed map `size()` as that allocates entries
+        long filteredCount = unfiltered.values().stream()
+                .filter(Predicates.not(Value::isTombstone))
+                .count();
 
-        int emptyValues = unfiltered.size() - filtered.size();
+        long emptyValues = unfiltered.size() - filteredCount;
         snapshotEventRecorder.recordFilteredEmptyValues(tableReference, emptyValues);
         TraceStatistics.incEmptyValues(emptyValues);
 
@@ -1381,8 +1385,12 @@ public class SnapshotTransaction extends AbstractTransaction
         return Iterators.transform(unfilteredRows, unfilteredRow -> {
             SortedMap<byte[], byte[]> filteredColumns =
                     Maps.filterValues(unfilteredRow.getColumns(), Predicates.not(Value::isTombstone));
+            // compute filtered size without traversing lazily transformed map `size()` as that allocates entries
+            long filteredCount = unfilteredRow.getColumns().values().stream()
+                    .filter(Predicates.not(Value::isTombstone))
+                    .count();
 
-            int emptyValues = unfilteredRow.getColumns().size() - filteredColumns.size();
+            long emptyValues = unfilteredRow.getColumns().size() - filteredCount;
             snapshotEventRecorder.recordFilteredEmptyValues(tableReference, emptyValues);
             TraceStatistics.incEmptyValues(emptyValues);
 
