@@ -909,8 +909,12 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private Map<Cell, byte[]> removeEmptyColumns(Map<Cell, byte[]> unfiltered, TableReference tableReference) {
         Map<Cell, byte[]> filtered = Maps.filterValues(unfiltered, Predicates.not(Value::isTombstone));
+        // compute filtered size without traversing lazily transformed map `size()` as that allocates entries
+        long filteredCount = unfiltered.values().stream()
+                .filter(Predicates.not(Value::isTombstone))
+                .count();
 
-        int emptyValues = unfiltered.size() - filtered.size();
+        long emptyValues = unfiltered.size() - filteredCount;
         snapshotEventRecorder.recordFilteredEmptyValues(tableReference, emptyValues);
         TraceStatistics.incEmptyValues(emptyValues);
 
@@ -1381,8 +1385,12 @@ public class SnapshotTransaction extends AbstractTransaction
         return Iterators.transform(unfilteredRows, unfilteredRow -> {
             SortedMap<byte[], byte[]> filteredColumns =
                     Maps.filterValues(unfilteredRow.getColumns(), Predicates.not(Value::isTombstone));
+            // compute filtered size without traversing lazily transformed map `size()` as that allocates entries
+            long filteredCount = unfilteredRow.getColumns().values().stream()
+                    .filter(Predicates.not(Value::isTombstone))
+                    .count();
 
-            int emptyValues = unfilteredRow.getColumns().size() - filteredColumns.size();
+            long emptyValues = unfilteredRow.getColumns().size() - filteredCount;
             snapshotEventRecorder.recordFilteredEmptyValues(tableReference, emptyValues);
             TraceStatistics.incEmptyValues(emptyValues);
 
@@ -1563,19 +1571,16 @@ public class SnapshotTransaction extends AbstractTransaction
 
         snapshotEventRecorder.recordCellsRead(tableRef, rawResults.size());
 
-        Collection<Map.Entry<Cell, T>> resultsAccumulator = new ArrayList<>();
-
         if (AtlasDbConstants.HIDDEN_TABLES.contains(tableRef)) {
             Preconditions.checkState(allowHiddenTableAccess, "hidden tables cannot be read in this transaction");
             // hidden tables are used outside of the transaction protocol, and in general have invalid timestamps,
             // so do not apply post-filtering as post-filtering would rollback (actually delete) the data incorrectly
             // this case is hit when reading a hidden table from console
-            for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
-                resultsAccumulator.add(Maps.immutableEntry(e.getKey(), transformer.apply(e.getValue())));
-            }
-            return Futures.immediateFuture(resultsAccumulator);
+            return Futures.immediateFuture(ImmutableList.copyOf(
+                    Maps.transformValues(rawResults, transformer::apply).entrySet()));
         }
 
+        Collection<Map.Entry<Cell, T>> resultsAccumulator = new ArrayList<>();
         return Futures.transformAsync(
                 Futures.immediateFuture(rawResults),
                 resultsToPostFilter -> getWithPostFilteringIterate(
