@@ -1788,7 +1788,6 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         eq(TABLE_SWEPT_THOROUGH),
                         eq(Set.of(TEST_CELL, TEST_CELL_2, TEST_CELL_3)),
                         eq(2L),
-                        any(),
                         any());
     }
 
@@ -1827,7 +1826,6 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         eq(TABLE_SWEPT_THOROUGH),
                         eq(Set.of(TEST_CELL_2, TEST_CELL_3)), // Don't expect to ask for cell1 because it's cached
                         eq(1L),
-                        any(),
                         any());
     }
 
@@ -1866,7 +1864,6 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         eq(TABLE_SWEPT_THOROUGH),
                         eq(Set.of(TEST_CELL_2, TEST_CELL_3)), // Don't expect to ask for cell1 because it's cached
                         eq(2L),
-                        any(),
                         any());
     }
 
@@ -1906,7 +1903,6 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         eq(TABLE_SWEPT_THOROUGH),
                         eq(ImmutableSet.of()),
                         anyLong(),
-                        any(),
                         any());
     }
 
@@ -1946,8 +1942,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
 
         verify(spiedTimeLockService, never()).refreshLockLeases(any());
         verify(spiedSnapshotTransaction, never())
-                .getInternal(
-                        eq("getWithExpectedNumberOfCells"), eq(TABLE_SWEPT_THOROUGH), any(), anyLong(), any(), any());
+                .getInternal(eq("getWithExpectedNumberOfCells"), eq(TABLE_SWEPT_THOROUGH), any(), anyLong(), any());
     }
 
     @Test
@@ -1987,7 +1982,6 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         eq(TABLE_SWEPT_THOROUGH),
                         eq(Set.of(TEST_CELL, TEST_CELL_2)),
                         eq(1L),
-                        any(),
                         any());
     }
 

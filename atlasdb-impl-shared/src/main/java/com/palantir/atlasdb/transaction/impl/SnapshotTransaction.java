@@ -120,9 +120,7 @@ import com.palantir.atlasdb.transaction.impl.precommit.DefaultReadSnapshotValida
 import com.palantir.atlasdb.transaction.impl.precommit.ReadSnapshotValidator;
 import com.palantir.atlasdb.transaction.impl.precommit.ReadSnapshotValidator.ValidationState;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
-import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
-import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.annotation.Output;
@@ -158,7 +156,6 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.util.AssertUtils;
-import com.palantir.util.RateLimitedLogger;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import com.palantir.util.result.Result;
 import java.nio.ByteBuffer;
@@ -223,7 +220,6 @@ public class SnapshotTransaction extends AbstractTransaction
     private static final SafeLogger perfLogger = SafeLoggerFactory.get("dualschema.perf");
     private static final SafeLogger transactionLengthLogger = SafeLoggerFactory.get("txn.length");
     private static final SafeLogger constraintLogger = SafeLoggerFactory.get("dualschema.constraints");
-    private static final RateLimitedLogger deleteExecutorRateLimitedLogger = new RateLimitedLogger(log, 1.0);
 
     private static final int BATCH_SIZE_GET_FIRST_PAGE = 1000;
     private static final long TXN_LENGTH_THRESHOLD = Duration.ofMinutes(30).toMillis();
@@ -249,7 +245,6 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final LockWatchManagerInternal lockWatchManager;
     final TrackingTransactionKeyValueService transactionKeyValueService;
     final TransactionService defaultTransactionService;
-    private final AsyncTransactionService immediateTransactionService;
     private final Cleaner cleaner;
     private final LongSupplier startTimestamp;
     protected final MetricsManager metricsManager;
@@ -352,7 +347,6 @@ public class SnapshotTransaction extends AbstractTransaction
                 new TrackingTransactionKeyValueServiceImpl(delegateTransactionKeyValueService);
         this.timelockService = timelockService;
         this.defaultTransactionService = transactionService;
-        this.immediateTransactionService = TransactionServices.synchronousAsAsyncTransactionService(transactionService);
         this.cleaner = cleaner;
         this.startTimestamp = startTimestamp;
         this.conflictDetectionManager = new TransactionConflictDetectionManager(conflictDetectionManager);
@@ -450,13 +444,8 @@ public class SnapshotTransaction extends AbstractTransaction
                         tableRef,
                         rows,
                         columnSelection,
-                        cells -> AtlasFutures.getUnchecked(getInternal(
-                                "getRows",
-                                tableRef,
-                                cells,
-                                cells.size(),
-                                transactionKeyValueService,
-                                immediateTransactionService)),
+                        cells -> AtlasFutures.getUnchecked(
+                                getInternal("getRows", tableRef, cells, cells.size(), transactionKeyValueService)),
                         unCachedRows -> getRowsInternal(tableRef, unCachedRows, columnSelection));
     }
 
@@ -620,7 +609,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 IteratorUtils.mergeIterators(
                         localWrites,
                         remoteWrites,
-                        Comparator.comparing(Map.Entry::getKey, cellComparator),
+                        Map.Entry.comparingByKey(cellComparator),
                         com.palantir.util.Pair::getLhSide),
                 remoteWrites);
     }
@@ -951,13 +940,8 @@ public class SnapshotTransaction extends AbstractTransaction
                 .get(
                         tableRef,
                         cells,
-                        uncached -> getInternal(
-                                "get",
-                                tableRef,
-                                uncached,
-                                uncached.size(),
-                                transactionKeyValueService,
-                                immediateTransactionService));
+                        uncached ->
+                                getInternal("get", tableRef, uncached, uncached.size(), transactionKeyValueService));
     }
 
     @Override
@@ -974,8 +958,7 @@ public class SnapshotTransaction extends AbstractTransaction
                         tableRef,
                         cacheLookupResult.missedCells(),
                         numberOfCellsExpectingValuePostCache,
-                        transactionKeyValueService,
-                        immediateTransactionService);
+                        transactionKeyValueService);
             }));
         } catch (MoreCellsPresentThanExpectedException e) {
             return Result.err(e);
@@ -990,12 +973,7 @@ public class SnapshotTransaction extends AbstractTransaction
                         tableRef,
                         cells,
                         uncached -> getInternal(
-                                "getAsync",
-                                tableRef,
-                                uncached,
-                                uncached.size(),
-                                transactionKeyValueService,
-                                defaultTransactionService)));
+                                "getAsync", tableRef, uncached, uncached.size(), transactionKeyValueService)));
     }
 
     @VisibleForTesting
@@ -1004,8 +982,7 @@ public class SnapshotTransaction extends AbstractTransaction
             TableReference tableRef,
             Set<Cell> cells,
             long numberOfExpectedPresentCells,
-            TransactionKeyValueService asyncKeyValueService,
-            AsyncTransactionService asyncTransactionService) {
+            TransactionKeyValueService asyncKeyValueService) {
         Timer.Context timer =
                 snapshotTransactionMetricFactory.getTimer(operationName).time();
         checkGetPreconditions(tableRef);
@@ -1032,11 +1009,7 @@ public class SnapshotTransaction extends AbstractTransaction
         // We don't need to read any cells that were written locally.
         long expectedNumberOfPresentCellsToFetch = numberOfExpectedPresentCells - numberOfNonDeleteLocalWrites;
         return Futures.transform(
-                getFromKeyValueService(
-                        tableRef,
-                        Sets.difference(cells, result.keySet()),
-                        asyncKeyValueService,
-                        asyncTransactionService),
+                getFromKeyValueService(tableRef, Sets.difference(cells, result.keySet()), asyncKeyValueService),
                 fromKeyValueService -> {
                     result.putAll(fromKeyValueService);
 
@@ -1071,7 +1044,7 @@ public class SnapshotTransaction extends AbstractTransaction
         hasReads = true;
 
         ListenableFuture<Map<Cell, byte[]>> result =
-                getFromKeyValueService(tableRef, cells, transactionKeyValueService, immediateTransactionService);
+                getFromKeyValueService(tableRef, cells, transactionKeyValueService);
 
         Map<Cell, byte[]> unfiltered = Futures.getUnchecked(result);
         Map<Cell, byte[]> filtered = Maps.filterValues(unfiltered, Predicates.not(Value::isTombstone));
@@ -1090,15 +1063,11 @@ public class SnapshotTransaction extends AbstractTransaction
      * filtered out.
      */
     private ListenableFuture<Map<Cell, byte[]>> getFromKeyValueService(
-            TableReference tableRef,
-            Set<Cell> cells,
-            TransactionKeyValueService asyncKeyValueService,
-            AsyncTransactionService asyncTransactionService) {
+            TableReference tableRef, Set<Cell> cells, TransactionKeyValueService asyncKeyValueService) {
         Map<Cell, Long> toRead = Cells.constantValueMap(cells, getStartTimestamp());
         ListenableFuture<Collection<Map.Entry<Cell, byte[]>>> postFilteredResults = Futures.transformAsync(
                 asyncKeyValueService.getAsync(tableRef, toRead),
-                rawResults -> getWithPostFilteringAsync(
-                        tableRef, rawResults, Value.GET_VALUE, asyncKeyValueService, asyncTransactionService),
+                rawResults -> getWithPostFilteringAsync(tableRef, rawResults, Value.GET_VALUE, asyncKeyValueService),
                 MoreExecutors.directExecutor());
 
         return Futures.transform(postFilteredResults, ImmutableMap::copyOf, MoreExecutors.directExecutor());
@@ -1147,7 +1116,7 @@ public class SnapshotTransaction extends AbstractTransaction
                         byte[] nextStartRowName = getNextStartRowName(rangeRequest, prePostFilter);
                         List<Map.Entry<Cell, byte[]>> mergeIterators = getPostFilteredWithLocalWrites(
                                 tableRef, postFiltered, rangeRequest, prePostFilter.getResults(), nextStartRowName);
-                        ret.add(new AbstractBatchingVisitable<RowResult<byte[]>>() {
+                        ret.add(new AbstractBatchingVisitable<>() {
                             @Override
                             protected <K extends Exception> void batchAcceptSizeHint(
                                     int batchSizeHint, ConsistentVisitor<RowResult<byte[]>, K> visitor) throws K {
@@ -1253,7 +1222,7 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private BatchingVisitable<RowResult<byte[]>> getLazyRange(TableReference tableRef, RangeRequest rangeRequest) {
-        return new AbstractBatchingVisitable<RowResult<byte[]>>() {
+        return new AbstractBatchingVisitable<>() {
             @Override
             protected <K extends Exception> void batchAcceptSizeHint(
                     int batchSizeHint, ConsistentVisitor<RowResult<byte[]>, K> visitor) throws K {
@@ -1317,7 +1286,7 @@ public class SnapshotTransaction extends AbstractTransaction
         }
         hasReads = true;
 
-        return new AbstractBatchingVisitable<RowResult<byte[]>>() {
+        return new AbstractBatchingVisitable<>() {
             @Override
             public <K extends Exception> void batchAcceptSizeHint(
                     int userRequestedSize, ConsistentVisitor<RowResult<byte[]>, K> visitor) throws K {
@@ -1436,7 +1405,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 new RowRangeBatchProvider(transactionKeyValueService, tableRef, range, getStartTimestamp());
         BatchSizeIncreasingIterator<RowResult<Value>> results =
                 new BatchSizeIncreasingIterator<>(batchProvider, preFilterBatchSize, null);
-        Iterator<Iterator<RowResult<T>>> batchedPostFiltered = new AbstractIterator<Iterator<RowResult<T>>>() {
+        Iterator<Iterator<RowResult<T>>> batchedPostFiltered = new AbstractIterator<>() {
             @Override
             protected Iterator<RowResult<T>> computeNext() {
                 List<RowResult<Value>> batch = results.getBatch().batch();
@@ -1539,16 +1508,15 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private <T> Collection<Map.Entry<Cell, T>> getWithPostFilteringSync(
             TableReference tableRef, Map<Cell, Value> rawResults, Function<Value, T> transformer) {
-        return AtlasFutures.getUnchecked(getWithPostFilteringAsync(
-                tableRef, rawResults, transformer, transactionKeyValueService, immediateTransactionService));
+        return AtlasFutures.getUnchecked(
+                getWithPostFilteringAsync(tableRef, rawResults, transformer, transactionKeyValueService));
     }
 
     private <T> ListenableFuture<Collection<Map.Entry<Cell, T>>> getWithPostFilteringAsync(
             TableReference tableRef,
             Map<Cell, Value> rawResults,
             Function<Value, T> transformer,
-            TransactionKeyValueService asyncKeyValueService,
-            AsyncTransactionService asyncTransactionService) {
+            TransactionKeyValueService asyncKeyValueService) {
         long bytes = 0;
         for (Map.Entry<Cell, Value> entry : rawResults.entrySet()) {
             bytes += entry.getValue().getContents().length + Cells.getApproxSizeOfCell(entry.getKey());
@@ -1576,30 +1544,24 @@ public class SnapshotTransaction extends AbstractTransaction
             // hidden tables are used outside of the transaction protocol, and in general have invalid timestamps,
             // so do not apply post-filtering as post-filtering would rollback (actually delete) the data incorrectly
             // this case is hit when reading a hidden table from console
-            return Futures.immediateFuture(ImmutableList.copyOf(
-                    Maps.transformValues(rawResults, transformer::apply).entrySet()));
+            return Futures.immediateFuture(
+                    Maps.transformValues(rawResults, transformer::apply).entrySet());
         }
 
         Collection<Map.Entry<Cell, T>> resultsAccumulator = new ArrayList<>();
         return Futures.transformAsync(
                 Futures.immediateFuture(rawResults),
                 resultsToPostFilter -> getWithPostFilteringIterate(
-                        tableRef,
-                        resultsToPostFilter,
-                        resultsAccumulator,
-                        transformer,
-                        asyncKeyValueService,
-                        asyncTransactionService),
+                        tableRef, resultsToPostFilter, resultsAccumulator, transformer, asyncKeyValueService),
                 MoreExecutors.directExecutor());
     }
 
     private <T> ListenableFuture<Collection<Map.Entry<Cell, T>>> getWithPostFilteringIterate(
             TableReference tableReference,
             Map<Cell, Value> resultsToPostFilter,
-            Collection<Map.Entry<Cell, T>> resultsAccumulator,
+            @Output Collection<Map.Entry<Cell, T>> resultsAccumulator,
             Function<Value, T> transformer,
-            TransactionKeyValueService asyncKeyValueService,
-            AsyncTransactionService asyncTransactionService) {
+            TransactionKeyValueService asyncKeyValueService) {
         return Futures.transformAsync(
                 Futures.immediateFuture(resultsToPostFilter),
                 results -> {
@@ -1611,8 +1573,7 @@ public class SnapshotTransaction extends AbstractTransaction
                                 remainingResultsToPostFilter,
                                 resultsAccumulator,
                                 transformer,
-                                asyncKeyValueService,
-                                asyncTransactionService));
+                                asyncKeyValueService));
                         Preconditions.checkState(
                                 ++iterations < MAX_POST_FILTERING_ITERATIONS,
                                 "Unable to filter cells to find correct result after "
@@ -1639,8 +1600,7 @@ public class SnapshotTransaction extends AbstractTransaction
             Map<Cell, Value> rawResults,
             @Output Collection<Map.Entry<Cell, T>> resultsCollector,
             Function<Value, T> transformer,
-            TransactionKeyValueService asyncKeyValueService,
-            AsyncTransactionService asyncTransactionService) {
+            TransactionKeyValueService asyncKeyValueService) {
         Set<Cell> orphanedSentinels =
                 readSentinelHandler.findAndMarkOrphanedSweepSentinelsForDeletion(tableRef, rawResults);
         LongSet valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
@@ -2809,7 +2769,7 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private <T> BatchingVisitable<T> scopeToTransaction(BatchingVisitable<T> delegateVisitable) {
-        return new BatchingVisitable<T>() {
+        return new BatchingVisitable<>() {
             @Override
             public <K extends Exception> boolean batchAccept(int batchSize, AbortingVisitor<? super List<T>, K> visitor)
                     throws K {
@@ -2820,7 +2780,7 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private <T> Iterator<T> scopeToTransaction(Iterator<T> delegateIterator) {
-        return new Iterator<T>() {
+        return new Iterator<>() {
             @Override
             public boolean hasNext() {
                 ensureStillRunning();
