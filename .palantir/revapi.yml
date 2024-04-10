@@ -79,6 +79,14 @@ acceptedBreaks:
     - code: "java.method.addedToInterface"
       new: "method boolean com.palantir.atlasdb.cell.api.TransactionKeyValueService::isValid(long)"
       justification: "internal API"
+  "0.1073.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter void com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException::<init>(java.util.List<java.lang.Exception>,\
+        \ ===java.util.Map<java.lang.String, java.lang.Integer>===)"
+      new: "parameter void com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException::<init>(java.util.List<java.lang.Exception>,\
+        \ ===java.util.List<com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException.AttemptedTarget>===)"
+      justification: "Only added recently"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"

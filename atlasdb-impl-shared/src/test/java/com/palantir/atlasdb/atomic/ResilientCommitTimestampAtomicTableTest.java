@@ -37,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
+import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException.AttemptedTarget;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.encoding.BaseProgressEncodingStrategy;
@@ -480,7 +481,8 @@ public class ResilientCommitTimestampAtomicTableTest {
         }
 
         public void failPutsWithAtlasdbDependencyException() {
-            putException = Optional.of(new RetryLimitReachedException(ImmutableList.of(), ImmutableMap.of("host1", 1)));
+            putException = Optional.of(new RetryLimitReachedException(
+                    ImmutableList.of(), ImmutableList.of(AttemptedTarget.of("name1", 1))));
         }
 
         public int maximumConcurrentTouches() {

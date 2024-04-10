@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
+import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException.AttemptedTarget;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.exception.AtlasDbDependencyException;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import one.util.streamex.EntryStream;
 
 public class RetryableCassandraRequest<V, K extends Exception> {
@@ -84,7 +86,7 @@ public class RetryableCassandraRequest<V, K extends Exception> {
         throw new RetryLimitReachedException(
                 encounteredExceptions,
                 EntryStream.of(triedHosts)
-                        .mapKeys(CassandraServer::cassandraHostName)
-                        .toMap());
+                        .mapKeyValue((server, attempts) -> AttemptedTarget.of(server.toString(), attempts))
+                        .collect(Collectors.toList()));
     }
 }
