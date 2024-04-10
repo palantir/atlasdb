@@ -20,8 +20,8 @@ import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTe
 import static com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceTestUtils.insertGenericMetadataIntoLegacyCell;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.assertj.core.api.Assertions.entry;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
@@ -561,8 +561,7 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
                 MultiCheckAndSetRequest.multipleCells(TEST_TABLE, TEST_CELL.getRowName(), expected, updates);
 
         MultiCheckAndSetException ex =
-                assertThrows(MultiCheckAndSetException.class, () -> keyValueService.multiCheckAndSet(request));
-
+                catchThrowableOfType(() -> keyValueService.multiCheckAndSet(request), MultiCheckAndSetException.class);
         assertThat(ex.getExpectedValues()).containsExactlyEntriesOf(expected);
         assertThat(ex.getActualValues()).isEmpty();
     }
@@ -647,11 +646,10 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
                 MultiCheckAndSetRequest.newCells(TEST_TABLE, firstTestCell.getRowName(), firstPut));
         verifyMultiCheckAndSet(firstPut);
 
-        MultiCheckAndSetException ex = assertThrows(
-                MultiCheckAndSetException.class,
+        MultiCheckAndSetException ex = catchThrowableOfType(
                 () -> keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.newCells(
-                        TEST_TABLE, firstTestCell.getRowName(), ImmutableMap.of(firstTestCell, secondVal))));
-
+                        TEST_TABLE, firstTestCell.getRowName(), ImmutableMap.of(firstTestCell, secondVal))),
+                MultiCheckAndSetException.class);
         verifyMultiCheckAndSet(firstPut);
         assertThat(ex.getExpectedValues()).isEmpty();
         assertThat(ex.getActualValues()).containsExactlyEntriesOf(firstPut);
@@ -684,10 +682,10 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
                         TEST_TABLE, nextTestCell.getRowName(), ImmutableMap.of(nextTestCell, val(0, 2)))))
                 .isInstanceOf(MultiCheckAndSetException.class);
 
-        MultiCheckAndSetException ex = assertThrows(
-                MultiCheckAndSetException.class,
+        MultiCheckAndSetException ex = catchThrowableOfType(
                 () -> keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.newCells(
-                        TEST_TABLE, nextTestCell.getRowName(), ImmutableMap.of(nextTestCell, val(0, 2)))));
+                        TEST_TABLE, nextTestCell.getRowName(), ImmutableMap.of(nextTestCell, val(0, 2)))),
+                MultiCheckAndSetException.class);
         assertThat(ex.getExpectedValues()).isEmpty();
         assertThat(ex.getActualValues()).containsExactlyEntriesOf(ImmutableMap.of(nextTestCell, val(0, 1)));
 
