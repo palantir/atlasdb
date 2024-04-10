@@ -17,8 +17,10 @@ package com.palantir.atlasdb.sweep.queue;
 
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.cell.api.DataTableCellDeleter;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingDataTableCellDeleter;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
@@ -39,6 +41,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongFunction;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 public final class SweepQueue implements MultiTableSweepQueueWriter {
@@ -51,15 +55,21 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
     private final Supplier<Integer> numShards;
     private final AbandonedTransactionConsumer abandonedTransactionConsumer;
     private final TargetedSweepMetrics metrics;
+    private final LongFunction<DataTableCellDeleter> dataTableCellDeleterFactory;
+    private final LongSupplier timestampSupplier;
 
     private SweepQueue(
             SweepQueueFactory factory,
             TargetedSweepFollower follower,
-            AbandonedTransactionConsumer abandonedTransactionConsumer) {
+            AbandonedTransactionConsumer abandonedTransactionConsumer,
+            LongFunction<DataTableCellDeleter> dataTableCellDeleterFactory,
+            LongSupplier timestampSupplier) {
         this.progress = factory.progress;
         this.writer = factory.createWriter();
         this.reader = factory.createReader();
         this.abandonedTransactionConsumer = abandonedTransactionConsumer;
+        this.dataTableCellDeleterFactory = dataTableCellDeleterFactory;
+        this.timestampSupplier = timestampSupplier;
         this.deleter = factory.createDeleter(follower);
         this.cleaner = factory.createCleaner();
         this.numShards = factory.numShards;
@@ -74,10 +84,16 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             TransactionService transaction,
             AbandonedTransactionConsumer abortedTransactionConsumer,
             TargetedSweepFollower follower,
-            ReadBatchingRuntimeContext readBatchingRuntimeContext) {
+            ReadBatchingRuntimeContext readBatchingRuntimeContext,
+            LongFunction<DataTableCellDeleter> dataTableCellDeleterFactory) {
         SweepQueueFactory factory =
                 SweepQueueFactory.create(metrics, kvs, timelock, shardsConfig, transaction, readBatchingRuntimeContext);
-        return new SweepQueue(factory, follower, abortedTransactionConsumer);
+        return new SweepQueue(
+                factory,
+                follower,
+                abortedTransactionConsumer,
+                dataTableCellDeleterFactory,
+                timelock::getFreshTimestamp);
     }
 
     /**
@@ -154,7 +170,11 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         progress.updateLastSeenCommitTimestamp(shardStrategy, sweepBatch.lastSeenCommitTimestamp());
         metrics.updateLastSeenCommitTs(sweepBatch.lastSeenCommitTimestamp());
 
-        deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
+        // Run with the special cell deleter
+        long timestampForTrackingStateAtDeletionStart = timestampSupplier.getAsLong();
+        DataTableCellDeleter dataTableCellDeleter =
+                dataTableCellDeleterFactory.apply(timestampForTrackingStateAtDeletionStart);
+        deleter.sweep(dataTableCellDeleter, sweepBatch.writes(), Sweeper.of(shardStrategy));
         metrics.registerEntriesReadInBatch(shardStrategy, sweepBatch.entriesRead());
 
         if (!sweepBatch.isEmpty()) {
@@ -165,6 +185,17 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                     SafeArg.of("shardStrategy", shardStrategy.toText()));
         }
 
+        long timestampForTrackingStatePostSweep = timestampSupplier.getAsLong();
+        if (!dataTableCellDeleter.isValid(timestampForTrackingStatePostSweep)) {
+            log.info(
+                    "Could not sweep cells in the batch, because the cell deleter was invalidated during our sweep.",
+                    SafeArg.of("timestampForStartingSweep", timestampForTrackingStateAtDeletionStart),
+                    SafeArg.of("timestampPostSweepIteration", timestampForTrackingStatePostSweep));
+            // TODO (jkong): Debatable. We did sweep these, but we want to read again. Should we declare something else?
+            return sweepBatch.entriesRead();
+        }
+        // Otherwise, we know that the cell deleter is still valid (so, e.g., migrations did not take place during our
+        // sweep), and we can safely mark that the writes in question were successfully swept.
         cleaner.clean(
                 shardStrategy,
                 batchWithInfo.partitionsForPreviousLastSweptTs(lastSweptTs),
@@ -264,6 +295,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             // as transaction services must not hold any local state in them that would affect correctness.
             TransactionService transaction =
                     TransactionServices.createRaw(kvs, new TimelockTimestampServiceAdapter(timelock), false);
+            DelegatingDataTableCellDeleter delegatingDataTableCellDeleter = new DelegatingDataTableCellDeleter(kvs);
             return create(metrics, kvs, timelock, shardsConfig, transaction, readBatchingRuntimeContext);
         }
 
@@ -302,7 +334,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         }
 
         private SweepQueueDeleter createDeleter(TargetedSweepFollower follower) {
-            return new SweepQueueDeleter(kvs, follower, new DefaultTableClearer(kvs, timelock::getImmutableTimestamp));
+            return new SweepQueueDeleter(follower, new DefaultTableClearer(kvs, timelock::getImmutableTimestamp));
         }
 
         private SweepQueueCleaner createCleaner() {

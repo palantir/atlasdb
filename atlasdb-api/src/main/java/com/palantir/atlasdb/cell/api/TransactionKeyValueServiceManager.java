@@ -25,6 +25,8 @@ import java.util.function.LongSupplier;
 public interface TransactionKeyValueServiceManager extends AutoCloseable {
     TransactionKeyValueService getTransactionKeyValueService(LongSupplier timestampSupplier);
 
+    DataTableCellDeleter getDataTableCellDeleter(long timestamp);
+
     Optional<KeyValueService> getKeyValueService();
 
     DdlManager getDdlManager();

@@ -27,6 +27,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cell.api.DataTableCellDeleter;
 import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
@@ -58,6 +59,7 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingDataTableCellDeleter;
 import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
@@ -156,6 +158,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.LongFunction;
 import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 import java.util.stream.Collectors;
@@ -486,7 +489,8 @@ public abstract class TransactionManagers {
                 config().targetedSweep(),
                 follower,
                 runtime.map(AtlasDbRuntimeConfig::targetedSweep),
-                coordinationService);
+                coordinationService,
+                transactionKeyValueServiceManager::getDataTableCellDeleter);
 
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
 
@@ -1034,6 +1038,25 @@ public abstract class TransactionManagers {
             Follower follower,
             Supplier<TargetedSweepRuntimeConfig> runtime,
             CoordinationService<InternalSchemaMetadata> coordinationService) {
+        DelegatingDataTableCellDeleter delegatingDataTableCellDeleter = new DelegatingDataTableCellDeleter(kvs);
+        return uninitializedTargetedSweeper(
+                kvs,
+                metricsManager,
+                install,
+                follower,
+                runtime,
+                coordinationService,
+                _unused -> delegatingDataTableCellDeleter);
+    }
+
+    private static TargetedSweeper uninitializedTargetedSweeper(
+            KeyValueService kvs,
+            MetricsManager metricsManager,
+            TargetedSweepInstallConfig install,
+            Follower follower,
+            Supplier<TargetedSweepRuntimeConfig> runtime,
+            CoordinationService<InternalSchemaMetadata> coordinationService,
+            LongFunction<DataTableCellDeleter> dataTableCellDeleterFactory) {
         CoordinationAwareKnownAbandonedTransactionsStore abandonedTxnStore =
                 new CoordinationAwareKnownAbandonedTransactionsStore(
                         coordinationService, new AbandonedTimestampStoreImpl(kvs));
@@ -1043,7 +1066,8 @@ public abstract class TransactionManagers {
                 install,
                 ImmutableList.of(follower),
                 abandonedTxnStore::addAbandonedTimestamps,
-                kvs);
+                kvs,
+                dataTableCellDeleterFactory);
     }
 
     @Value.Immutable

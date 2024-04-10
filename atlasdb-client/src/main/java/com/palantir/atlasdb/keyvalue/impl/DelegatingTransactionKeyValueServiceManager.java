@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.impl;
 
+import com.palantir.atlasdb.cell.api.DataTableCellDeleter;
 import com.palantir.atlasdb.cell.api.DdlManager;
 import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
 import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
@@ -27,17 +28,24 @@ public final class DelegatingTransactionKeyValueServiceManager implements Transa
 
     private final Optional<KeyValueService> delegate;
     private final TransactionKeyValueService transactionKeyValueService;
+    private final DataTableCellDeleter dataTableCellDeleter;
     private final DdlManager ddlManager;
 
     public DelegatingTransactionKeyValueServiceManager(KeyValueService delegate) {
         this.delegate = Optional.of(delegate);
         this.transactionKeyValueService = new DelegatingTransactionKeyValueService(delegate);
+        this.dataTableCellDeleter = new DelegatingDataTableCellDeleter(delegate);
         this.ddlManager = new DelegatingDdlManager(delegate);
     }
 
     @Override
     public TransactionKeyValueService getTransactionKeyValueService(LongSupplier _timestampSupplier) {
         return transactionKeyValueService;
+    }
+
+    @Override
+    public DataTableCellDeleter getDataTableCellDeleter(long _timestamp) {
+        return dataTableCellDeleter;
     }
 
     @Override

@@ -16,8 +16,8 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.cell.api.DataTableCellDeleter;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.logging.LoggingArgs;
@@ -32,12 +32,10 @@ import java.util.stream.Collectors;
 public class SweepQueueDeleter {
     private static final SafeLogger log = SafeLoggerFactory.get(SweepQueueDeleter.class);
 
-    private final KeyValueService kvs;
     private final TargetedSweepFollower follower;
     private final TargetedSweepFilter filter;
 
-    SweepQueueDeleter(KeyValueService kvs, TargetedSweepFollower follower, TargetedSweepFilter filter) {
-        this.kvs = kvs;
+    SweepQueueDeleter(TargetedSweepFollower follower, TargetedSweepFilter filter) {
         this.follower = follower;
         this.filter = filter;
     }
@@ -46,12 +44,13 @@ public class SweepQueueDeleter {
      * Executes targeted sweep, by inserting ranged tombstones corresponding to the given writes, using the sweep
      * strategy determined by the sweeper.
      *
+     * @param cellDeleter provides the ability to delete cells on an underlying key-value-service
      * @param unfilteredWrites individual writes to sweep for. Depending on the strategy, we will insert a ranged
      * tombstone for each write at either the write's timestamp - 1, or at its timestamp.
      * @param sweeper supplies the strategy-specific behaviour: the timestamp for the tombstone and whether we must use
      * sentinels or not.
      */
-    public void sweep(Collection<WriteInfo> unfilteredWrites, Sweeper sweeper) {
+    public void sweep(DataTableCellDeleter cellDeleter, Collection<WriteInfo> unfilteredWrites, Sweeper sweeper) {
         if (!sweeper.shouldDeleteCells()) {
             return;
         }
@@ -65,13 +64,13 @@ public class SweepQueueDeleter {
                                     .collect(Collectors.toMap(Function.identity(), entry.getValue()::get));
                             follower.run(entry.getKey(), maxTimestampByCellPartition.keySet());
                             if (sweeper.shouldAddSentinels()) {
-                                kvs.addGarbageCollectionSentinelValues(
+                                cellDeleter.addGarbageCollectionSentinelValues(
                                         entry.getKey(), maxTimestampByCellPartition.keySet());
                             }
-                            kvs.deleteAllTimestamps(entry.getKey(), maxTimestampByCellPartition);
+                            cellDeleter.deleteAllTimestamps(entry.getKey(), maxTimestampByCellPartition);
                         });
             } catch (Exception e) {
-                if (SweepQueueUtils.tableWasDropped(entry.getKey(), kvs)) {
+                if (cellDeleter.doesUserDataTableExist(entry.getKey())) {
                     log.debug(
                             "Dropping sweeper work for table {}, which has been dropped.",
                             LoggingArgs.tableRef(entry.getKey()),

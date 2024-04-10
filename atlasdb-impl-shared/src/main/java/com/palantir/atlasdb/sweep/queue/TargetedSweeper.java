@@ -18,10 +18,12 @@ package com.palantir.atlasdb.sweep.queue;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.cell.api.DataTableCellDeleter;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingDataTableCellDeleter;
 import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.LastSweptTimestampUpdater;
@@ -48,6 +50,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongFunction;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
@@ -68,6 +71,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     private final BackgroundSweepScheduler noneScheduler;
 
     private final KeyValueService keyValueService;
+    private final LongFunction<DataTableCellDeleter> dataTableCellDeleterFactory;
 
     private LastSweptTimestampUpdater lastSweptTimestampUpdater;
     private TargetedSweepMetrics metrics;
@@ -83,7 +87,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
             TargetedSweepInstallConfig install,
             List<Follower> followers,
             AbandonedTransactionConsumer abandonedTransactionConsumer,
-            KeyValueService keyValueService) {
+            KeyValueService keyValueService,
+            LongFunction<DataTableCellDeleter> dataTableCellDeleterFactory) {
         this.metricsManager = metricsManager;
         this.runtime = runtime;
         this.conservativeScheduler =
@@ -95,6 +100,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         this.metricsConfiguration = install.metricsConfiguration();
         this.abandonedTransactionConsumer = abandonedTransactionConsumer;
         this.keyValueService = keyValueService;
+        this.dataTableCellDeleterFactory = dataTableCellDeleterFactory;
     }
 
     public boolean isInitialized() {
@@ -118,8 +124,28 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
             TargetedSweepInstallConfig install,
             List<Follower> followers,
             AbandonedTransactionConsumer abandonedTransactionConsumer,
+            KeyValueService kvs,
+            LongFunction<DataTableCellDeleter> dataTableCellDeleterFactory) {
+        return new TargetedSweeper(
+                metrics, runtime, install, followers, abandonedTransactionConsumer, kvs, dataTableCellDeleterFactory);
+    }
+
+    public static TargetedSweeper createUninitialized(
+            MetricsManager metrics,
+            Supplier<TargetedSweepRuntimeConfig> runtime,
+            TargetedSweepInstallConfig install,
+            List<Follower> followers,
+            AbandonedTransactionConsumer abandonedTransactionConsumer,
             KeyValueService kvs) {
-        return new TargetedSweeper(metrics, runtime, install, followers, abandonedTransactionConsumer, kvs);
+        DelegatingDataTableCellDeleter delegatingDataTableCellDeleter = new DelegatingDataTableCellDeleter(kvs);
+        return createUninitialized(
+                metrics,
+                runtime,
+                install,
+                followers,
+                abandonedTransactionConsumer,
+                kvs,
+                _unused -> delegatingDataTableCellDeleter);
     }
 
     public static TargetedSweeper createUninitializedForTest(
@@ -128,7 +154,15 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 .conservativeThreads(0)
                 .thoroughThreads(0)
                 .build();
-        return createUninitialized(metricsManager, runtime, install, ImmutableList.of(), _unused -> {}, kvs);
+        DelegatingDataTableCellDeleter delegatingDataTableCellDeleter = new DelegatingDataTableCellDeleter(kvs);
+        return createUninitialized(
+                metricsManager,
+                runtime,
+                install,
+                ImmutableList.of(),
+                _unused -> {},
+                kvs,
+                _unused -> delegatingDataTableCellDeleter);
     }
 
     public static TargetedSweeper createUninitializedForTest(KeyValueService kvs, Supplier<Integer> shards) {
@@ -190,7 +224,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 ReadBatchingRuntimeContext.builder()
                         .maximumPartitions(this::getPartitionBatchLimit)
                         .cellsThreshold(() -> runtime.get().batchCellThreshold())
-                        .build());
+                        .build(),
+                dataTableCellDeleterFactory);
         timestampsSupplier = timestamps;
         timeLock = timelockService;
         lastSweptTimestampUpdater = new LastSweptTimestampUpdater(
