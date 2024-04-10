@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.sweep.metrics;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -100,8 +100,10 @@ public class LastSweptTimestampUpdaterTest {
     @MethodSource("numberOfShards")
     public void taskThrowsOnInvalidRefreshMillis(int shards) {
         setup(shards);
-        assertThrows(SafeIllegalArgumentException.class, () -> lastSweptTimestampUpdater.schedule(0L));
-        assertThrows(SafeIllegalArgumentException.class, () -> lastSweptTimestampUpdater.schedule(-REFRESH_MILLIS));
+        assertThatThrownBy(() -> lastSweptTimestampUpdater.schedule(0L))
+                .isInstanceOf(SafeIllegalArgumentException.class);
+        assertThatThrownBy(() -> lastSweptTimestampUpdater.schedule(-REFRESH_MILLIS))
+                .isInstanceOf(SafeIllegalArgumentException.class);
     }
 
     @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
