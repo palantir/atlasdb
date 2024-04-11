@@ -72,8 +72,8 @@ public class AtlasDbDialogueServiceProviderTest {
     private static final String LOCK_PATH = "/tl/l/" + CLIENT;
     private static final MappingBuilder LOCK_MAPPING = post(urlEqualTo(LOCK_PATH));
 
-    private static final DialogueClients.ReloadingFactory DIALOGUE_BASE_FACTORY = DialogueClients.create(
-            Refreshable.only(ServicesConfigBlock.builder().build()));
+    private static final DialogueClients.ReloadingFactory DIALOGUE_BASE_FACTORY =
+            DialogueClients.create(Refreshable.only(ServicesConfigBlock.empty()));
     private static final UserAgent USER_USER_AGENT = UserAgent.of(UserAgent.Agent.of("jeremy", "77.79.12"));
 
     private static final int FIRST_LOWER = 58;
