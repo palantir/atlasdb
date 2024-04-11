@@ -79,6 +79,11 @@ acceptedBreaks:
     - code: "java.method.addedToInterface"
       new: "method boolean com.palantir.atlasdb.cell.api.TransactionKeyValueService::isValid(long)"
       justification: "internal API"
+  "0.1074.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.addedToInterface"
+      new: "method com.palantir.atlasdb.cell.api.DataTableCellDeleter com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager::getDataTableCellDeleter(long)"
+      justification: "new API"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"
