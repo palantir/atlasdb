@@ -70,9 +70,9 @@ public class SweepQueueDeleter {
                             cellDeleter.deleteAllTimestamps(entry.getKey(), maxTimestampByCellPartition);
                         });
             } catch (Exception e) {
-                if (cellDeleter.doesUserDataTableExist(entry.getKey())) {
+                if (!cellDeleter.doesUserDataTableExist(entry.getKey())) {
                     log.debug(
-                            "Dropping sweeper work for table {}, which has been dropped.",
+                            "Dropping sweeper work for table {}, which does not exist - it has probably been dropped.",
                             LoggingArgs.tableRef(entry.getKey()),
                             e);
                 } else {
