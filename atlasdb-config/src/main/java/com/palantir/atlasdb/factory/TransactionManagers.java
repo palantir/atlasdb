@@ -59,7 +59,6 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.DelegatingDataTableCellDeleter;
 import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
@@ -1029,24 +1028,6 @@ public abstract class TransactionManagers {
                 .lock(LockRefreshingLockService.create(lockAndTimestampServices.lock()))
                 .addResources(timeLockClient::close)
                 .build();
-    }
-
-    private static TargetedSweeper uninitializedTargetedSweeper(
-            KeyValueService kvs,
-            MetricsManager metricsManager,
-            TargetedSweepInstallConfig install,
-            Follower follower,
-            Supplier<TargetedSweepRuntimeConfig> runtime,
-            CoordinationService<InternalSchemaMetadata> coordinationService) {
-        DelegatingDataTableCellDeleter delegatingDataTableCellDeleter = new DelegatingDataTableCellDeleter(kvs);
-        return uninitializedTargetedSweeper(
-                kvs,
-                metricsManager,
-                install,
-                follower,
-                runtime,
-                coordinationService,
-                _unused -> delegatingDataTableCellDeleter);
     }
 
     private static TargetedSweeper uninitializedTargetedSweeper(
