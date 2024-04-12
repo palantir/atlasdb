@@ -132,7 +132,7 @@ public final class DefaultCommitTimestampLoader implements CommitTimestampLoader
 
         // Before we do the reads, we need to make sure the committer is done writing.
         if (shouldWaitForCommitterToComplete) {
-            waitForCommitterToComplete(tableRef, startTimestamps);
+            waitForCommitterToComplete(tableRef, pendingGets);
         }
 
         return Futures.transform(
