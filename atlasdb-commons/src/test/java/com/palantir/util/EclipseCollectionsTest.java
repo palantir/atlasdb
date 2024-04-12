@@ -16,8 +16,17 @@
 
 package com.palantir.util;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -32,8 +41,26 @@ class EclipseCollectionsTest {
      * </ul>
      */
     @Test
-    @Timeout(value = 30, unit = TimeUnit.SECONDS) // if timeout is exceeded, class load has likely deadlocked
-    void canLoadClassesWithoutDeadlock() {
-        assertThatCode(EclipseCollections::loadClasses).doesNotThrowAnyException();
+    @Timeout(value = 30, unit = TimeUnit.SECONDS)
+    // if timeout is exceeded, class load has likely deadlocked
+    void canLoadClassesWithoutDeadlock() throws ExecutionException, InterruptedException {
+        ListeningExecutorService executorService = MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(4));
+        try {
+            List<ListenableFuture<Boolean>> futures = new ArrayList<>();
+            for (int i = 0; i < 10; i++) {
+                futures.add(executorService.submit(() -> {
+                    assertThatCode(EclipseCollections::loadClasses).doesNotThrowAnyException();
+                    for (String className : EclipseCollections.CLASSES_TO_INITIALIZE) {
+                        assertThat(Class.forName(className)).isNotNull();
+                    }
+                    return true;
+                }));
+            }
+            executorService.shutdown();
+            assertThat(Futures.allAsList(futures).get()).hasSize(10).allSatisfy(r -> assertThat(r)
+                    .isTrue());
+        } finally {
+            executorService.shutdownNow();
+        }
     }
 }
