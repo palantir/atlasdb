@@ -40,6 +40,38 @@ public class PostgresVersionCheckTest {
         verifyLowVersionLogsError("9.5.2");
     }
 
+    @Test
+    public void shouldLogErrorOn_9_5_2_verbose() {
+        verifyLowVersionLogsError("9.5.2 (Ubuntu 9.5.2.pgdg20.04+1)");
+    }
+
+    @Test
+    public void shouldLogErrorOnUnparseable() {
+        verifyUnparseableVersionError("123A");
+    }
+
+    @Test
+    public void shouldLogErrorOnEmpty() {
+        verifyUnparseableVersionError("");
+    }
+
+    @SuppressWarnings("Slf4jConstantLogMessage")
+    private static void verifyUnparseableVersionError(String version) {
+        Logger log = mock(Logger.class);
+        String expectedMessage = "Unable to parse a version from postgres";
+        assertThatThrownBy(() -> PostgresVersionCheck.checkDatabaseVersion(version, log))
+                .isInstanceOf(AssertionError.class)
+                .hasMessageContaining(expectedMessage);
+        verify(log)
+                .error(
+                        eq("Assertion with exception!"),
+                        eq(version),
+                        eq(PostgresVersionCheck.MIN_POSTGRES_VERSION),
+                        isA(SafeArg.class),
+                        Mockito.any(Exception.class));
+        verifyNoMoreInteractions(log);
+    }
+
     @SuppressWarnings("Slf4jConstantLogMessage")
     private static void verifyLowVersionLogsError(String lowVersion) {
         Logger log = mock(Logger.class);
@@ -51,6 +83,7 @@ public class PostgresVersionCheckTest {
                 .error(
                         eq("Assertion with exception!"),
                         eq(lowVersion),
+                        eq(PostgresVersionCheck.extractValidPostgresVersion(lowVersion)),
                         eq(PostgresVersionCheck.MIN_POSTGRES_VERSION),
                         isA(SafeArg.class),
                         Mockito.any(Exception.class));
@@ -74,6 +107,14 @@ public class PostgresVersionCheckTest {
     public void shouldBeFineOn_9_6_12() {
         Logger log = mock(Logger.class);
         PostgresVersionCheck.checkDatabaseVersion("9.6.12", log);
+        verifyNoMoreInteractions(log);
+    }
+
+    @Test
+    @SuppressWarnings("Slf4jConstantLogMessage")
+    public void shouldBeFineOn_14_11_verbose() {
+        Logger log = mock(Logger.class);
+        PostgresVersionCheck.checkDatabaseVersion("14.11 (Ubuntu 14.11-1.pgdg20.04+1)", log);
         verifyNoMoreInteractions(log);
     }
 }
