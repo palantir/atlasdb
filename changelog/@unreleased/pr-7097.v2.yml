@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Update postgres version checking to handle verbose version strings
+  links:
+  - https://github.com/palantir/atlasdb/pull/7097
