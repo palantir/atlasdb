@@ -34,8 +34,7 @@ public final class PostgresVersionCheck {
         return Pattern.compile("^([\\.0-9]+)( \\([^\\)]+\\))?$");
     });
 
-    private PostgresVersionCheck() {
-    }
+    private PostgresVersionCheck() {}
 
     static Optional<String> extractValidPostgresVersion(String rawVersionString) {
         Matcher matcher = VERSION_PATTERN.get().matcher(rawVersionString);
@@ -49,11 +48,9 @@ public final class PostgresVersionCheck {
     public static void checkDatabaseVersion(String version, Logger log) {
         Optional<String> parsedVersion = extractValidPostgresVersion(version);
         if (parsedVersion.isPresent()) {
-            log.info("Parsed Postgres version",
-                    SafeArg.of("parsed", parsedVersion.get()),
-                    SafeArg.of("raw", version));
-            boolean greaterThanMinVersion = VersionStrings.compareVersions(
-                    parsedVersion.get(), MIN_POSTGRES_VERSION) >= 0;
+            log.info("Parsed Postgres version", SafeArg.of("parsed", parsedVersion.get()), SafeArg.of("raw", version));
+            boolean greaterThanMinVersion =
+                    VersionStrings.compareVersions(parsedVersion.get(), MIN_POSTGRES_VERSION) >= 0;
             if (VersionStrings.compareVersions(parsedVersion.get(), "9.5") >= 0
                     && VersionStrings.compareVersions(parsedVersion.get(), "9.5.2") < 0) {
                 // N.B. This situation is bad. Do not just log a warning and assert - actually throw an error.
@@ -73,7 +70,10 @@ public final class PostgresVersionCheck {
                     parsedVersion,
                     MIN_POSTGRES_VERSION);
         } else {
-            AssertUtils.assertAndLog(log, false, "Unable to parse a version from postgres."
+            AssertUtils.assertAndLog(
+                    log,
+                    false,
+                    "Unable to parse a version from postgres."
                             + " Raw format string was %s. Please contact Palantir support for assistance."
                             + " Minimum allowed Postgres version is %s.",
                     version,
