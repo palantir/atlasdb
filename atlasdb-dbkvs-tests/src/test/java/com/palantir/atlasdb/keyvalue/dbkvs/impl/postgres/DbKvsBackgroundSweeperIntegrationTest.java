@@ -16,7 +16,6 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.sweep.AbstractBackgroundSweeperIntegrationTest;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(DbKvsPostgresExtension.class)

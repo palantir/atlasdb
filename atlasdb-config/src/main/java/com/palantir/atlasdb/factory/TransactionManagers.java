@@ -23,7 +23,6 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.async.initializer.Callback;
 import com.palantir.async.initializer.LambdaCallback;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
@@ -66,7 +65,6 @@ import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueServic
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
-import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -75,16 +73,6 @@ import com.palantir.atlasdb.spi.SharedResourcesConfig;
 import com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig;
 import com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory;
 import com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig;
-import com.palantir.atlasdb.sweep.AdjustableSweepBatchConfigSource;
-import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
-import com.palantir.atlasdb.sweep.BackgroundSweeperPerformanceLogger;
-import com.palantir.atlasdb.sweep.CellsSweeper;
-import com.palantir.atlasdb.sweep.ImmutableSweepBatchConfig;
-import com.palantir.atlasdb.sweep.NoOpBackgroundSweeperPerformanceLogger;
-import com.palantir.atlasdb.sweep.SpecificTableSweeper;
-import com.palantir.atlasdb.sweep.SweepBatchConfig;
-import com.palantir.atlasdb.sweep.SweepTaskRunner;
-import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.sweep.queue.clear.SafeTableClearerKeyValueService;
@@ -583,17 +571,6 @@ public abstract class TransactionManagers {
         transactionManager.registerClosingCallback(targetedSweep::close);
 
         initializeCloseable(
-                () -> initializeSweepBackgroundProcess(
-                        metricsManager,
-                        config(),
-                        runtime,
-                        internalKeyValueService,
-                        transactionService,
-                        follower,
-                        transactionManager,
-                        runBackgroundSweepProcess()),
-                closeables);
-        initializeCloseable(
                 initializeCompactBackgroundProcess(
                         metricsManager,
                         lockAndTimestampServices,
@@ -740,19 +717,6 @@ public abstract class TransactionManagers {
         return LambdaCallback.of(tm -> internalKeyValueService.createTable(clearsTableRef, clearsTableMetadata));
     }
 
-    /**
-     * If we decide to move a service to use thorough sweep; we need to make sure that background sweep won't cause any
-     * trouble by deleting large number of empty values at once - causing Cassandra OOMs.
-     * <p>
-     * lockImmutableTsOnReadOnlyTransaction flag is used to decide on disabling background sweep, as this flag is used
-     * as an intermediate step for migrating to thorough sweep.
-     * <p>
-     * Separately, users may disable the background sweep process entirely in config, which we respect.
-     */
-    private boolean runBackgroundSweepProcess() {
-        return config().runBackgroundSweepProcess() && !lockImmutableTsOnReadOnlyTransactions();
-    }
-
     @VisibleForTesting
     TransactionConfig withConsolidatedGrabImmutableTsLockFlag(TransactionConfig transactionConfig) {
         return ImmutableTransactionConfig.copyOf(transactionConfig)
@@ -889,67 +853,6 @@ public abstract class TransactionManagers {
                 .migrator()
                 .map(AsyncInitializer::isInitialized)
                 .orElse(true);
-    }
-
-    private static BackgroundSweeperImpl initializeSweepBackgroundProcess(
-            MetricsManager metricsManager,
-            AtlasDbConfig config,
-            Supplier<AtlasDbRuntimeConfig> runtimeConfigSupplier,
-            KeyValueService kvs,
-            TransactionService transactionService,
-            CleanupFollower follower,
-            TransactionManager transactionManager,
-            boolean runInBackground) {
-        CellsSweeper cellsSweeper = new CellsSweeper(transactionManager, kvs, ImmutableList.of(follower));
-
-        LegacySweepMetrics sweepMetrics = new LegacySweepMetrics(metricsManager.getRegistry());
-
-        SweepTaskRunner sweepRunner = new SweepTaskRunner(
-                kvs,
-                transactionManager::getUnreadableTimestamp,
-                transactionManager::getImmutableTimestamp,
-                transactionService,
-                cellsSweeper,
-                sweepMetrics);
-        BackgroundSweeperPerformanceLogger sweepPerfLogger = new NoOpBackgroundSweeperPerformanceLogger();
-        AdjustableSweepBatchConfigSource sweepBatchConfigSource = AdjustableSweepBatchConfigSource.create(
-                metricsManager,
-                () -> getSweepBatchConfig(runtimeConfigSupplier.get().sweep()));
-
-        SpecificTableSweeper specificTableSweeper = SpecificTableSweeper.create(
-                transactionManager,
-                kvs,
-                sweepRunner,
-                SweepTableFactory.of(),
-                sweepPerfLogger,
-                sweepMetrics,
-                config.initializeAsync());
-
-        BackgroundSweeperImpl backgroundSweeper = BackgroundSweeperImpl.create(
-                metricsManager,
-                sweepBatchConfigSource,
-                () -> runtimeConfigSupplier.get().sweep().enabled(),
-                () -> runtimeConfigSupplier.get().sweep().sweepThreads(),
-                () -> runtimeConfigSupplier.get().sweep().pauseMillis(),
-                () -> runtimeConfigSupplier.get().sweep().sweepPriorityOverrides(),
-                specificTableSweeper);
-
-        transactionManager.registerClosingCallback(backgroundSweeper::shutdown);
-
-        if (runInBackground) {
-            backgroundSweeper.runInBackground();
-        }
-
-        return backgroundSweeper;
-    }
-
-    private static SweepBatchConfig getSweepBatchConfig(SweepConfig sweepConfig) {
-        return ImmutableSweepBatchConfig.builder()
-                .maxCellTsPairsToExamine(sweepConfig.readLimit())
-                .candidateBatchSize(
-                        sweepConfig.candidateBatchHint().orElse(AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT))
-                .deleteBatchSize(sweepConfig.deleteBatchHint())
-                .build();
     }
 
     private static Callback<TransactionManager> timelockConsistencyCheckCallback(

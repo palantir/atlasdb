@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.metrics.MetricPublicationFilter;
-import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.util.MetricsManager;
 import java.util.Arrays;
 import java.util.List;
@@ -46,11 +45,6 @@ public final class SweepOutcomeMetrics {
 
     private SweepOutcomeMetrics(Supplier<Metrics> metrics) {
         this.metrics = metrics;
-    }
-
-    public static SweepOutcomeMetrics registerLegacy(MetricsManager metricsManager) {
-        return new SweepOutcomeMetrics(buildMetrics(
-                metricsManager, LEGACY_OUTCOMES, ImmutableMap.of(), BackgroundSweeperImpl.class, Optional.empty()));
     }
 
     public static SweepOutcomeMetrics registerTargeted(
