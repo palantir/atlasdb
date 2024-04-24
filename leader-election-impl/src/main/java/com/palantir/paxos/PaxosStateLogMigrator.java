@@ -88,7 +88,8 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
                         SafeArg.of("namespaceAndUseCase", context.namespaceAndUseCase()));
                 if (shouldIgnoreLeaderConsistency && isLeaderNamespace(context)) {
                     log.info(
-                            "Skipping leader consistency check for namespace and use case {} to continue Rubix Migration.",
+                            "Skipping leader consistency check for namespace and use case {} to continue Rubix"
+                                    + " Migration.",
                             SafeArg.of("namespaceAndUseCase", context.namespaceAndUseCase()));
                 } else {
                     validateConsistency(context);
