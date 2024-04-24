@@ -119,7 +119,19 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 .build();
         backgroundJobExecutor.scheduleAtFixedRate(
                 new BackgroundCassandraJob(
-                        List.of("cassandra1", "cassandra2", "cassandra3"),
+                        List.of(
+                                "cassandra11",
+                                "cassandra12",
+                                "cassandra13",
+                                "cassandra14",
+                                "cassandra15",
+                                "cassandra16",
+                                "cassandra21",
+                                "cassandra22",
+                                "cassandra23",
+                                "cassandra24",
+                                "cassandra25",
+                                "cassandra26"),
                         AntithesisCassandraSidecarResource.INSTANCE,
                         DefaultBuggifyFactory.INSTANCE),
                 0,
