@@ -1,58 +1,46 @@
-/// *
-// * (c) Copyright 2024 Palantir Technologies Inc. All rights reserved.
-// *
-// * Licensed under the Apache License, Version 2.0 (the "License");
-// * you may not use this file except in compliance with the License.
-// * You may obtain a copy of the License at
-// *
-// *     http://www.apache.org/licenses/LICENSE-2.0
-// *
-// * Unless required by applicable law or agreed to in writing, software
-// * distributed under the License is distributed on an "AS IS" BASIS,
-// * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// * See the License for the specific language governing permissions and
-// * limitations under the License.
-// */
-//
-// package com.palantir.atlasdb.workload.migration.cql;
-//
-// import com.datastax.driver.core.ExecutionInfo;
-// import com.datastax.driver.core.Session;
-// import java.util.Map;
-// import java.util.Set;
-// import java.util.function.Function;
-// import one.util.streamex.StreamEx;
-//
-// public class CqlCassandraKeyspaceReplicationStrategyManager implements CassandraKeyspaceReplicationStrategyManager {
-//    public static final String TOPOLOGY_STRATEGY_KEY = "class";
-//    public static final String NETWORK_TOPOLOGY_STRATEGY = "NetworkTopologyStrategy";
-//
-//    @Override
-//    public void setReplicationFactorToThreeForDatacenters(Set<String> datacenters, String keyspace) {
-//        Map<String, String> datacenterReplicationFactor = StreamEx.of(datacenters)
-//                .mapToEntry(_datacenter -> "3")
-//                .append(TOPOLOGY_STRATEGY_KEY, NETWORK_TOPOLOGY_STRATEGY)
-//                .toMap();
-//        //
-//        //        runWithCqlSession(session -> {
-//        //            SchemaMutationResult.fromExecutionInfo()
-//        //        })
-//    }
-//
-//    private <T> T runWithCqlSession(Function<Session, T> sessionConsumer) {
-//        try (Session session = null) {
-//            return sessionConsumer.apply(session);
-//        }
-//    }
-//
-//    public enum SchemaMutationResult {
-//        SUCCESS,
-//        SCHEMA_NOT_IN_AGREEMENT;
-//
-//        public static SchemaMutationResult fromExecutionInfo(ExecutionInfo executionInfo) {
-//            return executionInfo.isSchemaInAgreement()
-//                    ? SchemaMutationResult.SUCCESS
-//                    : SchemaMutationResult.SCHEMA_NOT_IN_AGREEMENT;
-//        }
-//    }
-// }
+package com.palantir.atlasdb.workload.migration.cql;
+
+import com.datastax.driver.core.Session;
+import com.palantir.cassandra.manager.core.cql.ImmutableKeyspaceQuery;
+import com.palantir.cassandra.manager.core.cql.KeyspaceQuery;
+import com.palantir.cassandra.manager.core.cql.KeyspaceQueryMethod;
+import com.palantir.cassandra.manager.core.cql.ReplicationOptions;
+import com.palantir.cassandra.manager.core.cql.SchemaMutationResult;
+import com.palantir.cassandra.manager.objects.SafeKeyspace;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import one.util.streamex.StreamEx;
+
+public class CqlCassandraKeyspaceReplicationStrategyManager implements CassandraKeyspaceReplicationStrategyManager {
+    private static final String TOPOLOGY_STRATEGY_KEY = "class";
+    private static final String NETWORK_TOPOLOGY_STRATEGY = "NetworkTopologyStrategy";
+
+    private final Supplier<Session> sessionProvider;
+
+    public CqlCassandraKeyspaceReplicationStrategyManager(Supplier<Session> sessionProvider) {
+        this.sessionProvider = sessionProvider;
+    }
+
+    @Override
+    public SchemaMutationResult setReplicationFactorToThreeForDatacenters(Set<String> datacenters, String keyspace) {
+        Map<String, String> datacenterReplicationFactor = StreamEx.of(datacenters)
+                .mapToEntry(_datacenter -> "3")
+                .append(TOPOLOGY_STRATEGY_KEY, NETWORK_TOPOLOGY_STRATEGY)
+                .toMap();
+        KeyspaceQuery query = ImmutableKeyspaceQuery.builder()
+                .keyspace(SafeKeyspace.of(keyspace))
+                .durableWrites(true)
+                .replication(ReplicationOptions.of(datacenterReplicationFactor))
+                .method(KeyspaceQueryMethod.ALTER)
+                .build();
+        return runWithCqlSession(query::applyTo);
+    }
+
+    private <T> T runWithCqlSession(Function<Session, T> sessionConsumer) {
+        try (Session session = sessionProvider.get()) {
+            return sessionConsumer.apply(session);
+        }
+    }
+}

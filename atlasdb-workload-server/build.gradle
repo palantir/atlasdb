@@ -13,6 +13,7 @@ dependencies {
     implementation project(':atlasdb-client-protobufs')
     implementation project(':atlasdb-config')
     implementation project(':atlasdb-impl-shared')
+    implementation project(':atlasdb-cassandra')
     implementation project(':timestamp-api')
     implementation project(':lock-api')
     implementation project(':lock-api-objects')
@@ -31,6 +32,13 @@ dependencies {
     api group: 'com.palantir.cassandra', name: 'palantir-cassandra-jmx-api'
     implementation('com.datastax.cassandra:cassandra-driver-core') {
         exclude(group: 'com.codahale.metrics', module: 'metrics-core')
+    }
+    api 'com.palantir.cassandra:cassandra-manager-core', {
+        // cassandra-manager-core depends on cassandra-all
+        // cassandra-all depends on high-scale-lib (https://github.com/boundary/high-scale-lib)
+        // this library has a few replacements for classes in java.util (under that same package) which makes eclipse sad when
+        // compiling against java11; it should be safe to exclude given its usage in cassandra and lack thereof in manager
+        exclude group: 'com.boundary', module: 'high-scale-lib'
     }
 
     testImplementation project(':commons-executors')

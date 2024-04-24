@@ -16,8 +16,9 @@
 
 package com.palantir.atlasdb.workload.migration.cql;
 
+import com.palantir.cassandra.manager.core.cql.SchemaMutationResult;
 import java.util.Set;
 
 public interface CassandraKeyspaceReplicationStrategyManager {
-    void setReplicationFactorToThreeForDatacenters(Set<String> datacenters, String keyspace);
+    SchemaMutationResult setReplicationFactorToThreeForDatacenters(Set<String> datacenters, String keyspace);
 }

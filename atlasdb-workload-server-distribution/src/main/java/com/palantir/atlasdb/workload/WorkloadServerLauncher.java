@@ -34,6 +34,9 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.workload.background.BackgroundCassandraJob;
 import com.palantir.atlasdb.workload.config.WorkloadServerConfiguration;
 import com.palantir.atlasdb.workload.logging.LoggingUtils;
+import com.palantir.atlasdb.workload.migration.cql.CassandraKeyspaceReplicationStrategyManager;
+import com.palantir.atlasdb.workload.migration.cql.CqlCassandraKeyspaceReplicationStrategyManager;
+import com.palantir.atlasdb.workload.migration.cql.CqlSessionProvider;
 import com.palantir.atlasdb.workload.migration.jmx.CassandraStateManager;
 import com.palantir.atlasdb.workload.migration.jmx.JmxCassandraStateManagerFactory;
 import com.palantir.atlasdb.workload.resource.AntithesisCassandraSidecarResource;
@@ -44,6 +47,7 @@ import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflows;
 import com.palantir.atlasdb.workload.workflow.Workflow;
 import com.palantir.atlasdb.workload.workflow.WorkflowAndInvariants;
 import com.palantir.atlasdb.workload.workflow.WorkflowFactory;
+import com.palantir.cassandra.manager.core.cql.SchemaMutationResult;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgent.Agent;
 import com.palantir.conjure.java.serialization.ObjectMappers;
@@ -139,10 +143,10 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
 
         WorkflowFactory workflowFactory =
                 new WorkflowFactory(taggedMetricRegistry, new DefaultWorkflowExecutorFactory(environment.lifecycle()));
-        log.info("====STARTING JMX TEST====");
         CassandraKeyValueServiceConfigs config = CassandraKeyValueServiceConfigs.fromKeyValueServiceConfigsOrThrow(
                 configuration.install().atlas().keyValueService(),
                 Refreshable.only(configuration.runtime().atlas().flatMap(AtlasDbRuntimeConfig::keyValueService)));
+        log.info("====STARTING JMX TEST====");
         Set<String> hostnames = config.runtimeConfig().get().servers().accept(new Visitor<>() {
             @Override
             public Set<String> visit(DefaultConfig defaultConfig) {
@@ -162,6 +166,17 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 .map(CassandraStateManager::getConsensusSchemaVersionFromNode)
                 .collect(Collectors.toList());
         log.info("====FINISHED JMX TEST==== {}", SafeArg.of("results", results));
+
+        log.info("====STARTING CQL TEST====");
+        try (CqlSessionProvider sessionProvider = new CqlSessionProvider(config)) {
+            CassandraKeyspaceReplicationStrategyManager manager =
+                    new CqlCassandraKeyspaceReplicationStrategyManager(sessionProvider::getSession);
+            SchemaMutationResult result = manager.setReplicationFactorToThreeForDatacenters(
+                    Set.of("dc1"), config.installConfig().getKeyspaceOrThrow());
+            log.info("Schema mutation result {}", SafeArg.of("result", result));
+        }
+        log.info("====FINISHED CQL TEST====");
+
         AntithesisWorkflowValidatorRunner.create(new DefaultWorkflowRunner(
                         MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService)))
                 .run(() -> selectWorkflowsToRun(
