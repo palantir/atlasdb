@@ -53,6 +53,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -133,8 +134,9 @@ public final class PaxosResourcesFactory {
 
         TimelockPaxosMetrics timelockMetrics = TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, metrics);
 
-        String corruptedTimelockHost = "taffeta-pic-timelock-3.ops.palantir.local";
-        boolean shouldIgnoreLeaderConsistency = install.cluster().localServer().contains(corruptedTimelockHost);
+        Set<String> hostsToIgnoreSqliteMigration = install.install().hostsToIgnoreSqliteMigration();
+        boolean shouldIgnoreLeaderConsistency = hostsToIgnoreSqliteMigration.stream()
+                .anyMatch(host -> install.cluster().localServer().contains(host));
         Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory = dependencies -> {
             PingableLeader local = dependencies
                     .components()
