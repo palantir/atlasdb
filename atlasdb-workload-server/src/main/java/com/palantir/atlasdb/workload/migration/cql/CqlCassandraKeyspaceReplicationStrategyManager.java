@@ -32,7 +32,7 @@ public class CqlCassandraKeyspaceReplicationStrategyManager implements Cassandra
 
     @Override
     public SchemaMutationResult setReplicationFactorToThreeForDatacenters(Set<String> datacenters, String keyspace) {
-        describeKeyspaces();
+        logAllKeyspaces();
         Map<String, String> datacenterReplicationFactor = StreamEx.of(datacenters)
                 .mapToEntry(_datacenter -> "3")
                 .append(TOPOLOGY_STRATEGY_KEY, NETWORK_TOPOLOGY_STRATEGY)
@@ -46,7 +46,7 @@ public class CqlCassandraKeyspaceReplicationStrategyManager implements Cassandra
         return runWithCqlSession(query::applyTo);
     }
 
-    private void describeKeyspaces() {
+    private void logAllKeyspaces() {
         List<KeyspaceMetadata> ks =
                 runWithCqlSession(session -> session.getCluster().getMetadata().getKeyspaces());
         log.info(
