@@ -38,7 +38,7 @@ import com.palantir.atlasdb.workload.migration.cql.CassandraKeyspaceReplicationS
 import com.palantir.atlasdb.workload.migration.cql.CqlCassandraKeyspaceReplicationStrategyManager;
 import com.palantir.atlasdb.workload.migration.cql.CqlSessionProvider;
 import com.palantir.atlasdb.workload.migration.jmx.CassandraStateManager;
-import com.palantir.atlasdb.workload.migration.jmx.JmxCassandraStateManagerFactory;
+import com.palantir.atlasdb.workload.migration.jmx.CassandraStateManagerFactory;
 import com.palantir.atlasdb.workload.resource.AntithesisCassandraSidecarResource;
 import com.palantir.atlasdb.workload.runner.AntithesisWorkflowValidatorRunner;
 import com.palantir.atlasdb.workload.runner.DefaultWorkflowRunner;
@@ -161,7 +161,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
             }
         });
         List<CassandraStateManager> stateManagers =
-                hostnames.stream().map(JmxCassandraStateManagerFactory::create).collect(Collectors.toList());
+                hostnames.stream().map(CassandraStateManagerFactory::create).collect(Collectors.toList());
         List<Optional<String>> results = stateManagers.stream()
                 .map(CassandraStateManager::getConsensusSchemaVersionFromNode)
                 .collect(Collectors.toList());

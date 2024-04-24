@@ -26,13 +26,31 @@ install:
       servers:
         type: cqlCapable
         cqlHosts:
-          - cassandra1:9042
-          - cassandra2:9042
-          - cassandra3:9042
+          - cassandra11:9042
+          - cassandra12:9042
+          - cassandra13:9042
+          - cassandra14:9042
+          - cassandra15:9042
+          - cassandra16:9042
+          - cassandra21:9042
+          - cassandra22:9042
+          - cassandra23:9042
+          - cassandra24:9042
+          - cassandra25:9042
+          - cassandra26:9042
         thriftHosts:
-          - cassandra1:9160
-          - cassandra2:9160
-          - cassandra3:9160
+          - cassandra11:9060
+          - cassandra12:9060
+          - cassandra13:9060
+          - cassandra14:9060
+          - cassandra15:9060
+          - cassandra16:9060
+          - cassandra21:9060
+          - cassandra22:9060
+          - cassandra23:9060
+          - cassandra24:9060
+          - cassandra25:9060
+          - cassandra26:9060
       credentials:
         username: cassandra
         password: cassandra
