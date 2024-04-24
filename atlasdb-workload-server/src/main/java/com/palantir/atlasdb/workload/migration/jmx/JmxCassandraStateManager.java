@@ -17,9 +17,9 @@
 package com.palantir.atlasdb.workload.migration.jmx;
 
 import com.google.common.collect.Iterables;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,7 +27,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import org.apache.cassandra.service.StorageProxyMBean;
 import org.apache.cassandra.service.StorageServiceMBean;
 
@@ -51,8 +50,8 @@ public class JmxCassandraStateManager implements CassandraStateManager {
     @Override
     public Optional<String> getConsensusSchemaVersionFromNode() {
         Map<String, List<String>> schemaVersions = runFunctionWithStorageProxy(StorageProxyMBean::getSchemaVersions);
-        Set<String> uniqueSchemaVersions =
-                schemaVersions.values().stream().flatMap(Collection::stream).collect(Collectors.toSet());
+        log.info("Schema versions {}", SafeArg.of("schemaVersions", schemaVersions));
+        Set<String> uniqueSchemaVersions = schemaVersions.keySet();
         if (uniqueSchemaVersions.size() == 1) {
             return Optional.of(Iterables.getOnlyElement(uniqueSchemaVersions));
         } else {

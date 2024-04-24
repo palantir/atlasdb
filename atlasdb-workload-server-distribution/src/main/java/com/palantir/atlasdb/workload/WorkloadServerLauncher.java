@@ -172,7 +172,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
             CassandraKeyspaceReplicationStrategyManager manager =
                     new CqlCassandraKeyspaceReplicationStrategyManager(sessionProvider::getSession);
             SchemaMutationResult result = manager.setReplicationFactorToThreeForDatacenters(
-                    Set.of("dc1"), config.installConfig().getKeyspaceOrThrow());
+                    Set.of("dc1"), configuration.install().atlas().namespace().orElseThrow());
             log.info("Schema mutation result {}", SafeArg.of("result", result));
         }
         log.info("====FINISHED CQL TEST====");
