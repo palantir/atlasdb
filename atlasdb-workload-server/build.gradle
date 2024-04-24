@@ -28,6 +28,10 @@ dependencies {
     implementation 'io.dropwizard.metrics:metrics-core'
     implementation 'io.vavr:vavr'
     implementation 'one.util:streamex'
+    api group: 'com.palantir.cassandra', name: 'palantir-cassandra-jmx-api'
+    implementation('com.datastax.cassandra:cassandra-driver-core') {
+        exclude(group: 'com.codahale.metrics', module: 'metrics-core')
+    }
 
     testImplementation project(':commons-executors')
     testImplementation 'org.mockito:mockito-core'

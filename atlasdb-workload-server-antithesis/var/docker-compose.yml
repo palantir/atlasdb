@@ -6,14 +6,19 @@ services:
     ports:
       - "9160"
       - "9042"
-      - "7199"
+      - "7000"
+      - "7001"
+      - "7199:7199"
     environment:
       - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
-      - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
       - MAX_HEAP_SIZE=512m
       - HEAP_NEWSIZE=64m
-      - LOCAL_JMX=no
+      - JMX_PORT=7199
       - CASSANDRA_HINTED_HANDOFF_ENABLED=false
+      - CASSANDRA_DC=dc1
+      - CASSANDRA_RACK=rack1
+      - MIGRATION_MODE=true
+      - ALL_HOSTS=cassandra1,cassandra2,cassandra3
     container_name: cassandra1
     networks:
       antithesis-net:
@@ -24,14 +29,19 @@ services:
     ports:
       - "9160"
       - "9042"
-      - "7199"
+      - "7000"
+      - "7001"
+      - "7199:7199"
     environment:
       - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
-      - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
       - MAX_HEAP_SIZE=512m
       - HEAP_NEWSIZE=64m
-      - LOCAL_JMX=no
+      - JMX_PORT=7199
       - CASSANDRA_HINTED_HANDOFF_ENABLED=false
+      - CASSANDRA_DC=dc1
+      - CASSANDRA_RACK=rack2
+      - MIGRATION_MODE=true
+      - ALL_HOSTS=cassandra1,cassandra2,cassandra3
     container_name: cassandra2
     networks:
       antithesis-net:
@@ -42,14 +52,19 @@ services:
     ports:
       - "9160"
       - "9042"
-      - "7199"
+      - "7000"
+      - "7001"
+      - "7199:7199"
     environment:
       - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
-      - CASSANDRA_ENDPOINT_SNITCH=PropertyFileSnitch
       - MAX_HEAP_SIZE=512m
       - HEAP_NEWSIZE=64m
-      - LOCAL_JMX=no
+      - JMX_PORT=7199
       - CASSANDRA_HINTED_HANDOFF_ENABLED=false
+      - CASSANDRA_DC=dc1
+      - CASSANDRA_RACK=rack3
+      - MIGRATION_MODE=true
+      - ALL_HOSTS=cassandra1,cassandra2,cassandra3
     container_name: cassandra3
     networks:
       antithesis-net:
