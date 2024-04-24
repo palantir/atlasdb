@@ -1,4 +1,4 @@
-version: '3'
+version: '2'
 
 services:
   cassandra11:
@@ -16,12 +16,8 @@ services:
       - JMX_PORT=7191
       - CASSANDRA_HINTED_HANDOFF_ENABLED=false
       - MIGRATION_MODE=true
-      - ALL_HOSTS=cassandra11,cassandra12,cassandra13,cassandra14,cassandra15,cassandra16,cassandra21,cassandra22,cassandra23,cassandra24,cassandra25,cassandra26
+      - ALL_HOSTS=cassandra11,cassandra12,cassandra13,cassandra21,cassandra22,cassandra23
     container_name: cassandra11
-    deploy:
-      resources:
-        limits:
-          memory: 650m
     networks:
       antithesis-net:
         ipv4_address: 10.20.20.11
@@ -41,12 +37,8 @@ services:
       - JMX_PORT=7192
       - CASSANDRA_HINTED_HANDOFF_ENABLED=false
       - MIGRATION_MODE=true
-      - ALL_HOSTS=cassandra11,cassandra12,cassandra13,cassandra14,cassandra15,cassandra16,cassandra21,cassandra22,cassandra23,cassandra24,cassandra25,cassandra26
+      - ALL_HOSTS=cassandra11,cassandra12,cassandra13,cassandra21,cassandra22,cassandra23
     container_name: cassandra12
-    deploy:
-      resources:
-        limits:
-          memory: 650m
     networks:
       antithesis-net:
         ipv4_address: 10.20.20.12
@@ -66,90 +58,11 @@ services:
       - JMX_PORT=7193
       - CASSANDRA_HINTED_HANDOFF_ENABLED=false
       - MIGRATION_MODE=true
-      - ALL_HOSTS=cassandra11,cassandra12,cassandra13,cassandra14,cassandra15,cassandra16,cassandra21,cassandra22,cassandra23,cassandra24,cassandra25,cassandra26
+      - ALL_HOSTS=cassandra11,cassandra12,cassandra13,cassandra21,cassandra22,cassandra23
     container_name: cassandra13
-    deploy:
-      resources:
-        limits:
-          memory: 650m
     networks:
       antithesis-net:
         ipv4_address: 10.20.20.13
-
-  cassandra14:
-    image: palantirtechnologies/cassandra:2.2.18-1.143.0-rc7
-    ports:
-      - "9160"
-      - "9042"
-      - "7000"
-      - "7001"
-      - "7194:7194"
-    environment:
-      - CASSANDRA_SEEDS=cassandra11,cassandra12,cassandra13,cassandra21,cassandra22,cassandra23
-      - MAX_HEAP_SIZE=512m
-      - HEAP_NEWSIZE=64m
-      - JMX_PORT=7194
-      - CASSANDRA_HINTED_HANDOFF_ENABLED=false
-      - MIGRATION_MODE=true
-      - ALL_HOSTS=cassandra11,cassandra12,cassandra13,cassandra14,cassandra15,cassandra16,cassandra21,cassandra22,cassandra23,cassandra24,cassandra25,cassandra26
-    container_name: cassandra14
-    deploy:
-      resources:
-        limits:
-          memory: 650m
-    networks:
-      antithesis-net:
-        ipv4_address: 10.20.20.14
-
-  cassandra15:
-    image: palantirtechnologies/cassandra:2.2.18-1.143.0-rc7
-    ports:
-      - "9160"
-      - "9042"
-      - "7000"
-      - "7001"
-      - "7195:7195"
-    environment:
-      - CASSANDRA_SEEDS=cassandra11,cassandra12,cassandra13,cassandra21,cassandra22,cassandra23
-      - MAX_HEAP_SIZE=512m
-      - HEAP_NEWSIZE=64m
-      - JMX_PORT=7195
-      - CASSANDRA_HINTED_HANDOFF_ENABLED=false
-      - MIGRATION_MODE=true
-      - ALL_HOSTS=cassandra11,cassandra12,cassandra13,cassandra14,cassandra15,cassandra16,cassandra21,cassandra22,cassandra23,cassandra24,cassandra25,cassandra26
-    container_name: cassandra15
-    deploy:
-      resources:
-        limits:
-          memory: 650m
-    networks:
-      antithesis-net:
-        ipv4_address: 10.20.20.15
-
-  cassandra16:
-    image: palantirtechnologies/cassandra:2.2.18-1.143.0-rc7
-    ports:
-      - "9160"
-      - "9042"
-      - "7000"
-      - "7001"
-      - "7196:7196"
-    environment:
-      - CASSANDRA_SEEDS=cassandra11,cassandra12,cassandra13,cassandra21,cassandra22,cassandra23
-      - MAX_HEAP_SIZE=512m
-      - HEAP_NEWSIZE=64m
-      - JMX_PORT=7196
-      - CASSANDRA_HINTED_HANDOFF_ENABLED=false
-      - MIGRATION_MODE=true
-      - ALL_HOSTS=cassandra11,cassandra12,cassandra13,cassandra14,cassandra15,cassandra16,cassandra21,cassandra22,cassandra23,cassandra24,cassandra25,cassandra26
-    container_name: cassandra16
-    deploy:
-      resources:
-        limits:
-          memory: 650m
-    networks:
-      antithesis-net:
-        ipv4_address: 10.20.20.16
 
   cassandra21:
     image: palantirtechnologies/cassandra:2.2.18-1.143.0-rc8
@@ -166,12 +79,8 @@ services:
       - JMX_PORT=7291
       - CASSANDRA_HINTED_HANDOFF_ENABLED=false
       - MIGRATION_MODE=true
-      - ALL_HOSTS=cassandra11,cassandra12,cassandra13,cassandra14,cassandra15,cassandra16,cassandra21,cassandra22,cassandra23,cassandra24,cassandra25,cassandra26
+      - ALL_HOSTS=cassandra11,cassandra12,cassandra13,cassandra21,cassandra22,cassandra23
     container_name: cassandra21
-    deploy:
-      resources:
-        limits:
-          memory: 650m
     networks:
       antithesis-net:
         ipv4_address: 10.20.20.21
@@ -191,12 +100,8 @@ services:
       - JMX_PORT=7292
       - CASSANDRA_HINTED_HANDOFF_ENABLED=false
       - MIGRATION_MODE=true
-      - ALL_HOSTS=cassandra1,cassandra2,cassandra3,cassandra4,cassandra5,cassandra6
+      - ALL_HOSTS=cassandra11,cassandra12,cassandra13,cassandra21,cassandra22,cassandra23
     container_name: cassandra22
-    deploy:
-      resources:
-        limits:
-          memory: 650m
     networks:
       antithesis-net:
         ipv4_address: 10.20.20.22
@@ -216,91 +121,11 @@ services:
       - JMX_PORT=7293
       - CASSANDRA_HINTED_HANDOFF_ENABLED=false
       - MIGRATION_MODE=true
-      - ALL_HOSTS=cassandra11,cassandra12,cassandra13,cassandra14,cassandra15,cassandra16,cassandra21,cassandra22,cassandra23,cassandra24,cassandra25,cassandra26
+      - ALL_HOSTS=cassandra11,cassandra12,cassandra13,cassandra21,cassandra22,cassandra23
     container_name: cassandra23
-    deploy:
-      resources:
-        limits:
-          memory: 650m
     networks:
       antithesis-net:
         ipv4_address: 10.20.20.23
-
-  cassandra24:
-    image: palantirtechnologies/cassandra:2.2.18-1.143.0-rc8
-    ports:
-      - "9160"
-      - "9042"
-      - "7000"
-      - "7001"
-      - "7294:7294"
-    environment:
-      - CASSANDRA_SEEDS=cassandra11,cassandra12,cassandra13,cassandra21,cassandra22,cassandra23
-      - MAX_HEAP_SIZE=512m
-      - HEAP_NEWSIZE=64m
-      - JMX_PORT=7294
-      - CASSANDRA_HINTED_HANDOFF_ENABLED=false
-      - MIGRATION_MODE=true
-      - ALL_HOSTS=cassandra11,cassandra12,cassandra13,cassandra14,cassandra15,cassandra16,cassandra21,cassandra22,cassandra23,cassandra24,cassandra25,cassandra26
-    container_name: cassandra24
-    deploy:
-      resources:
-        limits:
-          memory: 650m
-    networks:
-      antithesis-net:
-        ipv4_address: 10.20.20.24
-
-
-  cassandra25:
-    image: palantirtechnologies/cassandra:2.2.18-1.143.0-rc8
-    ports:
-      - "9160"
-      - "9042"
-      - "7000"
-      - "7001"
-      - "7295:7295"
-    environment:
-      - CASSANDRA_SEEDS=cassandra11,cassandra12,cassandra13,cassandra21,cassandra22,cassandra23
-      - MAX_HEAP_SIZE=512m
-      - HEAP_NEWSIZE=64m
-      - JMX_PORT=7295
-      - CASSANDRA_HINTED_HANDOFF_ENABLED=false
-      - MIGRATION_MODE=true
-      - ALL_HOSTS=cassandra11,cassandra12,cassandra13,cassandra14,cassandra15,cassandra16,cassandra21,cassandra22,cassandra23,cassandra24,cassandra25,cassandra26
-    container_name: cassandra25
-    deploy:
-      resources:
-        limits:
-          memory: 650m
-    networks:
-      antithesis-net:
-        ipv4_address: 10.20.20.25
-
-  cassandra26:
-    image: palantirtechnologies/cassandra:2.2.18-1.143.0-rc8
-    ports:
-      - "9160"
-      - "9042"
-      - "7000"
-      - "7001"
-      - "7296:7296"
-    environment:
-      - CASSANDRA_SEEDS=cassandra11,cassandra12,cassandra13,cassandra21,cassandra22,cassandra23
-      - MAX_HEAP_SIZE=512m
-      - HEAP_NEWSIZE=64m
-      - JMX_PORT=7296
-      - CASSANDRA_HINTED_HANDOFF_ENABLED=false
-      - MIGRATION_MODE=true
-      - ALL_HOSTS=cassandra11,cassandra12,cassandra13,cassandra14,cassandra15,cassandra16,cassandra21,cassandra22,cassandra23,cassandra24,cassandra25,cassandra26
-    container_name: cassandra26
-    deploy:
-      resources:
-        limits:
-          memory: 650m
-    networks:
-      antithesis-net:
-        ipv4_address: 10.20.20.26
 
   timelock1.palantir.pt:
     image: palantirtechnologies/timelock-server-distribution:unspecified
@@ -349,12 +174,9 @@ services:
     image: palantirtechnologies/atlasdb-workload-server-distribution:unspecified
     command: [bash, -c, 'cp var/conf/workload-server.timelock.cassandra.yml var/conf/workload-server.yml
                          && dockerize -timeout 120s -wait tcp://cassandra11:9160 
-                         -wait tcp://cassandra12:9160 -wait tcp://cassandra13:9160 
-                         -wait tcp://cassandra14:9160 -wait tcp://cassandra15:9160 
-                         -wait tcp://cassandra16:9160 -wait tcp://cassandra21:9160 
-                         -wait tcp://cassandra22:9160 -wait tcp://cassandra23:9160 
-                         -wait tcp://cassandra24:9160 -wait tcp://cassandra25:9160 
-                         -wait tcp://cassandra26:9160
+                         -wait tcp://cassandra12:9160 -wait tcp://cassandra13:9160
+                         -wait tcp://cassandra21:9160 -wait tcp://cassandra22:9160 
+                         -wait tcp://cassandra23:9160 
                          && service/bin/init.sh console']
     ports:
       - "5005:5005" # enabling port for remote debugger
@@ -363,15 +185,9 @@ services:
       - cassandra11
       - cassandra12
       - cassandra13
-      - cassandra14
-      - cassandra15
-      - cassandra16
       - cassandra21
       - cassandra22
       - cassandra23
-      - cassandra24
-      - cassandra25
-      - cassandra26
       - timelock1.palantir.pt
       - timelock2.palantir.pt
       - timelock3.palantir.pt

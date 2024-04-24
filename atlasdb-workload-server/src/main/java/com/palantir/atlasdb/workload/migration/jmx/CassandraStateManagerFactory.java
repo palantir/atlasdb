@@ -37,8 +37,7 @@ public final class CassandraStateManagerFactory {
             .put("cassandra26", 7296)
             .buildOrThrow();
 
-    private static final List<String> DC2_HOSTNAMES =
-            List.of("cassandra21", "cassandra22", "cassandra23", "cassandra24", "cassandra25", "cassandra26");
+    private static final List<String> DC2_HOSTNAMES = List.of("cassandra21", "cassandra22", "cassandra23");
     ;
 
     private CassandraStateManagerFactory() {
