@@ -15,8 +15,6 @@ services:
       - HEAP_NEWSIZE=64m
       - JMX_PORT=7191
       - CASSANDRA_HINTED_HANDOFF_ENABLED=false
-      - CASSANDRA_DC=dc1
-      - CASSANDRA_RACK=rack1
       - MIGRATION_MODE=true
       - ALL_HOSTS=cassandra1,cassandra2,cassandra3
     container_name: cassandra1
@@ -38,8 +36,6 @@ services:
       - HEAP_NEWSIZE=64m
       - JMX_PORT=7192
       - CASSANDRA_HINTED_HANDOFF_ENABLED=false
-      - CASSANDRA_DC=dc1
-      - CASSANDRA_RACK=rack2
       - MIGRATION_MODE=true
       - ALL_HOSTS=cassandra1,cassandra2,cassandra3
     container_name: cassandra2
@@ -61,8 +57,6 @@ services:
       - HEAP_NEWSIZE=64m
       - JMX_PORT=7193
       - CASSANDRA_HINTED_HANDOFF_ENABLED=false
-      - CASSANDRA_DC=dc1
-      - CASSANDRA_RACK=rack3
       - MIGRATION_MODE=true
       - ALL_HOSTS=cassandra1,cassandra2,cassandra3
     container_name: cassandra3
