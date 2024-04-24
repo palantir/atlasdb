@@ -2,18 +2,18 @@ version: '2'
 
 services:
   cassandra1:
-    image: palantirtechnologies/cassandra:unspecified
+    image: palantirtechnologies/cassandra:2.2.18-1.143.0-rc6
     ports:
       - "9160"
       - "9042"
       - "7000"
       - "7001"
-      - "7199:7199"
+      - "7191:7191"
     environment:
       - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
       - MAX_HEAP_SIZE=512m
       - HEAP_NEWSIZE=64m
-      - JMX_PORT=7199
+      - JMX_PORT=7191
       - CASSANDRA_HINTED_HANDOFF_ENABLED=false
       - CASSANDRA_DC=dc1
       - CASSANDRA_RACK=rack1
@@ -25,18 +25,18 @@ services:
         ipv4_address: 10.20.20.2
 
   cassandra2:
-    image: palantirtechnologies/cassandra:unspecified
+    image: palantirtechnologies/cassandra:2.2.18-1.143.0-rc6
     ports:
       - "9160"
       - "9042"
       - "7000"
       - "7001"
-      - "7199:7199"
+      - "7192:7192"
     environment:
       - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
       - MAX_HEAP_SIZE=512m
       - HEAP_NEWSIZE=64m
-      - JMX_PORT=7199
+      - JMX_PORT=7192
       - CASSANDRA_HINTED_HANDOFF_ENABLED=false
       - CASSANDRA_DC=dc1
       - CASSANDRA_RACK=rack2
@@ -48,18 +48,18 @@ services:
         ipv4_address: 10.20.20.3
 
   cassandra3:
-    image: palantirtechnologies/cassandra:unspecified
+    image: palantirtechnologies/cassandra:2.2.18-1.143.0-rc6
     ports:
       - "9160"
       - "9042"
       - "7000"
       - "7001"
-      - "7199:7199"
+      - "7193:7193"
     environment:
       - CASSANDRA_SEEDS=cassandra1,cassandra2,cassandra3
       - MAX_HEAP_SIZE=512m
       - HEAP_NEWSIZE=64m
-      - JMX_PORT=7199
+      - JMX_PORT=7193
       - CASSANDRA_HINTED_HANDOFF_ENABLED=false
       - CASSANDRA_DC=dc1
       - CASSANDRA_RACK=rack3

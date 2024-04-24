@@ -16,15 +16,20 @@
 
 package com.palantir.atlasdb.workload.migration.jmx;
 
+import com.google.common.collect.ImmutableMap;
+import java.util.Map;
+
 public final class JmxCassandraStateManagerFactory {
-    private static final int JMX_PORT = 7199;
+    private static final Map<String, Integer> JMX_PORTS =
+            ImmutableMap.of("cassandra1", 7191, "cassandra2", 7192, "cassandra3", 7193);
 
     private JmxCassandraStateManagerFactory() {
         // utility, hacky but eh
     }
 
     public static JmxCassandraStateManager create(String host) {
-        CassandraJmxConnectorFactory jmxConnectorFactory = new CassandraJmxConnectorFactory(host, JMX_PORT);
+        CassandraJmxConnectorFactory jmxConnectorFactory =
+                new CassandraJmxConnectorFactory(host, JMX_PORTS.getOrDefault(host, 7199));
         return new JmxCassandraStateManager(jmxConnectorFactory::getJmxConnector);
     }
 }
