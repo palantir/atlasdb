@@ -53,6 +53,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -133,8 +134,13 @@ public final class PaxosResourcesFactory {
 
         TimelockPaxosMetrics timelockMetrics = TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, metrics);
 
+        Set<String> hostsToIgnoreSqliteMigration = install.install().hostsToIgnoreSqliteMigration();
+        boolean shouldIgnoreLeaderConsistency = hostsToIgnoreSqliteMigration.stream()
+                .anyMatch(host -> install.cluster().localServer().contains(host));
         Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory = dependencies -> {
-            PingableLeader local = dependencies.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT);
+            PingableLeader local = dependencies
+                    .components()
+                    .pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT, shouldIgnoreLeaderConsistency);
             List<PingableLeader> remotes = dependencies.remoteClients().nonBatchPingableLeaders();
             return LocalAndRemotes.of(
                     new SingleLeaderHealthCheckPinger(local),

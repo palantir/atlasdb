@@ -167,7 +167,11 @@ public class LocalPaxosComponents {
     }
 
     public PingableLeader pingableLeader(Client client) {
-        return getOrCreateComponents(client).pingableLeader();
+        return pingableLeader(client, false);
+    }
+
+    public PingableLeader pingableLeader(Client client, boolean shouldIgnoreLeaderConsistency) {
+        return getOrCreateComponents(client, shouldIgnoreLeaderConsistency).pingableLeader();
     }
 
     public BatchPaxosAcceptor batchAcceptor() {
@@ -183,10 +187,14 @@ public class LocalPaxosComponents {
     }
 
     private Components getOrCreateComponents(Client client) {
-        return componentsByClient.computeIfAbsent(client, this::createComponents);
+        return getOrCreateComponents(client, false);
     }
 
-    private Components createComponents(Client client) {
+    private Components getOrCreateComponents(Client client, boolean shouldIgnoreLeaderConsistency) {
+        return componentsByClient.computeIfAbsent(client, c -> createComponents(c, shouldIgnoreLeaderConsistency));
+    }
+
+    private Components createComponents(Client client, boolean shouldIgnoreLeaderConsistency) {
         Path legacyClientDir = paxosUseCase
                 .logDirectoryRelativeToDataDirectory(baseLogDirectory)
                 .resolve(client.value());
@@ -201,7 +209,10 @@ public class LocalPaxosComponents {
         }
 
         PaxosLearner learner = PaxosLearnerImpl.newSplittingLearner(
-                getLearnerParameters(client), createMetrics(PaxosLearner.class), PaxosKnowledgeEventRecorder.NO_OP);
+                getLearnerParameters(client),
+                createMetrics(PaxosLearner.class),
+                PaxosKnowledgeEventRecorder.NO_OP,
+                shouldIgnoreLeaderConsistency);
 
         PaxosAcceptor acceptor = PaxosAcceptorImpl.newSplittingAcceptor(
                 getAcceptorParameters(client),

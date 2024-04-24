@@ -53,8 +53,20 @@ public final class PaxosLearnerImpl implements PaxosLearner {
             PaxosStorageParameters params,
             SplittingPaxosStateLog.LegacyOperationMarkers legacyOperationMarkers,
             PaxosKnowledgeEventRecorder event) {
+        return newSplittingLearner(params, legacyOperationMarkers, event, false);
+    }
+
+    public static PaxosLearner newSplittingLearner(
+            PaxosStorageParameters params,
+            SplittingPaxosStateLog.LegacyOperationMarkers legacyOperationMarkers,
+            PaxosKnowledgeEventRecorder event,
+            boolean shouldIgnoreLeaderConsistency) {
         PaxosStateLog<PaxosValue> stateLog = SplittingPaxosStateLog.createWithMigration(
-                params, PaxosValue.BYTES_HYDRATOR, legacyOperationMarkers, OptionalLong.empty());
+                params,
+                PaxosValue.BYTES_HYDRATOR,
+                legacyOperationMarkers,
+                OptionalLong.empty(),
+                shouldIgnoreLeaderConsistency);
         return newLearner(stateLog, event);
     }
 

@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.debug.LockDiagnosticConfig;
 import com.palantir.paxos.Client;
 import java.util.Map;
+import java.util.Set;
 import org.immutables.value.Value;
 
 /**
@@ -48,6 +49,11 @@ public interface TimeLockInstallConfiguration {
     @Value.Default
     default boolean iAmOnThePersistenceTeamAndKnowWhatImDoingSkipSqliteConsistencyCheckAndTruncateFileBasedLog() {
         return false;
+    }
+
+    @JsonProperty("hosts-to-ignore-sqlite-migration")
+    default Set<String> hostsToIgnoreSqliteMigration() {
+        return Set.of();
     }
 
     /**
