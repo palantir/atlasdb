@@ -60,6 +60,11 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
      * sourceLog is not empty. If sourceLog is empty, cutoff will be {@link PaxosAcceptor#NO_LOG_ENTRY}.
      */
     public static <V extends Persistable & Versionable> long migrateAndReturnCutoff(MigrationContext<V> context) {
+        return migrateAndReturnCutoff(false, context);
+    }
+
+    public static <V extends Persistable & Versionable> long migrateAndReturnCutoff(
+            boolean shouldIgnoreLeaderConsistency, MigrationContext<V> context) {
         PaxosStateLogMigrator<V> migrator = new PaxosStateLogMigrator<>(context.sourceLog(), context.destinationLog());
         if (!context.migrationState().isInMigratedState()) {
             log.info(
@@ -81,7 +86,13 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
                 log.info(
                         "Now validating the sqlite migration state for namespace and use case {}.",
                         SafeArg.of("namespaceAndUseCase", context.namespaceAndUseCase()));
-                validateConsistency(context);
+                if (shouldIgnoreLeaderConsistency && isLeaderNamespace(context)) {
+                    log.info(
+                            "Skipping leader consistency check for namespace and use case {} to continue Rubix Migration.",
+                            SafeArg.of("namespaceAndUseCase", context.namespaceAndUseCase()));
+                } else {
+                    validateConsistency(context);
+                }
                 log.info(
                         "Validated the sqlite migration state for namespace and use case {}.",
                         SafeArg.of("namespaceAndUseCase", context.namespaceAndUseCase()));
@@ -96,6 +107,14 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
             }
         }
         return context.migrationState().getCutoff();
+    }
+
+    private static <V extends Persistable & Versionable> boolean isLeaderNamespace(MigrationContext<V> context) {
+        String paxosLeaderUseCase = "leaderPaxos!learner";
+        String paxosLeaderNamespace = "leaderPaxos";
+
+        return context.namespaceAndUseCase().namespace().value().equals(paxosLeaderNamespace)
+                && context.namespaceAndUseCase().useCase().equals(paxosLeaderUseCase);
     }
 
     private static <V extends Persistable & Versionable> long calculateCutoff(MigrationContext<V> context) {

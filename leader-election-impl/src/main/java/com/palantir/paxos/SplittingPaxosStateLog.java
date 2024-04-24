@@ -75,6 +75,15 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
             Persistable.Hydrator<V> hydrator,
             LegacyOperationMarkers legacyOperationMarkers,
             OptionalLong migrateFrom) {
+        return createWithMigration(params, hydrator, legacyOperationMarkers, migrateFrom, false);
+    }
+
+    public static <V extends Persistable & Versionable> PaxosStateLog<V> createWithMigration(
+            PaxosStorageParameters params,
+            Persistable.Hydrator<V> hydrator,
+            LegacyOperationMarkers legacyOperationMarkers,
+            OptionalLong migrateFrom,
+            boolean shouldIgnoreLeaderConsistency) {
         String logDirectory = params.fileBasedLogDirectory()
                 .orElseThrow(() -> new SafeIllegalStateException("We currently need to have file-based storage"));
         NamespaceAndUseCase namespaceUseCase = params.namespaceAndUseCase();
@@ -89,7 +98,7 @@ public final class SplittingPaxosStateLog<V extends Persistable & Versionable> i
                 .skipValidationAndTruncateSourceIfMigrated(params.skipConsistencyCheckAndTruncateOldPaxosLog())
                 .build();
 
-        long cutoff = PaxosStateLogMigrator.migrateAndReturnCutoff(migrationContext);
+        long cutoff = PaxosStateLogMigrator.migrateAndReturnCutoff(shouldIgnoreLeaderConsistency, migrationContext);
 
         if (params.skipConsistencyCheckAndTruncateOldPaxosLog()) {
             return migrationContext.destinationLog();

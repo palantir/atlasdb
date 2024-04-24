@@ -133,8 +133,12 @@ public final class PaxosResourcesFactory {
 
         TimelockPaxosMetrics timelockMetrics = TimelockPaxosMetrics.of(PaxosUseCase.LEADER_FOR_ALL_CLIENTS, metrics);
 
+        String corruptedTimelockHost = "taffeta-pic-timelock-3.ops.palantir.local";
+        boolean shouldIgnoreLeaderConsistency = install.cluster().localServer().contains(corruptedTimelockHost);
         Factories.LeaderPingHealthCheckFactory healthCheckPingersFactory = dependencies -> {
-            PingableLeader local = dependencies.components().pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT);
+            PingableLeader local = dependencies
+                    .components()
+                    .pingableLeader(PaxosUseCase.PSEUDO_LEADERSHIP_CLIENT, shouldIgnoreLeaderConsistency);
             List<PingableLeader> remotes = dependencies.remoteClients().nonBatchPingableLeaders();
             return LocalAndRemotes.of(
                     new SingleLeaderHealthCheckPinger(local),
