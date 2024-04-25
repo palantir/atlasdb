@@ -23,6 +23,7 @@ import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
 import com.palantir.atlasdb.workload.migration.cql.CassandraKeyspaceReplicationStrategyManager;
 import com.palantir.atlasdb.workload.migration.jmx.CassandraStateManager;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Optional;
@@ -54,8 +55,18 @@ public class AlterKeyspaceDatacenters implements MigrationAction {
     @Override
     public void runForwardStep() {
         getAllNonSystemKeyspaceNames().forEach(keyspace -> {
+            log.info(
+                    "Setting replication factor for keyspace {} and datacenters {}",
+                    SafeArg.of("keyspace", keyspace),
+                    SafeArg.of("datacenters", datacenters));
             replicationStrategyManager.setReplicationFactorToThreeForDatacenters(datacenters, keyspace);
+            log.info(
+                    "Replication factor set for keyspace {}, now waiting for schema agreement",
+                    SafeArg.of("keyspace", keyspace));
             waitForConsensusSchemaVersion();
+            log.info(
+                    "Successfully agreed on schema version after setting replication factor for keyspace {}",
+                    SafeArg.of("keyspace", keyspace));
         });
     }
 

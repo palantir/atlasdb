@@ -64,20 +64,21 @@ public final class MigratingCassandraCoordinator {
     }
 
     public void runForward() {
+        log.info("Starting migration");
         startActions.forEach(this::runAction);
     }
 
     private void runAction(MigrationAction action) {
         String actionName = action.toString();
         if (action.isApplied()) {
-            log.info("Action already applied", SafeArg.of("action", actionName));
+            log.info("Action {} already applied", SafeArg.of("action", actionName));
             return;
         }
-
+        log.info("Running action {}", SafeArg.of("action", actionName));
         action.runForwardStep();
 
         if (!action.isApplied()) {
-            throw new SafeRuntimeException("Failed to apply action", SafeArg.of("action", actionName));
+            throw new SafeRuntimeException("Failed to apply action {}", SafeArg.of("action", actionName));
         }
     }
 }
