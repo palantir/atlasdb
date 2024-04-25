@@ -1,0 +1,9 @@
+lock-diagnostic-config:
+  sparkmodulemanager_main:
+    ttl: PT2M
+    maximum-size: 5000
+some-list:
+  - bar
+paxos:
+  data-directory: "/paxos"
+  is-new-service: false
