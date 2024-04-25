@@ -20,12 +20,18 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.IOException;
+import java.util.Hashtable;
+import java.util.Map;
 import java.util.Set;
+import javax.management.AttributeNotFoundException;
+import javax.management.InstanceNotFoundException;
 import javax.management.JMX;
+import javax.management.MBeanException;
 import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectInstance;
 import javax.management.ObjectName;
+import javax.management.ReflectionException;
 import javax.management.remote.JMXConnector;
 
 public class CassandraJmxConnector implements AutoCloseable {
@@ -47,6 +53,15 @@ public class CassandraJmxConnector implements AutoCloseable {
         } catch (IOException e) {
             throw new SafeIllegalStateException("Cannot get MBeanServerConnection to cassandra node", e);
         }
+    }
+
+    public Object getMetricFromJmx(String domain, String attribute, Map<String, String> params)
+            throws MalformedObjectNameException, AttributeNotFoundException, MBeanException, ReflectionException,
+                    InstanceNotFoundException, IOException {
+        @SuppressWarnings("JdkObsolete")
+        Hashtable<String, String> hashtableParams = new Hashtable<>(params);
+        ObjectName objectName = new ObjectName(domain, hashtableParams);
+        return getMBeanServerConnection().getAttribute(objectName, attribute);
     }
 
     public <T> T getMBeanProxy(String objectName, Class<T> clazz) {

@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.workload.migration.jmx;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -147,7 +148,11 @@ public class JmxCassandraStateManager implements CassandraStateManager {
     }
 
     private Duration getJvmUptime() {
-        return Duration.ofSeconds(1); // TODO;
+        try (CassandraJmxConnector connector = connectorFactory.get()) {
+            return Duration.ofMillis(((Number) new CassandraMetricsRetriever(connector)
+                            .getCassandraMetric("Runtime", "Uptime", ImmutableMap.of()))
+                    .longValue());
+        }
     }
 
     private void verifyNodeUpNormal() {

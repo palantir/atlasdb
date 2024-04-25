@@ -41,7 +41,9 @@ public final class CombinedCassandraStateManager implements CassandraStateManage
 
     @Override
     public Set<String> getRebuiltKeyspaces(String sourceDatacenter) {
-        return stateManagers.stream().map(CassandraStateManager::getRebuiltKeyspaces).reduce()
+        return stateManagers.stream()
+                .map(CassandraStateManager::getRebuiltKeyspaces)
+                .reduce();
     }
 
     @Override
