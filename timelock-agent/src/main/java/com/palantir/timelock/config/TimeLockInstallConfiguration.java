@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.debug.LockDiagnosticConfig;
 import com.palantir.paxos.Client;
+import java.util.List;
 import java.util.Map;
 import org.immutables.value.Value;
 
@@ -48,6 +49,13 @@ public interface TimeLockInstallConfiguration {
     @Value.Default
     default boolean iAmOnThePersistenceTeamAndKnowWhatImDoingSkipSqliteConsistencyCheckAndTruncateFileBasedLog() {
         return false;
+    }
+
+    @JsonProperty("some-list")
+    // @Value.Default
+    // Forgetting the @Value.Default will break deserialization of the config
+    default List<String> someList() {
+        return List.of("foo");
     }
 
     /**

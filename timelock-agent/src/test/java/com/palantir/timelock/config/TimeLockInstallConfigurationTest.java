@@ -17,7 +17,11 @@
 package com.palantir.timelock.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
+import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.test.utils.SubdirectoryCreator;
 import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.io.File;
@@ -44,6 +48,19 @@ public class TimeLockInstallConfigurationTest {
 
         extantPaxosLogDirectory = SubdirectoryCreator.createAndGetSubdirectory(temporaryFolder, "lets-do-some-voting");
         extantSqliteLogDirectory = SubdirectoryCreator.createAndGetSubdirectory(temporaryFolder, "whats-a-right-join");
+    }
+
+    @Test
+    public void testCanReadConfig() {
+        File configFile = new File(TimeLockInstallConfiguration.class
+                .getResource("/timelock-install.yml")
+                .getPath());
+
+        ObjectMapper mapper =
+                ObjectMappers.withDefaultModules(YAMLMapper.builder().build());
+
+        assertThatCode(() -> mapper.readValue(configFile, TimeLockInstallConfiguration.class))
+                .doesNotThrowAnyException();
     }
 
     @Test
