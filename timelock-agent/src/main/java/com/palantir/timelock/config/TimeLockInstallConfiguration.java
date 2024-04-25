@@ -52,6 +52,7 @@ public interface TimeLockInstallConfiguration {
     }
 
     @JsonProperty("hosts-to-ignore-sqlite-migration")
+    @Value.Default
     default Set<String> hostsToIgnoreSqliteMigration() {
         return Set.of();
     }
