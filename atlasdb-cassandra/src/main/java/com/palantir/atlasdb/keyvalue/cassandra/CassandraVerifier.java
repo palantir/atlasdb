@@ -111,8 +111,9 @@ public final class CassandraVerifier {
             checkMoreRacksThanRfOrFewerHostsThanRf(
                     hosts, replicationFactor, datacenterToRack, ignoreNodeTopologyChecks);
         }
-
-        return datacenterToRack.keySet();
+        return Set.of("DC1"); // TODO: DELETE THIS! We just need to make sure we don't start with dc1 dc2 off
+        //         the bat
+        //        return datacenterToRack.keySet();
     }
 
     private static void createSimpleRfTestKeyspaceIfNotExists(CassandraClient client) throws TException {
