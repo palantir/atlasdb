@@ -111,11 +111,16 @@ public final class PaxosStateLogMigrator<V extends Persistable & Versionable> {
     }
 
     private static <V extends Persistable & Versionable> boolean isLeaderNamespace(MigrationContext<V> context) {
-        String paxosLeaderUseCase = "leaderPaxos!learner";
+        String paxosLeaderLearnerUseCase = "leaderPaxos!learner";
+        String paxosLeaderAcceptorUseCase = "leaderPaxos!acceptor";
         String paxosLeaderNamespace = "leaderPaxos";
 
-        return context.namespaceAndUseCase().namespace().value().equals(paxosLeaderNamespace)
-                && context.namespaceAndUseCase().useCase().equals(paxosLeaderUseCase);
+        String contextNamespace = context.namespaceAndUseCase().namespace().value();
+        String contextUseCase = context.namespaceAndUseCase().useCase();
+
+        return contextNamespace.equals(paxosLeaderNamespace)
+                && (contextUseCase.equals(paxosLeaderLearnerUseCase)
+                        || contextUseCase.equals(paxosLeaderAcceptorUseCase));
     }
 
     private static <V extends Persistable & Versionable> long calculateCutoff(MigrationContext<V> context) {
