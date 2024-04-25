@@ -18,6 +18,9 @@ package com.palantir.atlasdb.workload.migration.jmx;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 public final class CombinedCassandraStateManager implements CassandraStateManager {
@@ -28,8 +31,17 @@ public final class CombinedCassandraStateManager implements CassandraStateManage
     }
 
     @Override
-    public void forceRebuild(String datacenter, String keyspace) {
-        stateManagers.forEach(manager -> manager.forceRebuild(datacenter, keyspace));
+    public void forceRebuild(String sourceDatacenter, Set<String> keyspaces) {
+        ExecutorService executorService = Executors.newCachedThreadPool();
+
+        stateManagers.forEach(
+                manager -> executorService.execute(() -> manager.forceRebuild(sourceDatacenter, keyspaces)));
+        executorService.shutdown();
+    }
+
+    @Override
+    public Set<String> getRebuiltKeyspaces(String sourceDatacenter) {
+        return stateManagers.stream().map(CassandraStateManager::getRebuiltKeyspaces).reduce()
     }
 
     @Override
@@ -46,7 +58,19 @@ public final class CombinedCassandraStateManager implements CassandraStateManage
     }
 
     @Override
-    public void enablingClientInterfaces() {
-        stateManagers.forEach(CassandraStateManager::enablingClientInterfaces);
+    public void enableClientInterfaces() {
+        stateManagers.forEach(CassandraStateManager::enableClientInterfaces);
+    }
+
+    @Override
+    public InterfaceStates getInterfaceState() {
+        List<InterfaceStates> interfaceStates = stateManagers.stream()
+                .map(CassandraStateManager::getInterfaceState)
+                .collect(Collectors.toList());
+        return InterfaceStates.builder()
+                .gossipIsRunning(interfaceStates.stream().allMatch(InterfaceStates::gossipIsRunning))
+                .nativeTransportIsRunning(interfaceStates.stream().allMatch(InterfaceStates::nativeTransportIsRunning))
+                .rpcServerIsRunning(interfaceStates.stream().allMatch(InterfaceStates::rpcServerIsRunning))
+                .build();
     }
 }

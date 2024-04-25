@@ -17,11 +17,37 @@
 package com.palantir.atlasdb.workload.migration.jmx;
 
 import java.util.Optional;
+import java.util.Set;
+import org.immutables.value.Value;
 
 public interface CassandraStateManager {
-    void forceRebuild(String datacenter, String keyspace);
+    void forceRebuild(String sourceDatacenter, Set<String> keyspaces);
+
+    Set<String> getRebuiltKeyspaces(String sourceDatacenter);
 
     Optional<String> getConsensusSchemaVersionFromNode();
 
-    void enablingClientInterfaces();
+    void enableClientInterfaces();
+
+    InterfaceStates getInterfaceState();
+
+    @Value.Immutable
+    interface InterfaceStates {
+        boolean gossipIsRunning();
+
+        boolean nativeTransportIsRunning();
+
+        boolean rpcServerIsRunning();
+
+        @Value.Derived
+        default boolean allInterfacesAreDown() {
+            return !gossipIsRunning() && !nativeTransportIsRunning() && !rpcServerIsRunning();
+        }
+
+        static Builder builder() {
+            return new Builder();
+        }
+
+        class Builder extends ImmutableInterfaceStates.Builder {}
+    }
 }
