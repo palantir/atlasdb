@@ -53,6 +53,7 @@ public class AntithesisDockerTest {
 
         String logs = waitUntilDockerComposeSucceededOrFailedAndGetLogs(successMessage, failureMessage);
         assertThat(logs).contains(successMessage);
+        System.out.println(logs);
     }
 
     private String waitUntilDockerComposeSucceededOrFailedAndGetLogs(String successMessage, String failureMessage) {

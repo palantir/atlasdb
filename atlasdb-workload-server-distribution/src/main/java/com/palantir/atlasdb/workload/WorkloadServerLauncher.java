@@ -24,18 +24,12 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.buggify.impl.DefaultBuggifyFactory;
 import com.palantir.atlasdb.buggify.impl.DefaultNativeSamplingSecureRandomFactory;
-import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfigs;
-import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CqlCapableConfig;
-import com.palantir.atlasdb.cassandra.CassandraServersConfigs.DefaultConfig;
-import com.palantir.atlasdb.cassandra.CassandraServersConfigs.Visitor;
-import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.workload.background.BackgroundCassandraJob;
 import com.palantir.atlasdb.workload.config.WorkloadServerConfiguration;
 import com.palantir.atlasdb.workload.logging.LoggingUtils;
-import com.palantir.atlasdb.workload.migration.MigratingCassandraCoordinator;
-import com.palantir.atlasdb.workload.migration.cql.CqlSessionProvider;
+import com.palantir.atlasdb.workload.migration.MigrationRunner;
 import com.palantir.atlasdb.workload.resource.AntithesisCassandraSidecarResource;
 import com.palantir.atlasdb.workload.runner.AntithesisWorkflowValidatorRunner;
 import com.palantir.atlasdb.workload.runner.DefaultWorkflowRunner;
@@ -49,7 +43,6 @@ import com.palantir.conjure.java.api.config.service.UserAgent.Agent;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
@@ -59,16 +52,13 @@ import io.dropwizard.Application;
 import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
-import java.net.InetSocketAddress;
 import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class WorkloadServerLauncher extends Application<WorkloadServerConfiguration> {
     private static final SafeLogger log = SafeLoggerFactory.get(WorkloadServerLauncher.class);
@@ -144,32 +134,14 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
 
         WorkflowFactory workflowFactory =
                 new WorkflowFactory(taggedMetricRegistry, new DefaultWorkflowExecutorFactory(environment.lifecycle()));
-        CassandraKeyValueServiceConfigs config = CassandraKeyValueServiceConfigs.fromKeyValueServiceConfigsOrThrow(
-                configuration.install().atlas().keyValueService(),
-                Refreshable.only(configuration.runtime().atlas().flatMap(AtlasDbRuntimeConfig::keyValueService)));
-        log.info("====STARTING MIGRATION COMMAND TEST====");
-        Set<String> hostnames = config.runtimeConfig().get().servers().accept(new Visitor<>() {
-            @Override
-            public Set<String> visit(DefaultConfig defaultConfig) {
-                throw new SafeRuntimeException("Expecting cql capable hosts");
-            }
-
-            @Override
-            public Set<String> visit(CqlCapableConfig cqlCapableConfig) {
-                return cqlCapableConfig.cqlHosts().stream()
-                        .map(InetSocketAddress::getHostName)
-                        .collect(Collectors.toSet());
-            }
-        });
-
-        try (CqlSessionProvider sessionProvider = new CqlSessionProvider(config)) {
-            MigratingCassandraCoordinator coordinator =
-                    MigratingCassandraCoordinator.create(sessionProvider::getSession, hostnames);
-            log.info("Starting run");
-            coordinator.runForward();
-        }
-        log.info("====FINISHED  MIGRATION COMMAND TEST====");
-
+        MigrationRunner migrationRunner = new MigrationRunner();
+        ScheduledExecutorService migrationExecutorService = environment
+                .lifecycle()
+                .scheduledExecutorService(MigrationRunner.class.getSimpleName())
+                .build();
+        migrationRunner.scheduleRandomlyInFuture(
+                migrationExecutorService, SECURE_RANDOM, configuration.install(), configuration.runtime());
+        //        migrationRunner.executeMigration(configuration.install(), configuration.runtime());
         AntithesisWorkflowValidatorRunner.create(new DefaultWorkflowRunner(
                         MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService)))
                 .run(() -> selectWorkflowsToRun(
