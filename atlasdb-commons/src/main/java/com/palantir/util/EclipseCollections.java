@@ -192,28 +192,38 @@ public final class EclipseCollections {
      * netty issue 11209</a>.
      * <p>
      * <a href="https://bugs.openjdk.org/browse/JDK-8266310">JDK-8266310</a> fixed this deadlock in JDK 18+.
+     *
+     * @return true if classes were explicitly loaded and initialized, otherwise false
      */
-    public static void loadClasses() {
-        if (!isLoaded.compareAndSet(false, true)) {
+    public static boolean loadClasses() {
+        if (isLoaded.get()) {
             log.debug("eclipse-collections classes already loaded");
-            return;
+            return false;
         }
 
         if (Runtime.version().feature() > 17) {
             log.debug("Running JDK not impacted by JDK-8266350", SafeArg.of("version", Runtime.version()));
-            return; // classloader deadlock fixed in JDK 18+ by JDK-8266310
+            return false; // classloader deadlock fixed in JDK 18+ by JDK-8266310
         }
 
-        Stopwatch timer = Stopwatch.createStarted();
-        Preconditions.checkState(LongLists.immutable.of().isEmpty(), "Could not load immutable LongList");
-
         // preload classes that traverse ServiceLoader
-        CLASSES_TO_INITIALIZE.forEach(EclipseCollections::initializeClass);
+        return initializeClasses();
+    }
 
-        log.info(
-                "Initialized eclipse-collections classes most likely impacted by JDK-8266350",
-                SafeArg.of("duration", timer.stop()),
-                SafeArg.of("version", Runtime.version()));
+    private static synchronized boolean initializeClasses() {
+        if (isLoaded.compareAndSet(false, true)) {
+            Stopwatch timer = Stopwatch.createStarted();
+            Preconditions.checkState(LongLists.immutable.of().isEmpty(), "Could not load immutable LongList");
+
+            CLASSES_TO_INITIALIZE.forEach(EclipseCollections::initializeClass);
+            log.info(
+                    "Initialized eclipse-collections classes most likely impacted by JDK-8266350",
+                    SafeArg.of("duration", timer.stop()),
+                    SafeArg.of("version", Runtime.version()));
+            return true;
+        }
+
+        return false;
     }
 
     private static void initializeClass(String name) {

@@ -17,7 +17,6 @@
 package com.palantir.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -48,16 +47,10 @@ class EclipseCollectionsTest {
         try {
             List<ListenableFuture<Boolean>> futures = new ArrayList<>();
             for (int i = 0; i < 10; i++) {
-                futures.add(executorService.submit(() -> {
-                    assertThatCode(EclipseCollections::loadClasses).doesNotThrowAnyException();
-                    for (String className : EclipseCollections.CLASSES_TO_INITIALIZE) {
-                        assertThat(Class.forName(className)).isNotNull();
-                    }
-                    return true;
-                }));
+                futures.add(executorService.submit(EclipseCollections::loadClasses));
             }
             executorService.shutdown();
-            assertThat(Futures.allAsList(futures).get()).hasSize(10).allSatisfy(r -> assertThat(r)
+            assertThat(Futures.allAsList(futures).get()).hasSize(10).satisfiesOnlyOnce(r -> assertThat(r)
                     .isTrue());
         } finally {
             executorService.shutdownNow();
