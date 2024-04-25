@@ -18,6 +18,8 @@ package com.palantir.atlasdb.workload.migration;
 
 import com.datastax.driver.core.Session;
 import com.palantir.atlasdb.workload.migration.actions.AlterKeyspaceDatacenters;
+import com.palantir.atlasdb.workload.migration.actions.EnableClientInterfaces;
+import com.palantir.atlasdb.workload.migration.actions.ForceRebuild;
 import com.palantir.atlasdb.workload.migration.actions.MigrationAction;
 import com.palantir.atlasdb.workload.migration.cql.CqlCassandraKeyspaceReplicationStrategyManager;
 import com.palantir.atlasdb.workload.migration.jmx.CassandraMetadataManager;
@@ -47,13 +49,14 @@ public final class MigratingCassandraCoordinator {
         CqlCassandraKeyspaceReplicationStrategyManager strategyManager =
                 new CqlCassandraKeyspaceReplicationStrategyManager(sessionProvider);
         CassandraStateManager allStateManager = CassandraStateManagerFactory.create(hosts);
+        CassandraStateManager dc2StateManager = CassandraStateManagerFactory.createDc2StateManager();
         CassandraMetadataManager metadataManager = new DefaultCassandraMetadataManager();
-        return create(strategyManager, allStateManager, metadataManager);
+        return create(strategyManager, dc2StateManager, allStateManager, metadataManager);
     }
 
     public static MigratingCassandraCoordinator create(
             CqlCassandraKeyspaceReplicationStrategyManager strategyManager,
-            //            CassandraStateManager dc2StateManager,
+            CassandraStateManager dc2StateManager,
             CassandraStateManager allNodeStateManager,
             CassandraMetadataManager metadataManager) {
         Set<String> datacenters = metadataManager.getAllDatacenters().stream()
@@ -61,7 +64,13 @@ public final class MigratingCassandraCoordinator {
                 .collect(Collectors.toSet());
         AlterKeyspaceDatacenters alterKeyspaceDatacentersAction =
                 new AlterKeyspaceDatacenters(strategyManager, allNodeStateManager, datacenters);
-        return new MigratingCassandraCoordinator(List.of(alterKeyspaceDatacentersAction));
+        ForceRebuild forceRebuildAction = new ForceRebuild(
+                dc2StateManager,
+                strategyManager,
+                metadataManager.sourceDatacenter().datacenter());
+        EnableClientInterfaces enableClientInterfaces = new EnableClientInterfaces(dc2StateManager);
+        return new MigratingCassandraCoordinator(
+                List.of(alterKeyspaceDatacentersAction, forceRebuildAction, enableClientInterfaces));
     }
 
     public void runForward() {

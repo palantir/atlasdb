@@ -17,8 +17,10 @@
 package com.palantir.atlasdb.workload.migration.actions;
 
 import com.datastax.driver.core.KeyspaceMetadata;
+import com.google.common.collect.Sets;
 import com.palantir.atlasdb.workload.migration.cql.CassandraKeyspaceReplicationStrategyManager;
 import com.palantir.atlasdb.workload.migration.jmx.CassandraStateManager;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class ForceRebuild implements MigrationAction {
@@ -37,15 +39,20 @@ public class ForceRebuild implements MigrationAction {
 
     @Override
     public void runForwardStep() {
-        dc2StateManager.forceRebuild(
-                sourceDatacenter,
-                replicationStrategyManager.getNonSystemKeyspaces().stream()
-                        .map(KeyspaceMetadata::getName)
-                        .collect(Collectors.toSet()));
+        dc2StateManager.forceRebuild(sourceDatacenter, getKeyspaceNames());
     }
 
     @Override
     public boolean isApplied() {
-        return false;
+        // TODO: Skipped other checks
+        Set<String> nonSystemKeyspaces = getKeyspaceNames();
+        return Sets.difference(nonSystemKeyspaces, dc2StateManager.getRebuiltKeyspaces(sourceDatacenter))
+                .isEmpty();
+    }
+
+    private Set<String> getKeyspaceNames() {
+        return replicationStrategyManager.getNonSystemKeyspaces().stream()
+                .map(KeyspaceMetadata::getName)
+                .collect(Collectors.toSet());
     }
 }

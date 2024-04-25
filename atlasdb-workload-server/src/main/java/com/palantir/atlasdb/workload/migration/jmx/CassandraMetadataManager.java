@@ -21,4 +21,6 @@ import java.util.List;
 
 public interface CassandraMetadataManager {
     List<Datacenter> getAllDatacenters();
+
+    Datacenter sourceDatacenter();
 }

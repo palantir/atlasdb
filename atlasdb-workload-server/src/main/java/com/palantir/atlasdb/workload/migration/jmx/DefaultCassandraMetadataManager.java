@@ -24,4 +24,9 @@ public class DefaultCassandraMetadataManager implements CassandraMetadataManager
     public List<Datacenter> getAllDatacenters() { // TODO: I got too lazy to do it via jmx.
         return List.of(Datacenter.of("DC1"), Datacenter.of("DC2"));
     }
+
+    @Override
+    public Datacenter sourceDatacenter() {
+        return Datacenter.of("DC1");
+    }
 }

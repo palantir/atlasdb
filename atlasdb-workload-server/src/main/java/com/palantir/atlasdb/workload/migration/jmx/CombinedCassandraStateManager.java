@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.workload.migration.jmx;
 
+import com.google.common.collect.Sets;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -41,7 +42,10 @@ public final class CombinedCassandraStateManager implements CassandraStateManage
 
     @Override
     public Set<String> getRebuiltKeyspaces(String sourceDatacenter) {
-        return stateManagers.stream().map(CassandraStateManager::getRebuiltKeyspaces).reduce()
+        return stateManagers.stream()
+                .map(stateManager -> stateManager.getRebuiltKeyspaces(sourceDatacenter))
+                .reduce(Sets::intersection)
+                .orElseGet(Set::of);
     }
 
     @Override

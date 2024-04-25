@@ -16,6 +16,9 @@
 
 package com.palantir.atlasdb.workload.migration.jmx;
 
+import com.github.rholder.retry.RetryerBuilder;
+import com.github.rholder.retry.StopStrategies;
+import com.github.rholder.retry.WaitStrategies;
 import com.google.common.collect.Iterables;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -104,6 +107,21 @@ public class JmxCassandraStateManager implements CassandraStateManager {
 
     @Override
     public Set<String> getRebuiltKeyspaces(String sourceDatacenter) {
+        // TODO: Until I have the ability to check if a rebuild is in progress, we're just going to try avoid failures
+        try {
+            return RetryerBuilder.<Set<String>>newBuilder()
+                    .retryIfException()
+                    .withWaitStrategy(WaitStrategies.exponentialWait())
+                    .withStopStrategy(StopStrategies.stopAfterAttempt(10))
+                    .build()
+                    .call(() -> getRebuiltKeyspacesNoRetry(sourceDatacenter));
+        } catch (Exception e) {
+            log.warn("Failed to get rebuilt keyspaces", e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    private Set<String> getRebuiltKeyspacesNoRetry(String sourceDatacenter) {
         // C* seems to have a bug with determining whether keyspaces are missing ranges or not during startup.
         verifyNodeUpNormal();
         Duration initialUptime = getJvmUptime();
@@ -114,12 +132,11 @@ public class JmxCassandraStateManager implements CassandraStateManager {
         waitForVerificationInterval();
 
         verifySameRangesAvailable(completeKeyspaces, getKeyspacesWithAllRangesAvailable(sourceDatacenter));
-        Duration endingUptime = getJvmUptime();
+        Duration endingUptime = getJvmUptime().plus(Duration.ofSeconds(1));
 
         Preconditions.checkState(
                 initialUptime.minus(endingUptime).isNegative(),
-                "Cassandra JVM was not up during entirety of rebuild verification. Aborting this rebuild iteration: {}"
-                        + " {}",
+                "Cassandra JVM was not up during entirety of rebuild verification. Aborting this rebuild iteration",
                 SafeArg.of("initialUptimeMillis", initialUptime.toMillis()),
                 SafeArg.of("endingUptimeMillis", endingUptime.toMillis()));
         verifyNodeUpNormal();
@@ -132,7 +149,7 @@ public class JmxCassandraStateManager implements CassandraStateManager {
             return;
         }
         throw new SafeRuntimeException(
-                "Node returned inconsistent keyspaces with all ranges available {} {}",
+                "Node returned inconsistent keyspaces with all ranges available",
                 SafeArg.of("initial", initial),
                 SafeArg.of("current", current));
     }
