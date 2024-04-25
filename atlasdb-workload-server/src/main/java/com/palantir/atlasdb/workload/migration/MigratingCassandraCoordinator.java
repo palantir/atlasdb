@@ -18,6 +18,7 @@ package com.palantir.atlasdb.workload.migration;
 
 import com.datastax.driver.core.Session;
 import com.palantir.atlasdb.workload.migration.actions.AlterKeyspaceDatacenters;
+import com.palantir.atlasdb.workload.migration.actions.CheckInterfacesAreDisabled;
 import com.palantir.atlasdb.workload.migration.actions.EnableClientInterfaces;
 import com.palantir.atlasdb.workload.migration.actions.ForceRebuild;
 import com.palantir.atlasdb.workload.migration.actions.MigrationAction;
@@ -62,6 +63,7 @@ public final class MigratingCassandraCoordinator {
         Set<String> datacenters = metadataManager.getAllDatacenters().stream()
                 .map(Datacenter::datacenter)
                 .collect(Collectors.toSet());
+        CheckInterfacesAreDisabled checkInterfacesAreDisabledAction = new CheckInterfacesAreDisabled(dc2StateManager);
         AlterKeyspaceDatacenters alterKeyspaceDatacentersAction =
                 new AlterKeyspaceDatacenters(strategyManager, allNodeStateManager, datacenters);
         ForceRebuild forceRebuildAction = new ForceRebuild(
@@ -69,8 +71,11 @@ public final class MigratingCassandraCoordinator {
                 strategyManager,
                 metadataManager.sourceDatacenter().datacenter());
         EnableClientInterfaces enableClientInterfaces = new EnableClientInterfaces(dc2StateManager);
-        return new MigratingCassandraCoordinator(
-                List.of(alterKeyspaceDatacentersAction, forceRebuildAction, enableClientInterfaces));
+        return new MigratingCassandraCoordinator(List.of(
+                checkInterfacesAreDisabledAction,
+                alterKeyspaceDatacentersAction,
+                forceRebuildAction,
+                enableClientInterfaces));
     }
 
     public void runForward() {
