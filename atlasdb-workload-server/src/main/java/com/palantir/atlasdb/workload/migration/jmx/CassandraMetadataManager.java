@@ -16,12 +16,9 @@
 
 package com.palantir.atlasdb.workload.migration.jmx;
 
-import java.util.Optional;
+import com.palantir.cassandra.manager.core.metadata.Datacenter;
+import java.util.List;
 
-public interface CassandraStateManager {
-    void forceRebuild(String datacenter, String keyspace);
-
-    Optional<String> getConsensusSchemaVersionFromNode();
-
-    void enablingClientInterfaces();
+public interface CassandraMetadataManager {
+    List<Datacenter>
 }

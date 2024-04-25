@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.workload.migration.cql;
 
+import com.datastax.driver.core.KeyspaceMetadata;
 import com.palantir.cassandra.manager.core.cql.SchemaMutationResult;
 import java.util.Set;
 
@@ -23,4 +24,6 @@ public interface CassandraKeyspaceReplicationStrategyManager {
     SchemaMutationResult setReplicationFactorToThreeForDatacenters(Set<String> datacenters, String keyspace);
 
     boolean isReplicationFactorSetToThreeForDatacenters(Set<String> datacenters, String keyspace);
+
+    Set<KeyspaceMetadata> getNonSystemKeyspaces();
 }
