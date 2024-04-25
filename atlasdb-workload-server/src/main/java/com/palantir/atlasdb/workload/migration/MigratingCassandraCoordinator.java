@@ -20,8 +20,11 @@ import com.datastax.driver.core.Session;
 import com.palantir.atlasdb.workload.migration.actions.AlterKeyspaceDatacenters;
 import com.palantir.atlasdb.workload.migration.actions.MigrationAction;
 import com.palantir.atlasdb.workload.migration.cql.CqlCassandraKeyspaceReplicationStrategyManager;
+import com.palantir.atlasdb.workload.migration.jmx.CassandraMetadataManager;
 import com.palantir.atlasdb.workload.migration.jmx.CassandraStateManager;
 import com.palantir.atlasdb.workload.migration.jmx.CassandraStateManagerFactory;
+import com.palantir.atlasdb.workload.migration.jmx.DefaultCassandraMetadataManager;
+import com.palantir.cassandra.manager.core.metadata.Datacenter;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -29,6 +32,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public final class MigratingCassandraCoordinator {
     private static final SafeLogger log = SafeLoggerFactory.get(MigratingCassandraCoordinator.class);
@@ -42,15 +46,20 @@ public final class MigratingCassandraCoordinator {
         CqlCassandraKeyspaceReplicationStrategyManager strategyManager =
                 new CqlCassandraKeyspaceReplicationStrategyManager(sessionProvider);
         CassandraStateManager allStateManager = CassandraStateManagerFactory.create(hosts);
-        return create(strategyManager, allStateManager);
+        CassandraMetadataManager metadataManager = new DefaultCassandraMetadataManager();
+        return create(strategyManager, allStateManager, metadataManager);
     }
 
     public static MigratingCassandraCoordinator create(
             CqlCassandraKeyspaceReplicationStrategyManager strategyManager,
             //            CassandraStateManager dc2StateManager,
-            CassandraStateManager allNodeStateManager) {
+            CassandraStateManager allNodeStateManager,
+            CassandraMetadataManager metadataManager) {
+        Set<String> datacenters = metadataManager.getAllDatacenters().stream()
+                .map(Datacenter::datacenter)
+                .collect(Collectors.toSet());
         AlterKeyspaceDatacenters alterKeyspaceDatacentersAction =
-                new AlterKeyspaceDatacenters(strategyManager, allNodeStateManager, Set.of());
+                new AlterKeyspaceDatacenters(strategyManager, allNodeStateManager, datacenters);
         return new MigratingCassandraCoordinator(List.of(alterKeyspaceDatacentersAction));
     }
 

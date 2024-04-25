@@ -19,6 +19,9 @@ package com.palantir.atlasdb.workload.migration.jmx;
 import com.palantir.cassandra.manager.core.metadata.Datacenter;
 import java.util.List;
 
-public interface CassandraMetadataManager {
-    List<Datacenter> getAllDatacenters();
+public class DefaultCassandraMetadataManager implements CassandraMetadataManager {
+    @Override
+    public List<Datacenter> getAllDatacenters() { // TODO: I got too lazy to do it via jmx.
+        return List.of(Datacenter.of("DC1"), Datacenter.of("DC2"));
+    }
 }
