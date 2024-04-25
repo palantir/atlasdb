@@ -14,17 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.workload.migration.jmx;
+package com.palantir.atlasdb.workload.migration.actions;
 
-import java.util.Optional;
+public interface MigrationAction {
+    void runForwardStep();
 
-public interface CassandraStateManager {
-    void forceRebuild(String datacenter, String keyspace);
-
-    Optional<String> getConsensusSchemaVersionFromNode();
-    // TODO: Figure out a way to wait for consensus from node.
-
-    void waitForConsensusSchemaVersionFromNode();
-
-    void enablingClientInterfaces();
+    boolean isApplied();
 }

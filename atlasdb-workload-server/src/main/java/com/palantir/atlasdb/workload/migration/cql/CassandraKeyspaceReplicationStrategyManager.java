@@ -21,4 +21,6 @@ import java.util.Set;
 
 public interface CassandraKeyspaceReplicationStrategyManager {
     SchemaMutationResult setReplicationFactorToThreeForDatacenters(Set<String> datacenters, String keyspace);
+
+    boolean isReplicationFactorSetToThreeForDatacenters(Set<String> datacenters, String keyspace);
 }
