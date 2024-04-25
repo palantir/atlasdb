@@ -22,23 +22,22 @@ import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.util.Map;
 
 public class CassandraMetricsRetriever {
-    private static final String CASSANDRA_METRICS_DOMAIN = "org.apache.cassandra.metrics";
-
     private final CassandraJmxConnector connector;
 
     public CassandraMetricsRetriever(CassandraJmxConnector connector) {
         this.connector = connector;
     }
 
-    public Object getCassandraMetric(String metricType, String metricAttribute, Map<String, String> params) {
+    public Object getCassandraMetric(
+            String metricDomain, String metricType, String metricAttribute, Map<String, String> params) {
         Map<String, String> allParams = ImmutableMap.<String, String>builder()
                 .putAll(params)
                 .put("type", metricType)
                 .buildOrThrow();
         try {
-            return connector.getMetricFromJmx(CASSANDRA_METRICS_DOMAIN, metricAttribute, allParams);
+            return connector.getMetricFromJmx(metricDomain, metricAttribute, allParams);
         } catch (Exception e) {
-            throw new SafeRuntimeException("Failed to get metric {}", SafeArg.of("metricAttribute", metricAttribute));
+            throw new SafeRuntimeException("Failed to get metric", e, SafeArg.of("metricAttribute", metricAttribute));
         }
     }
 }

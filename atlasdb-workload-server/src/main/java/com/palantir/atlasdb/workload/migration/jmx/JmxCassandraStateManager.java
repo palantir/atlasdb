@@ -137,8 +137,7 @@ public class JmxCassandraStateManager implements CassandraStateManager {
 
         Preconditions.checkState(
                 initialUptime.minus(endingUptime).isNegative(),
-                "Cassandra JVM was not up during entirety of rebuild verification. Aborting this rebuild iteration: {}"
-                        + " {}",
+                "Cassandra JVM was not up during entirety of rebuild verification. Aborting this rebuild iteration",
                 SafeArg.of("initialUptimeMillis", initialUptime.toMillis()),
                 SafeArg.of("endingUptimeMillis", endingUptime.toMillis()));
         verifyNodeUpNormal();
@@ -167,9 +166,11 @@ public class JmxCassandraStateManager implements CassandraStateManager {
 
     private Duration getJvmUptime() {
         try (CassandraJmxConnector connector = connectorFactory.get()) {
-            return Duration.ofMillis(((Number) new CassandraMetricsRetriever(connector)
-                            .getCassandraMetric("Runtime", "Uptime", ImmutableMap.of()))
+            Duration jvmUptime = Duration.ofMillis(((Number) new CassandraMetricsRetriever(connector)
+                            .getCassandraMetric("java.lang", "Runtime", "Uptime", ImmutableMap.of()))
                     .longValue());
+            log.info("Got jvmUptime from Cassandra node {}", SafeArg.of("jvmUptimeInMinutes:", jvmUptime.toMinutes()));
+            return jvmUptime;
         }
     }
 
