@@ -34,11 +34,8 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.workload.background.BackgroundCassandraJob;
 import com.palantir.atlasdb.workload.config.WorkloadServerConfiguration;
 import com.palantir.atlasdb.workload.logging.LoggingUtils;
-import com.palantir.atlasdb.workload.migration.cql.CassandraKeyspaceReplicationStrategyManager;
-import com.palantir.atlasdb.workload.migration.cql.CqlCassandraKeyspaceReplicationStrategyManager;
+import com.palantir.atlasdb.workload.migration.MigratingCassandraCoordinator;
 import com.palantir.atlasdb.workload.migration.cql.CqlSessionProvider;
-import com.palantir.atlasdb.workload.migration.jmx.CassandraStateManager;
-import com.palantir.atlasdb.workload.migration.jmx.CassandraStateManagerFactory;
 import com.palantir.atlasdb.workload.resource.AntithesisCassandraSidecarResource;
 import com.palantir.atlasdb.workload.runner.AntithesisWorkflowValidatorRunner;
 import com.palantir.atlasdb.workload.runner.DefaultWorkflowRunner;
@@ -47,7 +44,6 @@ import com.palantir.atlasdb.workload.workflow.SingleRowTwoCellsWorkflows;
 import com.palantir.atlasdb.workload.workflow.Workflow;
 import com.palantir.atlasdb.workload.workflow.WorkflowAndInvariants;
 import com.palantir.atlasdb.workload.workflow.WorkflowFactory;
-import com.palantir.cassandra.manager.core.cql.SchemaMutationResult;
 import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.conjure.java.api.config.service.UserAgent.Agent;
 import com.palantir.conjure.java.serialization.ObjectMappers;
@@ -67,7 +63,6 @@ import java.net.InetSocketAddress;
 import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -152,7 +147,7 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
         CassandraKeyValueServiceConfigs config = CassandraKeyValueServiceConfigs.fromKeyValueServiceConfigsOrThrow(
                 configuration.install().atlas().keyValueService(),
                 Refreshable.only(configuration.runtime().atlas().flatMap(AtlasDbRuntimeConfig::keyValueService)));
-        log.info("====STARTING JMX TEST====");
+        log.info("====STARTING MIGRATION COMMAND TEST====");
         Set<String> hostnames = config.runtimeConfig().get().servers().accept(new Visitor<>() {
             @Override
             public Set<String> visit(DefaultConfig defaultConfig) {
@@ -166,22 +161,14 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                         .collect(Collectors.toSet());
             }
         });
-        List<CassandraStateManager> stateManagers =
-                hostnames.stream().map(CassandraStateManagerFactory::create).collect(Collectors.toList());
-        List<Optional<String>> results = stateManagers.stream()
-                .map(CassandraStateManager::getConsensusSchemaVersionFromNode)
-                .collect(Collectors.toList());
-        log.info("====FINISHED JMX TEST==== {}", SafeArg.of("results", results));
 
-        log.info("====STARTING CQL TEST====");
         try (CqlSessionProvider sessionProvider = new CqlSessionProvider(config)) {
-            CassandraKeyspaceReplicationStrategyManager manager =
-                    new CqlCassandraKeyspaceReplicationStrategyManager(sessionProvider::getSession);
-            SchemaMutationResult result = manager.setReplicationFactorToThreeForDatacenters(
-                    Set.of("DC1"), configuration.install().atlas().namespace().orElseThrow());
-            log.info("Schema mutation result {}", SafeArg.of("result", result));
+            MigratingCassandraCoordinator coordinator =
+                    MigratingCassandraCoordinator.create(sessionProvider::getSession, hostnames);
+            log.info("Starting run");
+            coordinator.runForward();
         }
-        log.info("====FINISHED CQL TEST====");
+        log.info("====FINISHED  MIGRATION COMMAND TEST====");
 
         AntithesisWorkflowValidatorRunner.create(new DefaultWorkflowRunner(
                         MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService)))

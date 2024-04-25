@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.workload.migration.jmx;
 
 import com.google.common.collect.ImmutableMap;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -44,7 +45,7 @@ public final class CassandraStateManagerFactory {
         // utility, hacky but eh
     }
 
-    public static CassandraStateManager create(List<String> hosts) {
+    public static CassandraStateManager create(Collection<String> hosts) {
         return new CombinedCassandraStateManager(
                 hosts.stream().map(CassandraStateManagerFactory::create).collect(Collectors.toList()));
     }

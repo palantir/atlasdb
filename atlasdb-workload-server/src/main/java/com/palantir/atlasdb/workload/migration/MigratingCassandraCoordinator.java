@@ -29,6 +29,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -42,7 +43,7 @@ public final class MigratingCassandraCoordinator {
         this.startActions = startActions;
     }
 
-    public static MigratingCassandraCoordinator create(Supplier<Session> sessionProvider, List<String> hosts) {
+    public static MigratingCassandraCoordinator create(Supplier<Session> sessionProvider, Collection<String> hosts) {
         CqlCassandraKeyspaceReplicationStrategyManager strategyManager =
                 new CqlCassandraKeyspaceReplicationStrategyManager(sessionProvider);
         CassandraStateManager allStateManager = CassandraStateManagerFactory.create(hosts);
@@ -78,7 +79,7 @@ public final class MigratingCassandraCoordinator {
         action.runForwardStep();
 
         if (!action.isApplied()) {
-            throw new SafeRuntimeException("Failed to apply action {}", SafeArg.of("action", actionName));
+            throw new SafeRuntimeException("Failed to apply action", SafeArg.of("action", actionName));
         }
     }
 }
