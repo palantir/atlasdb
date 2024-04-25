@@ -51,12 +51,7 @@ public class CqlCassandraKeyspaceReplicationStrategyManager implements Cassandra
     }
 
     @Override
-    public boolean isReplicationFactorSetToThreeForDatacentersForAllKeyspaces(Set<String> datacenters) {
-        return StreamEx.of(getNonSystemKeyspaces())
-                .allMatch(keyspace -> isReplicationFactorSetToThreeForDatacentersForKeyspace(datacenters, keyspace));
-    }
-
-    private boolean isReplicationFactorSetToThreeForDatacentersForKeyspace(
+    public boolean isReplicationFactorSetToThreeForDatacentersForKeyspace(
             Set<String> datacenters, KeyspaceMetadata keyspace) {
         ReplicationOptions replicationOptions = ReplicationOptions.of(keyspace.getReplication());
         return replicationOptions
