@@ -3,6 +3,7 @@ package com.palantir.atlasdb.workload.migration.cql;
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.Session;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import com.palantir.cassandra.manager.core.cql.ImmutableKeyspaceQuery;
 import com.palantir.cassandra.manager.core.cql.KeyspaceQuery;
 import com.palantir.cassandra.manager.core.cql.KeyspaceQueryMethod;
@@ -24,7 +25,11 @@ public class CqlCassandraKeyspaceReplicationStrategyManager implements Cassandra
     private static final SafeLogger log = SafeLoggerFactory.get(CqlCassandraKeyspaceReplicationStrategyManager.class);
     private static final String TOPOLOGY_STRATEGY_KEY = "class";
     private static final String NETWORK_TOPOLOGY_STRATEGY = "NetworkTopologyStrategy";
-    public static final Set<String> SYSTEM_KEYSPACES = ImmutableSet.of("system");
+    public static final Set<String> SYSTEM_KEYSPACES =
+            ImmutableSet.of("system", "system_auth", "system_distributed", "system_traces");
+    public static final ImmutableSet<String> KEYSPACE_IGNORE_LIST = Sets.union(
+                    SYSTEM_KEYSPACES, ImmutableSet.of("__simple_rf_test_keyspace__"))
+            .immutableCopy();
 
     public static final Integer RF = 3;
 
@@ -71,7 +76,7 @@ public class CqlCassandraKeyspaceReplicationStrategyManager implements Cassandra
                 "All keyspaces {}",
                 SafeArg.of("results", ks.stream().map(KeyspaceMetadata::getName).collect(Collectors.toList())));
         return StreamEx.of(ks)
-                .remove(keyspaceMetadata -> SYSTEM_KEYSPACES.contains(keyspaceMetadata.getName()))
+                .remove(keyspaceMetadata -> KEYSPACE_IGNORE_LIST.contains(keyspaceMetadata.getName()))
                 .toImmutableSet();
     }
 
