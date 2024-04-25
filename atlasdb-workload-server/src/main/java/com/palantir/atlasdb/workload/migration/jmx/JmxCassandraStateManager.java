@@ -19,6 +19,7 @@ package com.palantir.atlasdb.workload.migration.jmx;
 import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -132,11 +133,12 @@ public class JmxCassandraStateManager implements CassandraStateManager {
         waitForVerificationInterval();
 
         verifySameRangesAvailable(completeKeyspaces, getKeyspacesWithAllRangesAvailable(sourceDatacenter));
-        Duration endingUptime = getJvmUptime().plus(Duration.ofSeconds(1));
+        Duration endingUptime = getJvmUptime();
 
         Preconditions.checkState(
                 initialUptime.minus(endingUptime).isNegative(),
-                "Cassandra JVM was not up during entirety of rebuild verification. Aborting this rebuild iteration",
+                "Cassandra JVM was not up during entirety of rebuild verification. Aborting this rebuild iteration: {}"
+                        + " {}",
                 SafeArg.of("initialUptimeMillis", initialUptime.toMillis()),
                 SafeArg.of("endingUptimeMillis", endingUptime.toMillis()));
         verifyNodeUpNormal();
@@ -164,7 +166,11 @@ public class JmxCassandraStateManager implements CassandraStateManager {
     }
 
     private Duration getJvmUptime() {
-        return Duration.ofSeconds(1); // TODO;
+        try (CassandraJmxConnector connector = connectorFactory.get()) {
+            return Duration.ofMillis(((Number) new CassandraMetricsRetriever(connector)
+                            .getCassandraMetric("Runtime", "Uptime", ImmutableMap.of()))
+                    .longValue());
+        }
     }
 
     private void verifyNodeUpNormal() {
