@@ -61,9 +61,7 @@ public class AlterKeyspaceDatacenters implements MigrationAction {
 
     @Override
     public boolean isApplied() {
-        return getAllNonSystemKeyspaceNames()
-                .allMatch(keyspace ->
-                        replicationStrategyManager.isReplicationFactorSetToThreeForDatacenters(datacenters, keyspace));
+        return replicationStrategyManager.isReplicationFactorSetToThreeForDatacentersForAllKeyspaces(datacenters);
     }
 
     private Stream<String> getAllNonSystemKeyspaceNames() {

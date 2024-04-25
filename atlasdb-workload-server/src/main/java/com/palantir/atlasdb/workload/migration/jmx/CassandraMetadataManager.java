@@ -16,9 +16,6 @@
 
 package com.palantir.atlasdb.workload.migration.jmx;
 
-import com.palantir.cassandra.manager.core.metadata.Datacenter;
-import java.util.List;
-
 public interface CassandraMetadataManager {
-    List<Datacenter>
+    // List<Datacenter>
 }

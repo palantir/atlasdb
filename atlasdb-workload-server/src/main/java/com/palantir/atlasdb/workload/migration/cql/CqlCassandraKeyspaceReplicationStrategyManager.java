@@ -2,6 +2,7 @@ package com.palantir.atlasdb.workload.migration.cql;
 
 import com.datastax.driver.core.KeyspaceMetadata;
 import com.datastax.driver.core.Session;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.cassandra.manager.core.cql.ImmutableKeyspaceQuery;
 import com.palantir.cassandra.manager.core.cql.KeyspaceQuery;
 import com.palantir.cassandra.manager.core.cql.KeyspaceQueryMethod;
@@ -23,6 +24,9 @@ public class CqlCassandraKeyspaceReplicationStrategyManager implements Cassandra
     private static final SafeLogger log = SafeLoggerFactory.get(CqlCassandraKeyspaceReplicationStrategyManager.class);
     private static final String TOPOLOGY_STRATEGY_KEY = "class";
     private static final String NETWORK_TOPOLOGY_STRATEGY = "NetworkTopologyStrategy";
+    public static final Set<String> SYSTEM_KEYSPACES = ImmutableSet.of("system");
+
+    public static final Integer RF = 3;
 
     private final Supplier<Session> sessionProvider;
 
@@ -32,9 +36,9 @@ public class CqlCassandraKeyspaceReplicationStrategyManager implements Cassandra
 
     @Override
     public SchemaMutationResult setReplicationFactorToThreeForDatacenters(Set<String> datacenters, String keyspace) {
-        logAllKeyspaces();
+        getNonSystemKeyspaces();
         Map<String, String> datacenterReplicationFactor = StreamEx.of(datacenters)
-                .mapToEntry(_datacenter -> "3")
+                .mapToEntry(_datacenter -> RF.toString())
                 .append(TOPOLOGY_STRATEGY_KEY, NETWORK_TOPOLOGY_STRATEGY)
                 .toMap();
         KeyspaceQuery query = ImmutableKeyspaceQuery.builder()
@@ -46,12 +50,34 @@ public class CqlCassandraKeyspaceReplicationStrategyManager implements Cassandra
         return runWithCqlSession(query::applyTo);
     }
 
-    private void logAllKeyspaces() {
+    @Override
+    public boolean isReplicationFactorSetToThreeForDatacentersForAllKeyspaces(Set<String> datacenters) {
+        return StreamEx.of(getNonSystemKeyspaces())
+                .allMatch(keyspace -> isReplicationFactorSetToThreeForDatacentersForKeyspace(datacenters, keyspace));
+    }
+
+    private boolean isReplicationFactorSetToThreeForDatacentersForKeyspace(
+            Set<String> datacenters, KeyspaceMetadata keyspace) {
+        ReplicationOptions replicationOptions = ReplicationOptions.of(keyspace.getReplication());
+        return replicationOptions
+                .networkTopologyStrategyOption()
+                .map(settings -> StreamEx.of(datacenters)
+                        .allMatch(datacenter -> settings.containsKey(datacenter)
+                                && RF.equals(settings.get(datacenter))
+                                && settings.size() == datacenters.size()))
+                .orElse(false);
+    }
+
+    @Override
+    public Set<KeyspaceMetadata> getNonSystemKeyspaces() {
         List<KeyspaceMetadata> ks =
                 runWithCqlSession(session -> session.getCluster().getMetadata().getKeyspaces());
         log.info(
-                "Keyspaces {}",
+                "All keyspaces {}",
                 SafeArg.of("results", ks.stream().map(KeyspaceMetadata::getName).collect(Collectors.toList())));
+        return StreamEx.of(ks)
+                .remove(keyspaceMetadata -> SYSTEM_KEYSPACES.contains(keyspaceMetadata.getName()))
+                .toImmutableSet();
     }
 
     private <T> T runWithCqlSession(Function<Session, T> sessionConsumer) {
