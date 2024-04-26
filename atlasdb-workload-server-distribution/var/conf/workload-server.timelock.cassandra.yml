@@ -36,9 +36,6 @@ install:
           - cassandra11:9160
           - cassandra12:9160
           - cassandra13:9160
-          - cassandra21:9160
-          - cassandra22:9160
-          - cassandra23:9160
       credentials:
         username: cassandra
         password: cassandra
