@@ -39,7 +39,6 @@ public final class CassandraStateManagerFactory {
             .buildOrThrow();
 
     private static final List<String> DC2_HOSTNAMES = List.of("cassandra21", "cassandra22", "cassandra23");
-    ;
 
     private CassandraStateManagerFactory() {
         // utility, hacky but eh
