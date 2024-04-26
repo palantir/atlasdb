@@ -217,7 +217,8 @@ public class LocalPaxosComponents {
         PaxosAcceptor acceptor = PaxosAcceptorImpl.newSplittingAcceptor(
                 getAcceptorParameters(client),
                 createMetrics(PaxosAcceptor.class),
-                learner.getGreatestLearnedValue().map(PaxosValue::getRound));
+                learner.getGreatestLearnedValue().map(PaxosValue::getRound),
+                shouldIgnoreLeaderConsistency);
         PingableLeader localPingableLeader = new LocalPingableLeader(learner, leaderUuid, timeLockVersion);
 
         return ImmutableComponents.builder()

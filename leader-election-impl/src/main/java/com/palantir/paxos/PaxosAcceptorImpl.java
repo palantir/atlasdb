@@ -35,11 +35,20 @@ public final class PaxosAcceptorImpl implements PaxosAcceptor {
             PaxosStorageParameters params,
             SplittingPaxosStateLog.LegacyOperationMarkers legacyOperationMarkers,
             Optional<Long> migrateFrom) {
+        return newSplittingAcceptor(params, legacyOperationMarkers, migrateFrom, false);
+    }
+
+    public static PaxosAcceptor newSplittingAcceptor(
+            PaxosStorageParameters params,
+            SplittingPaxosStateLog.LegacyOperationMarkers legacyOperationMarkers,
+            Optional<Long> migrateFrom,
+            boolean shouldIgnoreLeaderConsistency) {
         PaxosStateLog<PaxosAcceptorState> stateLog = SplittingPaxosStateLog.createWithMigration(
                 params,
                 PaxosAcceptorState.BYTES_HYDRATOR,
                 legacyOperationMarkers,
-                migrateFrom.map(OptionalLong::of).orElseGet(OptionalLong::empty));
+                migrateFrom.map(OptionalLong::of).orElseGet(OptionalLong::empty),
+                shouldIgnoreLeaderConsistency);
         return new PaxosAcceptorImpl(new ConcurrentSkipListMap<>(), stateLog, stateLog.getGreatestLogEntry());
     }
 
