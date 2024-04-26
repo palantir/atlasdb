@@ -39,6 +39,7 @@ install:
       ssl: false
       replicationFactor: 3
       gcGraceSeconds: 60
+      poolRefreshIntervalSeconds: 10
     targetedSweep:
       enableSweepQueueWrites: true
     namespace: workload_server
