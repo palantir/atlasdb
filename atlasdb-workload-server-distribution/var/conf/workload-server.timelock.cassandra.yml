@@ -29,9 +29,6 @@ install:
           - cassandra11:9042
           - cassandra12:9042
           - cassandra13:9042
-          - cassandra21:9042
-          - cassandra22:9042
-          - cassandra23:9042
         thriftHosts:
           - cassandra11:9160
           - cassandra12:9160

@@ -39,7 +39,8 @@ import org.apache.cassandra.service.StorageServiceMBean;
 
 public class JmxCassandraStateManager implements CassandraStateManager {
     private static final SafeLogger log = SafeLoggerFactory.get(JmxCassandraStateManager.class);
-    private static final Duration REBUILD_NODE_VERIFICATION_INTERVAL = Duration.ofSeconds(20);
+    private static final Duration REBUILD_NODE_VERIFICATION_INTERVAL = Duration.ofSeconds(
+            1); //  This is different from the polling duration in the migration , which is 20 seconds
 
     private final Supplier<CassandraJmxConnector> connectorFactory;
 
@@ -169,7 +170,7 @@ public class JmxCassandraStateManager implements CassandraStateManager {
             Duration jvmUptime = Duration.ofMillis(((Number) new CassandraMetricsRetriever(connector)
                             .getCassandraMetric("java.lang", "Runtime", "Uptime", ImmutableMap.of()))
                     .longValue());
-            log.info("Got jvmUptime from Cassandra node {}", SafeArg.of("jvmUptimeInMinutes:", jvmUptime.toMinutes()));
+            log.info("Got jvmUptime from Cassandra node: {}", SafeArg.of("jvmUptimeInSeconds", jvmUptime.toSeconds()));
             return jvmUptime;
         }
     }

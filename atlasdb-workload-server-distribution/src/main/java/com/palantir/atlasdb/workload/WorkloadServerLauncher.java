@@ -139,9 +139,9 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 .lifecycle()
                 .scheduledExecutorService(MigrationRunner.class.getSimpleName())
                 .build();
-        migrationRunner.scheduleRandomlyInFuture(
-                migrationExecutorService, SECURE_RANDOM, configuration.install(), configuration.runtime());
-        //        migrationRunner.executeMigration(configuration.install(), configuration.runtime());
+        //        migrationRunner.scheduleRandomlyInFuture(
+        //                migrationExecutorService, SECURE_RANDOM, configuration.install(), configuration.runtime());
+        migrationRunner.executeMigration(configuration.install(), configuration.runtime());
         AntithesisWorkflowValidatorRunner.create(new DefaultWorkflowRunner(
                         MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService)))
                 .run(() -> selectWorkflowsToRun(

@@ -52,10 +52,19 @@ public class MigrationRunner {
             SecureRandom random,
             WorkloadServerInstallConfiguration installConfiguration,
             WorkloadServerRuntimeConfiguration runtimeConfiguration) {
-        int delay = random.nextInt(100) + 10;
+        int delay = random.nextInt(1) + 10; // TODO: Set to 100 + 10
         log.info("Waiting {} seconds before starting migration without faults", SafeArg.of("delay", delay));
         executorService.schedule(
-                () -> executeMigration(installConfiguration, runtimeConfiguration), delay, TimeUnit.SECONDS);
+                () -> {
+                    try {
+                        executeMigration(installConfiguration, runtimeConfiguration);
+                    } catch (Exception e) {
+                        log.info("Exception when running migration", e);
+                        throw e;
+                    }
+                },
+                delay,
+                TimeUnit.SECONDS);
     }
 
     private void run(
