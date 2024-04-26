@@ -65,7 +65,7 @@ services:
         ipv4_address: 10.20.20.13
 
   cassandra21:
-    image: palantirtechnologies/cassandra:2.2.18-1.143.0-rc12
+    image: palantirtechnologies/cassandra:2.2.18-1.143.0-rc14
     ports:
       - "9160"
       - "9042"
@@ -86,7 +86,7 @@ services:
         ipv4_address: 10.20.20.21
 
   cassandra22:
-    image: palantirtechnologies/cassandra:2.2.18-1.143.0-rc12
+    image: palantirtechnologies/cassandra:2.2.18-1.143.0-rc14
     ports:
       - "9160"
       - "9042"
@@ -107,7 +107,7 @@ services:
         ipv4_address: 10.20.20.22
 
   cassandra23:
-    image: palantirtechnologies/cassandra:2.2.18-1.143.0-rc12
+    image: palantirtechnologies/cassandra:2.2.18-1.143.0-rc14
     ports:
       - "9160"
       - "9042"
@@ -175,8 +175,6 @@ services:
     command: [bash, -c, 'cp var/conf/workload-server.timelock.cassandra.yml var/conf/workload-server.yml
                          && dockerize -timeout 120s -wait tcp://cassandra11:9160 
                          -wait tcp://cassandra12:9160 -wait tcp://cassandra13:9160
-                         -wait tcp://cassandra21:9160 -wait tcp://cassandra22:9160 
-                         -wait tcp://cassandra23:9160 
                          && service/bin/init.sh console']
     ports:
       - "5005:5005" # enabling port for remote debugger
