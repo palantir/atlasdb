@@ -35,13 +35,14 @@ public final class AtlasDbTransactionStoreFactoryTest {
 
     private final TransactionManager transactionManager = TransactionManagers.createInMemory(Set.of());
     private final AtlasDbTransactionStoreFactory defaultFactory =
-            new AtlasDbTransactionStoreFactory(transactionManager, Optional.empty());
+            new AtlasDbTransactionStoreFactory(transactionManager, Optional.empty(), () -> {});
 
     @Test
     public void createWillCreateProvidedTablesAndIndexes() {
         AtlasDbTransactionStoreFactory factory = new AtlasDbTransactionStoreFactory(
                 transactionManager,
-                Optional.of(WorkloadTestHelpers.TABLE_REFERENCE.getNamespace().getName()));
+                Optional.of(WorkloadTestHelpers.TABLE_REFERENCE.getNamespace().getName()),
+                () -> {});
         factory.create(
                 Map.of(WorkloadTestHelpers.TABLE_1, IsolationLevel.SERIALIZABLE),
                 Set.of(createIndexTable(WorkloadTestHelpers.TABLE_1_INDEX_1, WorkloadTestHelpers.TABLE_1)));
@@ -61,7 +62,7 @@ public final class AtlasDbTransactionStoreFactoryTest {
     @Test
     public void createTableReferenceHasNamespaceWhenProvided() {
         AtlasDbTransactionStoreFactory factory = new AtlasDbTransactionStoreFactory(
-                transactionManager, Optional.of(WorkloadTestHelpers.NAMESPACE.getName()));
+                transactionManager, Optional.of(WorkloadTestHelpers.NAMESPACE.getName()), () -> {});
         assertThat(factory.createTableReference(WorkloadTestHelpers.TABLE_1).getNamespace())
                 .isEqualTo(WorkloadTestHelpers.NAMESPACE);
     }

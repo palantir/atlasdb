@@ -29,7 +29,9 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.workload.background.BackgroundCassandraJob;
 import com.palantir.atlasdb.workload.config.WorkloadServerConfiguration;
 import com.palantir.atlasdb.workload.logging.LoggingUtils;
+import com.palantir.atlasdb.workload.migration.DefaultMigrationTracker;
 import com.palantir.atlasdb.workload.migration.MigrationRunner;
+import com.palantir.atlasdb.workload.migration.MigrationTracker;
 import com.palantir.atlasdb.workload.resource.AntithesisCassandraSidecarResource;
 import com.palantir.atlasdb.workload.runner.AntithesisWorkflowValidatorRunner;
 import com.palantir.atlasdb.workload.runner.DefaultWorkflowRunner;
@@ -126,22 +128,33 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 .build();
 
         MetricsManager metricsManager = MetricsManagers.of(environment.metrics(), taggedMetricRegistry);
+        MigrationTracker migrationTracker = new DefaultMigrationTracker();
+        Runnable preTransactionTask = () -> {
+            double random = SECURE_RANDOM.nextDouble();
+            if (random < 0.08) { // Probability chosen arbitrarily.
+                log.info("Blocking on rebuild starting");
+                migrationTracker.blockOnRebuildStarting();
+            } else if (random < 0.15) {
+                log.info("Blocking on migration completing");
+                migrationTracker.blockOnMigrationCompleting();
+            }
+        };
         AtlasDbTransactionStoreFactory transactionStoreFactory = AtlasDbTransactionStoreFactory.createFromConfig(
                 configuration.install().atlas(),
                 Refreshable.only(configuration.runtime().atlas()),
                 USER_AGENT,
-                metricsManager);
+                metricsManager,
+                preTransactionTask);
 
         WorkflowFactory workflowFactory =
                 new WorkflowFactory(taggedMetricRegistry, new DefaultWorkflowExecutorFactory(environment.lifecycle()));
-        MigrationRunner migrationRunner = new MigrationRunner();
+        MigrationRunner migrationRunner = new MigrationRunner(migrationTracker);
         ScheduledExecutorService migrationExecutorService = environment
                 .lifecycle()
                 .scheduledExecutorService(MigrationRunner.class.getSimpleName())
                 .build();
-        //        migrationRunner.scheduleRandomlyInFuture(
-        //                migrationExecutorService, SECURE_RANDOM, configuration.install(), configuration.runtime());
-        migrationRunner.executeMigration(configuration.install(), configuration.runtime());
+        migrationRunner.scheduleRandomlyInFuture(
+                migrationExecutorService, configuration.install(), configuration.runtime());
         AntithesisWorkflowValidatorRunner.create(new DefaultWorkflowRunner(
                         MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService)))
                 .run(() -> selectWorkflowsToRun(

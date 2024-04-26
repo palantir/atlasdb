@@ -46,20 +46,22 @@ public final class MigratingCassandraCoordinator {
         this.startActions = startActions;
     }
 
-    public static MigratingCassandraCoordinator create(Supplier<Session> sessionProvider, Collection<String> hosts) {
+    public static MigratingCassandraCoordinator create(
+            Supplier<Session> sessionProvider, Collection<String> hosts, MigrationTracker migrationTracker) {
         CqlCassandraKeyspaceReplicationStrategyManager strategyManager =
                 new CqlCassandraKeyspaceReplicationStrategyManager(sessionProvider);
         CassandraStateManager allStateManager = CassandraStateManagerFactory.create(hosts);
         CassandraStateManager dc2StateManager = CassandraStateManagerFactory.createDc2StateManager();
         CassandraMetadataManager metadataManager = new DefaultCassandraMetadataManager();
-        return create(strategyManager, dc2StateManager, allStateManager, metadataManager);
+        return create(strategyManager, dc2StateManager, allStateManager, metadataManager, migrationTracker);
     }
 
     public static MigratingCassandraCoordinator create(
             CqlCassandraKeyspaceReplicationStrategyManager strategyManager,
             CassandraStateManager dc2StateManager,
             CassandraStateManager allNodeStateManager,
-            CassandraMetadataManager metadataManager) {
+            CassandraMetadataManager metadataManager,
+            MigrationTracker migrationTracker) {
         Set<String> datacenters = metadataManager.getAllDatacenters().stream()
                 .map(Datacenter::datacenter)
                 .collect(Collectors.toSet());
@@ -69,6 +71,7 @@ public final class MigratingCassandraCoordinator {
         ForceRebuild forceRebuildAction = new ForceRebuild(
                 dc2StateManager,
                 strategyManager,
+                migrationTracker::markRebuildAsStarted,
                 metadataManager.sourceDatacenter().datacenter());
         EnableClientInterfaces enableClientInterfaces = new EnableClientInterfaces(dc2StateManager);
         return new MigratingCassandraCoordinator(List.of(

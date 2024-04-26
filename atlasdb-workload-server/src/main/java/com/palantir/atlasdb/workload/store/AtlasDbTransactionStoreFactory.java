@@ -49,10 +49,13 @@ public final class AtlasDbTransactionStoreFactory implements TransactionStoreFac
 
     private final TransactionManager transactionManager;
     private final Optional<Namespace> maybeNamespace;
+    private final Runnable preTransactionTask;
 
-    public AtlasDbTransactionStoreFactory(TransactionManager transactionManager, Optional<String> maybeNamespace) {
+    public AtlasDbTransactionStoreFactory(
+            TransactionManager transactionManager, Optional<String> maybeNamespace, Runnable preTransactionTask) {
         this.transactionManager = transactionManager;
         this.maybeNamespace = maybeNamespace.map(Namespace::create);
+        this.preTransactionTask = preTransactionTask;
     }
 
     public boolean isInitialized() {
@@ -68,7 +71,7 @@ public final class AtlasDbTransactionStoreFactory implements TransactionStoreFac
 
     @Override
     public InteractiveTransactionStore create(Map<String, IsolationLevel> tables, Set<IndexTable> indexes) {
-        return AtlasDbTransactionStore.create(transactionManager, toAtlasTables(tables, indexes));
+        return AtlasDbTransactionStore.create(transactionManager, toAtlasTables(tables, indexes), preTransactionTask);
     }
 
     @Override
@@ -153,7 +156,8 @@ public final class AtlasDbTransactionStoreFactory implements TransactionStoreFac
             AtlasDbConfig installConfig,
             Refreshable<Optional<AtlasDbRuntimeConfig>> atlasDbRuntimeConfig,
             UserAgent userAgent,
-            MetricsManager metricsManager) {
+            MetricsManager metricsManager,
+            Runnable preTransactionTask) {
         TransactionManager transactionManager = TransactionManagers.builder()
                 .config(installConfig)
                 .userAgent(userAgent)
@@ -170,6 +174,8 @@ public final class AtlasDbTransactionStoreFactory implements TransactionStoreFac
                 .serializable();
 
         return new AtlasDbTransactionStoreFactory(
-                transactionManager, installConfig.namespace().or(installConfig.keyValueService()::namespace));
+                transactionManager,
+                installConfig.namespace().or(installConfig.keyValueService()::namespace),
+                preTransactionTask);
     }
 }

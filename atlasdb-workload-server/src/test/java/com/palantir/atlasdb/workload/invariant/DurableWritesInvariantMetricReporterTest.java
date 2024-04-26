@@ -47,7 +47,7 @@ public final class DurableWritesInvariantMetricReporterTest {
         DurableWritesInvariantMetricReporter reporter =
                 new DurableWritesInvariantMetricReporter(WorkloadTestHelpers.WORKFLOW, metrics);
         AtlasDbTransactionStoreFactory factory = new AtlasDbTransactionStoreFactory(
-                TransactionManagers.createInMemory(Set.of()), Optional.of("keyspace"));
+                TransactionManagers.createInMemory(Set.of()), Optional.of("keyspace"), () -> {});
         TransactionStore store = factory.create(
                 Map.of(
                         WorkloadTestHelpers.TABLE_1,

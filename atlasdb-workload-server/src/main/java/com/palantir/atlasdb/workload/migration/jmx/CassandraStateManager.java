@@ -18,10 +18,11 @@ package com.palantir.atlasdb.workload.migration.jmx;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import org.immutables.value.Value;
 
 public interface CassandraStateManager {
-    void forceRebuild(String sourceDatacenter, Set<String> keyspaces);
+    void forceRebuild(String sourceDatacenter, Set<String> keyspaces, Consumer<String> markRebuildStarted);
 
     Set<String> getRebuiltKeyspaces(String sourceDatacenter);
 

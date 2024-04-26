@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public final class CombinedCassandraStateManager implements CassandraStateManager {
@@ -32,11 +33,11 @@ public final class CombinedCassandraStateManager implements CassandraStateManage
     }
 
     @Override
-    public void forceRebuild(String sourceDatacenter, Set<String> keyspaces) {
+    public void forceRebuild(String sourceDatacenter, Set<String> keyspaces, Consumer<String> markRebuildAsStarted) {
         ExecutorService executorService = Executors.newCachedThreadPool();
 
-        stateManagers.forEach(
-                manager -> executorService.execute(() -> manager.forceRebuild(sourceDatacenter, keyspaces)));
+        stateManagers.forEach(manager ->
+                executorService.execute(() -> manager.forceRebuild(sourceDatacenter, keyspaces, markRebuildAsStarted)));
         executorService.shutdown();
     }
 

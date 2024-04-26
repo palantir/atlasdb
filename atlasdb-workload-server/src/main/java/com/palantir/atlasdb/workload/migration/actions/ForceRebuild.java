@@ -21,25 +21,29 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.workload.migration.cql.CassandraKeyspaceReplicationStrategyManager;
 import com.palantir.atlasdb.workload.migration.jmx.CassandraStateManager;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class ForceRebuild implements MigrationAction {
     private final CassandraStateManager dc2StateManager;
     private final CassandraKeyspaceReplicationStrategyManager replicationStrategyManager;
     private final String sourceDatacenter;
+    private final Consumer<String> markRebuildAsStarted;
 
     public ForceRebuild(
             CassandraStateManager dc2StateManager,
             CassandraKeyspaceReplicationStrategyManager replicationStrategyManager,
+            Consumer<String> markRebuildAsStarted,
             String sourceDatacenter) {
         this.dc2StateManager = dc2StateManager;
         this.replicationStrategyManager = replicationStrategyManager;
         this.sourceDatacenter = sourceDatacenter;
+        this.markRebuildAsStarted = markRebuildAsStarted;
     }
 
     @Override
     public void runForwardStep() {
-        dc2StateManager.forceRebuild(sourceDatacenter, getKeyspaceNames());
+        dc2StateManager.forceRebuild(sourceDatacenter, getKeyspaceNames(), markRebuildAsStarted);
     }
 
     @Override

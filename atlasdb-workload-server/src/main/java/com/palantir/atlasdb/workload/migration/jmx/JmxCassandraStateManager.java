@@ -49,7 +49,7 @@ public class JmxCassandraStateManager implements CassandraStateManager {
     }
 
     @Override // If we actually keep this, move from stringly typed code
-    public void forceRebuild(String sourceDatacenter, Set<String> keyspaces) {
+    public void forceRebuild(String sourceDatacenter, Set<String> keyspaces, Consumer<String> markRebuildAsStarted) {
         // For now, we're relying on this being a blocking call
         keyspaces.forEach(keyspace -> {
             runConsumerWithSsProxy(proxy -> {
@@ -57,6 +57,8 @@ public class JmxCassandraStateManager implements CassandraStateManager {
                         "Rebuilding keyspace {} from source DC {}",
                         SafeArg.of("keyspace", keyspace),
                         SafeArg.of("sourceDatacenter", sourceDatacenter));
+                markRebuildAsStarted.accept(keyspace); // If we context switched immediately after this, then
+                // we falsely mark as rebuilding when we're not.
                 proxy.rebuild(sourceDatacenter, keyspace);
                 log.info(
                         "Finished rebuilding keyspace {} from source DC {}",

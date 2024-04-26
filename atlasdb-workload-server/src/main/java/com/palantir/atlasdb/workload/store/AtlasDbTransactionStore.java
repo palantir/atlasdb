@@ -57,15 +57,19 @@ public final class AtlasDbTransactionStore implements InteractiveTransactionStor
     private final AtlasDbTransactionConcluder transactionConcluder;
 
     private final Map<String, TableReference> tables;
+    private final Runnable preTransactionTask;
 
-    private AtlasDbTransactionStore(TransactionManager transactionManager, Map<String, TableReference> tables) {
+    private AtlasDbTransactionStore(
+            TransactionManager transactionManager, Map<String, TableReference> tables, Runnable preTransactionTask) {
         this.transactionManager = transactionManager;
         this.transactionConcluder = new AtlasDbTransactionConcluder(transactionManager.getTransactionService());
         this.tables = tables;
+        this.preTransactionTask = preTransactionTask;
     }
 
     @Override
     public Optional<Integer> get(String table, WorkloadCell cell) {
+        preTransactionTask.run();
         return transactionManager.runTaskWithRetry(
                 transaction -> new AtlasDbInteractiveTransaction(transaction, tables).read(table, cell));
     }
@@ -78,6 +82,7 @@ public final class AtlasDbTransactionStore implements InteractiveTransactionStor
 
     @Override
     public Optional<WitnessedTransaction> readWrite(List<TransactionAction> actions) {
+        preTransactionTask.run();
         return readWrite(txn -> {
             AtlasDbTransactionActionVisitor visitor = new AtlasDbTransactionActionVisitor(txn);
             actions.forEach(action -> action.accept(visitor));
@@ -86,6 +91,8 @@ public final class AtlasDbTransactionStore implements InteractiveTransactionStor
 
     @Override
     public Optional<WitnessedTransaction> readWrite(Consumer<InteractiveTransaction> interactiveTransactionConsumer) {
+        preTransactionTask.run();
+
         AtomicReference<List<WitnessedTransactionAction>> witnessedActionsReference = new AtomicReference<>();
         AtomicReference<Transaction> transactionReference = new AtomicReference<>();
         Supplier<CommitTimestampProvider> commitTimestampProvider =
@@ -172,14 +179,21 @@ public final class AtlasDbTransactionStore implements InteractiveTransactionStor
         }
     }
 
+    @VisibleForTesting
+    @SuppressWarnings("VisibleForTestingPackagePrivate")
     public static AtlasDbTransactionStore create(
             TransactionManager transactionManager, Map<TableReference, byte[]> tables) {
+        return create(transactionManager, tables, () -> {});
+    }
+
+    public static AtlasDbTransactionStore create(
+            TransactionManager transactionManager, Map<TableReference, byte[]> tables, Runnable preTransactionTask) {
         transactionManager.getKeyValueService().createTables(tables);
         Map<String, TableReference> tableMapping = EntryStream.of(tables)
                 .keys()
                 .mapToEntry(TableReference::getTableName, Function.identity())
                 .toMap();
-        return new AtlasDbTransactionStore(transactionManager, tableMapping);
+        return new AtlasDbTransactionStore(transactionManager, tableMapping, preTransactionTask);
     }
 
     @VisibleForTesting
