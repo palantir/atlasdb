@@ -21,7 +21,7 @@ public interface MigrationTracker {
 
     void markMigrationAsComplete();
 
-    void blockOnRebuildStarting();
+    void blockOnRebuildStarting(String keyspace);
 
     void blockOnMigrationCompleting();
 }

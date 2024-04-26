@@ -132,10 +132,9 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
         Runnable preTransactionTask = () -> {
             double random = SECURE_RANDOM.nextDouble();
             if (random < 0.08) { // Probability chosen arbitrarily.
-                log.info("Blocking on rebuild starting");
-                migrationTracker.blockOnRebuildStarting();
+                migrationTracker.blockOnRebuildStarting(
+                        configuration.install().atlas().namespace().orElseThrow());
             } else if (random < 0.15) {
-                log.info("Blocking on migration completing");
                 migrationTracker.blockOnMigrationCompleting();
             }
         };

@@ -19,14 +19,17 @@ package com.palantir.atlasdb.workload.migration;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BooleanSupplier;
+import org.awaitility.Awaitility;
 
 public class DefaultMigrationTracker implements MigrationTracker {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultMigrationTracker.class);
     private final Set<String> keyspaceMigrationTracker = ConcurrentHashMap.newKeySet();
-    private final AtomicBoolean migrationTracker = new AtomicBoolean(false);
+    private final AtomicBoolean isMigrationComplete = new AtomicBoolean(false);
 
     @Override
     public void markRebuildAsStarted(String keyspace) {
@@ -37,16 +40,30 @@ public class DefaultMigrationTracker implements MigrationTracker {
     @Override
     public void markMigrationAsComplete() {
         log.info("Marking migration as complete");
-        migrationTracker.set(true);
+        isMigrationComplete.set(true);
     }
 
     @Override
-    public void blockOnRebuildStarting() {
-        // TODO
+    public void blockOnRebuildStarting(String keyspace) {
+        log.info("Blocking on rebuild starting");
+        waitUntil(() -> keyspaceMigrationTracker.contains(keyspace));
     }
 
     @Override
     public void blockOnMigrationCompleting() {
-        // TODO
+        waitUntil(isMigrationComplete::get);
+    }
+
+    private void waitUntil(BooleanSupplier predicate) {
+        if (predicate.getAsBoolean()) { // So we don't need to wait 100ms when the migration has already finished
+            return;
+        }
+        long startTime = System.currentTimeMillis();
+        Awaitility.await() // Horrible abuses of awaitility, but it's quick and hacky
+                .atMost(Duration.ofMinutes(10))
+                .pollInterval(Duration.ofMillis(100))
+                .until(predicate::getAsBoolean);
+        long finishTime = System.currentTimeMillis(); // Could be context switched, but ah well
+        log.info("Waited for predicate for {} ms", SafeArg.of("duration", finishTime - startTime));
     }
 }
