@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.todo;
 
-import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.util.List;
 import javax.ws.rs.Consumes;
@@ -66,16 +65,6 @@ public interface TodoResource {
     @POST
     @Path("/targeted-sweep")
     void runIterationOfTargetedSweep();
-
-    @POST
-    @Path("/sweep-snapshot-indices")
-    @Produces(MediaType.APPLICATION_JSON)
-    SweepResults sweepSnapshotIndices();
-
-    @POST
-    @Path("/sweep-snapshot-values")
-    @Produces(MediaType.APPLICATION_JSON)
-    SweepResults sweepSnapshotValues();
 
     @POST
     @Path("cells-deleted")

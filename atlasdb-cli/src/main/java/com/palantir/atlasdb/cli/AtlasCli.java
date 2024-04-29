@@ -18,7 +18,6 @@ package com.palantir.atlasdb.cli;
 import com.palantir.atlasdb.cli.command.KvsMigrationCommand;
 import com.palantir.atlasdb.cli.command.ReadPunchTableCommand;
 import com.palantir.atlasdb.cli.command.ScrubQueueMigrationCommand;
-import com.palantir.atlasdb.cli.command.SweepCommand;
 import com.palantir.atlasdb.cli.command.timestamp.CleanTransactionRange;
 import com.palantir.atlasdb.cli.command.timestamp.FastForwardTimestamp;
 import com.palantir.atlasdb.cli.command.timestamp.FetchTimestamp;
@@ -39,7 +38,6 @@ public final class AtlasCli {
                 .withDescription("Perform common AtlasDB tasks")
                 .withDefaultCommand(Help.class)
                 .withCommand(Help.class)
-                .withCommand(SweepCommand.class)
                 .withCommand(KvsMigrationCommand.class)
                 .withCommand(ScrubQueueMigrationCommand.class)
                 .withCommand(ReadPunchTableCommand.class);

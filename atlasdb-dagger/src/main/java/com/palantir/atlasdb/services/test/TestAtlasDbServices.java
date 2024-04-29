@@ -33,7 +33,6 @@ import javax.inject.Singleton;
             RawKeyValueServiceModule.class,
             LockAndTimestampModule.class,
             MetricsModule.class,
-            TestSweeperModule.class,
             TestTransactionManagerModule.class
         })
 public abstract class TestAtlasDbServices extends AtlasDbServices {

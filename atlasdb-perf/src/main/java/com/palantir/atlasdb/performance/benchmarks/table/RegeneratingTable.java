@@ -67,10 +67,6 @@ public abstract class RegeneratingTable<T> {
         return Tables.TABLE_REF;
     }
 
-    public SweepTaskRunner getSweepTaskRunner() {
-        return services.getSweepTaskRunner();
-    }
-
     @Setup(Level.Trial)
     public void setup(AtlasDbServicesConnector conn) {
         this.connector = conn;

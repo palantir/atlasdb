@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.todo;
 
-import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Preconditions;
 import java.io.ByteArrayInputStream;
@@ -70,16 +69,6 @@ public class SimpleTodoResource implements TodoResource {
     @Override
     public void runIterationOfTargetedSweep() {
         atlas.runIterationOfTargetedSweep();
-    }
-
-    @Override
-    public SweepResults sweepSnapshotIndices() {
-        return atlas.sweepSnapshotIndices();
-    }
-
-    @Override
-    public SweepResults sweepSnapshotValues() {
-        return atlas.sweepSnapshotValues();
     }
 
     @Override

@@ -28,20 +28,17 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.TimelockService;
 import java.util.Arrays;
-import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class SweepOutcomeMetricsTest {
     private MetricsManager metricsManager;
 
-    private SweepOutcomeMetrics legacyMetrics;
     private TargetedSweepMetrics targetedSweepMetrics;
 
     @BeforeEach
     public void setup() {
         metricsManager = MetricsManagers.createAlwaysSafeAndFilteringForTests();
-        legacyMetrics = SweepOutcomeMetrics.registerLegacy(metricsManager);
         targetedSweepMetrics = TargetedSweepMetrics.create(
                 metricsManager,
                 mock(TimelockService.class),
@@ -54,9 +51,6 @@ public class SweepOutcomeMetricsTest {
 
     @Test
     public void testMetricsAreNotRegisteredEagerly() {
-        SweepOutcomeMetrics.LEGACY_OUTCOMES.forEach(outcome -> {
-            assertThat(metricsManager).hasNotRegisteredLegacyOutcome(outcome);
-        });
         SweepOutcomeMetrics.TARGETED_OUTCOMES.forEach(outcome -> {
             assertThat(metricsManager).hasNotRegisteredTargetedOutcome(CONSERVATIVE, outcome);
             assertThat(metricsManager).hasNotRegisteredTargetedOutcome(THOROUGH, outcome);
@@ -65,10 +59,6 @@ public class SweepOutcomeMetricsTest {
 
     @Test
     public void testAllOutcomes() {
-        SweepOutcomeMetrics.LEGACY_OUTCOMES.forEach(outcome -> {
-            legacyMetrics.registerOccurrenceOf(outcome);
-            assertThat(metricsManager).hasLegacyOutcomeEqualTo(outcome, 1L);
-        });
         SweepOutcomeMetrics.TARGETED_OUTCOMES.forEach(outcome -> {
             targetedSweepMetrics.registerOccurrenceOf(ShardAndStrategy.conservative(3), outcome);
             assertThat(metricsManager).hasTargetedOutcomeEqualTo(CONSERVATIVE, outcome, 1L);
@@ -77,30 +67,6 @@ public class SweepOutcomeMetricsTest {
             assertThat(metricsManager).hasTargetedOutcomeEqualTo(CONSERVATIVE, outcome, 1L);
             assertThat(metricsManager).hasTargetedOutcomeEqualTo(THOROUGH, outcome, 1L);
         });
-    }
-
-    @Test
-    public void testFatalIsBinary() {
-        SweepOutcomeMetrics.LEGACY_OUTCOMES.forEach(
-                outcome -> IntStream.range(0, 10).forEach(ignore -> legacyMetrics.registerOccurrenceOf(outcome)));
-        assertThat(metricsManager).hasLegacyOutcomeEqualTo(SweepOutcome.FATAL, 1L);
-    }
-
-    @Test
-    public void testOtherMetricsAreCumulative() {
-        SweepOutcomeMetrics.LEGACY_OUTCOMES.forEach(
-                outcome -> IntStream.range(0, 10).forEach(ignore -> legacyMetrics.registerOccurrenceOf(outcome)));
-        SweepOutcomeMetrics.LEGACY_OUTCOMES.stream()
-                .filter(outcome -> outcome != SweepOutcome.FATAL)
-                .forEach(outcome -> assertThat(metricsManager).hasLegacyOutcomeEqualTo(outcome, 10L));
-    }
-
-    @Test
-    public void testTargetedSweepMetricsAreCumulative() {
-        SweepOutcomeMetrics.TARGETED_OUTCOMES.forEach(
-                outcome -> IntStream.range(0, 10).forEach(ignore -> legacyMetrics.registerOccurrenceOf(outcome)));
-        SweepOutcomeMetrics.TARGETED_OUTCOMES.forEach(
-                outcome -> assertThat(metricsManager).hasLegacyOutcomeEqualTo(outcome, 10L));
     }
 
     @Test

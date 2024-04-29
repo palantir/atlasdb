@@ -20,19 +20,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
-import com.palantir.atlasdb.keyvalue.api.SweepResults;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
-import com.palantir.atlasdb.sweep.ImmutableSweepBatchConfig;
-import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
@@ -68,18 +64,13 @@ public class TodoClient {
 
     private final TransactionManager transactionManager;
     private final Supplier<KeyValueService> kvs;
-    private final Supplier<SweepTaskRunner> sweepTaskRunner;
     private final Supplier<TargetedSweeper> targetedSweeper;
     private final SpecialTimestampsSupplier sweepTimestampProvider;
     private final Random random = new Random();
 
-    public TodoClient(
-            TransactionManager transactionManager,
-            Supplier<SweepTaskRunner> sweepTaskRunner,
-            Supplier<TargetedSweeper> targetedSweeper) {
+    public TodoClient(TransactionManager transactionManager, Supplier<TargetedSweeper> targetedSweeper) {
         this.transactionManager = transactionManager;
         this.kvs = Suppliers.memoize(transactionManager::getKeyValueService);
-        this.sweepTaskRunner = sweepTaskRunner;
         this.targetedSweeper = targetedSweeper;
         // Intentionally providing the immutable timestamp instead of unreadable to avoid the delay
         this.sweepTimestampProvider = new SpecialTimestampsSupplier(
@@ -187,29 +178,6 @@ public class TodoClient {
         targetedSweeper
                 .get()
                 .sweepNextBatch(shardStrategy, Sweeper.of(shardStrategy).getSweepTimestamp(sweepTimestampProvider));
-    }
-
-    public SweepResults sweepSnapshotIndices() {
-        TodoSchemaTableFactory tableFactory = TodoSchemaTableFactory.of(Namespace.DEFAULT_NAMESPACE);
-        TableReference indexTable =
-                tableFactory.getSnapshotsStreamIdxTable(null).getTableRef();
-        return sweepTable(indexTable);
-    }
-
-    public SweepResults sweepSnapshotValues() {
-        TodoSchemaTableFactory tableFactory = TodoSchemaTableFactory.of(Namespace.DEFAULT_NAMESPACE);
-        TableReference valueTable =
-                tableFactory.getSnapshotsStreamValueTable(null).getTableRef();
-        return sweepTable(valueTable);
-    }
-
-    SweepResults sweepTable(TableReference table) {
-        SweepBatchConfig sweepConfig = ImmutableSweepBatchConfig.builder()
-                .candidateBatchSize(AtlasDbConstants.DEFAULT_SWEEP_CANDIDATE_BATCH_HINT)
-                .deleteBatchSize(AtlasDbConstants.DEFAULT_SWEEP_DELETE_BATCH_HINT)
-                .maxCellTsPairsToExamine(AtlasDbConstants.DEFAULT_SWEEP_READ_LIMIT)
-                .build();
-        return sweepTaskRunner.get().run(table, sweepConfig, PtBytes.EMPTY_BYTE_ARRAY, SweepTaskRunner.RunType.FULL);
     }
 
     public long numAtlasDeletes(TableReference tableRef) {

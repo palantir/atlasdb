@@ -165,14 +165,6 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
         doubles.assertIsCloseTo(info, getEntriesReadInBatchMeanThorough(), value, Offset.offset(0.1));
     }
 
-    public void hasNotRegisteredLegacyOutcome(SweepOutcome outcome) {
-        objects.assertNull(info, getGaugeForLegacyOutcome(outcome));
-    }
-
-    public void hasLegacyOutcomeEqualTo(SweepOutcome outcome, long value) {
-        objects.assertEqual(info, getGaugeForLegacyOutcome(outcome).getValue(), value);
-    }
-
     public void hasTargetedOutcomeEqualTo(SweeperStrategy strategy, SweepOutcome outcome, Long value) {
         objects.assertEqual(info, getGaugeForTargetedOutcome(strategy, outcome).getValue(), value);
     }
@@ -207,13 +199,6 @@ public final class SweepMetricsAssert extends AbstractAssert<SweepMetricsAssert,
     private <N> Gauge<N> getGaugeForTargetedSweep(String strategy, String name) {
         Map<String, String> tag = ImmutableMap.of(AtlasDbMetricNames.TAG_STRATEGY, strategy);
         return getGauge("targetedSweepProgress", name, tag);
-    }
-
-    private Gauge<Long> getGaugeForLegacyOutcome(SweepOutcome outcome) {
-        return getGauge(
-                BackgroundSweeperImpl.class,
-                AtlasDbMetricNames.SWEEP_OUTCOME,
-                ImmutableMap.of(AtlasDbMetricNames.TAG_OUTCOME, outcome.name()));
     }
 
     private Gauge<Long> getGaugeForTargetedOutcome(SweeperStrategy strategy, SweepOutcome outcome) {
