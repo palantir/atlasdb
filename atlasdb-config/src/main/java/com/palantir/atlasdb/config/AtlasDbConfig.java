@@ -36,13 +36,22 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Optional;
-import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 @DoNotLog
 @JsonDeserialize(as = ImmutableAtlasDbConfig.class)
 @JsonSerialize(as = ImmutableAtlasDbConfig.class)
-@JsonIgnoreProperties(value = {"enableSweep", "persistentStorage"})
+@JsonIgnoreProperties(
+        value = {
+            "enableSweep",
+            "persistentStorage",
+            "sweepBatchSize",
+            "sweepCellBatchSize",
+            "sweepPauseMillis",
+            "sweepReadLimit",
+            "sweepCandidateBatchHint",
+            "sweepDeleteBatchHint"
+        })
 @Value.Immutable
 public abstract class AtlasDbConfig {
 
@@ -196,7 +205,7 @@ public abstract class AtlasDbConfig {
     @Value.Default
     public boolean runBackgroundSweepProcess() {
         // TODO (jkong): Confirm with large internal product owner that this is generally safe to set to false.
-        return true;
+        return false;
     }
 
     /**
@@ -208,19 +217,6 @@ public abstract class AtlasDbConfig {
     }
 
     /**
-     * The number of milliseconds to wait between each batch of cells
-     * processed by the background sweeper.
-     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep()} {@link SweepConfig#pauseMillis()} to make this value
-     * live-reloadable.
-     */
-    @Deprecated
-    @SuppressWarnings("InlineMeSuggester")
-    @Value.Default
-    public long getSweepPauseMillis() {
-        return AtlasDbConstants.DEFAULT_SWEEP_PAUSE_MILLIS;
-    }
-
-    /**
      * The number of milliseconds to wait between retries when the background sweeper can't delete data, due to the
      * persistent lock being taken.
      */
@@ -228,53 +224,6 @@ public abstract class AtlasDbConfig {
     public long getSweepPersistentLockWaitMillis() {
         return AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS;
     }
-
-    /**
-     * The target number of (cell, timestamp) pairs to examine in a single run of the background sweeper.
-     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep()} {@link SweepConfig#readLimit()} to make this value
-     * live-reloadable.
-     */
-    @Deprecated
-    @Nullable
-    public abstract Integer getSweepReadLimit();
-
-    /**
-     * The target number of candidate (cell, timestamp) pairs to load per batch while sweeping.
-     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep()} {@link SweepConfig#candidateBatchHint()} to make this value
-     * live-reloadable.
-     */
-    @Deprecated
-    @Nullable
-    public abstract Integer getSweepCandidateBatchHint();
-
-    /**
-     * The target number of (cell, timestamp) pairs to delete at once while sweeping.
-     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep()} {@link SweepConfig#deleteBatchHint()} to make this value
-     * live-reloadable.
-     */
-    @Deprecated
-    @Nullable
-    public abstract Integer getSweepDeleteBatchHint();
-
-    /**
-     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep()}
-     * {@link SweepConfig#readLimit()},
-     * {@link SweepConfig#candidateBatchHint()}, and
-     * {@link SweepConfig#deleteBatchHint()}.
-     */
-    @Deprecated
-    @Nullable
-    public abstract Integer getSweepBatchSize();
-
-    /**
-     * @deprecated Use {@link AtlasDbRuntimeConfig#sweep()}
-     * {@link SweepConfig#readLimit()},
-     * {@link SweepConfig#candidateBatchHint()}, and
-     * {@link SweepConfig#deleteBatchHint()}.
-     */
-    @Deprecated
-    @Nullable
-    public abstract Integer getSweepCellBatchSize();
 
     /**
      * The time threshold for ProfilingKeyValueService to log a KVS operation for being slow.
@@ -334,23 +283,11 @@ public abstract class AtlasDbConfig {
         checkLeaderAndTimelockBlocks();
         checkLockAndTimestampBlocks();
         checkNamespaceConfigConsistent();
-        checkSweepConfigs();
     }
 
     @Value.Derived
     public boolean remoteTimestampAndLockOrLeaderBlocksPresent() {
         return (timestamp().isPresent() && lock().isPresent()) || leader().isPresent();
-    }
-
-    private void checkSweepConfigs() {
-        if (getSweepBatchSize() != null
-                || getSweepCellBatchSize() != null
-                || getSweepReadLimit() != null
-                || getSweepCandidateBatchHint() != null
-                || getSweepDeleteBatchHint() != null) {
-            log.warn("Your configuration specifies sweep parameters on the install config. They will be ignored."
-                    + " Please use the runtime config to specify them.");
-        }
     }
 
     private void checkLeaderAndTimelockBlocks() {

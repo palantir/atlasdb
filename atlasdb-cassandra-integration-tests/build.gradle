@@ -47,14 +47,6 @@ dependencies {
     }
 }
 
-task memorySensitiveTest(type: Test) {
-    include '**/CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class'
-}
-
-test {
-    exclude '**/CassandraKeyValueServiceSweepTaskRunnerIntegrationTest.class'
-}
-
 task testSubset1(type: Test) {
     include '**/CassandraKeyValueServiceTableCreationIntegrationTest.class'
     include '**/CassandraKeyValueServiceTableManipulationIntegrationTest.class'
