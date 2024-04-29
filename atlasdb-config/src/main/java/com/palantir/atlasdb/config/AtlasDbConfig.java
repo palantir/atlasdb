@@ -43,14 +43,15 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableAtlasDbConfig.class)
 @JsonIgnoreProperties(
         value = {
-            "enableSweep",
-            "persistentStorage",
-            "sweepBatchSize",
-            "sweepCellBatchSize",
-            "sweepPauseMillis",
-            "sweepReadLimit",
-            "sweepCandidateBatchHint",
-            "sweepDeleteBatchHint"
+                "enableSweep",
+                "persistentStorage",
+                "runBackgroundSweepProcess",
+                "sweepBatchSize",
+                "sweepCellBatchSize",
+                "sweepPauseMillis",
+                "sweepReadLimit",
+                "sweepCandidateBatchHint",
+                "sweepDeleteBatchHint"
         })
 @Value.Immutable
 public abstract class AtlasDbConfig {
@@ -191,21 +192,6 @@ public abstract class AtlasDbConfig {
     @Value.Default
     public TargetedSweepInstallConfig targetedSweep() {
         return TargetedSweepInstallConfig.defaultTargetedSweepConfig();
-    }
-
-    /**
-     * Whether to run the background sweeper process at all. Note that this differs from
-     * {@link AtlasDbRuntimeConfig#sweep()} in that configuration there assumes that the background sweeper threads will
-     * still be scheduled, just that they find they do not need to do any work when they wake up. If this flag here
-     * is set to false, this stops us from even running these threads. This saves on thread scheduling overhead,
-     * at the expense of requiring a rolling bounce should one actually decide that one wishes to use Background Sweep.
-     *
-     * The JSON endpoint that may be mounted on a service to run an explicit background sweep is not affected.
-     */
-    @Value.Default
-    public boolean runBackgroundSweepProcess() {
-        // TODO (jkong): Confirm with large internal product owner that this is generally safe to set to false.
-        return false;
     }
 
     /**

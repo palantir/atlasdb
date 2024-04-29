@@ -11,7 +11,6 @@ dependencies {
   implementation 'org.assertj:assertj-core'
   implementation 'org.mockito:mockito-core'
   implementation 'org.awaitility:awaitility'
-  implementation 'com.fasterxml.jackson.core:jackson-core'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
   implementation 'com.github.ben-manes.caffeine:caffeine'
   implementation 'com.google.guava:guava'
