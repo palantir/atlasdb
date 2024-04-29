@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.config;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.annotations.Beta;
@@ -36,16 +37,9 @@ import org.immutables.value.Value;
 @DoNotLog
 @JsonDeserialize(as = ImmutableAtlasDbRuntimeConfig.class)
 @JsonSerialize(as = ImmutableAtlasDbRuntimeConfig.class)
+@JsonIgnoreProperties("sweep")
 @Value.Immutable
 public abstract class AtlasDbRuntimeConfig {
-
-    /**
-     * Live reloadable configurations for background / legacy sweep.
-     */
-    @Value.Default
-    public SweepConfig sweep() {
-        return SweepConfig.defaultSweepConfig();
-    }
 
     /**
      * Live reloadable configurations for targeted sweep.
@@ -131,7 +125,6 @@ public abstract class AtlasDbRuntimeConfig {
 
     public static ImmutableAtlasDbRuntimeConfig withSweepDisabled() {
         return ImmutableAtlasDbRuntimeConfig.builder()
-                .sweep(SweepConfig.disabled())
                 .targetedSweep(TargetedSweepRuntimeConfig.disabled())
                 .build();
     }

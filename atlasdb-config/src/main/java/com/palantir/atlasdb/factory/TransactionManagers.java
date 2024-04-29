@@ -40,7 +40,6 @@ import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
-import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.config.TimeLockClientConfig;
 import com.palantir.atlasdb.config.TimeLockRequestBatcherProviders;
 import com.palantir.atlasdb.coordination.CoordinationService;
@@ -59,7 +58,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
@@ -91,7 +89,6 @@ import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
-import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.consistency.ImmutableTimestampCorroborationConsistencyCheck;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
@@ -399,8 +396,6 @@ public abstract class TransactionManagers {
 
         KvsProfilingLogger.setSlowLogThresholdMillis(config().getKvsSlowLogThresholdMillis());
 
-        Refreshable<SweepConfig> sweepConfig = runtime.map(AtlasDbRuntimeConfig::sweep);
-
         KeyValueService internalKeyValueService = initializeCloseable(
                 () -> {
                     KeyValueService kvs = atlasFactory.getKeyValueService(); // CassandraKeyValueServiceImpl
@@ -408,17 +403,9 @@ public abstract class TransactionManagers {
                     kvs = new SafeTableClearerKeyValueService(
                             lockAndTimestampServices.timelock()::getImmutableTimestamp, kvs); // Autodelegate, ok
 
-                    // Even if sweep queue writes are enabled, unless targeted sweep is enabled we generally still want
-                    // to
-                    // at least retain the option to perform background sweep, which requires updating the priority
-                    // table.
                     if (!targetedSweepIsEnabled(runtime)) {
-                        kvs = SweepStatsKeyValueService.create(
-                                kvs,
-                                new TimelockTimestampServiceAdapter(lockAndTimestampServices.timelock()),
-                                sweepConfig.map(SweepConfig::writeThreshold),
-                                sweepConfig.map(SweepConfig::writeSizeThreshold),
-                                () -> true);
+                        log.warn("Targeted sweep is not enabled, which means cruft will accumulate in your database if"
+                                + " there are overwrites.");
                     }
 
                     kvs = TracingKeyValueService.create(kvs); // ok

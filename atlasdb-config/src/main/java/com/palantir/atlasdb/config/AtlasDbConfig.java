@@ -43,15 +43,16 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableAtlasDbConfig.class)
 @JsonIgnoreProperties(
         value = {
-                "enableSweep",
-                "persistentStorage",
-                "runBackgroundSweepProcess",
-                "sweepBatchSize",
-                "sweepCellBatchSize",
-                "sweepPauseMillis",
-                "sweepReadLimit",
-                "sweepCandidateBatchHint",
-                "sweepDeleteBatchHint"
+            "enableSweep",
+            "persistentStorage",
+            "runBackgroundSweepProcess",
+            "sweepBatchSize",
+            "sweepCellBatchSize",
+            "sweepPauseMillis",
+            "sweepReadLimit",
+            "sweepCandidateBatchHint",
+            "sweepDeleteBatchHint",
+            "sweepPersistentLockWaitMillis"
         })
 @Value.Immutable
 public abstract class AtlasDbConfig {
@@ -200,15 +201,6 @@ public abstract class AtlasDbConfig {
     @Value.Default
     public LockWatchCachingConfig lockWatchCaching() {
         return LockWatchCachingConfig.builder().build();
-    }
-
-    /**
-     * The number of milliseconds to wait between retries when the background sweeper can't delete data, due to the
-     * persistent lock being taken.
-     */
-    @Value.Default
-    public long getSweepPersistentLockWaitMillis() {
-        return AtlasDbConstants.DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS;
     }
 
     /**

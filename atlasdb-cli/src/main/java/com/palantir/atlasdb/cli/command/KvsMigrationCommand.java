@@ -24,7 +24,6 @@ import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
-import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator;
 import com.palantir.atlasdb.schema.KeyValueServiceValidator;
 import com.palantir.atlasdb.services.AtlasDbServices;
@@ -244,7 +243,6 @@ public class KvsMigrationCommand implements Callable<Integer> {
     private static AtlasDbRuntimeConfig disableSweepAndCompaction(AtlasDbRuntimeConfig atlasDbRuntimeConfig) {
         return ImmutableAtlasDbRuntimeConfig.builder()
                 .from(atlasDbRuntimeConfig)
-                .sweep(SweepConfig.disabled())
                 .targetedSweep(TargetedSweepRuntimeConfig.disabled())
                 .compact(CompactorConfig.disabled())
                 .build();

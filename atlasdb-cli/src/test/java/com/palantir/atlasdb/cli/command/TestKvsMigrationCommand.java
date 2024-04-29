@@ -26,7 +26,6 @@ import com.palantir.atlasdb.compact.CompactorConfig;
 import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
-import com.palantir.atlasdb.config.SweepConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -219,7 +218,6 @@ public class TestKvsMigrationCommand {
     private static AtlasDbRuntimeConfig withDisabledSweepAndCompaction(AtlasDbRuntimeConfig config) {
         return ImmutableAtlasDbRuntimeConfig.builder()
                 .from(config)
-                .sweep(SweepConfig.disabled())
                 .targetedSweep(TargetedSweepRuntimeConfig.disabled())
                 .compact(CompactorConfig.disabled())
                 .build();

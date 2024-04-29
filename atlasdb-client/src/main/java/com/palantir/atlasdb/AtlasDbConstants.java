@@ -171,11 +171,7 @@ public final class AtlasDbConstants {
 
     public static final boolean DEFAULT_INITIALIZE_ASYNC = AtlasDbFactory.DEFAULT_INITIALIZE_ASYNC;
 
-    public static final long DEFAULT_SWEEP_PAUSE_MILLIS = 5 * 1000;
-    public static final long DEFAULT_SWEEP_PERSISTENT_LOCK_WAIT_MILLIS = 30_000L;
-    public static final int DEFAULT_SWEEP_DELETE_BATCH_HINT = 128;
     public static final int DEFAULT_SWEEP_CANDIDATE_BATCH_HINT = 128;
-    public static final int DEFAULT_SWEEP_READ_LIMIT = 128;
     public static final int DEFAULT_SWEEP_CASSANDRA_READ_THREADS = 16;
     public static final int DEFAULT_SWEEP_WRITE_THRESHOLD = 1 << 12;
     public static final long DEFAULT_SWEEP_WRITE_SIZE_THRESHOLD = 1 << 25;
