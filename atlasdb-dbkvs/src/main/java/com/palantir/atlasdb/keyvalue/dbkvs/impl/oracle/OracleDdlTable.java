@@ -456,19 +456,31 @@ public final class OracleDdlTable implements DbDdlTable {
 
     private void truncateOverflowTableIfItExists() {
         TableValueStyle tableValueStyle = valueStyleCache.getTableType(conns, tableRef, config.metadataTable());
+        log.info(
+                "Fetching table value style",
+                SafeArg.of("tableValueStyle", tableValueStyle),
+                SafeArg.of("overflowMigrationState", config.overflowMigrationState()));
+
         if (tableValueStyle.equals(TableValueStyle.OVERFLOW)
                 && config.overflowMigrationState() != OverflowMigrationState.UNSTARTED) {
             try {
-                conns.get()
-                        .executeUnregisteredQuery("TRUNCATE TABLE "
-                                + oracleTableNameGetter.getInternalShortOverflowTableName(conns, tableRef));
+                String table = oracleTableNameGetter.getInternalShortOverflowTableName(conns, tableRef);
+                conns.get().executeUnregisteredQuery("TRUNCATE TABLE " + table);
+                log.info("Ran overflow table truncate", UnsafeArg.of("table", table));
             } catch (TableMappingNotFoundException | RuntimeException e) {
+                String prefixedTable = oracleTableNameGetter.getPrefixedTableName(tableRef);
+                String prefixedOverflowTable = oracleTableNameGetter.getPrefixedOverflowTableName(tableRef);
+                log.warn(
+                        "Overflow table truncate failed",
+                        UnsafeArg.of("prefixedOverflowTable", prefixedOverflowTable),
+                        UnsafeArg.of("prefixedTable", prefixedTable),
+                        e);
+
                 throw new IllegalStateException(
                         String.format(
                                 "Truncate called on a table (%s) that was supposed to have an overflow table (%s),"
                                         + " but that overflow table appears to not exist",
-                                oracleTableNameGetter.getPrefixedTableName(tableRef),
-                                oracleTableNameGetter.getPrefixedOverflowTableName(tableRef)),
+                                prefixedTable, prefixedOverflowTable),
                         e);
             }
         }
