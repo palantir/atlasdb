@@ -51,6 +51,7 @@ public class DefaultMigrationTracker implements MigrationTracker {
 
     @Override
     public void blockOnMigrationCompleting() {
+        log.info("Blocking on migration completing");
         waitUntil(isMigrationComplete::get);
     }
 

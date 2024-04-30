@@ -95,6 +95,9 @@ public final class MigratingCassandraCoordinator {
                 log.error("Migration attempt {} failed", SafeArg.of("migrationAttempt", migrationAttempt), e);
             }
         }
+        log.error(
+                "Failed max migration attempt count {}. Aborting.",
+                SafeArg.of("migrationAttempts", MAX_MIGRATION_ATTEMPTS));
         throw new SafeRuntimeException(
                 "Failed max migration attempt count. Aborting",
                 SafeArg.of("migrationAttempts", MAX_MIGRATION_ATTEMPTS));
