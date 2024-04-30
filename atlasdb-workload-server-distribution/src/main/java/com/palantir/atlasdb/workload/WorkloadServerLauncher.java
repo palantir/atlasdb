@@ -110,9 +110,15 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                                 "cassandra11",
                                 "cassandra12",
                                 "cassandra13",
+                                "cassandra14",
+                                "cassandra15",
+                                "cassandra16",
                                 "cassandra21",
                                 "cassandra22",
-                                "cassandra23"),
+                                "cassandra23",
+                                "cassandra24",
+                                "cassandra25",
+                                "cassandra26"),
                         AntithesisCassandraSidecarResource.INSTANCE,
                         DefaultBuggifyFactory.INSTANCE),
                 0,
@@ -152,16 +158,20 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 .lifecycle()
                 .scheduledExecutorService(MigrationRunner.class.getSimpleName())
                 .build();
-        migrationRunner.scheduleRandomlyInFuture(
-                migrationExecutorService, configuration.install(), configuration.runtime());
+
         AntithesisWorkflowValidatorRunner.create(new DefaultWorkflowRunner(
                         MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService)))
-                .run(() -> selectWorkflowsToRun(
-                        configuration,
-                        // We intentionally add randomness when creating the workflows (e.g., the executor pool size)
-                        // and so we must create the workflows under the fuzzer
-                        workflowFactory.createAllWorkflowsAndInvariants(
-                                configuration.install(), transactionStoreFactory)));
+                .run(() -> {
+                    migrationRunner.scheduleRandomlyInFuture(
+                            migrationExecutorService, configuration.install(), configuration.runtime());
+                    return selectWorkflowsToRun(
+                            configuration,
+                            // We intentionally add randomness when creating the workflows (e.g., the executor pool
+                            // size)
+                            // and so we must create the workflows under the fuzzer
+                            workflowFactory.createAllWorkflowsAndInvariants(
+                                    configuration.install(), transactionStoreFactory));
+                });
 
         log.info("Finished running desired workflows successfully");
         log.info("antithesis: terminate");
