@@ -60,12 +60,14 @@ public class ForceRebuild implements MigrationAction {
         try {
             rebuildResults = executorService.invokeAll(rebuildTasks, 1, TimeUnit.HOURS);
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new SafeRuntimeException("Encountered a problem triggering rebuild on all nodes", e);
         }
         boolean completedRebuildOnAllNodes = StreamEx.of(rebuildResults).allMatch(rebuildResult -> {
             try {
                 return rebuildResult.get();
             } catch (InterruptedException | ExecutionException e) {
+                Thread.currentThread().interrupt();
                 return false;
             }
         });
