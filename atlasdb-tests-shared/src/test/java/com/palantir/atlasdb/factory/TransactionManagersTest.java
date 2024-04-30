@@ -43,7 +43,6 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableAtlasDbConfig;
-import com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ImmutableLeaderConfig;
 import com.palantir.atlasdb.config.ImmutableServerListConfig;
 import com.palantir.atlasdb.config.ImmutableTimeLockRuntimeConfig;
@@ -54,11 +53,9 @@ import com.palantir.atlasdb.config.TimeLockRuntimeConfig;
 import com.palantir.atlasdb.factory.startup.TimeLockMigrator;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
-import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.GenericTestSchema;
 import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
@@ -96,7 +93,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -556,49 +552,6 @@ public class TransactionManagersTest {
         TransactionManager tm = TransactionManagers.createInMemory(GenericTestSchema.getSchema());
         tm.getUnreadableTimestamp();
         assertThat(tm.getTimelockServiceStatus().isHealthy()).isTrue();
-    }
-
-    @Test
-    public void kvsRecordsSweepStatsIfTargetedSweepDisabled() {
-        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(false);
-        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isTrue();
-    }
-
-    @Test
-    public void kvsDoesNotRecordSweepStatsIfTargetedSweepEnabled() {
-        KeyValueService keyValueService = initializeKeyValueServiceWithSweepSettings(true);
-        assertThat(isSweepStatsKvsPresentInDelegatingChain(keyValueService)).isFalse();
-    }
-
-    private KeyValueService initializeKeyValueServiceWithSweepSettings(boolean enableTargetedSweep) {
-        AtlasDbConfig installConfig = ImmutableAtlasDbConfig.builder()
-                .keyValueService(new InMemoryAtlasDbConfig())
-                .targetedSweep(ImmutableTargetedSweepInstallConfig.builder().build())
-                .build();
-        AtlasDbRuntimeConfig atlasDbRuntimeConfig = ImmutableAtlasDbRuntimeConfig.builder()
-                .targetedSweep(ImmutableTargetedSweepRuntimeConfig.builder()
-                        .enabled(enableTargetedSweep)
-                        .build())
-                .build();
-
-        TransactionManager manager = TransactionManagers.builder()
-                .config(installConfig)
-                .userAgent(UserAgent.of(UserAgent.Agent.of("test", "0.0.0")))
-                .globalMetricsRegistry(new MetricRegistry())
-                .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
-                .addSchemas(GenericTestSchema.getSchema())
-                .runtimeConfigSupplier(() -> Optional.of(atlasDbRuntimeConfig))
-                .build()
-                .serializable();
-        return manager.getKeyValueService();
-    }
-
-    private static boolean isSweepStatsKvsPresentInDelegatingChain(KeyValueService keyValueService) {
-        if (keyValueService instanceof SweepStatsKeyValueService) {
-            return true;
-        }
-        Collection<? extends KeyValueService> services = keyValueService.getDelegates();
-        return services.stream().anyMatch(TransactionManagersTest::isSweepStatsKvsPresentInDelegatingChain);
     }
 
     private void assertThatTimeAndLockMetricsAreRecorded(String timestampMetric, String lockMetric) {
