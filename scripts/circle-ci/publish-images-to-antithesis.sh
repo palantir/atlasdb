@@ -17,7 +17,7 @@ printenv ANTITHESIS_LOGIN_JSON | base64 -d | docker login -u _json_key https://$
 VERSION=$(./gradlew -q printVersion)
 EXPECTED_ANTITHESIS_TAG_DC1="migration-dc1"
 EXPECTED_ANTITHESIS_TAG_DC2="migration-dc2"
-EXPECTED_ANTITHESIS_TAG_OTHER="migration-latest"
+EXPECTED_ANTITHESIS_TAG_OTHER="migration-six-node-latest"
 
 docker pull palantirtechnologies/cassandra:2.2.18-1.143.0-rc11
 docker tag palantirtechnologies/cassandra:2.2.18-1.143.0-rc11 ${ANTITHESIS_REPO_URL}/cassandra:${EXPECTED_ANTITHESIS_TAG_DC1}

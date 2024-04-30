@@ -29,10 +29,16 @@ install:
           - cassandra11:9042
           - cassandra12:9042
           - cassandra13:9042
+          - cassandra14:9042
+          - cassandra15:9042
+          - cassandra16:9042
         thriftHosts:
           - cassandra11:9160
           - cassandra12:9160
           - cassandra13:9160
+          - cassandra14:9160
+          - cassandra15:9160
+          - cassandra16:9160
       credentials:
         username: cassandra
         password: cassandra
