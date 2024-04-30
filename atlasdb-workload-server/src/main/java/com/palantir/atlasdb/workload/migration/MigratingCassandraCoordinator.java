@@ -87,14 +87,15 @@ public final class MigratingCassandraCoordinator {
         log.info("Starting migration");
         for (int migrationAttempt = 0; migrationAttempt < MAX_MIGRATION_ATTEMPTS; migrationAttempt++) {
             try {
+                log.info("Running migration attempt {}", SafeArg.of("migrationAttempt", migrationAttempt));
                 startActions.forEach(this::runAction);
                 log.info("Migration attempt {} succeeded", SafeArg.of("migrationAttempt", migrationAttempt));
                 return;
             } catch (RuntimeException e) {
-                log.error("Failed migration attempt {}", SafeArg.of("migrationAttempt", migrationAttempt), e);
+                log.error("Migration attempt {} failed", SafeArg.of("migrationAttempt", migrationAttempt), e);
             }
         }
-        log.error(
+        throw new SafeRuntimeException(
                 "Failed max migration attempt count. Aborting",
                 SafeArg.of("migrationAttempts", MAX_MIGRATION_ATTEMPTS));
     }
