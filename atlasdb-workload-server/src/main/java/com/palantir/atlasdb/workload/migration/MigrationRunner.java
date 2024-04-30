@@ -49,9 +49,9 @@ public class MigrationRunner {
     public void executeMigration(
             WorkloadServerInstallConfiguration installConfiguration,
             WorkloadServerRuntimeConfiguration runtimeConfiguration) {
-        disableFaults();
+        //        disableFaults(); TODO: We could make this configurable.
         run(installConfiguration, runtimeConfiguration);
-        enableFaults();
+        //        enableFaults();
     }
 
     public void scheduleRandomlyInFuture( // TODO: Instead, give this a random chance on happening on each read/write
@@ -61,7 +61,7 @@ public class MigrationRunner {
         int delay = SECURE_RANDOM.nextInt(300) + 5; // +5 to allow things to start up properly, hacky, although
         // I should trust the fuzzer once I'm running it on Antithesis
         // The above magic numbers are completely arbitrary.
-        log.info("Waiting {} seconds before starting migration without faults", SafeArg.of("delay", delay));
+        log.info("Waiting {} seconds before starting migration", SafeArg.of("delay", delay));
         executorService.schedule(
                 () -> {
                     try {
@@ -83,7 +83,7 @@ public class MigrationRunner {
         CassandraKeyValueServiceConfigs config = CassandraKeyValueServiceConfigs.fromKeyValueServiceConfigsOrThrow(
                 installConfiguration.atlas().keyValueService(),
                 Refreshable.only(runtimeConfiguration.atlas().flatMap(AtlasDbRuntimeConfig::keyValueService)));
-        log.info("====STARTING MIGRATION COMMAND TEST====");
+        log.info("====STARTING MIGRATION====");
         Set<String> hostnames = config.runtimeConfig().get().servers().accept(new Visitor<>() {
             @Override
             public Set<String> visit(DefaultConfig defaultConfig) {
@@ -104,14 +104,14 @@ public class MigrationRunner {
             coordinator.runForward();
             migrationTracker.markMigrationAsComplete();
         }
-        log.info("====FINISHED MIGRATION COMMAND TEST====");
+        log.info("====FINISHED MIGRATION====");
     }
 
-    private static void disableFaults() {
-        log.info("antithesis: stop_faults");
-    }
-
-    private static void enableFaults() {
-        log.info("antithesis: start_faults");
-    }
+    //    private static void disableFaults() {
+    //        log.info("antithesis: stop_faults");
+    //    }
+    //
+    //    private static void enableFaults() {
+    //        log.info("antithesis: start_faults");
+    //    }
 }
