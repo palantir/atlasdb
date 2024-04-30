@@ -42,6 +42,8 @@ public final class MigratingCassandraCoordinator {
     private static final SafeLogger log = SafeLoggerFactory.get(MigratingCassandraCoordinator.class);
     private final List<MigrationAction> startActions;
 
+    private static final int MAX_MIGRATION_ATTEMPTS = 5;
+
     private MigratingCassandraCoordinator(List<MigrationAction> startActions) {
         this.startActions = startActions;
     }
@@ -83,7 +85,18 @@ public final class MigratingCassandraCoordinator {
 
     public void runForward() {
         log.info("Starting migration");
-        startActions.forEach(this::runAction);
+        for (int migrationAttempt = 0; migrationAttempt < MAX_MIGRATION_ATTEMPTS; migrationAttempt++) {
+            try {
+                startActions.forEach(this::runAction);
+                log.info("Migration attempt {} succeeded", SafeArg.of("migrationAttempt", migrationAttempt));
+                return;
+            } catch (RuntimeException e) {
+                log.error("Failed migration attempt {}", SafeArg.of("migrationAttempt", migrationAttempt), e);
+            }
+        }
+        log.error(
+                "Failed max migration attempt count. Aborting",
+                SafeArg.of("migrationAttempts", MAX_MIGRATION_ATTEMPTS));
     }
 
     private void runAction(MigrationAction action) {

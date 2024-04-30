@@ -20,10 +20,10 @@ import com.google.common.collect.Sets;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import one.util.streamex.StreamEx;
 
 public final class CombinedCassandraStateManager implements CassandraStateManager {
     private final List<CassandraStateManager> stateManagers;
@@ -33,12 +33,18 @@ public final class CombinedCassandraStateManager implements CassandraStateManage
     }
 
     @Override
-    public void forceRebuild(String sourceDatacenter, Set<String> keyspaces, Consumer<String> markRebuildAsStarted) {
-        ExecutorService executorService = Executors.newCachedThreadPool();
+    public Set<Callable<Boolean>> forceRebuildCallables(
+            String sourceDatacenter, Set<String> keyspaces, Consumer<String> markRebuildAsStarted) {
+        return StreamEx.of(stateManagers)
+                .map(stateManager ->
+                        stateManager.forceRebuildCallables(sourceDatacenter, keyspaces, markRebuildAsStarted))
+                .flatMap(StreamEx::of)
+                .toImmutableSet();
+    }
 
-        stateManagers.forEach(manager ->
-                executorService.execute(() -> manager.forceRebuild(sourceDatacenter, keyspaces, markRebuildAsStarted)));
-        executorService.shutdown();
+    @Override
+    public boolean isRebuilding() {
+        return StreamEx.of(stateManagers).anyMatch(CassandraStateManager::isRebuilding);
     }
 
     @Override

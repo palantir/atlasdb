@@ -18,13 +18,17 @@ package com.palantir.atlasdb.workload.migration.jmx;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import org.immutables.value.Value;
 
 public interface CassandraStateManager {
-    void forceRebuild(String sourceDatacenter, Set<String> keyspaces, Consumer<String> markRebuildStarted);
+    Set<Callable<Boolean>> forceRebuildCallables(
+            String sourceDatacenter, Set<String> keyspaces, Consumer<String> markRebuildStarted);
 
     Set<String> getRebuiltKeyspaces(String sourceDatacenter);
+
+    boolean isRebuilding();
 
     Optional<String> getConsensusSchemaVersionFromNode();
 

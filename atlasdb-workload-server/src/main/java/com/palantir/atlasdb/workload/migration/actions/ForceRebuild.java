@@ -20,9 +20,18 @@ import com.datastax.driver.core.KeyspaceMetadata;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.workload.migration.cql.CassandraKeyspaceReplicationStrategyManager;
 import com.palantir.atlasdb.workload.migration.jmx.CassandraStateManager;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import one.util.streamex.StreamEx;
 
 public class ForceRebuild implements MigrationAction {
     private final CassandraStateManager dc2StateManager;
@@ -43,7 +52,26 @@ public class ForceRebuild implements MigrationAction {
 
     @Override
     public void runForwardStep() {
-        dc2StateManager.forceRebuild(sourceDatacenter, getKeyspaceNames(), markRebuildAsStarted);
+        Set<Callable<Boolean>> rebuildTasks =
+                dc2StateManager.forceRebuildCallables(sourceDatacenter, getKeyspaceNames(), markRebuildAsStarted);
+        ExecutorService executorService = Executors.newFixedThreadPool(rebuildTasks.size());
+
+        List<Future<Boolean>> rebuildResults;
+        try {
+            rebuildResults = executorService.invokeAll(rebuildTasks, 1, TimeUnit.HOURS);
+        } catch (InterruptedException e) {
+            throw new SafeRuntimeException("Encountered a problem triggering rebuild on all nodes", e);
+        }
+        boolean completedRebuildOnAllNodes = StreamEx.of(rebuildResults).allMatch(rebuildResult -> {
+            try {
+                return rebuildResult.get();
+            } catch (InterruptedException | ExecutionException e) {
+                return false;
+            }
+        });
+        if (!completedRebuildOnAllNodes) {
+            throw new SafeRuntimeException("Not all nodes successfully completed rebuilding");
+        }
     }
 
     @Override

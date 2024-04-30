@@ -20,6 +20,7 @@ import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -31,9 +32,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import one.util.streamex.StreamEx;
 import org.apache.cassandra.service.StorageProxyMBean;
 import org.apache.cassandra.service.StorageServiceMBean;
 
@@ -49,24 +52,37 @@ public class JmxCassandraStateManager implements CassandraStateManager {
     }
 
     @Override // If we actually keep this, move from stringly typed code
-    public void forceRebuild(String sourceDatacenter, Set<String> keyspaces, Consumer<String> markRebuildAsStarted) {
-        // For now, we're relying on this being a blocking call
-        keyspaces.forEach(keyspace -> {
-            runConsumerWithSsProxy(proxy -> {
-                log.info(
-                        "Rebuilding keyspace {} from source DC {}",
-                        SafeArg.of("keyspace", keyspace),
-                        SafeArg.of("sourceDatacenter", sourceDatacenter));
-                markRebuildAsStarted.accept(keyspace); // If we context switched immediately after this, then
-                // we falsely mark as rebuilding when we're not.
-                proxy.rebuild(sourceDatacenter, keyspace);
-                log.info(
-                        "Finished rebuilding keyspace {} from source DC {}",
-                        SafeArg.of("keyspace", keyspace),
-                        SafeArg.of("sourceDatacenter", sourceDatacenter));
-                // TODO: Test that the keyspace is rebuilt
-            });
+    public Set<Callable<Boolean>> forceRebuildCallables(
+            String sourceDatacenter, Set<String> keyspaces, Consumer<String> markRebuildAsStarted) {
+        return ImmutableSet.of(() -> {
+            Set<String> rebuiltKeyspaces = getRebuiltKeyspaces(sourceDatacenter);
+            if (rebuiltKeyspaces.containsAll(keyspaces)) {
+                return true;
+            }
+            if (isRebuilding()) {
+                return false;
+            }
+            StreamEx.of(keyspaces)
+                    .remove(rebuiltKeyspaces::contains)
+                    .forEach(keyspace -> runConsumerWithSsProxy(proxy -> {
+                        log.info(
+                                "Rebuilding keyspace {} from source DC {}",
+                                SafeArg.of("keyspace", keyspace),
+                                SafeArg.of("sourceDatacenter", sourceDatacenter));
+                        markRebuildAsStarted.accept(keyspace);
+                        proxy.rebuild(sourceDatacenter, keyspace);
+                        log.info(
+                                "Finished rebuilding keyspace {} from source DC {}",
+                                SafeArg.of("keyspace", keyspace),
+                                SafeArg.of("sourceDatacenter", sourceDatacenter));
+                    }));
+            return true;
         });
+    }
+
+    @Override
+    public boolean isRebuilding() {
+        return runFunctionWithSsProxy(StorageServiceMBean::isRebuilding);
     }
 
     @Override
