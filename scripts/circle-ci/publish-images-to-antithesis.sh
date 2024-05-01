@@ -19,12 +19,12 @@ EXPECTED_ANTITHESIS_TAG_DC1="migration-dc1"
 EXPECTED_ANTITHESIS_TAG_DC2="migration-dc2"
 EXPECTED_ANTITHESIS_TAG_OTHER="migration-six-node-latest"
 
-docker pull palantirtechnologies/cassandra:2.2.18-1.143.0-rc11
-docker tag palantirtechnologies/cassandra:2.2.18-1.143.0-rc11 ${ANTITHESIS_REPO_URL}/cassandra:${EXPECTED_ANTITHESIS_TAG_DC1}
+docker pull palantirtechnologies/cassandra:2.2.18-1.144.0-rc4
+docker tag palantirtechnologies/cassandra:2.2.18-1.144.0-rc4 ${ANTITHESIS_REPO_URL}/cassandra:${EXPECTED_ANTITHESIS_TAG_DC1}
 docker push ${ANTITHESIS_REPO_URL}/cassandra:${EXPECTED_ANTITHESIS_TAG_DC1}
 
-docker pull palantirtechnologies/cassandra:2.2.18-1.143.0-rc14
-docker tag palantirtechnologies/cassandra:2.2.18-1.143.0-rc14 ${ANTITHESIS_REPO_URL}/cassandra:${EXPECTED_ANTITHESIS_TAG_DC2}
+docker pull palantirtechnologies/cassandra:2.2.18-1.144.0-rc5
+docker tag palantirtechnologies/cassandra:2.2.18-1.144.0-rc5 ${ANTITHESIS_REPO_URL}/cassandra:${EXPECTED_ANTITHESIS_TAG_DC2}
 docker push ${ANTITHESIS_REPO_URL}/cassandra:${EXPECTED_ANTITHESIS_TAG_DC2}
 
 docker tag palantirtechnologies/timelock-server-distribution:${VERSION} ${ANTITHESIS_REPO_URL}/timelock-server-distribution:${EXPECTED_ANTITHESIS_TAG_OTHER}
