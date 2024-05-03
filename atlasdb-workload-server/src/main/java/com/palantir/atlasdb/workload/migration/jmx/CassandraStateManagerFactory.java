@@ -38,7 +38,8 @@ public final class CassandraStateManagerFactory {
             .put("cassandra26", 7296)
             .buildOrThrow();
 
-    private static final List<String> DC2_HOSTNAMES = List.of("cassandra21", "cassandra22", "cassandra23");
+    private static final List<String> DC2_HOSTNAMES =
+            JMX_PORTS.keySet().stream().filter(x -> x.startsWith("cassandra2")).collect(Collectors.toList());
 
     private CassandraStateManagerFactory() {
         // utility, hacky but eh
