@@ -205,6 +205,11 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     }
 
     @Override
+    public void disableValidatingLocksOnReads() {
+        delegate().disableValidatingLocksOnReads();
+    }
+
+    @Override
     public void markTableInvolved(TableReference tableRef) {
         delegate().markTableInvolved(tableRef);
     }

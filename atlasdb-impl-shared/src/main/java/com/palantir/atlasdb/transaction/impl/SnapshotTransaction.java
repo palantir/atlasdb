@@ -281,7 +281,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final DeleteExecutor deleteExecutor;
     private final Timer.Context transactionTimerContext;
     protected final TransactionOutcomeMetrics transactionOutcomeMetrics;
-    protected final boolean validateLocksOnReads;
+    protected volatile boolean validateLocksOnReads;
     protected final Supplier<TransactionConfig> transactionConfig;
     protected final TableLevelMetricsController tableLevelMetricsController;
     protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
@@ -431,6 +431,12 @@ public class SnapshotTransaction extends AbstractTransaction
     @Override
     public void disableReadWriteConflictChecking(TableReference tableRef) {
         conflictDetectionManager.disableReadWriteConflict(tableRef);
+    }
+
+    @Override
+    public synchronized void disableValidatingLocksOnReads() {
+        this.validateLocksOnReads = false;
+        this.readSnapshotValidator.disableValidatingLocksOnReads();
     }
 
     @Override

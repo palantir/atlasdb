@@ -467,4 +467,18 @@ public interface Transaction {
     default void markTableInvolved(TableReference tableRef) {
         throw new UnsupportedOperationException();
     }
+
+    /**
+     * Disables lock validation on reads.
+     * <p>
+     * This method should be called before any reads are done inside this transaction or after the last read that can
+     * result in a side effect.
+     * <p>
+     * This method is always safe to be called inside a transaction that has no side effects outside of transaction
+     * scope as necessary validation will still be executed at commit time.
+     */
+    @Idempotent
+    default void disableValidatingLocksOnReads() {
+        throw new UnsupportedOperationException();
+    }
 }
