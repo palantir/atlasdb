@@ -21,7 +21,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.Safe;
-import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.SafeLoggable;
 import java.io.Serializable;
 import java.util.Collection;
@@ -92,12 +91,13 @@ public final class TransactionConflictException extends TransactionFailedRetriab
             String message,
             Collection<CellConflict> spanningWrites,
             Collection<CellConflict> dominatingWrites,
-            TableReference conflictingTable) {
+            TableReference conflictingTable,
+            List<Arg<?>> args) {
         super(message);
         this.spanningWrites = ImmutableList.copyOf(spanningWrites);
         this.dominatingWrites = ImmutableList.copyOf(dominatingWrites);
         this.conflictingTable = conflictingTable;
-        this.args = List.of(SafeArg.of("conflictingTable", conflictingTable));
+        this.args = List.copyOf(args);
     }
 
     @Override
@@ -134,7 +134,8 @@ public final class TransactionConflictException extends TransactionFailedRetriab
             long timestamp,
             Collection<CellConflict> spanningWrites,
             Collection<CellConflict> dominatingWrites,
-            long elapsedMillis) {
+            long elapsedMillis,
+            List<Arg<?>> args) {
         StringBuilder sb = new StringBuilder();
         sb.append("Transaction Conflict after ")
                 .append(elapsedMillis)
@@ -155,7 +156,7 @@ public final class TransactionConflictException extends TransactionFailedRetriab
             formatConflicts(dominatingWrites, sb);
             sb.append('\n');
         }
-        return new TransactionConflictException(sb.toString(), spanningWrites, dominatingWrites, tableRef);
+        return new TransactionConflictException(sb.toString(), spanningWrites, dominatingWrites, tableRef, args);
     }
 
     private static void formatConflicts(Collection<CellConflict> conflicts, StringBuilder sb) {

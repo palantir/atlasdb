@@ -18,7 +18,6 @@ package com.palantir.atlasdb.transaction.api;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.Safe;
-import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.SafeLoggable;
 import java.util.List;
 
@@ -29,20 +28,21 @@ public class TransactionSerializableConflictException extends TransactionFailedR
     private final TableReference conflictingTable;
     private final List<Arg<?>> args;
 
-    public TransactionSerializableConflictException(String message, TableReference conflictingTable) {
+    public TransactionSerializableConflictException(
+            String message, TableReference conflictingTable, List<Arg<?>> args) {
         super(message);
         this.conflictingTable = conflictingTable;
-        this.args = List.of(SafeArg.of("conflictingTable", conflictingTable));
+        this.args = List.copyOf(args);
     }
 
     public static TransactionSerializableConflictException create(
-            TableReference tableRef, long timestamp, long elapsedMillis) {
+            TableReference tableRef, long timestamp, long elapsedMillis, List<Arg<?>> args) {
         String msg = String.format(
                 "There was a read-write conflict on table %s.  This means that this table was marked as Serializable"
                         + " and another transaction wrote a different value than this transaction read.  startTs: %d "
                         + " elapsedMillis: %d",
                 tableRef.getQualifiedName(), timestamp, elapsedMillis);
-        return new TransactionSerializableConflictException(msg, tableRef);
+        return new TransactionSerializableConflictException(msg, tableRef, args);
     }
 
     @Override
