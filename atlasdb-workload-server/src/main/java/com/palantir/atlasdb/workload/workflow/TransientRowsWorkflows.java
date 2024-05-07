@@ -194,6 +194,11 @@ public final class TransientRowsWorkflows {
                 IntStream.range(0, configuration.iterationCount()).boxed().collect(Collectors.toSet());
         taskIndices.forEach(index ->
                 store.readWrite(txn -> checkSummaryConsistencyForIndex(violations, txn::read, tableName, index)));
+        if (!violations.isEmpty()) {
+            log.info(
+                    "Found inconsistencies in the index state during workflow {}",
+                    SafeArg.of("violations", violations));
+        }
         return violations;
     }
 
@@ -204,6 +209,9 @@ public final class TransientRowsWorkflows {
         Set<Integer> taskIndices =
                 IntStream.range(0, configuration.iterationCount()).boxed().collect(Collectors.toSet());
         taskIndices.forEach(index -> checkSummaryConsistencyForIndex(violations, store::get, tableName, index));
+        if (!violations.isEmpty()) {
+            log.info("Found inconsistencies in the final index state {}", SafeArg.of("violations", violations));
+        }
         return violations;
     }
 
