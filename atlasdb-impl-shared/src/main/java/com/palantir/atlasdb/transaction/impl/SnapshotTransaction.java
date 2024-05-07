@@ -44,6 +44,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.errorprone.annotations.MustBeClosed;
+import com.google.errorprone.annotations.RestrictedApi;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
@@ -93,6 +94,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutExc
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
+import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.atlasdb.transaction.api.exceptions.SafeTransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsData;
@@ -433,8 +435,20 @@ public class SnapshotTransaction extends AbstractTransaction
         conflictDetectionManager.disableReadWriteConflict(tableRef);
     }
 
+    @RestrictedApi(
+            explanation = "This API is only meant to be used by AtlasDb proxies that want to make use of the "
+                    + "performance improvement that are achievable by avoiding immutable timestamp lock check on reads "
+                    + "and delaying them to commit time. When validation on reads is disabled, it is possible for a "
+                    + "transaction to read values that were thoroughly swept and the transaction would not fail until "
+                    + "validation is done at commit commit time. Disabling validation on reads in situations when a "
+                    + "transaction can potentially have side effects outside the transaction scope (e.g. remote call "
+                    + "to another service) can cause correctness issues. The API is restricted as misuses of it can "
+                    + "cause correctness issues.",
+            link = "https://github.com/palantir/atlasdb/pull/7111",
+            allowedOnPath = ".*/src/test/.*",
+            allowlistAnnotations = {ReviewedRestrictedApiUsage.class})
     @Override
-    public synchronized void disableValidatingLocksOnReads() {
+    public void disableValidatingLocksOnReads() {
         this.validateLocksOnReads = false;
         this.readSnapshotValidator.disableValidatingLocksOnReads();
     }

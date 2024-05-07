@@ -17,6 +17,7 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.collect.ForwardingObject;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.errorprone.annotations.RestrictedApi;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -204,6 +205,18 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
         delegate().disableReadWriteConflictChecking(tableRef);
     }
 
+    @RestrictedApi(
+            explanation = "This API is only meant to be used by AtlasDb proxies that want to make use of the "
+                    + "performance improvement that are achievable by avoiding immutable timestamp lock check on reads "
+                    + "and delaying them to commit time. When validation on reads is disabled, it is possible for a "
+                    + "transaction to read values that were thoroughly swept and the transaction would not fail until "
+                    + "validation is done at commit commit time. Disabling validation on reads in situations when a "
+                    + "transaction can potentially have side effects outside the transaction scope (e.g. remote call "
+                    + "to another service) can cause correctness issues. The API is restricted as misuses of it can "
+                    + "cause correctness issues.",
+            link = "https://github.com/palantir/atlasdb/pull/7111",
+            allowedOnPath = ".*/src/test/.*",
+            allowlistAnnotations = {ReviewedRestrictedApiUsage.class})
     @Override
     public void disableValidatingLocksOnReads() {
         delegate().disableValidatingLocksOnReads();
