@@ -45,8 +45,8 @@ public class DefaultMigrationTracker implements MigrationTracker {
 
     @Override
     public void blockOnRebuildStarting(String keyspace) {
-        log.info("Blocking on rebuild starting");
-        waitUntil(() -> keyspaceMigrationTracker.contains(keyspace));
+        log.info("Blocking on rebuild starting or migration terminating");
+        waitUntil(() -> isMigrationComplete.get() || keyspaceMigrationTracker.contains(keyspace));
     }
 
     @Override

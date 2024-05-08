@@ -17,6 +17,11 @@
 package com.palantir.atlasdb.workload.migration;
 
 import com.datastax.driver.core.Session;
+import com.github.rholder.retry.RetryException;
+import com.github.rholder.retry.Retryer;
+import com.github.rholder.retry.RetryerBuilder;
+import com.github.rholder.retry.StopStrategies;
+import com.github.rholder.retry.WaitStrategies;
 import com.palantir.atlasdb.workload.migration.actions.AlterKeyspaceDatacenters;
 import com.palantir.atlasdb.workload.migration.actions.CheckInterfacesAreDisabled;
 import com.palantir.atlasdb.workload.migration.actions.EnableClientInterfaces;
@@ -35,14 +40,20 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public final class MigratingCassandraCoordinator {
     private static final SafeLogger log = SafeLoggerFactory.get(MigratingCassandraCoordinator.class);
     private final List<MigrationAction> startActions;
-
-    private static final int MAX_MIGRATION_ATTEMPTS = 5;
+    private static final Retryer<Void> RETRYER = RetryerBuilder.<Void>newBuilder()
+            .retryIfException()
+            .withWaitStrategy(WaitStrategies.exponentialWait(2, TimeUnit.MINUTES))
+            .withStopStrategy(StopStrategies.stopAfterAttempt(10))
+            .build();
 
     private MigratingCassandraCoordinator(List<MigrationAction> startActions) {
         this.startActions = startActions;
@@ -85,22 +96,28 @@ public final class MigratingCassandraCoordinator {
 
     public void runForward() {
         log.info("Starting migration");
-        for (int migrationAttempt = 0; migrationAttempt < MAX_MIGRATION_ATTEMPTS; migrationAttempt++) {
-            try {
-                log.info("Running migration attempt {}", SafeArg.of("migrationAttempt", migrationAttempt));
-                startActions.forEach(this::runAction);
-                log.info("Migration attempt {} succeeded", SafeArg.of("migrationAttempt", migrationAttempt));
-                return;
-            } catch (RuntimeException e) {
-                log.error("Migration attempt {} failed", SafeArg.of("migrationAttempt", migrationAttempt), e);
-            }
+        AtomicInteger migrationAttempt = new AtomicInteger(0);
+        try {
+            RETRYER.call(() -> {
+                runOneAttempt(migrationAttempt.getAndAdd(1));
+                return null;
+            });
+        } catch (ExecutionException | RetryException e) {
+            log.error(
+                    "Failed max migration attempt count {}. Aborting.",
+                    SafeArg.of("migrationAttempts", migrationAttempt));
         }
-        log.error(
-                "Failed max migration attempt count {}. Aborting.",
-                SafeArg.of("migrationAttempts", MAX_MIGRATION_ATTEMPTS));
-        throw new SafeRuntimeException(
-                "Failed max migration attempt count. Aborting",
-                SafeArg.of("migrationAttempts", MAX_MIGRATION_ATTEMPTS));
+    }
+
+    private void runOneAttempt(int migrationAttempt) {
+        try {
+            log.info("Running migration attempt {}", SafeArg.of("migrationAttempt", migrationAttempt));
+            startActions.forEach(this::runAction);
+            log.info("Migration attempt {} succeeded", SafeArg.of("migrationAttempt", migrationAttempt));
+        } catch (RuntimeException e) {
+            log.error("Migration attempt {} failed", SafeArg.of("migrationAttempt", migrationAttempt), e);
+            throw e;
+        }
     }
 
     private void runAction(MigrationAction action) {
