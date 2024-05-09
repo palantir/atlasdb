@@ -102,7 +102,8 @@ public final class TransactionConflictException extends TransactionFailedRetriab
 
     @Override
     public @Safe String getLogMessage() {
-        return "Transaction conflict";
+        return "There was a write-write transaction conflict. This transaction wrote a cell to which a concurrent"
+                + " transaction wrote a different value.";
     }
 
     @Override

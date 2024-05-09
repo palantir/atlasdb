@@ -21,7 +21,7 @@ import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeLoggable;
 import java.util.List;
 
-public class TransactionSerializableConflictException extends TransactionFailedRetriableException
+public final class TransactionSerializableConflictException extends TransactionFailedRetriableException
         implements SafeLoggable {
     private static final long serialVersionUID = 1L;
 
@@ -47,7 +47,8 @@ public class TransactionSerializableConflictException extends TransactionFailedR
 
     @Override
     public @Safe String getLogMessage() {
-        return "Transaction serializable conflict";
+        return "There was a read-write conflict. This transaction read a cell to which a concurrent transaction wrote a"
+                + " different value.";
     }
 
     @Override

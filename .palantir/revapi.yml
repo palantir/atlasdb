@@ -89,6 +89,14 @@ acceptedBreaks:
       justification: "Only added recently"
   "0.1079.0":
     com.palantir.atlasdb:atlasdb-api:
+    - code: "java.class.nowFinal"
+      old: "class com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException"
+      new: "class com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException"
+      justification: "Intentional break"
+    - code: "java.class.nowImplementsInterface"
+      old: "class com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException"
+      new: "class com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException"
+      justification: "Intentional break"
     - code: "java.method.numberOfParametersChanged"
       old: "method com.palantir.atlasdb.transaction.api.TransactionConflictException\
         \ com.palantir.atlasdb.transaction.api.TransactionConflictException::create(com.palantir.atlasdb.keyvalue.api.TableReference,\

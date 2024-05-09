@@ -2230,7 +2230,7 @@ public class SnapshotTransaction extends AbstractTransaction
                         spanningWrites,
                         dominatingWrites,
                         System.currentTimeMillis() - timeCreated,
-                        List.of(LoggingArgs.tableRef("tableRef", tableRef)));
+                        List.of(LoggingArgs.tableRef(tableRef)));
             }
         }
     }
