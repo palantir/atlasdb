@@ -29,16 +29,25 @@ public class BackgroundCassandraJob implements Runnable {
 
     private final BuggifyFactory buggify;
 
+    private final double flushRate;
+    private final double compactRate;
+
     public BackgroundCassandraJob(
-            List<String> cassandraHosts, CassandraSidecarResource cassandraSidecarResource, BuggifyFactory buggify) {
+            List<String> cassandraHosts,
+            CassandraSidecarResource cassandraSidecarResource,
+            BuggifyFactory buggify,
+            double flushRate,
+            double compactRate) {
         this.cassandraSidecarResource = cassandraSidecarResource;
         this.cassandraHosts = Iterators.cycle(cassandraHosts);
         this.buggify = buggify;
+        this.flushRate = flushRate;
+        this.compactRate = compactRate;
     }
 
     @Override
     public void run() {
-        buggify.maybe(0.20).run(() -> cassandraSidecarResource.flush(cassandraHosts.next()));
-        buggify.maybe(0.20).run(() -> cassandraSidecarResource.compact(cassandraHosts.next()));
+        buggify.maybe(flushRate).run(() -> cassandraSidecarResource.flush(cassandraHosts.next()));
+        buggify.maybe(compactRate).run(() -> cassandraSidecarResource.compact(cassandraHosts.next()));
     }
 }

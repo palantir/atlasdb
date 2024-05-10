@@ -41,8 +41,8 @@ public final class BackgroundCassandraJobTest {
 
     @Test
     public void runCanExecuteCompactFlushOnAllCassandraHosts() {
-        BackgroundCassandraJob backgroundCassandraJob =
-                new BackgroundCassandraJob(CASSANDRA_HOSTS, cassandraSidecarResource, AlwaysBuggifyFactory.INSTANCE);
+        BackgroundCassandraJob backgroundCassandraJob = new BackgroundCassandraJob(
+                CASSANDRA_HOSTS, cassandraSidecarResource, AlwaysBuggifyFactory.INSTANCE, 0.2, 0.2);
         CASSANDRA_HOSTS.forEach(_ignore -> backgroundCassandraJob.run());
         CASSANDRA_HOSTS.forEach(host -> verify(cassandraSidecarResource).compact(eq(host)));
         CASSANDRA_HOSTS.forEach(host -> verify(cassandraSidecarResource).flush(eq(host)));

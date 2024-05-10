@@ -58,7 +58,7 @@ public class MigrationRunner {
             ScheduledExecutorService executorService,
             WorkloadServerInstallConfiguration installConfiguration,
             WorkloadServerRuntimeConfiguration runtimeConfiguration) {
-        int delay = SECURE_RANDOM.nextInt(300) + 5; // +5 to allow things to start up properly, hacky, although
+        int delay = SECURE_RANDOM.nextInt(50) + 5; // +5 to allow things to start up properly, hacky, although
         // I should trust the fuzzer once I'm running it on Antithesis
         // The above magic numbers are completely arbitrary.
         log.info("Waiting {} seconds before starting migration", SafeArg.of("delay", delay));

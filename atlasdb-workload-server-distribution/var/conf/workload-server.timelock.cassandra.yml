@@ -44,7 +44,7 @@ install:
         password: cassandra
       ssl: false
       replicationFactor: 3
-      gcGraceSeconds: 60
+      gcGraceSeconds: 1
       poolRefreshIntervalSeconds: 10
     targetedSweep:
       enableSweepQueueWrites: true
@@ -65,7 +65,7 @@ install:
     tableConfiguration:
       tableName: transient_rows_test
       isolationLevel: SERIALIZABLE
-    iterationCount: 100
+    iterationCount: 500
     type: transient-rows
   singleBusyCellConfig:
     tableConfiguration:
