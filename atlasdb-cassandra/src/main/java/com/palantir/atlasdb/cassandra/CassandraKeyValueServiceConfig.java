@@ -31,6 +31,7 @@ import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.logsafe.DoNotLog;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
@@ -421,14 +422,16 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
 
     @Value.Check
     default void check() {
-        double evictionCheckProportion = proportionConnectionsToCheckPerEvictionRun();
         Preconditions.checkArgument(
-                evictionCheckProportion > 0.01 && evictionCheckProportion <= 1,
-                "'proportionConnectionsToCheckPerEvictionRun' must be between 0.01 and 1");
+                proportionConnectionsToCheckPerEvictionRun() > 0.01
+                        && proportionConnectionsToCheckPerEvictionRun() <= 1,
+                "'proportionConnectionsToCheckPerEvictionRun' must be between 0.01 and 1",
+                SafeArg.of("proportionConnectionsToCheckPerEvictionRun", proportionConnectionsToCheckPerEvictionRun()));
 
         Preconditions.checkArgument(
                 localHostWeighting() >= 0.0 && localHostWeighting() <= 1.0,
-                "'localHostWeighting' must be between 0 and 1 inclusive");
+                "'localHostWeighting' must be between 0 and 1 inclusive",
+                SafeArg.of("localHostWeighting", localHostWeighting()));
     }
 
     /**
