@@ -43,7 +43,7 @@ public class SetInterDcStreamThroughput implements MigrationAction {
     public boolean isApplied() {
         double currentInterDcStreamThroughput = stateManager.getInterDcStreamThroughput();
         log.info(
-                "Current inter-dc stram throughput is {} Mb/s",
+                "Current inter-dc stream throughput is {} Mb/s",
                 SafeArg.of("throughputInMbps", currentInterDcStreamThroughput));
         return DoubleMath.fuzzyEquals(currentInterDcStreamThroughput, STREAM_THROUGHPUT_IN_MBPS, 0.0001);
     }
