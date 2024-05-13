@@ -141,6 +141,16 @@ public class JmxCassandraStateManager implements CassandraStateManager {
         }
     }
 
+    @Override
+    public void setInterDcStreamThroughput(double throughput) {
+        runConsumerWithSsProxy(proxy -> proxy.setInterDCStreamThroughputMbPerSec(throughput));
+    }
+
+    @Override
+    public double getInterDcStreamThroughput() {
+        return runFunctionWithSsProxy(StorageServiceMBean::getInterDCStreamThroughputMbPerSec);
+    }
+
     private Set<String> getRebuiltKeyspacesNoRetry(String sourceDatacenter) {
         // C* seems to have a bug with determining whether keyspaces are missing ranges or not during startup.
         verifyNodeUpNormal();

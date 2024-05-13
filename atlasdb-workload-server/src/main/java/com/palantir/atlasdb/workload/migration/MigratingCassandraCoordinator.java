@@ -27,6 +27,7 @@ import com.palantir.atlasdb.workload.migration.actions.CheckInterfacesAreDisable
 import com.palantir.atlasdb.workload.migration.actions.EnableClientInterfaces;
 import com.palantir.atlasdb.workload.migration.actions.ForceRebuild;
 import com.palantir.atlasdb.workload.migration.actions.MigrationAction;
+import com.palantir.atlasdb.workload.migration.actions.SetInterDcStreamThroughput;
 import com.palantir.atlasdb.workload.migration.cql.CqlCassandraKeyspaceReplicationStrategyManager;
 import com.palantir.atlasdb.workload.migration.jmx.CassandraMetadataManager;
 import com.palantir.atlasdb.workload.migration.jmx.CassandraStateManager;
@@ -81,6 +82,7 @@ public final class MigratingCassandraCoordinator {
         CheckInterfacesAreDisabled checkInterfacesAreDisabledAction = new CheckInterfacesAreDisabled(dc2StateManager);
         AlterKeyspaceDatacenters alterKeyspaceDatacentersAction =
                 new AlterKeyspaceDatacenters(strategyManager, allNodeStateManager, datacenters);
+        SetInterDcStreamThroughput setInterDcStreamThroughput = new SetInterDcStreamThroughput(allNodeStateManager);
         ForceRebuild forceRebuildAction = new ForceRebuild(
                 dc2StateManager,
                 strategyManager,
@@ -90,6 +92,7 @@ public final class MigratingCassandraCoordinator {
         return new MigratingCassandraCoordinator(List.of(
                 checkInterfacesAreDisabledAction,
                 alterKeyspaceDatacentersAction,
+                setInterDcStreamThroughput,
                 forceRebuildAction,
                 enableClientInterfaces));
     }

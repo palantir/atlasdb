@@ -16,9 +16,12 @@
 
 package com.palantir.atlasdb.workload.migration;
 
+import com.palantir.atlasdb.buggify.impl.DefaultNativeSamplingSecureRandomFactory;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,6 +31,7 @@ import org.awaitility.Awaitility;
 
 public class DefaultMigrationTracker implements MigrationTracker {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultMigrationTracker.class);
+    private static final SecureRandom SECURE_RANDOM = DefaultNativeSamplingSecureRandomFactory.INSTANCE.create();
     private final Set<String> keyspaceMigrationTracker = ConcurrentHashMap.newKeySet();
     private final AtomicBoolean isMigrationComplete = new AtomicBoolean(false);
 
@@ -64,6 +68,19 @@ public class DefaultMigrationTracker implements MigrationTracker {
                 .atMost(Duration.ofMinutes(10))
                 .pollInterval(Duration.ofMillis(100))
                 .until(predicate::getAsBoolean);
+        float additionalBlockingTimeInSeconds = SECURE_RANDOM.nextFloat();
+        try {
+            Thread.sleep(
+                    Math.round(
+                            additionalBlockingTimeInSeconds
+                                    * 1000)); // Ultra hacky, and might be better placed where we actually call this
+                                              // method, but adds a little bit more randomness to starting up whatever
+                                              // was blocking
+            // but in theory we should rely on antithesis stalling threads for longer?
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new SafeRuntimeException(e);
+        }
         long finishTime = System.currentTimeMillis(); // Could be context switched, but ah well
         log.info("Waited for predicate for {} ms", SafeArg.of("duration", finishTime - startTime));
     }

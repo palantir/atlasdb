@@ -16,7 +16,9 @@
 
 package com.palantir.atlasdb.workload.migration.jmx;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -83,5 +85,21 @@ public final class CombinedCassandraStateManager implements CassandraStateManage
                 .nativeTransportIsRunning(interfaceStates.stream().allMatch(InterfaceStates::nativeTransportIsRunning))
                 .rpcServerIsRunning(interfaceStates.stream().allMatch(InterfaceStates::rpcServerIsRunning))
                 .build();
+    }
+
+    @Override
+    public void setInterDcStreamThroughput(double throughput) {
+        stateManagers.forEach(stateManager -> stateManager.setInterDcStreamThroughput(throughput));
+    }
+
+    @Override
+    public double getInterDcStreamThroughput() {
+        Set<Double> interDcStreamThroughputs = stateManagers.stream()
+                .map(CassandraStateManager::getInterDcStreamThroughput)
+                .collect(Collectors.toSet());
+        if (interDcStreamThroughputs.size() > 1) {
+            throw new SafeRuntimeException("DC stream throughput is not consistent across all nodes");
+        }
+        return Iterables.getOnlyElement(interDcStreamThroughputs);
     }
 }
