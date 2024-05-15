@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Fix docs build by upgrading python and dependencies
+  links:
+  - https://github.com/palantir/atlasdb/pull/7116
