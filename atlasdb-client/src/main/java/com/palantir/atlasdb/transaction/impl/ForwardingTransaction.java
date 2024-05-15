@@ -204,6 +204,12 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
         delegate().disableReadWriteConflictChecking(tableRef);
     }
 
+    @ReviewedRestrictedApiUsage
+    @Override
+    public void disableValidatingLocksOnReads() {
+        delegate().disableValidatingLocksOnReads();
+    }
+
     @Override
     public void markTableInvolved(TableReference tableRef) {
         delegate().markTableInvolved(tableRef);
