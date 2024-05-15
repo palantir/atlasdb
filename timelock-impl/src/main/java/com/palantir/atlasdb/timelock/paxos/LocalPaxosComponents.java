@@ -63,7 +63,8 @@ public class LocalPaxosComponents {
     private final Path baseLogDirectory;
     private final DataSource sqliteDataSource;
     private final UUID leaderUuid;
-    private final Map<Client, Components> componentsByClient = new ConcurrentHashMap<>();
+    // increase initial capacity to reduce contention at startup
+    private final Map<Client, Components> componentsByClient = new ConcurrentHashMap<>(1024);
     private final Supplier<BatchPaxosAcceptor> memoizedBatchAcceptor;
     private final Supplier<BatchPaxosLearner> memoizedBatchLearner;
     private final Supplier<BatchPingableLeader> memoizedBatchPingableLeader;

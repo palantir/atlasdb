@@ -57,7 +57,8 @@ public final class TimelockNamespaces {
 
     private static final SafeLogger log = SafeLoggerFactory.get(TimelockNamespaces.class);
 
-    private final ConcurrentMap<String, TimeLockServices> services = new ConcurrentHashMap<>();
+    // increase initial capacity to reduce contention at startup
+    private final ConcurrentMap<String, TimeLockServices> services = new ConcurrentHashMap<>(1024);
     private final Function<String, TimeLockServices> factory;
     private final Supplier<Integer> maxNumberOfClients;
 
@@ -82,7 +83,7 @@ public final class TimelockNamespaces {
 
     /**
      * Gets the TimeLockServices for a given namespace.
-     *
+     * <p>
      * Should be best-effort to give a UserAgent - it's possible with Undertow interfaces but not
      * server-side Jersey interfaces (which are just used in tests)
      */
