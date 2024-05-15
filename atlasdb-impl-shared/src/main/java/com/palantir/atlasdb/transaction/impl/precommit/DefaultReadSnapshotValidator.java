@@ -24,7 +24,7 @@ import java.util.function.Supplier;
 
 public final class DefaultReadSnapshotValidator implements ReadSnapshotValidator {
     private final PreCommitRequirementValidator preCommitRequirementValidator;
-    private final boolean validateLocksOnReads;
+    private volatile boolean validateLocksOnReads;
     private final SweepStrategyManager sweepStrategyManager;
     private final Supplier<TransactionConfig> transactionConfigSupplier;
 
@@ -57,6 +57,11 @@ public final class DefaultReadSnapshotValidator implements ReadSnapshotValidator
     @Override
     public boolean doesTableRequirePreCommitValidation(TableReference tableRef, boolean allReadsCompleteOrValidated) {
         return requiresImmutableTimestampLocking(tableRef, allReadsCompleteOrValidated);
+    }
+
+    @Override
+    public void disableValidatingLocksOnReads() {
+        validateLocksOnReads = false;
     }
 
     private boolean isValidationNecessaryOnReads(TableReference tableRef, boolean allPossibleCellsReadAndPresent) {

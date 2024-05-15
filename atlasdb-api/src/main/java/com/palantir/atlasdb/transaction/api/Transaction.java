@@ -467,4 +467,30 @@ public interface Transaction {
     default void markTableInvolved(TableReference tableRef) {
         throw new UnsupportedOperationException();
     }
+
+    /**
+     * Disables lock validation on reads.
+     * <p>
+     * This method should be called before any reads are done inside this transaction or after the last read that can
+     * result in a side effect.
+     * <p>
+     * This method is always safe to be called inside a transaction that has no side effects outside of transaction
+     * scope as necessary validation will still be executed at commit time.
+     */
+    @RestrictedApi(
+            explanation = "This API is only meant to be used by AtlasDb proxies that want to make use of the "
+                    + "performance improvement that are achievable by avoiding immutable timestamp lock check on reads "
+                    + "and delaying them to commit time. When validation on reads is disabled, it is possible for a "
+                    + "transaction to read values that were thoroughly swept and the transaction would not fail until "
+                    + "validation is done at commit commit time. Disabling validation on reads in situations when a "
+                    + "transaction can potentially have side effects outside the transaction scope (e.g. remote call "
+                    + "to another service) can cause correctness issues. The API is restricted as misuses of it can "
+                    + "cause correctness issues.",
+            link = "https://github.com/palantir/atlasdb/pull/7111",
+            allowedOnPath = ".*/src/test/.*", // Unsafe behavior in tests is ok.
+            allowlistAnnotations = {ReviewedRestrictedApiUsage.class})
+    @Idempotent
+    default void disableValidatingLocksOnReads() {
+        throw new UnsupportedOperationException();
+    }
 }
