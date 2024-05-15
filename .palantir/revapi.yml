@@ -87,6 +87,45 @@ acceptedBreaks:
       new: "parameter void com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException::<init>(java.util.List<java.lang.Exception>,\
         \ ===java.util.List<com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException.AttemptedTarget>===)"
       justification: "Only added recently"
+  "0.1079.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.class.nowFinal"
+      old: "class com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException"
+      new: "class com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException"
+      justification: "Intentional break"
+    - code: "java.class.nowImplementsInterface"
+      old: "class com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException"
+      new: "class com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException"
+      justification: "Intentional break"
+    - code: "java.method.numberOfParametersChanged"
+      old: "method com.palantir.atlasdb.transaction.api.TransactionConflictException\
+        \ com.palantir.atlasdb.transaction.api.TransactionConflictException::create(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ long, java.util.Collection<com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict>,\
+        \ java.util.Collection<com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict>,\
+        \ long)"
+      new: "method com.palantir.atlasdb.transaction.api.TransactionConflictException\
+        \ com.palantir.atlasdb.transaction.api.TransactionConflictException::create(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ long, java.util.Collection<com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict>,\
+        \ java.util.Collection<com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict>,\
+        \ long, java.util.List<com.palantir.logsafe.Arg<?>>)"
+      justification: "Transaction conflict exceptions are only intended to be instantiated\
+        \ internally"
+    - code: "java.method.numberOfParametersChanged"
+      old: "method com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException\
+        \ com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException::create(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ long, long)"
+      new: "method com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException\
+        \ com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException::create(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ long, long, java.util.List<com.palantir.logsafe.Arg<?>>)"
+      justification: "Transaction conflict exceptions are only intended to be instantiated\
+        \ internally"
+    - code: "java.method.numberOfParametersChanged"
+      old: "method void com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException::<init>(java.lang.String,\
+        \ com.palantir.atlasdb.keyvalue.api.TableReference)"
+      new: "method void com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException::<init>(java.lang.String,\
+        \ com.palantir.atlasdb.keyvalue.api.TableReference, java.util.List<com.palantir.logsafe.Arg<?>>)"
+      justification: "Transaction conflict exceptions are only intended to be instantiated\
+        \ internally"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"
