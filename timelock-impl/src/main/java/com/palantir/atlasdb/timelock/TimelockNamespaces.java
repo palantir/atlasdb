@@ -22,6 +22,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.concurrent.ConcurrentMaps;
 import com.palantir.conjure.java.undertow.lib.RequestContext;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -31,7 +32,6 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.Client;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -57,8 +57,8 @@ public final class TimelockNamespaces {
 
     private static final SafeLogger log = SafeLoggerFactory.get(TimelockNamespaces.class);
 
-    // increase initial capacity to reduce contention at startup
-    private final ConcurrentMap<String, TimeLockServices> services = new ConcurrentHashMap<>(1024);
+    private final ConcurrentMap<String, TimeLockServices> services =
+            ConcurrentMaps.newWithExpectedEntries(/* expected clients */ 256);
     private final Function<String, TimeLockServices> factory;
     private final Supplier<Integer> maxNumberOfClients;
 

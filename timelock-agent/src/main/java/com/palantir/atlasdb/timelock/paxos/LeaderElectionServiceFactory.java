@@ -16,18 +16,19 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import com.palantir.common.concurrent.ConcurrentMaps;
 import com.palantir.leader.BatchingLeaderElectionService;
 import com.palantir.leader.LeaderElectionServiceBuilder;
 import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosProposer;
 import java.time.Duration;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class LeaderElectionServiceFactory {
 
-    private final Map<Client, BatchingLeaderElectionService> leaderElectionServicesByClient = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Client, BatchingLeaderElectionService> leaderElectionServicesByClient =
+            ConcurrentMaps.newWithExpectedEntries(/* expected clients */ 256);
 
     public BatchingLeaderElectionService create(Dependencies.LeaderElectionService dependencies) {
         return leaderElectionServicesByClient.computeIfAbsent(
