@@ -2182,7 +2182,8 @@ public class SnapshotTransaction extends AbstractTransaction
                         getStartTimestamp(),
                         spanningWrites,
                         dominatingWrites,
-                        System.currentTimeMillis() - timeCreated);
+                        System.currentTimeMillis() - timeCreated,
+                        List.of(LoggingArgs.tableRef(tableRef)));
             }
         }
     }
@@ -2193,7 +2194,7 @@ public class SnapshotTransaction extends AbstractTransaction
      * value was written after our start time.
      */
     private void throwIfValueChangedConflict(
-            TableReference table,
+            TableReference tableRef,
             Map<Cell, byte[]> writes,
             Set<CellConflict> spanningWrites,
             Set<CellConflict> dominatingWrites,
@@ -2205,21 +2206,24 @@ public class SnapshotTransaction extends AbstractTransaction
             cellToTs.put(c.getCell(), c.getTheirStart() + 1);
         }
 
-        Map<Cell, byte[]> oldValues = getIgnoringLocalWrites(table, cellToTs.keySet());
+        Map<Cell, byte[]> oldValues = getIgnoringLocalWrites(tableRef, cellToTs.keySet());
         Map<Cell, Value> conflictingValues =
-                AtlasFutures.getUnchecked(transactionKeyValueService.getAsync(table, cellToTs));
+                AtlasFutures.getUnchecked(transactionKeyValueService.getAsync(tableRef, cellToTs));
 
         Set<Cell> conflictingCells = new HashSet<>();
         for (Map.Entry<Cell, Long> cellEntry : cellToTs.entrySet()) {
             Cell cell = cellEntry.getKey();
             if (!writes.containsKey(cell)) {
-                Validate.isTrue(false, "Missing write for cell: %s for table %s", cellToConflict.get(cell), table);
+                Validate.isTrue(false, "Missing write for cell: %s for table %s", cellToConflict.get(cell), tableRef);
             }
             if (!conflictingValues.containsKey(cell)) {
                 // This error case could happen if our locks expired.
                 preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(commitLocksToken, getStartTimestamp());
                 Validate.isTrue(
-                        false, "Missing conflicting value for cell: %s for table %s", cellToConflict.get(cell), table);
+                        false,
+                        "Missing conflicting value for cell: %s for table %s",
+                        cellToConflict.get(cell),
+                        tableRef);
             }
             if (conflictingValues.get(cell).getTimestamp() != (cellEntry.getValue() - 1)) {
                 // This error case could happen if our locks expired.
@@ -2227,7 +2231,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 Validate.isTrue(
                         false,
                         "Wrong timestamp for cell in table %s Expected: %s Actual: %s",
-                        table,
+                        tableRef,
                         cellToConflict.get(cell),
                         conflictingValues.get(cell));
             }
@@ -2241,7 +2245,7 @@ public class SnapshotTransaction extends AbstractTransaction
                         "Another transaction committed to the same cell before us but their value was the same."
                                 + " Cell: {} Table: {}",
                         UnsafeArg.of("cell", cell),
-                        LoggingArgs.tableRef(table));
+                        LoggingArgs.tableRef(tableRef));
             }
         }
         if (conflictingCells.isEmpty()) {
@@ -2249,13 +2253,14 @@ public class SnapshotTransaction extends AbstractTransaction
         }
         Predicate<CellConflict> conflicting =
                 Predicates.compose(Predicates.in(conflictingCells), CellConflict.getCellFunction());
-        transactionOutcomeMetrics.markWriteWriteConflict(table);
+        transactionOutcomeMetrics.markWriteWriteConflict(tableRef);
         throw TransactionConflictException.create(
-                table,
+                tableRef,
                 getStartTimestamp(),
                 Sets.filter(spanningWrites, conflicting),
                 Sets.filter(dominatingWrites, conflicting),
-                System.currentTimeMillis() - timeCreated);
+                System.currentTimeMillis() - timeCreated,
+                List.of(LoggingArgs.tableRef(tableRef)));
     }
 
     /**

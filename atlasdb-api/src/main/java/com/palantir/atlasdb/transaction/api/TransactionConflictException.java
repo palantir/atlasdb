@@ -19,8 +19,12 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.Safe;
+import com.palantir.logsafe.SafeLoggable;
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -33,7 +37,7 @@ import java.util.Set;
  * The error message should be detailed about what caused the failure and what other transaction
  * conflicted with this one.
  */
-public final class TransactionConflictException extends TransactionFailedRetriableException {
+public final class TransactionConflictException extends TransactionFailedRetriableException implements SafeLoggable {
     private static final long serialVersionUID = 1L;
 
     public static class CellConflict implements Serializable {
@@ -81,6 +85,31 @@ public final class TransactionConflictException extends TransactionFailedRetriab
     private final ImmutableList<CellConflict> spanningWrites;
     private final ImmutableList<CellConflict> dominatingWrites;
     private final TableReference conflictingTable;
+    private final List<Arg<?>> args;
+
+    private TransactionConflictException(
+            String message,
+            Collection<CellConflict> spanningWrites,
+            Collection<CellConflict> dominatingWrites,
+            TableReference conflictingTable,
+            List<Arg<?>> args) {
+        super(message);
+        this.spanningWrites = ImmutableList.copyOf(spanningWrites);
+        this.dominatingWrites = ImmutableList.copyOf(dominatingWrites);
+        this.conflictingTable = conflictingTable;
+        this.args = List.copyOf(args);
+    }
+
+    @Override
+    public @Safe String getLogMessage() {
+        return "There was a write-write transaction conflict. This transaction wrote a cell to which a concurrent"
+                + " transaction wrote a different value.";
+    }
+
+    @Override
+    public List<Arg<?>> getArgs() {
+        return args;
+    }
 
     /**
      * These conflicts had a start timestamp before our start and a commit timestamp after our start.
@@ -106,7 +135,8 @@ public final class TransactionConflictException extends TransactionFailedRetriab
             long timestamp,
             Collection<CellConflict> spanningWrites,
             Collection<CellConflict> dominatingWrites,
-            long elapsedMillis) {
+            long elapsedMillis,
+            List<Arg<?>> args) {
         StringBuilder sb = new StringBuilder();
         sb.append("Transaction Conflict after ")
                 .append(elapsedMillis)
@@ -127,7 +157,7 @@ public final class TransactionConflictException extends TransactionFailedRetriab
             formatConflicts(dominatingWrites, sb);
             sb.append('\n');
         }
-        return new TransactionConflictException(sb.toString(), spanningWrites, dominatingWrites, tableRef);
+        return new TransactionConflictException(sb.toString(), spanningWrites, dominatingWrites, tableRef, args);
     }
 
     private static void formatConflicts(Collection<CellConflict> conflicts, StringBuilder sb) {
@@ -138,16 +168,5 @@ public final class TransactionConflictException extends TransactionFailedRetriab
             sb.append(",\n");
         }
         sb.append(']');
-    }
-
-    private TransactionConflictException(
-            String message,
-            Collection<CellConflict> spanningWrites,
-            Collection<CellConflict> dominatingWrites,
-            TableReference conflictingTable) {
-        super(message);
-        this.spanningWrites = ImmutableList.copyOf(spanningWrites);
-        this.dominatingWrites = ImmutableList.copyOf(dominatingWrites);
-        this.conflictingTable = conflictingTable;
     }
 }
