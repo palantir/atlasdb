@@ -43,11 +43,11 @@ import com.palantir.common.base.ClosableIterators;
 import com.palantir.util.paging.SimpleTokenBackedResultsPage;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 import one.util.streamex.EntryStream;
 import one.util.streamex.StreamEx;
-import org.apache.commons.lang3.NotImplementedException;
 
 public class CqlTransactionKeyValueService implements TransactionKeyValueService {
 
@@ -215,7 +215,18 @@ public class CqlTransactionKeyValueService implements TransactionKeyValueService
 
     @Override
     public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        throw new NotImplementedException();
+        String keyspace = config.getKeyspaceOrThrow();
+        String tableName = tableRef.getTableName();
+        return EntryStream.of(timestampByCell)
+                .mapKeyValue((cell, timestamp) ->
+                        session.execute(QueryBuilder.select(ATLAS_ROW, ATLAS_COLUMN, ATLAS_TIMESTAMP)
+                                .from(keyspace, tableName)
+                                .where(QueryBuilder.eq(ATLAS_ROW, cell.getRowName()))
+                                .and(QueryBuilder.lt(ATLAS_TIMESTAMP, timestamp))
+                                .limit(1)))
+                .map(ResultSet::one)
+                .filter(result -> !Objects.isNull(result))
+                .toMap(CqlTransactionKeyValueService::cellFromRow, result -> result.getLong(ATLAS_TIMESTAMP));
     }
 
     @Override
