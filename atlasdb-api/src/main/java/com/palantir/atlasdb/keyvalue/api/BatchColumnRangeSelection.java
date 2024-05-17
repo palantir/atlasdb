@@ -59,6 +59,10 @@ public final class BatchColumnRangeSelection implements Serializable {
         return batchHint;
     }
 
+    public ColumnRangeSelection getColumnRangeSelection() {
+        return columnRangeSelection;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
