@@ -74,6 +74,7 @@ public class ForceRebuild implements MigrationAction {
         if (!completedRebuildOnAllNodes) {
             throw new SafeRuntimeException("Not all nodes successfully completed rebuilding");
         }
+        executorService.shutdown();
     }
 
     @Override

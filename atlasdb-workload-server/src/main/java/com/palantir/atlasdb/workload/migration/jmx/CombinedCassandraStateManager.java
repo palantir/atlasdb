@@ -23,6 +23,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import one.util.streamex.StreamEx;
@@ -51,10 +54,17 @@ public final class CombinedCassandraStateManager implements CassandraStateManage
 
     @Override
     public Set<String> getRebuiltKeyspaces(String sourceDatacenter) {
-        return stateManagers.stream()
-                .map(stateManager -> stateManager.getRebuiltKeyspaces(sourceDatacenter))
+        ExecutorService executorService = Executors.newFixedThreadPool(stateManagers.size());
+        Set<CompletableFuture<Set<String>>> set = stateManagers.stream()
+                .map(stateManager -> CompletableFuture.supplyAsync(
+                        () -> stateManager.getRebuiltKeyspaces(sourceDatacenter), executorService))
+                .collect(Collectors.toSet());
+        Set<String> result = set.stream()
+                .map(CompletableFuture::join)
                 .reduce(Sets::intersection)
                 .orElseGet(Set::of);
+        executorService.shutdown();
+        return result;
     }
 
     @Override

@@ -22,7 +22,6 @@ import com.github.rholder.retry.WaitStrategies;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -164,11 +163,17 @@ public class JmxCassandraStateManager implements CassandraStateManager {
         verifySameRangesAvailable(completeKeyspaces, getKeyspacesWithAllRangesAvailable(sourceDatacenter));
         Duration endingUptime = getJvmUptime();
 
-        Preconditions.checkState(
-                initialUptime.minus(endingUptime).isNegative(),
-                "Cassandra JVM was not up during entirety of rebuild verification. Aborting this rebuild iteration",
-                SafeArg.of("initialUptimeMillis", initialUptime.toMillis()),
-                SafeArg.of("endingUptimeMillis", endingUptime.toMillis()));
+        if (!initialUptime.minus(endingUptime).isNegative()) {
+            log.info(
+                    "Cassandra JVM was not up during entirety of rebuild verification. "
+                            + "Aborting this rebuild iteration. Initial: {}, ending: {}",
+                    SafeArg.of("initialUptimeMillis", initialUptime.toMillis()),
+                    SafeArg.of("endingUptimeMillis", endingUptime.toMillis()));
+            throw new SafeRuntimeException(
+                    "Cassandra JVM was not up during entirety of rebuild verification. Aborting this rebuild iteration",
+                    SafeArg.of("initialUptimeMillis", initialUptime.toMillis()),
+                    SafeArg.of("endingUptimeMillis", endingUptime.toMillis()));
+        }
         verifyNodeUpNormal();
 
         return completeKeyspaces;
