@@ -99,20 +99,30 @@ public final class AtlasDbTransactionStore implements InteractiveTransactionStor
                 Suppliers.memoize(() -> new CommitTimestampProvider());
         try {
             transactionManager.runTaskWithConditionWithRetry(commitTimestampProvider, (txn, _condition) -> {
+                log.info("Starting transaction with timestamp {}", SafeArg.of("startTimestamp", txn.getTimestamp()));
                 transactionReference.set(txn);
                 AtlasDbInteractiveTransaction atlasDbInteractiveTransaction =
                         new AtlasDbInteractiveTransaction(txn, tables);
                 interactiveTransactionConsumer.accept(atlasDbInteractiveTransaction);
                 witnessedActionsReference.set(atlasDbInteractiveTransaction.witness());
+                log.info(
+                        "Should have finished transaction body with timestamp {}",
+                        SafeArg.of("startTimestamp", txn.getTimestamp()));
                 return null;
             });
 
             Transaction transaction = transactionReference.get();
 
             if (transaction.isAborted()) {
+                log.info(
+                        "Transaction with timestamp {} was aborted",
+                        SafeArg.of("startTimestamp", transaction.getTimestamp()));
                 return Optional.empty();
             }
 
+            log.info(
+                    "Transaction with timestamp {} has completed successfully",
+                    SafeArg.of("startTimestamp", transaction.getTimestamp()));
             return Optional.of(FullyWitnessedTransaction.builder()
                     .startTimestamp(transaction.getTimestamp())
                     .commitTimestamp(commitTimestampProvider

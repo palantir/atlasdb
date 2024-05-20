@@ -1,0 +1,9 @@
+type: fix
+fix:
+  description: |-
+    Eagerly initialize Eclipse collections classes to avoid potential JDK classloader deadlock bug
+    [JDK-8266350](https://bugs.openjdk.org/browse/JDK-8266350) / [JDK-8266310](https://bugs.openjdk.org/browse/JDK-8266310) when one thread is attempting to load a native library (e.g. netty which is used by grpc) while another thread is attempting to load classes from a cryptographically signed JAR (e.g. eclipse-collections). This has been seen by some folks using netty & eclipse-collections in netty issue 11209](https://github.com/netty/netty/issues/11209#issuecomment-829468638)
+
+    [JDK-8266310](https://bugs.openjdk.org/browse/JDK-8266310) fixed this deadlock in JDK 18+.
+  links:
+  - https://github.com/palantir/atlasdb/pull/7081

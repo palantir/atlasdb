@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: Users can disable lock validation for reads on a per transaction basis.
+  links:
+  - https://github.com/palantir/atlasdb/pull/7111
