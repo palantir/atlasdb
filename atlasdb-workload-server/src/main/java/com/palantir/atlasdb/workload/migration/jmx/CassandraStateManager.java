@@ -36,6 +36,10 @@ public interface CassandraStateManager {
 
     InterfaceStates getInterfaceState();
 
+    void setInterDcStreamThroughput(double throughput);
+
+    double getInterDcStreamThroughput();
+
     @Value.Immutable
     interface InterfaceStates {
         boolean gossipIsRunning();

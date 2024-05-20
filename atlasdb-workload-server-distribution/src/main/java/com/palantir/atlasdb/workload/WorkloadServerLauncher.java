@@ -91,18 +91,23 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
         // Important to make sure we can control when Antithesis fuzzer kicks in. We need to make sure it's logged
         // before we actually try to choose the workflows to be run.
         LoggingUtils.setSynchronousLogging();
+        MigrationTracker migrationTracker = new DefaultMigrationTracker();
 
-        scheduleBackgroundJobs(environment);
+        scheduleBackgroundJobs(
+                environment,
+                migrationTracker,
+                configuration.install().atlas().namespace().orElseThrow());
 
         ExecutorService workflowRunnerExecutor =
                 environment.lifecycle().executorService("workflow-runner").build();
-        workflowRunnerExecutor.execute(() -> runWorkflows(configuration, environment));
+        workflowRunnerExecutor.execute(() -> runWorkflows(configuration, environment, migrationTracker));
     }
 
-    private void scheduleBackgroundJobs(Environment environment) {
+    private void scheduleBackgroundJobs(Environment environment, MigrationTracker migrationTracker, String keyspace) {
         ScheduledExecutorService backgroundJobExecutor = environment
                 .lifecycle()
                 .scheduledExecutorService("background-job")
+                .threads(2)
                 .build();
         backgroundJobExecutor.scheduleAtFixedRate(
                 new BackgroundCassandraJob(
@@ -114,13 +119,30 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                                 "cassandra22",
                                 "cassandra23"),
                         AntithesisCassandraSidecarResource.INSTANCE,
-                        DefaultBuggifyFactory.INSTANCE),
+                        DefaultBuggifyFactory.INSTANCE,
+                        0.2,
+                        0.2),
                 0,
                 2,
                 TimeUnit.SECONDS);
+        BackgroundCassandraJob job = new BackgroundCassandraJob(
+                List.of("cassandra21", "cassandra22", "cassandra23"),
+                AntithesisCassandraSidecarResource.INSTANCE,
+                DefaultBuggifyFactory.INSTANCE,
+                0.8,
+                0.8);
+        backgroundJobExecutor.scheduleWithFixedDelay( // Delay was intentional, as we'll otherwise have a huge backlog
+                () -> {
+                    migrationTracker.blockOnRebuildStarting(keyspace);
+                    job.run();
+                },
+                0,
+                200,
+                TimeUnit.MILLISECONDS);
     }
 
-    private void runWorkflows(WorkloadServerConfiguration configuration, Environment environment) {
+    private void runWorkflows(
+            WorkloadServerConfiguration configuration, Environment environment, MigrationTracker migrationTracker) {
         // This is a single threaded executor; this is intentional, so that we only run one workflow at a time.
         ExecutorService antithesisWorkflowRunnerExecutorService = environment
                 .lifecycle()
@@ -128,7 +150,6 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 .build();
 
         MetricsManager metricsManager = MetricsManagers.of(environment.metrics(), taggedMetricRegistry);
-        MigrationTracker migrationTracker = new DefaultMigrationTracker();
         Runnable preTransactionTask = () -> {
             double random = SECURE_RANDOM.nextDouble();
             if (random < 0.08) { // Probability chosen arbitrarily.
