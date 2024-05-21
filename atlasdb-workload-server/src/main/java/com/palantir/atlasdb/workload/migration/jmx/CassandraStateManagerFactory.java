@@ -27,15 +27,15 @@ public final class CassandraStateManagerFactory {
             .put("cassandra11", 7191)
             .put("cassandra12", 7192)
             .put("cassandra13", 7193)
-            .put("cassandra14", 7194)
-            .put("cassandra15", 7195)
-            .put("cassandra16", 7196)
+            //            .put("cassandra14", 7194)
+            //            .put("cassandra15", 7195)
+            //            .put("cassandra16", 7196)
             .put("cassandra21", 7291)
             .put("cassandra22", 7292)
             .put("cassandra23", 7293)
-            .put("cassandra24", 7294)
-            .put("cassandra25", 7295)
-            .put("cassandra26", 7296)
+            //            .put("cassandra24", 7294)
+            //            .put("cassandra25", 7295)
+            //            .put("cassandra26", 7296)
             .buildOrThrow();
 
     private static final List<String> DC2_HOSTNAMES =
