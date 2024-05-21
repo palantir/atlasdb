@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Bump CI Oracle image to 19.23, bump Oracle + Postgres JDBC drivers
+  links:
+  - https://github.com/palantir/atlasdb/pull/7120
