@@ -58,7 +58,7 @@ public final class TimelockNamespaces {
     private static final SafeLogger log = SafeLoggerFactory.get(TimelockNamespaces.class);
 
     private final ConcurrentMap<String, TimeLockServices> services =
-            ConcurrentMaps.newWithExpectedEntries(/* expected clients */ 256);
+            ConcurrentMaps.newWithExpectedEntries(estimatedClients());
     private final Function<String, TimeLockServices> factory;
     private final Supplier<Integer> maxNumberOfClients;
 
@@ -67,6 +67,13 @@ public final class TimelockNamespaces {
         this.factory = factory;
         this.maxNumberOfClients = maxNumberOfClients;
         registerClientCapacityMetrics(metrics);
+    }
+
+    /**
+     * Returns an estimated number of time-lock clients.
+     */
+    public static int estimatedClients() {
+        return 256;
     }
 
     /**

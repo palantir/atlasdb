@@ -19,6 +19,7 @@ import com.codahale.metrics.Counter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.AtlasDbMetricNames;
+import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.management.DiskNamespaceLoader;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceLoader;
 import com.palantir.common.concurrent.ConcurrentMaps;
@@ -64,7 +65,7 @@ public class LocalPaxosComponents {
     private final DataSource sqliteDataSource;
     private final UUID leaderUuid;
     private final Map<Client, Components> componentsByClient =
-            ConcurrentMaps.newWithExpectedEntries(/* expected clients */ 256);
+            ConcurrentMaps.newWithExpectedEntries(TimelockNamespaces.estimatedClients());
     private final Supplier<BatchPaxosAcceptor> memoizedBatchAcceptor;
     private final Supplier<BatchPaxosLearner> memoizedBatchLearner;
     private final Supplier<BatchPingableLeader> memoizedBatchPingableLeader;

@@ -19,7 +19,7 @@ package com.palantir.common.concurrent;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-public class ConcurrentMaps {
+public final class ConcurrentMaps {
 
     /**
      * Returns a new mutable {@link ConcurrentMap} with capacity to
