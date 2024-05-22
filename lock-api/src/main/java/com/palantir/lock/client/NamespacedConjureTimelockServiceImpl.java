@@ -36,9 +36,13 @@ import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tokens.auth.AuthHeader;
 
 public class NamespacedConjureTimelockServiceImpl implements NamespacedConjureTimelockService {
+    private static final SafeLogger log = SafeLoggerFactory.get(NamespacedConjureTimelockServiceImpl.class);
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
     private final String namespace;
     private final ConjureTimelockService conjureTimelockService;
@@ -85,7 +89,18 @@ public class NamespacedConjureTimelockServiceImpl implements NamespacedConjureTi
 
     @Override
     public ConjureRefreshLocksResponse refreshLocks(ConjureRefreshLocksRequest request) {
-        return conjureTimelockService.refreshLocks(AUTH_HEADER, namespace, request);
+        log.info(
+                "Attempting to refresh locks",
+                SafeArg.of("namespace", namespace),
+                SafeArg.of("allLocksSize", request.getTokens().size()));
+        ConjureRefreshLocksResponse response = conjureTimelockService.refreshLocks(AUTH_HEADER, namespace, request);
+        log.info(
+                "Finished refreshing locks",
+                SafeArg.of("namespace", namespace),
+                SafeArg.of("allLocksSize", request.getTokens().size()),
+                SafeArg.of("refreshedLocksSize", response.getRefreshedTokens().size()),
+                SafeArg.of("refreshedAll", request.getTokens().equals(response.getRefreshedTokens())));
+        return response;
     }
 
     @Override
