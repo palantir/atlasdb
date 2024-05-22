@@ -76,7 +76,7 @@ public class LockRefresher<T> implements AutoCloseable {
             if (toRefresh.isEmpty()) {
                 return;
             }
-
+            log.info("Attempting to refresh all lock tokens", SafeArg.of("toRefresh", toRefresh.size()));
             Set<T> successfullyRefreshedTokens = lockLeaseRefresher.refreshLockLeases(toRefresh);
             Set<T> refreshFailures = Sets.difference(toRefresh, successfullyRefreshedTokens);
             refreshFailures.forEach(tokensToClientContext::remove);
@@ -86,6 +86,10 @@ public class LockRefresher<T> implements AutoCloseable {
                                 + "most likely because they were lost on the server.",
                         SafeArg.of("successfullyRefreshed", successfullyRefreshedTokens.size()),
                         SafeArg.of("numLockTokens", refreshFailures.size()));
+            } else {
+                log.info(
+                        "Successfully refreshed all lock tokens",
+                        SafeArg.of("successfullyRefreshed", successfullyRefreshedTokens.size()));
             }
         } catch (Throwable error) {
             log.warn("Error while refreshing locks. Trying again on next iteration", error);

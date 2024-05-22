@@ -37,6 +37,9 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.ids.UniqueIds;
 import java.util.Optional;
 import java.util.Set;
@@ -45,6 +48,8 @@ import java.util.stream.Collectors;
 
 @SuppressWarnings("DangerousIdentityKey")
 public class LockLeaseService implements AutoCloseable {
+    private static final SafeLogger log = SafeLoggerFactory.get(LockLeaseService.class);
+
     private final NamespacedConjureTimelockService delegate;
     private final UUID clientId;
     private final LeaderTimeGetter leaderTimeGetter;
@@ -172,7 +177,7 @@ public class LockLeaseService implements AutoCloseable {
         if (leasedTokens.isEmpty()) {
             return leasedTokens;
         }
-
+        log.info("Refreshing locks", SafeArg.of("allLocksSize", leasedTokens.size()));
         ConjureRefreshLocksResponseV2 refreshLockResponse =
                 delegate.refreshLocksV2(ConjureRefreshLocksRequestV2.of(serverTokens(leasedTokens)));
         Lease lease = refreshLockResponse.getLease();
@@ -184,6 +189,11 @@ public class LockLeaseService implements AutoCloseable {
                 .collect(Collectors.toSet());
 
         refreshedTokens.forEach(t -> t.updateLease(lease));
+        log.info(
+                "Refreshed locks",
+                SafeArg.of("allLocksSize", leasedTokens.size()),
+                SafeArg.of("refreshedLocksSize", refreshedTokens.size()),
+                SafeArg.of("refreshedAll", refreshedTokens.equals(leasedTokens)));
         return refreshedTokens;
     }
 
