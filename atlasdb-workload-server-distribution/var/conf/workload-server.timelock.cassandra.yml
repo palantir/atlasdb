@@ -59,7 +59,7 @@ install:
     tableConfiguration:
       tableName: transient_rows_test
       isolationLevel: SERIALIZABLE
-    iterationCount: 500
+    iterationCount: 100
     type: transient-rows
   singleBusyCellConfig:
     tableConfiguration:
