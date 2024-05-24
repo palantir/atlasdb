@@ -17,13 +17,11 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Ordering;
-import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.timelock.paxos.PaxosQuorumCheckingCoalescingFunction.PaxosContainer;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.SuspectedNotCurrentLeaderException;
-import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -262,7 +260,8 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
                             SafeArg.of("newLimit", newLimit),
                             SafeArg.of("target", limit));
 
-                    throw notCurrentLeaderException(
+                    markLeadershipLost();
+                    throw new NotCurrentLeaderException(
                             "We updated the timestamp limit to {}, which was less than our target {}",
                             SafeArg.of("newLimit", newLimit),
                             SafeArg.of("target", limit));
@@ -284,7 +283,8 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
      */
     private void checkAgreedBoundIsOurs(long limit, long newSeq, PaxosValue value) throws NotCurrentLeaderException {
         if (!proposer.getUuid().equals(value.getLeaderUUID())) {
-            throw suspectedNotCurrentLeaderException(
+            markLeadershipLost();
+            throw new SuspectedNotCurrentLeaderException(
                     "Timestamp limit changed from under us for sequence {} (proposer with UUID '{}' changed it, our"
                             + " UUID is '{}'). This may have arisen because of a race condition in leadership:"
                             + " we may have lost leadership and another node has gained leadership and updated the"
@@ -308,17 +308,6 @@ public class PaxosTimestampBoundStore implements TimestampBoundStore {
 
     private synchronized void markLeadershipLost() {
         hasLostLeadership = true;
-    }
-
-    private NotCurrentLeaderException notCurrentLeaderException(@CompileTimeConstant String message, Arg<?>... args) {
-        markLeadershipLost();
-        throw new NotCurrentLeaderException(message, args);
-    }
-
-    private SuspectedNotCurrentLeaderException suspectedNotCurrentLeaderException(
-            @CompileTimeConstant String message, Arg<?>... args) {
-        markLeadershipLost();
-        throw new SuspectedNotCurrentLeaderException(message, args);
     }
 
     /**
