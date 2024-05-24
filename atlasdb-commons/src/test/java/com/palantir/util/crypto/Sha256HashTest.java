@@ -91,6 +91,7 @@ public class Sha256HashTest {
 
         assertThat(hash)
                 .asString()
+                .isEqualTo(hash.toString())
                 .hasSize(64)
                 .matches("[0-9a-f]{64}")
                 .isEqualTo(expectedToString)
@@ -110,13 +111,16 @@ public class Sha256HashTest {
                 .isEqualByComparingTo(Sha256Hash.computeHash(inputBytes));
 
         assertThat(hash.getBytes()).isEqualTo(expectedSha256Bytes(inputBytes));
+
         assertThat(hash.serializeToHexString())
                 .isEqualTo(legacyHex(hash.getBytes()))
                 .isEqualTo("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
 
-        String legacyHexEncoded = legacyHex(hash.getBytes());
-        assertThat(hash.serializeToHexString()).isEqualTo(legacyHexEncoded);
-        assertThat(Sha256Hash.computeHash(inputBytes).toString()).isEqualTo("EMPTY");
+        assertThat(hash)
+                .asString()
+                .isEqualTo("EMPTY")
+                .isEqualTo(hash.toString())
+                .isEqualTo(Sha256Hash.computeHash(inputBytes).toString());
     }
 
     private static String expectedSha256Hex(byte[] input) {
