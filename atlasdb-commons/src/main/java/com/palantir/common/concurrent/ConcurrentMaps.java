@@ -16,14 +16,19 @@
 
 package com.palantir.common.concurrent;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 public final class ConcurrentMaps {
 
+    private static final float DEFAULT_LOAD_FACTOR = 0.75f;
+    private static final int INVERSE_CONTENTION_PROBABILITY = 8;
+
     /**
      * Returns a new mutable {@link ConcurrentMap} with capacity to
-     * Increase the initial capacity to reduce contention at startup.
+     * Increase the initial capacity to reduce contention at startup when concurrently adding elements.
+     * <p>
      * See <a href="https://github.com/ben-manes/caffeine/pull/218">Caffeine PR 218</a>,
      * <a href="https://github.com/ben-manes/caffeine/wiki/Faq">Caffeine FAQ</a>,
      * <a href="https://github.com/openjdk/jdk/blob/jdk-21-ga/src/java.base/share/classes/java/util/concurrent/ConcurrentHashMap.java#L348-L349">ConcurrentHashMap comments</a>:
@@ -34,7 +39,18 @@ public final class ConcurrentMaps {
      * @param expectedEntries number of expected entries
      */
     public static <K, V> ConcurrentMap<K, V> newWithExpectedEntries(int expectedEntries) {
-        return new ConcurrentHashMap<>(expectedEntries * (/* contention probability */ 8 * /* load factor */ 3 / 4));
+        int concurrencyLevel = Math.max(1, Runtime.getRuntime().availableProcessors());
+        return new ConcurrentHashMap<>(initialCapacity(expectedEntries), DEFAULT_LOAD_FACTOR, concurrencyLevel);
+    }
+
+    @VisibleForTesting
+    static int initialCapacity(int expectedEntries) {
+        return Math.max(0, (int) ((expectedEntries * (INVERSE_CONTENTION_PROBABILITY * DEFAULT_LOAD_FACTOR)) - 1));
+    }
+
+    @VisibleForTesting
+    static int expectedArraySize(int initialCapacity) {
+        return Math.max(1, (-1 >>> Integer.numberOfLeadingZeros(initialCapacity - 1)) + 1);
     }
 
     private ConcurrentMaps() {}
