@@ -21,13 +21,19 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.sweep.Sweeper;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.immutables.value.Value;
 
 public class SweepQueueDeleter {
     private static final SafeLogger log = SafeLoggerFactory.get(SweepQueueDeleter.class);
@@ -35,11 +41,17 @@ public class SweepQueueDeleter {
     private final KeyValueService kvs;
     private final TargetedSweepFollower follower;
     private final TargetedSweepFilter filter;
+    private final Supplier<Map<TableReference, LogSafety>> tablesToTrackDeletions;
 
-    SweepQueueDeleter(KeyValueService kvs, TargetedSweepFollower follower, TargetedSweepFilter filter) {
+    SweepQueueDeleter(
+            KeyValueService kvs,
+            TargetedSweepFollower follower,
+            TargetedSweepFilter filter,
+            Supplier<Map<TableReference, LogSafety>> tablesToTrackDeletions) {
         this.kvs = kvs;
         this.follower = follower;
         this.filter = filter;
+        this.tablesToTrackDeletions = tablesToTrackDeletions;
     }
 
     /**
@@ -68,7 +80,26 @@ public class SweepQueueDeleter {
                                 kvs.addGarbageCollectionSentinelValues(
                                         entry.getKey(), maxTimestampByCellPartition.keySet());
                             }
-                            kvs.deleteAllTimestamps(entry.getKey(), maxTimestampByCellPartition);
+
+                            maybeLogOperationOnCells(
+                                    "Performing kvs.deleteAllTimestamps for table {}, cells {}.",
+                                    entry.getKey(),
+                                    maxTimestampByCellPartition.keySet());
+
+                            try {
+                                kvs.deleteAllTimestamps(entry.getKey(), maxTimestampByCellPartition);
+                            } catch (RuntimeException failure) {
+                                maybeLogOperationOnCells(
+                                        "Failed to perform kvs.deleteAllTimestamps for table {}, cells {}.",
+                                        entry.getKey(),
+                                        maxTimestampByCellPartition.keySet(),
+                                        failure);
+                            }
+
+                            maybeLogOperationOnCells(
+                                    "Performed kvs.deleteAllTimestamps for table {}, cells {}.",
+                                    entry.getKey(),
+                                    maxTimestampByCellPartition.keySet());
                         });
             } catch (Exception e) {
                 if (SweepQueueUtils.tableWasDropped(entry.getKey(), kvs)) {
@@ -83,11 +114,62 @@ public class SweepQueueDeleter {
         }
     }
 
+    private void maybeLogOperationOnCells(String operationMessage, TableReference tableReference, Set<Cell> cells) {
+        LogSafety logSafety = tablesToTrackDeletions.get().get(tableReference);
+        if (logSafety != null) {
+            // The map of tablesToTrackDeletions originates from configuration, and thus is safe.
+            logOperationOnCells(operationMessage, ValidatedSafe.of(tableReference), cells, logSafety);
+        }
+    }
+
+    private void maybeLogOperationOnCells(
+            String operationMessage, TableReference tableReference, Set<Cell> cells, Exception failure) {
+        LogSafety logSafety = tablesToTrackDeletions.get().get(tableReference);
+        if (logSafety != null) {
+            // The map of tablesToTrackDeletions originates from configuration, and thus is safe.
+            logOperationOnCells(operationMessage, ValidatedSafe.of(tableReference), cells, logSafety, failure);
+        }
+    }
+
+    private void logOperationOnCells(
+            String operationMessage,
+            ValidatedSafe<TableReference> safeTableReference,
+            Set<Cell> cells,
+            LogSafety logSafety) {
+        log.info(
+                operationMessage,
+                SafeArg.of("tableReference", safeTableReference.underlying()),
+                logSafety == LogSafety.SAFE ? SafeArg.of("cells", cells) : UnsafeArg.of("cells", cells));
+    }
+
+    private void logOperationOnCells(
+            String operationMessage,
+            ValidatedSafe<TableReference> safeTableReference,
+            Set<Cell> cells,
+            LogSafety logSafety,
+            Exception failure) {
+        log.info(
+                operationMessage,
+                SafeArg.of("tableReference", safeTableReference.underlying()),
+                logSafety == LogSafety.SAFE ? SafeArg.of("cells", cells) : UnsafeArg.of("cells", cells),
+                failure);
+    }
+
     private Map<TableReference, Map<Cell, TimestampRangeDelete>> writesPerTable(
             Collection<WriteInfo> writes, Sweeper sweeper) {
         return writes.stream()
                 .collect(Collectors.groupingBy(
                         info -> info.writeRef().get().tableRef(),
                         Collectors.toMap(info -> info.writeRef().get().cell(), write -> write.toDelete(sweeper))));
+    }
+
+    @Value.Immutable
+    interface ValidatedSafe<T> {
+        @Value.Parameter
+        T underlying();
+
+        static <T> ValidatedSafe<T> of(T underlying) {
+            return ImmutableValidatedSafe.of(underlying);
+        }
     }
 }

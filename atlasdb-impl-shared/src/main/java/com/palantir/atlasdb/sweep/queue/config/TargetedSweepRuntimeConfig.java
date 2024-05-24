@@ -19,10 +19,13 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
+import java.util.Map;
 import org.immutables.value.Value;
 import org.immutables.value.Value.Default;
 
@@ -103,13 +106,20 @@ public abstract class TargetedSweepRuntimeConfig {
     /**
      * This parameter can be set to set the batch size threshold that an iteration of targeted sweep will try not to
      * exceed. This value must not exceed {@link SweepQueueUtils#MAX_CELLS_DEDICATED}.
-     *
+     * <p>
      * Must be less than or equal to {@link com.palantir.atlasdb.sweep.queue.SweepQueueUtils#SWEEP_BATCH_SIZE}
      */
     @Default
     public int batchCellThreshold() {
         return SweepQueueUtils.SWEEP_BATCH_SIZE;
     }
+
+    /**
+     * We will log information about deletions for tables present in this map.
+     * The log safety here pertains to the safety of the cells being swept (and not the values).
+     */
+    @Value.Default
+    public abstract Map<TableReference, LogSafety> tablesToTrackDeletions();
 
     @Value.Check
     public void checkPauseDuration() {

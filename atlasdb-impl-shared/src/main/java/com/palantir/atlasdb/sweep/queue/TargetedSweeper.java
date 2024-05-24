@@ -190,7 +190,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 ReadBatchingRuntimeContext.builder()
                         .maximumPartitions(this::getPartitionBatchLimit)
                         .cellsThreshold(() -> runtime.get().batchCellThreshold())
-                        .build());
+                        .build(),
+                Suppliers.compose(TargetedSweepRuntimeConfig::tablesToTrackDeletions, runtime::get));
         timestampsSupplier = timestamps;
         timeLock = timelockService;
         lastSweptTimestampUpdater = new LastSweptTimestampUpdater(
