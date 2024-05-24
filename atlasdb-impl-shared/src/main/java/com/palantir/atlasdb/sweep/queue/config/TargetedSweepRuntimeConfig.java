@@ -118,7 +118,6 @@ public abstract class TargetedSweepRuntimeConfig {
      * We will log information about deletions for tables present in this map.
      * The log safety here pertains to the safety of the cells being swept (and not the values).
      */
-    @Value.Default
     public abstract Map<TableReference, LogSafety> tablesToTrackDeletions();
 
     @Value.Check
