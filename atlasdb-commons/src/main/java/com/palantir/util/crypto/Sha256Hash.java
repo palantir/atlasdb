@@ -15,6 +15,7 @@
  */
 package com.palantir.util.crypto;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hasher;
 import com.google.common.io.BaseEncoding;
@@ -41,6 +42,7 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
     /** The hash of an empty byte array, which can be used as a sentinel value. */
     public static final Sha256Hash EMPTY = Sha256Hash.computeHash(new byte[0]);
 
+    @VisibleForTesting
     static final BaseEncoding LOWER_CASE_HEX = BaseEncoding.base16().lowerCase();
 
     private final byte[] bytes;
