@@ -34,7 +34,7 @@ public final class ConcurrentMaps {
      * @param expectedEntries number of expected entries
      */
     public static <K, V> ConcurrentMap<K, V> newWithExpectedEntries(int expectedEntries) {
-        return new ConcurrentHashMap<>(expectedEntries * 8);
+        return new ConcurrentHashMap<>(expectedEntries * (/* contention probability */ 8 * /* load factor */ 3 / 4));
     }
 
     private ConcurrentMaps() {}
