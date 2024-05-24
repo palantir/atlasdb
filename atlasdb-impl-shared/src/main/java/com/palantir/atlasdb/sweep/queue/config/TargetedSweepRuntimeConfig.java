@@ -106,7 +106,7 @@ public abstract class TargetedSweepRuntimeConfig {
     /**
      * This parameter can be set to set the batch size threshold that an iteration of targeted sweep will try not to
      * exceed. This value must not exceed {@link SweepQueueUtils#MAX_CELLS_DEDICATED}.
-     * <p>
+     *
      * Must be less than or equal to {@link com.palantir.atlasdb.sweep.queue.SweepQueueUtils#SWEEP_BATCH_SIZE}
      */
     @Default
