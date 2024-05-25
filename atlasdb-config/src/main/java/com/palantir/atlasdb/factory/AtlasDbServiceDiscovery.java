@@ -22,7 +22,7 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig;
 import com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory;
 import com.palantir.atlasdb.timestamp.DbTimeLockFactory;
-import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManagerFactory;
+import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManagerFactory;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.ServiceLoader;
