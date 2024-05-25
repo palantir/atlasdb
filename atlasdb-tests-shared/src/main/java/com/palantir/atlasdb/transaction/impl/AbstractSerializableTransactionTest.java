@@ -41,7 +41,6 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.Streams;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
@@ -172,14 +171,13 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AbstractTransactionTest.GET_RANGES_EXECUTOR,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 getSweepQueueWriterInitialized(),
-                new DefaultDeleteExecutor(
-                        transactionKeyValueServiceManager.getKeyValueService().orElseThrow(),
-                        MoreExecutors.newDirectExecutorService()),
+                deleteExecutor,
                 true,
                 transactionConfigSupplier,
                 ConflictTracer.NO_OP,
                 new SimpleTableLevelMetricsController(metricsManager),
                 knowledge,
+                keyValueSnapshotReaderManager,
                 commitTimestampLoaderFactory.createCommitTimestampLoader(
                         startTimestampSupplier, 0L, options.immutableLockToken)) {
             @Override
