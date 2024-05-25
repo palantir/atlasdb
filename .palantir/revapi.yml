@@ -79,6 +79,24 @@ acceptedBreaks:
     - code: "java.method.addedToInterface"
       new: "method boolean com.palantir.atlasdb.cell.api.TransactionKeyValueService::isValid(long)"
       justification: "internal API"
+  "0.1066.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.numberOfParametersChanged"
+      old: "method com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager\
+        \ com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory<T>::create(java.lang.String,\
+        \ com.palantir.dialogue.clients.DialogueClients.ReloadingFactory, com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.coordination.CoordinationService<T>, com.palantir.atlasdb.spi.KeyValueServiceManager,\
+        \ com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig, com.palantir.refreshable.Refreshable<com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig>,\
+        \ boolean)"
+      new: "method com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager\
+        \ com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory<T>::create(java.lang.String,\
+        \ com.palantir.dialogue.clients.DialogueClients.ReloadingFactory, com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.coordination.CoordinationService<T>, com.palantir.atlasdb.spi.KeyValueServiceManager,\
+        \ com.palantir.atlasdb.spi.KeyValueServiceConfig, com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig,\
+        \ com.palantir.refreshable.Refreshable<com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig>,\
+        \ boolean)"
+      justification: "TransactionKeyValueServiceManager api has not been finalized\
+        \ yet"
   "0.1073.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.method.parameterTypeChanged"
