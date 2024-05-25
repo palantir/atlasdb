@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.atlasdb.transaction.api.snapshot;
 
 import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
+import com.palantir.atlasdb.transaction.api.DeleteExecutor;
+import com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 

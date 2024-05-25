@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.api;
+package com.palantir.atlasdb.transaction.api.snapshot;
 
+import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
+import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator;
 import com.palantir.atlasdb.transaction.api.precommit.ReadSnapshotValidator;
 import java.util.function.LongSupplier;

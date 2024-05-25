@@ -31,7 +31,7 @@ import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
-import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager;
+import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.impl.CachingTestTransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;

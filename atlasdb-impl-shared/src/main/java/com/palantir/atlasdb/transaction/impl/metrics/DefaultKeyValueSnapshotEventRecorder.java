@@ -19,7 +19,7 @@ package com.palantir.atlasdb.transaction.impl.metrics;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.AtlasDbMetricNames.CellFilterMetrics;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.transaction.api.KeyValueSnapshotEventRecorder;
+import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotEventRecorder;
 import com.palantir.atlasdb.util.MetricsManager;
 
 public final class DefaultKeyValueSnapshotEventRecorder implements KeyValueSnapshotEventRecorder {
