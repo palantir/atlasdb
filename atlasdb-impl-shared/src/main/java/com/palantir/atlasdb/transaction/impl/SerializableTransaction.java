@@ -59,6 +59,8 @@ import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.DeleteExecutor;
+import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -169,6 +171,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             ConflictTracer conflictTracer,
             TableLevelMetricsController tableLevelMetricsController,
             TransactionKnowledgeComponents knowledge,
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager,
             CommitTimestampLoader commitTimestampLoader) {
         super(
                 metricsManager,
@@ -197,6 +200,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 conflictTracer,
                 tableLevelMetricsController,
                 knowledge,
+                keyValueSnapshotReaderManager,
                 commitTimestampLoader);
     }
 
@@ -909,6 +913,8 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     private Transaction getReadOnlyTransaction(final long commitTs) {
+        CommitTimestampLoader readValidationLoader = new ReadValidationCommitTimestampLoader(
+                commitTimestampLoader, getTimestamp(), commitTs, transactionOutcomeMetrics);
         return new SnapshotTransaction(
                 metricsManager,
                 transactionKeyValueService,
@@ -921,7 +927,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 sweepStrategyManager,
                 immutableTimestamp,
                 Optional.empty(),
-                PreCommitConditions.NO_OP,
+                PreCommitConditions.NO_OP, // This will be checked by the enclosing write transaction.
                 AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING,
                 transactionReadTimeoutMillis,
                 getReadSentinelBehavior(),
@@ -936,8 +942,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 conflictTracer,
                 tableLevelMetricsController,
                 knowledge,
-                new ReadValidationCommitTimestampLoader(
-                        commitTimestampLoader, getTimestamp(), commitTs, transactionOutcomeMetrics)) {
+                keyValueSnapshotReaderManager,
+                readValidationLoader) {
             @Override
             protected TransactionScopedCache getCache() {
                 return lockWatchManager.getReadOnlyTransactionScopedCache(SerializableTransaction.this.getTimestamp());
