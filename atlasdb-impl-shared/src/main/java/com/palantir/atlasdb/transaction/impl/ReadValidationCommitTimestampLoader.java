@@ -21,18 +21,20 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.transaction.impl.SerializableTransaction.PartitionedTimestamps;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
+import java.util.List;
 import javax.annotation.Nullable;
 import org.eclipse.collections.api.LongIterable;
-import org.eclipse.collections.api.factory.primitive.LongLongMaps;
-import org.eclipse.collections.api.factory.primitive.LongSets;
 import org.eclipse.collections.api.map.primitive.LongLongMap;
 import org.eclipse.collections.api.map.primitive.MutableLongLongMap;
 import org.eclipse.collections.api.set.primitive.LongSet;
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
+import org.eclipse.collections.impl.factory.primitive.LongLongMaps;
+import org.eclipse.collections.impl.factory.primitive.LongSets;
 
 /**
  * Loads commit timestamps for read validation, considering a simulated state of the world where the serializable
@@ -124,7 +126,8 @@ public final class ReadValidationCommitTimestampLoader implements CommitTimestam
                             "An uncommitted conflicting read was written after our start timestamp for table "
                                     + tableRef + ".  This case can cause deadlock and is very likely to be a "
                                     + "read write conflict.",
-                            tableRef);
+                            tableRef,
+                            List.of(LoggingArgs.tableRef(tableRef)));
                 },
                 MoreExecutors.directExecutor());
     }

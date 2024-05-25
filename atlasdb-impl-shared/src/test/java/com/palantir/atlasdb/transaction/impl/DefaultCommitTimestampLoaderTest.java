@@ -43,8 +43,8 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import org.eclipse.collections.api.factory.primitive.LongLists;
 import org.eclipse.collections.api.map.primitive.LongLongMap;
+import org.eclipse.collections.impl.factory.primitive.LongLists;
 import org.junit.jupiter.api.Test;
 
 public class DefaultCommitTimestampLoaderTest {

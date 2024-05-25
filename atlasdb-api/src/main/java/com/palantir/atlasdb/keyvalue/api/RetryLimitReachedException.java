@@ -16,35 +16,38 @@
 
 package com.palantir.atlasdb.keyvalue.api;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import com.palantir.common.annotations.ImmutablesStyles.PackageVisibleImmutablesStyle;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.SafeLoggable;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
+import org.immutables.value.Value;
 
 public class RetryLimitReachedException extends AtlasDbDependencyException implements SafeLoggable {
 
     private static final String MESSAGE = "Request was retried and failed each time for the request.";
 
     private final int numRetries;
-    private final Map<String, Integer> hostsTried;
+    private final List<AttemptedTarget> attemptedTargets;
 
     public RetryLimitReachedException(List<Exception> exceptions) {
         super(MESSAGE);
         exceptions.forEach(this::addSuppressed);
         this.numRetries = exceptions.size();
-        this.hostsTried = ImmutableMap.of();
+        this.attemptedTargets = ImmutableList.of();
     }
 
-    public RetryLimitReachedException(List<Exception> exceptions, Map<String, Integer> hostsTried) {
+    public RetryLimitReachedException(List<Exception> exceptions, List<AttemptedTarget> attemptedTargets) {
         super(MESSAGE);
         exceptions.forEach(this::addSuppressed);
         this.numRetries = exceptions.size();
-        this.hostsTried = hostsTried;
+        this.attemptedTargets = ImmutableList.copyOf(attemptedTargets);
     }
 
     public <E extends Exception> boolean suppressed(Class<E> type) {
@@ -58,7 +61,25 @@ public class RetryLimitReachedException extends AtlasDbDependencyException imple
 
     @Override
     public List<Arg<?>> getArgs() {
-        return ImmutableList.of(
-                SafeArg.of("numRetries", numRetries), SafeArg.of("hostsToNumAttemptsTried", hostsTried));
+        return ImmutableList.of(SafeArg.of("numRetries", numRetries), SafeArg.of("attemptedTargets", attemptedTargets));
+    }
+
+    @Value.Immutable(builder = false)
+    @PackageVisibleImmutablesStyle
+    @JsonDeserialize(as = ImmutableAttemptedTarget.class)
+    @JsonSerialize(as = ImmutableAttemptedTarget.class)
+    public interface AttemptedTarget {
+
+        @JsonProperty("name")
+        @Value.Parameter
+        String name();
+
+        @JsonProperty("attempts")
+        @Value.Parameter
+        int attempts();
+
+        static AttemptedTarget of(String name, int attempts) {
+            return ImmutableAttemptedTarget.of(name, attempts);
+        }
     }
 }

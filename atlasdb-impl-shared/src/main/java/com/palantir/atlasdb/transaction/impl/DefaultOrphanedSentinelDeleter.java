@@ -40,11 +40,15 @@ public final class DefaultOrphanedSentinelDeleter implements OrphanedSentinelDel
 
     @Override
     public void scheduleSentinelsForDeletion(TableReference tableReference, Set<Cell> orphanedSentinels) {
-        if (sweepStrategyProvider
+        if (orphanedSentinels.isEmpty()) {
+            return;
+        }
+        boolean tableIsKnownToBeThoroughlySwept = sweepStrategyProvider
                 .apply(tableReference)
                 .getSweeperStrategy()
                 .map(sweeperStrategy -> sweeperStrategy == SweeperStrategy.THOROUGH)
-                .orElse(false)) {
+                .orElse(false);
+        if (tableIsKnownToBeThoroughlySwept) {
             Map<Cell, Long> sentinels = KeyedStream.of(orphanedSentinels)
                     .map(_ignore -> Value.INVALID_VALUE_TIMESTAMP)
                     .collectToMap();

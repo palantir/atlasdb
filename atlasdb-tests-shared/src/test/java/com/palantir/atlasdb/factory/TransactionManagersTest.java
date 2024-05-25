@@ -141,8 +141,8 @@ public class TransactionManagersTest {
     private final TimeLockMigrator migrator = mock(TimeLockMigrator.class);
     private final LockAndTimestampServices lockAndTimestampServices = mock(LockAndTimestampServices.class);
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
-    private final DialogueClients.ReloadingFactory reloadingFactory = DialogueClients.create(
-            Refreshable.only(ServicesConfigBlock.builder().build()));
+    private final DialogueClients.ReloadingFactory reloadingFactory =
+            DialogueClients.create(Refreshable.only(ServicesConfigBlock.empty()));
 
     private int availablePort;
 
@@ -698,8 +698,7 @@ public class TransactionManagersTest {
                         config,
                         refreshableRuntimeConfig,
                         USER_AGENT,
-                        DialogueClients.create(
-                                Refreshable.only(ServicesConfigBlock.builder().build())));
+                        DialogueClients.create(Refreshable.only(ServicesConfigBlock.empty())));
         ConjureTimeLockClientFeedback feedbackReport = ConjureTimeLockClientFeedback.builder()
                 .atlasVersion("1.0")
                 .serviceName("service")

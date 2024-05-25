@@ -33,7 +33,7 @@ import java.util.concurrent.ExecutorService;
 public final class LockServices {
     // No need for services config block since timelock server uris come from runtime config.
     private static final Refreshable<ServicesConfigBlock> DUMMY_SERVICES_CONFIG =
-            Refreshable.only(ServicesConfigBlock.builder().build());
+            Refreshable.only(ServicesConfigBlock.empty());
 
     private LockServices() {
         // static factory

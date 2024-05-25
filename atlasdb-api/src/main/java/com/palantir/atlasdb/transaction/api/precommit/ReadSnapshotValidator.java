@@ -41,6 +41,8 @@ public interface ReadSnapshotValidator {
 
     boolean doesTableRequirePreCommitValidation(TableReference tableRef, boolean allPossibleCellsReadAndPresent);
 
+    void disableValidatingLocksOnReads();
+
     enum ValidationState {
         COMPLETELY_VALIDATED,
         NOT_COMPLETELY_VALIDATED

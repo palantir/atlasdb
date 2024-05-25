@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: SnapshotTransaction no longer throws when reading a bare sentinel covered
+    by an aborted value, which can happen post-table truncation or restores if subsequent
+    transactions fail.
+  links:
+  - https://github.com/palantir/atlasdb/pull/7055

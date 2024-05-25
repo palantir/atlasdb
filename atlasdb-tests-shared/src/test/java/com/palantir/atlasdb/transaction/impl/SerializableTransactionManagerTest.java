@@ -286,7 +286,7 @@ public class SerializableTransactionManagerTest {
                 mock(TransactionService.class),
                 () -> null, // constraintMode
                 null, // conflictDetectionManager
-                null, // sweepStrategyManager
+                ThrowingSweepStrategyManager.INSTANCE, // sweepStrategyManager
                 mockCleaner,
                 mockInitializer::isInitialized,
                 false, // allowHiddenTableAccess

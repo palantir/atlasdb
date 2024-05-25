@@ -32,31 +32,36 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * In general, transactions reading CONSERVATIVE swept tables may encounter read sentinels if sweep has cleaned up
+ * values which they attempted to read. This can be because they are long-running and need to retry; there also
+ * exist situations where the read sentinel is a result of other operations running on the underlying key-value-service.
+ */
 public final class ReadSentinelHandler {
+    private final TransactionKeyValueService transactionKeyValueService;
     private final TransactionService transactionService;
     private final TransactionReadSentinelBehavior readSentinelBehavior;
     private final OrphanedSentinelDeleter orphanedSentinelDeleter;
 
     public ReadSentinelHandler(
+            TransactionKeyValueService transactionKeyValueService,
             TransactionService transactionService,
             TransactionReadSentinelBehavior readSentinelBehavior,
             OrphanedSentinelDeleter orphanedSentinelDeleter) {
+        this.transactionKeyValueService = transactionKeyValueService;
         this.transactionService = transactionService;
         this.readSentinelBehavior = readSentinelBehavior;
         this.orphanedSentinelDeleter = orphanedSentinelDeleter;
     }
 
     /**
-     * A sentinel becomes orphaned if the table has been truncated between the time where the write occurred and where
-     * it was truncated. In this case, there is a chance that we end up with a sentinel with no valid AtlasDB cell
-     * covering it. In this case, we ignore it.
+     * A sentinel becomes orphaned if the table has been truncated while an old value was being swept; there is a
+     * chance that we end up with a sentinel with no valid AtlasDB cell covering it. In this case, we ignore it.
      */
-    public Set<Cell> findAndMarkOrphanedSweepSentinelsForDeletion(
-            TransactionKeyValueService transactionKeyValueService, TableReference table, Map<Cell, Value> rawResults) {
+    public Set<Cell> findAndMarkOrphanedSweepSentinelsForDeletion(TableReference table, Map<Cell, Value> rawResults) {
         Set<Cell> sweepSentinels = Maps.filterValues(rawResults, ReadSentinelHandler::isSweepSentinel)
                 .keySet();
         if (sweepSentinels.isEmpty()) {
@@ -88,7 +93,7 @@ public final class ReadSentinelHandler {
                 break;
             }
             Set<Long> committedStartTimestamps = KeyedStream.stream(transactionService.get(cellsToQuery.values()))
-                    .filter(Objects::nonNull)
+                    .filter(commit -> commit != null && commit != TransactionConstants.FAILED_COMMIT_TS)
                     .keys()
                     .collect(Collectors.toSet());
 
@@ -120,7 +125,7 @@ public final class ReadSentinelHandler {
         }
     }
 
-    private static boolean isSweepSentinel(Value value) {
+    public static boolean isSweepSentinel(Value value) {
         return value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP;
     }
 

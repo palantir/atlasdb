@@ -99,7 +99,6 @@ public class SnapshotTransactionManagerTest {
     @BeforeEach
     public void setUp() {
         timestampService = inMemoryTimelockClassExtension.getManagedTimestampService();
-        SweepStrategyManager sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         snapshotTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -110,7 +109,7 @@ public class SnapshotTransactionManagerTest {
                 mock(TransactionService.class),
                 () -> AtlasDbConstraintCheckingMode.FULL_CONSTRAINT_CHECKING_THROWS_EXCEPTIONS,
                 null,
-                sweepStrategyManager,
+                ThrowingSweepStrategyManager.INSTANCE,
                 cleaner,
                 false,
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
@@ -128,7 +127,7 @@ public class SnapshotTransactionManagerTest {
                         transactionKeyValueServiceManager,
                         mock(TransactionService.class),
                         false,
-                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
+                        new DefaultOrphanedSentinelDeleter(ThrowingSweepStrategyManager.INSTANCE::get, deleteExecutor),
                         deleteExecutor));
     }
 
@@ -173,7 +172,7 @@ public class SnapshotTransactionManagerTest {
                 mock(TransactionService.class),
                 null,
                 null,
-                null,
+                ThrowingSweepStrategyManager.INSTANCE,
                 cleaner,
                 false,
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,
@@ -324,7 +323,7 @@ public class SnapshotTransactionManagerTest {
                 mock(TransactionService.class),
                 () -> null,
                 null,
-                SweepStrategyManagers.createDefault(keyValueService),
+                ThrowingSweepStrategyManager.INSTANCE,
                 cleaner,
                 false,
                 TransactionTestConstants.GET_RANGES_THREAD_POOL_SIZE,

@@ -114,9 +114,9 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-import org.eclipse.collections.api.factory.primitive.LongLongMaps;
 import org.eclipse.collections.api.map.primitive.LongLongMap;
 import org.eclipse.collections.api.set.primitive.LongSet;
+import org.eclipse.collections.impl.factory.primitive.LongLongMaps;
 import org.immutables.value.Value;
 
 /**
@@ -955,7 +955,10 @@ public class SerializableTransaction extends SnapshotTransaction {
         transactionOutcomeMetrics.markReadWriteConflict(tableRef);
         log.info("Serializable conflict", LoggingArgs.tableRef(tableRef));
         throw TransactionSerializableConflictException.create(
-                tableRef, getTimestamp(), System.currentTimeMillis() - timeCreated);
+                tableRef,
+                getTimestamp(),
+                System.currentTimeMillis() - timeCreated,
+                List.of(LoggingArgs.tableRef(tableRef)));
     }
 
     private BatchingVisitable<Map.Entry<Cell, byte[]>> wrapWithColumnRangeChecking(
@@ -963,7 +966,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             BatchColumnRangeSelection columnRangeSelection,
             byte[] row,
             BatchingVisitable<Map.Entry<Cell, byte[]>> visitable) {
-        return new BatchingVisitable<Map.Entry<Cell, byte[]>>() {
+        return new BatchingVisitable<>() {
             @Override
             public <K extends Exception> boolean batchAccept(
                     int batchSize, AbortingVisitor<? super List<Map.Entry<Cell, byte[]>>, K> visitor) throws K {

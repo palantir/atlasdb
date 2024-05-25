@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
+import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
 import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.KeyValueSnapshotReader;
@@ -45,14 +46,17 @@ public class DefaultKeyValueSnapshotReaderManager implements KeyValueSnapshotRea
 
     @Override
     public KeyValueSnapshotReader createKeyValueSnapshotReader(TransactionContext transactionContext) {
-        return new DefaultKeyValueSnapshotReader(
+        TransactionKeyValueService transactionKeyValueService =
                 transactionKeyValueServiceManager.getTransactionKeyValueService(
-                        transactionContext.startTimestampSupplier()),
+                        transactionContext.startTimestampSupplier());
+        return new DefaultKeyValueSnapshotReader(
+                transactionKeyValueService,
                 transactionService,
                 transactionContext.commitTimestampLoader(),
                 allowHiddenTableAccess,
                 // TODO (jkong): The allocations here feel wasteful. Should we have a cache of some kind?
                 new ReadSentinelHandler(
+                        transactionKeyValueService,
                         transactionService,
                         transactionContext.transactionReadSentinelBehavior(),
                         orphanedSentinelDeleter),

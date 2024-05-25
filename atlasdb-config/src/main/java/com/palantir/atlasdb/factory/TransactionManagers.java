@@ -155,6 +155,7 @@ import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampStoreInvalidator;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import com.palantir.util.EclipseCollections;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -297,6 +298,7 @@ public abstract class TransactionManagers {
         Preconditions.checkState(
                 !(runtimeConfigSupplier().isPresent() && runtimeConfig().isPresent()),
                 "Cannot provide both Refreshable and Supplier of runtime config");
+        EclipseCollections.loadClasses();
     }
 
     /**
@@ -751,8 +753,7 @@ public abstract class TransactionManagers {
     }
 
     private static DialogueClients.ReloadingFactory newMinimalDialogueFactory() {
-        return DialogueClients.create(
-                        Refreshable.only(ServicesConfigBlock.builder().build()))
+        return DialogueClients.create(Refreshable.only(ServicesConfigBlock.empty()))
                 .withBlockingExecutor(PTExecutors.newCachedThreadPool("atlas-dialogue-blocking"));
     }
 

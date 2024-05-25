@@ -44,6 +44,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.errorprone.annotations.MustBeClosed;
+import com.google.errorprone.annotations.RestrictedApi;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
@@ -73,7 +74,6 @@ import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
-import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintException;
 import com.palantir.atlasdb.tracing.TraceStatistics;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -98,6 +98,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutExc
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
+import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.atlasdb.transaction.api.exceptions.SafeTransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsData;
@@ -183,7 +184,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -201,17 +201,16 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.Pair;
-import org.eclipse.collections.api.factory.primitive.LongLists;
-import org.eclipse.collections.api.factory.primitive.LongSets;
 import org.eclipse.collections.api.map.primitive.LongLongMap;
 import org.eclipse.collections.api.set.primitive.ImmutableLongSet;
 import org.eclipse.collections.api.set.primitive.LongSet;
+import org.eclipse.collections.impl.factory.primitive.LongLists;
+import org.eclipse.collections.impl.factory.primitive.LongSets;
 
 /**
  * This implements snapshot isolation for transactions.
@@ -292,7 +291,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final DeleteExecutor deleteExecutor;
     private final Timer.Context transactionTimerContext;
     protected final TransactionOutcomeMetrics transactionOutcomeMetrics;
-    protected final boolean validateLocksOnReads;
+    protected volatile boolean validateLocksOnReads;
     protected final Supplier<TransactionConfig> transactionConfig;
     protected final TableLevelMetricsController tableLevelMetricsController;
     protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
@@ -321,6 +320,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private final SnapshotTransactionMetricFactory snapshotTransactionMetricFactory;
 
     private final KeyValueSnapshotMetricRecorder snapshotEventRecorder;
+    private final ReadSentinelHandler readSentinelHandler;
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
@@ -403,6 +403,11 @@ public class SnapshotTransaction extends AbstractTransaction
         this.readSnapshotValidator = new DefaultReadSnapshotValidator(
                 preCommitRequirementValidator, validateLocksOnReads, sweepStrategyManager, transactionConfig);
         this.commitTimestampLoader = commitTimestampLoader;
+        this.readSentinelHandler = new ReadSentinelHandler(
+                transactionKeyValueService,
+                transactionService,
+                readSentinelBehavior,
+                new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor));
         this.keyValueSnapshotReaderManager = keyValueSnapshotReaderManager;
         this.keyValueSnapshotReader = getDefaultKeyValueSnapshotReader();
     }
@@ -451,6 +456,24 @@ public class SnapshotTransaction extends AbstractTransaction
     @Override
     public void disableReadWriteConflictChecking(TableReference tableRef) {
         conflictDetectionManager.disableReadWriteConflict(tableRef);
+    }
+
+    @RestrictedApi(
+            explanation = "This API is only meant to be used by AtlasDb proxies that want to make use of the "
+                    + "performance improvement that are achievable by avoiding immutable timestamp lock check on reads "
+                    + "and delaying them to commit time. When validation on reads is disabled, it is possible for a "
+                    + "transaction to read values that were thoroughly swept and the transaction would not fail until "
+                    + "validation is done at commit commit time. Disabling validation on reads in situations when a "
+                    + "transaction can potentially have side effects outside the transaction scope (e.g. remote call "
+                    + "to another service) can cause correctness issues. The API is restricted as misuses of it can "
+                    + "cause correctness issues.",
+            link = "https://github.com/palantir/atlasdb/pull/7111",
+            allowedOnPath = ".*/src/test/.*",
+            allowlistAnnotations = {ReviewedRestrictedApiUsage.class})
+    @Override
+    public void disableValidatingLocksOnReads() {
+        this.validateLocksOnReads = false;
+        this.readSnapshotValidator.disableValidatingLocksOnReads();
     }
 
     @Override
@@ -921,8 +944,12 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private Map<Cell, byte[]> removeEmptyColumns(Map<Cell, byte[]> unfiltered, TableReference tableReference) {
         Map<Cell, byte[]> filtered = Maps.filterValues(unfiltered, Predicates.not(Value::isTombstone));
+        // compute filtered size without traversing lazily transformed map `size()` as that allocates entries
+        long filteredCount = unfiltered.values().stream()
+                .filter(Predicates.not(Value::isTombstone))
+                .count();
 
-        int emptyValues = unfiltered.size() - filtered.size();
+        long emptyValues = unfiltered.size() - filteredCount;
         snapshotEventRecorder.recordFilteredEmptyValues(tableReference, emptyValues);
         TraceStatistics.incEmptyValues(emptyValues);
 
@@ -1344,8 +1371,12 @@ public class SnapshotTransaction extends AbstractTransaction
         return Iterators.transform(unfilteredRows, unfilteredRow -> {
             SortedMap<byte[], byte[]> filteredColumns =
                     Maps.filterValues(unfilteredRow.getColumns(), Predicates.not(Value::isTombstone));
+            // compute filtered size without traversing lazily transformed map `size()` as that allocates entries
+            long filteredCount = unfilteredRow.getColumns().values().stream()
+                    .filter(Predicates.not(Value::isTombstone))
+                    .count();
 
-            int emptyValues = unfilteredRow.getColumns().size() - filteredColumns.size();
+            long emptyValues = unfilteredRow.getColumns().size() - filteredCount;
             snapshotEventRecorder.recordFilteredEmptyValues(tableReference, emptyValues);
             TraceStatistics.incEmptyValues(emptyValues);
 
@@ -1525,19 +1556,16 @@ public class SnapshotTransaction extends AbstractTransaction
 
         snapshotEventRecorder.recordCellsRead(tableRef, rawResults.size());
 
-        Collection<Map.Entry<Cell, T>> resultsAccumulator = new ArrayList<>();
-
         if (AtlasDbConstants.HIDDEN_TABLES.contains(tableRef)) {
             Preconditions.checkState(allowHiddenTableAccess, "hidden tables cannot be read in this transaction");
             // hidden tables are used outside of the transaction protocol, and in general have invalid timestamps,
             // so do not apply post-filtering as post-filtering would rollback (actually delete) the data incorrectly
             // this case is hit when reading a hidden table from console
-            for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
-                resultsAccumulator.add(Maps.immutableEntry(e.getKey(), transformer.apply(e.getValue())));
-            }
-            return Futures.immediateFuture(resultsAccumulator);
+            return Futures.immediateFuture(ImmutableList.copyOf(
+                    Maps.transformValues(rawResults, transformer::apply).entrySet()));
         }
 
+        Collection<Map.Entry<Cell, T>> resultsAccumulator = new ArrayList<>();
         return Futures.transformAsync(
                 Futures.immediateFuture(rawResults),
                 resultsToPostFilter -> getWithPostFilteringIterate(
@@ -1570,7 +1598,7 @@ public class SnapshotTransaction extends AbstractTransaction
                                         + " or in the very rare case, could be due to transactions which constantly "
                                         + "conflict but never commit. These values will be cleaned up eventually, but"
                                         + " if the issue persists, ensure that sweep is caught up.",
-                                SafeArg.of("table", tableReference),
+                                LoggingArgs.tableRef(tableReference),
                                 SafeArg.of("maxIterations", MAX_POST_FILTERING_ITERATIONS));
                     }
                     snapshotEventRecorder.recordCellsReturned(tableReference, resultsAccumulator.size());
@@ -1578,72 +1606,6 @@ public class SnapshotTransaction extends AbstractTransaction
                     return Futures.immediateFuture(resultsAccumulator);
                 },
                 MoreExecutors.directExecutor());
-    }
-
-    /**
-     * A sentinel becomes orphaned if the table has been truncated between the time where the write occurred and where
-     * it was truncated. In this case, there is a chance that we end up with a sentinel with no valid AtlasDB cell
-     * covering it. In this case, we ignore it.
-     */
-    private Set<Cell> findOrphanedSweepSentinels(TableReference table, Map<Cell, Value> rawResults) {
-        Set<Cell> sweepSentinels = Maps.filterValues(rawResults, SnapshotTransaction::isSweepSentinel)
-                .keySet();
-        if (sweepSentinels.isEmpty()) {
-            return Collections.emptySet();
-        }
-
-        // for each sentinel, start at long max. Then iterate down with each found uncommitted value.
-        // if committed value seen, stop: the sentinel is not orphaned
-        // if we get back -1, the sentinel is orphaned
-        Map<Cell, Long> timestampCandidates = new HashMap<>(
-                transactionKeyValueService.getLatestTimestamps(table, Maps.asMap(sweepSentinels, x -> Long.MAX_VALUE)));
-        Set<Cell> actualOrphanedSentinels = new HashSet<>();
-
-        while (!timestampCandidates.isEmpty()) {
-            Map<SentinelType, Map<Cell, Long>> sentinelTypeToTimestamps = timestampCandidates.entrySet().stream()
-                    .collect(Collectors.groupingBy(
-                            entry -> entry.getValue() == Value.INVALID_VALUE_TIMESTAMP
-                                    ? SentinelType.DEFINITE_ORPHANED
-                                    : SentinelType.INDETERMINATE,
-                            Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
-
-            Map<Cell, Long> definiteOrphans = sentinelTypeToTimestamps.get(SentinelType.DEFINITE_ORPHANED);
-            if (definiteOrphans != null) {
-                actualOrphanedSentinels.addAll(definiteOrphans.keySet());
-            }
-
-            Map<Cell, Long> cellsToQuery = sentinelTypeToTimestamps.get(SentinelType.INDETERMINATE);
-            if (cellsToQuery == null) {
-                break;
-            }
-            Set<Long> committedStartTimestamps = KeyedStream.stream(
-                            defaultTransactionService.get(cellsToQuery.values()))
-                    .filter(Objects::nonNull)
-                    .keys()
-                    .collect(Collectors.toSet());
-
-            Map<Cell, Long> nextTimestampCandidates = KeyedStream.stream(cellsToQuery)
-                    .filter(cellStartTimestamp -> !committedStartTimestamps.contains(cellStartTimestamp))
-                    .collectToMap();
-            timestampCandidates = transactionKeyValueService.getLatestTimestamps(table, nextTimestampCandidates);
-        }
-
-        deleteOrphanedSentinelsAsync(table, actualOrphanedSentinels);
-
-        return actualOrphanedSentinels;
-    }
-
-    private void deleteOrphanedSentinelsAsync(TableReference table, Set<Cell> actualOrphanedSentinels) {
-        if (sweepQueue.getSweepStrategy(table) == SweeperStrategy.THOROUGH) {
-            Map<Cell, Long> sentinels = KeyedStream.of(actualOrphanedSentinels)
-                    .map(_ignore -> Value.INVALID_VALUE_TIMESTAMP)
-                    .collectToMap();
-            deleteExecutor.scheduleForDeletion(table, sentinels);
-        }
-    }
-
-    private static boolean isSweepSentinel(Value value) {
-        return value.getTimestamp() == Value.INVALID_VALUE_TIMESTAMP;
     }
 
     /**
@@ -1656,7 +1618,8 @@ public class SnapshotTransaction extends AbstractTransaction
             @Output Collection<Map.Entry<Cell, T>> resultsCollector,
             Function<Value, T> transformer,
             TransactionKeyValueService asyncKeyValueService) {
-        Set<Cell> orphanedSentinels = findOrphanedSweepSentinels(tableRef, rawResults);
+        Set<Cell> orphanedSentinels =
+                readSentinelHandler.findAndMarkOrphanedSweepSentinelsForDeletion(tableRef, rawResults);
         LongSet valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
 
         return Futures.transformAsync(
@@ -1688,25 +1651,10 @@ public class SnapshotTransaction extends AbstractTransaction
             Cell key = e.getKey();
             Value value = e.getValue();
 
-            if (isSweepSentinel(value)) {
+            if (ReadSentinelHandler.isSweepSentinel(value)) {
                 snapshotEventRecorder.recordFilteredSweepSentinel(tableRef);
-
-                // This means that this transaction started too long ago. When we do garbage collection,
-                // we clean up old values, and this transaction started at a timestamp before the garbage collection.
-                switch (getReadSentinelBehavior()) {
-                    case IGNORE:
-                        break;
-                    case THROW_EXCEPTION:
-                        if (!orphanedSentinels.contains(key)) {
-                            throw new TransactionFailedRetriableException("Tried to read a value that has been "
-                                    + "deleted. This can be caused by hard delete transactions using the type "
-                                    + TransactionType.AGGRESSIVE_HARD_DELETE
-                                    + ". It can also be caused by transactions taking too long, or"
-                                    + " its locks expired. Retrying it should work.");
-                        }
-                        break;
-                    default:
-                        throw new IllegalStateException("Invalid read sentinel behavior " + getReadSentinelBehavior());
+                if (!orphanedSentinels.contains(key)) {
+                    readSentinelHandler.handleReadSentinel();
                 }
             } else {
                 long theirCommitTimestamp =
@@ -2238,7 +2186,8 @@ public class SnapshotTransaction extends AbstractTransaction
                         getStartTimestamp(),
                         spanningWrites,
                         dominatingWrites,
-                        System.currentTimeMillis() - timeCreated);
+                        System.currentTimeMillis() - timeCreated,
+                        List.of(LoggingArgs.tableRef(tableRef)));
             }
         }
     }
@@ -2249,7 +2198,7 @@ public class SnapshotTransaction extends AbstractTransaction
      * value was written after our start time.
      */
     private void throwIfValueChangedConflict(
-            TableReference table,
+            TableReference tableRef,
             Map<Cell, byte[]> writes,
             Set<CellConflict> spanningWrites,
             Set<CellConflict> dominatingWrites,
@@ -2261,21 +2210,24 @@ public class SnapshotTransaction extends AbstractTransaction
             cellToTs.put(c.getCell(), c.getTheirStart() + 1);
         }
 
-        Map<Cell, byte[]> oldValues = getIgnoringLocalWrites(table, cellToTs.keySet());
+        Map<Cell, byte[]> oldValues = getIgnoringLocalWrites(tableRef, cellToTs.keySet());
         Map<Cell, Value> conflictingValues =
-                AtlasFutures.getUnchecked(transactionKeyValueService.getAsync(table, cellToTs));
+                AtlasFutures.getUnchecked(transactionKeyValueService.getAsync(tableRef, cellToTs));
 
         Set<Cell> conflictingCells = new HashSet<>();
         for (Map.Entry<Cell, Long> cellEntry : cellToTs.entrySet()) {
             Cell cell = cellEntry.getKey();
             if (!writes.containsKey(cell)) {
-                Validate.isTrue(false, "Missing write for cell: %s for table %s", cellToConflict.get(cell), table);
+                Validate.isTrue(false, "Missing write for cell: %s for table %s", cellToConflict.get(cell), tableRef);
             }
             if (!conflictingValues.containsKey(cell)) {
                 // This error case could happen if our locks expired.
                 preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(commitLocksToken, getStartTimestamp());
                 Validate.isTrue(
-                        false, "Missing conflicting value for cell: %s for table %s", cellToConflict.get(cell), table);
+                        false,
+                        "Missing conflicting value for cell: %s for table %s",
+                        cellToConflict.get(cell),
+                        tableRef);
             }
             if (conflictingValues.get(cell).getTimestamp() != (cellEntry.getValue() - 1)) {
                 // This error case could happen if our locks expired.
@@ -2283,7 +2235,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 Validate.isTrue(
                         false,
                         "Wrong timestamp for cell in table %s Expected: %s Actual: %s",
-                        table,
+                        tableRef,
                         cellToConflict.get(cell),
                         conflictingValues.get(cell));
             }
@@ -2297,7 +2249,7 @@ public class SnapshotTransaction extends AbstractTransaction
                         "Another transaction committed to the same cell before us but their value was the same."
                                 + " Cell: {} Table: {}",
                         UnsafeArg.of("cell", cell),
-                        LoggingArgs.tableRef(table));
+                        LoggingArgs.tableRef(tableRef));
             }
         }
         if (conflictingCells.isEmpty()) {
@@ -2305,13 +2257,14 @@ public class SnapshotTransaction extends AbstractTransaction
         }
         Predicate<CellConflict> conflicting =
                 Predicates.compose(Predicates.in(conflictingCells), CellConflict.getCellFunction());
-        transactionOutcomeMetrics.markWriteWriteConflict(table);
+        transactionOutcomeMetrics.markWriteWriteConflict(tableRef);
         throw TransactionConflictException.create(
-                table,
+                tableRef,
                 getStartTimestamp(),
                 Sets.filter(spanningWrites, conflicting),
                 Sets.filter(dominatingWrites, conflicting),
-                System.currentTimeMillis() - timeCreated);
+                System.currentTimeMillis() - timeCreated,
+                List.of(LoggingArgs.tableRef(tableRef)));
     }
 
     /**
@@ -2818,11 +2771,6 @@ public class SnapshotTransaction extends AbstractTransaction
             AssertUtils.assertAndLog(log, false, "Expected state: " + expectedState + "; actual state: " + actualState);
         }
         return tableRefToCells;
-    }
-
-    private enum SentinelType {
-        DEFINITE_ORPHANED,
-        INDETERMINATE;
     }
 
     private final class SuccessCallbackManager {

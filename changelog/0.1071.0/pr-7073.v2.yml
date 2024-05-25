@@ -1,0 +1,10 @@
+type: improvement
+improvement:
+  description: |-
+    Avoid expensive ServiceLoader class loader traversal lookup and attempt to work around possible JDK-8266350 Deadlock with signed jar and loadLibrary.
+
+    See:
+     * https://bugs.openjdk.org/browse/JDK-8266350
+     * https://github.com/netty/netty/issues/11209#issuecomment-829468638
+  links:
+  - https://github.com/palantir/atlasdb/pull/7073

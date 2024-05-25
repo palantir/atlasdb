@@ -90,6 +90,7 @@ dependencies {
   testImplementation project(':lock-api')
   testImplementation project(':lock-api-objects')
   testImplementation project(':timelock-api:timelock-api-objects')
+  testImplementation project(':atlasdb-tests-shared')
 
   annotationProcessor 'org.immutables:value'
   compileOnly 'org.immutables:value::annotations'
