@@ -30,9 +30,10 @@ dependencies {
     exclude group: 'org.apache.httpcomponents'
   }
   implementation ('com.palantir.cassandra:cassandra-thrift')
-  explicitShadow ('com.datastax.cassandra:cassandra-driver-core') {
+  explicitShadow ('com.datastax.oss:java-driver-core') {
     exclude(group: 'com.codahale.metrics', module: 'metrics-core')
   }
+  explicitShadow 'com.datastax.oss:java-driver-query-builder'
   implementation 'org.apache.httpcomponents.client5:httpclient5'
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
   implementation 'com.fasterxml.jackson.core:jackson-databind'

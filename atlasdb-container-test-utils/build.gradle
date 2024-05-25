@@ -18,7 +18,7 @@ dependencies {
     implementation 'com.palantir.docker.proxy:docker-proxy-junit-jupiter'
     implementation 'org.awaitility:awaitility'
     implementation 'io.netty:netty-handler-proxy'
-    implementation 'com.datastax.cassandra:cassandra-driver-core'
+    implementation 'com.datastax.oss:java-driver-core'
     implementation 'com.palantir.refreshable:refreshable'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'

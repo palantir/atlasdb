@@ -42,7 +42,7 @@ dependencies {
         exclude module: 'junit'
         exclude group: 'org.apache.httpcomponents'
     }
-    testImplementation('com.datastax.cassandra:cassandra-driver-core') {
+    testImplementation('com.datastax.oss:java-driver-core') {
         exclude(group: 'com.codahale.metrics', module: 'metrics-core')
     }
 }

@@ -40,7 +40,7 @@ dependencies {
     implementation project(':lock-api-objects')
     implementation project(':timestamp-api')
 
-    testImplementation 'com.datastax.cassandra:cassandra-driver-core'
+    testImplementation 'com.datastax.oss:java-driver-core'
     testImplementation 'com.google.errorprone:error_prone_annotations'
     testImplementation 'com.google.guava:guava'
     testImplementation 'com.palantir.conjure.java.api:ssl-config'

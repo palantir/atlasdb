@@ -10,7 +10,7 @@ dependencies {
     testImplementation 'org.awaitility:awaitility'
     testImplementation 'com.palantir.refreshable:refreshable'
     testImplementation 'org.assertj:assertj-core'
-    testImplementation 'com.datastax.cassandra:cassandra-driver-core'
+    testImplementation 'com.datastax.oss:java-driver-core'
     testImplementation 'org.reflections:reflections'
     testImplementation 'com.palantir.docker.compose:docker-compose-junit-jupiter'
     testImplementation 'org.junit.jupiter:junit-jupiter'

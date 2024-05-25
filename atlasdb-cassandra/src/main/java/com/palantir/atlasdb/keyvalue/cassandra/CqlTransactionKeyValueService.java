@@ -16,14 +16,13 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
-import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
-import com.datastax.driver.core.querybuilder.BuiltStatement;
-import com.datastax.driver.core.querybuilder.Insert;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
-import com.datastax.driver.core.querybuilder.Select.Where;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.SimpleStatement;
+import com.datastax.oss.driver.api.querybuilder.BuildableQuery;
+import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
+import com.datastax.oss.driver.api.querybuilder.relation.Relation;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
@@ -57,11 +56,32 @@ public class CqlTransactionKeyValueService implements TransactionKeyValueService
     private static final String ATLAS_VALUE = "value";
     private static final String[] INSERT_COLUMN_NAMES = {ATLAS_ROW, ATLAS_COLUMN, ATLAS_TIMESTAMP, ATLAS_VALUE};
 
+    private static final BuildableQuery GET_FIRST_BATCH_FOR_RANGES = QueryBuilder.selectFrom("catalog", "files3")
+            .all()
+            .where(
+                    Relation.column(ATLAS_COLUMN).in(QueryBuilder.bindMarker("columnNames")),
+                    Relation.column(ATLAS_ROW).isGreaterThanOrEqualTo(QueryBuilder.bindMarker("startInclusive")),
+                    Relation.column(ATLAS_ROW).isLessThan(QueryBuilder.bindMarker("endExclusive")),
+                    Relation.column(ATLAS_TIMESTAMP).isLessThan(QueryBuilder.bindMarker("timestamp")));
+
+    private static final String GET_FIRST_BATCH_FOR_RANGES_TEMPLATE =
+            """
+            SELECT * FROM %s
+            WHERE column1 IN :columnNames
+                AND key >= :startInclusive
+                AND key < :endExclusive
+                AND column2 < :timestamp
+            """;
+
+    private static String withTableName(String queryTemplate, String tableName) {
+        return String.format(queryTemplate, tableName);
+    }
+
     private final CassandraKeyValueServiceConfig config;
-    private final Session session;
+    private final CqlSession session;
     private final Executor executor;
 
-    public CqlTransactionKeyValueService(CassandraKeyValueServiceConfig config, Session session, Executor executor) {
+    public CqlTransactionKeyValueService(CassandraKeyValueServiceConfig config, CqlSession session, Executor executor) {
         this.config = config;
         this.session = session;
         this.executor = executor;
@@ -70,18 +90,22 @@ public class CqlTransactionKeyValueService implements TransactionKeyValueService
     @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
             TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
+        String query = withTableName(GET_FIRST_BATCH_FOR_RANGES_TEMPLATE, tableRef.getTableName());
         return StreamEx.of(rangeRequests.iterator())
                 .mapToEntry(Function.identity(), rangeRequest -> {
-                    Where query = QueryBuilder.select("*")
-                            .from(config.getKeyspaceOrThrow(), tableRef.getTableName())
-                            .where(QueryBuilder.in(ATLAS_COLUMN, rangeRequest.getColumnNames()))
-                            .and(QueryBuilder.gte(ATLAS_ROW, rangeRequest.getStartInclusive()))
-                            .and(QueryBuilder.lt(ATLAS_ROW, rangeRequest.getEndExclusive()))
-                            .and(QueryBuilder.lt(ATLAS_TIMESTAMP, timestamp));
+                    SimpleStatement simpleStatement = SimpleStatement.newInstance(query);
                     if (rangeRequest.getBatchHint() != null) {
-                        query.setFetchSize(rangeRequest.getBatchHint());
+                        simpleStatement = simpleStatement.setPageSize(rangeRequest.getBatchHint());
                     }
-                    ResultSet resultSet = session.execute(query);
+                    ResultSet resultSet = session.execute(simpleStatement.setNamedValues(Map.of(
+                            "columnNames",
+                            rangeRequest.getColumnNames(),
+                            "startInclusive",
+                            rangeRequest.getStartInclusive(),
+                            "endExclusive",
+                            rangeRequest.getEndExclusive(),
+                            "timestamp",
+                            timestamp)));
                     return (TokenBackedBasicResultsPage<RowResult<Value>, byte[]>) SimpleTokenBackedResultsPage.create(
                             rangeRequest.getStartInclusive(),
                             StreamEx.of(resultSet.iterator()).map(CqlTransactionKeyValueService::rowResultFromRow));
@@ -96,23 +120,32 @@ public class CqlTransactionKeyValueService implements TransactionKeyValueService
             return Map.of();
         }
 
+        String query = withTableName(
+                columnSelection.allColumnsSelected() ? GET_ROWS_ALL_COLUMNS_QUERY_TEMPLATE : GET_ROWS_QUERY_TEMPLATE,
+                tableRef.getTableName());
+
         return StreamEx.of(rows)
-                .flatMap(row -> StreamEx.of(session.execute(getRowsQuery(tableRef, row, timestamp, columnSelection))
+                .flatMap(row -> StreamEx.of(session.execute(query, Map.of("row", row, "timestamp", timestamp))
                         .iterator()))
                 .toMap(CqlTransactionKeyValueService::cellFromRow, CqlTransactionKeyValueService::valueFromRow);
     }
 
+    private static final String GET_ROWS_QUERY_TEMPLATE =
+            """
+            SELECT * FROM %s
+            WHERE key == :row
+                AND column2 < :timestamp
+            """;
+    private static final String GET_ROWS_ALL_COLUMNS_QUERY_TEMPLATE =
+            """
+            SELECT * FROM %s
+            WHERE key == :row
+                AND column1 IN :selectedColumns
+                AND column2 >= :timestamp
+            """;
+
     private BuiltStatement getRowsQuery(
-            TableReference tableRef, Iterable<byte[]> row, long timestamp, ColumnSelection columnSelection) {
-        Where query = QueryBuilder.select("*")
-                .from(config.getKeyspaceOrThrow(), tableRef.getTableName())
-                .where(QueryBuilder.eq(ATLAS_ROW, row))
-                .and(QueryBuilder.lt(ATLAS_TIMESTAMP, timestamp));
-        if (!columnSelection.allColumnsSelected()) {
-            query.and(QueryBuilder.in(ATLAS_COLUMN, columnSelection.getSelectedColumns()));
-        }
-        return query;
-    }
+            TableReference tableRef, Iterable<byte[]> row, long timestamp, ColumnSelection columnSelection) {}
 
     @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
@@ -202,11 +235,12 @@ public class CqlTransactionKeyValueService implements TransactionKeyValueService
 
     private static Cell cellFromRow(Row row) {
         return Cell.create(
-                row.getBytes(ATLAS_ROW).array(), row.getBytes(ATLAS_COLUMN).array());
+                row.getByteBuffer(ATLAS_ROW).array(),
+                row.getByteBuffer(ATLAS_COLUMN).array());
     }
 
     private static Value valueFromRow(Row row) {
-        return Value.create(row.getBytes(ATLAS_VALUE).array(), row.getLong(ATLAS_TIMESTAMP));
+        return Value.create(row.getByteBuffer(ATLAS_VALUE).array(), row.getLong(ATLAS_TIMESTAMP));
     }
 
     private static RowResult<Value> rowResultFromRow(Row row) {
