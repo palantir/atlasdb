@@ -109,6 +109,7 @@ import com.palantir.atlasdb.transaction.api.metrics.KeyValueSnapshotMetricRecord
 import com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator;
 import com.palantir.atlasdb.transaction.api.precommit.ReadSnapshotValidator;
 import com.palantir.atlasdb.transaction.api.precommit.ReadSnapshotValidator.ValidationState;
+import com.palantir.atlasdb.transaction.api.snapshot.ImmutableTransactionContext;
 import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
@@ -116,6 +117,7 @@ import com.palantir.atlasdb.transaction.impl.ImmutableTimestampLockManager.Summa
 import com.palantir.atlasdb.transaction.impl.expectations.CellCountValidator;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingTransactionKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingTransactionKeyValueServiceImpl;
+import com.palantir.atlasdb.transaction.impl.metrics.DefaultKeyValueSnapshotEventRecorder;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultKeyValueSnapshotMetricRecorder;
 import com.palantir.atlasdb.transaction.impl.metrics.SnapshotTransactionMetricFactory;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -124,7 +126,6 @@ import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.impl.precommit.DefaultLockValidityChecker;
 import com.palantir.atlasdb.transaction.impl.precommit.DefaultPreCommitRequirementValidator;
 import com.palantir.atlasdb.transaction.impl.precommit.DefaultReadSnapshotValidator;
-import com.palantir.atlasdb.transaction.impl.snapshot.DefaultKeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -410,16 +411,19 @@ public class SnapshotTransaction extends AbstractTransaction
                 readSentinelBehavior,
                 new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor));
         this.keyValueSnapshotReaderManager = keyValueSnapshotReaderManager;
-        this.keyValueSnapshotReader = new DefaultKeyValueSnapshotReader(
-                transactionKeyValueService,
-                transactionService,
-                commitTimestampLoader,
-                allowHiddenTableAccess,
-                readSentinelHandler,
-                startTimestamp,
-                readSnapshotValidator,
-                deleteExecutor,
-                snapshotEventRecorder);
+        this.keyValueSnapshotReader = getDefaultKeyValueSnapshotReader();
+    }
+
+    private KeyValueSnapshotReader getDefaultKeyValueSnapshotReader() {
+        return keyValueSnapshotReaderManager.createKeyValueSnapshotReader(ImmutableTransactionContext.builder()
+                .startTimestampSupplier(startTimestamp)
+                .transactionReadSentinelBehavior(TransactionReadSentinelBehavior.THROW_EXCEPTION)
+                .commitTimestampLoader(commitTimestampLoader)
+                .preCommitRequirementValidator(preCommitRequirementValidator)
+                .readSnapshotValidator(readSnapshotValidator)
+                .keyValueSnapshotEventRecorder(
+                        DefaultKeyValueSnapshotEventRecorder.create(metricsManager, tableLevelMetricsController))
+                .build());
     }
 
     protected TransactionScopedCache getCache() {
