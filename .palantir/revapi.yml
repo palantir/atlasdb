@@ -144,6 +144,24 @@ acceptedBreaks:
         \ com.palantir.atlasdb.keyvalue.api.TableReference, java.util.List<com.palantir.logsafe.Arg<?>>)"
       justification: "Transaction conflict exceptions are only intended to be instantiated\
         \ internally"
+  "0.1088.0-rc2":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.numberOfParametersChanged"
+      old: "method com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager\
+        \ com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory<T>::create(java.lang.String,\
+        \ com.palantir.dialogue.clients.DialogueClients.ReloadingFactory, com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.coordination.CoordinationService<T>, com.palantir.atlasdb.spi.KeyValueServiceManager,\
+        \ com.palantir.atlasdb.spi.KeyValueServiceConfig, com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig,\
+        \ com.palantir.refreshable.Refreshable<com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig>,\
+        \ boolean)"
+      new: "method com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager\
+        \ com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory<T>::create(java.lang.String,\
+        \ com.palantir.dialogue.clients.DialogueClients.ReloadingFactory, com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.coordination.CoordinationService<T>, com.palantir.atlasdb.spi.KeyValueServiceManager,\
+        \ com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig, com.palantir.refreshable.Refreshable<com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig>,\
+        \ boolean)"
+      justification: "TransactionKeyValueServiceManager api has not been finalized\
+        \ yet"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"
