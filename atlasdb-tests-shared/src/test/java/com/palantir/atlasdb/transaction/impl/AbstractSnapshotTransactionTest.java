@@ -219,13 +219,6 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
     private final String name;
     private final WrapperWithTracker<CallbackAwareTransaction> transactionWrapper;
 
-    // What? We'll remove this when productionising...
-    private final Map<String, ExpectationFactory> expectationsMapping =
-            ImmutableMap.<String, ExpectationFactory>builder()
-                    .put(SYNC, AbstractSnapshotTransactionTest.this::asyncGetExpectation)
-                    .put(ASYNC, AbstractSnapshotTransactionTest.this::asyncGetExpectation)
-                    .buildOrThrow();
-
     // WTF? But there's already a generic ExecutorService called deleteExecutor in the parent class...
     private final DeleteExecutor typedDeleteExecutor = new DefaultDeleteExecutor(keyValueService, deleteExecutor);
 
@@ -3073,7 +3066,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageStartingWith("Unable to filter cells")
                 .hasExactlyArgs(
-                        UnsafeArg.of("tableRef", TABLE_NO_SWEEP.toString()),
+                        SafeArg.of("table", TABLE_NO_SWEEP),
                         SafeArg.of("maxIterations", SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS));
     }
 
