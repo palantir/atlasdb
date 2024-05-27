@@ -296,8 +296,9 @@ public abstract class TransactionManagers {
     @Value.Check
     protected void check() {
         Preconditions.checkState(
-                !(runtimeConfigSupplier().isPresent() && runtimeConfig().isPresent()),
-                "Cannot provide both Refreshable and Supplier of runtime config");
+                Boolean.logicalXor(
+                        runtimeConfigSupplier().isPresent(), runtimeConfig().isPresent()),
+                "Must provide exactly one of either Refreshable or Supplier of runtime config");
         EclipseCollections.loadClasses();
     }
 
@@ -456,6 +457,9 @@ public abstract class TransactionManagers {
                 () -> {
                     TransactionKeyValueServiceManager tkvsm;
                     if (config().transactionKeyValueService().isPresent()) {
+                        Refreshable<Optional<AtlasDbRuntimeConfig>> runtimeConfig = runtimeConfig()
+                                .or(() -> runtimeConfigSupplier().map(supplier -> Refreshable.only(supplier.get())))
+                                .get();
                         TransactionKeyValueServiceManagerFactory<?> tkvsmfFactory =
                                 AtlasDbServiceDiscovery.createTransactionKeyValueServiceManagerFactoryOfCorrectType(
                                         config().transactionKeyValueService().get());
@@ -466,10 +470,11 @@ public abstract class TransactionManagers {
                                 internalKeyValueService,
                                 keyValueServiceManager,
                                 config().transactionKeyValueService().get(),
-                                runtimeConfig().get().map(optionalConfig -> optionalConfig
+                                runtimeConfig.map(optionalConfig -> optionalConfig
                                         .get()
                                         .transactionKeyValueService()
-                                        .get()),
+                                        .orElseThrow(() -> new SafeIllegalArgumentException(
+                                                "TransactionKeyValueServiceRuntimeConfig must be provided"))),
                                 config().initializeAsync());
                     } else {
                         tkvsm = new DelegatingTransactionKeyValueServiceManager(internalKeyValueService);
