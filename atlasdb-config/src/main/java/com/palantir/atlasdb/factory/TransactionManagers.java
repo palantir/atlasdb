@@ -296,9 +296,8 @@ public abstract class TransactionManagers {
     @Value.Check
     protected void check() {
         Preconditions.checkState(
-                Boolean.logicalXor(
-                        runtimeConfigSupplier().isPresent(), runtimeConfig().isPresent()),
-                "Must provide exactly one of either Refreshable or Supplier of runtime config");
+                !(runtimeConfigSupplier().isPresent() && runtimeConfig().isPresent()),
+                "Cannot provide both Refreshable and Supplier of runtime config");
         EclipseCollections.loadClasses();
     }
 
