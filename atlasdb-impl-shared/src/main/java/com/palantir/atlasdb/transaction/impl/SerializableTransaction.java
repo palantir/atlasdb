@@ -949,7 +949,10 @@ public class SerializableTransaction extends SnapshotTransaction {
         transactionOutcomeMetrics.markReadWriteConflict(tableRef);
         log.info("Serializable conflict", LoggingArgs.tableRef(tableRef));
         throw TransactionSerializableConflictException.create(
-                tableRef, getTimestamp(), System.currentTimeMillis() - timeCreated);
+                tableRef,
+                getTimestamp(),
+                System.currentTimeMillis() - timeCreated,
+                List.of(LoggingArgs.tableRef(tableRef)));
     }
 
     private BatchingVisitable<Map.Entry<Cell, byte[]>> wrapWithColumnRangeChecking(
@@ -957,7 +960,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             BatchColumnRangeSelection columnRangeSelection,
             byte[] row,
             BatchingVisitable<Map.Entry<Cell, byte[]>> visitable) {
-        return new BatchingVisitable<Map.Entry<Cell, byte[]>>() {
+        return new BatchingVisitable<>() {
             @Override
             public <K extends Exception> boolean batchAccept(
                     int batchSize, AbortingVisitor<? super List<Map.Entry<Cell, byte[]>>, K> visitor) throws K {

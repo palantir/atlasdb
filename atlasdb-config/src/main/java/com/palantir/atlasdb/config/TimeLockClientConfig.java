@@ -67,6 +67,6 @@ public abstract class TimeLockClientConfig {
     @Value.Check
     protected final void check() {
         Preconditions.checkArgument(
-                !client().isPresent() || !client().get().isEmpty(), "Timelock client string cannot be empty");
+                client().isEmpty() || !client().get().isEmpty(), "Timelock client string cannot be empty");
     }
 }

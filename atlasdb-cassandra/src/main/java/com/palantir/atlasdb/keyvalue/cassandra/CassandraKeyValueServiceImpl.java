@@ -723,9 +723,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                         query,
                                         readConsistencyProvider.getConsistency(tableRef));
 
-                        return Maps.transformValues(results, lists -> lists.stream()
-                                .flatMap(Collection::stream)
-                                .collect(Collectors.toList()));
+                        return Maps.transformValues(results, CellLoader::flattenReadOnlyLists);
                     }
 
                     @Override

@@ -1686,6 +1686,36 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     @Test
+    public void validateLocksOnCommitIfValidationFlagIsDisabledBeforeFirstRead() {
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
+
+        Transaction transaction =
+                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+        transaction.disableValidatingLocksOnReads();
+
+        timelockService.unlock(ImmutableSet.of(res.getLock()));
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
+
+        assertThatExceptionOfType(TransactionLockTimeoutException.class).isThrownBy(transaction::commit);
+    }
+
+    @Test
+    public void doNotValidateLocksOnCommitIfValidationFlagIsDisabledAfterReads() {
+        long transactionTs = timelockService.getFreshTimestamp();
+        LockImmutableTimestampResponse res = timelockService.lockImmutableTimestamp();
+
+        Transaction transaction =
+                getSnapshotTransactionWith(timelockService, () -> transactionTs, res, PreCommitConditions.NO_OP, true);
+        transaction.get(TABLE_SWEPT_THOROUGH, ImmutableSet.of(TEST_CELL));
+
+        transaction.disableValidatingLocksOnReads();
+        timelockService.unlock(ImmutableSet.of(res.getLock()));
+
+        transaction.commit();
+    }
+
+    @Test
     public void skipImmutableTimestampLockCheckIfReadingEqualsExpectedNumberOfValuesEvenWhenRequestedMore() {
         putCellsInTable(List.of(TEST_CELL), TABLE_SWEPT_THOROUGH);
 
