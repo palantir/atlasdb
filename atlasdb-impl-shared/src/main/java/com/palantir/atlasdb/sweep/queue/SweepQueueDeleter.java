@@ -115,7 +115,9 @@ public class SweepQueueDeleter {
     }
 
     private void maybeLogOperationOnCells(
-            @CompileTimeConstant String operationMessage, TableReference tableReference, Map<Cell, TimestampRangeDelete> deletes) {
+            @CompileTimeConstant String operationMessage,
+            TableReference tableReference,
+            Map<Cell, TimestampRangeDelete> deletes) {
         LogSafety logSafety = getLogSafetyForTable(tableReference);
         if (logSafety != null) {
             // The map of tablesToTrackDeletions originates from configuration, and thus is safe.
