@@ -15,6 +15,7 @@
  */
 package com.palantir.util.crypto;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hasher;
 import com.google.common.io.BaseEncoding;
@@ -40,6 +41,9 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
 
     /** The hash of an empty byte array, which can be used as a sentinel value. */
     public static final Sha256Hash EMPTY = Sha256Hash.computeHash(new byte[0]);
+
+    @VisibleForTesting
+    static final BaseEncoding LOWER_CASE_HEX = BaseEncoding.base16().lowerCase();
 
     private final byte[] bytes;
     private transient int hashCode = 0;
@@ -100,11 +104,11 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
     }
 
     public String serializeToHexString() {
-        return BaseEncoding.base16().lowerCase().encode(bytes);
+        return LOWER_CASE_HEX.encode(bytes);
     }
 
     public static Sha256Hash deSerializeFromHexString(String s) {
-        return new Sha256Hash(BaseEncoding.base16().lowerCase().decode(s.toLowerCase(Locale.ROOT)));
+        return new Sha256Hash(LOWER_CASE_HEX.decode(s.toLowerCase(Locale.ROOT)));
     }
 
     public byte[] getBytes() {
@@ -137,11 +141,7 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
             return "EMPTY"; //$NON-NLS-1$
         }
         // Converts the hash into a hexadecimal string.
-        StringBuilder s = new StringBuilder();
-        for (int i = 0; i < bytes.length; ++i) {
-            s.append(String.format("%02x", bytes[i])); // $NON-NLS-1$
-        }
-        return s.toString();
+        return serializeToHexString();
     }
 
     /** Returns a {@link MessageDigest} for computing SHA-256 hashes. */
@@ -164,7 +164,7 @@ public class Sha256Hash implements Serializable, Comparable<Sha256Hash> {
      * Use {@link MessageDigest} prototypes as a workaround for
      * https://bugs.openjdk.java.net/browse/JDK-7092821, similar to Guava's
      * workaround https://github.com/google/guava/issues/1197
-     *
+     * <p>
      * We can remove this once we get to JDK 17, see https://github.com/openjdk/jdk/pull/1933
      */
     // MessageDigest#update() is never called here, so this enum instance is effectively immutable.
