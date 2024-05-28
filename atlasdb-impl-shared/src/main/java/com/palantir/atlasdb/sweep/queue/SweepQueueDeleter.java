@@ -115,7 +115,8 @@ public class SweepQueueDeleter {
         }
     }
 
-    private void maybeLogOperationOnCells(@CompileTimeConstant String operationMessage, TableReference tableReference, Set<Cell> cells) {
+    private void maybeLogOperationOnCells(
+            @CompileTimeConstant String operationMessage, TableReference tableReference, Set<Cell> cells) {
         LogSafety logSafety = tablesToTrackDeletions.get().get(tableReference);
         if (logSafety != null) {
             // The map of tablesToTrackDeletions originates from configuration, and thus is safe.
@@ -124,7 +125,10 @@ public class SweepQueueDeleter {
     }
 
     private void maybeLogOperationOnCells(
-            @CompileTimeConstant String operationMessage, TableReference tableReference, Set<Cell> cells, Exception failure) {
+            @CompileTimeConstant String operationMessage,
+            TableReference tableReference,
+            Set<Cell> cells,
+            Exception failure) {
         LogSafety logSafety = tablesToTrackDeletions.get().get(tableReference);
         if (logSafety != null) {
             // The map of tablesToTrackDeletions originates from configuration, and thus is safe.
