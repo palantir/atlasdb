@@ -316,7 +316,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
-     *                           lock for it because we know that no writers exist.
+     * lock for it because we know that no writers exist.
      * @param preCommitCondition This check must pass for this transaction to commit.
      */
     /* package */ SnapshotTransaction(
@@ -1480,7 +1480,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * This includes deleted writes as zero length byte arrays, be sure to strip them out.
-     *
+     * <p>
      * For the selectedColumns parameter, empty set means all columns. This is unfortunate, but follows the semantics of
      * {@link RangeRequest}.
      */
@@ -1688,7 +1688,7 @@ public class SnapshotTransaction extends AbstractTransaction
             LongLongMap commitTimestamps) {
         Map<Cell, Long> keysToReload = Maps.newHashMapWithExpectedSize(0);
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
-        ImmutableSet.Builder<Cell> keysAddedBuilder = ImmutableSet.builder();
+        Set<Cell> keysAdded = new HashSet<>();
 
         for (Map.Entry<Cell, Value> e : rawResults.entrySet()) {
             Cell key = e.getKey();
@@ -1718,14 +1718,14 @@ public class SnapshotTransaction extends AbstractTransaction
                     snapshotEventRecorder.recordFilteredTransactionCommittingAfterOurStart(tableRef);
                 } else {
                     // The value has a commit timestamp less than our start timestamp, and is visible and valid.
-                    if (value.getContents().length != 0) {
+                    if (!value.isEmpty()) {
                         resultsCollector.add(Maps.immutableEntry(key, transformer.apply(value)));
-                        keysAddedBuilder.add(key);
+                        keysAdded.add(key);
                     }
                 }
             }
         }
-        Set<Cell> keysAddedToResults = keysAddedBuilder.build();
+        Set<Cell> keysAddedToResults = Collections.unmodifiableSet(keysAdded);
 
         if (!keysToDelete.isEmpty()) {
             // if we can't roll back the failed transactions, we should just try again
@@ -1749,9 +1749,7 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private Map<Cell, Value> getRemainingResults(Map<Cell, Value> rawResults, Set<Cell> keysAddedToResults) {
-        Map<Cell, Value> remainingResults = new HashMap<>(rawResults);
-        remainingResults.keySet().removeAll(keysAddedToResults);
-        return remainingResults;
+        return Maps.filterKeys(rawResults, cell -> !keysAddedToResults.contains(cell));
     }
 
     /**
@@ -1895,7 +1893,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     /**
      * Returns true iff the transaction is known to have successfully committed.
-     *
+     * <p>
      * Be careful when using this method! A transaction that the client thinks has failed could actually have
      * committed as far as the key-value service is concerned.
      */
@@ -2587,7 +2585,7 @@ public class SnapshotTransaction extends AbstractTransaction
     /**
      * This will attempt to put the commitTimestamp into the DB.
      *
-     * @throws TransactionLockTimeoutException  If our locks timed out while trying to commit.
+     * @throws TransactionLockTimeoutException If our locks timed out while trying to commit.
      * @throws TransactionCommitFailedException failed when committing in a way that isn't retriable
      */
     private void putCommitTimestamp(long commitTimestamp, LockToken locksToken, TransactionService transactionService)
