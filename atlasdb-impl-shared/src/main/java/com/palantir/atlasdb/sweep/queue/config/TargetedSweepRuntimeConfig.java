@@ -117,8 +117,8 @@ public abstract class TargetedSweepRuntimeConfig {
     }
 
     /**
-     * We will log information about deletions for tables present in this map.
-     * The log safety here pertains to the safety of the cells being swept (and not the values).
+     * Targeted sweep will log information when performing deletions on tables for which this function returns
+     * non-empty. The log safety here pertains to the safety of the cells being swept (and not the values).
      */
     @JsonIgnore
     public abstract Function<TableReference, Optional<LogSafety>> tablesToTrackDeletions();
