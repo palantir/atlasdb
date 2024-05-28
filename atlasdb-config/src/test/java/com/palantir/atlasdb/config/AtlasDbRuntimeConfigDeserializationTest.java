@@ -55,6 +55,10 @@ public class AtlasDbRuntimeConfigDeserializationTest {
 
         assertThat(runtimeConfig.internalSchema().targetTransactionsSchemaVersion())
                 .contains(1);
+
+        assertThat(runtimeConfig.targetedSweep().tablesToTrackDeletions())
+                .as("tablesToTrackDeletions should not have values on a directly deserialized object")
+                .isEmpty();
     }
 
     private void assertSslConfigDeserializedCorrectly(SslConfiguration sslConfiguration) {

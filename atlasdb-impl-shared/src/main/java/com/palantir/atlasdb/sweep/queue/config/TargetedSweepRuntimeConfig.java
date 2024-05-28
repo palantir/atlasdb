@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep.queue.config;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -118,6 +119,7 @@ public abstract class TargetedSweepRuntimeConfig {
      * We will log information about deletions for tables present in this map.
      * The log safety here pertains to the safety of the cells being swept (and not the values).
      */
+    @JsonIgnore
     public abstract Map<TableReference, LogSafety> tablesToTrackDeletions();
 
     @Value.Check
