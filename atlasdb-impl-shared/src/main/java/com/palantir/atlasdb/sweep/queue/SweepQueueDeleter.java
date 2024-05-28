@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import com.google.common.collect.Iterables;
+import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -114,7 +115,7 @@ public class SweepQueueDeleter {
         }
     }
 
-    private void maybeLogOperationOnCells(String operationMessage, TableReference tableReference, Set<Cell> cells) {
+    private void maybeLogOperationOnCells(@CompileTimeConstant String operationMessage, TableReference tableReference, Set<Cell> cells) {
         LogSafety logSafety = tablesToTrackDeletions.get().get(tableReference);
         if (logSafety != null) {
             // The map of tablesToTrackDeletions originates from configuration, and thus is safe.
@@ -123,7 +124,7 @@ public class SweepQueueDeleter {
     }
 
     private void maybeLogOperationOnCells(
-            String operationMessage, TableReference tableReference, Set<Cell> cells, Exception failure) {
+            @CompileTimeConstant String operationMessage, TableReference tableReference, Set<Cell> cells, Exception failure) {
         LogSafety logSafety = tablesToTrackDeletions.get().get(tableReference);
         if (logSafety != null) {
             // The map of tablesToTrackDeletions originates from configuration, and thus is safe.
@@ -132,7 +133,7 @@ public class SweepQueueDeleter {
     }
 
     private void logOperationOnCells(
-            String operationMessage,
+            @CompileTimeConstant String operationMessage,
             ValidatedSafe<TableReference> safeTableReference,
             Set<Cell> cells,
             LogSafety logSafety) {
@@ -143,7 +144,7 @@ public class SweepQueueDeleter {
     }
 
     private void logOperationOnCells(
-            String operationMessage,
+            @CompileTimeConstant String operationMessage,
             ValidatedSafe<TableReference> safeTableReference,
             Set<Cell> cells,
             LogSafety logSafety,
