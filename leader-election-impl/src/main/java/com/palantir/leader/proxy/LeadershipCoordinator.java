@@ -44,7 +44,7 @@ import javax.annotation.Nullable;
  *
  * {@link LeadershipCoordinator} is finally used by {@link AwaitingLeadershipProxy} instances to check if this node
  *  can service requests or not.
- *
+ * <p>
  * {@link LeadershipCoordinator} relies on {@link LeaderElectionService} for the following -
  * 1. To get leadership token if we are already leading
  * 2. To block on becoming the leader if we not the leader anymore
