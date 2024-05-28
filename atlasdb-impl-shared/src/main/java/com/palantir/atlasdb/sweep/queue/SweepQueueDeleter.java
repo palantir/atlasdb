@@ -30,8 +30,8 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
@@ -41,13 +41,13 @@ public class SweepQueueDeleter {
     private final KeyValueService kvs;
     private final TargetedSweepFollower follower;
     private final TargetedSweepFilter filter;
-    private final Supplier<Map<TableReference, LogSafety>> tablesToTrackDeletions;
+    private final Function<TableReference, Optional<LogSafety>> tablesToTrackDeletions;
 
     SweepQueueDeleter(
             KeyValueService kvs,
             TargetedSweepFollower follower,
             TargetedSweepFilter filter,
-            Supplier<Map<TableReference, LogSafety>> tablesToTrackDeletions) {
+            Function<TableReference, Optional<LogSafety>> tablesToTrackDeletions) {
         this.kvs = kvs;
         this.follower = follower;
         this.filter = filter;
@@ -118,11 +118,10 @@ public class SweepQueueDeleter {
             @CompileTimeConstant String operationMessage,
             TableReference tableReference,
             Map<Cell, TimestampRangeDelete> deletes) {
-        LogSafety logSafety = getLogSafetyForTable(tableReference);
-        if (logSafety != null) {
+        getLogSafetyForTable(tableReference).ifPresent(logSafety -> {
             // The map of tablesToTrackDeletions originates from configuration, and thus is safe.
             logOperationOnCells(operationMessage, ValidatedSafe.of(tableReference), deletes, logSafety);
-        }
+        });
     }
 
     private void maybeLogOperationOnCells(
@@ -130,11 +129,10 @@ public class SweepQueueDeleter {
             TableReference tableReference,
             Map<Cell, TimestampRangeDelete> deletes,
             Exception failure) {
-        LogSafety logSafety = getLogSafetyForTable(tableReference);
-        if (logSafety != null) {
+        getLogSafetyForTable(tableReference).ifPresent(logSafety -> {
             // The map of tablesToTrackDeletions originates from configuration, and thus is safe.
             logOperationOnCells(operationMessage, ValidatedSafe.of(tableReference), deletes, logSafety, failure);
-        }
+        });
     }
 
     private void logOperationOnCells(
@@ -169,8 +167,8 @@ public class SweepQueueDeleter {
                         Collectors.toMap(info -> info.writeRef().get().cell(), write -> write.toDelete(sweeper))));
     }
 
-    private LogSafety getLogSafetyForTable(TableReference tableReference) {
-        return tablesToTrackDeletions.get().get(tableReference);
+    private Optional<LogSafety> getLogSafetyForTable(TableReference tableReference) {
+        return tablesToTrackDeletions.apply(tableReference);
     }
 
     @Value.Immutable

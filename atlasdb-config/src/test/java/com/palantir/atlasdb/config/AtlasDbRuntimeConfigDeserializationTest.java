@@ -17,6 +17,7 @@ package com.palantir.atlasdb.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import java.io.File;
 import java.io.IOException;
@@ -56,8 +57,17 @@ public class AtlasDbRuntimeConfigDeserializationTest {
         assertThat(runtimeConfig.internalSchema().targetTransactionsSchemaVersion())
                 .contains(1);
 
-        assertThat(runtimeConfig.targetedSweep().tablesToTrackDeletions())
-                .as("tablesToTrackDeletions should not have values on a directly deserialized object")
+        assertThat(runtimeConfig
+                        .targetedSweep()
+                        .tablesToTrackDeletions()
+                        .apply(TableReference.createFromFullyQualifiedName("atlas.mission_critical_table")))
+                .as("tablesToTrackDeletions should be empty on a deserialized instance of the config")
+                .isEmpty();
+        assertThat(runtimeConfig
+                        .targetedSweep()
+                        .tablesToTrackDeletions()
+                        .apply(TableReference.createFromFullyQualifiedName("atlas.bad_table")))
+                .as("tablesToTrackDeletions should be empty on a deserialized instance of the config")
                 .isEmpty();
     }
 

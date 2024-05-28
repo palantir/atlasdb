@@ -26,7 +26,8 @@ import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
-import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
 import org.immutables.value.Value;
 import org.immutables.value.Value.Default;
 
@@ -120,7 +121,7 @@ public abstract class TargetedSweepRuntimeConfig {
      * The log safety here pertains to the safety of the cells being swept (and not the values).
      */
     @JsonIgnore
-    public abstract Map<TableReference, LogSafety> tablesToTrackDeletions();
+    public abstract Function<TableReference, Optional<LogSafety>> tablesToTrackDeletions();
 
     @Value.Check
     public void checkPauseDuration() {
