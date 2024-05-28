@@ -17,8 +17,14 @@ package com.palantir.atlasdb.timelock.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.common.base.Throwables;
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.conjure.java.api.errors.UnknownRemoteException;
+import com.palantir.dialogue.DialogueException;
+import java.io.IOException;
+import java.net.ConnectException;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 
 public final class ExceptionMatchers {
 
@@ -26,7 +32,16 @@ public final class ExceptionMatchers {
 
     public static void isRetryableExceptionWhereLeaderCannotBeFound(Throwable throwable) {
         assertThat(throwable)
-                .hasRootCauseInstanceOf(QosException.RetryOther.class)
-                .isInstanceOf(UnknownRemoteException.class);
+                .as(
+                        "Exception should be retryable when leader is unavailable: %s\n%s",
+                        throwable, Throwables.getStackTraceAsString(throwable))
+                .isInstanceOfAny(UnknownRemoteException.class, DialogueException.class)
+                .rootCause()
+                .isInstanceOfAny(
+                        QosException.RetryOther.class,
+                        IOException.class,
+                        SocketException.class,
+                        SocketTimeoutException.class,
+                        ConnectException.class);
     }
 }
