@@ -15,14 +15,19 @@
  */
 package com.palantir.atlasdb.sweep.queue.config;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
+import java.util.Optional;
+import java.util.function.Function;
 import org.immutables.value.Value;
 import org.immutables.value.Value.Default;
 
@@ -109,6 +114,15 @@ public abstract class TargetedSweepRuntimeConfig {
     @Default
     public int batchCellThreshold() {
         return SweepQueueUtils.SWEEP_BATCH_SIZE;
+    }
+
+    /**
+     * Targeted sweep will log information when performing deletions on tables for which this function returns
+     * non-empty. The log safety here pertains to the safety of the cells being swept (and not the values).
+     */
+    @JsonIgnore
+    public Function<TableReference, Optional<LogSafety>> tablesToTrackDeletions() {
+        return _unused -> Optional.empty();
     }
 
     @Value.Check

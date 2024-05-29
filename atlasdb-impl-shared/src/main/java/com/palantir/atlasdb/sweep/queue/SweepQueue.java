@@ -19,6 +19,7 @@ import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
@@ -37,8 +38,10 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public final class SweepQueue implements MultiTableSweepQueueWriter {
@@ -74,9 +77,10 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             TransactionService transaction,
             AbandonedTransactionConsumer abortedTransactionConsumer,
             TargetedSweepFollower follower,
-            ReadBatchingRuntimeContext readBatchingRuntimeContext) {
-        SweepQueueFactory factory =
-                SweepQueueFactory.create(metrics, kvs, timelock, shardsConfig, transaction, readBatchingRuntimeContext);
+            ReadBatchingRuntimeContext readBatchingRuntimeContext,
+            Function<TableReference, Optional<LogSafety>> tablesToTrackDeletions) {
+        SweepQueueFactory factory = SweepQueueFactory.create(
+                metrics, kvs, timelock, shardsConfig, transaction, readBatchingRuntimeContext, tablesToTrackDeletions);
         return new SweepQueue(factory, follower, abortedTransactionConsumer);
     }
 
@@ -232,6 +236,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         private final KeyValueService kvs;
         private final TimelockService timelock;
         private final ReadBatchingRuntimeContext readBatchingRuntimeContext;
+        private final Function<TableReference, Optional<LogSafety>> tablesToTrackDeletions;
 
         private SweepQueueFactory(
                 ShardProgress progress,
@@ -242,7 +247,8 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                 TargetedSweepMetrics metrics,
                 KeyValueService kvs,
                 TimelockService timelock,
-                ReadBatchingRuntimeContext readBatchingRuntimeContext) {
+                ReadBatchingRuntimeContext readBatchingRuntimeContext,
+                Function<TableReference, Optional<LogSafety>> tablesToTrackDeletions) {
             this.progress = progress;
             this.numShards = numShards;
             this.cells = cells;
@@ -252,6 +258,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             this.kvs = kvs;
             this.timelock = timelock;
             this.readBatchingRuntimeContext = readBatchingRuntimeContext;
+            this.tablesToTrackDeletions = tablesToTrackDeletions;
         }
 
         static SweepQueueFactory create(
@@ -264,7 +271,14 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             // as transaction services must not hold any local state in them that would affect correctness.
             TransactionService transaction =
                     TransactionServices.createRaw(kvs, new TimelockTimestampServiceAdapter(timelock), false);
-            return create(metrics, kvs, timelock, shardsConfig, transaction, readBatchingRuntimeContext);
+            return create(
+                    metrics,
+                    kvs,
+                    timelock,
+                    shardsConfig,
+                    transaction,
+                    readBatchingRuntimeContext,
+                    _unused -> Optional.empty());
         }
 
         static SweepQueueFactory create(
@@ -273,7 +287,8 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                 TimelockService timelock,
                 Supplier<Integer> shardsConfig,
                 TransactionService transaction,
-                ReadBatchingRuntimeContext readBatchingRuntimeContext) {
+                ReadBatchingRuntimeContext readBatchingRuntimeContext,
+                Function<TableReference, Optional<LogSafety>> tablesToTrackDeletions) {
             Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
             ShardProgress shardProgress = new ShardProgress(kvs);
             Supplier<Integer> shards =
@@ -290,7 +305,8 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                     metrics,
                     kvs,
                     timelock,
-                    readBatchingRuntimeContext);
+                    readBatchingRuntimeContext,
+                    tablesToTrackDeletions);
         }
 
         private SweepQueueWriter createWriter() {
@@ -302,7 +318,11 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         }
 
         private SweepQueueDeleter createDeleter(TargetedSweepFollower follower) {
-            return new SweepQueueDeleter(kvs, follower, new DefaultTableClearer(kvs, timelock::getImmutableTimestamp));
+            return new SweepQueueDeleter(
+                    kvs,
+                    follower,
+                    new DefaultTableClearer(kvs, timelock::getImmutableTimestamp),
+                    tablesToTrackDeletions);
         }
 
         private SweepQueueCleaner createCleaner() {
