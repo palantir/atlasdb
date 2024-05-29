@@ -121,6 +121,7 @@ public abstract class TargetedSweepRuntimeConfig {
      * non-empty. The log safety here pertains to the safety of the cells being swept (and not the values).
      */
     @JsonIgnore
+    @Value.Default
     public Function<TableReference, Optional<LogSafety>> tablesToTrackDeletions() {
         return _unused -> Optional.empty();
     }
