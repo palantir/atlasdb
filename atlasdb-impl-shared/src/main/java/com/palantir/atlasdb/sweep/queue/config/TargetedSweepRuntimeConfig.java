@@ -19,8 +19,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
@@ -28,14 +26,8 @@ import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.immutables.value.Value;
 import org.immutables.value.Value.Default;
 
@@ -129,7 +121,9 @@ public abstract class TargetedSweepRuntimeConfig {
      * non-empty. The log safety here pertains to the safety of the cells being swept (and not the values).
      */
     @JsonIgnore
-    public abstract Function<TableReference, Optional<LogSafety>> tablesToTrackDeletions();
+    public Function<TableReference, Optional<LogSafety>> tablesToTrackDeletions() {
+        return _unused -> Optional.empty();
+    }
 
     @Value.Check
     public void checkPauseDuration() {
