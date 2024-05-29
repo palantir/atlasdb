@@ -153,8 +153,7 @@ public class LeadershipStateManager<T> {
      * LeadershipCoordinator has updated its state. Then, the next request can release the delegateRef in
      * `getOrUpdateLeadershipToken`.
      */
-    NotCurrentLeaderException invalidateStateOnLostLeadership(
-            LeadershipToken leadershipToken, @Nullable Throwable cause) {
+    void invalidateStateOnLostLeadership(final LeadershipToken leadershipToken, @Nullable Throwable cause) {
         if (maybeValidLeadershipTokenRef.compareAndSet(leadershipToken, null)) {
             // We are not clearing delegateTokenRef here. This is fine as we are relying on `getOrUpdateLeadershipToken`
             // to claim the resources for the next request if this node loses leadership.
@@ -166,7 +165,7 @@ public class LeadershipStateManager<T> {
 
             leadershipCoordinator.markAsNotLeading(leadershipToken, cause);
         }
-        return leadershipCoordinator.notCurrentLeaderException(
+        throw leadershipCoordinator.notCurrentLeaderException(
                 "method invoked on a non-leader (leadership lost)", cause);
     }
 

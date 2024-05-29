@@ -113,8 +113,13 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                     // treat a repeated NO_QUORUM as NOT_LEADING; likely we've been cut off from the other nodes
                     // and should assume we're not the leader
                     if (leading == StillLeadingStatus.NOT_LEADING || leading == StillLeadingStatus.NO_QUORUM) {
-                        return Futures.immediateFailedFuture(leadershipStateManager.invalidateStateOnLostLeadership(
-                                leadershipToken, null /* cause */));
+                        return Futures.submitAsync(
+                                () -> {
+                                    leadershipStateManager.invalidateStateOnLostLeadership(
+                                            leadershipToken, null /* cause */);
+                                    throw new AssertionError("should not reach here");
+                                },
+                                executionExecutor);
                     }
 
                     if (isClosed) {
@@ -161,16 +166,15 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
         Throwable cause = exception.getCause();
         if (cause instanceof SuspectedNotCurrentLeaderException) {
             handleSuspectedNotCurrentLeader(leadershipToken, (SuspectedNotCurrentLeaderException) cause);
-        } else if (cause instanceof ServiceNotAvailableException) { // implicitly covers NotCurrentLeaderException
-            throw leadershipStateManager.invalidateStateOnLostLeadership(leadershipToken, cause);
-        } else if (cause instanceof InterruptedException) {
-            Thread.currentThread().interrupt();
-            if (!leadershipCoordinator.isStillCurrentToken(leadershipToken)) {
-                // Prevent blocked lock requests from receiving a non-retryable 500 on interrupts
-                // in case of a leader election.
-                throw leadershipCoordinator.notCurrentLeaderException(
-                        "received an interrupt due to leader election.", cause);
-            }
+        }
+        if (cause instanceof ServiceNotAvailableException) {
+            leadershipStateManager.invalidateStateOnLostLeadership(leadershipToken, cause);
+        }
+        // Prevent blocked lock requests from receiving a non-retryable 500 on interrupts
+        // in case of a leader election.
+        if (cause instanceof InterruptedException && !leadershipCoordinator.isStillCurrentToken(leadershipToken)) {
+            throw leadershipCoordinator.notCurrentLeaderException(
+                    "received an interrupt due to leader election.", cause);
         }
         Throwables.propagateIfPossible(cause, Exception.class);
         throw new RuntimeException(cause);
@@ -200,7 +204,8 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                         SafeArg.of("leadershipToken", leadershipToken),
                         SafeArg.of("leadershipStatus", status),
                         cause);
-                throw leadershipStateManager.invalidateStateOnLostLeadership(leadershipToken, cause);
+                leadershipStateManager.invalidateStateOnLostLeadership(leadershipToken, cause);
+                break;
             default:
                 throw new SafeIllegalStateException("Unexpected StillLeadingStatus", SafeArg.of("status", status));
         }
