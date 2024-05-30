@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.util.AssertUtils;
@@ -36,6 +37,7 @@ public final class PostgresVersionCheck {
 
     private PostgresVersionCheck() {}
 
+    @VisibleForTesting
     static Optional<String> extractValidPostgresVersion(String rawVersionString) {
         Matcher matcher = VERSION_PATTERN.get().matcher(rawVersionString);
         if (matcher.matches()) {
