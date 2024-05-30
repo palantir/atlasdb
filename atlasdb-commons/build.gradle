@@ -21,7 +21,10 @@ dependencies {
     implementation 'com.google.guava:guava'
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'com.palantir.tracing:tracing'
+    implementation 'org.eclipse.collections:eclipse-collections-api'
     implementation 'org.slf4j:slf4j-api'
+
+    runtimeOnly 'org.eclipse.collections:eclipse-collections'
 
     testImplementation 'com.fasterxml.jackson.core:jackson-databind'
     testImplementation 'com.google.errorprone:error_prone_annotations'
@@ -42,4 +45,6 @@ dependencies {
     testImplementation 'org.awaitility:awaitility'
     testImplementation 'org.junit.jupiter:junit-jupiter'
     testImplementation 'org.mockito:mockito-junit-jupiter'
+
+    testRuntimeOnly 'ch.qos.logback:logback-classic'
 }

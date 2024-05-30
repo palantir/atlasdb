@@ -100,11 +100,17 @@ public final class CassandraReloadableKeyValueServiceRuntimeConfig
     }
 
     private void checkPositiveNumberOfThriftHosts() {
-        checkArgument(servers().numberOfThriftHosts() > 0, "'servers' must have at least one defined host");
+        checkArgument(
+                servers().numberOfThriftHosts() > 0,
+                "'servers' must have at least one defined host",
+                SafeArg.of("numberOfThriftHosts", servers().numberOfThriftHosts()));
     }
 
     private void checkNonNegativeReplicationFactor() {
-        checkArgument(replicationFactor() >= 0, "'replicationFactor' must be non-negative");
+        checkArgument(
+                replicationFactor() >= 0,
+                "'replicationFactor' must be non-negative",
+                SafeArg.of("replicationFactor", replicationFactor()));
     }
 
     private void checkSharedGetRangesPoolGreaterThanOrEqualToConcurrentGetRangesThreadPool() {

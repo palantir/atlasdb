@@ -32,6 +32,8 @@ import com.palantir.atlasdb.workload.util.AtlasDbUtils;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -47,6 +49,7 @@ import one.util.streamex.EntryStream;
 
 @NotThreadSafe
 final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
+    private static final SafeLogger log = SafeLoggerFactory.get(AtlasDbInteractiveTransaction.class);
 
     private final Transaction transaction;
 
@@ -65,11 +68,25 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
     public Optional<Integer> read(String table, WorkloadCell workloadCell) {
         return run(
                 (tableReference, atlasCell) -> {
+                    log.info(
+                            "Starting read for transaction {} for workflow cell {} on table {}",
+                            SafeArg.of("startTimestamp", transaction.getTimestamp()),
+                            SafeArg.of("cell", atlasCell),
+                            SafeArg.of("table", tableReference));
+
                     Map<Cell, byte[]> values = transaction.get(tableReference, Set.of(atlasCell));
                     Optional<Integer> valueRead =
                             Optional.ofNullable(values.get(atlasCell)).map(Ints::fromByteArray);
                     witnessedTransactionActions.add(
                             WitnessedSingleCellReadTransactionAction.of(table, workloadCell, valueRead));
+
+                    log.info(
+                            "Have completed read for transaction {} for workflow cell {} on table {} with value {}",
+                            SafeArg.of("startTimestamp", transaction.getTimestamp()),
+                            SafeArg.of("cell", atlasCell),
+                            SafeArg.of("table", tableReference),
+                            SafeArg.of("value", valueRead));
+
                     return valueRead;
                 },
                 table,
@@ -80,8 +97,20 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
     public void write(String table, WorkloadCell workloadCell, Integer value) {
         run(
                 (tableReference, atlasCell) -> {
+                    log.info(
+                            "Starting write for transaction {} for workflow cell {} on table {} with value {}",
+                            SafeArg.of("startTimestamp", transaction.getTimestamp()),
+                            SafeArg.of("cell", atlasCell),
+                            SafeArg.of("table", tableReference),
+                            SafeArg.of("value", value));
                     transaction.put(tableReference, Map.of(atlasCell, Ints.toByteArray(value)));
                     witnessedTransactionActions.add(WitnessedWriteTransactionAction.of(table, workloadCell, value));
+                    log.info(
+                            "Have completed write for transaction {} for workflow cell {} for table {} with value {}",
+                            SafeArg.of("startTimestamp", transaction.getTimestamp()),
+                            SafeArg.of("cell", atlasCell),
+                            SafeArg.of("table", tableReference),
+                            SafeArg.of("value", value));
                     return null;
                 },
                 table,
@@ -92,8 +121,18 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
     public void delete(String table, WorkloadCell workloadCell) {
         run(
                 (tableReference, atlasCell) -> {
+                    log.info(
+                            "Starting delete for transaction {} for workflow cell {} on table {}",
+                            SafeArg.of("startTimestamp", transaction.getTimestamp()),
+                            SafeArg.of("cell", atlasCell),
+                            SafeArg.of("table", tableReference));
                     transaction.delete(tableReference, Set.of(atlasCell));
                     witnessedTransactionActions.add(WitnessedDeleteTransactionAction.of(table, workloadCell));
+                    log.info(
+                            "Have completed delete for transaction {} for workflow cell {} for table {}",
+                            SafeArg.of("startTimestamp", transaction.getTimestamp()),
+                            SafeArg.of("cell", atlasCell),
+                            SafeArg.of("table", tableReference));
                     return null;
                 },
                 table,

@@ -44,6 +44,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.errorprone.annotations.MustBeClosed;
+import com.google.errorprone.annotations.RestrictedApi;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.AtlasDbPerformanceConstants;
@@ -93,6 +94,7 @@ import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutExc
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
+import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.atlasdb.transaction.api.exceptions.SafeTransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsData;
@@ -281,7 +283,7 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final DeleteExecutor deleteExecutor;
     private final Timer.Context transactionTimerContext;
     protected final TransactionOutcomeMetrics transactionOutcomeMetrics;
-    protected final boolean validateLocksOnReads;
+    protected volatile boolean validateLocksOnReads;
     protected final Supplier<TransactionConfig> transactionConfig;
     protected final TableLevelMetricsController tableLevelMetricsController;
     protected final SuccessCallbackManager successCallbackManager = new SuccessCallbackManager();
@@ -431,6 +433,24 @@ public class SnapshotTransaction extends AbstractTransaction
     @Override
     public void disableReadWriteConflictChecking(TableReference tableRef) {
         conflictDetectionManager.disableReadWriteConflict(tableRef);
+    }
+
+    @RestrictedApi(
+            explanation = "This API is only meant to be used by AtlasDb proxies that want to make use of the "
+                    + "performance improvement that are achievable by avoiding immutable timestamp lock check on reads "
+                    + "and delaying them to commit time. When validation on reads is disabled, it is possible for a "
+                    + "transaction to read values that were thoroughly swept and the transaction would not fail until "
+                    + "validation is done at commit commit time. Disabling validation on reads in situations when a "
+                    + "transaction can potentially have side effects outside the transaction scope (e.g. remote call "
+                    + "to another service) can cause correctness issues. The API is restricted as misuses of it can "
+                    + "cause correctness issues.",
+            link = "https://github.com/palantir/atlasdb/pull/7111",
+            allowedOnPath = ".*/src/test/.*",
+            allowlistAnnotations = {ReviewedRestrictedApiUsage.class})
+    @Override
+    public void disableValidatingLocksOnReads() {
+        this.validateLocksOnReads = false;
+        this.readSnapshotValidator.disableValidatingLocksOnReads();
     }
 
     @Override
@@ -2209,7 +2229,8 @@ public class SnapshotTransaction extends AbstractTransaction
                         getStartTimestamp(),
                         spanningWrites,
                         dominatingWrites,
-                        System.currentTimeMillis() - timeCreated);
+                        System.currentTimeMillis() - timeCreated,
+                        List.of(LoggingArgs.tableRef(tableRef)));
             }
         }
     }
@@ -2220,7 +2241,7 @@ public class SnapshotTransaction extends AbstractTransaction
      * value was written after our start time.
      */
     private void throwIfValueChangedConflict(
-            TableReference table,
+            TableReference tableRef,
             Map<Cell, byte[]> writes,
             Set<CellConflict> spanningWrites,
             Set<CellConflict> dominatingWrites,
@@ -2232,21 +2253,24 @@ public class SnapshotTransaction extends AbstractTransaction
             cellToTs.put(c.getCell(), c.getTheirStart() + 1);
         }
 
-        Map<Cell, byte[]> oldValues = getIgnoringLocalWrites(table, cellToTs.keySet());
+        Map<Cell, byte[]> oldValues = getIgnoringLocalWrites(tableRef, cellToTs.keySet());
         Map<Cell, Value> conflictingValues =
-                AtlasFutures.getUnchecked(transactionKeyValueService.getAsync(table, cellToTs));
+                AtlasFutures.getUnchecked(transactionKeyValueService.getAsync(tableRef, cellToTs));
 
         Set<Cell> conflictingCells = new HashSet<>();
         for (Map.Entry<Cell, Long> cellEntry : cellToTs.entrySet()) {
             Cell cell = cellEntry.getKey();
             if (!writes.containsKey(cell)) {
-                Validate.isTrue(false, "Missing write for cell: %s for table %s", cellToConflict.get(cell), table);
+                Validate.isTrue(false, "Missing write for cell: %s for table %s", cellToConflict.get(cell), tableRef);
             }
             if (!conflictingValues.containsKey(cell)) {
                 // This error case could happen if our locks expired.
                 preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(commitLocksToken, getStartTimestamp());
                 Validate.isTrue(
-                        false, "Missing conflicting value for cell: %s for table %s", cellToConflict.get(cell), table);
+                        false,
+                        "Missing conflicting value for cell: %s for table %s",
+                        cellToConflict.get(cell),
+                        tableRef);
             }
             if (conflictingValues.get(cell).getTimestamp() != (cellEntry.getValue() - 1)) {
                 // This error case could happen if our locks expired.
@@ -2254,7 +2278,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 Validate.isTrue(
                         false,
                         "Wrong timestamp for cell in table %s Expected: %s Actual: %s",
-                        table,
+                        tableRef,
                         cellToConflict.get(cell),
                         conflictingValues.get(cell));
             }
@@ -2268,7 +2292,7 @@ public class SnapshotTransaction extends AbstractTransaction
                         "Another transaction committed to the same cell before us but their value was the same."
                                 + " Cell: {} Table: {}",
                         UnsafeArg.of("cell", cell),
-                        LoggingArgs.tableRef(table));
+                        LoggingArgs.tableRef(tableRef));
             }
         }
         if (conflictingCells.isEmpty()) {
@@ -2276,13 +2300,14 @@ public class SnapshotTransaction extends AbstractTransaction
         }
         Predicate<CellConflict> conflicting =
                 Predicates.compose(Predicates.in(conflictingCells), CellConflict.getCellFunction());
-        transactionOutcomeMetrics.markWriteWriteConflict(table);
+        transactionOutcomeMetrics.markWriteWriteConflict(tableRef);
         throw TransactionConflictException.create(
-                table,
+                tableRef,
                 getStartTimestamp(),
                 Sets.filter(spanningWrites, conflicting),
                 Sets.filter(dominatingWrites, conflicting),
-                System.currentTimeMillis() - timeCreated);
+                System.currentTimeMillis() - timeCreated,
+                List.of(LoggingArgs.tableRef(tableRef)));
     }
 
     /**
