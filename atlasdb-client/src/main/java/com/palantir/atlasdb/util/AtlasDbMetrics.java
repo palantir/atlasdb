@@ -23,6 +23,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.api.event.InstrumentationFilter;
 import com.palantir.tritium.event.InstrumentationFilters;
 import com.palantir.tritium.event.InvocationContext;
+import com.palantir.tritium.event.InvocationEventHandler;
 import com.palantir.tritium.event.log.LoggingInvocationEventHandler;
 import com.palantir.tritium.event.log.LoggingLevel;
 import com.palantir.tritium.metrics.caffeine.CaffeineCacheStats;
@@ -85,10 +86,17 @@ public final class AtlasDbMetrics {
             U service,
             Function<InvocationContext, Map<String, String>> tagFunction) {
         return Instrumentation.builder(serviceInterface, service)
-                .withHandler(new TaggedMetricsInvocationEventHandler(
-                        taggedMetrics, MetricRegistry.name(serviceInterface), tagFunction))
+                .withHandler(taggedMetricsHandler(taggedMetrics, serviceInterface, tagFunction))
                 .withPerformanceTraceLogging()
                 .build();
+    }
+
+    public static <T> InvocationEventHandler<InvocationContext> taggedMetricsHandler(
+            TaggedMetricRegistry taggedMetrics,
+            Class<T> serviceInterface,
+            Function<InvocationContext, Map<String, String>> tagFunction) {
+        return new TaggedMetricsInvocationEventHandler(
+                taggedMetrics, MetricRegistry.name(serviceInterface), tagFunction);
     }
 
     public static void registerCache(MetricRegistry metricRegistry, Cache<?, ?> cache, String metricsPrefix) {

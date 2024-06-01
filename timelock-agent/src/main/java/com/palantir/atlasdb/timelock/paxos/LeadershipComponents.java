@@ -18,22 +18,32 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Closer;
+import com.palantir.atlasdb.timelock.AsyncTimelockService;
+import com.palantir.atlasdb.timelock.InstrumentedAsyncTimelockService;
+import com.palantir.atlasdb.timelock.TimelockNamespaces;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
+import com.palantir.common.concurrent.ConcurrentMaps;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.leader.proxy.AwaitingLeadershipProxy;
 import com.palantir.leader.proxy.LeadershipCoordinator;
+import com.palantir.lock.InstrumentedLockService;
+import com.palantir.lock.LockService;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.Client;
 import com.palantir.timelock.paxos.HealthCheckPinger;
 import com.palantir.timelock.paxos.LeaderPingHealthCheck;
 import com.palantir.timelock.paxos.NamespaceTracker;
+import com.palantir.tritium.event.InvocationContext;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.immutables.value.Value;
 
@@ -41,7 +51,8 @@ public class LeadershipComponents {
 
     private static final SafeLogger log = SafeLoggerFactory.get(LeadershipComponents.class);
 
-    private final ConcurrentMap<Client, LeadershipContext> leadershipContextByClient = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Client, LeadershipContext> leadershipContextByClient =
+            ConcurrentMaps.newWithExpectedEntries(TimelockNamespaces.estimatedClients());
     private final ShutdownAwareCloser closer = new ShutdownAwareCloser();
 
     private final NetworkClientFactories.Factory<LeadershipContext> leadershipContextFactory;
@@ -54,15 +65,44 @@ public class LeadershipComponents {
         this.healthCheckPingers = healthCheckPingers;
     }
 
-    public <T> T wrapInLeadershipProxy(Client client, Class<T> clazz, Supplier<T> delegateSupplier) {
-        LeadershipContext context = getOrCreateNewLeadershipContext(client);
-        T instance = AwaitingLeadershipProxy.newProxyInstance(clazz, delegateSupplier, context.leadershipCoordinator());
-
+    private <T> T wrapInLeadershipProxy(
+            Class<T> clazz, Supplier<T> delegateSupplier, LeadershipCoordinator leadershipCoordinator) {
+        T instance = AwaitingLeadershipProxy.newProxyInstance(clazz, delegateSupplier, leadershipCoordinator);
         // this is acceptable since the proxy returned implements Closeable and needs to be closed
-        Closeable closeableInstance = (Closeable) instance;
-        closer.register(closeableInstance);
+        closer.register((Closeable) instance);
+        return instance;
+    }
 
-        return context.leadershipMetrics().instrument(clazz, instance);
+    public LeadershipServices createServices(
+            Client client,
+            Supplier<AsyncTimelockService> asyncTimelockServiceSupplier,
+            Supplier<LockService> lockServiceSupplier) {
+        LeadershipContext context = getOrCreateNewLeadershipContext(client);
+        TaggedMetricRegistry metrics = context.leadershipMetrics().taggedMetrics();
+        Function<InvocationContext, Map<String, String>> tagger =
+                context.leadershipMetrics().suspectedLeaderTag();
+        return ImmutableLeadershipServices.of(
+                InstrumentedAsyncTimelockService.builder(wrapInLeadershipProxy(
+                                AsyncTimelockService.class,
+                                asyncTimelockServiceSupplier,
+                                context.leadershipCoordinator()))
+                        .withHandler(AtlasDbMetrics.taggedMetricsHandler(metrics, AsyncTimelockService.class, tagger))
+                        .withPerformanceTraceLogging()
+                        .build(),
+                InstrumentedLockService.builder(wrapInLeadershipProxy(
+                                LockService.class, lockServiceSupplier, context.leadershipCoordinator()))
+                        .withHandler(AtlasDbMetrics.taggedMetricsHandler(metrics, LockService.class, tagger))
+                        .withPerformanceTraceLogging()
+                        .build());
+    }
+
+    @Value.Immutable(builder = false)
+    public interface LeadershipServices {
+        @Value.Parameter
+        AsyncTimelockService asyncTimelockService();
+
+        @Value.Parameter
+        LockService lockService();
     }
 
     public void shutdown() {
@@ -143,12 +183,12 @@ public class LeadershipComponents {
     }
 
     @Value.Immutable
-    abstract static class LeadershipContext {
-        abstract LeaderElectionService leaderElectionService();
+    public abstract static class LeadershipContext {
+        public abstract LeaderElectionService leaderElectionService();
 
-        abstract LeadershipCoordinator leadershipCoordinator();
+        public abstract LeadershipCoordinator leadershipCoordinator();
 
-        abstract TimelockLeadershipMetrics leadershipMetrics();
+        public abstract TimelockLeadershipMetrics leadershipMetrics();
 
         abstract List<Closeable> closeables();
     }

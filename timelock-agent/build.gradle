@@ -26,6 +26,7 @@ dependencies {
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'com.palantir.sls.versions:sls-versions'
     implementation 'com.palantir.tokens:auth-tokens'
+    implementation 'com.palantir.tritium:tritium-annotations'
     implementation 'com.palantir.tritium:tritium-api'
     implementation 'com.palantir.tritium:tritium-registry'
     implementation 'com.zaxxer:HikariCP'

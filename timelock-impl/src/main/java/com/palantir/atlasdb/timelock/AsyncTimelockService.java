@@ -40,10 +40,12 @@ import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
+import com.palantir.tritium.annotations.Instrument;
 import java.io.Closeable;
 import java.util.Optional;
 import java.util.Set;
 
+@Instrument
 public interface AsyncTimelockService
         extends BackupTimeLockServiceView, ManagedTimestampService, LockWatchingService, Closeable {
 

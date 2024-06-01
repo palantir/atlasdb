@@ -33,6 +33,7 @@ dependencies {
     implementation 'com.palantir.common:streams'
     implementation 'com.palantir.conjure.java:conjure-lib'
     implementation 'com.palantir.tokens:auth-tokens'
+    implementation 'com.palantir.tritium:tritium-annotations'
     implementation 'io.dropwizard.metrics:metrics-core'
     implementation project(':commons-annotations')
     implementation project(':commons-executors')
@@ -57,6 +58,7 @@ dependencies {
     compileOnly project(":atlasdb-processors")
     annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'
+    annotationProcessor 'com.palantir.tritium:tritium-processor'
 
     testAnnotationProcessor 'org.immutables:value'
     testCompileOnly 'org.immutables:value::annotations'

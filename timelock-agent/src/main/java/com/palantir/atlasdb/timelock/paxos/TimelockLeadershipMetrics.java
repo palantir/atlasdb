@@ -21,16 +21,19 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.SetMultimap;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.timelock.paxos.AutobatchingLeadershipObserverFactory.LeadershipEvent;
-import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.leader.LeadershipObserver;
 import com.palantir.leader.PaxosLeadershipEventRecorder;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.paxos.Client;
+import com.palantir.tritium.event.InvocationContext;
 import com.palantir.tritium.metrics.registry.MetricName;
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import org.immutables.value.Value;
 
@@ -48,7 +51,7 @@ public abstract class TimelockLeadershipMetrics implements Dependencies.Leadersh
     @Value.Derived
     public PaxosLeadershipEventRecorder eventRecorder() {
         return PaxosLeadershipEventRecorder.create(
-                metrics().clientScopedMetrics().metricRegistryForClient(proxyClient()), // metrics for client etc.
+                taggedMetrics(), // metrics for client etc.
                 leaderUuid().toString(),
                 leadershipObserver(),
                 namespaceAsLoggingArgs());
@@ -59,14 +62,14 @@ public abstract class TimelockLeadershipMetrics implements Dependencies.Leadersh
         return leadershipObserverFactory().create(proxyClient());
     }
 
-    public <T> T instrument(Class<T> clazz, T instance) {
-        return AtlasDbMetrics.instrumentWithTaggedMetrics(
-                metrics().clientScopedMetrics().metricRegistryForClient(proxyClient()),
-                clazz,
-                instance,
-                _context -> ImmutableMap.of(
-                        AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER,
-                        String.valueOf(localPingableLeader().ping())));
+    public Function<InvocationContext, Map<String, String>> suspectedLeaderTag() {
+        return _context -> ImmutableMap.of(
+                AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER,
+                String.valueOf(localPingableLeader().ping()));
+    }
+
+    public TaggedMetricRegistry taggedMetrics() {
+        return metrics().clientScopedMetrics().metricRegistryForClient(proxyClient());
     }
 
     public static AutobatchingLeadershipObserverFactory createFactory(TimelockPaxosMetrics metrics) {
