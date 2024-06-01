@@ -184,11 +184,11 @@ public class LeadershipComponents {
 
     @Value.Immutable
     public abstract static class LeadershipContext {
-        public abstract LeaderElectionService leaderElectionService();
+        abstract LeaderElectionService leaderElectionService();
 
-        public abstract LeadershipCoordinator leadershipCoordinator();
+        abstract LeadershipCoordinator leadershipCoordinator();
 
-        public abstract TimelockLeadershipMetrics leadershipMetrics();
+        abstract TimelockLeadershipMetrics leadershipMetrics();
 
         abstract List<Closeable> closeables();
     }
