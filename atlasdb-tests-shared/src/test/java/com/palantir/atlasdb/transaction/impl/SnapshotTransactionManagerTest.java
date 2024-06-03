@@ -124,12 +124,7 @@ public class SnapshotTransactionManagerTest {
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
                 knowledge,
-                new DefaultKeyValueSnapshotReaderManager(
-                        transactionKeyValueServiceManager,
-                        mock(TransactionService.class),
-                        false,
-                        new DefaultOrphanedSentinelDeleter(ThrowingSweepStrategyManager.INSTANCE, deleteExecutor),
-                        deleteExecutor));
+                getKeyValueSnapshotReaderManager(ThrowingSweepStrategyManager.INSTANCE));
     }
 
     @Test
@@ -187,13 +182,7 @@ public class SnapshotTransactionManagerTest {
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
                 knowledge,
-                new DefaultKeyValueSnapshotReaderManager(
-                        transactionKeyValueServiceManager,
-                        mock(TransactionService.class),
-                        false,
-                        new DefaultOrphanedSentinelDeleter(
-                                SweepStrategyManagers.createDefault(keyValueService), deleteExecutor),
-                        deleteExecutor));
+                getKeyValueSnapshotReaderManager(SweepStrategyManagers.createDefault(keyValueService)));
         newTransactionManager.close(); // should not throw
     }
 
@@ -340,12 +329,16 @@ public class SnapshotTransactionManagerTest {
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
                 knowledge,
-                new DefaultKeyValueSnapshotReaderManager(
-                        transactionKeyValueServiceManager,
-                        mock(TransactionService.class),
-                        false,
-                        new DefaultOrphanedSentinelDeleter(
-                                SweepStrategyManagers.createDefault(keyValueService), deleteExecutor),
-                        deleteExecutor));
+                getKeyValueSnapshotReaderManager(SweepStrategyManagers.createDefault(keyValueService)));
+    }
+
+    private DefaultKeyValueSnapshotReaderManager getKeyValueSnapshotReaderManager(SweepStrategyManager keyValueService) {
+        return new DefaultKeyValueSnapshotReaderManager(
+                transactionKeyValueServiceManager,
+                mock(TransactionService.class),
+                false,
+                new DefaultOrphanedSentinelDeleter(
+                        keyValueService, deleteExecutor),
+                deleteExecutor);
     }
 }
