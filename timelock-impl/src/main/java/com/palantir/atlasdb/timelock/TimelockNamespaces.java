@@ -22,6 +22,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.common.concurrent.ConcurrentMaps;
 import com.palantir.conjure.java.undertow.lib.RequestContext;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -31,7 +32,6 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.Client;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -57,7 +57,8 @@ public final class TimelockNamespaces {
 
     private static final SafeLogger log = SafeLoggerFactory.get(TimelockNamespaces.class);
 
-    private final ConcurrentMap<String, TimeLockServices> services = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, TimeLockServices> services =
+            ConcurrentMaps.newWithExpectedEntries(estimatedClients());
     private final Function<String, TimeLockServices> factory;
     private final Supplier<Integer> maxNumberOfClients;
 
@@ -66,6 +67,13 @@ public final class TimelockNamespaces {
         this.factory = factory;
         this.maxNumberOfClients = maxNumberOfClients;
         registerClientCapacityMetrics(metrics);
+    }
+
+    /**
+     * Returns an estimated number of time-lock clients.
+     */
+    public static int estimatedClients() {
+        return 256;
     }
 
     /**
@@ -82,7 +90,7 @@ public final class TimelockNamespaces {
 
     /**
      * Gets the TimeLockServices for a given namespace.
-     *
+     * <p>
      * Should be best-effort to give a UserAgent - it's possible with Undertow interfaces but not
      * server-side Jersey interfaces (which are just used in tests)
      */

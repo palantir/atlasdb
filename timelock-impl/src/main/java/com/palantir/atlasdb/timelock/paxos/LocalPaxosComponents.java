@@ -19,8 +19,10 @@ import com.codahale.metrics.Counter;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.AtlasDbMetricNames;
+import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.management.DiskNamespaceLoader;
 import com.palantir.atlasdb.timelock.management.PersistentNamespaceLoader;
+import com.palantir.common.concurrent.ConcurrentMaps;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
 import com.palantir.leader.LocalPingableLeader;
@@ -48,7 +50,6 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 import javax.sql.DataSource;
@@ -63,7 +64,8 @@ public class LocalPaxosComponents {
     private final Path baseLogDirectory;
     private final DataSource sqliteDataSource;
     private final UUID leaderUuid;
-    private final Map<Client, Components> componentsByClient = new ConcurrentHashMap<>();
+    private final Map<Client, Components> componentsByClient =
+            ConcurrentMaps.newWithExpectedEntries(TimelockNamespaces.estimatedClients());
     private final Supplier<BatchPaxosAcceptor> memoizedBatchAcceptor;
     private final Supplier<BatchPaxosLearner> memoizedBatchLearner;
     private final Supplier<BatchPingableLeader> memoizedBatchPingableLeader;
