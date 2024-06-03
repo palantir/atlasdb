@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: AtlasDB now permits situations where in a two-DC set-up we have two
+    clusters, where one matches the expected RF and one has an RF smaller than the
+    expected RF. This is a normal intermediate state of the cluster during DC migrations.
+  links:
+  - https://github.com/palantir/atlasdb/pull/7133
