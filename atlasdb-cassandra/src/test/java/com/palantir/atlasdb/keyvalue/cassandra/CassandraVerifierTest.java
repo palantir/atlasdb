@@ -43,6 +43,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class CassandraVerifierTest {
     private static final String DC_1 = "dc1";
     private static final String DC_2 = "dc2";
+    private static final String DC_3 = "dc3";
     private static final String HOST_1 = "host1";
     private static final String HOST_2 = "host2";
     private static final String HOST_3 = "host3";
@@ -263,16 +264,107 @@ public class CassandraVerifierTest {
     }
 
     @Test
-    public void differentRfThanConfigThrows() {
+    public void oneDcMatchingRfDoesNotThrow() {
         CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults()
-                .replicationFactor(1)
+                .replicationFactor(3)
                 .ignoreDatacenterConfigurationChecks(false)
                 .build();
         KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
-        ksDef.setStrategy_options(ImmutableMap.of(DC_1, "1", DC_2, "2"));
+        ksDef.setStrategy_options(ImmutableMap.of(DC_1, "3"));
+        assertThatCode(() -> CassandraVerifier.sanityCheckReplicationFactor(
+                        ksDef, ImmutableSortedSet.of(DC_1), verifierConfig))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void oneDcNotMatchingRfThrows() {
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults()
+                .replicationFactor(3)
+                .ignoreDatacenterConfigurationChecks(false)
+                .build();
+        KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
+        ksDef.setStrategy_options(ImmutableMap.of(DC_1, "2"));
+        assertThatThrownBy(() -> CassandraVerifier.sanityCheckReplicationFactor(
+                        ksDef, ImmutableSortedSet.of(DC_1), verifierConfig))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void twoDcsWithBothMatchingRfDoesNotThrow() {
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults()
+                .replicationFactor(3)
+                .ignoreDatacenterConfigurationChecks(false)
+                .build();
+        KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
+        ksDef.setStrategy_options(ImmutableMap.of(DC_1, "3", DC_2, "3"));
+        assertThatCode(() -> CassandraVerifier.sanityCheckReplicationFactor(
+                        ksDef, ImmutableSortedSet.of(DC_1, DC_2), verifierConfig))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void twoDcsWithNeitherMatchingRfThrows() {
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults()
+                .replicationFactor(3)
+                .ignoreDatacenterConfigurationChecks(false)
+                .build();
+        KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
+        ksDef.setStrategy_options(ImmutableMap.of(DC_1, "2", DC_2, "1"));
         assertThatThrownBy(() -> CassandraVerifier.sanityCheckReplicationFactor(
                         ksDef, ImmutableSortedSet.of(DC_1, DC_2), verifierConfig))
                 .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void twoDcsWithOneMatchingRfAndOneHavingSmallerRfThanConfigDoesNotThrow() {
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults()
+                .replicationFactor(3)
+                .ignoreDatacenterConfigurationChecks(false)
+                .build();
+        KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
+        ksDef.setStrategy_options(ImmutableMap.of(DC_1, "3", DC_2, "1"));
+        assertThatCode(() -> CassandraVerifier.sanityCheckReplicationFactor(
+                        ksDef, ImmutableSortedSet.of(DC_1, DC_2), verifierConfig))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void twoDcsWithOneMatchingRfAndOneHavingLargerRfThanConfigThrows() {
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults()
+                .replicationFactor(3)
+                .ignoreDatacenterConfigurationChecks(false)
+                .build();
+        KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
+        ksDef.setStrategy_options(ImmutableMap.of(DC_1, "3", DC_2, "5"));
+        assertThatThrownBy(() -> CassandraVerifier.sanityCheckReplicationFactor(
+                        ksDef, ImmutableSortedSet.of(DC_1, DC_2), verifierConfig))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void multipleDcsWithRfMismatchThrows() {
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults()
+                .replicationFactor(3)
+                .ignoreDatacenterConfigurationChecks(false)
+                .build();
+        KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
+        ksDef.setStrategy_options(ImmutableMap.of(DC_1, "3", DC_2, "3", DC_3, "2"));
+        assertThatThrownBy(() -> CassandraVerifier.sanityCheckReplicationFactor(
+                        ksDef, ImmutableSortedSet.of(DC_1, DC_2, DC_3), verifierConfig))
+                .isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void multipleDcsWithAllMatchingProvidedRfDoesNotThrow() {
+        CassandraVerifierConfig verifierConfig = getVerifierConfigBuilderWithDefaults()
+                .replicationFactor(3)
+                .ignoreDatacenterConfigurationChecks(false)
+                .build();
+        KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
+        ksDef.setStrategy_options(ImmutableMap.of(DC_1, "3", DC_2, "3", DC_3, "3"));
+        assertThatCode(() -> CassandraVerifier.sanityCheckReplicationFactor(
+                        ksDef, ImmutableSortedSet.of(DC_1, DC_2, DC_3), verifierConfig))
+                .doesNotThrowAnyException();
     }
 
     @Test
