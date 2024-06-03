@@ -184,7 +184,6 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             LockToken immutableTsLock,
             PreCommitCondition preCommitCondition) {
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
-
         return transactionWrapper.apply(
                 new SerializableTransaction(
                         metricsManager,
