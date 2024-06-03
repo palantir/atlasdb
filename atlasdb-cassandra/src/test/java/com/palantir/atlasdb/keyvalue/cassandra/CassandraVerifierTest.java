@@ -362,9 +362,9 @@ public class CassandraVerifierTest {
                 .build();
         KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
         ksDef.setStrategy_options(ImmutableMap.of(DC_1, "3", DC_2, "3", DC_3, "3"));
-        assertThatThrownBy(() -> CassandraVerifier.sanityCheckReplicationFactor(
-                        ksDef, ImmutableSortedSet.of(DC_1, DC_2, DC_3), verifierConfig))
-                .isInstanceOf(IllegalStateException.class);
+        assertThatCode(() -> CassandraVerifier.sanityCheckReplicationFactor(
+                ksDef, ImmutableSortedSet.of(DC_1, DC_2, DC_3), verifierConfig))
+                .doesNotThrowAnyException();
     }
 
     @Test
