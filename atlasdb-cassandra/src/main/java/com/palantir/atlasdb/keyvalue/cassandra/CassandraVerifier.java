@@ -391,7 +391,13 @@ public final class CassandraVerifier {
         boolean allDatacentersMatchAdvertisedReplicationFactor = dcs.stream()
                 .allMatch(datacenter -> Integer.parseInt(strategyOptions.get(datacenter)) == replicationFactor);
         if (!allDatacentersMatchAdvertisedReplicationFactor) {
-            if (!isValidMigrationReplicationFactorState(replicationFactor, dcs, strategyOptions)) {
+            if (isValidMigrationReplicationFactorState(replicationFactor, dcs, strategyOptions)) {
+                log.info(
+                        "Your current Cassandra keyspace had two datacenters with different replication factors, where"
+                            + " the higher replication factor matched expected. This is a valid migration state, hence"
+                            + " allowing it.",
+                        SafeArg.of("keyspace", ks.getName()));
+            } else {
                 logErrorOrThrow(
                         "Your current Cassandra keyspace (" + ks.getName()
                                 + ") has a replication factor not matching your Atlas Cassandra configuration."
