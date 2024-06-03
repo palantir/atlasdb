@@ -220,9 +220,6 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
     private final String name;
     private final WrapperWithTracker<CallbackAwareTransaction> transactionWrapper;
 
-    // WTF? But there's already a generic ExecutorService called deleteExecutor in the parent class...
-    private final DeleteExecutor typedDeleteExecutor = new DefaultDeleteExecutor(keyValueService, deleteExecutor);
-
     private final TimestampCache timestampCache = new DefaultTimestampCache(
             metricsManager.getRegistry(), () -> AtlasDbConstants.DEFAULT_TIMESTAMP_CACHE_SIZE);
     private final ExecutorService getRangesExecutor = Executors.newFixedThreadPool(8);
@@ -479,8 +476,8 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 },
                 transactionService,
                 false,
-                new DefaultOrphanedSentinelDeleter(sweepStrategyManager, typedDeleteExecutor),
-                typedDeleteExecutor);
+                new DefaultOrphanedSentinelDeleter(sweepStrategyManager, deleteExecutor),
+                deleteExecutor);
 
         Transaction snapshot = transactionWrapper.apply(
                 new SnapshotTransaction(
@@ -504,7 +501,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         getRangesExecutor,
                         defaultGetRangesConcurrency,
                         MultiTableSweepQueueWriter.NO_OP,
-                        typedDeleteExecutor,
+                        deleteExecutor,
                         true,
                         transactionConfig::get,
                         ConflictTracer.NO_OP,
@@ -541,15 +538,15 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 sweepStrategyManager,
                 timestampCache,
                 sweepQueue,
-                MoreExecutors.newDirectExecutorService(),
+                deleteExecutor,
                 transactionWrapper,
                 knowledge,
                 new DefaultKeyValueSnapshotReaderManager(
                         new DelegatingTransactionKeyValueServiceManager(unstableKvs),
                         transactionService,
                         false,
-                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager, typedDeleteExecutor),
-                        typedDeleteExecutor));
+                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager, deleteExecutor),
+                        deleteExecutor));
 
         ScheduledExecutorService service = PTExecutors.newScheduledThreadPool(20);
 
@@ -1079,7 +1076,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 sweepStrategyManager,
                 timestampCache,
                 sweepQueue,
-                executor,
+                typedDeleteExecutor,
                 transactionWrapper,
                 knowledge,
                 new DefaultKeyValueSnapshotReaderManager(
@@ -3492,7 +3489,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
-                typedDeleteExecutor,
+                deleteExecutor,
                 true,
                 transactionConfig::get,
                 ConflictTracer.NO_OP,
@@ -3550,7 +3547,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
-                typedDeleteExecutor,
+                deleteExecutor,
                 validateLocksOnReads,
                 transactionConfig::get,
                 ConflictTracer.NO_OP,

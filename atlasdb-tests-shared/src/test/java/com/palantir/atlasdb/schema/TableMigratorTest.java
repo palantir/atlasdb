@@ -52,7 +52,6 @@ import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
 import com.palantir.common.concurrent.PTExecutors;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.junit.jupiter.api.Test;
 
@@ -96,8 +95,8 @@ public class TableMigratorTest extends AtlasDbTestCase {
         final ConflictDetectionManager cdm2 = ConflictDetectionManagers.createWithNoConflictDetection();
         final SweepStrategyManager ssm2 = SweepStrategyManagers.completelyConservative(kvs2);
         final MetricsManager metricsManager = MetricsManagers.createForTests();
-        final ExecutorService deleteExecutor2 = MoreExecutors.newDirectExecutorService();
-        final DeleteExecutor typedDeleteExecutor2 = new DefaultDeleteExecutor(kvs2, deleteExecutor2);
+        final DeleteExecutor typedDeleteExecutor2 =
+                new DefaultDeleteExecutor(kvs2, MoreExecutors.newDirectExecutorService());
         final TestTransactionManagerImpl txManager2 = new TestTransactionManagerImpl(
                 metricsManager,
                 kvs2,
@@ -109,7 +108,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 DefaultTimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
                 TransactionKnowledgeComponents.createForTests(kvs2, metricsManager.getTaggedRegistry()),
-                deleteExecutor2,
+                typedDeleteExecutor2,
                 new DefaultKeyValueSnapshotReaderManager(
                         new DelegatingTransactionKeyValueServiceManager(kvs2),
                         transactionService,
@@ -142,8 +141,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
 
         final ConflictDetectionManager verifyCdm = ConflictDetectionManagers.createWithNoConflictDetection();
         final SweepStrategyManager verifySsm = SweepStrategyManagers.completelyConservative(kvs2);
-        final ExecutorService verifyDeleteExecutor = MoreExecutors.newDirectExecutorService();
-        final DeleteExecutor verifyTypedDeleteExecutor = new DefaultDeleteExecutor(kvs2, verifyDeleteExecutor);
+        final DeleteExecutor verifyTypedDeleteExecutor = new DefaultDeleteExecutor(kvs2,  MoreExecutors.newDirectExecutorService());
         final TestTransactionManagerImpl verifyTxManager = new TestTransactionManagerImpl(
                 metricsManager,
                 kvs2,
@@ -155,7 +153,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 DefaultTimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
                 TransactionKnowledgeComponents.createForTests(kvs2, metricsManager.getTaggedRegistry()),
-                verifyDeleteExecutor,
+                verifyTypedDeleteExecutor,
                 new DefaultKeyValueSnapshotReaderManager(
                         new DelegatingTransactionKeyValueServiceManager(kvs2),
                         transactionService,

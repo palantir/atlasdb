@@ -81,16 +81,14 @@ public class AtlasDbTestCase {
     protected int sweepQueueShards = 128;
 
     protected TransactionKnowledgeComponents knowledge;
+    protected DeleteExecutor deleteExecutor;
     protected KeyValueSnapshotReaderManager keyValueSnapshotReaderManager;
-
-    protected ExecutorService deleteExecutor;
 
     @RegisterExtension
     public InMemoryTimelockExtension inMemoryTimelockExtension = new InMemoryTimelockExtension(CLIENT);
 
     @BeforeEach
     public void setUp() throws Exception {
-        deleteExecutor = MoreExecutors.newDirectExecutorService();
         lockClient = LockClient.of(CLIENT);
         lockService = inMemoryTimelockExtension.getLockService();
         timelockService = inMemoryTimelockExtension.getLegacyTimelockService();
@@ -103,13 +101,13 @@ public class AtlasDbTestCase {
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         sweepQueue = spy(TargetedSweeper.createUninitializedForTest(keyValueService, () -> sweepQueueShards));
         knowledge = TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry());
-        DeleteExecutor typedDeleteExecutor = new DefaultDeleteExecutor(keyValueService, deleteExecutor);
+        deleteExecutor = new DefaultDeleteExecutor(keyValueService, MoreExecutors.newDirectExecutorService());
         keyValueSnapshotReaderManager = new DefaultKeyValueSnapshotReaderManager(
                 txnKeyValueServiceManager,
                 transactionService,
                 false,
-                new DefaultOrphanedSentinelDeleter(sweepStrategyManager, typedDeleteExecutor),
-                typedDeleteExecutor);
+                new DefaultOrphanedSentinelDeleter(sweepStrategyManager, deleteExecutor),
+                deleteExecutor);
         setUpTransactionManagers();
         sweepQueue.initialize(serializableTxManager);
         sweepTimestampSupplier = new SpecialTimestampsSupplier(
@@ -138,7 +136,7 @@ public class AtlasDbTestCase {
                 DefaultTimestampCache.createForTests(),
                 sweepQueue,
                 knowledge,
-                MoreExecutors.newDirectExecutorService(),
+                deleteExecutor,
                 keyValueSnapshotReaderManager);
     }
 
