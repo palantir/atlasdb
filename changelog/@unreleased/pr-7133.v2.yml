@@ -1,0 +1,7 @@
+type: fix
+fix:
+  description: Atlas now permits situations where in a two-DC set-up we have two clusters,
+    where one matches the expected RF and one has an RF smaller than the expected
+    RF.
+  links:
+  - https://github.com/palantir/atlasdb/pull/7133
