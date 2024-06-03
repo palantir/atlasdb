@@ -406,7 +406,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 transactionKeyValueService,
                 transactionService,
                 readSentinelBehavior,
-                new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor));
+                new DefaultOrphanedSentinelDeleter(sweepStrategyManager, deleteExecutor));
         this.keyValueSnapshotReaderManager = keyValueSnapshotReaderManager;
         this.keyValueSnapshotReader = getDefaultKeyValueSnapshotReader();
     }

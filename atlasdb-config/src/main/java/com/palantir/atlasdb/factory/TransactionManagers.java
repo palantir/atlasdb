@@ -639,7 +639,7 @@ public abstract class TransactionManagers {
         Optional<KeyValueSnapshotReaderManagerFactory> serviceDiscoveredFactory = config().transactionKeyValueService()
                 .map(AtlasDbServiceDiscovery::createKeyValueSnapshotReaderManagerFactoryOfCorrectType);
         OrphanedSentinelDeleter orphanedSentinelDeleter =
-                new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor);
+                new DefaultOrphanedSentinelDeleter(sweepStrategyManager, deleteExecutor);
         return serviceDiscoveredFactory
                 .map(factory -> factory.createKeyValueSnapshotReaderManager(
                         transactionKeyValueServiceManager,

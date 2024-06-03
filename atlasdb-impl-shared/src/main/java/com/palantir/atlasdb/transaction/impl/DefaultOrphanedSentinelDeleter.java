@@ -27,12 +27,11 @@ import java.util.Map;
 import java.util.Set;
 
 public final class DefaultOrphanedSentinelDeleter implements OrphanedSentinelDeleter {
-    private final SweepStrategyProvider sweepStrategyProvider;
+    private final SweepStrategyManager sweepStrategyManager;
     private final DeleteExecutor deleteExecutor;
 
-    public DefaultOrphanedSentinelDeleter(
-            SweepStrategyProvider sweepStrategyProvider, DeleteExecutor deleteExecutor) {
-        this.sweepStrategyProvider = sweepStrategyProvider;
+    public DefaultOrphanedSentinelDeleter(SweepStrategyManager sweepStrategyManager, DeleteExecutor deleteExecutor) {
+        this.sweepStrategyManager = sweepStrategyManager;
         this.deleteExecutor = deleteExecutor;
     }
 
@@ -41,7 +40,7 @@ public final class DefaultOrphanedSentinelDeleter implements OrphanedSentinelDel
         if (orphanedSentinels.isEmpty()) {
             return;
         }
-        boolean tableIsKnownToBeThoroughlySwept = sweepStrategyProvider
+        boolean tableIsKnownToBeThoroughlySwept = sweepStrategyManager
                 .get(tableReference)
                 .getSweeperStrategy()
                 .map(sweeperStrategy -> sweeperStrategy == SweeperStrategy.THOROUGH)

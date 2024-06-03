@@ -156,7 +156,7 @@ public class TestTransactionManagerModule {
                         transactionKeyValueServiceManager,
                         transactionService,
                         config.allowAccessToHiddenTables(),
-                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
+                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager, deleteExecutor),
                         deleteExecutor));
     }
 }

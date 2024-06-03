@@ -479,7 +479,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 },
                 transactionService,
                 false,
-                new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, typedDeleteExecutor),
+                new DefaultOrphanedSentinelDeleter(sweepStrategyManager, typedDeleteExecutor),
                 typedDeleteExecutor);
 
         Transaction snapshot = transactionWrapper.apply(
@@ -548,7 +548,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         new DelegatingTransactionKeyValueServiceManager(unstableKvs),
                         transactionService,
                         false,
-                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, typedDeleteExecutor),
+                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager, typedDeleteExecutor),
                         typedDeleteExecutor));
 
         ScheduledExecutorService service = PTExecutors.newScheduledThreadPool(20);
@@ -1086,7 +1086,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         new DelegatingTransactionKeyValueServiceManager(keyValueService),
                         transactionService,
                         false,
-                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, typedDeleteExecutor),
+                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager, typedDeleteExecutor),
                         typedDeleteExecutor));
 
         Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);

@@ -529,7 +529,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                         transactionKeyValueServiceManager,
                         transactionService,
                         false,
-                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
+                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager, deleteExecutor),
                         deleteExecutor));
     }
 

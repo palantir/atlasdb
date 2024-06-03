@@ -128,7 +128,7 @@ public class SnapshotTransactionManagerTest {
                         transactionKeyValueServiceManager,
                         mock(TransactionService.class),
                         false,
-                        new DefaultOrphanedSentinelDeleter(ThrowingSweepStrategyManager.INSTANCE::get, deleteExecutor),
+                        new DefaultOrphanedSentinelDeleter(ThrowingSweepStrategyManager.INSTANCE, deleteExecutor),
                         deleteExecutor));
     }
 
@@ -192,7 +192,7 @@ public class SnapshotTransactionManagerTest {
                         mock(TransactionService.class),
                         false,
                         new DefaultOrphanedSentinelDeleter(
-                                SweepStrategyManagers.createDefault(keyValueService)::get, deleteExecutor),
+                                SweepStrategyManagers.createDefault(keyValueService), deleteExecutor),
                         deleteExecutor));
         newTransactionManager.close(); // should not throw
     }
@@ -345,7 +345,7 @@ public class SnapshotTransactionManagerTest {
                         mock(TransactionService.class),
                         false,
                         new DefaultOrphanedSentinelDeleter(
-                                SweepStrategyManagers.createDefault(keyValueService)::get, deleteExecutor),
+                                SweepStrategyManagers.createDefault(keyValueService), deleteExecutor),
                         deleteExecutor));
     }
 }

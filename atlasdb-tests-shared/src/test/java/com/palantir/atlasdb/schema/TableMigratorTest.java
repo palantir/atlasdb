@@ -114,7 +114,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
                         new DelegatingTransactionKeyValueServiceManager(kvs2),
                         transactionService,
                         false,
-                        new DefaultOrphanedSentinelDeleter(ssm2::get, typedDeleteExecutor2),
+                        new DefaultOrphanedSentinelDeleter(ssm2, typedDeleteExecutor2),
                         typedDeleteExecutor2));
         kvs2.createTable(tableRef, definition.toTableMetadata().persistToBytes());
         kvs2.createTable(namespacedTableRef, definition.toTableMetadata().persistToBytes());
@@ -160,7 +160,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
                         new DelegatingTransactionKeyValueServiceManager(kvs2),
                         transactionService,
                         false,
-                        new DefaultOrphanedSentinelDeleter(verifySsm::get, verifyTypedDeleteExecutor),
+                        new DefaultOrphanedSentinelDeleter(verifySsm, verifyTypedDeleteExecutor),
                         verifyTypedDeleteExecutor));
         final MutableLong count = new MutableLong();
         for (final TableReference name : Lists.newArrayList(tableRef, namespacedTableRef)) {

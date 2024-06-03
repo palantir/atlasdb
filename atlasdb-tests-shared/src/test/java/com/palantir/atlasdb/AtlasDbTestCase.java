@@ -108,7 +108,7 @@ public class AtlasDbTestCase {
                 txnKeyValueServiceManager,
                 transactionService,
                 false,
-                new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, typedDeleteExecutor),
+                new DefaultOrphanedSentinelDeleter(sweepStrategyManager, typedDeleteExecutor),
                 typedDeleteExecutor);
         setUpTransactionManagers();
         sweepQueue.initialize(serializableTxManager);
