@@ -51,6 +51,7 @@ import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager;
+import com.palantir.atlasdb.transaction.impl.snapshot.DefaultKeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;

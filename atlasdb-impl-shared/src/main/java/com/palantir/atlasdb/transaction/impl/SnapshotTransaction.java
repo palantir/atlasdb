@@ -117,7 +117,6 @@ import com.palantir.atlasdb.transaction.impl.ImmutableTimestampLockManager.Summa
 import com.palantir.atlasdb.transaction.impl.expectations.CellCountValidator;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingTransactionKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingTransactionKeyValueServiceImpl;
-import com.palantir.atlasdb.transaction.impl.metrics.DefaultKeyValueSnapshotEventRecorder;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultKeyValueSnapshotMetricRecorder;
 import com.palantir.atlasdb.transaction.impl.metrics.SnapshotTransactionMetricFactory;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -421,8 +420,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 .commitTimestampLoader(commitTimestampLoader)
                 .preCommitRequirementValidator(preCommitRequirementValidator)
                 .readSnapshotValidator(readSnapshotValidator)
-                .keyValueSnapshotEventRecorder(
-                        DefaultKeyValueSnapshotEventRecorder.create(metricsManager, tableLevelMetricsController))
+                .keyValueSnapshotMetricRecorder(snapshotEventRecorder)
                 .build());
     }
 

@@ -123,6 +123,7 @@ import com.palantir.atlasdb.transaction.impl.metrics.ToplistDeltaFilteringTableL
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionMetrics;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetricsAssert;
+import com.palantir.atlasdb.transaction.impl.snapshot.DefaultKeyValueSnapshotReaderManager;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;

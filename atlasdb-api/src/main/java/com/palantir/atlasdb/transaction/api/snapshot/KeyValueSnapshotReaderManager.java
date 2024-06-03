@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.api.snapshot;
 
 import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.metrics.KeyValueSnapshotMetricRecorder;
 import com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator;
 import com.palantir.atlasdb.transaction.api.precommit.ReadSnapshotValidator;
 import java.util.function.LongSupplier;
@@ -38,6 +39,6 @@ public interface KeyValueSnapshotReaderManager {
 
         ReadSnapshotValidator readSnapshotValidator();
 
-        KeyValueSnapshotEventRecorder keyValueSnapshotEventRecorder();
+        KeyValueSnapshotMetricRecorder keyValueSnapshotMetricRecorder();
     }
 }

@@ -105,7 +105,6 @@ import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManag
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.DefaultDeleteExecutor;
-import com.palantir.atlasdb.transaction.impl.DefaultKeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.impl.DefaultOrphanedSentinelDeleter;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
@@ -115,6 +114,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.consistency.ImmutableTimestampCorroborationConsistencyCheck;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
+import com.palantir.atlasdb.transaction.impl.snapshot.DefaultKeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.knowledge.AbandonedTimestampStoreImpl;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.knowledge.coordinated.CoordinationAwareKnownAbandonedTransactionsStore;

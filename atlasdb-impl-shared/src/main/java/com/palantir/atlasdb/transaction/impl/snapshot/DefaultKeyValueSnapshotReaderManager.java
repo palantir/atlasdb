@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.transaction.impl;
+package com.palantir.atlasdb.transaction.impl.snapshot;
 
 import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
 import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
@@ -22,6 +22,7 @@ import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter;
 import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager;
+import com.palantir.atlasdb.transaction.impl.ReadSentinelHandler;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
 public class DefaultKeyValueSnapshotReaderManager implements KeyValueSnapshotReaderManager {
@@ -61,11 +62,8 @@ public class DefaultKeyValueSnapshotReaderManager implements KeyValueSnapshotRea
                         transactionContext.transactionReadSentinelBehavior(),
                         orphanedSentinelDeleter),
                 transactionContext.startTimestampSupplier(),
-                (tableReference, timestampSupplier, allCellsReadAndPresent) -> transactionContext
-                        .readSnapshotValidator()
-                        .throwIfPreCommitRequirementsNotMetOnRead(
-                                tableReference, timestampSupplier.getAsLong(), allCellsReadAndPresent),
+                transactionContext.readSnapshotValidator(),
                 deleteExecutor,
-                transactionContext.keyValueSnapshotEventRecorder());
+                transactionContext.keyValueSnapshotMetricRecorder());
     }
 }
