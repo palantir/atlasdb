@@ -37,6 +37,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.DoNotLog;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -45,9 +46,11 @@ import com.palantir.util.io.AvailabilityRequirement;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.EndpointDetails;
 import org.apache.cassandra.thrift.InvalidRequestException;
 import org.apache.cassandra.thrift.KsDef;
@@ -385,8 +388,10 @@ public final class CassandraVerifier {
             Set<String> dcs,
             Map<String, String> strategyOptions,
             boolean ignoreDatacenterConfigurationChecks) {
-        for (String datacenter : dcs) {
-            if (Integer.parseInt(strategyOptions.get(datacenter)) != replicationFactor) {
+        boolean allDatacentersMatchAdvertisedReplicationFactor = dcs.stream()
+                .allMatch(datacenter -> Integer.parseInt(strategyOptions.get(datacenter)) == replicationFactor);
+        if (!allDatacentersMatchAdvertisedReplicationFactor) {
+            if (!isValidMigrationReplicationFactorState(replicationFactor, dcs, strategyOptions)) {
                 logErrorOrThrow(
                         "Your current Cassandra keyspace (" + ks.getName()
                                 + ") has a replication factor not matching your Atlas Cassandra configuration."
@@ -395,6 +400,26 @@ public final class CassandraVerifier {
                         ignoreDatacenterConfigurationChecks);
             }
         }
+    }
+
+    /**
+     * Our internal implementation of DC migrations typically involve an intermediate state with two DCs, where one
+     * has the provided replication factor, and the other has a replication factor that may be less than the provided
+     * replication factor. We thus permit situations where there are exactly two DCs, and one DC agrees with the
+     * expected replication factor while the other DC has a replication factor smaller than the expected.
+     */
+    private static boolean isValidMigrationReplicationFactorState(
+            int replicationFactor, Set<String> dcs, Map<String, String> strategyOptions) {
+        if (dcs.size() != 2) {
+            return false;
+        }
+        List<Integer> dcSizes = dcs.stream()
+                .map(dc -> Integer.parseInt(strategyOptions.get(dc)))
+                .sorted()
+                .collect(Collectors.toList());
+        Preconditions.checkState(dcSizes.size() == 2, "Expected to get size for each datacenter");
+        // The list is sorted, so the other DC must have a replication factor <= our expected DC.
+        return dcSizes.get(1) == replicationFactor;
     }
 
     @DoNotLog
