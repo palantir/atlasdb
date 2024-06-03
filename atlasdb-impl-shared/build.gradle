@@ -45,7 +45,6 @@ dependencies {
   implementation 'com.palantir.tritium:tritium-registry'
   implementation 'io.dropwizard.metrics:metrics-core'
   implementation 'javax.ws.rs:javax.ws.rs-api'
-  implementation 'org.jetbrains:annotations'
   implementation 'org.apache.commons:commons-lang3'
   implementation 'org.eclipse.collections:eclipse-collections'
   implementation 'org.eclipse.collections:eclipse-collections-api'
