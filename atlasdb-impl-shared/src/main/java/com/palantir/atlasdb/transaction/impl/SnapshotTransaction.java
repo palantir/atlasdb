@@ -106,6 +106,7 @@ import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionWriteMetadataInfo;
 import com.palantir.atlasdb.transaction.api.metrics.KeyValueSnapshotMetricRecorder;
 import com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator;
+import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
 import com.palantir.atlasdb.transaction.impl.ImmutableTimestampLockManager.SummarizedLockCheckResult;
 import com.palantir.atlasdb.transaction.impl.expectations.CellCountValidator;
@@ -121,6 +122,7 @@ import com.palantir.atlasdb.transaction.impl.precommit.DefaultPreCommitRequireme
 import com.palantir.atlasdb.transaction.impl.precommit.DefaultReadSnapshotValidator;
 import com.palantir.atlasdb.transaction.impl.precommit.ReadSnapshotValidator;
 import com.palantir.atlasdb.transaction.impl.precommit.ReadSnapshotValidator.ValidationState;
+import com.palantir.atlasdb.transaction.impl.snapshot.DefaultKeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -230,8 +232,8 @@ public class SnapshotTransaction extends AbstractTransaction
     private static final int BATCH_SIZE_GET_FIRST_PAGE = 1000;
     private static final long TXN_LENGTH_THRESHOLD = Duration.ofMinutes(30).toMillis();
 
-    @VisibleForTesting
-    static final int MAX_POST_FILTERING_ITERATIONS = 200;
+    // TODO (jkong): Remove once this class is no longer responsible for post-filtering
+    public static final int MAX_POST_FILTERING_ITERATIONS = 200;
 
     @VisibleForTesting
     static final int MIN_BATCH_SIZE_FOR_DISTRIBUTED_LOAD = 100;
@@ -313,6 +315,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private final KeyValueSnapshotMetricRecorder snapshotEventRecorder;
     private final ReadSentinelHandler readSentinelHandler;
+    private final KeyValueSnapshotReader keyValueSnapshotReader;
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
@@ -382,6 +385,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
         TransactionMetrics transactionMetrics = TransactionMetrics.of(metricsManager.getTaggedRegistry());
 
+        // TODO (jkong): Move to use dependency injection!
         this.snapshotEventRecorder =
                 new DefaultKeyValueSnapshotMetricRecorder(snapshotTransactionMetricFactory, transactionMetrics);
         this.transactionOutcomeMetrics =
@@ -399,6 +403,16 @@ public class SnapshotTransaction extends AbstractTransaction
                 transactionService,
                 readSentinelBehavior,
                 new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor));
+        this.keyValueSnapshotReader = new DefaultKeyValueSnapshotReader(
+                transactionKeyValueService,
+                transactionService,
+                commitTimestampLoader,
+                allowHiddenTableAccess,
+                readSentinelHandler,
+                startTimestamp,
+                readSnapshotValidator,
+                deleteExecutor,
+                snapshotEventRecorder);
     }
 
     protected TransactionScopedCache getCache() {
@@ -470,13 +484,7 @@ public class SnapshotTransaction extends AbstractTransaction
                         tableRef,
                         rows,
                         columnSelection,
-                        cells -> AtlasFutures.getUnchecked(getInternal(
-                                "getRows",
-                                tableRef,
-                                cells,
-                                cells.size(),
-                                transactionKeyValueService,
-                                immediateTransactionService)),
+                        cells -> AtlasFutures.getUnchecked(getInternal("getRows", tableRef, cells, cells.size())),
                         unCachedRows -> getRowsInternal(tableRef, unCachedRows, columnSelection));
     }
 
@@ -489,20 +497,16 @@ public class SnapshotTransaction extends AbstractTransaction
             return AbstractTransaction.EMPTY_SORTED_ROWS;
         }
         hasReads = true;
-        ImmutableSortedMap.Builder<Cell, byte[]> result = ImmutableSortedMap.naturalOrder();
-        Map<Cell, Value> rawResults =
-                new HashMap<>(transactionKeyValueService.getRows(tableRef, rows, columnSelection, getStartTimestamp()));
+        ImmutableSortedMap.Builder<Cell, byte[]> resultCollector = ImmutableSortedMap.naturalOrder();
         NavigableMap<Cell, byte[]> writes = localWriteBuffer.getLocalWrites().get(tableRef);
         if (writes != null && !writes.isEmpty()) {
             for (byte[] row : rows) {
-                extractLocalWritesForRow(result, writes, row, columnSelection);
+                extractLocalWritesForRow(resultCollector, writes, row, columnSelection);
             }
         }
 
-        // We don't need to do work postFiltering if we have a write locally.
-        rawResults.keySet().removeAll(result.buildOrThrow().keySet());
-
-        NavigableMap<byte[], RowResult<byte[]>> results = filterRowResults(tableRef, rawResults, result);
+        NavigableMap<byte[], RowResult<byte[]>> results =
+                keyValueSnapshotReader.getRows(tableRef, rows, columnSelection, resultCollector);
         long getRowsMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
         if (perfLogger.isDebugEnabled()) {
             perfLogger.debug(
@@ -967,17 +971,7 @@ public class SnapshotTransaction extends AbstractTransaction
     @Override
     @Idempotent
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
-        return getCache()
-                .get(
-                        tableRef,
-                        cells,
-                        uncached -> getInternal(
-                                "get",
-                                tableRef,
-                                uncached,
-                                uncached.size(),
-                                transactionKeyValueService,
-                                immediateTransactionService));
+        return getCache().get(tableRef, cells, uncached -> getInternal("get", tableRef, uncached, uncached.size()));
     }
 
     @Override
@@ -993,9 +987,7 @@ public class SnapshotTransaction extends AbstractTransaction
                         "getWithExpectedNumberOfCells",
                         tableRef,
                         cacheLookupResult.missedCells(),
-                        numberOfCellsExpectingValuePostCache,
-                        transactionKeyValueService,
-                        immediateTransactionService);
+                        numberOfCellsExpectingValuePostCache);
             }));
         } catch (MoreCellsPresentThanExpectedException e) {
             return Result.err(e);
@@ -1006,26 +998,12 @@ public class SnapshotTransaction extends AbstractTransaction
     @Idempotent
     public ListenableFuture<Map<Cell, byte[]>> getAsync(TableReference tableRef, Set<Cell> cells) {
         return scopeToTransaction(getCache()
-                .getAsync(
-                        tableRef,
-                        cells,
-                        uncached -> getInternal(
-                                "getAsync",
-                                tableRef,
-                                uncached,
-                                uncached.size(),
-                                transactionKeyValueService,
-                                defaultTransactionService)));
+                .getAsync(tableRef, cells, uncached -> getInternal("getAsync", tableRef, uncached, uncached.size())));
     }
 
     @VisibleForTesting
     ListenableFuture<Map<Cell, byte[]>> getInternal(
-            String operationName,
-            TableReference tableRef,
-            Set<Cell> cells,
-            long numberOfExpectedPresentCells,
-            TransactionKeyValueService asyncKeyValueService,
-            AsyncTransactionService asyncTransactionService) {
+            String operationName, TableReference tableRef, Set<Cell> cells, long numberOfExpectedPresentCells) {
         Timer.Context timer =
                 snapshotTransactionMetricFactory.getTimer(operationName).time();
         checkGetPreconditions(tableRef);
@@ -1051,12 +1029,10 @@ public class SnapshotTransaction extends AbstractTransaction
 
         // We don't need to read any cells that were written locally.
         long expectedNumberOfPresentCellsToFetch = numberOfExpectedPresentCells - numberOfNonDeleteLocalWrites;
+        Set<Cell> cellsToFetch = Sets.difference(cells, result.keySet());
+        ListenableFuture<Map<Cell, byte[]>> initialResults = keyValueSnapshotReader.getAsync(tableRef, cellsToFetch);
         return Futures.transform(
-                getFromKeyValueService(
-                        tableRef,
-                        Sets.difference(cells, result.keySet()),
-                        asyncKeyValueService,
-                        asyncTransactionService),
+                initialResults,
                 fromKeyValueService -> {
                     result.putAll(fromKeyValueService);
 
@@ -1090,10 +1066,7 @@ public class SnapshotTransaction extends AbstractTransaction
         }
         hasReads = true;
 
-        ListenableFuture<Map<Cell, byte[]>> result =
-                getFromKeyValueService(tableRef, cells, transactionKeyValueService, immediateTransactionService);
-
-        Map<Cell, byte[]> unfiltered = Futures.getUnchecked(result);
+        Map<Cell, byte[]> unfiltered = AtlasFutures.getUnchecked(keyValueSnapshotReader.getAsync(tableRef, cells));
         Map<Cell, byte[]> filtered = Maps.filterValues(unfiltered, Predicates.not(Value::isTombstone));
 
         TraceStatistics.incEmptyValues(unfiltered.size() - filtered.size());
@@ -1102,26 +1075,6 @@ public class SnapshotTransaction extends AbstractTransaction
         validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp(), allPossibleCellsReadAndPresent);
 
         return filtered;
-    }
-
-    /**
-     * This will load the given keys from the underlying key value service and apply postFiltering so we have snapshot
-     * isolation.  If the value in the key value service is the empty array this will be included here and needs to be
-     * filtered out.
-     */
-    private ListenableFuture<Map<Cell, byte[]>> getFromKeyValueService(
-            TableReference tableRef,
-            Set<Cell> cells,
-            TransactionKeyValueService asyncKeyValueService,
-            AsyncTransactionService asyncTransactionService) {
-        Map<Cell, Long> toRead = Cells.constantValueMap(cells, getStartTimestamp());
-        ListenableFuture<Collection<Map.Entry<Cell, byte[]>>> postFilteredResults = Futures.transformAsync(
-                asyncKeyValueService.getAsync(tableRef, toRead),
-                rawResults -> getWithPostFilteringAsync(
-                        tableRef, rawResults, Value.GET_VALUE, asyncKeyValueService, asyncTransactionService),
-                MoreExecutors.directExecutor());
-
-        return Futures.transform(postFilteredResults, ImmutableMap::copyOf, MoreExecutors.directExecutor());
     }
 
     private static byte[] getNextStartRowName(
