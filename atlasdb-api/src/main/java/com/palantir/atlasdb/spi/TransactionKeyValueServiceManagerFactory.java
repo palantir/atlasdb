@@ -45,7 +45,6 @@ public interface TransactionKeyValueServiceManagerFactory<T> {
             MetricsManager metricsManager,
             CoordinationService<T> coordinationService,
             KeyValueServiceManager keyValueServiceManager,
-            KeyValueServiceConfig sourceInstall,
             TransactionKeyValueServiceConfig install,
             Refreshable<TransactionKeyValueServiceRuntimeConfig> runtime,
             boolean initializeAsync);

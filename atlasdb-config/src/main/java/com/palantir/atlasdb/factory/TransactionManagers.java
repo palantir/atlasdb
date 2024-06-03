@@ -468,7 +468,6 @@ public abstract class TransactionManagers {
                                 lockAndTimestampServices,
                                 internalKeyValueService,
                                 keyValueServiceManager,
-                                config().keyValueService(),
                                 config().transactionKeyValueService().get(),
                                 runtimeConfig.map(optionalConfig -> optionalConfig
                                         .get()
@@ -663,7 +662,6 @@ public abstract class TransactionManagers {
             LockAndTimestampServices lockAndTimestampServices,
             KeyValueService internalTablesKeyValueService,
             KeyValueServiceManager keyValueServiceManager,
-            KeyValueServiceConfig sourceConfig,
             TransactionKeyValueServiceConfig config,
             Refreshable<TransactionKeyValueServiceRuntimeConfig> runtimeConfigRefreshable,
             boolean initializeAsync) {
@@ -683,7 +681,6 @@ public abstract class TransactionManagers {
                 metricsManager,
                 coordinationService,
                 keyValueServiceManager,
-                sourceConfig,
                 config,
                 runtimeConfigRefreshable,
                 initializeAsync);
