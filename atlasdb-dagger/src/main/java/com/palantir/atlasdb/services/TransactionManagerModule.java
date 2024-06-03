@@ -122,13 +122,13 @@ public class TransactionManagerModule {
             Cleaner cleaner,
             @Internal DerivedSnapshotConfig derivedSnapshotConfig,
             TransactionKnowledgeComponents knowledge) {
-        // todo(gmaretic): should this be using a real sweep queue?
         TransactionKeyValueServiceManager transactionKeyValueServiceManager =
                 new DelegatingTransactionKeyValueServiceManager(kvs);
         DefaultDeleteExecutor deleteExecutor = new DefaultDeleteExecutor(
                 kvs,
                 Executors.newSingleThreadExecutor(
                         new NamedThreadFactory(TransactionManagerModule.class + "-delete-executor", true)));
+        // todo(gmaretic): should this be using a real sweep queue?
         return new SerializableTransactionManager(
                 metricsManager,
                 transactionKeyValueServiceManager,
