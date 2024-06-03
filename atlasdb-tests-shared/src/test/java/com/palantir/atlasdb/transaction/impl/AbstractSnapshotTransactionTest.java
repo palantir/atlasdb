@@ -510,7 +510,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         ConflictTracer.NO_OP,
                         tableLevelMetricsController,
                         knowledge,
-                        manager, // Maybe not
+                        manager,
                         createCommitTimestampLoader(
                                 transactionTs, () -> transactionTs, Optional.empty(), timelockService)),
                 pathTypeTracker);
@@ -3529,9 +3529,6 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
             boolean validateLocksOnReads,
             Map<TableReference, ConflictHandler> tableConflictHandlers) {
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
-
-        Optional<LockToken> immutableTimestampLock = Optional.of(lockImmutableTimestampResponse.getLock());
-
         SnapshotTransaction transaction = new SnapshotTransaction(
                 metricsManager,
                 txnKeyValueServiceManager.getTransactionKeyValueService(startTs::get),

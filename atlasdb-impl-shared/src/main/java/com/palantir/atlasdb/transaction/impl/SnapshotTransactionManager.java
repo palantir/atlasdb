@@ -362,7 +362,6 @@ import java.util.stream.Collectors;
         long immutableTs = getApproximateImmutableTimestamp();
         LongSupplier startTimestampSupplier = getStartTimestampSupplier();
         Optional<LockToken> immutableTimestampLock = Optional.empty();
-
         SnapshotTransaction transaction = new SnapshotTransaction(
                 metricsManager,
                 transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
