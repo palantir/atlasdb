@@ -248,7 +248,7 @@ public abstract class TransactionTestSetup {
                 timestampCache,
                 MultiTableSweepQueueWriter.NO_OP,
                 knowledge,
-                MoreExecutors.newDirectExecutorService(),
+                deleteExecutor,
                 keyValueSnapshotReaderManager);
     }
 
