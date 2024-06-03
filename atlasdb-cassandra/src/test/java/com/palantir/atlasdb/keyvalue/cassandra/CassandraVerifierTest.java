@@ -363,7 +363,7 @@ public class CassandraVerifierTest {
         KsDef ksDef = new KsDef("test", CassandraConstants.SIMPLE_STRATEGY, ImmutableList.of());
         ksDef.setStrategy_options(ImmutableMap.of(DC_1, "3", DC_2, "3", DC_3, "3"));
         assertThatCode(() -> CassandraVerifier.sanityCheckReplicationFactor(
-                ksDef, ImmutableSortedSet.of(DC_1, DC_2, DC_3), verifierConfig))
+                        ksDef, ImmutableSortedSet.of(DC_1, DC_2, DC_3), verifierConfig))
                 .doesNotThrowAnyException();
     }
 
