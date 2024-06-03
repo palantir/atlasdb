@@ -19,21 +19,19 @@ package com.palantir.atlasdb.transaction.impl;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.table.description.SweepStrategy;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter;
 import com.palantir.common.streams.KeyedStream;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 
 public final class DefaultOrphanedSentinelDeleter implements OrphanedSentinelDeleter {
-    private final Function<TableReference, SweepStrategy> sweepStrategyProvider;
+    private final SweepStrategyProvider sweepStrategyProvider;
     private final DeleteExecutor deleteExecutor;
 
     public DefaultOrphanedSentinelDeleter(
-            Function<TableReference, SweepStrategy> sweepStrategyProvider, DeleteExecutor deleteExecutor) {
+            SweepStrategyProvider sweepStrategyProvider, DeleteExecutor deleteExecutor) {
         this.sweepStrategyProvider = sweepStrategyProvider;
         this.deleteExecutor = deleteExecutor;
     }
@@ -44,7 +42,7 @@ public final class DefaultOrphanedSentinelDeleter implements OrphanedSentinelDel
             return;
         }
         boolean tableIsKnownToBeThoroughlySwept = sweepStrategyProvider
-                .apply(tableReference)
+                .get(tableReference)
                 .getSweeperStrategy()
                 .map(sweeperStrategy -> sweeperStrategy == SweeperStrategy.THOROUGH)
                 .orElse(false);
