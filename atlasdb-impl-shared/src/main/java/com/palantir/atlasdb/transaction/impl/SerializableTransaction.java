@@ -66,6 +66,7 @@ import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
 import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
+import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -170,6 +171,7 @@ public class SerializableTransaction extends SnapshotTransaction {
             ConflictTracer conflictTracer,
             TableLevelMetricsController tableLevelMetricsController,
             TransactionKnowledgeComponents knowledge,
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager,
             CommitTimestampLoader commitTimestampLoader) {
         super(
                 metricsManager,
@@ -198,6 +200,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 conflictTracer,
                 tableLevelMetricsController,
                 knowledge,
+                keyValueSnapshotReaderManager,
                 commitTimestampLoader);
     }
 
@@ -937,6 +940,7 @@ public class SerializableTransaction extends SnapshotTransaction {
                 conflictTracer,
                 tableLevelMetricsController,
                 knowledge,
+                keyValueSnapshotReaderManager,
                 new ReadValidationCommitTimestampLoader(
                         commitTimestampLoader, getTimestamp(), commitTs, transactionOutcomeMetrics)) {
             @Override

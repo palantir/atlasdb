@@ -178,7 +178,8 @@ public class CommitLockTest extends TransactionTestSetup {
                 timestampCache,
                 MultiTableSweepQueueWriter.NO_OP,
                 knowledge,
-                deleteExecutor);
+                deleteExecutor,
+                keyValueSnapshotReaderManager);
         transactionManager.overrideConflictHandlerForTable(TEST_TABLE, conflictHandler);
         return transactionManager;
     }

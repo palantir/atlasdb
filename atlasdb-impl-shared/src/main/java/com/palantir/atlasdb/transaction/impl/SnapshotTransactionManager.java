@@ -47,6 +47,7 @@ import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
+import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.impl.metrics.MemoizingTableLevelMetricsController;
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.TableLevelMetricsController;
@@ -113,6 +114,7 @@ import java.util.stream.Collectors;
     private final ConflictTracer conflictTracer;
 
     protected final TransactionKnowledgeComponents knowledge;
+    protected final KeyValueSnapshotReaderManager keyValueSnapshotReaderManager;
     protected final CommitTimestampLoaderFactory commitTimestampLoaderFactory;
 
     protected SnapshotTransactionManager(
@@ -138,7 +140,8 @@ import java.util.stream.Collectors;
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         this.lockWatchManager = lockWatchManager;
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
@@ -168,6 +171,7 @@ import java.util.stream.Collectors;
         this.openTransactionCounter =
                 metricsManager.registerOrGetCounter(SnapshotTransactionManager.class, "openTransactionCounter");
         this.knowledge = knowledge;
+        this.keyValueSnapshotReaderManager = keyValueSnapshotReaderManager;
         this.commitTimestampLoaderFactory = new CommitTimestampLoaderFactory(
                 timestampCache, metricsManager, timelockService, knowledge, transactionService, transactionConfig);
     }
@@ -337,6 +341,7 @@ import java.util.stream.Collectors;
                 conflictTracer,
                 tableLevelMetricsController,
                 knowledge,
+                keyValueSnapshotReaderManager,
                 commitTimestampLoaderFactory.createCommitTimestampLoader(
                         startTimestampSupplier, immutableTimestamp, immutableTimestampLock));
     }
@@ -384,6 +389,7 @@ import java.util.stream.Collectors;
                 conflictTracer,
                 tableLevelMetricsController,
                 knowledge,
+                keyValueSnapshotReaderManager,
                 commitTimestampLoaderFactory.createCommitTimestampLoader(
                         startTimestampSupplier, immutableTs, immutableTimestampLock));
         return runTaskThrowOnConflictWithCallback(

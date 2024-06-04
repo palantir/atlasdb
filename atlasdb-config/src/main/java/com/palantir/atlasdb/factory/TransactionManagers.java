@@ -551,7 +551,7 @@ public abstract class TransactionManagers {
                 createClearsTable(internalKeyValueService)));
 
         DeleteExecutor deleteExecutor = DefaultDeleteExecutor.createDefault(internalKeyValueService);
-        createKeyValueSnapshotReaderManager(
+        KeyValueSnapshotReaderManager keyValueSnapshotReaderManager = createKeyValueSnapshotReaderManager(
                 transactionKeyValueServiceManager,
                 transactionService,
                 sweepStrategyManager,
@@ -586,7 +586,8 @@ public abstract class TransactionManagers {
                         metricsFilterEvaluationContext(),
                         installConfig.sharedResourcesConfig().map(SharedResourcesConfig::sharedGetRangesPoolSize),
                         knowledge,
-                        deleteExecutor),
+                        deleteExecutor,
+                        keyValueSnapshotReaderManager),
                 closeables);
 
         transactionManager.registerClosingCallback(runtimeConfigRefreshable::close);

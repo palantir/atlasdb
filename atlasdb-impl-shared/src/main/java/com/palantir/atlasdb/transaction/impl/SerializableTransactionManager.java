@@ -33,8 +33,10 @@ import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
+import com.palantir.atlasdb.transaction.impl.snapshot.DefaultKeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -248,7 +250,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
             TransactionKnowledgeComponents knowledge,
-            DeleteExecutor deleteExecutor) {
+            DeleteExecutor deleteExecutor,
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         return create(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -278,7 +281,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
                 knowledge,
-                deleteExecutor);
+                deleteExecutor,
+                keyValueSnapshotReaderManager);
     }
 
     public static TransactionManager create(
@@ -306,7 +310,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         return create(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -336,7 +341,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 sharedGetRangesPoolSize,
                 knowledge,
                 DefaultDeleteExecutor.createDefault(
-                        transactionKeyValueServiceManager.getKeyValueService().orElseThrow()));
+                        transactionKeyValueServiceManager.getKeyValueService().orElseThrow()),
+                keyValueSnapshotReaderManager);
     }
 
     public static TransactionManager create(
@@ -366,7 +372,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
             TransactionKnowledgeComponents knowledge,
-            DeleteExecutor deleteExecutor) {
+            DeleteExecutor deleteExecutor,
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         return create(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -395,7 +402,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
                 knowledge,
-                deleteExecutor);
+                deleteExecutor,
+                keyValueSnapshotReaderManager);
     }
 
     private static TransactionManager create(
@@ -426,7 +434,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
             TransactionKnowledgeComponents knowledge,
-            DeleteExecutor deleteExecutor) {
+            DeleteExecutor deleteExecutor,
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         TransactionManager transactionManager = new SerializableTransactionManager(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -450,7 +459,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictTracer,
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
-                knowledge);
+                knowledge,
+                keyValueSnapshotReaderManager);
 
         if (shouldInstrument) {
             transactionManager = AtlasDbMetrics.instrumentTimed(
@@ -487,6 +497,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             int defaultGetRangesConcurrency,
             MultiTableSweepQueueWriter sweepQueue,
             TransactionKnowledgeComponents knowledge) {
+        DeleteExecutor deleteExecutor = DefaultDeleteExecutor.createDefault(
+                transactionKeyValueServiceManager.getKeyValueService().orElseThrow());
         return new SerializableTransactionManager(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -504,14 +516,19 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 sweepQueue,
-                DefaultDeleteExecutor.createDefault(
-                        transactionKeyValueServiceManager.getKeyValueService().orElseThrow()),
+                deleteExecutor,
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                new DefaultKeyValueSnapshotReaderManager(
+                        transactionKeyValueServiceManager,
+                        transactionService,
+                        false,
+                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager, deleteExecutor),
+                        deleteExecutor));
     }
 
     public SerializableTransactionManager(
@@ -537,7 +554,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         super(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -561,7 +579,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictTracer,
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
-                knowledge);
+                knowledge,
+                keyValueSnapshotReaderManager);
         this.conflictTracer = conflictTracer;
     }
 
@@ -598,6 +617,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictTracer,
                 tableLevelMetricsController,
                 knowledge,
+                keyValueSnapshotReaderManager,
                 commitTimestampLoaderFactory.createCommitTimestampLoader(
                         startTimestampSupplier, immutableTimestamp, Optional.of(immutableTsLock)));
     }

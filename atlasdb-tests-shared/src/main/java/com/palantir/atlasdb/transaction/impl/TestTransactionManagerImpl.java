@@ -35,6 +35,7 @@ import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
+import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -66,7 +67,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueue,
             TransactionKnowledgeComponents knowledge,
-            DeleteExecutor deleteExecutor) {
+            DeleteExecutor deleteExecutor,
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         this(
                 metricsManager,
                 keyValueService,
@@ -79,7 +81,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 sweepQueue,
                 deleteExecutor,
                 WrapperWithTracker.TRANSACTION_NO_OP,
-                knowledge);
+                knowledge,
+                keyValueSnapshotReaderManager);
     }
 
     public TestTransactionManagerImpl(
@@ -94,7 +97,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             MultiTableSweepQueueWriter sweepQueue,
             DeleteExecutor deleteExecutor,
             WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         this(
                 metricsManager,
                 createAssertKeyValue(keyValueService, lockService),
@@ -107,7 +111,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 sweepQueue,
                 deleteExecutor,
                 transactionWrapper,
-                knowledge);
+                knowledge,
+                keyValueSnapshotReaderManager);
     }
 
     private TestTransactionManagerImpl(
@@ -122,7 +127,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             MultiTableSweepQueueWriter sweepQueue,
             DeleteExecutor deleteExecutor,
             WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         super(
                 metricsManager,
                 keyValueService,
@@ -146,7 +152,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                keyValueSnapshotReaderManager);
         this.transactionWrapper = transactionWrapper;
     }
 
@@ -205,6 +212,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         ConflictTracer.NO_OP,
                         tableLevelMetricsController,
                         knowledge,
+                        keyValueSnapshotReaderManager,
                         commitTimestampLoaderFactory.createCommitTimestampLoader(
                                 startTimestampSupplier, immutableTimestamp, Optional.of(immutableTsLock))),
                 pathTypeTracker);

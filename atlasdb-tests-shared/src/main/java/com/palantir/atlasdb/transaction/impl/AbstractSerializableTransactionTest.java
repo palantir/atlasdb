@@ -177,6 +177,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 ConflictTracer.NO_OP,
                 new SimpleTableLevelMetricsController(metricsManager),
                 knowledge,
+                keyValueSnapshotReaderManager,
                 commitTimestampLoaderFactory.createCommitTimestampLoader(
                         startTimestampSupplier, 0L, options.immutableLockToken)) {
             @Override

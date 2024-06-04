@@ -50,6 +50,8 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager;
+import com.palantir.atlasdb.transaction.impl.snapshot.DefaultKeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -133,6 +135,7 @@ public abstract class TransactionTestSetup {
     protected TransactionKnowledgeComponents knowledge;
     protected Supplier<TransactionConfig> transactionConfigSupplier;
     protected CommitTimestampLoaderFactory commitTimestampLoaderFactory;
+    protected KeyValueSnapshotReaderManager keyValueSnapshotReaderManager;
 
     @RegisterExtension
     public InMemoryTimelockExtension inMemoryTimelockExtension = new InMemoryTimelockExtension();
@@ -210,6 +213,12 @@ public abstract class TransactionTestSetup {
                 transactionConfigSupplier);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
+        keyValueSnapshotReaderManager = new DefaultKeyValueSnapshotReaderManager(
+                transactionKeyValueServiceManager,
+                transactionService,
+                false,
+                new DefaultOrphanedSentinelDeleter(sweepStrategyManager, deleteExecutor),
+                deleteExecutor);
         txMgr = createAndRegisterManager();
     }
 
@@ -239,7 +248,8 @@ public abstract class TransactionTestSetup {
                 timestampCache,
                 MultiTableSweepQueueWriter.NO_OP,
                 knowledge,
-                deleteExecutor);
+                deleteExecutor,
+                keyValueSnapshotReaderManager);
     }
 
     protected void put(Transaction txn, String rowName, String columnName, String value) {
