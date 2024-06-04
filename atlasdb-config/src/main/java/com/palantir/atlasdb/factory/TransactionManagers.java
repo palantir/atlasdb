@@ -100,6 +100,8 @@ import com.palantir.atlasdb.transaction.api.NoOpLockWatchingCache;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
+import com.palantir.atlasdb.transaction.impl.DefaultDeleteExecutor;
+import com.palantir.atlasdb.transaction.impl.DeleteExecutor;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
@@ -543,6 +545,8 @@ public abstract class TransactionManagers {
                 asyncInitializationCallback(),
                 createClearsTable(internalKeyValueService)));
 
+        DeleteExecutor deleteExecutor = DefaultDeleteExecutor.createDefault(internalKeyValueService);
+
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.createInstrumented(
                         metricsManager,
@@ -570,7 +574,8 @@ public abstract class TransactionManagers {
                         conflictTracer,
                         metricsFilterEvaluationContext(),
                         installConfig.sharedResourcesConfig().map(SharedResourcesConfig::sharedGetRangesPoolSize),
-                        knowledge),
+                        knowledge,
+                        deleteExecutor),
                 closeables);
 
         transactionManager.registerClosingCallback(runtimeConfigRefreshable::close);

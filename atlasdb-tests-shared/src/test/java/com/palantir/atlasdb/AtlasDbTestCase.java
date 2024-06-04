@@ -33,6 +33,8 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.impl.CachingTestTransactionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
+import com.palantir.atlasdb.transaction.impl.DefaultDeleteExecutor;
+import com.palantir.atlasdb.transaction.impl.DeleteExecutor;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
 import com.palantir.atlasdb.transaction.impl.TestTransactionManager;
@@ -76,15 +78,13 @@ public class AtlasDbTestCase {
     protected int sweepQueueShards = 128;
 
     protected TransactionKnowledgeComponents knowledge;
-
-    protected ExecutorService deleteExecutor;
+    protected DeleteExecutor deleteExecutor;
 
     @RegisterExtension
     public InMemoryTimelockExtension inMemoryTimelockExtension = new InMemoryTimelockExtension(CLIENT);
 
     @BeforeEach
     public void setUp() throws Exception {
-        deleteExecutor = MoreExecutors.newDirectExecutorService();
         lockClient = LockClient.of(CLIENT);
         lockService = inMemoryTimelockExtension.getLockService();
         timelockService = inMemoryTimelockExtension.getLegacyTimelockService();
@@ -97,6 +97,7 @@ public class AtlasDbTestCase {
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
         sweepQueue = spy(TargetedSweeper.createUninitializedForTest(keyValueService, () -> sweepQueueShards));
         knowledge = TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry());
+        deleteExecutor = new DefaultDeleteExecutor(keyValueService, MoreExecutors.newDirectExecutorService());
         setUpTransactionManagers();
         sweepQueue.initialize(serializableTxManager);
         sweepTimestampSupplier = new SpecialTimestampsSupplier(
@@ -125,7 +126,7 @@ public class AtlasDbTestCase {
                 DefaultTimestampCache.createForTests(),
                 sweepQueue,
                 knowledge,
-                MoreExecutors.newDirectExecutorService());
+                deleteExecutor);
     }
 
     protected KeyValueService getBaseKeyValueService() {

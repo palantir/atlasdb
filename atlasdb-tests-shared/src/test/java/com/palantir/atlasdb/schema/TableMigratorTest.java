@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -101,7 +100,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 DefaultTimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
                 TransactionKnowledgeComponents.createForTests(kvs2, metricsManager.getTaggedRegistry()),
-                MoreExecutors.newDirectExecutorService());
+                deleteExecutor);
         kvs2.createTable(tableRef, definition.toTableMetadata().persistToBytes());
         kvs2.createTable(namespacedTableRef, definition.toTableMetadata().persistToBytes());
 
@@ -139,7 +138,7 @@ public class TableMigratorTest extends AtlasDbTestCase {
                 DefaultTimestampCache.createForTests(),
                 MultiTableSweepQueueWriter.NO_OP,
                 TransactionKnowledgeComponents.createForTests(kvs2, metricsManager.getTaggedRegistry()),
-                MoreExecutors.newDirectExecutorService());
+                deleteExecutor);
         final MutableLong count = new MutableLong();
         for (final TableReference name : Lists.newArrayList(tableRef, namespacedTableRef)) {
             verifyTxManager.runTaskReadOnly((TransactionTask<Void, RuntimeException>) txn -> {

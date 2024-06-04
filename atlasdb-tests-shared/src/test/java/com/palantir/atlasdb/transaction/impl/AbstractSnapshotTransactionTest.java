@@ -463,9 +463,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         getRangesExecutor,
                         defaultGetRangesConcurrency,
                         MultiTableSweepQueueWriter.NO_OP,
-                        new DefaultDeleteExecutor(
-                                txnKeyValueServiceManager.getKeyValueService().orElseThrow(),
-                                MoreExecutors.newDirectExecutorService()),
+                        deleteExecutor,
                         true,
                         transactionConfig::get,
                         ConflictTracer.NO_OP,
@@ -501,7 +499,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 sweepStrategyManager,
                 timestampCache,
                 sweepQueue,
-                MoreExecutors.newDirectExecutorService(),
+                deleteExecutor,
                 transactionWrapper,
                 knowledge);
 
@@ -1032,7 +1030,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 sweepStrategyManager,
                 timestampCache,
                 sweepQueue,
-                executor,
+                new DefaultDeleteExecutor(keyValueService, executor),
                 transactionWrapper,
                 knowledge);
 
@@ -3439,6 +3437,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 getRangesExecutor,
                 defaultGetRangesConcurrency,
                 MultiTableSweepQueueWriter.NO_OP,
+                // todo
                 new DefaultDeleteExecutor(
                         txnKeyValueServiceManager.getKeyValueService().orElseThrow(),
                         MoreExecutors.newDirectExecutorService()),

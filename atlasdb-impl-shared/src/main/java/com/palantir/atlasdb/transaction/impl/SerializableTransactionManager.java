@@ -246,7 +246,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            DeleteExecutor deleteExecutor) {
         return create(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -275,7 +276,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictTracer,
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
-                knowledge);
+                knowledge,
+                deleteExecutor);
     }
 
     public static TransactionManager create(
@@ -331,7 +333,9 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictTracer,
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
-                knowledge);
+                knowledge,
+                DefaultDeleteExecutor.createDefault(
+                        transactionKeyValueServiceManager.getKeyValueService().orElseThrow()));
     }
 
     public static TransactionManager create(
@@ -360,7 +364,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            DeleteExecutor deleteExecutor) {
         return create(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -388,7 +393,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 conflictTracer,
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
-                knowledge);
+                knowledge,
+                deleteExecutor);
     }
 
     private static TransactionManager create(
@@ -418,7 +424,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             ConflictTracer conflictTracer,
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
-            TransactionKnowledgeComponents knowledge) {
+            TransactionKnowledgeComponents knowledge,
+            DeleteExecutor deleteExecutor) {
         TransactionManager transactionManager = new SerializableTransactionManager(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -436,10 +443,7 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
-                // TODO(jakubk): This will be updated in further PRs as it needs to use the same API as sweep.
-                new DefaultDeleteExecutor(
-                        transactionKeyValueServiceManager.getKeyValueService().orElseThrow(),
-                        DefaultTaskExecutors.createDefaultDeleteExecutor()),
+                deleteExecutor,
                 validateLocksOnReads,
                 transactionConfig,
                 conflictTracer,
@@ -499,9 +503,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 sweepQueue,
-                new DefaultDeleteExecutor(
-                        transactionKeyValueServiceManager.getKeyValueService().orElseThrow(),
-                        DefaultTaskExecutors.createDefaultDeleteExecutor()),
+                DefaultDeleteExecutor.createDefault(
+                        transactionKeyValueServiceManager.getKeyValueService().orElseThrow()),
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,

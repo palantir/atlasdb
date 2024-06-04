@@ -300,7 +300,8 @@ public class SerializableTransactionManagerTest {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                DefaultDeleteExecutor.createDefault(mockKvs));
     }
 
     private void nothingInitialized() {

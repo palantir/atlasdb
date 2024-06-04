@@ -21,7 +21,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -179,7 +178,7 @@ public class CommitLockTest extends TransactionTestSetup {
                 timestampCache,
                 MultiTableSweepQueueWriter.NO_OP,
                 knowledge,
-                MoreExecutors.newDirectExecutorService());
+                deleteExecutor);
         transactionManager.overrideConflictHandlerForTable(TEST_TABLE, conflictHandler);
         return transactionManager;
     }

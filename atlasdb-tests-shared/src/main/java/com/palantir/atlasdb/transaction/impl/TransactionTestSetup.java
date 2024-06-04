@@ -125,6 +125,7 @@ public abstract class TransactionTestSetup {
     protected ConflictDetectionManager conflictDetectionManager;
     protected SweepStrategyManager sweepStrategyManager;
     protected TransactionManager txMgr;
+    protected DeleteExecutor deleteExecutor;
 
     protected TimestampCache timestampCache;
 
@@ -150,6 +151,9 @@ public abstract class TransactionTestSetup {
 
         keyValueService = getKeyValueService();
         transactionKeyValueServiceManager = new DelegatingTransactionKeyValueServiceManager(keyValueService);
+        deleteExecutor = new DefaultDeleteExecutor(
+                transactionKeyValueServiceManager.getKeyValueService().orElseThrow(),
+                MoreExecutors.newDirectExecutorService());
         keyValueService.createTables(ImmutableMap.of(
                 TEST_TABLE_THOROUGH,
                 TableMetadata.builder()
@@ -234,7 +238,7 @@ public abstract class TransactionTestSetup {
                 timestampCache,
                 MultiTableSweepQueueWriter.NO_OP,
                 knowledge,
-                MoreExecutors.newDirectExecutorService());
+                deleteExecutor);
     }
 
     protected void put(Transaction txn, String rowName, String columnName, String value) {

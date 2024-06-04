@@ -44,7 +44,6 @@ import com.palantir.timelock.paxos.AbstractInMemoryTimelockExtension;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
 import java.util.function.LongSupplier;
 
 public class TestTransactionManagerImpl extends SerializableTransactionManager implements TestTransactionManager {
@@ -66,7 +65,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueue,
             TransactionKnowledgeComponents knowledge,
-            ExecutorService deleteExecutor) {
+            DeleteExecutor deleteExecutor) {
         this(
                 metricsManager,
                 keyValueService,
@@ -92,7 +91,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             SweepStrategyManager sweepStrategyManager,
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueue,
-            ExecutorService deleteExecutor,
+            DeleteExecutor deleteExecutor,
             WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
             TransactionKnowledgeComponents knowledge) {
         this(
@@ -120,7 +119,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
             SweepStrategyManager sweepStrategyManager,
             TimestampCache timestampCache,
             MultiTableSweepQueueWriter sweepQueue,
-            ExecutorService deleteExecutor,
+            DeleteExecutor deleteExecutor,
             WrapperWithTracker<CallbackAwareTransaction> transactionWrapper,
             TransactionKnowledgeComponents knowledge) {
         super(
@@ -140,7 +139,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 sweepQueue,
-                new DefaultDeleteExecutor(keyValueService.getKeyValueService().orElseThrow(), deleteExecutor),
+                deleteExecutor,
                 true,
                 () -> TRANSACTION_CONFIG,
                 ConflictTracer.NO_OP,

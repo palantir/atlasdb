@@ -50,6 +50,10 @@ public final class DefaultDeleteExecutor implements DeleteExecutor {
         this.executorService = executorService;
     }
 
+    public static DeleteExecutor createDefault(KeyValueService keyValueService) {
+        return new DefaultDeleteExecutor(keyValueService, DefaultTaskExecutors.createDefaultDeleteExecutor());
+    }
+
     @Override
     public void scheduleForDeletion(TableReference tableRef, Map<Cell, Long> keysToDelete) {
         if (keysToDelete.isEmpty()) {
