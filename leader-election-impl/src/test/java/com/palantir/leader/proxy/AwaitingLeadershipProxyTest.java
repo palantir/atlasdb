@@ -81,13 +81,15 @@ public class AwaitingLeadershipProxyTest {
 
     @Test
     @SuppressWarnings("TruthSelfEquals")
-    // We're asserting that calling .equals on a proxy does not redirect
-    // the .equals call to the instance its being proxied.
+    // We are asserting that Object method calls (e.g. equals, hashCode)
+    // are handled by calling the proxy's relevant implementations instead
+    // of not handling the calls (possibly throwing exceptions)
+    // or re-directing the calls to the proxied instance.
     public void shouldAllowObjectMethodsWhenLeading() {
         Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(
                 Runnable.class, delegateSupplier, LeadershipCoordinator.create(leaderElectionService));
 
-        assertThat(proxy.hashCode()).isNotNull();
+        assertThatCode(proxy::hashCode).doesNotThrowAnyException();
         assertThat(proxy).isEqualTo(proxy);
         assertThat(proxy).isNotEqualTo(null);
         assertThat(proxy.toString()).startsWith("com.palantir.leader.proxy.AwaitingLeadershipProxy@");
@@ -168,8 +170,10 @@ public class AwaitingLeadershipProxyTest {
 
     @Test
     @SuppressWarnings("TruthSelfEquals")
-    // We're asserting that calling .equals on a proxy does not redirect
-    // the .equals call to the instance its being proxied.
+    // We are asserting that Object method calls (e.g. equals, hashCode)
+    // are handled by calling the proxy's relevant implementations instead
+    // of not handling the calls (possibly throwing exceptions)
+    // or re-directing the calls to the proxied instance.
     public void shouldAllowObjectMethodsWhenNotLeading() {
         when(leaderElectionService.isStillLeading(any(LeadershipToken.class)))
                 .thenReturn(Futures.immediateFuture(StillLeadingStatus.NOT_LEADING));
@@ -177,7 +181,7 @@ public class AwaitingLeadershipProxyTest {
         Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(
                 Runnable.class, delegateSupplier, LeadershipCoordinator.create(leaderElectionService));
 
-        assertThat(proxy.hashCode()).isNotNull();
+        assertThatCode(proxy::hashCode).doesNotThrowAnyException();
         assertThat(proxy).isEqualTo(proxy);
         assertThat(proxy).isNotEqualTo(null);
         assertThat(proxy.toString()).startsWith("com.palantir.leader.proxy.AwaitingLeadershipProxy@");

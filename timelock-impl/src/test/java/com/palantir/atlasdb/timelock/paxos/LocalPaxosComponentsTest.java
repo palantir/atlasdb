@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.timelock.paxos;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -119,10 +120,11 @@ public class LocalPaxosComponentsTest {
         // return default when timeLock version not provided
         PingableLeader pingableLeader = paxosComponents.pingableLeader(CLIENT);
         assertThat(pingableLeader.pingV2().timeLockVersion()).contains(DEFAULT_TIME_LOCK_VERSION);
-        assertThat(pingableLeader.pingV2().isLeader()).isNotNull();
+        assertThatCode(() -> pingableLeader.pingV2().isLeader()).doesNotThrowAnyException();
 
-        pingableLeader = createPaxosComponents(true, TIMELOCK_VERSION).pingableLeader(CLIENT);
-        assertThat(pingableLeader.pingV2().timeLockVersion()).hasValue(TIMELOCK_VERSION);
+        PingableLeader secondPingableLeader =
+                createPaxosComponents(true, TIMELOCK_VERSION).pingableLeader(CLIENT);
+        assertThat(secondPingableLeader.pingV2().timeLockVersion()).hasValue(TIMELOCK_VERSION);
     }
 
     // utils
