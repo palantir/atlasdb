@@ -373,7 +373,8 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 deleteExecutor,
                 transactionWrapper,
-                knowledge);
+                knowledge,
+                keyValueSnapshotReaderManager);
     }
 
     @Test
@@ -472,7 +473,8 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         tableLevelMetricsController,
                         knowledge,
                         createCommitTimestampLoader(
-                                transactionTs, () -> transactionTs, Optional.empty(), timelockService)),
+                                transactionTs, () -> transactionTs, Optional.empty(), timelockService),
+                        keyValueSnapshotReaderManager),
                 pathTypeTracker);
         assertThatThrownBy(() -> snapshot.get(TABLE, ImmutableSet.of(cell))).isInstanceOf(RuntimeException.class);
 
@@ -503,7 +505,8 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 MoreExecutors.newDirectExecutorService(),
                 transactionWrapper,
-                knowledge);
+                knowledge,
+                keyValueSnapshotReaderManager);
 
         ScheduledExecutorService service = PTExecutors.newScheduledThreadPool(20);
 
@@ -1034,7 +1037,8 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 sweepQueue,
                 executor,
                 transactionWrapper,
-                knowledge);
+                knowledge,
+                keyValueSnapshotReaderManager);
 
         Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);
         when(conditionSupplier.get()).thenReturn(ALWAYS_FAILS_CONDITION).thenReturn(PreCommitConditions.NO_OP);
@@ -3452,7 +3456,8 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         startTimestampSupplier.getAsLong(),
                         res::getImmutableTimestamp,
                         Optional.of(res.getLock()),
-                        timelockService));
+                        timelockService),
+                keyValueSnapshotReaderManager);
     }
 
     private Transaction getSnapshotTransactionWith(
@@ -3511,7 +3516,8 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         startTs.get(),
                         lockImmutableTimestampResponse::getImmutableTimestamp,
                         Optional.of(lockImmutableTimestampResponse.getLock()),
-                        timelockService));
+                        timelockService),
+                keyValueSnapshotReaderManager);
         return transactionWrapper.apply(transaction, pathTypeTracker);
     }
 
