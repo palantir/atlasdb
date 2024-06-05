@@ -16,7 +16,6 @@
 package com.palantir.leader.proxy;
 
 import com.google.common.base.Throwables;
-import com.google.common.reflect.AbstractInvocationHandler;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -38,6 +37,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.tracing.Tracers;
 import java.io.Closeable;
+import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -47,7 +47,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 
 @SuppressWarnings("ProxyNonConstantType")
-public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler {
+public final class AwaitingLeadershipProxy<T> implements InvocationHandler {
     private static final SafeLogger log = SafeLoggerFactory.get(AwaitingLeadershipProxy.class);
 
     private static final int MAX_NO_QUORUM_RETRIES = 10;
@@ -85,9 +85,9 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
                 interfaceClass.getClassLoader(), new Class<?>[] {interfaceClass, Closeable.class}, proxy);
     }
 
-    @SuppressWarnings("ThrowError") // Possible legacy API
-    @Override
-    protected Object handleInvocation(Object proxy, Method method, Object[] args) throws Throwable {
+    @SuppressWarnings({"ThrowError", "checkstyle:IllegalThrows"})
+    // Possible legacy API
+    Object handle(Object proxy, Method method, Object[] args) throws Throwable {
         if (method.getName().equals("close") && args.length == 0) {
             log.debug("Closing leadership proxy");
             isClosed = true;
@@ -229,5 +229,10 @@ public final class AwaitingLeadershipProxy<T> extends AbstractInvocationHandler 
             cause.addSuppressed(e);
             return StillLeadingStatus.NOT_LEADING;
         }
+    }
+
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        return handle(proxy, method, args);
     }
 }

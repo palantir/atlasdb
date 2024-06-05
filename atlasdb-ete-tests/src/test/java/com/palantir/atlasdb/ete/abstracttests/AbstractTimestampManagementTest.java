@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.ete.abstracttests;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.palantir.atlasdb.ete.utilities.EteExtension;
 import com.palantir.atlasdb.timestamp.EteTimestampResource;
@@ -28,10 +29,9 @@ public abstract class AbstractTimestampManagementTest {
     private final EteTimestampResource timestampClient =
             EteExtension.createClientToSingleNode(EteTimestampResource.class);
 
-    @SuppressWarnings("ImpossibleNullComparison")
     @Test
     public void shouldBeAbleToFetchAndForwardTimestamp() {
-        assertThat(timestampClient.getFreshTimestamp()).isNotNull();
+        assertThatCode(timestampClient::getFreshTimestamp).doesNotThrowAnyException();
 
         long newts = timestampClient.getFreshTimestamp() + 10000000;
         timestampClient.fastForwardTimestamp(newts);

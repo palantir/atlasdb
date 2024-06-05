@@ -80,7 +80,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    @SuppressWarnings({"TruthSelfEquals", "ImpossibleNullComparison"})
+    @SuppressWarnings("TruthSelfEquals")
     // We are asserting that Object method calls (e.g. equals, hashCode)
     // are handled by calling the proxy's relevant implementations instead
     // of not handling the calls (possibly resulting in unexpected nulls)
@@ -89,7 +89,7 @@ public class AwaitingLeadershipProxyTest {
         Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(
                 Runnable.class, delegateSupplier, LeadershipCoordinator.create(leaderElectionService));
 
-        assertThat(proxy.hashCode()).isNotNull();
+        assertThatCode(proxy::hashCode).doesNotThrowAnyException();
         assertThat(proxy).isEqualTo(proxy);
         assertThat(proxy).isNotEqualTo(null);
         assertThat(proxy.toString()).startsWith("com.palantir.leader.proxy.AwaitingLeadershipProxy@");
@@ -169,7 +169,7 @@ public class AwaitingLeadershipProxyTest {
     }
 
     @Test
-    @SuppressWarnings({"TruthSelfEquals", "ImpossibleNullComparison"})
+    @SuppressWarnings("TruthSelfEquals")
     // We are asserting that Object method calls (e.g. equals, hashCode)
     // are handled by calling the proxy's relevant implementations instead
     // of not handling the calls (possibly resulting in unexpected nulls)
@@ -181,7 +181,7 @@ public class AwaitingLeadershipProxyTest {
         Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(
                 Runnable.class, delegateSupplier, LeadershipCoordinator.create(leaderElectionService));
 
-        assertThat(proxy.hashCode()).isNotNull();
+        assertThatCode(proxy::hashCode).doesNotThrowAnyException();
         assertThat(proxy).isEqualTo(proxy);
         assertThat(proxy).isNotEqualTo(null);
         assertThat(proxy.toString()).startsWith("com.palantir.leader.proxy.AwaitingLeadershipProxy@");
