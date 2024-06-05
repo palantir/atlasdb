@@ -28,6 +28,7 @@ public abstract class AbstractTimestampManagementTest {
     private final EteTimestampResource timestampClient =
             EteExtension.createClientToSingleNode(EteTimestampResource.class);
 
+    @SuppressWarnings("ImpossibleNullComparison")
     @Test
     public void shouldBeAbleToFetchAndForwardTimestamp() {
         assertThat(timestampClient.getFreshTimestamp()).isNotNull();

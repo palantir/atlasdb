@@ -114,6 +114,7 @@ public class LocalPaxosComponentsTest {
         assertThat(rejectingComponents.learner(CLIENT)).isNotNull();
     }
 
+    @SuppressWarnings("ImpossibleNullComparison")
     @Test
     public void returnsTimeLockVersionWithIsLeaderBoolean() {
         // return default when timeLock version not provided
