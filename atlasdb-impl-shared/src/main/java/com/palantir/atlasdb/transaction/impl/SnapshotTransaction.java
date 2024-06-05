@@ -109,7 +109,9 @@ import com.palantir.atlasdb.transaction.api.metrics.KeyValueSnapshotMetricRecord
 import com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator;
 import com.palantir.atlasdb.transaction.api.precommit.ReadSnapshotValidator;
 import com.palantir.atlasdb.transaction.api.precommit.ReadSnapshotValidator.ValidationState;
+import com.palantir.atlasdb.transaction.api.snapshot.ImmutableTransactionContext;
 import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReader;
+import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
 import com.palantir.atlasdb.transaction.impl.ImmutableTimestampLockManager.SummarizedLockCheckResult;
 import com.palantir.atlasdb.transaction.impl.expectations.CellCountValidator;
@@ -123,7 +125,6 @@ import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.impl.precommit.DefaultLockValidityChecker;
 import com.palantir.atlasdb.transaction.impl.precommit.DefaultPreCommitRequirementValidator;
 import com.palantir.atlasdb.transaction.impl.precommit.DefaultReadSnapshotValidator;
-import com.palantir.atlasdb.transaction.impl.snapshot.DefaultKeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.AsyncTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -317,6 +318,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private final KeyValueSnapshotMetricRecorder snapshotEventRecorder;
     private final ReadSentinelHandler readSentinelHandler;
     private final KeyValueSnapshotReader keyValueSnapshotReader;
+    protected final KeyValueSnapshotReaderManager keyValueSnapshotReaderManager;
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
@@ -350,7 +352,8 @@ public class SnapshotTransaction extends AbstractTransaction
             ConflictTracer conflictTracer,
             TableLevelMetricsController tableLevelMetricsController,
             TransactionKnowledgeComponents knowledge,
-            CommitTimestampLoader commitTimestampLoader) {
+            CommitTimestampLoader commitTimestampLoader,
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
         this.metricsManager = metricsManager;
         this.lockWatchManager = lockWatchManager;
         this.conflictTracer = conflictTracer;
@@ -404,16 +407,19 @@ public class SnapshotTransaction extends AbstractTransaction
                 transactionService,
                 readSentinelBehavior,
                 new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor));
-        this.keyValueSnapshotReader = new DefaultKeyValueSnapshotReader(
-                transactionKeyValueService,
-                transactionService,
-                commitTimestampLoader,
-                allowHiddenTableAccess,
-                readSentinelHandler,
-                startTimestamp,
-                readSnapshotValidator,
-                deleteExecutor,
-                snapshotEventRecorder);
+        this.keyValueSnapshotReaderManager = keyValueSnapshotReaderManager;
+        this.keyValueSnapshotReader = getDefaultKeyValueSnapshotReader();
+    }
+
+    private KeyValueSnapshotReader getDefaultKeyValueSnapshotReader() {
+        return keyValueSnapshotReaderManager.createKeyValueSnapshotReader(ImmutableTransactionContext.builder()
+                .startTimestampSupplier(startTimestamp)
+                .transactionReadSentinelBehavior(TransactionReadSentinelBehavior.THROW_EXCEPTION)
+                .commitTimestampLoader(commitTimestampLoader)
+                .preCommitRequirementValidator(preCommitRequirementValidator)
+                .readSnapshotValidator(readSnapshotValidator)
+                .keyValueSnapshotMetricRecorder(snapshotEventRecorder)
+                .build());
     }
 
     protected TransactionScopedCache getCache() {
