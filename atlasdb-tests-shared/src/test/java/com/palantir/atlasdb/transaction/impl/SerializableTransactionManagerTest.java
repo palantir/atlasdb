@@ -40,6 +40,7 @@ import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
+import com.palantir.atlasdb.transaction.impl.snapshot.DefaultKeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -300,7 +301,13 @@ public class SerializableTransactionManagerTest {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                new DefaultKeyValueSnapshotReaderManager(
+                        new DelegatingTransactionKeyValueServiceManager(mockKvs),
+                        mock(TransactionService.class),
+                        false,
+                        mock(DefaultOrphanedSentinelDeleter.class),
+                        DefaultDeleteExecutor.createDefault(mockKvs)));
     }
 
     private void nothingInitialized() {
