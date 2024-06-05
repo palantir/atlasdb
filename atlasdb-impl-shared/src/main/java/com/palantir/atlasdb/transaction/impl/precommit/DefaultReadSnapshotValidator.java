@@ -19,6 +19,7 @@ package com.palantir.atlasdb.transaction.impl.precommit;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator;
+import com.palantir.atlasdb.transaction.api.precommit.ReadSnapshotValidator;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import java.util.function.Supplier;
 
