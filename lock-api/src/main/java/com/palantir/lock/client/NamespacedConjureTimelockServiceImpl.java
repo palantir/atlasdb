@@ -105,7 +105,18 @@ public class NamespacedConjureTimelockServiceImpl implements NamespacedConjureTi
 
     @Override
     public ConjureRefreshLocksResponseV2 refreshLocksV2(ConjureRefreshLocksRequestV2 request) {
-        return conjureTimelockService.refreshLocksV2(AUTH_HEADER, namespace, request);
+        log.info(
+                "Attempting to refresh locks",
+                SafeArg.of("namespace", namespace),
+                SafeArg.of("allLocksSize", request.get().size()));
+        ConjureRefreshLocksResponseV2 response = conjureTimelockService.refreshLocksV2(AUTH_HEADER, namespace, request);
+        log.info(
+                "Finished refreshing locks",
+                SafeArg.of("namespace", namespace),
+                SafeArg.of("allLocksSize", request.get().size()),
+                SafeArg.of("refreshedLocksSize", response.getRefreshedTokens().size()),
+                SafeArg.of("refreshedAll", request.get().equals(response.getRefreshedTokens())));
+        return response;
     }
 
     @Override
