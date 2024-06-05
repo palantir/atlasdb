@@ -18,6 +18,7 @@ package com.palantir.atlasdb.services;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
+import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
@@ -37,9 +38,11 @@ import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.DefaultDeleteExecutor;
+import com.palantir.atlasdb.transaction.impl.DefaultOrphanedSentinelDeleter;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
+import com.palantir.atlasdb.transaction.impl.snapshot.DefaultKeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -119,10 +122,16 @@ public class TransactionManagerModule {
             Cleaner cleaner,
             @Internal DerivedSnapshotConfig derivedSnapshotConfig,
             TransactionKnowledgeComponents knowledge) {
+        TransactionKeyValueServiceManager transactionKeyValueServiceManager =
+                new DelegatingTransactionKeyValueServiceManager(kvs);
+        DefaultDeleteExecutor deleteExecutor = new DefaultDeleteExecutor(
+                kvs,
+                Executors.newSingleThreadExecutor(
+                        new NamedThreadFactory(TransactionManagerModule.class + "-delete-executor", true)));
         // todo(gmaretic): should this be using a real sweep queue?
         return new SerializableTransactionManager(
                 metricsManager,
-                new DelegatingTransactionKeyValueServiceManager(kvs),
+                transactionKeyValueServiceManager,
                 lts.timelock(),
                 lts.lockWatcher(),
                 lts.managedTimestampService(),
@@ -138,15 +147,18 @@ public class TransactionManagerModule {
                 derivedSnapshotConfig.concurrentGetRangesThreadPoolSize(),
                 derivedSnapshotConfig.defaultGetRangesConcurrency(),
                 MultiTableSweepQueueWriter.NO_OP,
-                new DefaultDeleteExecutor(
-                        kvs,
-                        Executors.newSingleThreadExecutor(
-                                new NamedThreadFactory(TransactionManagerModule.class + "-delete-executor", true))),
+                deleteExecutor,
                 true,
                 () -> config.atlasDbRuntimeConfig().transaction(),
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                new DefaultKeyValueSnapshotReaderManager(
+                        transactionKeyValueServiceManager,
+                        transactionService,
+                        config.allowAccessToHiddenTables(),
+                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
+                        deleteExecutor));
     }
 }
