@@ -29,6 +29,7 @@ import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionManager;
+import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -437,9 +438,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 defaultGetRangesConcurrency,
                 sweepQueueWriter,
                 // TODO(jakubk): This will be updated in further PRs as it needs to use the same API as sweep.
-                new DefaultDeleteExecutor(
-                        transactionKeyValueServiceManager.getKeyValueService().orElseThrow(),
-                        DefaultTaskExecutors.createDefaultDeleteExecutor()),
+                DefaultDeleteExecutor.createDefault(
+                        transactionKeyValueServiceManager.getKeyValueService().orElseThrow()),
                 validateLocksOnReads,
                 transactionConfig,
                 conflictTracer,
@@ -499,9 +499,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 concurrentGetRangesThreadPoolSize,
                 defaultGetRangesConcurrency,
                 sweepQueue,
-                new DefaultDeleteExecutor(
-                        transactionKeyValueServiceManager.getKeyValueService().orElseThrow(),
-                        DefaultTaskExecutors.createDefaultDeleteExecutor()),
+                DefaultDeleteExecutor.createDefault(
+                        transactionKeyValueServiceManager.getKeyValueService().orElseThrow()),
                 true,
                 () -> ImmutableTransactionConfig.builder().build(),
                 ConflictTracer.NO_OP,
