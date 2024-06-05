@@ -83,7 +83,7 @@ public class AwaitingLeadershipProxyTest {
     @SuppressWarnings("TruthSelfEquals")
     // We are asserting that Object method calls (e.g. equals, hashCode)
     // are handled by calling the proxy's relevant implementations instead
-    // of not handling the calls (possibly resulting in unexpected nulls)
+    // of not handling the calls (possibly throwing exceptions)
     // or re-directing the calls to the proxied instance.
     public void shouldAllowObjectMethodsWhenLeading() {
         Runnable proxy = AwaitingLeadershipProxy.newProxyInstance(
@@ -172,7 +172,7 @@ public class AwaitingLeadershipProxyTest {
     @SuppressWarnings("TruthSelfEquals")
     // We are asserting that Object method calls (e.g. equals, hashCode)
     // are handled by calling the proxy's relevant implementations instead
-    // of not handling the calls (possibly resulting in unexpected nulls)
+    // of not handling the calls (possibly throwing exceptions)
     // or re-directing the calls to the proxied instance.
     public void shouldAllowObjectMethodsWhenNotLeading() {
         when(leaderElectionService.isStillLeading(any(LeadershipToken.class)))
