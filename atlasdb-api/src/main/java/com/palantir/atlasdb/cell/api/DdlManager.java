@@ -18,10 +18,13 @@ package com.palantir.atlasdb.cell.api;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.util.Map;
+import java.util.Set;
 
 public interface DdlManager {
 
     // TODO(jakubk): Convert all these to be async.
     // TODO(jakubk): Switch to using TableMetadata.
     void createTables(Map<TableReference, byte[]> tableRefToTableMetadata);
+
+    void dropTables(Set<TableReference> tableRefs);
 }

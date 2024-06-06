@@ -20,6 +20,7 @@ import com.palantir.atlasdb.cell.api.DdlManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import java.util.Map;
+import java.util.Set;
 
 public final class DelegatingDdlManager implements DdlManager {
 
@@ -32,5 +33,10 @@ public final class DelegatingDdlManager implements DdlManager {
     @Override
     public void createTables(Map<TableReference, byte[]> tableRefToTableMetadata) {
         delegate.createTables(tableRefToTableMetadata);
+    }
+
+    @Override
+    public void dropTables(Set<TableReference> tableRefs) {
+        delegate.dropTables(tableRefs);
     }
 }

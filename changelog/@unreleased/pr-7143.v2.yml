@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: Make DdlManager accessible from a TransactionManager
+  links:
+  - https://github.com/palantir/atlasdb/pull/7143

@@ -126,6 +126,16 @@ acceptedBreaks:
         \ com.palantir.atlasdb.keyvalue.api.TableReference, java.util.List<com.palantir.logsafe.Arg<?>>)"
       justification: "Transaction conflict exceptions are only intended to be instantiated\
         \ internally"
+  "0.1095.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.addedToInterface"
+      new: "method com.palantir.atlasdb.cell.api.DdlManager com.palantir.atlasdb.transaction.api.TransactionManager::getDdlManager()"
+      justification: "Adding getDdlManager() to TransactionManager will not break\
+        \ existing usage"
+    - code: "java.method.addedToInterface"
+      new: "method void com.palantir.atlasdb.cell.api.DdlManager::dropTables(java.util.Set<com.palantir.atlasdb.keyvalue.api.TableReference>)"
+      justification: "Adding getDdlManager() to TransactionManager will not break\
+        \ existing usage"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"

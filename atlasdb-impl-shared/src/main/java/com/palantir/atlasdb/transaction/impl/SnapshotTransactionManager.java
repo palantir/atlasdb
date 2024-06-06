@@ -24,6 +24,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cell.api.DdlManager;
 import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
@@ -523,6 +524,11 @@ import java.util.stream.Collectors;
         return transactionKeyValueServiceManager
                 .getKeyValueService()
                 .orElseThrow(() -> new SafeIllegalStateException("KeyValueService is not supported"));
+    }
+
+    @Override
+    public DdlManager getDdlManager() {
+        return transactionKeyValueServiceManager.getDdlManager();
     }
 
     @Override
