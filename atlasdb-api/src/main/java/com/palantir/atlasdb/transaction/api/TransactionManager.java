@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
+import com.palantir.atlasdb.cell.api.DdlManager;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager;
@@ -365,6 +366,14 @@ public interface TransactionManager extends AutoCloseable {
      * @return the key value service for this transaction manager.
      */
     KeyValueService getKeyValueService();
+
+    /**
+     * Returns the DdlManager used by this transaction manager. This should be used in place of the KeyValueService
+     * when creating tables or making other schema changes.
+     *
+     * @return the DdlManager for this transaction manager.
+     */
+    DdlManager getDdlManager();
 
     /**
      * Provides a {@link KeyValueServiceStatus}, indicating the current availability of the key value store.
