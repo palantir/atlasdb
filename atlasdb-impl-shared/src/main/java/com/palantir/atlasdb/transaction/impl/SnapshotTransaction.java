@@ -414,7 +414,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private KeyValueSnapshotReader getDefaultKeyValueSnapshotReader() {
         return keyValueSnapshotReaderManager.createKeyValueSnapshotReader(ImmutableTransactionContext.builder()
                 .startTimestampSupplier(startTimestamp)
-                .transactionReadSentinelBehavior(TransactionReadSentinelBehavior.THROW_EXCEPTION)
+                .transactionReadSentinelBehavior(readSentinelBehavior)
                 .commitTimestampLoader(commitTimestampLoader)
                 .preCommitRequirementValidator(preCommitRequirementValidator)
                 .readSnapshotValidator(readSnapshotValidator)
