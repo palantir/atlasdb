@@ -25,7 +25,7 @@ import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManag
 import com.palantir.atlasdb.transaction.impl.ReadSentinelHandler;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
-public class DefaultKeyValueSnapshotReaderManager implements KeyValueSnapshotReaderManager {
+public final class DefaultKeyValueSnapshotReaderManager implements KeyValueSnapshotReaderManager {
     private final TransactionKeyValueServiceManager transactionKeyValueServiceManager;
     private final TransactionService transactionService;
     private final boolean allowHiddenTableAccess;
