@@ -444,31 +444,22 @@ public abstract class TransactionManagers {
                     return ValidatingQueryRewritingKeyValueService.create(kvs); // ok
                 },
                 closeables);
-        KeyValueServiceManager keyValueServiceManager = new DefaultKeyValueServiceManager(metricsManager, adapter);
+
         TransactionKeyValueServiceManager transactionKeyValueServiceManager = initializeCloseable(
-                () -> {
-                    TransactionKeyValueServiceManager tkvsm;
-                    if (config().transactionKeyValueService().isPresent()) {
-                        TransactionKeyValueServiceManagerFactory<?> tkvsmfFactory =
+                () -> config().transactionKeyValueService()
+                        .map(transactionKeyValueServiceConfig -> createTransactionKeyValueServiceManager(
                                 AtlasDbServiceDiscovery.createTransactionKeyValueServiceManagerFactoryOfCorrectType(
-                                        config().transactionKeyValueService().get());
-                        tkvsm = createTransactionKeyValueServiceManager(
-                                tkvsmfFactory,
+                                        transactionKeyValueServiceConfig),
                                 metricsManager,
                                 lockAndTimestampServices,
                                 internalKeyValueService,
-                                keyValueServiceManager,
-                                config().transactionKeyValueService().get(),
-                                runtimeConfig().get().map(optionalConfig -> optionalConfig
-                                        .get()
-                                        .transactionKeyValueService()
-                                        .get()),
-                                config().initializeAsync());
-                    } else {
-                        tkvsm = new DelegatingTransactionKeyValueServiceManager(internalKeyValueService);
-                    }
-                    return tkvsm;
-                },
+                                new DefaultKeyValueServiceManager(metricsManager, adapter),
+                                transactionKeyValueServiceConfig,
+                                runtime.map(config -> config.transactionKeyValueService()
+                                        .orElseThrow(() -> new SafeIllegalArgumentException(
+                                                "TransactionKeyValueServiceRuntimeConfig must be provided"))),
+                                config().initializeAsync()))
+                        .orElseGet(() -> new DelegatingTransactionKeyValueServiceManager(internalKeyValueService)),
                 closeables);
 
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
