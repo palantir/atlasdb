@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: TKVSM initialization handles when runtimeConfig is provided as a Supplier
+  links:
+  - https://github.com/palantir/atlasdb/pull/7134
