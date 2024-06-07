@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Custom ErrorProne rules - DefaultClassMustBeFinal
+  links:
+  - https://github.com/palantir/atlasdb/pull/7145
