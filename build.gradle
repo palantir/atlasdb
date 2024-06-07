@@ -113,12 +113,19 @@ allprojects {
     tasks.check.dependsOn checkImplicitDependenciesMain, checkUnusedDependenciesMain
 }
 
+def excludedProjects = [':atlasdb-errorprone']
+
 subprojects {
     task allDeps(type: DependencyReportTask) {}
+    if (!excludedProjects.contains(it.path)) {
+        dependencies {
+            annotationProcessor project(':atlasdb-errorprone')
+        }
+    }
 }
 
 afterEvaluate {
-    configure(subprojects.findAll {!it.getPath().startsWith(":examples")}) {
+    configure(subprojects.findAll {!it.getPath().startsWith(":examples") && !it.getPath().startsWith(":atlasdb-errorprone")}) {
         if (!project.plugins.hasPlugin('com.palantir.external-publish-dist')) {
             apply from: "$rootDir/gradle/publish-jars.gradle"
         }

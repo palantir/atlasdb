@@ -1,0 +1,32 @@
+
+dependencies {
+    annotationProcessor 'com.google.auto.service:auto-service'
+
+    compileOnly 'com.google.auto.service:auto-service-annotations'
+    compileOnly 'com.google.errorprone:error_prone_check_api'
+    compileOnly 'org.immutables:value::annotations'
+
+    testImplementation 'com.google.errorprone:error_prone_test_helpers'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api'
+}
+
+
+moduleJvmArgs {
+    exports = [
+            'jdk.compiler/com.sun.tools.javac.api',
+            'jdk.compiler/com.sun.tools.javac.file',
+            'jdk.compiler/com.sun.tools.javac.code',
+            'jdk.compiler/com.sun.tools.javac.util',
+            'jdk.compiler/com.sun.tools.javac.comp',
+            'jdk.compiler/com.sun.tools.javac.main',
+            'jdk.compiler/com.sun.tools.javac.model',
+            'jdk.compiler/com.sun.tools.javac.parser',
+            'jdk.compiler/com.sun.tools.javac.processing',
+            'jdk.compiler/com.sun.tools.javac.tree',
+            'jdk.compiler/com.sun.tools.javac.util'
+    ]
+    opens = [
+            'jdk.compiler/com.sun.tools.javac.comp'
+    ]
+}

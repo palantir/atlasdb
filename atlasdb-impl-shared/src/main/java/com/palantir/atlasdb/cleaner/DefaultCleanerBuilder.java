@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
-public class DefaultCleanerBuilder {
+public final class DefaultCleanerBuilder {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultCleanerBuilder.class);
 
     private final KeyValueService keyValueService;

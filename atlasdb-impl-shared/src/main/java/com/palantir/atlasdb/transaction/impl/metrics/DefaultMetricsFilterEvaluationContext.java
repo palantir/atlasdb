@@ -26,7 +26,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
-public class DefaultMetricsFilterEvaluationContext implements MetricsFilterEvaluationContext {
+public final class DefaultMetricsFilterEvaluationContext implements MetricsFilterEvaluationContext {
     private final Map<String, TopNMetricPublicationController<Long>> keyToPublicationController;
     private final Supplier<TopNMetricPublicationController<Long>> controllerFactory;
 

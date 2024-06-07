@@ -16,7 +16,7 @@
 
 package com.palantir.lock.v2;
 
-public class DefaultNamespacedTimelockRpcClient implements NamespacedTimelockRpcClient {
+public final class DefaultNamespacedTimelockRpcClient implements NamespacedTimelockRpcClient {
     private final TimelockRpcClient timelockRpcClient;
     private final String namespace;
 

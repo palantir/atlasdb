@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class DefaultWorkflowRunner implements WorkflowRunner<Workflow> {
+public final class DefaultWorkflowRunner implements WorkflowRunner<Workflow> {
 
     private final ListeningExecutorService listeningExecutorService;
 

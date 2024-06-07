@@ -31,7 +31,7 @@ import java.net.InetSocketAddress;
 import java.util.Set;
 import java.util.function.Supplier;
 
-public class DefaultCqlClientFactory implements CqlClientFactory {
+public final class DefaultCqlClientFactory implements CqlClientFactory {
     public static final CqlClientFactory DEFAULT = new DefaultCqlClientFactory();
 
     private final Supplier<Cluster.Builder> cqlClusterBuilderFactory;
