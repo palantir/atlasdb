@@ -108,7 +108,8 @@ public final class TransactionRetryStrategy {
                     log.warn(
                             "[{}] Non-retriable exception while processing transaction.",
                             SafeArg.of("runId", runId),
-                            SafeArg.of("failureCount", failureCount));
+                            SafeArg.of("failureCount", failureCount),
+                            exception);
                 } else if (shouldStopRetrying.test(failureCount)) {
                     log.warn(
                             "[{}] Failing after {} tries.",
