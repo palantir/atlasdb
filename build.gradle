@@ -113,11 +113,11 @@ allprojects {
     tasks.check.dependsOn checkImplicitDependenciesMain, checkUnusedDependenciesMain
 }
 
-def excludedProjects = [':atlasdb-errorprone']
+def customErrorProneExcludedProjects = [':atlasdb-errorprone']
 
 subprojects {
     task allDeps(type: DependencyReportTask) {}
-    if (!excludedProjects.contains(it.path)) {
+    if (!customErrorProneExcludedProjects.contains(it.path)) {
         dependencies {
             annotationProcessor project(':atlasdb-errorprone')
         }
