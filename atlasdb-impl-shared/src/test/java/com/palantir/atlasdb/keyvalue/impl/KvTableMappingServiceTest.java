@@ -298,7 +298,7 @@ public class KvTableMappingServiceTest {
         anotherService.removeTable(UNCACHEABLE_TABLE_1);
         assertThatThrownBy(() -> tableMapping.getMappedTableName(UNCACHEABLE_TABLE_1))
                 .isInstanceOf(TableMappingNotFoundException.class)
-                .hasMessage("Unable to resolve mapping for table reference " + UNCACHEABLE_TABLE_1);
+                .hasMessage("Unable to resolve mapping for table reference (Uncached) " + UNCACHEABLE_TABLE_1);
     }
 
     @Test
@@ -333,7 +333,7 @@ public class KvTableMappingServiceTest {
     public void mapToShortTableNamesThrowsIfKeyNotFoundInTableMap() {
         assertThatThrownBy(() -> tableMapping.mapToShortTableNames(ImmutableMap.of(FQ_TABLE, 1, FQ_TABLE2, 2)))
                 .isInstanceOf(TableMappingNotFoundException.class)
-                .hasMessage("Unable to resolve mapping for table reference " + FQ_TABLE2);
+                .hasMessage("Unable to resolve mapping for table reference (Cached) " + FQ_TABLE2);
     }
 
     @Test

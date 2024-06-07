@@ -43,8 +43,11 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.exception.TableMappingNotFoundException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Collection;
 import java.util.HashSet;
@@ -54,6 +57,8 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public final class TableRemappingKeyValueService extends ForwardingObject implements KeyValueService {
+    private static final SafeLogger log = SafeLoggerFactory.get(TableRemappingKeyValueService.class);
+
     public static TableRemappingKeyValueService create(KeyValueService delegate, TableMappingService tableMapper) {
         return new TableRemappingKeyValueService(delegate, tableMapper);
     }
@@ -156,6 +161,10 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
                 tableNames.add(tableMapper.getMappedTableName(tableRef));
             } catch (TableMappingNotFoundException e) {
                 // Table does not exist - do nothing
+                log.debug(
+                        "Could not find short table reference for an existing table",
+                        LoggingArgs.tableRef(tableRef),
+                        e);
             }
         }
         return tableNames;
