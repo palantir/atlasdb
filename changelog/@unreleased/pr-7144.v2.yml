@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: When transactions conflict, log the tables which conflicted.
+  links:
+  - https://github.com/palantir/atlasdb/pull/7144
