@@ -26,6 +26,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.TableMappingCacheConfiguration;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.table.description.TableDefinition;
@@ -35,10 +36,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 
@@ -85,6 +88,67 @@ public class TableRemappingKeyValueServiceTest {
                 assertThat(read).containsExactly(Maps.immutableEntry(testCell, Value.create(value, testTimestamp)));
                 return null;
             }));
+            futures.forEach(Futures::getUnchecked);
+        }
+    }
+
+    @Test
+    public void concurrentlyCreateAndDeleteTablesAcrossManyWriters() {
+        int maxWritersMaybeWeAreSatisfiedTheBugIsGone = 4;
+        int createAndDeleteWriters = 1;
+        int currentAttempt = 0;
+        int attemptsUntilIncrement = 10;
+        int tableCount = 1000;
+
+        for (int i = 0; i < tableCount; i++) {
+            kvs.createTable(
+                    TableReference.create(NAMESPACE, TABLENAME + "_" + i), AtlasDbConstants.GENERIC_TABLE_METADATA);
+        }
+
+        while (true) {
+            if (currentAttempt == attemptsUntilIncrement) {
+                if (createAndDeleteWriters == maxWritersMaybeWeAreSatisfiedTheBugIsGone) {
+                    return;
+                }
+
+                createAndDeleteWriters++;
+                currentAttempt = 0;
+                System.err.println("More readers and writers: " + createAndDeleteWriters);
+            } else {
+                currentAttempt++;
+            }
+
+            ExecutorService executor = Executors.newFixedThreadPool(createAndDeleteWriters);
+
+            // Try and ensure the read-write party happens as close to simultaneously as possible
+            CyclicBarrier waitUntilAllFuturesAreReady = new CyclicBarrier(createAndDeleteWriters);
+            final Set<Future<Void>> futures = new HashSet<>();
+            for (int i = 0; i < createAndDeleteWriters; i++) {
+                futures.add(executor.submit(() -> {
+                    AtomicLong timestamp = new AtomicLong();
+                    KvTableMappingService tableMapper = KvTableMappingService.createWithCustomNamespaceValidation(
+                            rawKvs,
+                            timestamp::incrementAndGet,
+                            Namespace.STRICTLY_CHECKED_NAME,
+                            new TableMappingCacheConfiguration() {
+                                @Override
+                                public Predicate<TableReference> cacheableTablePredicate() {
+                                    return tableReference -> false;
+                                }
+                            });
+                    KeyValueService kvs = TableRemappingKeyValueService.create(rawKvs, tableMapper);
+                    waitUntilAllFuturesAreReady.await();
+                    for (int j = 0; j < tableCount; j++) {
+                        kvs.dropTable(TableReference.create(NAMESPACE, TABLENAME + "_" + j));
+                        kvs.createTable(
+                                TableReference.create(NAMESPACE, TABLENAME + "_" + j),
+                                AtlasDbConstants.GENERIC_TABLE_METADATA);
+                    }
+
+                    return null;
+                }));
+            }
+
             futures.forEach(Futures::getUnchecked);
         }
     }
