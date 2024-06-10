@@ -103,7 +103,8 @@ public class AtlasDbTestCase {
         sweepQueue = spy(TargetedSweeper.createUninitializedForTest(keyValueService, () -> sweepQueueShards));
         knowledge = TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry());
         DeleteExecutor typedDeleteExecutor = new DefaultDeleteExecutor(keyValueService, deleteExecutor);
-        keyValueSnapshotReaderManager = TestKeyValueSnapshotReaderManagers.createForTests(txnKeyValueServiceManager, transactionService, sweepStrategyManager, typedDeleteExecutor);
+        keyValueSnapshotReaderManager = TestKeyValueSnapshotReaderManagers.createForTests(
+                txnKeyValueServiceManager, transactionService, sweepStrategyManager, typedDeleteExecutor);
         setUpTransactionManagers();
         sweepQueue.initialize(serializableTxManager);
         sweepTimestampSupplier = new SpecialTimestampsSupplier(
