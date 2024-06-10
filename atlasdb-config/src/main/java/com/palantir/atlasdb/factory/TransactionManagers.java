@@ -367,10 +367,9 @@ public abstract class TransactionManagers {
 
     @SuppressWarnings("MethodLength")
     private TransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
-        MetricsManager metricsManager = setUpMetricsAndGetMetricsManager();
-
         AtlasDbRuntimeConfigRefreshable runtimeConfigRefreshable =
                 initializeCloseable(() -> AtlasDbRuntimeConfigRefreshable.create(this), closeables);
+        MetricsManager metricsManager = setUpMetricsAndGetMetricsManager(runtimeConfigRefreshable);
 
         Refreshable<AtlasDbRuntimeConfig> runtime = runtimeConfigRefreshable.config();
 
@@ -444,31 +443,22 @@ public abstract class TransactionManagers {
                     return ValidatingQueryRewritingKeyValueService.create(kvs); // ok
                 },
                 closeables);
-        KeyValueServiceManager keyValueServiceManager = new DefaultKeyValueServiceManager(metricsManager, adapter);
+
         TransactionKeyValueServiceManager transactionKeyValueServiceManager = initializeCloseable(
-                () -> {
-                    TransactionKeyValueServiceManager tkvsm;
-                    if (config().transactionKeyValueService().isPresent()) {
-                        TransactionKeyValueServiceManagerFactory<?> tkvsmfFactory =
+                () -> config().transactionKeyValueService()
+                        .map(transactionKeyValueServiceConfig -> createTransactionKeyValueServiceManager(
                                 AtlasDbServiceDiscovery.createTransactionKeyValueServiceManagerFactoryOfCorrectType(
-                                        config().transactionKeyValueService().get());
-                        tkvsm = createTransactionKeyValueServiceManager(
-                                tkvsmfFactory,
+                                        transactionKeyValueServiceConfig),
                                 metricsManager,
                                 lockAndTimestampServices,
                                 internalKeyValueService,
-                                keyValueServiceManager,
-                                config().transactionKeyValueService().get(),
-                                runtimeConfig().get().map(optionalConfig -> optionalConfig
-                                        .get()
-                                        .transactionKeyValueService()
-                                        .get()),
-                                config().initializeAsync());
-                    } else {
-                        tkvsm = new DelegatingTransactionKeyValueServiceManager(internalKeyValueService);
-                    }
-                    return tkvsm;
-                },
+                                new DefaultKeyValueServiceManager(metricsManager, adapter),
+                                transactionKeyValueServiceConfig,
+                                runtime.map(config -> config.transactionKeyValueService()
+                                        .orElseThrow(() -> new SafeIllegalArgumentException(
+                                                "TransactionKeyValueServiceRuntimeConfig must be provided"))),
+                                config().initializeAsync()))
+                        .orElseGet(() -> new DelegatingTransactionKeyValueServiceManager(internalKeyValueService)),
                 closeables);
 
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
@@ -638,17 +628,13 @@ public abstract class TransactionManagers {
                 initializeAsync);
     }
 
-    private MetricsManager setUpMetricsAndGetMetricsManager() {
+    private MetricsManager setUpMetricsAndGetMetricsManager(AtlasDbRuntimeConfigRefreshable runtimeConfigRefreshable) {
         MetricRegistry internalAtlasDbMetrics = new MetricRegistry();
         TaggedMetricRegistry internalTaggedAtlasDbMetrics = new DefaultTaggedMetricRegistry();
         MetricsManager metricsManager = MetricsManagers.of(
                 internalAtlasDbMetrics,
                 internalTaggedAtlasDbMetrics,
-                runtimeConfig()
-                        .map(runtimeConfigRefreshable -> runtimeConfigRefreshable.map(maybeRuntime -> maybeRuntime
-                                .map(AtlasDbRuntimeConfig::enableMetricFiltering)
-                                .orElse(true)))
-                        .orElseGet(() -> Refreshable.only(true)));
+                runtimeConfigRefreshable.config().map(AtlasDbRuntimeConfig::enableMetricFiltering));
         globalTaggedMetricRegistry()
                 .addMetrics(
                         AtlasDbMetricNames.LIBRARY_ORIGIN_TAG,
