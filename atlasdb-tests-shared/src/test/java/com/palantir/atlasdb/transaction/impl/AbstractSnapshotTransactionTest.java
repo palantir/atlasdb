@@ -56,9 +56,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbTestCase;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
-import com.palantir.atlasdb.cell.api.DdlManager;
 import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -84,7 +82,6 @@ import com.palantir.atlasdb.keyvalue.api.cache.ValueCacheSnapshotImpl;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.api.watch.LocksAndMetadata;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
-import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
@@ -123,7 +120,6 @@ import com.palantir.atlasdb.transaction.impl.metrics.ToplistDeltaFilteringTableL
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionMetrics;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetricsAssert;
-import com.palantir.atlasdb.transaction.impl.snapshot.DefaultKeyValueSnapshotReaderManager;
 import com.palantir.common.base.AbortingVisitor;
 import com.palantir.common.base.AbortingVisitors;
 import com.palantir.common.base.BatchingVisitable;
@@ -449,34 +445,10 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
 
         PathTypeTracker pathTypeTracker = PathTypeTrackers.constructSynchronousTracker();
         DeleteExecutor typedDeleteExecutor = new DefaultDeleteExecutor(keyValueService, deleteExecutor);
-        KeyValueSnapshotReaderManager manager = new DefaultKeyValueSnapshotReaderManager(
-                new TransactionKeyValueServiceManager() {
-                    @Override
-                    public TransactionKeyValueService getTransactionKeyValueService(LongSupplier timestampSupplier) {
-                        return tkvsMock;
-                    }
-
-                    @Override
-                    public Optional<KeyValueService> getKeyValueService() {
-                        return Optional.empty();
-                    }
-
-                    @Override
-                    public DdlManager getDdlManager() {
-                        throw new SafeIllegalStateException("Not expecting to call in to DDL manager here");
-                    }
-
-                    @Override
-                    public boolean isInitialized() {
-                        return true;
-                    }
-
-                    @Override
-                    public void close() {}
-                },
+        KeyValueSnapshotReaderManager manager = TestKeyValueSnapshotReaderManagers.createForTests(
+                new FakeTransactionKeyValueServiceManager(tkvsMock),
                 transactionService,
-                false,
-                new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, typedDeleteExecutor),
+                sweepStrategyManager,
                 typedDeleteExecutor);
         Transaction snapshot = transactionWrapper.apply(
                 new SnapshotTransaction(
@@ -543,12 +515,8 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 MoreExecutors.newDirectExecutorService(),
                 transactionWrapper,
                 knowledge,
-                new DefaultKeyValueSnapshotReaderManager(
-                        new DelegatingTransactionKeyValueServiceManager(unstableKvs),
-                        transactionService,
-                        false,
-                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, typedDeleteExecutor),
-                        typedDeleteExecutor));
+                TestKeyValueSnapshotReaderManagers.createForTests(
+                        unstableKvs, transactionService, sweepStrategyManager, typedDeleteExecutor));
 
         ScheduledExecutorService service = PTExecutors.newScheduledThreadPool(20);
 
@@ -1081,12 +1049,8 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 executor,
                 transactionWrapper,
                 knowledge,
-                new DefaultKeyValueSnapshotReaderManager(
-                        new DelegatingTransactionKeyValueServiceManager(keyValueService),
-                        transactionService,
-                        false,
-                        new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deterministicDeleteExecutor),
-                        deterministicDeleteExecutor));
+                TestKeyValueSnapshotReaderManagers.createForTests(
+                        keyValueService, transactionService, sweepStrategyManager, deterministicDeleteExecutor));
 
         Supplier<PreCommitCondition> conditionSupplier = mock(Supplier.class);
         when(conditionSupplier.get()).thenReturn(ALWAYS_FAILS_CONDITION).thenReturn(PreCommitConditions.NO_OP);
