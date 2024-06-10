@@ -39,7 +39,7 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public abstract class TimelockLeadershipMetrics implements Dependencies.LeadershipMetrics {
-    @Value.Derived
+    @Value.Lazy
     List<SafeArg<String>> namespaceAsLoggingArgs() {
         return ImmutableList.of(
                 SafeArg.of(
@@ -48,7 +48,7 @@ public abstract class TimelockLeadershipMetrics implements Dependencies.Leadersh
                 SafeArg.of(AtlasDbMetricNames.TAG_CLIENT, proxyClient().value()));
     }
 
-    @Value.Derived
+    @Value.Lazy
     public PaxosLeadershipEventRecorder eventRecorder() {
         return PaxosLeadershipEventRecorder.create(
                 taggedMetrics(), // metrics for client etc.
@@ -57,17 +57,19 @@ public abstract class TimelockLeadershipMetrics implements Dependencies.Leadersh
                 namespaceAsLoggingArgs());
     }
 
-    @Value.Derived
+    @Value.Lazy
     LeadershipObserver leadershipObserver() {
         return leadershipObserverFactory().create(proxyClient());
     }
 
+    @Value.Lazy
     public Function<InvocationContext, Map<String, String>> suspectedLeaderTag() {
         return _context -> ImmutableMap.of(
                 AtlasDbMetricNames.TAG_CURRENT_SUSPECTED_LEADER,
                 String.valueOf(localPingableLeader().ping()));
     }
 
+    @Value.Lazy
     public TaggedMetricRegistry taggedMetrics() {
         return metrics().clientScopedMetrics().metricRegistryForClient(proxyClient());
     }
