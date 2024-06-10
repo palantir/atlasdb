@@ -367,10 +367,9 @@ public abstract class TransactionManagers {
 
     @SuppressWarnings("MethodLength")
     private TransactionManager serializableInternal(@Output List<AutoCloseable> closeables) {
-        MetricsManager metricsManager = setUpMetricsAndGetMetricsManager();
-
         AtlasDbRuntimeConfigRefreshable runtimeConfigRefreshable =
                 initializeCloseable(() -> AtlasDbRuntimeConfigRefreshable.create(this), closeables);
+        MetricsManager metricsManager = setUpMetricsAndGetMetricsManager(runtimeConfigRefreshable);
 
         Refreshable<AtlasDbRuntimeConfig> runtime = runtimeConfigRefreshable.config();
 
@@ -629,17 +628,13 @@ public abstract class TransactionManagers {
                 initializeAsync);
     }
 
-    private MetricsManager setUpMetricsAndGetMetricsManager() {
+    private MetricsManager setUpMetricsAndGetMetricsManager(AtlasDbRuntimeConfigRefreshable runtimeConfigRefreshable) {
         MetricRegistry internalAtlasDbMetrics = new MetricRegistry();
         TaggedMetricRegistry internalTaggedAtlasDbMetrics = new DefaultTaggedMetricRegistry();
         MetricsManager metricsManager = MetricsManagers.of(
                 internalAtlasDbMetrics,
                 internalTaggedAtlasDbMetrics,
-                runtimeConfig()
-                        .map(runtimeConfigRefreshable -> runtimeConfigRefreshable.map(maybeRuntime -> maybeRuntime
-                                .map(AtlasDbRuntimeConfig::enableMetricFiltering)
-                                .orElse(true)))
-                        .orElseGet(() -> Refreshable.only(true)));
+                runtimeConfigRefreshable.config().map(AtlasDbRuntimeConfig::enableMetricFiltering));
         globalTaggedMetricRegistry()
                 .addMetrics(
                         AtlasDbMetricNames.LIBRARY_ORIGIN_TAG,
