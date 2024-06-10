@@ -134,15 +134,11 @@ public class KvTableMappingService implements TableMappingService {
             return tableRef;
         }
 
-        TableReference cachedShortName = tableMap.get().get(tableRef);
-        if (cachedShortName != null) {
-            logDebugOrTrace(
-                    "table mapping already exists",
-                    LoggingArgs.tableRef("longTableRef", tableRef),
-                    SafeArg.of("shortTableRef", cachedShortName));
-            return cachedShortName;
-        }
-
+        // In the past, a lookup in the table cache (tableMap) would be performed when adding a new table.
+        // However, doing so would break down when tables were deleted without this KvTableMappingService knowing
+        // about the removal. Attempting to create a table that was previously deleted on another node will also
+        // fail, with the actual TableReference being read in the exception handler.
+        // Please see TableRemappingKeyValueServiceTest for some tests that mirror real-world failure cases.
         Cell key = getKeyCellForTable(tableRef);
         String shortName = AtlasDbConstants.NAMESPACE_PREFIX + uniqueLongSupplier.getAsLong();
         TableReference shortNameRef = TableReference.createWithEmptyNamespace(shortName);
@@ -150,6 +146,8 @@ public class KvTableMappingService implements TableMappingService {
         try {
             kvs.putUnlessExists(AtlasDbConstants.NAMESPACE_TABLE, ImmutableMap.of(key, value));
         } catch (KeyAlreadyExistsException e) {
+            // Another node likely created the table we were about to. Read the new (short) table name out of the DB
+            // instead.
             TableReference existingShortName = getAlreadyExistingMappedTableName(tableRef);
             logDebugOrTrace(
                     "conflict attempting to create table mapping",
