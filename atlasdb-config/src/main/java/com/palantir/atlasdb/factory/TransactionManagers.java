@@ -95,11 +95,17 @@ import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackS
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.LockWatchingCache;
 import com.palantir.atlasdb.transaction.api.NoOpLockWatchingCache;
+import com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
+import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager;
+import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManagerFactory;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
+import com.palantir.atlasdb.transaction.impl.DefaultDeleteExecutor;
+import com.palantir.atlasdb.transaction.impl.DefaultOrphanedSentinelDeleter;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
@@ -108,6 +114,7 @@ import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.impl.consistency.ImmutableTimestampCorroborationConsistencyCheck;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.metrics.MetricsFilterEvaluationContext;
+import com.palantir.atlasdb.transaction.impl.snapshot.DefaultKeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.knowledge.AbandonedTimestampStoreImpl;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.knowledge.coordinated.CoordinationAwareKnownAbandonedTransactionsStore;
@@ -596,6 +603,34 @@ public abstract class TransactionManagers {
 
         log.info("Successfully created, and now returning a transaction manager: this may not be fully initialised.");
         return transactionManager;
+    }
+
+    @SuppressWarnings("unused") // todo(rhuffman): wire up in a follow up PR
+    private KeyValueSnapshotReaderManager createKeyValueSnapshotReaderManager(
+            TransactionKeyValueServiceManager transactionKeyValueServiceManager,
+            TransactionService transactionService,
+            SweepStrategyManager sweepStrategyManager,
+            MetricsManager metricsManager) {
+        Optional<KeyValueSnapshotReaderManagerFactory> serviceDiscoveredFactory = config().transactionKeyValueService()
+                .map(AtlasDbServiceDiscovery::createKeyValueSnapshotReaderManagerFactoryOfCorrectType);
+        DeleteExecutor deleteExecutor = DefaultDeleteExecutor.createDefault(
+                transactionKeyValueServiceManager.getKeyValueService().orElseThrow());
+        OrphanedSentinelDeleter orphanedSentinelDeleter =
+                new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor);
+        return serviceDiscoveredFactory
+                .map(factory -> factory.createKeyValueSnapshotReaderManager(
+                        transactionKeyValueServiceManager,
+                        transactionService,
+                        allowHiddenTableAccess(),
+                        orphanedSentinelDeleter,
+                        deleteExecutor,
+                        metricsManager))
+                .orElseGet(() -> new DefaultKeyValueSnapshotReaderManager(
+                        transactionKeyValueServiceManager,
+                        transactionService,
+                        allowHiddenTableAccess(),
+                        orphanedSentinelDeleter,
+                        deleteExecutor));
     }
 
     private <T> TransactionKeyValueServiceManager createTransactionKeyValueServiceManager(
