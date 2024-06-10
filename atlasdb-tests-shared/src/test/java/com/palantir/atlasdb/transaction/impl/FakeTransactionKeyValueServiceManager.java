@@ -24,16 +24,16 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
 import java.util.function.LongSupplier;
 
-public class FakeTransactionKeyValueServiceManager implements TransactionKeyValueServiceManager {
-    private final TransactionKeyValueService tkvsMock;
+public final class FakeTransactionKeyValueServiceManager implements TransactionKeyValueServiceManager {
+    private final TransactionKeyValueService delegate;
 
-    public FakeTransactionKeyValueServiceManager(TransactionKeyValueService tkvsMock) {
-        this.tkvsMock = tkvsMock;
+    public FakeTransactionKeyValueServiceManager(TransactionKeyValueService delegate) {
+        this.delegate = delegate;
     }
 
     @Override
     public TransactionKeyValueService getTransactionKeyValueService(LongSupplier timestampSupplier) {
-        return tkvsMock;
+        return delegate;
     }
 
     @Override
