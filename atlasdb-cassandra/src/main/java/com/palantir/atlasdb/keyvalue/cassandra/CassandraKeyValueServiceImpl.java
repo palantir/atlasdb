@@ -110,6 +110,8 @@ import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.util.paging.AbstractPagingIterable;
@@ -220,7 +222,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     static final ConsistencyLevel WRITE_CONSISTENCY = ConsistencyLevel.EACH_QUORUM;
     static final ConsistencyLevel DELETE_CONSISTENCY = ConsistencyLevel.ALL;
 
-    private final Logger log;
+    private final SafeLogger log;
 
     private final MetricsManager metricsManager;
     private final CassandraKeyValueServiceConfig config;
@@ -271,7 +273,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 runtimeConfig,
                 clientPool,
                 CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
-                LoggerFactory.getLogger(CassandraKeyValueService.class),
+                SafeLoggerFactory.get(CassandraKeyValueService.class),
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
@@ -300,7 +302,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 runtimeConfig,
                 clientPool,
                 mutationTimestampProvider,
-                LoggerFactory.getLogger(CassandraKeyValueService.class),
+                SafeLoggerFactory.get(CassandraKeyValueService.class),
                 AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
     }
 
@@ -315,7 +317,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 config,
                 runtimeConfig,
                 mutationTimestampProvider,
-                LoggerFactory.getLogger(CassandraKeyValueService.class),
+                SafeLoggerFactory.get(CassandraKeyValueService.class),
                 initializeAsync);
     }
 
@@ -341,7 +343,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfig config,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             CassandraMutationTimestampProvider mutationTimestampProvider,
-            Logger log,
+            SafeLogger log,
             boolean initializeAsync) {
         CassandraClientPool clientPool =
                 CassandraClientPoolImpl.create(metricsManager, config, runtimeConfig, initializeAsync);
@@ -356,7 +358,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider,
-            Logger log,
+            SafeLogger log,
             boolean initializeAsync) {
         try {
             return createWithCqlClient(
@@ -380,7 +382,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider,
-            Logger log,
+            SafeLogger log,
             boolean initializeAsync) {
         try {
             CassandraClusterConfig clusterConfig = CassandraClusterConfig.of(config, runtimeConfig.get());
@@ -414,7 +416,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraClientPool clientPool,
             AsyncKeyValueService asyncKeyValueService,
             CassandraMutationTimestampProvider mutationTimestampProvider,
-            Logger log,
+            SafeLogger log,
             boolean initializeAsync) {
         Counter notLatestVisibleValueCellFilterCounter = // register counter once and reuse
                 metricsManager.registerOrGetCounter(ValueExtractor.class, CellFilterMetrics.NOT_LATEST_VISIBLE_VALUE);
@@ -434,7 +436,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private CassandraKeyValueServiceImpl(
-            Logger log,
+            SafeLogger log,
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
             AsyncKeyValueService asyncKeyValueService,

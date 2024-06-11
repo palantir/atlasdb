@@ -19,20 +19,25 @@ import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraTracingConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.thrift.TException;
-import org.slf4j.Logger;
 
 public class TracingQueryRunner {
-    private final Logger log;
+    private final SafeLogger log;
     private final Supplier<CassandraTracingConfig> tracingPrefs;
 
-    public TracingQueryRunner(Logger log, Supplier<CassandraTracingConfig> tracingPrefs) {
+    public TracingQueryRunner(SafeLogger log, Supplier<CassandraTracingConfig> tracingPrefs) {
         this.log = log;
         this.tracingPrefs = tracingPrefs;
     }
@@ -94,17 +99,22 @@ public class TracingQueryRunner {
     private void logFailedCall(Set<TableReference> tableRefs) {
         log.warn(
                 "A call to table(s) {} failed with an exception.",
-                tableRefs.stream().map(TableReference::getQualifiedName).collect(Collectors.joining(", ")));
+                tableRefs.stream().map(LoggingArgs::tableRef).collect(Collectors.toList()));
     }
 
     private void logTraceResults(long duration, Set<TableReference> tableRefs, ByteBuffer recvTrace, boolean failed) {
         if (failed || duration > tracingPrefs.get().minDurationToLog().toMilliseconds()) {
-            log.info(
-                    "Traced a call to {} that {}took {} ms. It will appear in system_traces with UUID={}",
-                    tableRefs.stream().map(TableReference::getQualifiedName).collect(Collectors.joining(", ")),
-                    failed ? "failed and " : "",
-                    duration,
-                    CassandraKeyValueServices.convertCassandraByteBufferUuidToString(recvTrace));
+            List<Arg<?>> args = new ArrayList<>();
+            tableRefs.stream().map(LoggingArgs::tableRef).forEach(args::add);
+            args.add(SafeArg.of("failed", failed));
+            args.add(SafeArg.of("duration", duration));
+            // See
+            // https://github.com/palantir/cassandra/blob/af2a1aa70d0f39163aaa65531599fba0ce044509/src/java/org/apache/cassandra/thrift/CassandraServer.java#L234
+            // and CassandraKeyValueServices.convertCassandraByteBufferUuidToString docs.
+            // This is a random session id + cassandra node ids, which make this safe.
+            args.add(SafeArg.of(
+                    "cassandraTraceId", CassandraKeyValueServices.convertCassandraByteBufferUuidToString(recvTrace)));
+            log.info("Traced a call to {} that {}took {} ms. It will appear in system_traces with UUID={}", args);
         }
     }
 }
