@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.assertj.core.api.Assertions.entry;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
@@ -65,10 +66,12 @@ import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timelock.paxos.InMemoryTimelockClassExtension;
 import java.nio.charset.StandardCharsets;
@@ -89,10 +92,10 @@ import org.apache.thrift.TException;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
-import org.slf4j.Logger;
+import org.mockito.ArgumentMatchers;
 
 public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTest {
-    private static final Logger logger = mock(Logger.class);
+    private static final SafeLogger logger = mock(SafeLogger.class);
     private static final MetricsManager metricsManager = MetricsManagers.createForTests();
     private static final int FOUR_DAYS_IN_SECONDS = 4 * 24 * 60 * 60;
     private static final long STARTING_ATLAS_TIMESTAMP = 10_000_000;
@@ -166,9 +169,8 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
     }
 
     @Test
-    @SuppressWarnings("Slf4jConstantLogMessage")
     public void testGcGraceSecondsUpgradeIsApplied() throws TException {
-        Logger testLogger = mock(Logger.class);
+        SafeLogger testLogger = mock(SafeLogger.class);
         // nth startup
         CassandraKeyValueService kvs =
                 createKvs(getConfigWithGcGraceSeconds(FOUR_DAYS_IN_SECONDS), getRuntimeConfig(), testLogger);
@@ -181,14 +183,14 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
         assertThatGcGraceSecondsIs(kvs2, ONE_HOUR_IN_SECONDS);
         kvs2.close();
         // n+1th startup with different GC grace seconds - should upgrade
-        verify(testLogger, times(1)).info(startsWith("New table-related settings were applied on startup!!"));
+        verify(testLogger, times(1)).info("New table-related settings were applied on startup!!");
 
         CassandraKeyValueService kvs3 =
                 createKvs(getConfigWithGcGraceSeconds(ONE_HOUR_IN_SECONDS), getRuntimeConfig(), testLogger);
         assertThatGcGraceSecondsIs(kvs3, ONE_HOUR_IN_SECONDS);
         // startup with same gc grace seconds as previous one - no upgrade
         verify(testLogger, times(2))
-                .info(startsWith("No tables are being upgraded on startup. No updated table-related settings found."));
+                .info("No tables are being upgraded on startup. No updated table-related settings found.");
         kvs3.close();
     }
 
@@ -251,9 +253,10 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
     }
 
     @Test
-    @SuppressWarnings("Slf4jConstantLogMessage")
+    @SuppressWarnings("CompileTimeConstant")
     public void shouldNotErrorForTimestampTableWhenCreatingCassandraKvs() {
-        verify(logger, never()).error(startsWith("Found a table {} that did not have persisted"), anyString());
+        verify(logger, never())
+                .error(startsWith("Found a table {} that did not have persisted"), ArgumentMatchers.<Arg<?>>any());
     }
 
     @Test
@@ -449,7 +452,7 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
     }
 
     @Test
-    @SuppressWarnings("Slf4jConstantLogMessage")
+    @SuppressWarnings("CompileTimeConstant")
     public void upgradeFromOlderInternalSchemaDoesNotErrorOnTablesWithUpperCaseCharacters() {
         TableReference tableRef = TableReference.createFromFullyQualifiedName("test.uPgrAdefRomolDerintErnalscHema");
         keyValueService.put(
@@ -464,7 +467,7 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
     }
 
     @Test
-    @SuppressWarnings("Slf4jConstantLogMessage")
+    @SuppressWarnings("CompileTimeConstant")
     public void upgradeFromOlderInternalSchemaDoesNotErrorOnTablesWithOldMetadata() {
         TableReference tableRef = TableReference.createFromFullyQualifiedName("test.oldTimeyTable");
         keyValueService.put(
@@ -718,7 +721,7 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
     private static CassandraKeyValueService createKvs(
             CassandraKeyValueServiceConfig config,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
-            Logger testLogger) {
+            SafeLogger testLogger) {
         // Mutation provider is needed, because deletes/sentinels are to be written after writes
         return CassandraKeyValueServiceImpl.create(
                 metricsManager,
