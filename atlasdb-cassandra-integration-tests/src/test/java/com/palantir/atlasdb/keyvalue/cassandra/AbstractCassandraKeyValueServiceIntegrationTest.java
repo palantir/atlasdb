@@ -255,11 +255,11 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
     @Test
     @SuppressWarnings("CompileTimeConstant")
     public void shouldNotErrorForTimestampTableWhenCreatingCassandraKvs() {
-        ArgumentCaptor<Arg<TableReference>> argCaptor = ArgumentCaptor.forClass(Arg.class);
+        ArgumentCaptor<Arg<String>> argCaptor = ArgumentCaptor.forClass(Arg.class);
         // A bit strange, but the purpose is to feed the table references to the argument captor.
         verify(logger, atLeast(0))
                 .error(startsWith("Found a table {} that did not have persisted"), argCaptor.capture());
-        assertThat(argCaptor.getAllValues()).noneMatch(arg -> arg.getValue().equals(AtlasDbConstants.TIMESTAMP_TABLE));
+        assertThat(argCaptor.getAllValues()).noneMatch(arg -> arg.getValue().contains("timestamp"));
     }
 
     @Test
