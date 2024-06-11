@@ -94,12 +94,15 @@ public class NamespacedConjureTimelockServiceImpl implements NamespacedConjureTi
                 SafeArg.of("namespace", namespace),
                 SafeArg.of("allLocksSize", request.getTokens().size()));
         ConjureRefreshLocksResponse response = conjureTimelockService.refreshLocks(AUTH_HEADER, namespace, request);
-        log.trace(
-                "Finished refreshing locks V1",
-                SafeArg.of("namespace", namespace),
-                SafeArg.of("allLocksSize", request.getTokens().size()),
-                SafeArg.of("refreshedLocksSize", response.getRefreshedTokens().size()),
-                SafeArg.of("refreshedAll", request.getTokens().equals(response.getRefreshedTokens())));
+        if (log.isTraceEnabled()) {
+            log.trace(
+                    "Finished refreshing locks V1",
+                    SafeArg.of("namespace", namespace),
+                    SafeArg.of("allLocksSize", request.getTokens().size()),
+                    SafeArg.of(
+                            "refreshedLocksSize", response.getRefreshedTokens().size()),
+                    SafeArg.of("refreshedAll", request.getTokens().equals(response.getRefreshedTokens())));
+        }
         return response;
     }
 
@@ -110,12 +113,15 @@ public class NamespacedConjureTimelockServiceImpl implements NamespacedConjureTi
                 SafeArg.of("namespace", namespace),
                 SafeArg.of("allLocksSize", request.get().size()));
         ConjureRefreshLocksResponseV2 response = conjureTimelockService.refreshLocksV2(AUTH_HEADER, namespace, request);
-        log.trace(
-                "Finished refreshing locks V2",
-                SafeArg.of("namespace", namespace),
-                SafeArg.of("allLocksSize", request.get().size()),
-                SafeArg.of("refreshedLocksSize", response.getRefreshedTokens().size()),
-                SafeArg.of("refreshedAll", request.get().equals(response.getRefreshedTokens())));
+        if (log.isTraceEnabled()) {
+            log.trace(
+                    "Finished refreshing locks V2",
+                    SafeArg.of("namespace", namespace),
+                    SafeArg.of("allLocksSize", request.get().size()),
+                    SafeArg.of(
+                            "refreshedLocksSize", response.getRefreshedTokens().size()),
+                    SafeArg.of("refreshedAll", request.get().equals(response.getRefreshedTokens())));
+        }
         return response;
     }
 
