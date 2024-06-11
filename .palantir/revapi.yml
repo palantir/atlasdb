@@ -136,6 +136,14 @@ acceptedBreaks:
       new: "method void com.palantir.atlasdb.cell.api.DdlManager::dropTables(java.util.Set<com.palantir.atlasdb.keyvalue.api.TableReference>)"
       justification: "Adding getDdlManager() to TransactionManager will not break\
         \ existing usage"
+  "0.1101.0":
+    com.palantir.atlasdb:atlasdb-cassandra:
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter void com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner::<init>(===org.slf4j.Logger===,\
+        \ java.util.function.Supplier<com.palantir.atlasdb.cassandra.CassandraTracingConfig>)"
+      new: "parameter void com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner::<init>(===com.palantir.logsafe.logger.SafeLogger===,\
+        \ java.util.function.Supplier<com.palantir.atlasdb.cassandra.CassandraTracingConfig>)"
+      justification: "internal API change on tracingqueryrunner"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"

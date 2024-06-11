@@ -51,7 +51,6 @@ dependencies {
   implementation 'one.util:streamex'
   implementation 'org.apache.commons:commons-lang3'
   implementation 'org.apache.thrift:libthrift'
-  implementation 'org.slf4j:slf4j-api'
   implementation project(':atlasdb-commons')
   implementation project(':commons-annotations')
   implementation project(':commons-executors')
