@@ -20,12 +20,10 @@ import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.cassandra.CassandraTracingConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.logsafe.Arg;
+import com.palantir.atlasdb.logging.LoggingArgs.SafeAndUnsafeTableReferences;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -104,17 +102,20 @@ public class TracingQueryRunner {
 
     private void logTraceResults(long duration, Set<TableReference> tableRefs, ByteBuffer recvTrace, boolean failed) {
         if (failed || duration > tracingPrefs.get().minDurationToLog().toMilliseconds()) {
-            List<Arg<?>> args = new ArrayList<>();
-            tableRefs.stream().map(LoggingArgs::tableRef).forEach(args::add);
-            args.add(SafeArg.of("failed", failed));
-            args.add(SafeArg.of("duration", duration));
-            // See
-            // https://github.com/palantir/cassandra/blob/af2a1aa70d0f39163aaa65531599fba0ce044509/src/java/org/apache/cassandra/thrift/CassandraServer.java#L234
-            // and CassandraKeyValueServices.convertCassandraByteBufferUuidToString docs.
-            // This is a random session id + cassandra node ids, which make this safe.
-            args.add(SafeArg.of(
-                    "cassandraTraceId", CassandraKeyValueServices.convertCassandraByteBufferUuidToString(recvTrace)));
-            log.info("Traced a call to {} that {}took {} ms. It will appear in system_traces with UUID={}", args);
+            SafeAndUnsafeTableReferences allTableArgs = LoggingArgs.tableRefs(tableRefs);
+            log.info(
+                    "Traced a call to {} that {}took {} ms. It will appear in system_traces with UUID={}",
+                    allTableArgs.safeTableRefs(),
+                    allTableArgs.unsafeTableRefs(),
+                    SafeArg.of("failed", failed),
+                    SafeArg.of("duration", duration),
+                    // See
+                    // https://github.com/palantir/cassandra/blob/af2a1aa70d0f39163aaa65531599fba0ce044509/src/java/org/apache/cassandra/thrift/CassandraServer.java#L234
+                    // and CassandraKeyValueServices.convertCassandraByteBufferUuidToString docs.
+                    // This is a random session id + cassandra node ids, which make this safe.
+                    SafeArg.of(
+                            "cassandraTraceId",
+                            CassandraKeyValueServices.convertCassandraByteBufferUuidToString(recvTrace)));
         }
     }
 }
