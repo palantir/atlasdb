@@ -151,8 +151,6 @@ import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.thrift.TException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Each service can have one or many C* KVS.
@@ -327,7 +325,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfig config,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             CassandraMutationTimestampProvider mutationTimestampProvider,
-            Logger log) {
+            SafeLogger log) {
         return create(
                 metricsManager,
                 config,
