@@ -181,7 +181,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 new SimpleTableLevelMetricsController(metricsManager),
                 knowledge,
                 commitTimestampLoaderFactory.createCommitTimestampLoader(
-                        startTimestampSupplier, 0L, options.immutableLockToken)) {
+                        startTimestampSupplier, 0L, options.immutableLockToken),
+                keyValueSnapshotReaderManager) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, byte[]::clone);

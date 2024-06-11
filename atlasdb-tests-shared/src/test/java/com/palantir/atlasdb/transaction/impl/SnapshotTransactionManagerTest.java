@@ -42,6 +42,7 @@ import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
+import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -122,7 +123,8 @@ public class SnapshotTransactionManagerTest {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                getKeyValueSnapshotReaderManager(ThrowingSweepStrategyManager.INSTANCE));
     }
 
     @Test
@@ -179,7 +181,8 @@ public class SnapshotTransactionManagerTest {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                getKeyValueSnapshotReaderManager(SweepStrategyManagers.createDefault(keyValueService)));
         newTransactionManager.close(); // should not throw
     }
 
@@ -325,6 +328,15 @@ public class SnapshotTransactionManagerTest {
                 ConflictTracer.NO_OP,
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
-                knowledge);
+                knowledge,
+                getKeyValueSnapshotReaderManager(SweepStrategyManagers.createDefault(keyValueService)));
+    }
+
+    private KeyValueSnapshotReaderManager getKeyValueSnapshotReaderManager(SweepStrategyManager sweepStrategyManager) {
+        return TestKeyValueSnapshotReaderManagers.createForTests(
+                transactionKeyValueServiceManager,
+                mock(TransactionService.class),
+                sweepStrategyManager,
+                deleteExecutor);
     }
 }

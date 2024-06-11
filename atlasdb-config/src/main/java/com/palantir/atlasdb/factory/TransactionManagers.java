@@ -540,6 +540,9 @@ public abstract class TransactionManagers {
                 asyncInitializationCallback(),
                 createClearsTable(internalKeyValueService)));
 
+        KeyValueSnapshotReaderManager keyValueSnapshotReaderManager = createKeyValueSnapshotReaderManager(
+                transactionKeyValueServiceManager, transactionService, sweepStrategyManager, metricsManager);
+
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.createInstrumented(
                         metricsManager,
@@ -567,7 +570,8 @@ public abstract class TransactionManagers {
                         conflictTracer,
                         metricsFilterEvaluationContext(),
                         installConfig.sharedResourcesConfig().map(SharedResourcesConfig::sharedGetRangesPoolSize),
-                        knowledge),
+                        knowledge,
+                        keyValueSnapshotReaderManager),
                 closeables);
 
         transactionManager.registerClosingCallback(runtimeConfigRefreshable::close);
@@ -605,7 +609,6 @@ public abstract class TransactionManagers {
         return transactionManager;
     }
 
-    @SuppressWarnings("unused") // todo(rhuffman): wire up in a follow up PR
     private KeyValueSnapshotReaderManager createKeyValueSnapshotReaderManager(
             TransactionKeyValueServiceManager transactionKeyValueServiceManager,
             TransactionService transactionService,
