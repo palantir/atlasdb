@@ -36,9 +36,13 @@ import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.v2.LeaderTime;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tokens.auth.AuthHeader;
 
 public class NamespacedConjureTimelockServiceImpl implements NamespacedConjureTimelockService {
+    private static final SafeLogger log = SafeLoggerFactory.get(NamespacedConjureTimelockServiceImpl.class);
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer omitted");
     private final String namespace;
     private final ConjureTimelockService conjureTimelockService;
@@ -85,12 +89,40 @@ public class NamespacedConjureTimelockServiceImpl implements NamespacedConjureTi
 
     @Override
     public ConjureRefreshLocksResponse refreshLocks(ConjureRefreshLocksRequest request) {
-        return conjureTimelockService.refreshLocks(AUTH_HEADER, namespace, request);
+        log.trace(
+                "Attempting to refresh locks V1",
+                SafeArg.of("namespace", namespace),
+                SafeArg.of("allLocksSize", request.getTokens().size()));
+        ConjureRefreshLocksResponse response = conjureTimelockService.refreshLocks(AUTH_HEADER, namespace, request);
+        if (log.isTraceEnabled()) {
+            log.trace(
+                    "Finished refreshing locks V1",
+                    SafeArg.of("namespace", namespace),
+                    SafeArg.of("allLocksSize", request.getTokens().size()),
+                    SafeArg.of(
+                            "refreshedLocksSize", response.getRefreshedTokens().size()),
+                    SafeArg.of("refreshedAll", request.getTokens().equals(response.getRefreshedTokens())));
+        }
+        return response;
     }
 
     @Override
     public ConjureRefreshLocksResponseV2 refreshLocksV2(ConjureRefreshLocksRequestV2 request) {
-        return conjureTimelockService.refreshLocksV2(AUTH_HEADER, namespace, request);
+        log.trace(
+                "Attempting to refresh locks V2",
+                SafeArg.of("namespace", namespace),
+                SafeArg.of("allLocksSize", request.get().size()));
+        ConjureRefreshLocksResponseV2 response = conjureTimelockService.refreshLocksV2(AUTH_HEADER, namespace, request);
+        if (log.isTraceEnabled()) {
+            log.trace(
+                    "Finished refreshing locks V2",
+                    SafeArg.of("namespace", namespace),
+                    SafeArg.of("allLocksSize", request.get().size()),
+                    SafeArg.of(
+                            "refreshedLocksSize", response.getRefreshedTokens().size()),
+                    SafeArg.of("refreshedAll", request.get().equals(response.getRefreshedTokens())));
+        }
+        return response;
     }
 
     @Override
