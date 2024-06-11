@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: Support user-provided implementations of KeyValueSnapshotReaderManager
+  links:
+  - https://github.com/palantir/atlasdb/pull/7142
