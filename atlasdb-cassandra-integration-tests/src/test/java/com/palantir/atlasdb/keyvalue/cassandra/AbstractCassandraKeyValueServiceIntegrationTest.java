@@ -23,9 +23,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
-import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -92,7 +92,6 @@ import org.apache.thrift.TException;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
-import org.mockito.ArgumentCaptor;
 
 public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends AbstractKeyValueServiceTest {
     private static final SafeLogger logger = mock(SafeLogger.class);
@@ -255,11 +254,9 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
     @Test
     @SuppressWarnings("CompileTimeConstant")
     public void shouldNotErrorForTimestampTableWhenCreatingCassandraKvs() {
-        ArgumentCaptor<Arg<String>> argCaptor = ArgumentCaptor.forClass(Arg.class);
-        // A bit strange, but the purpose is to feed the table references to the argument captor.
-        verify(logger, atLeast(0))
-                .error(startsWith("Found a table {} that did not have persisted"), argCaptor.capture());
-        assertThat(argCaptor.getAllValues()).noneMatch(arg -> arg.getValue().contains("timestamp"));
+        verify(logger, never())
+                .error(startsWith("Found a table {} that did not have persisted"),
+                        assertArg((Arg<String> arg) -> assertThat(arg.getValue()).contains("timestamp")));
     }
 
     @Test
