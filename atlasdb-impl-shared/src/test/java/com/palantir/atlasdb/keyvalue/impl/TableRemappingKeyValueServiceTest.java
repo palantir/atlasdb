@@ -59,7 +59,6 @@ public class TableRemappingKeyValueServiceTest {
     private final AtomicLong timestamp = new AtomicLong();
     private final KeyValueService rawKvs = new InMemoryKeyValueService(true);
     private final KvTableMappingService tableMapper = KvTableMappingService.create(rawKvs, timestamp::incrementAndGet);
-    ;
     private final KeyValueService kvs = TableRemappingKeyValueService.create(rawKvs, tableMapper);
 
     @Test
