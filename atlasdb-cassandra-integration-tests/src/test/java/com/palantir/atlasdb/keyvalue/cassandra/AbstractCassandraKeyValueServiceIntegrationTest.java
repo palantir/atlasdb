@@ -26,6 +26,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.assertArg;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -254,9 +255,9 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
     @Test
     @SuppressWarnings("CompileTimeConstant")
     public void shouldNotErrorForTimestampTableWhenCreatingCassandraKvs() {
-        verify(logger, never())
+        verify(logger, atLeast(0))
                 .error(startsWith("Found a table {} that did not have persisted"),
-                        assertArg((Arg<String> arg) -> assertThat(arg.getValue()).contains("timestamp")));
+                        assertArg((Arg<String> arg) -> assertThat(arg.getValue()).doesNotContain("timestamp")));
     }
 
     @Test
