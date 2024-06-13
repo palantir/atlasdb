@@ -96,31 +96,13 @@ public class TableRemappingKeyValueServiceTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {false}) // KvTableMappingService issues prevent cached lookups from working as intended
-    public void testAddTableInOneNodeAfterDropInAnother(boolean cacheTableLookups) {
+    // KvTableMappingService issues prevent cached lookups from working as intended. Ideally, KvTableMappingService
+    // should work with caching enabled and be fixed in the future.
+    @ValueSource(booleans = {false})
+    public void addTableDroppingOnSecondClientAndRecreatingOnFirstClient(boolean cacheTableLookups) {
         // Simulate a pair of KVS clients hitting the same raw KVS
-        KvTableMappingService tableMapper1 = KvTableMappingService.createWithCustomNamespaceValidation(
-                rawKvs,
-                timestamp::incrementAndGet,
-                Namespace.STRICTLY_CHECKED_NAME,
-                new TableMappingCacheConfiguration() {
-                    @Override
-                    public Predicate<TableReference> cacheableTablePredicate() {
-                        return tableReference -> cacheTableLookups;
-                    }
-                });
-        KvTableMappingService tableMapper2 = KvTableMappingService.createWithCustomNamespaceValidation(
-                rawKvs,
-                timestamp::incrementAndGet,
-                Namespace.STRICTLY_CHECKED_NAME,
-                new TableMappingCacheConfiguration() {
-                    @Override
-                    public Predicate<TableReference> cacheableTablePredicate() {
-                        return tableReference -> cacheTableLookups;
-                    }
-                });
-        TableRemappingKeyValueService kvs1 = TableRemappingKeyValueService.create(rawKvs, tableMapper1);
-        TableRemappingKeyValueService kvs2 = TableRemappingKeyValueService.create(rawKvs, tableMapper2);
+        TableRemappingKeyValueService kvs1 = createTableRemappingKeyValueService(cacheTableLookups);
+        TableRemappingKeyValueService kvs2 = createTableRemappingKeyValueService(cacheTableLookups);
         // Create the table in the first node
         kvs1.createTable(DATA_TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
         Cell cell = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col"));
@@ -131,7 +113,7 @@ public class TableRemappingKeyValueServiceTest {
         kvs2.dropTable(DATA_TABLE_REF);
         // Create the table again in node 1. This will re-write the table entry in the db.
         kvs1.createTable(DATA_TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
-        // Write some data to kvs2 and try to read it back from kvs1. This verifies that the table caches across 1 & 2
+        // Write some data to kvs1 and try to read it back from kvs1. This verifies that the table caches across 1 & 2
         // are consistent.
         kvs1.put(DATA_TABLE_REF, ImmutableMap.of(cell, new byte[] {0x42}), 1L);
         // Try and get a value on both nodes and make sure they are the same.
@@ -143,31 +125,13 @@ public class TableRemappingKeyValueServiceTest {
     }
 
     @ParameterizedTest
-    @ValueSource(booleans = {false}) // KvTableMappingService issues prevent cached lookups from working as intended
-    public void testAddTableInOneNodeAfterDropInAnother2(boolean cacheTableLookups) {
+    // KvTableMappingService issues prevent cached lookups from working as intended. Ideally, KvTableMappingService
+    // should work with caching enabled and be fixed in the future.
+    @ValueSource(booleans = {false})
+    public void addTableDroppingOnSecondClientAndRecreatingOnSecondClient(boolean cacheTableLookups) {
         // Simulate a pair of KVS clients hitting the same raw KVS
-        KvTableMappingService tableMapper1 = KvTableMappingService.createWithCustomNamespaceValidation(
-                rawKvs,
-                timestamp::incrementAndGet,
-                Namespace.STRICTLY_CHECKED_NAME,
-                new TableMappingCacheConfiguration() {
-                    @Override
-                    public Predicate<TableReference> cacheableTablePredicate() {
-                        return tableReference -> cacheTableLookups;
-                    }
-                });
-        KvTableMappingService tableMapper2 = KvTableMappingService.createWithCustomNamespaceValidation(
-                rawKvs,
-                timestamp::incrementAndGet,
-                Namespace.STRICTLY_CHECKED_NAME,
-                new TableMappingCacheConfiguration() {
-                    @Override
-                    public Predicate<TableReference> cacheableTablePredicate() {
-                        return tableReference -> cacheTableLookups;
-                    }
-                });
-        TableRemappingKeyValueService kvs1 = TableRemappingKeyValueService.create(rawKvs, tableMapper1);
-        TableRemappingKeyValueService kvs2 = TableRemappingKeyValueService.create(rawKvs, tableMapper2);
+        TableRemappingKeyValueService kvs1 = createTableRemappingKeyValueService(cacheTableLookups);
+        TableRemappingKeyValueService kvs2 = createTableRemappingKeyValueService(cacheTableLookups);
         // Create the table in the first node
         kvs1.createTable(DATA_TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
         Cell cell = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col"));
@@ -190,10 +154,11 @@ public class TableRemappingKeyValueServiceTest {
         assertThat(result).isEqualTo(result2);
     }
 
-    @Test
     @Disabled("Issues with both table creation and metadata storage after table creation exist to cause this test to"
-            + " fail.")
-    public void fuzzTestConcurrentlyCreateAndDeleteTablesAcrossManyWriters() {
+            + " fail. Ideally, KvTableMappingService should work with caching enabled and be fixed in the future.")
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void fuzzTestConcurrentlyCreateAndDeleteTablesAcrossManyWriters(boolean cacheTableLookups) {
         int createAndDeleteWriters = 32;
         int totalAttempts = 10;
         int tableCount = 1000;
@@ -205,18 +170,7 @@ public class TableRemappingKeyValueServiceTest {
             final Set<Future<Void>> futures = new HashSet<>();
             for (int j = 0; j < createAndDeleteWriters; j++) {
                 futures.add(executor.submit(() -> {
-                    AtomicLong timestamp = new AtomicLong();
-                    KvTableMappingService tableMapper = KvTableMappingService.createWithCustomNamespaceValidation(
-                            rawKvs,
-                            timestamp::incrementAndGet,
-                            Namespace.STRICTLY_CHECKED_NAME,
-                            new TableMappingCacheConfiguration() {
-                                @Override
-                                public Predicate<TableReference> cacheableTablePredicate() {
-                                    return tableReference -> false;
-                                }
-                            });
-                    KeyValueService kvs = TableRemappingKeyValueService.create(rawKvs, tableMapper);
+                    KeyValueService kvs = createTableRemappingKeyValueService(cacheTableLookups);
                     waitUntilAllFuturesAreReady.await();
                     for (int k = 0; k < tableCount; k++) {
                         kvs.dropTable(TableReference.create(NAMESPACE, TABLENAME + "_" + k));
@@ -231,6 +185,21 @@ public class TableRemappingKeyValueServiceTest {
 
             futures.forEach(Futures::getUnchecked);
         }
+    }
+
+    private TableRemappingKeyValueService createTableRemappingKeyValueService(boolean cacheTableLookups) {
+        return TableRemappingKeyValueService.create(
+                rawKvs,
+                KvTableMappingService.createWithCustomNamespaceValidation(
+                        rawKvs,
+                        timestamp::incrementAndGet,
+                        Namespace.STRICTLY_CHECKED_NAME,
+                        new TableMappingCacheConfiguration() {
+                            @Override
+                            public Predicate<TableReference> cacheableTablePredicate() {
+                                return tableReference -> cacheTableLookups;
+                            }
+                        }));
     }
 
     private Void dropTablesWithPrefix(String prefix) {
