@@ -110,7 +110,7 @@ public class KvTableMappingServiceTest {
         assertThat(tableMapping.getMappedTableName(FQ_TABLE2)).isEqualTo(shortTableRefForNumber(2));
 
         // implementation detail: the first time we reattempt, we will try to CAS, fail, and reload the mapping
-        verify(kvs, times(4)).putUnlessExists(eq(AtlasDbConstants.NAMESPACE_TABLE), anyMap());
+        verify(kvs, times(3)).putUnlessExists(eq(AtlasDbConstants.NAMESPACE_TABLE), anyMap());
     }
 
     @Test
