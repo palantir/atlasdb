@@ -26,6 +26,7 @@ import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
+import com.palantir.atlasdb.keyvalue.api.TableMappingCacheConfiguration;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.table.description.TableDefinition;
@@ -35,12 +36,17 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 public class TableRemappingKeyValueServiceTest {
     private static final Namespace NAMESPACE = Namespace.create("namespace");
@@ -87,6 +93,113 @@ public class TableRemappingKeyValueServiceTest {
             }));
             futures.forEach(Futures::getUnchecked);
         }
+    }
+
+    @ParameterizedTest
+    // KvTableMappingService issues prevent cached lookups from working as intended. Ideally, KvTableMappingService
+    // should work with caching enabled and be fixed in the future.
+    @ValueSource(booleans = {false})
+    public void addTableDroppingOnSecondClientAndRecreatingOnFirstClient(boolean cacheTableLookups) {
+        // Simulate a pair of KVS clients hitting the same raw KVS
+        TableRemappingKeyValueService kvs1 = createTableRemappingKeyValueService(cacheTableLookups);
+        TableRemappingKeyValueService kvs2 = createTableRemappingKeyValueService(cacheTableLookups);
+        // Create the table in the first node
+        kvs1.createTable(DATA_TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        Cell cell = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col"));
+        // Try to get a value, creating the mapping in memory
+        kvs1.get(DATA_TABLE_REF, ImmutableMap.of(cell, 1L));
+        // Drop the table in node 2. This removes the mapping from the db, but the in memory mapping in node 1 isn't
+        // removed
+        kvs2.dropTable(DATA_TABLE_REF);
+        // Create the table again in node 1. This will re-write the table entry in the db.
+        kvs1.createTable(DATA_TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        // Write some data to kvs1 and try to read it back from kvs1. This verifies that the table caches across 1 & 2
+        // are consistent.
+        kvs1.put(DATA_TABLE_REF, ImmutableMap.of(cell, new byte[] {0x42}), 1L);
+        // Try and get a value on both nodes and make sure they are the same.
+        Map<Cell, Value> result = kvs1.get(DATA_TABLE_REF, ImmutableMap.of(cell, 2L));
+        Map<Cell, Value> result2 = kvs2.get(DATA_TABLE_REF, ImmutableMap.of(cell, 2L));
+        assertThat(result).isNotEmpty();
+        assertThat(result2).isNotEmpty();
+        assertThat(result).isEqualTo(result2);
+    }
+
+    @ParameterizedTest
+    // KvTableMappingService issues prevent cached lookups from working as intended. Ideally, KvTableMappingService
+    // should work with caching enabled and be fixed in the future.
+    @ValueSource(booleans = {false})
+    public void addTableDroppingOnSecondClientAndRecreatingOnSecondClient(boolean cacheTableLookups) {
+        // Simulate a pair of KVS clients hitting the same raw KVS
+        TableRemappingKeyValueService kvs1 = createTableRemappingKeyValueService(cacheTableLookups);
+        TableRemappingKeyValueService kvs2 = createTableRemappingKeyValueService(cacheTableLookups);
+        // Create the table in the first node
+        kvs1.createTable(DATA_TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        Cell cell = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("col"));
+        // Try to get a value, creating the mapping in memory
+        kvs1.get(DATA_TABLE_REF, ImmutableMap.of(cell, 1L));
+        // Drop the table in node 2. This removes the mapping from the db, but the in memory mapping in node 1 isn't
+        // removed
+        kvs2.dropTable(DATA_TABLE_REF);
+        // Create the table again in node 2. This will write a new mapping to the db, which doesn't match the mapping
+        // that is still in memory on node 1.
+        kvs2.createTable(DATA_TABLE_REF, AtlasDbConstants.GENERIC_TABLE_METADATA);
+        // Write some data to kvs2 and try to read it back from kvs1. This verifies that the table caches across 1 & 2
+        // are consistent.
+        kvs2.put(DATA_TABLE_REF, ImmutableMap.of(cell, new byte[] {0x42}), 1L);
+        // Try and get a value on both nodes and make sure they are the same.
+        Map<Cell, Value> result = kvs1.get(DATA_TABLE_REF, ImmutableMap.of(cell, 2L));
+        Map<Cell, Value> result2 = kvs2.get(DATA_TABLE_REF, ImmutableMap.of(cell, 2L));
+        assertThat(result).isNotEmpty();
+        assertThat(result2).isNotEmpty();
+        assertThat(result).isEqualTo(result2);
+    }
+
+    @Disabled("Issues with both table creation and metadata storage after table creation exist to cause this test to"
+            + " fail. Ideally, KvTableMappingService should work with caching enabled and be fixed in the future.")
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    public void fuzzTestConcurrentlyCreateAndDeleteTablesAcrossManyWriters(boolean cacheTableLookups) {
+        int createAndDeleteWriters = 32;
+        int totalAttempts = 10;
+        int tableCount = 1000;
+
+        ExecutorService executor = Executors.newFixedThreadPool(createAndDeleteWriters);
+        for (int i = 0; i < totalAttempts; i++) {
+            // Try and ensure the creates and deletes happen as close to simultaneously as possible
+            CyclicBarrier waitUntilAllFuturesAreReady = new CyclicBarrier(createAndDeleteWriters);
+            final Set<Future<Void>> futures = new HashSet<>();
+            for (int j = 0; j < createAndDeleteWriters; j++) {
+                futures.add(executor.submit(() -> {
+                    KeyValueService kvs = createTableRemappingKeyValueService(cacheTableLookups);
+                    waitUntilAllFuturesAreReady.await();
+                    for (int k = 0; k < tableCount; k++) {
+                        kvs.dropTable(TableReference.create(NAMESPACE, TABLENAME + "_" + k));
+                        kvs.createTable(
+                                TableReference.create(NAMESPACE, TABLENAME + "_" + k),
+                                AtlasDbConstants.GENERIC_TABLE_METADATA);
+                    }
+
+                    return null;
+                }));
+            }
+
+            futures.forEach(Futures::getUnchecked);
+        }
+    }
+
+    private TableRemappingKeyValueService createTableRemappingKeyValueService(boolean cacheTableLookups) {
+        return TableRemappingKeyValueService.create(
+                rawKvs,
+                KvTableMappingService.createWithCustomNamespaceValidation(
+                        rawKvs,
+                        timestamp::incrementAndGet,
+                        Namespace.STRICTLY_CHECKED_NAME,
+                        new TableMappingCacheConfiguration() {
+                            @Override
+                            public Predicate<TableReference> cacheableTablePredicate() {
+                                return tableReference -> cacheTableLookups;
+                            }
+                        }));
     }
 
     private Void dropTablesWithPrefix(String prefix) {

@@ -1,0 +1,14 @@
+type: fix
+fix:
+  description: |-
+    There are some situations that can result in cached table lookups returning the wrong table for a table which has been dropped and re-created.
+
+    There are different scenarios where the caching breaks down, see the tests in TableRemappingKeyValueServiceTest for details.
+
+    This change is the first in what may become a series to resolve the concurrency issues within KvTableMappingService.
+
+    Unfortunately this change isn't actually sufficient to solve the table caching issues, however the feature to disable the table cache added in https://github.com/palantir/atlasdb/pull/6946 should allow for correctness where we expect namespaced tables to be created and deleted at a reasonably high scale.
+
+    The long-term fix for this problem is likely to either remove the cache from KvTableMappingService completely, or to re-write KvTableMappingService to be multi-node safe. As it stands, KvTableMappingService is NOT concurrency safe.
+  links:
+  - https://github.com/palantir/atlasdb/pull/7155

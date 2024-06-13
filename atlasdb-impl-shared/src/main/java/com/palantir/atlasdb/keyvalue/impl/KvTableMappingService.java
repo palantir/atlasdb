@@ -134,13 +134,22 @@ public class KvTableMappingService implements TableMappingService {
             return tableRef;
         }
 
-        TableReference cachedShortName = tableMap.get().get(tableRef);
-        if (cachedShortName != null) {
-            logDebugOrTrace(
-                    "table mapping already exists",
-                    LoggingArgs.tableRef("longTableRef", tableRef),
-                    SafeArg.of("shortTableRef", cachedShortName));
-            return cachedShortName;
+        // In the past, a lookup in the table cache (tableMap) would be performed when adding a new table.
+        // However, doing so would break down when tables were deleted without this KvTableMappingService knowing
+        // about the removal. Attempting to create a table that was previously deleted on another node will also
+        // fail, with the actual TableReference being read in the exception handler.
+        // Please see TableRemappingKeyValueServiceTest for some tests that mirror real-world failure cases.
+        if (cacheableTablePredicate.test(tableRef)) {
+            TableReference cachedShortName = tableMap.get().get(tableRef);
+            if (cachedShortName != null) {
+                logDebugOrTrace(
+                        "Table mapping already exists",
+                        LoggingArgs.tableRef("longTableRef", tableRef),
+                        SafeArg.of("shortTableRef", cachedShortName));
+                return cachedShortName;
+            } else {
+                logDebugOrTrace("Table mapping not found in cache", LoggingArgs.tableRef("longTableRef", tableRef));
+            }
         }
 
         Cell key = getKeyCellForTable(tableRef);
@@ -150,6 +159,8 @@ public class KvTableMappingService implements TableMappingService {
         try {
             kvs.putUnlessExists(AtlasDbConstants.NAMESPACE_TABLE, ImmutableMap.of(key, value));
         } catch (KeyAlreadyExistsException e) {
+            // Another node likely created the table we were about to. Read the new (short) table name out of the DB
+            // instead.
             TableReference existingShortName = getAlreadyExistingMappedTableName(tableRef);
             logDebugOrTrace(
                     "conflict attempting to create table mapping",
