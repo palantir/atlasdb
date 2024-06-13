@@ -139,6 +139,19 @@ public class KvTableMappingService implements TableMappingService {
         // about the removal. Attempting to create a table that was previously deleted on another node will also
         // fail, with the actual TableReference being read in the exception handler.
         // Please see TableRemappingKeyValueServiceTest for some tests that mirror real-world failure cases.
+        if (cacheableTablePredicate.test(tableRef)) {
+            TableReference cachedShortName = tableMap.get().get(tableRef);
+            if (cachedShortName != null) {
+                logDebugOrTrace(
+                        "Table mapping already exists",
+                        LoggingArgs.tableRef("longTableRef", tableRef),
+                        SafeArg.of("shortTableRef", cachedShortName));
+                return cachedShortName;
+            } else {
+                logDebugOrTrace("Table mapping not found in cache", LoggingArgs.tableRef("longTableRef", tableRef));
+            }
+        }
+
         Cell key = getKeyCellForTable(tableRef);
         String shortName = AtlasDbConstants.NAMESPACE_PREFIX + uniqueLongSupplier.getAsLong();
         TableReference shortNameRef = TableReference.createWithEmptyNamespace(shortName);
