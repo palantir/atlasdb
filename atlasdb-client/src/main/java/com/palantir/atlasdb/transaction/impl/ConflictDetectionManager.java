@@ -39,7 +39,7 @@ public class ConflictDetectionManager {
      *  (This has always been the behavior of this class; I'm simply calling it out)
      */
     public ConflictDetectionManager(CacheLoader<TableReference, ConflictHandler> loader) {
-        this.cache = Caffeine.newBuilder().initialCapacity(4096).maximumSize(100_000).buildAsync(loader).synchronous();
+        this.cache = Caffeine.newBuilder().initialCapacity(256).maximumSize(100_000).buildAsync(loader).synchronous();
     }
 
     public void warmCacheWith(Map<TableReference, ConflictHandler> preload) {
