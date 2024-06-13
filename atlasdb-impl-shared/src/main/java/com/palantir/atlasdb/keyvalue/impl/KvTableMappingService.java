@@ -234,7 +234,7 @@ public class KvTableMappingService implements TableMappingService {
             return Optional.ofNullable(entryForTable.get(getKeyCellForTable(tableRef)))
                     .map(row -> TableReference.createWithEmptyNamespace(PtBytes.toString(row.getContents())))
                     .orElseThrow(() -> new TableMappingNotFoundException(
-                            "Unable to resolve mapping for table reference " + tableRef));
+                            "Unable to resolve mapping for table reference (Uncached) " + tableRef));
         }
     }
 
@@ -245,7 +245,8 @@ public class KvTableMappingService implements TableMappingService {
             updateTableMap();
             candidate = tableMap.get().get(tableRef);
             if (candidate == null) {
-                throw new TableMappingNotFoundException("Unable to resolve mapping for table reference " + tableRef);
+                throw new TableMappingNotFoundException(
+                        "Unable to resolve mapping for table reference (Cached) " + tableRef);
             }
         }
         return candidate;

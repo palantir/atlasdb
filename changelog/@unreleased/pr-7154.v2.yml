@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: |-
+    * Log when tables not found during getShortTableReferencesForExistingTables
+    * Improve logging for "table not found" exceptions during KVS mapping failures
+  links:
+  - https://github.com/palantir/atlasdb/pull/7154
