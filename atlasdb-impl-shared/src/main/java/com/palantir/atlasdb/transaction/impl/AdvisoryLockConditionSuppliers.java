@@ -23,17 +23,10 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.Preconditions;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Set;
 import java.util.function.Supplier;
 
 public final class AdvisoryLockConditionSuppliers {
-
-    private static final SafeLogger log = SafeLoggerFactory.get(AdvisoryLockConditionSuppliers.class);
-
-    private static final int NUM_RETRIES = 10;
 
     private AdvisoryLockConditionSuppliers() {}
 
@@ -60,40 +53,18 @@ public final class AdvisoryLockConditionSuppliers {
     }
 
     private static HeldLocksToken acquireLock(LockService lockService, LockRequest lockRequest) {
-        int failureCount = 0;
-        while (true) {
-            HeldLocksToken response;
-            try {
-                response = lockService.lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), lockRequest);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException(e);
-            }
-            if (response == null) {
-                RuntimeException ex =
-                        new LockAcquisitionException("Failed to lock using the provided lock request: " + lockRequest);
-                switch (lockRequest.getBlockingMode()) {
-                    case DO_NOT_BLOCK:
-                        log.debug("Could not lock successfully", ex);
-                        throw ex;
-                    case BLOCK_UNTIL_TIMEOUT:
-                    case BLOCK_INDEFINITELY:
-                    case BLOCK_INDEFINITELY_THEN_RELEASE:
-                        ++failureCount;
-                        log.warn("Could not lock successfully", SafeArg.of("failureCount", failureCount), ex);
-                        if (failureCount >= NUM_RETRIES) {
-                            log.warn(
-                                    "Failing after exceeding maximum tries",
-                                    SafeArg.of("failureCount", failureCount),
-                                    ex);
-                            throw ex;
-                        }
-                        break;
-                }
-            } else {
-                return response;
-            }
+        HeldLocksToken response;
+        try {
+            response = lockService.lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), lockRequest);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
         }
+        if (response == null) {
+            throw new LockAcquisitionException("Failed to lock using the provided lock request: " + lockRequest);
+        }
+
+        return response;
     }
 
     @VisibleForTesting

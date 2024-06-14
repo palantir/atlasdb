@@ -186,17 +186,6 @@ public class AdvisoryLocksConditionTest {
     }
 
     @Test
-    public void conditionSupplier_transactionLockFailureBeforeSuccess() throws InterruptedException {
-        Supplier<AdvisoryLocksCondition> conditionSupplier =
-                AdvisoryLockConditionSuppliers.get(lockService, ImmutableSet.of(), LOCK_REQUEST_SUPPLIER);
-        when(lockService.lockAndGetHeldLocks(LockClient.ANONYMOUS.getClientId(), LOCK_REQUEST))
-                .thenReturn(null)
-                .thenReturn(null)
-                .thenReturn(TRANSACTION_LOCK_TOKEN);
-        assertThat(conditionSupplier.get().getLocks()).containsOnly(TRANSACTION_LOCK_TOKEN);
-    }
-
-    @Test
     public void conditionSupplier_bothLocks() throws InterruptedException {
         Supplier<AdvisoryLocksCondition> conditionSupplier = AdvisoryLockConditionSuppliers.get(
                 lockService, ImmutableSet.of(EXTERNAL_LOCK_TOKEN), LOCK_REQUEST_SUPPLIER);
