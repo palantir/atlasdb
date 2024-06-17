@@ -18,6 +18,8 @@ package com.palantir.atlasdb.timelock;
 
 import static java.util.stream.Collectors.toSet;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
@@ -33,6 +35,7 @@ import com.palantir.paxos.Client;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -61,6 +64,9 @@ public final class TimelockNamespaces {
             ConcurrentMaps.newWithExpectedEntries(estimatedClients());
     private final Function<String, TimeLockServices> factory;
     private final Supplier<Integer> maxNumberOfClients;
+
+    private final Cache<String, Boolean> activeServicesWithExpiry =
+            Caffeine.newBuilder().expireAfterWrite(6, TimeUnit.HOURS).build();
 
     public TimelockNamespaces(
             MetricsManager metrics, Function<String, TimeLockServices> factory, Supplier<Integer> maxNumberOfClients) {
@@ -95,6 +101,7 @@ public final class TimelockNamespaces {
      * server-side Jersey interfaces (which are just used in tests)
      */
     public TimeLockServices get(String namespace, Optional<String> userAgent) {
+        activeServicesWithExpiry.put(namespace, true);
         return services.computeIfAbsent(namespace, _namespace -> {
             log.info(
                     "Creating new timelock client",
@@ -106,6 +113,12 @@ public final class TimelockNamespaces {
 
     public Set<Client> getActiveClients() {
         return services.keySet().stream().map(Client::of).collect(toSet());
+    }
+
+    public Set<Client> getActiveClientsWithExpiry() {
+        return activeServicesWithExpiry.asMap().keySet().stream()
+                .map(Client::of)
+                .collect(toSet());
     }
 
     public int getNumberOfActiveClients() {
