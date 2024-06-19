@@ -121,7 +121,7 @@ public class TableRemappingKeyValueServiceTest {
         Map<Cell, Value> result2 = kvs2.get(DATA_TABLE_REF, ImmutableMap.of(cell, 2L));
         assertThat(result).isNotEmpty();
         assertThat(result2).isNotEmpty();
-        assertThat(result).isEqualTo(result2);
+        assertThat(result).containsExactlyInAnyOrderEntriesOf(result2);
     }
 
     @ParameterizedTest
@@ -151,7 +151,7 @@ public class TableRemappingKeyValueServiceTest {
         Map<Cell, Value> result2 = kvs2.get(DATA_TABLE_REF, ImmutableMap.of(cell, 2L));
         assertThat(result).isNotEmpty();
         assertThat(result2).isNotEmpty();
-        assertThat(result).isEqualTo(result2);
+        assertThat(result).containsExactlyInAnyOrderEntriesOf(result2);
     }
 
     @Disabled("Issues with both table creation and metadata storage after table creation exist to cause this test to"
