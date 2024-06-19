@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: '`LockService.getLockState` now works with external Timelock.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/7161
