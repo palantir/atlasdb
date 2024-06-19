@@ -1,0 +1,6 @@
+type: improvement
+improvement:
+  description: Added telemetry for some cases where we decide we are not the leader
+    in a call to `determineLeadershipStatus`.
+  links:
+  - https://github.com/palantir/atlasdb/pull/7163
