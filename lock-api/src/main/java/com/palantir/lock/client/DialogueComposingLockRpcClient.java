@@ -163,7 +163,7 @@ public class DialogueComposingLockRpcClient implements LockRpcClient {
     }
 
     @Override
-    public LockState getLockState(LockDescriptor lock) {
-        return dialogueShimDelegate.getLockState(lock);
+    public LockState getLockState(String namespace, LockDescriptor lock) {
+        return dialogueShimDelegate.getLockState(namespace, lock);
     }
 }
