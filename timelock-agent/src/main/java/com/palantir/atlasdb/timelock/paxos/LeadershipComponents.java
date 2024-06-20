@@ -65,6 +65,27 @@ public class LeadershipComponents {
         this.healthCheckPingers = healthCheckPingers;
     }
 
+    public LeadershipProxies createServices(
+            Client client,
+            Supplier<AsyncTimelockService> asyncTimelockServiceSupplier,
+            Supplier<LockService> lockServiceSupplier) {
+        LeadershipContext context = getOrCreateNewLeadershipContext(client);
+        TaggedMetricRegistry metrics = context.leadershipMetrics().taggedMetrics();
+        Function<InvocationContext, Map<String, String>> tagger =
+                context.leadershipMetrics().suspectedLeaderTag();
+        return ImmutableLeadershipProxies.of(
+                InstrumentedAsyncTimelockService.builder(wrapInLeadershipProxy(
+                                AsyncTimelockService.class,
+                                asyncTimelockServiceSupplier,
+                                context.leadershipCoordinator()))
+                        .withHandler(AtlasDbMetrics.taggedMetricsHandler(metrics, AsyncTimelockService.class, tagger))
+                        .build(),
+                InstrumentedLockService.builder(wrapInLeadershipProxy(
+                                LockService.class, lockServiceSupplier, context.leadershipCoordinator()))
+                        .withHandler(AtlasDbMetrics.taggedMetricsHandler(metrics, LockService.class, tagger))
+                        .build());
+    }
+
     private <T> T wrapInLeadershipProxy(
             Class<T> clazz, Supplier<T> delegateSupplier, LeadershipCoordinator leadershipCoordinator) {
         T instance = AwaitingLeadershipProxy.newProxyInstance(clazz, delegateSupplier, leadershipCoordinator);
@@ -73,31 +94,8 @@ public class LeadershipComponents {
         return instance;
     }
 
-    public LeadershipServices createServices(
-            Client client,
-            Supplier<AsyncTimelockService> asyncTimelockServiceSupplier,
-            Supplier<LockService> lockServiceSupplier) {
-        LeadershipContext context = getOrCreateNewLeadershipContext(client);
-        TaggedMetricRegistry metrics = context.leadershipMetrics().taggedMetrics();
-        Function<InvocationContext, Map<String, String>> tagger =
-                context.leadershipMetrics().suspectedLeaderTag();
-        return ImmutableLeadershipServices.of(
-                InstrumentedAsyncTimelockService.builder(wrapInLeadershipProxy(
-                                AsyncTimelockService.class,
-                                asyncTimelockServiceSupplier,
-                                context.leadershipCoordinator()))
-                        .withHandler(AtlasDbMetrics.taggedMetricsHandler(metrics, AsyncTimelockService.class, tagger))
-                        .withPerformanceTraceLogging()
-                        .build(),
-                InstrumentedLockService.builder(wrapInLeadershipProxy(
-                                LockService.class, lockServiceSupplier, context.leadershipCoordinator()))
-                        .withHandler(AtlasDbMetrics.taggedMetricsHandler(metrics, LockService.class, tagger))
-                        .withPerformanceTraceLogging()
-                        .build());
-    }
-
     @Value.Immutable(builder = false)
-    public interface LeadershipServices {
+    public interface LeadershipProxies {
         @Value.Parameter
         AsyncTimelockService asyncTimelockService();
 

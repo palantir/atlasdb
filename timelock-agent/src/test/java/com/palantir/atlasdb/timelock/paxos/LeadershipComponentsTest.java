@@ -28,7 +28,7 @@ import com.codahale.metrics.Timer;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.paxos.LeadershipComponents.LeadershipContext;
-import com.palantir.atlasdb.timelock.paxos.LeadershipComponents.LeadershipServices;
+import com.palantir.atlasdb.timelock.paxos.LeadershipComponents.LeadershipProxies;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.leader.LeaderElectionService;
 import com.palantir.leader.LeaderElectionService.StillLeadingStatus;
@@ -125,7 +125,7 @@ class LeadershipComponentsTest {
                 leadershipContextFactory, LocalAndRemotes.of(local, List.of(remote1, remote2)));
         try {
             assertThat(leadershipComponents).isNotNull();
-            LeadershipServices services =
+            LeadershipProxies services =
                     leadershipComponents.createServices(proxyClient, () -> asyncTimeLockService, () -> lockService);
             try (AsyncTimelockService asyncTimeLock = services.asyncTimelockService()) {
                 when(this.lockService.currentTimeMillis()).thenReturn(24L);
