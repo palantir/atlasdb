@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Remove obsolete performance trace logging
+  links:
+  - https://github.com/palantir/atlasdb/pull/7164
