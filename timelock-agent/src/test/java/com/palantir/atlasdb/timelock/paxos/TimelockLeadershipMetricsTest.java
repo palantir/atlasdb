@@ -53,7 +53,7 @@ class TimelockLeadershipMetricsTest {
     });
 
     @Test
-    void testMetrics() {
+    void testRegisteredMetrics() {
         PaxosUseCase paxosUseCase = PaxosUseCase.LEADER_FOR_ALL_CLIENTS;
         TimelockPaxosMetrics metrics = ImmutableTimelockPaxosMetrics.of(paxosUseCase, metricsManager);
         assertThat(metrics.asMetricsManager()).isNotNull();
