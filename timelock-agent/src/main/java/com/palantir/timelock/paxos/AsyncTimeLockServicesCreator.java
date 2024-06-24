@@ -27,6 +27,7 @@ import com.palantir.atlasdb.timelock.lock.NonTransactionalLockService;
 import com.palantir.atlasdb.timelock.lockwatches.BufferMetrics;
 import com.palantir.atlasdb.timelock.lockwatches.RequestMetrics;
 import com.palantir.atlasdb.timelock.paxos.LeadershipComponents;
+import com.palantir.atlasdb.timelock.paxos.LeadershipComponents.LeadershipProxies;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
@@ -68,17 +69,12 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
             Supplier<LockService> rawLockServiceSupplier) {
         log.info("Creating async timelock services for client {}", SafeArg.of("client", client));
         LockLog maybeEnhancedLockLog = maybeEnhancedLockLog(client);
-
-        AsyncTimelockService asyncTimelockService = leadershipComponents.wrapInLeadershipProxy(
+        LeadershipProxies leadershipProxies = leadershipComponents.createServices(
                 client,
-                AsyncTimelockService.class,
-                () -> createRawAsyncTimelockService(client, rawTimestampServiceSupplier, maybeEnhancedLockLog));
-
-        LockService lockService = leadershipComponents.wrapInLeadershipProxy(
-                client,
-                LockService.class,
+                () -> createRawAsyncTimelockService(client, rawTimestampServiceSupplier, maybeEnhancedLockLog),
                 Suppliers.compose(NonTransactionalLockService::new, rawLockServiceSupplier::get));
-
+        AsyncTimelockService asyncTimelockService = leadershipProxies.asyncTimelockService();
+        LockService lockService = leadershipProxies.lockService();
         return TimeLockServices.create(
                 asyncTimelockService, lockService, asyncTimelockService, asyncTimelockService, maybeEnhancedLockLog);
     }

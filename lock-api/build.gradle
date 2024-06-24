@@ -27,12 +27,15 @@ dependencies {
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.refreshable:refreshable'
+    implementation 'com.palantir.tritium:tritium-api'
+    implementation 'com.palantir.tritium:tritium-core'
     implementation 'com.palantir.tritium:tritium-ids'
 
     implementation 'com.google.guava:guava'
     implementation 'com.palantir.common:streams'
     implementation 'com.palantir.conjure.java:conjure-lib'
     implementation 'com.palantir.tokens:auth-tokens'
+    implementation 'com.palantir.tritium:tritium-annotations'
     implementation 'io.dropwizard.metrics:metrics-core'
     implementation project(':commons-annotations')
     implementation project(':commons-executors')
@@ -57,6 +60,7 @@ dependencies {
     compileOnly project(":atlasdb-processors")
     annotationProcessor 'org.immutables:value'
     compileOnly 'org.immutables:value::annotations'
+    annotationProcessor 'com.palantir.tritium:tritium-processor'
 
     testAnnotationProcessor 'org.immutables:value'
     testCompileOnly 'org.immutables:value::annotations'

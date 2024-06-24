@@ -139,15 +139,16 @@ public abstract class LeadershipContextFactory
         BatchingLeaderElectionService leaderElectionService =
                 leaderElectionServiceFactory().create(clientAwareComponents);
 
-        LeadershipCoordinator leadershipCoordinator =
-                leadershipCoordinatorFactory().create(leaderElectionService);
+        LeadershipCoordinatorFactory coordinatorFactory = leadershipCoordinatorFactory();
+        LeadershipCoordinator leadershipCoordinator = coordinatorFactory.create(leaderElectionService);
 
         return ImmutableLeadershipContext.builder()
                 .leadershipMetrics(clientAwareComponents.leadershipMetrics())
                 .leaderElectionService(leaderElectionService)
                 .addCloseables(leaderElectionService)
                 .leadershipCoordinator(leadershipCoordinator)
-                .addCloseables(leadershipCoordinatorFactory())
+                .addCloseables(leadershipCoordinator)
+                .addCloseables(coordinatorFactory)
                 .addAllCloseables(leaderPingerFactory().closeables())
                 .build();
     }
