@@ -62,7 +62,7 @@ final class LockWatchEventLog {
 
     CacheUpdate processUpdate(LockWatchStateUpdate update) {
         if (latestVersion.isEmpty()
-                || !update.logId().equals(latestVersion.get().id())) {
+                || !update.logId().equals(latestVersion.orElseThrow().id())) {
             return update.accept(new NewLeaderVisitor());
         } else {
             return update.accept(new ProcessingVisitor());
@@ -134,11 +134,9 @@ final class LockWatchEventLog {
                                     + "transactions"));
             return ClientLogEvents.builder()
                     .clearCache(false)
-                    .events(LockWatchEvents.builder()
-                            .addAllEvents(eventStore.getEventsBetweenVersionsInclusive(
-                                    Optional.of(startVersion.get().version()),
-                                    versionBounds.endVersion().version()))
-                            .build())
+                    .events(LockWatchEvents.of(eventStore.getEventsBetweenVersionsInclusive(
+                            Optional.of(startVersion.get().version()),
+                            versionBounds.endVersion().version())))
                     .build();
         }
     }
@@ -174,8 +172,7 @@ final class LockWatchEventLog {
         long snapshotVersion = versionBounds.snapshotVersion();
         Collection<LockWatchEvent> collapsibleEvents =
                 eventStore.getEventsBetweenVersionsInclusive(Optional.empty(), snapshotVersion);
-        LockWatchEvents events =
-                LockWatchEvents.builder().addAllEvents(collapsibleEvents).build();
+        LockWatchEvents events = LockWatchEvents.of(collapsibleEvents);
 
         return LockWatchCreatedEvent.fromSnapshot(snapshot.getSnapshotWithEvents(events, versionBounds.leader()));
     }
@@ -211,7 +208,7 @@ final class LockWatchEventLog {
 
     private LockWatchVersion getLatestVersionAndVerify(LockWatchVersion endVersion) {
         Preconditions.checkState(latestVersion.isPresent(), "Cannot get events when log does not know its version");
-        LockWatchVersion currentVersion = latestVersion.get();
+        LockWatchVersion currentVersion = latestVersion.orElseThrow();
         Preconditions.checkArgument(
                 endVersion.version() <= currentVersion.version(),
                 "Transactions' view of the world is more up-to-date than the log");
@@ -243,9 +240,8 @@ final class LockWatchEventLog {
                             + " should only happen very rarely.");
         }
 
-        if (success.lastKnownVersion() > latestVersion.get().version()) {
-            LockWatchEvents events =
-                    LockWatchEvents.builder().events(success.events()).build();
+        if (success.lastKnownVersion() > latestVersion.orElseThrow().version()) {
+            LockWatchEvents events = LockWatchEvents.of(success.events());
             if (events.events().isEmpty()) {
                 throw new TransactionLockWatchFailedException("Success event has a later version than the current "
                         + "version, but has no events to bridge the gap. The transaction should be retried, but this "

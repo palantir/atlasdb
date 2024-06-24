@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Reduce allocations in VersionedEventStore#retentionEvents
+  links:
+  - https://github.com/palantir/atlasdb/pull/7118
