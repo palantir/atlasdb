@@ -159,7 +159,7 @@ public class TimeoutSensitiveLockRpcClient implements LockRpcClient {
     }
 
     @Override
-    public LockState getLockState(LockDescriptor lock) {
-        return shortTimeoutProxy.getLockState(lock);
+    public LockState getLockState(String namespace, LockDescriptor lock) {
+        return shortTimeoutProxy.getLockState(namespace, lock);
     }
 }

@@ -24,8 +24,6 @@ import com.palantir.tritium.api.event.InstrumentationFilter;
 import com.palantir.tritium.event.InstrumentationFilters;
 import com.palantir.tritium.event.InvocationContext;
 import com.palantir.tritium.event.InvocationEventHandler;
-import com.palantir.tritium.event.log.LoggingInvocationEventHandler;
-import com.palantir.tritium.event.log.LoggingLevel;
 import com.palantir.tritium.metrics.caffeine.CaffeineCacheStats;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import com.palantir.tritium.proxy.Instrumentation;
@@ -33,7 +31,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.slf4j.LoggerFactory;
 
 public final class AtlasDbMetrics {
     private static final SafeLogger log = SafeLoggerFactory.get(AtlasDbMetrics.class);
@@ -76,7 +73,6 @@ public final class AtlasDbMetrics {
         return Instrumentation.builder(serviceInterface, service)
                 .withHandler(
                         new TaggedMetricsInvocationEventHandler(taggedMetrics, MetricRegistry.name(serviceInterface)))
-                .withPerformanceTraceLogging()
                 .build();
     }
 
@@ -87,7 +83,6 @@ public final class AtlasDbMetrics {
             Function<InvocationContext, Map<String, String>> tagFunction) {
         return Instrumentation.builder(serviceInterface, service)
                 .withHandler(taggedMetricsHandler(taggedMetrics, serviceInterface, tagFunction))
-                .withPerformanceTraceLogging()
                 .build();
     }
 
@@ -122,10 +117,6 @@ public final class AtlasDbMetrics {
         return Instrumentation.builder(serviceInterface, service)
                 .withFilter(instrumentationFilter)
                 .withHandler(new SlidingWindowMetricsInvocationHandler(metricRegistry, name))
-                .withLogging(
-                        LoggerFactory.getLogger("performance." + name),
-                        LoggingLevel.TRACE,
-                        LoggingInvocationEventHandler.LOG_DURATIONS_GREATER_THAN_1_MICROSECOND)
                 .build(); // Ok
     }
 

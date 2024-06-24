@@ -63,7 +63,6 @@ dependencies {
   implementation 'com.palantir.tritium:tritium-ids'
   implementation 'com.palantir.tritium:tritium-lib'
   implementation 'com.palantir.tritium:tritium-registry'
-  implementation 'com.palantir.tritium:tritium-slf4j'
   implementation 'com.squareup:javapoet'
   implementation 'io.dropwizard.metrics:metrics-core'
   implementation 'org.apache.commons:commons-lang3'
