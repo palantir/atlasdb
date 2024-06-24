@@ -141,5 +141,5 @@ public interface LockRpcClient {
 
     @POST
     @Path("get-debugging-lock-state")
-    LockState getLockState(LockDescriptor lock);
+    LockState getLockState(@Safe @PathParam("namespace") String namespace, LockDescriptor lock);
 }

@@ -150,6 +150,6 @@ public class NamespaceAgnosticLockClientAdaptor implements NamespaceAgnosticLock
 
     @Override
     public LockState getLockState(LockDescriptor lock) {
-        return lockRpcClient.getLockState(lock);
+        return lockRpcClient.getLockState(namespace, lock);
     }
 }

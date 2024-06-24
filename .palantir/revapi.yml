@@ -144,6 +144,13 @@ acceptedBreaks:
       new: "parameter void com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner::<init>(===com.palantir.logsafe.logger.SafeLogger===,\
         \ java.util.function.Supplier<com.palantir.atlasdb.cassandra.CassandraTracingConfig>)"
       justification: "internal API change on tracingqueryrunner"
+  "0.1104.0":
+    com.palantir.atlasdb:atlasdb-config:
+    - code: "java.method.numberOfParametersChanged"
+      old: "method com.palantir.lock.LockState com.palantir.atlasdb.factory.timelock.TimeoutSensitiveLockRpcClient::getLockState(com.palantir.lock.LockDescriptor)"
+      new: "method com.palantir.lock.LockState com.palantir.atlasdb.factory.timelock.TimeoutSensitiveLockRpcClient::getLockState(java.lang.String,\
+        \ com.palantir.lock.LockDescriptor)"
+      justification: "LockRpcClient#getLockState is broken"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"
