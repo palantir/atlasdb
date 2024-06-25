@@ -35,6 +35,7 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ForkJoinPool;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
@@ -75,8 +76,8 @@ public class TimeLockManagementResourceTest {
         PersistentNamespaceContext persistentNamespaceContext = PersistentNamespaceContexts.timestampBoundPaxos(
                 rootFolderPath, SqliteConnections.getDefaultConfiguredPooledDataSource(rootFolderPath));
 
-        TimelockNamespaces namespaces =
-                new TimelockNamespaces(metricsManager, serviceFactory, maxNumberOfClientsSupplier);
+        TimelockNamespaces namespaces = new TimelockNamespaces(
+                metricsManager, serviceFactory, maxNumberOfClientsSupplier, ForkJoinPool.commonPool());
 
         timeLockManagementResource = TimeLockManagementResource.create(
                 persistentNamespaceContext,

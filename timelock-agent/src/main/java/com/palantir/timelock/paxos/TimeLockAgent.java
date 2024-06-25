@@ -90,6 +90,7 @@ import java.net.URL;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -119,6 +120,7 @@ public class TimeLockAgent {
     private final Runnable serviceStopper;
     private LeaderPingHealthCheck healthCheck;
     private TimelockNamespaces namespaces;
+    private ExecutorService timelockNamespacesExecutor;
 
     @SuppressWarnings("TooManyArguments") // Legacy
     public static TimeLockAgent create(
@@ -338,10 +340,12 @@ public class TimeLockAgent {
         registerExceptionMappers();
         registerClientFeedbackService();
 
+        timelockNamespacesExecutor = PTExecutors.newCachedThreadPool("timelock-namespaces");
         namespaces = new TimelockNamespaces(
                 metricsManager,
                 this::createInvalidatingTimeLockServices,
-                Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get));
+                Suppliers.compose(TimeLockRuntimeConfiguration::maxNumberOfClients, runtime::get),
+                timelockNamespacesExecutor);
 
         registerManagementResource();
         healthCheck = paxosResources.leadershipComponents().healthCheck(namespaces::getActiveClients);
@@ -608,6 +612,7 @@ public class TimeLockAgent {
 
     public void shutdown() {
         paxosResources.leadershipComponents().shutdown();
+        timelockNamespacesExecutor.shutdown();
         timestampStorage.close();
         sqliteDataSource.close();
     }

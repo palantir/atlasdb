@@ -34,6 +34,7 @@ import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ForkJoinPool;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,7 +66,8 @@ public class TimelockNamespacesTest {
 
     @BeforeEach
     public void before() {
-        namespaces = new TimelockNamespaces(metricsManager, serviceFactory, maxNumberOfClientsSupplier);
+        namespaces = new TimelockNamespaces(
+                metricsManager, serviceFactory, maxNumberOfClientsSupplier, ForkJoinPool.commonPool());
     }
 
     @Test
@@ -90,7 +92,10 @@ public class TimelockNamespacesTest {
         prepareServiceFactoryAndMaxNumberOfClientsSupplierInvocations();
         createMaximumNumberOfClients();
 
-        assertThatThrownBy(() -> namespaces.get(uniqueClient(), USER_AGENT)).isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> namespaces.get(uniqueClient(), USER_AGENT))
+                .rootCause()
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Maximum number of clients exceeded");
 
         verify(serviceFactory, times(DEFAULT_MAX_NUMBER_OF_CLIENTS)).apply(any());
         verifyNoMoreInteractions(serviceFactory);
@@ -197,7 +202,7 @@ public class TimelockNamespacesTest {
 
     private void createMaximumNumberOfClients() {
         for (int i = 0; i < DEFAULT_MAX_NUMBER_OF_CLIENTS; i++) {
-            namespaces.get(uniqueClient(), USER_AGENT);
+            assertThat(namespaces.get(uniqueClient(), USER_AGENT)).isNotNull();
         }
     }
 

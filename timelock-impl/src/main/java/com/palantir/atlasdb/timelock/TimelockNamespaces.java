@@ -20,6 +20,7 @@ import static java.util.stream.Collectors.toSet;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.ConcurrentMaps;
@@ -33,6 +34,8 @@ import com.palantir.paxos.Client;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -57,15 +60,20 @@ public final class TimelockNamespaces {
 
     private static final SafeLogger log = SafeLoggerFactory.get(TimelockNamespaces.class);
 
-    private final ConcurrentMap<String, TimeLockServices> services =
+    private final ConcurrentMap<String, Future<TimeLockServices>> services =
             ConcurrentMaps.newWithExpectedEntries(estimatedClients());
     private final Function<String, TimeLockServices> factory;
     private final Supplier<Integer> maxNumberOfClients;
+    private final ExecutorService executor;
 
     public TimelockNamespaces(
-            MetricsManager metrics, Function<String, TimeLockServices> factory, Supplier<Integer> maxNumberOfClients) {
+            MetricsManager metrics,
+            Function<String, TimeLockServices> factory,
+            Supplier<Integer> maxNumberOfClients,
+            ExecutorService executor) {
         this.factory = factory;
         this.maxNumberOfClients = maxNumberOfClients;
+        this.executor = Preconditions.checkNotNull(executor, "executor");
         registerClientCapacityMetrics(metrics);
     }
 
@@ -95,13 +103,14 @@ public final class TimelockNamespaces {
      * server-side Jersey interfaces (which are just used in tests)
      */
     public TimeLockServices get(String namespace, Optional<String> userAgent) {
-        return services.computeIfAbsent(namespace, _namespace -> {
-            log.info(
-                    "Creating new timelock client",
-                    SafeArg.of("namespace", namespace),
-                    SafeArg.of("userAgent", userAgent));
-            return createNewClient(namespace);
-        });
+        return Futures.getUnchecked(services.compute(namespace, (ns, future) -> {
+            if (future != null) {
+                // another thread has already concurrently created future
+                return future;
+            }
+            log.info("Creating new timelock client", SafeArg.of("namespace", ns), SafeArg.of("userAgent", userAgent));
+            return executor.submit(() -> createNewClient(ns));
+        }));
     }
 
     public Set<Client> getActiveClients() {
@@ -124,7 +133,7 @@ public final class TimelockNamespaces {
                 "The client name is reserved for the leader election service, and may not be used.",
                 SafeArg.of("clientName", PaxosTimeLockConstants.LEADER_ELECTION_NAMESPACE));
 
-        if (getNumberOfActiveClients() >= getMaxNumberOfClients()) {
+        if (getNumberOfActiveClients() > getMaxNumberOfClients()) {
             log.error(
                     "Unable to create timelock services for client {}, as it would exceed the maximum number of "
                             + "allowed clients ({}). If this is intentional, the maximum number of clients can be "
@@ -144,9 +153,13 @@ public final class TimelockNamespaces {
                 "Attempting to invalidate resources for a given timelock client",
                 SafeArg.of("client", namespace),
                 SafeArg.of("doResourcesPossiblyExist", services.containsKey(namespace)));
-        TimeLockServices removedServices = services.remove(namespace);
+        Future<TimeLockServices> removedServices = services.remove(namespace);
         if (removedServices != null) {
-            removedServices.close();
+            if (removedServices.isDone()) {
+                Futures.getUnchecked(removedServices).close();
+            } else {
+                removedServices.cancel(true);
+            }
         }
     }
 
