@@ -230,7 +230,8 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
 
     private ListenableFuture<StillLeadingStatus> determineLeadershipStatus(PaxosValue value) {
         if (!isThisNodeTheLeaderFor(value)) {
-            log.info("This node is not the leader for this Paxos value.",
+            log.info(
+                    "This node is not the leader for this Paxos value.",
                     SafeArg.of("value", value),
                     SafeArg.of("proposerId", proposer.getUuid()));
             return Futures.immediateFuture(StillLeadingStatus.NOT_LEADING);
@@ -238,7 +239,8 @@ public class PaxosLeaderElectionService implements LeaderElectionService {
 
         Optional<PaxosValue> greatestLearnedValue = knowledge.getGreatestLearnedValue();
         if (greatestLearnedValue.isEmpty() || !greatestLearnedValue.get().equals(value)) {
-            log.info("According to our local Paxos knowledge, this round is not the most recent round.",
+            log.info(
+                    "According to our local Paxos knowledge, this round is not the most recent round.",
                     SafeArg.of("value", value),
                     SafeArg.of("proposerId", proposer.getUuid()),
                     SafeArg.of("greatestLearnedValue", greatestLearnedValue));
