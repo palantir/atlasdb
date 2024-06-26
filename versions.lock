@@ -1,4 +1,4 @@
-# Run ./gradlew writeVersionsLock to regenerate this file
+# Run ./gradlew writeVersionsLocks to regenerate this file
 ch.qos.logback:logback-access:1.2.12 (1 constraints: e4112af4)
 ch.qos.logback:logback-classic:1.2.12 (8 constraints: 3971367b)
 ch.qos.logback:logback-core:1.2.12 (7 constraints: c45f4f63)
@@ -61,9 +61,9 @@ com.palantir.cassandra:cassandra-thrift:2.2.18-1.108.0 (2 constraints: 0f180ff6)
 com.palantir.common:streams:2.4.0 (1 constraints: 08050136)
 com.palantir.config.crypto:encrypted-config-value:6.0.0 (2 constraints: 881c8eb8)
 com.palantir.config.crypto:encrypted-config-value-module:6.0.0 (1 constraints: 08050936)
-com.palantir.conjure.java:conjure-lib:8.23.0 (6 constraints: cf6b3c46)
+com.palantir.conjure.java:conjure-lib:8.23.0 (6 constraints: 3b6e9b45)
 com.palantir.conjure.java:conjure-undertow-annotations:8.23.0 (1 constraints: 3f05603b)
-com.palantir.conjure.java:conjure-undertow-lib:8.23.0 (2 constraints: 7f1c15af)
+com.palantir.conjure.java:conjure-undertow-lib:8.23.0 (2 constraints: eb1e6a8d)
 com.palantir.conjure.java.api:errors:2.53.0 (7 constraints: fe81aa8e)
 com.palantir.conjure.java.api:service-config:2.53.0 (6 constraints: 3266c6d5)
 com.palantir.conjure.java.api:ssl-config:2.53.0 (5 constraints: b04fb22a)
