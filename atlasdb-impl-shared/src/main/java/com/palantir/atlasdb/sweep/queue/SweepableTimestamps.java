@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.SweepableTimestampsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -78,39 +79,55 @@ public class SweepableTimestamps extends SweepQueueTable {
      * sweepTs
      */
     Optional<Long> nextTimestampPartition(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
-        long minFineInclusive = SweepQueueUtils.tsPartitionFine(lastSweptTs + 1);
-        long maxFineInclusive = SweepQueueUtils.tsPartitionFine(sweepTs - 1);
-        return nextSweepablePartition(shardStrategy, minFineInclusive, maxFineInclusive);
+        List<Long> partitions = nextTimestampPartitions(shardStrategy, lastSweptTs, sweepTs, 1);
+        if (partitions.isEmpty()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(partitions.get(0));
+        }
     }
 
-    private Optional<Long> nextSweepablePartition(
-            ShardAndStrategy shardAndStrategy, long minFineInclusive, long maxFineInclusive) {
+    public List<Long> nextTimestampPartitions(
+            ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs, int limit) {
+        long minFineInclusive = SweepQueueUtils.tsPartitionFine(lastSweptTs + 1);
+        long maxFineInclusive = SweepQueueUtils.tsPartitionFine(sweepTs - 1);
+        return nextSweepablePartitions(shardStrategy, minFineInclusive, maxFineInclusive, limit);
+    }
+
+    private List<Long> nextSweepablePartitions(
+            ShardAndStrategy shardAndStrategy, long minFineInclusive, long maxFineInclusive, int limit) {
         ColumnRangeSelection range = getColRangeSelection(minFineInclusive, maxFineInclusive + 1);
 
         long current = SweepQueueUtils.partitionFineToCoarse(minFineInclusive);
         long maxCoarseInclusive = SweepQueueUtils.partitionFineToCoarse(maxFineInclusive);
 
-        while (current <= maxCoarseInclusive) {
-            Optional<Long> candidateFine = getCandidatesInCoarsePartition(shardAndStrategy, current, range);
-            if (candidateFine.isPresent()) {
-                return candidateFine;
-            }
+        List<Long> allCandidates = new ArrayList<>();
+
+        while (current <= maxCoarseInclusive && allCandidates.size() < limit) {
+            List<Long> candidatesFine =
+                    getCandidatesInCoarsePartition(shardAndStrategy, current, range, limit - allCandidates.size());
+            allCandidates.addAll(candidatesFine);
             current++;
         }
-        return Optional.empty();
+        return allCandidates;
     }
 
-    private Optional<Long> getCandidatesInCoarsePartition(
-            ShardAndStrategy shardStrategy, long partitionCoarse, ColumnRangeSelection colRange) {
+    private List<Long> getCandidatesInCoarsePartition(
+            ShardAndStrategy shardStrategy, long partitionCoarse, ColumnRangeSelection colRange, int limit) {
         byte[] rowBytes = computeRowBytes(shardStrategy, partitionCoarse);
 
         RowColumnRangeIterator colIterator = getRowsColumnRange(ImmutableList.of(rowBytes), colRange, 1);
         if (!colIterator.hasNext()) {
-            return Optional.empty();
+            return List.of();
         }
-        Map.Entry<Cell, Value> firstColumnEntry = colIterator.next();
 
-        return Optional.of(getFinePartitionFromEntry(firstColumnEntry));
+        int results = 0;
+        List<Long> candidates = new ArrayList<>();
+        while (results < limit && colIterator.hasNext()) {
+            results++;
+            candidates.add(getFinePartitionFromEntry(colIterator.next()));
+        }
+        return candidates;
     }
 
     private ColumnRangeSelection getColRangeSelection(long minFineInclusive, long maxFineExclusive) {
@@ -136,6 +153,7 @@ public class SweepableTimestamps extends SweepQueueTable {
 
     /**
      * Deletes complete rows of the Sweepable Timestamps table.
+     *
      * @param shardStrategy desired shard and strategy
      * @param partitionsCoarse coarse partitions for which the row should be deleted
      */

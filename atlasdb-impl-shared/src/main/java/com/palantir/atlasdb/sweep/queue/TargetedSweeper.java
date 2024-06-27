@@ -156,6 +156,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     /**
      * This method initializes all the resources necessary for the targeted sweeper. This method should only be called
      * once the kvs is ready.
+     *
      * @param timestamps supplier of unreadable and immutable timestamps.
      * @param timelockService TimeLockService to use for synchronizing iterations of sweep on different nodes
      * @param kvs key value service that must be already initialized.
@@ -303,6 +304,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
             Optional<TargetedSweeperLock> maybeLock = Optional.empty();
             try {
+                // Instead, try to get buckets
                 maybeLock = tryToAcquireLockForNextShardAndStrategy();
                 return maybeLock
                         .map(targetedSweeperLock ->
