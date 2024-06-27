@@ -116,7 +116,7 @@ public class SweepableTimestamps extends SweepQueueTable {
             ShardAndStrategy shardStrategy, long partitionCoarse, ColumnRangeSelection colRange, int limit) {
         byte[] rowBytes = computeRowBytes(shardStrategy, partitionCoarse);
 
-        RowColumnRangeIterator colIterator = getRowsColumnRange(ImmutableList.of(rowBytes), colRange, 1);
+        RowColumnRangeIterator colIterator = getRowsColumnRange(ImmutableList.of(rowBytes), colRange, limit);
         if (!colIterator.hasNext()) {
             return List.of();
         }

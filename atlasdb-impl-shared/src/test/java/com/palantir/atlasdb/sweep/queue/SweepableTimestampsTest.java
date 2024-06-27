@@ -24,6 +24,7 @@ import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.sweep.Sweeper;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -220,6 +221,72 @@ public class SweepableTimestampsTest extends AbstractSweepQueueTest {
         assertThat(readNonSweepable()).hasValue(1L);
     }
 
+    @Test
+    public void readMultiplePartitionsFollowsRequestLimit() {
+        writeToDefaultCellUncommitted(sweepableTimestamps, 1L, TABLE_NOTH);
+        writeToDefaultCellUncommitted(sweepableTimestamps, 2 * TS_FINE_GRANULARITY + 1L, TABLE_NOTH);
+        writeToDefaultCellUncommitted(sweepableTimestamps, 3 * TS_FINE_GRANULARITY + 1L, TABLE_NOTH);
+        writeToDefaultCellUncommitted(sweepableTimestamps, 4 * TS_FINE_GRANULARITY + 1L, TABLE_NOTH);
+        writeToDefaultCellUncommitted(sweepableTimestamps, 6 * TS_FINE_GRANULARITY + 1L, TABLE_NOTH);
+
+        setSweepTimestampAndGet(Long.MAX_VALUE);
+        assertThat(readMultipleNonSweepable(1000)).containsExactly(0L, 2L, 3L, 4L, 6L);
+        assertThat(readMultipleNonSweepable(3)).containsExactly(0L, 2L, 3L);
+        assertThat(readMultipleNonSweepable(2)).containsExactly(0L, 2L);
+        assertThat(readMultipleNonSweepable(1)).containsExactly(0L);
+    }
+
+    @Test
+    public void readMultiplePartitionsDoesNotSelectPartitionsAfterTheSweepTimestamp() {
+        writeToDefaultCellUncommitted(sweepableTimestamps, 1L, TABLE_NOTH);
+        writeToDefaultCellUncommitted(sweepableTimestamps, 2 * TS_FINE_GRANULARITY + 1L, TABLE_NOTH);
+        writeToDefaultCellUncommitted(sweepableTimestamps, 3 * TS_FINE_GRANULARITY + 1L, TABLE_NOTH);
+        writeToDefaultCellUncommitted(sweepableTimestamps, 4 * TS_FINE_GRANULARITY + 1L, TABLE_NOTH);
+        writeToDefaultCellUncommitted(sweepableTimestamps, 6 * TS_FINE_GRANULARITY + 1L, TABLE_NOTH);
+
+        setSweepTimestampAndGet(3 * TS_FINE_GRANULARITY - 1);
+        assertThat(readMultipleNonSweepable(1000)).containsExactly(0L, 2L);
+
+        setSweepTimestampAndGet(3 * TS_FINE_GRANULARITY);
+        assertThat(readMultipleNonSweepable(1000))
+                .as("partition 3 should not be considered even if the sweep timestamp is at its head, since"
+                        + " only values strictly before the sweep timestamp are eligible for sweeping")
+                .containsExactly(0L, 2L);
+
+        setSweepTimestampAndGet(3 * TS_FINE_GRANULARITY + 1);
+        assertThat(readMultipleNonSweepable(1000))
+                .as("partition 3 should be considered once the sweep timestamp has passed its first timestamp")
+                .containsExactly(0L, 2L, 3L);
+    }
+
+    @Test
+    public void readMultiplePartitionsDoesNotSelectPartitionsThatHaveBeenProgressedPast() {
+        writeToDefaultCellUncommitted(sweepableTimestamps, 1L, TABLE_NOTH);
+        writeToDefaultCellUncommitted(sweepableTimestamps, 2 * TS_FINE_GRANULARITY + 1L, TABLE_NOTH);
+        writeToDefaultCellUncommitted(sweepableTimestamps, 3 * TS_FINE_GRANULARITY + 1L, TABLE_NOTH);
+        writeToDefaultCellUncommitted(sweepableTimestamps, 4 * TS_FINE_GRANULARITY + 1L, TABLE_NOTH);
+        writeToDefaultCellUncommitted(sweepableTimestamps, 6 * TS_FINE_GRANULARITY + 1L, TABLE_NOTH);
+
+        setSweepTimestampAndGet(Long.MAX_VALUE);
+
+        progress.updateLastSweptTimestamp(ShardAndStrategy.nonSweepable(), TS_FINE_GRANULARITY - 1);
+        assertThat(readMultipleNonSweepable(1000)).containsExactly(2L, 3L, 4L, 6L);
+
+        progress.updateLastSweptTimestamp(ShardAndStrategy.nonSweepable(), 3 * TS_FINE_GRANULARITY);
+        assertThat(readMultipleNonSweepable(1000)).containsExactly(3L, 4L, 6L);
+
+        progress.updateLastSweptTimestamp(ShardAndStrategy.nonSweepable(), 7 * TS_FINE_GRANULARITY - 2);
+        assertThat(readMultipleNonSweepable(1000))
+                .as("with a possible value at the end of partition 6, it must still be considered")
+                .containsExactly(6L);
+
+        progress.updateLastSweptTimestamp(ShardAndStrategy.nonSweepable(), 7 * TS_FINE_GRANULARITY - 1);
+        assertThat(readMultipleNonSweepable(1000))
+                .as("as partition 6 has been fully completed, it no longer need be considered")
+                .isEmpty();
+    }
+
+    // TODO (jkong): Parameterize the above tests, and add support for Thorough and Conservative.
     private Optional<Long> readConservative(int shardNumber) {
         return sweepableTimestamps.nextTimestampPartition(
                 conservative(shardNumber),
@@ -239,6 +306,14 @@ public class SweepableTimestampsTest extends AbstractSweepQueueTest {
                 ShardAndStrategy.nonSweepable(),
                 progress.getLastSweptTimestamp(ShardAndStrategy.nonSweepable()),
                 Sweeper.NO_OP.getSweepTimestamp(timestampsSupplier));
+    }
+
+    private List<Long> readMultipleNonSweepable(int limit) {
+        return sweepableTimestamps.nextTimestampPartitions(
+                ShardAndStrategy.nonSweepable(),
+                progress.getLastSweptTimestamp(ShardAndStrategy.nonSweepable()),
+                Sweeper.NO_OP.getSweepTimestamp(timestampsSupplier),
+                limit);
     }
 
     private long setSweepTimestampAndGet(long timestamp) {
