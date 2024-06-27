@@ -19,10 +19,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Throwables;
 import com.palantir.atlasdb.persist.api.ReusablePersister;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
 
 /**
  * A {@link ReusablePersister} that uses an {@link ObjectMapper} to serialize and deserialize objects
@@ -41,14 +38,7 @@ public abstract class JacksonPersister<T> implements ReusablePersister<T> {
     @Override
     public final T hydrateFromBytes(byte[] input) {
         try {
-            if (input.length <= 8192 && mapper.getFactory().canUseCharArrays()) {
-                // Optimize to avoid allocation of heap ByteBuffer via InputStreamReader.
-                // Remove after upgrade to Jackson 2.16.
-                // see: https://github.com/FasterXML/jackson-core/pull/1081
-                // and https://github.com/FasterXML/jackson-benchmarks/pull/9
-                return mapper.readValue(new StringReader(new String(input, StandardCharsets.UTF_8)), typeRef);
-            }
-            return mapper.readValue(new ByteArrayInputStream(input), typeRef);
+            return mapper.readValue(input, typeRef);
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }
