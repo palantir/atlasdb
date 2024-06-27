@@ -25,6 +25,9 @@ import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.SweepQueueReader.ReadBatchingRuntimeContext;
+import com.palantir.atlasdb.sweep.queue.bucket.BucketCandidateFinder;
+import com.palantir.atlasdb.sweep.queue.bucket.DefaultBucketCandidateFinder;
+import com.palantir.atlasdb.sweep.queue.bucket.SweepQueueBucket;
 import com.palantir.atlasdb.sweep.queue.clear.DefaultTableClearer;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
@@ -54,6 +57,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
     private final Supplier<Integer> numShards;
     private final AbandonedTransactionConsumer abandonedTransactionConsumer;
     private final TargetedSweepMetrics metrics;
+    private final BucketCandidateFinder bucketCandidateFinder;
 
     private SweepQueue(
             SweepQueueFactory factory,
@@ -67,6 +71,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         this.cleaner = factory.createCleaner();
         this.numShards = factory.numShards;
         this.metrics = factory.metrics;
+        this.bucketCandidateFinder = factory.createBucketCandidateFinder();
     }
 
     public static SweepQueue create(
@@ -103,8 +108,8 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
      * return the cached value until refreshTimeMillis has passed, at which point the next call will again perform the
      * check and set.
      *
-     * @param runtimeConfig     live reloadable runtime configuration for the number of shards
-     * @param progress          progress table persisting the number of shards
+     * @param runtimeConfig live reloadable runtime configuration for the number of shards
+     * @param progress progress table persisting the number of shards
      * @param refreshTimeMillis timeout for caching the number of shards
      * @return supplier calculating and persisting the number of shards to use
      */
@@ -130,7 +135,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
      * accordingly.
      *
      * @param shardStrategy shard and strategy to use
-     * @param sweepTs       sweep timestamp, the upper limit to the start timestamp of writes to sweep
+     * @param sweepTs sweep timestamp, the upper limit to the start timestamp of writes to sweep
      * @return number of cells that were swept
      */
     public long sweepNextBatch(ShardAndStrategy shardStrategy, long sweepTs) {
@@ -224,6 +229,11 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
 
     public Map<ShardAndStrategy, Long> getLastSweptTimestamps(Set<ShardAndStrategy> shardAndStrategies) {
         return progress.getLastSweptTimestamps(shardAndStrategies);
+    }
+
+    public List<SweepQueueBucket> findCandidateBuckets(ShardAndStrategy shardAndStrategy, long sweepTs) {
+        return bucketCandidateFinder.findCandidateBuckets(
+                shardAndStrategy, progress.getLastSweptTimestamp(shardAndStrategy), sweepTs);
     }
 
     public static final class SweepQueueFactory {
@@ -327,6 +337,10 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
 
         private SweepQueueCleaner createCleaner() {
             return new SweepQueueCleaner(cells, timestamps, progress);
+        }
+
+        private BucketCandidateFinder createBucketCandidateFinder() {
+            return new DefaultBucketCandidateFinder(timestamps);
         }
     }
 }

@@ -28,6 +28,8 @@ import com.palantir.atlasdb.sweep.metrics.LastSweptTimestampUpdater;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.SweepQueueReader.ReadBatchingRuntimeContext;
+import com.palantir.atlasdb.sweep.queue.bucket.SweepQueueBucket;
+import com.palantir.atlasdb.sweep.queue.bucket.TargetedSweepBucketLock;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
@@ -45,6 +47,8 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -302,6 +306,12 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 return SweepIterationResults.disabled();
             }
 
+            Optional<TargetedSweepBucketLock> bucketLock = Optional.empty();
+            // Acquire bucket lock - tryToAcquireBucketLock(...)
+            // If we got the lock, try to process the shard starting at the relevant bucket
+            // catch ICE, Throwable are similar to existing code
+            // finally unlock the lock
+
             Optional<TargetedSweeperLock> maybeLock = Optional.empty();
             try {
                 // Instead, try to get buckets
@@ -325,6 +335,41 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                     logUnlockException(th, maybeLock);
                 }
             }
+        }
+
+        private Optional<TargetedSweepBucketLock> tryToAcquireBucketLockForNextShardAndStrategy() {
+            List<SweepQueueBucket> overflowCandidates = new ArrayList<>();
+
+            // Ugh I'm too sleepy to write streams
+            for (int i = 0; i < queue.getNumShards(sweepStrategy); i++) {
+                int shard = getShardAndIncrement();
+                ShardAndStrategy shardAndStrategy = ShardAndStrategy.of(shard, sweepStrategy);
+                long sweepTimestamp = Sweeper.of(shardAndStrategy).getSweepTimestamp(timestampsSupplier);
+
+                List<SweepQueueBucket> buckets = queue.findCandidateBuckets(shardAndStrategy, sweepTimestamp);
+                if (!buckets.isEmpty()) {
+                    Optional<TargetedSweepBucketLock> lock = TargetedSweepBucketLock.tryAcquire(
+                            SweepQueueBucket.builder()
+                                    .shardAndStrategy(shardAndStrategy)
+                                    .partition(buckets.get(0).partition())
+                                    .build(),
+                            timeLock);
+                    if (lock.isPresent()) {
+                        return lock;
+                    } else {
+                        overflowCandidates.addAll(buckets.subList(1, buckets.size()));
+                    }
+                }
+            }
+
+            // if we got here we didn't get any head buckets
+            // Yeah, there are many better ways to write this silly linear time algo
+            Collections.shuffle(overflowCandidates);
+            return overflowCandidates.stream()
+                    .map(bucket -> TargetedSweepBucketLock.tryAcquire(bucket, timeLock))
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .findFirst();
         }
 
         private Optional<TargetedSweeperLock> tryToAcquireLockForNextShardAndStrategy() {
