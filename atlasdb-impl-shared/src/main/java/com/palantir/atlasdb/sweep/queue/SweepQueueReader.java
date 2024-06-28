@@ -40,6 +40,8 @@ public class SweepQueueReader {
         for (int currentBatch = 0;
                 currentBatch < runtime.maximumPartitions().getAsInt() && accumulator.shouldAcceptAdditionalBatch();
                 currentBatch++) {
+            // if I am not the first batch, try to acquire a lock. if someone else is already sweeping it we can
+            // probably just return and let them do it
             Optional<Long> nextFinePartition =
                     sweepableTimestamps.nextTimestampPartition(shardStrategy, previousProgress, sweepTs);
             if (nextFinePartition.isEmpty()) {
@@ -48,7 +50,7 @@ public class SweepQueueReader {
             SweepBatch batch = sweepableCells.getBatchForPartition(
                     shardStrategy, nextFinePartition.get(), previousProgress, sweepTs);
             accumulator.accumulateBatch(batch);
-            previousProgress = accumulator.getProgressTimestamp();
+            previousProgress = accumulator.getReadStart();
         }
         return accumulator.toSweepBatch();
     }

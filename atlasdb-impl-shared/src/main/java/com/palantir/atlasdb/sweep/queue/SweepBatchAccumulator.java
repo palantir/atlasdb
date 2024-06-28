@@ -33,16 +33,16 @@ class SweepBatchAccumulator {
     private final long sweepTimestamp;
     private final int batchSizeThreshold;
 
-    private long progressTimestamp;
+    private long readStart;
     private long lastSeenCommitTimestamp = 0L;
     private long entriesRead = 0;
     private boolean anyBatchesPresent = false;
     private boolean nextBatchAvailable = true;
 
-    SweepBatchAccumulator(long sweepTimestamp, int batchSizeThreshold, long progressTimestamp) {
+    SweepBatchAccumulator(long sweepTimestamp, int batchSizeThreshold, long readStart) {
         this.sweepTimestamp = sweepTimestamp;
         this.batchSizeThreshold = batchSizeThreshold;
-        this.progressTimestamp = progressTimestamp;
+        this.readStart = readStart;
     }
 
     void accumulateBatch(SweepBatch sweepBatch) {
@@ -60,15 +60,15 @@ class SweepBatchAccumulator {
         abortedTimestamps.addAll(sweepBatch.abortedTimestamps());
         accumulatedDedicatedRows.addAll(sweepBatch.dedicatedRows().getDedicatedRows());
         addRelevantFinePartitions(sweepBatch);
-        progressTimestamp = Math.max(progressTimestamp, sweepBatch.lastSweptTimestamp());
+        readStart = Math.max(readStart, sweepBatch.lastSweptTimestamp());
         lastSeenCommitTimestamp = Math.max(lastSeenCommitTimestamp, sweepBatch.lastSeenCommitTimestamp());
         anyBatchesPresent = true;
         nextBatchAvailable = sweepBatch.hasNext();
         entriesRead += sweepBatch.entriesRead();
     }
 
-    long getProgressTimestamp() {
-        return progressTimestamp;
+    long getReadStart() {
+        return readStart;
     }
 
     SweepBatchWithPartitionInfo toSweepBatch() {
@@ -84,9 +84,7 @@ class SweepBatchAccumulator {
     }
 
     boolean shouldAcceptAdditionalBatch() {
-        return accumulatedWrites.size() < batchSizeThreshold
-                && nextBatchAvailable
-                && progressTimestamp < (sweepTimestamp - 1);
+        return accumulatedWrites.size() < batchSizeThreshold && nextBatchAvailable && readStart < (sweepTimestamp - 1);
     }
 
     private List<WriteInfo> getLatestWritesByCellReference() {
@@ -99,7 +97,7 @@ class SweepBatchAccumulator {
 
     private long getLastSweptTimestamp() {
         if (anyBatchesPresent) {
-            return progressTimestamp;
+            return readStart;
         }
         return sweepTimestamp - 1;
     }

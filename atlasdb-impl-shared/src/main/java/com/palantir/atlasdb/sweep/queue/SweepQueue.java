@@ -129,6 +129,47 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         return writer.getSweepStrategy(tableReference);
     }
 
+    public long sweepStartingFromBucket(SweepQueueBucket bucket, long sweepTs) {
+        ShardAndStrategy shardStrategy = bucket.shardAndStrategy();
+        metrics.updateSweepTimestamp(shardStrategy, sweepTs);
+        // Checking buckets against progress ALREADY happened before this step, so that clause is no longer needed.
+        SweepBatchWithPartitionInfo batchWithPartitionInfo = reader.getNextBatchToSweep(
+                shardStrategy,
+                SweepQueueUtils.minTsForFinePartition(bucket.partition()), // Actually track per bucket progress
+                sweepTs);
+        // We are not really using transactions 4 any more
+
+        // Think about how to track per bucket progress
+        // progress.???
+
+        SweepBatch sweepBatch = batchWithPartitionInfo.sweepBatch();
+        deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
+        metrics.registerEntriesReadInBatch(shardStrategy, sweepBatch.entriesRead());
+
+        if (!sweepBatch.isEmpty()) {
+            log.debug(
+                    "Put {} ranged tombstones and swept up to timestamp {} for {}.",
+                    SafeArg.of("tombstones", sweepBatch.writes().size()),
+                    SafeArg.of("lastSweptTs", sweepBatch.lastSweptTimestamp()),
+                    SafeArg.of("shardStrategy", shardStrategy.toText()));
+        }
+
+        // Cleaner shouldn't delete until we know all the buckets for a coarse P are swept.
+        // But maybe this should be inside the cleaner itself.
+        // if (???)
+        //   cleaner.clean(...)
+
+        metrics.updateNumberOfTombstones(shardStrategy, sweepBatch.writes().size());
+
+        if (sweepBatch.isEmpty()) {
+            metrics.registerOccurrenceOf(shardStrategy, SweepOutcome.NOTHING_TO_SWEEP);
+        } else {
+            metrics.registerOccurrenceOf(shardStrategy, SweepOutcome.SUCCESS);
+        }
+
+        return sweepBatch.entriesRead();
+    }
+
     /**
      * Sweep the next batch for the shard and strategy specified by shardStrategy, with the sweep timestamp sweepTs.
      * After successful deletes, the persisted information about the writes is removed, and progress is updated
