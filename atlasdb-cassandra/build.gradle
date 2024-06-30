@@ -107,7 +107,7 @@ dependencies {
 
 shadowJar {
   mergeServiceFiles()
-  classifier ''
+  archiveClassifier = ''
 
   relocate('org.hibernate', 'shadowed')
 
