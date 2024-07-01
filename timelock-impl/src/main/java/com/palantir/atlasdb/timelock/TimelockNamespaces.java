@@ -104,10 +104,10 @@ public final class TimelockNamespaces {
      */
     public TimeLockServices get(String namespace, Optional<String> userAgent) {
         // Attempt a slight perf optimization, to avoid synchronization on every single call
+        Instant now = Instant.now();
         Instant oldActiveTime = activeServicesToTime.get(namespace);
-        if (oldActiveTime == null
-                || Instant.now().truncatedTo(ChronoUnit.MINUTES).isAfter(oldActiveTime)) {
-            activeServicesToTime.put(namespace, Instant.now());
+        if (oldActiveTime == null || now.truncatedTo(ChronoUnit.MINUTES).isAfter(oldActiveTime)) {
+            activeServicesToTime.put(namespace, now);
         }
 
         return services.computeIfAbsent(namespace, _namespace -> {
