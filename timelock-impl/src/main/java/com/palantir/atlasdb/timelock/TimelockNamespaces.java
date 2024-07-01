@@ -103,7 +103,12 @@ public final class TimelockNamespaces {
      * server-side Jersey interfaces (which are just used in tests)
      */
     public TimeLockServices get(String namespace, Optional<String> userAgent) {
-        activeServicesToTime.put(namespace, Instant.now());
+        // Attempt a slight perf optimization, to avoid synchronization on every single call
+        Instant oldActiveTime = activeServicesToTime.get(namespace);
+        if (oldActiveTime == null
+                || Instant.now().truncatedTo(ChronoUnit.MINUTES).isAfter(oldActiveTime)) {
+            activeServicesToTime.put(namespace, Instant.now());
+        }
 
         return services.computeIfAbsent(namespace, _namespace -> {
             log.info(
