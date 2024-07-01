@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |-
+    Now that AtlasDB has upgraded to Jackson 2.16.1, remove performance workaround that landed upstream in Jackson 2.16.0. See https://github.com/FasterXML/jackson-core/pull/1081
+
+    Removes changes from https://github.com/palantir/atlasdb/pull/6750
+  links:
+  - https://github.com/palantir/atlasdb/pull/7168

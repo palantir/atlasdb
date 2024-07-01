@@ -25,10 +25,7 @@ import com.palantir.atlasdb.internalschema.InternalSchemaMetadata;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -101,15 +98,7 @@ public final class InternalSchemaMetadataPayloadCodec {
 
     private static InternalSchemaMetadata decodeViaJson(byte[] byteArray) {
         try {
-            if (byteArray.length <= 8192) {
-                // Optimize to avoid allocation of heap ByteBuffer via InputStreamReader.
-                // Remove after upgrade to Jackson 2.16.
-                // see: https://github.com/FasterXML/jackson-core/pull/1081
-                // and https://github.com/FasterXML/jackson-benchmarks/pull/9
-                return SCHEMA_METADATA_READER.readValue(
-                        new StringReader(new String(byteArray, StandardCharsets.UTF_8)));
-            }
-            return SCHEMA_METADATA_READER.readValue(new ByteArrayInputStream(byteArray));
+            return SCHEMA_METADATA_READER.readValue(byteArray);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
