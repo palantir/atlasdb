@@ -67,7 +67,8 @@ public final class TimelockNamespaces {
     private final Supplier<Integer> maxNumberOfClients;
 
     // Do not use a cache, which performs maintenance on each write. We want writes to be fast
-    private final ConcurrentMap<String, Instant> activeServicesToTime = ConcurrentMaps.newWithExpectedEntries(200);
+    private final ConcurrentMap<String, Instant> activeServicesToTime =
+            ConcurrentMaps.newWithExpectedEntries(estimatedClients());
 
     public TimelockNamespaces(
             MetricsManager metrics, Function<String, TimeLockServices> factory, Supplier<Integer> maxNumberOfClients) {

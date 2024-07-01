@@ -23,7 +23,7 @@ services:
         http: POST /getActiveNamespaces
         returns: set<string>
         docs: |
-          The endpoint loads all namespaces that have requested new timestamps within the past 6 hours
+          The endpoint loads all namespaces that have had any interaction with the namespace within the past 6 hours
           (or since the last restart, if that happened within the last 6 hours).
           ``leaderPaxos`` is filtered out from the set as it is not a namespace.
 
