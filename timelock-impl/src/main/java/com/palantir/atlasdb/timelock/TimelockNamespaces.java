@@ -103,10 +103,7 @@ public final class TimelockNamespaces {
      * server-side Jersey interfaces (which are just used in tests)
      */
     public TimeLockServices get(String namespace, Optional<String> userAgent) {
-        // Potentially preemptive optimization, but using merge rather than put to avoid synchronization when it's
-        // already been updated recently enough
-        activeServicesToTime.merge(
-                namespace, Instant.now().truncatedTo(ChronoUnit.MINUTES), (a, b) -> a.isAfter(b) ? a : b);
+        activeServicesToTime.put(namespace, Instant.now());
 
         return services.computeIfAbsent(namespace, _namespace -> {
             log.info(
