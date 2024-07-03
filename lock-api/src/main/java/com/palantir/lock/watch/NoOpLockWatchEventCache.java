@@ -16,6 +16,9 @@
 
 package com.palantir.lock.watch;
 
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
@@ -26,10 +29,13 @@ import javax.annotation.concurrent.ThreadSafe;
 @ThreadSafe
 @SuppressWarnings("FinalClass") // mocks
 public class NoOpLockWatchEventCache implements LockWatchEventCache {
+    private static final SafeLogger log = SafeLoggerFactory.get(NoOpLockWatchEventCache.class);
     private static final LockWatchVersion FAKE_VERSION = LockWatchVersion.of(UUID.randomUUID(), -1L);
     private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
 
-    private NoOpLockWatchEventCache() {}
+    private NoOpLockWatchEventCache() {
+        log.info("Creating no op implementation", SafeArg.of("class", "LockWatchEventCache"));
+    }
 
     public static LockWatchEventCache create() {
         return new NoOpLockWatchEventCache();
