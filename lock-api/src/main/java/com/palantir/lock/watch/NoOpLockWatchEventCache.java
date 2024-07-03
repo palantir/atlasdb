@@ -34,7 +34,7 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
 
     private NoOpLockWatchEventCache() {
-        log.info("Creating no op implementation", SafeArg.of("class", "LockWatchEventCache"));
+        log.info("Creating no op implementation", SafeArg.of("class", "LockWatchEventCache"), new RuntimeException());
     }
 
     public static LockWatchEventCache create() {
