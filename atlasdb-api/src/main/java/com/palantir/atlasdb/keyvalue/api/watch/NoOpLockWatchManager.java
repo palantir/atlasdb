@@ -36,7 +36,7 @@ public final class NoOpLockWatchManager extends LockWatchManagerInternal {
 
     private NoOpLockWatchManager(LockWatchCache cache) {
         this.cache = cache;
-        log.info("Creating no op implementation", SafeArg.of("class", "LockWatchManager"));
+        log.info("Creating no op implementation", SafeArg.of("class", "LockWatchManager"), new RuntimeException());
     }
 
     public static LockWatchManagerInternal create() {
