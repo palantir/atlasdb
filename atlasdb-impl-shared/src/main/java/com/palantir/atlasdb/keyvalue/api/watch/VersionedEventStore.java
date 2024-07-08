@@ -25,12 +25,11 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 final class VersionedEventStore {
     private static final boolean INCLUSIVE = true;
@@ -61,31 +60,41 @@ final class VersionedEventStore {
     }
 
     LockWatchEvents retentionEvents(Optional<Sequence> earliestSequenceToKeep) {
-        int numToRetention = eventMap.size() - minEvents;
-        if (numToRetention <= 0) {
-            return LockWatchEvents.empty();
+        if (eventMap.size() < minEvents) {
+            return LockWatchEvents.builder().build();
         }
 
-        Stream<LockWatchEvent> events = retentionEvents(numToRetention, earliestSequenceToKeep.orElse(MAX_VERSION));
-
-        // Guarantees that we remove some events while still also potentially performing further retention.
-        // Note that consuming elements from retentionEvents stream removes them from eventMap.
+        // Guarantees that we remove some events while still also potentially performing further retention - note
+        // that each call to retentionEventsInternal modifies eventMap.
         if (eventMap.size() > maxEvents) {
-            Stream<LockWatchEvent> overMaxSizeEvents = retentionEvents(eventMap.size() - maxEvents, MAX_VERSION);
-            return ImmutableLockWatchEvents.of(Stream.concat(overMaxSizeEvents, events)
-                    .collect(Collectors.toCollection(() -> new ArrayList<>(maxEvents))));
+            List<LockWatchEvent> overMaxSizeEvents = retentionEventsInternal(eventMap.size() - maxEvents, MAX_VERSION);
+            List<LockWatchEvent> restOfEvents =
+                    retentionEventsInternal(eventMap.size() - minEvents, earliestSequenceToKeep.orElse(MAX_VERSION));
+            return ImmutableLockWatchEvents.builder()
+                    .addAllEvents(overMaxSizeEvents)
+                    .addAllEvents(restOfEvents)
+                    .build();
+        } else {
+            return ImmutableLockWatchEvents.builder()
+                    .addAllEvents(retentionEventsInternal(
+                            eventMap.size() - minEvents, earliestSequenceToKeep.orElse(MAX_VERSION)))
+                    .build();
         }
-        return ImmutableLockWatchEvents.of(events.collect(Collectors.toCollection(() -> new ArrayList<>(minEvents))));
     }
 
-    private Stream<LockWatchEvent> retentionEvents(int numToRetention, Sequence maxVersion) {
+    private List<LockWatchEvent> retentionEventsInternal(int numToRetention, Sequence maxVersion) {
+        List<LockWatchEvent> events = new ArrayList<>(numToRetention);
+
         // The correctness of this depends upon eventMap's entrySet returning entries in ascending sorted order.
-        return eventMap.headMap(maxVersion).entrySet().stream()
+        eventMap.entrySet().stream()
+                .takeWhile(entry -> entry.getKey().value() < maxVersion.value())
                 .limit(numToRetention)
-                .map(entry -> {
+                .forEachOrdered(entry -> {
                     eventMap.remove(entry.getKey());
-                    return entry.getValue();
+                    events.add(entry.getValue());
                 });
+
+        return events;
     }
 
     boolean containsEntryLessThanOrEqualTo(long version) {

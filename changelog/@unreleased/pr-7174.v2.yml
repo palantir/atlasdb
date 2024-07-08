@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Revert "Reduce allocations in VersionedEventStore#retentionEvents"
+  links:
+  - https://github.com/palantir/atlasdb/pull/7174

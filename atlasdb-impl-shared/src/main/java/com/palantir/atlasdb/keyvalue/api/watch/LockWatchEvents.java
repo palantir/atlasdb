@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Range;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchVersion;
@@ -28,8 +27,6 @@ import org.immutables.value.Value;
 
 @Value.Immutable
 public interface LockWatchEvents {
-
-    @Value.Parameter
     List<LockWatchEvent> events();
 
     @Value.Derived
@@ -58,7 +55,7 @@ public interface LockWatchEvents {
     @Value.Check
     default void rangeOnlyPresentIffEventsAre() {
         if (events().isEmpty()) {
-            Preconditions.checkState(versionRange().isEmpty(), "Cannot have a version range with no events");
+            Preconditions.checkState(!versionRange().isPresent(), "Cannot have a version range with no events");
         } else {
             Preconditions.checkState(versionRange().isPresent(), "Non-empty events must have a version range");
         }
@@ -70,7 +67,7 @@ public interface LockWatchEvents {
         }
 
         if (latestVersion.isPresent()) {
-            long firstVersion = versionRange().orElseThrow().lowerEndpoint();
+            long firstVersion = versionRange().get().lowerEndpoint();
             Preconditions.checkArgument(
                     firstVersion <= latestVersion.get().version()
                             || latestVersion.get().version() + 1 == firstVersion,
@@ -82,13 +79,5 @@ public interface LockWatchEvents {
 
     static ImmutableLockWatchEvents.Builder builder() {
         return ImmutableLockWatchEvents.builder();
-    }
-
-    static LockWatchEvents of(Iterable<LockWatchEvent> events) {
-        return ImmutableLockWatchEvents.of(events);
-    }
-
-    static LockWatchEvents empty() {
-        return of(ImmutableList.of());
     }
 }
