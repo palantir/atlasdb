@@ -192,6 +192,17 @@ public final class VersionedEventStoreTest {
     }
 
     @Test
+    public void retentionEventsClearsEventsAboveMaxSize() {
+        eventStore = new VersionedEventStore(CACHE_METRICS, 1, 2);
+        eventStore.putAll(makeEvents(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
+        assertThat(eventStore.retentionEvents(Optional.of(SEQ_MIN)).events().stream()
+                        .map(LockWatchEvent::sequence)
+                        .map(Sequence::of))
+                .containsExactly(SEQ_1, SEQ_2);
+        assertThat(eventStore.containsEntryLessThanOrEqualTo(SEQ_3.value())).isTrue();
+    }
+
+    @Test
     public void retentionEventsClearsEventsAboveMaxSizeRegardlessOfVersion() {
         eventStore = new VersionedEventStore(CACHE_METRICS, 1, 3);
         eventStore.putAll(makeEvents(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
