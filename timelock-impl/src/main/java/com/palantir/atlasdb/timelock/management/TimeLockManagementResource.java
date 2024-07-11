@@ -92,7 +92,7 @@ public final class TimeLockManagementResource implements UndertowTimeLockManagem
     @Override
     public ListenableFuture<Set<String>> getActiveNamespaces(AuthHeader authHeader) {
         // This endpoint only returns state already in memory, so it's okay to NOT make it async.
-        return Futures.immediateFuture(timelockNamespaces.getActiveClients().stream()
+        return Futures.immediateFuture(timelockNamespaces.getActiveClientsWithExpiry().stream()
                 .map(Client::value)
                 .filter(value -> !value.equals(PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE))
                 .collect(Collectors.toSet()));

@@ -30,6 +30,9 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.paxos.Client;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
@@ -51,6 +54,7 @@ public final class TimelockNamespaces {
     private static final ImmutableSet<String> BANNED_CLIENTS = ImmutableSet.of("tl", "lw");
     private static final String PATH_REGEX =
             String.format("^(?!((%s)$))[a-zA-Z0-9_-]+$", String.join("|", BANNED_CLIENTS));
+    private static final Duration ACTIVE_CLIENT_DURATION = Duration.of(6, ChronoUnit.HOURS);
 
     @VisibleForTesting
     static final Predicate<String> IS_VALID_NAME = Pattern.compile(PATH_REGEX).asPredicate();
@@ -61,6 +65,10 @@ public final class TimelockNamespaces {
             ConcurrentMaps.newWithExpectedEntries(estimatedClients());
     private final Function<String, TimeLockServices> factory;
     private final Supplier<Integer> maxNumberOfClients;
+
+    // Do not use a cache, which performs maintenance on each write. We want writes to be fast
+    private final ConcurrentMap<String, Instant> activeServicesToTime =
+            ConcurrentMaps.newWithExpectedEntries(estimatedClients());
 
     public TimelockNamespaces(
             MetricsManager metrics, Function<String, TimeLockServices> factory, Supplier<Integer> maxNumberOfClients) {
@@ -95,6 +103,13 @@ public final class TimelockNamespaces {
      * server-side Jersey interfaces (which are just used in tests)
      */
     public TimeLockServices get(String namespace, Optional<String> userAgent) {
+        // Attempt a slight perf optimization, to avoid synchronization on every single call
+        Instant now = Instant.now();
+        Instant oldActiveTime = activeServicesToTime.get(namespace);
+        if (oldActiveTime == null || now.truncatedTo(ChronoUnit.MINUTES).isAfter(oldActiveTime)) {
+            activeServicesToTime.put(namespace, now);
+        }
+
         return services.computeIfAbsent(namespace, _namespace -> {
             log.info(
                     "Creating new timelock client",
@@ -106,6 +121,12 @@ public final class TimelockNamespaces {
 
     public Set<Client> getActiveClients() {
         return services.keySet().stream().map(Client::of).collect(toSet());
+    }
+
+    public Set<Client> getActiveClientsWithExpiry() {
+        Instant expiryTime = Instant.now().minus(ACTIVE_CLIENT_DURATION);
+        activeServicesToTime.entrySet().removeIf(entry -> entry.getValue().isBefore(expiryTime));
+        return activeServicesToTime.keySet().stream().map(Client::of).collect(toSet());
     }
 
     public int getNumberOfActiveClients() {
