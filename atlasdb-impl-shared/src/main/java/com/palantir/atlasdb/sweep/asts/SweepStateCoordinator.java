@@ -16,10 +16,8 @@
 
 package com.palantir.atlasdb.sweep.asts;
 
-import com.palantir.atlasdb.sweep.asts.locks.RequiresLock.Lockable;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
-import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.StringLockDescriptor;
+import com.palantir.logsafe.Safe;
 import java.util.function.Consumer;
 import org.immutables.value.Value;
 
@@ -33,17 +31,29 @@ public interface SweepStateCoordinator {
     }
 
     @Value.Immutable
-    interface SweepableBucket extends Lockable {
+    @Safe
+    abstract class SweepableBucket implements Comparable<SweepableBucket> {
         @Value.Parameter
-        ShardAndStrategy shardAndStrategy();
+        abstract ShardAndStrategy shardAndStrategy();
 
         // It's really just the fine partition, but we make it opaque so we can change it in the future
         @Value.Parameter
-        long bucketIdentifier();
+        abstract long bucketIdentifier();
 
-        @Value.Derived
-        default LockDescriptor getLockDescriptor() {
-            return StringLockDescriptor.of(shardAndStrategy().toText() + " and partition " + bucketIdentifier());
+        @Safe
+        @Override
+        public String toString() {
+            return shardAndStrategy().toText() + " and partition " + bucketIdentifier();
+        }
+
+        @Override
+        public int compareTo(SweepableBucket other) {
+            int shardComparison = Integer.compare(
+                    shardAndStrategy().shard(), other.shardAndStrategy().shard());
+            if (shardComparison != 0) {
+                return shardComparison;
+            }
+            return Long.compare(bucketIdentifier(), other.bucketIdentifier());
         }
 
         static SweepableBucket of(ShardAndStrategy shardAndStrategy, long bucketIdentifier) {

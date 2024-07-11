@@ -16,54 +16,70 @@
 
 package com.palantir.atlasdb.sweep.asts;
 
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import com.palantir.refreshable.Refreshable;
+import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class DefaultParallelTaskExecutor implements ParallelTaskExecutor {
     private final ExecutorService cachedExecutorService;
+    private final Refreshable<Duration> semaphoreAcquireTimeout;
 
-    private DefaultParallelTaskExecutor(ExecutorService cachedExecutorService) {
+    private DefaultParallelTaskExecutor(
+            ExecutorService cachedExecutorService, Refreshable<Duration> semaphoreAcquireTimeout) {
         this.cachedExecutorService = cachedExecutorService;
+        this.semaphoreAcquireTimeout = semaphoreAcquireTimeout;
     }
 
-    public static DefaultParallelTaskExecutor create(ExecutorService cachedExecutorService) {
-        return new DefaultParallelTaskExecutor(cachedExecutorService);
+    public static DefaultParallelTaskExecutor create(
+            ExecutorService cachedExecutorService, Refreshable<Duration> semaphoreAcquireTimeout) {
+        return new DefaultParallelTaskExecutor(cachedExecutorService, semaphoreAcquireTimeout);
     }
 
     @Override
+    // TODO: Change this back from stream to list, unless you don't mind responses out of order
     public <V, K> Stream<V> execute(Stream<K> arg, Function<K, V> task, int maxParallelism) {
         Semaphore semaphore = new Semaphore(maxParallelism);
-        Stream<Future<V>> executedTasks = arg.map(k -> {
-            acquireSemaphore(semaphore);
-            try {
-                return cachedExecutorService.submit(() -> {
+        List<Future<V>> executedTasks = arg.map(k -> {
+                    // This is outside of the executor otherwise we end up spinning up a tonne of threads
+                    acquireSemaphore(semaphore);
                     try {
-                        return task.apply(k);
-                    } finally {
+                        return cachedExecutorService.submit(() -> {
+                            try {
+                                return task.apply(k);
+                            } finally {
+                                semaphore.release();
+                            }
+                        });
+                    } catch (Exception e) {
                         semaphore.release();
+                        throw e;
                     }
-                });
+                })
+                // Needed to force computation at this layer, rather than blocking on get
+                .collect(Collectors.toList());
+        return executedTasks.stream().map(future -> {
+            try {
+                return future.get();
             } catch (Exception e) {
-                semaphore.release();
-                throw e;
+                throw new RuntimeException(e);
             }
         });
-        return executedTasks
-                .map(future -> {
-                    try {
-                        return future.get();
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    }
-                });
     }
 
     private void acquireSemaphore(Semaphore semaphore) {
         try {
-            semaphore.acquire(); // TODO: Don't wait indefinitely.
+            boolean result = semaphore.tryAcquire(semaphoreAcquireTimeout.get().toMillis(), TimeUnit.MILLISECONDS);
+            if (!result) {
+                throw new SafeRuntimeException("Failed to acquire semaphore within timeout");
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);

@@ -36,7 +36,6 @@ import java.util.Random;
 import java.util.function.Consumer;
 import org.immutables.value.Value;
 
-// TODO: Logs and metrics.
 public final class DefaultCandidateSweepableBucketRetriever implements CandidateSweepableBucketRetriever {
     private final SafeLogger log = SafeLoggerFactory.get(DefaultCandidateSweepableBucketRetriever.class);
     private final Random random = new Random();

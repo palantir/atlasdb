@@ -16,53 +16,88 @@
 
 package com.palantir.atlasdb.sweep.asts;
 
-import com.palantir.atlasdb.sweep.asts.locks.RequiresLock;
-import com.palantir.atlasdb.sweep.asts.locks.RequiresLock.Inner;
-import com.palantir.refreshable.Refreshable;
-import java.time.Duration;
+import com.palantir.atlasdb.sweep.asts.locks.Lockable;
+import com.palantir.atlasdb.sweep.asts.locks.Lockable.LockableComparator;
+import com.palantir.atlasdb.sweep.asts.locks.LockableFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.SortedSet;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
-public class DefaultSweepStateCoordinator implements SweepStateCoordinator {
-    private final ScheduledExecutorService scheduledExecutorService;
-    private final Refreshable<Duration> automaticSweepRefreshDelay;
+public final class DefaultSweepStateCoordinator implements SweepStateCoordinator {
+
+    private final LockableFactory<SweepableBucket> lockableFactory;
     private final CandidateSweepableBucketRetriever candidateSweepableBucketRetriever;
 
     // TODO: What I really want is the ability to: Determine a random bucket (repeatedly, so maybe shuffle),
-    //  and for it to be ordered, and to be able to remove things from consideration. I don't want either of those iterations to be too expensive.
-    // Probably some combination of a list and an index set.
-    private volatile List<RequiresLock<SweepableBucket>> currentBuckets;
+    //  and for it to be ordered, and to be able to remove things from consideration. I don't want either of those
+    // iterations to be too expensive.
+    // Probably some combination of a list and an index set but that's a pain to update.
+    // If we do a single object, this could be a refreshable!
+    private volatile SortedSet<Lockable<SweepableBucket>> currentBuckets;
+
+    private DefaultSweepStateCoordinator(
+            CandidateSweepableBucketRetriever candidateSweepableBucketRetriever,
+            LockableFactory<SweepableBucket> lockableFactory) {
+        this.candidateSweepableBucketRetriever = candidateSweepableBucketRetriever;
+        this.lockableFactory = lockableFactory;
+        candidateSweepableBucketRetriever.subscribeToChanges(this::updateBuckets);
+    }
+
+    public static DefaultSweepStateCoordinator create(
+            CandidateSweepableBucketRetriever candidateSweepableBucketRetriever,
+            LockableFactory<SweepableBucket> lockableFactory) {
+        return new DefaultSweepStateCoordinator(candidateSweepableBucketRetriever, lockableFactory);
+    }
 
     @Override
     public State tryRunTaskWithSweep(Consumer<SweepableBucket> task) {
-        return null;
+        Optional<Lockable<SweepableBucket>.Inner> maybeBucket = chooseBucket();
+        if (maybeBucket.isEmpty()) {
+            return State.NOTHING_AVAILABLE; // TODO: Do a check for nothing to sweep!
+        }
+        try (Lockable<SweepableBucket>.Inner bucket = maybeBucket.get()) {
+            task.accept(bucket.getInner());
+
+            // I'm not even convinced this is sufficient, given that the same requires lock might not be in the set
+            // but it will be because of the factory guarantee that's not documented.
+            // Maybe the whole versioned thing might be useful?!?!! But indexed is annoying.
+
+            // Maybe the returned thing gives us the inner and the outer? rather than doing it on the inner object
+            // directly.
+            currentBuckets.remove(bucket.getOuter());
+            return State.SWEPT;
+        }
     }
 
-    private Optional<RequiresLock<SweepableBucket>.Inner> chooseBucket() {
-        Optional<RequiresLock<SweepableBucket>> firstObject = Optional.ofNullable(currentBuckets.pollFirst());
+    private Optional<Lockable<SweepableBucket>.Inner> chooseBucket() {
+        Optional<Lockable<SweepableBucket>> firstObject = Optional.ofNullable(currentBuckets.first());
         if (firstObject.isEmpty()) {
             candidateSweepableBucketRetriever.requestUpdate();
             return Optional.empty();
         }
-        firstObject.map(RequiresLock::tryLock).orElseGet(() -> {
 
-        })
+        return firstObject.flatMap(Lockable::tryLock).or(this::randomUnlockedBucket);
     }
 
-    private Optional<RequiresLock<SweepableBucket>.Inner> randomUnlockedBucket() {
-        List<RequiresLock<SweepableBucket>> shuffledList = new ArrayList<>(currentBuckets);
+    private Optional<Lockable<SweepableBucket>.Inner> randomUnlockedBucket() {
+        List<Lockable<SweepableBucket>> shuffledList = new ArrayList<>(currentBuckets);
         Collections.shuffle(shuffledList);
         // We must show that this doesn't try locking everything!!!!
         return shuffledList.stream()
-                .map(RequiresLock::tryLock)
+                .map(Lockable::tryLock)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .findFirst();
+    }
 
+    private void updateBuckets(List<SweepableBucket> newBuckets) {
+        currentBuckets = newBuckets.stream()
+                .map(lockableFactory::createLockable)
+                .collect(Collectors.toCollection(() -> new ConcurrentSkipListSet<>(new LockableComparator<>())));
     }
 }

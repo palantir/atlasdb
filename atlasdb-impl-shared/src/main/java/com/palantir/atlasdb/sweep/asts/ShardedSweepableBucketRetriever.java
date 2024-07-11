@@ -88,10 +88,12 @@ public final class ShardedSweepableBucketRetriever implements SweepableBucketRet
         List<List<SweepableBucket>> sweepableBuckets;
         try (CloseableTracer tracer = CloseableTracer.startSpan("getSweepableBucketsAcrossAllShards")) {
             // TODO: Time it!
-            sweepableBuckets = parallelTaskExecutor.execute(
-                    IntStream.range(0, numShards.get()).boxed(),
-                    this::getSweepableBucketsForShardWithJitter,
-                    maxParallelism.get());
+            sweepableBuckets = parallelTaskExecutor
+                    .execute(
+                            IntStream.range(0, numShards.get()).boxed(),
+                            this::getSweepableBucketsForShardWithJitter,
+                            maxParallelism.get())
+                    .collect(Collectors.toList());
         }
         return mergeSort(sweepableBuckets);
     }

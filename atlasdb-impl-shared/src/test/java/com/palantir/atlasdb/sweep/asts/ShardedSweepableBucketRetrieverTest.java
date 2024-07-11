@@ -121,9 +121,9 @@ public class ShardedSweepableBucketRetrieverTest {
         private Optional<Integer> lastMaxParallelism = Optional.empty();
 
         @Override
-        public <V, K> List<V> execute(Stream<K> arg, Function<K, V> task, int maxParallelism) {
+        public <V, K> Stream<V> execute(Stream<K> arg, Function<K, V> task, int maxParallelism) {
             lastMaxParallelism = Optional.of(maxParallelism);
-            return arg.map(task).collect(Collectors.toList());
+            return arg.map(task);
         }
 
         public Optional<Integer> getLastMaxParallelism() {
