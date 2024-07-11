@@ -16,12 +16,11 @@
 
 package com.palantir.atlasdb.sweep.asts;
 
-import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
 // Came out of making ShardedSweepableBucketRetriever way easier to test. It was a pain to test
 // concurrency logic with no way of controlling the task from the test
 public interface ParallelTaskExecutor {
-    <V, K> List<V> execute(Stream<K> arg, Function<K, V> task, int maxParallelism);
+    <V, K> Stream<V> execute(Stream<K> arg, Function<K, V> task, int maxParallelism);
 }

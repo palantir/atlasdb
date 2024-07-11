@@ -16,12 +16,10 @@
 
 package com.palantir.atlasdb.sweep.asts;
 
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public final class DefaultParallelTaskExecutor implements ParallelTaskExecutor {
@@ -36,7 +34,7 @@ public final class DefaultParallelTaskExecutor implements ParallelTaskExecutor {
     }
 
     @Override
-    public <V, K> List<V> execute(Stream<K> arg, Function<K, V> task, int maxParallelism) {
+    public <V, K> Stream<V> execute(Stream<K> arg, Function<K, V> task, int maxParallelism) {
         Semaphore semaphore = new Semaphore(maxParallelism);
         Stream<Future<V>> executedTasks = arg.map(k -> {
             acquireSemaphore(semaphore);
@@ -48,8 +46,9 @@ public final class DefaultParallelTaskExecutor implements ParallelTaskExecutor {
                         semaphore.release();
                     }
                 });
-            } finally {
+            } catch (Exception e) {
                 semaphore.release();
+                throw e;
             }
         });
         return executedTasks
@@ -59,8 +58,7 @@ public final class DefaultParallelTaskExecutor implements ParallelTaskExecutor {
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
-                })
-                .collect(Collectors.toList());
+                });
     }
 
     private void acquireSemaphore(Semaphore semaphore) {
