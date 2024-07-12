@@ -42,7 +42,7 @@ public final class DefaultParallelTaskExecutorTest {
     private final ThreadGroup threadGroup = new ThreadGroup("workers");
 
     private final ExecutorService cachedExecutorService =
-            Executors.newCachedThreadPool(r -> new Thread(threadGroup, r));
+            Executors.newCachedThreadPool(runnable -> new Thread(threadGroup, runnable));
 
     private final SettableRefreshable<Duration> semaphoreAcquireTimeout = Refreshable.create(Duration.ofSeconds(5));
 
