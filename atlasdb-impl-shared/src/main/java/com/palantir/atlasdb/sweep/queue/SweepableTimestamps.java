@@ -17,6 +17,7 @@ package com.palantir.atlasdb.sweep.queue;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterators;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -24,11 +25,17 @@ import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.SweepableTimestampsTable;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.stream.Collectors;
+import java.util.stream.LongStream;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public class SweepableTimestamps extends SweepQueueTable {
     private static final byte[] DUMMY = new byte[0];
@@ -78,39 +85,67 @@ public class SweepableTimestamps extends SweepQueueTable {
      * sweepTs
      */
     Optional<Long> nextTimestampPartition(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
+        List<Long> partitions = nextTimestampPartitions(shardStrategy, lastSweptTs, sweepTs, 1);
+        if (partitions.isEmpty()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(partitions.get(0));
+        }
+    }
+    // TODO: This is Jeremy's code - clean it up.
+    // Public because testing out visibility things
+    public List<Long> nextTimestampPartitions(
+            ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs, int limit) {
         long minFineInclusive = SweepQueueUtils.tsPartitionFine(lastSweptTs + 1);
         long maxFineInclusive = SweepQueueUtils.tsPartitionFine(sweepTs - 1);
-        return nextSweepablePartition(shardStrategy, minFineInclusive, maxFineInclusive);
+        return nextSweepablePartitionsLazy(shardStrategy, minFineInclusive, maxFineInclusive, 1)
+                .limit(limit)
+                .collect(Collectors.toList());
     }
 
-    private Optional<Long> nextSweepablePartition(
-            ShardAndStrategy shardAndStrategy, long minFineInclusive, long maxFineInclusive) {
+    //    // Alternative possibility: maybe more complex, but nicer properties - only try to get more things if needed
+    //    public Stream<SweepQueueBucket> getSweepableBucketStream(Map<ShardAndStrategy, Long> lastSweptTsPerShard,
+    //                                                             long sweepTs,
+    //                                                             int limitPerShard) {
+    //        // TODO (jkong): Duplication is bad
+    //        Map<ShardAndStrategy, Stream<SweepQueueBucket>> shardAndStrategyToBuckets =
+    // KeyedStream.stream(lastSweptTsPerShard)
+    //                .map((shardAndStrategy, lastSweptTs) -> nextSweepablePartitionsLazy(shardAndStrategy,
+    //                        SweepQueueUtils.tsPartitionFine(lastSweptTs + 1),
+    //                        SweepQueueUtils.tsPartitionFine(sweepTs - 1),
+    //                        DEFAULT_BATCH_SIZE)
+    //                        .map(finePartition -> (SweepQueueBucket) SweepQueueBucket.builder()
+    //                                .shardAndStrategy(shardAndStrategy)
+    //                                .partition(finePartition)
+    //                                .build())
+    //                        .limit(limitPerShard))
+    //                .collectToMap();
+    //        // Need some mechanism for merging streams
+    //    }
+
+    private Stream<Long> nextSweepablePartitionsLazy(
+            ShardAndStrategy shardAndStrategy, long minFineInclusive, long maxFineInclusive, int batchSize) {
         ColumnRangeSelection range = getColRangeSelection(minFineInclusive, maxFineInclusive + 1);
 
         long current = SweepQueueUtils.partitionFineToCoarse(minFineInclusive);
         long maxCoarseInclusive = SweepQueueUtils.partitionFineToCoarse(maxFineInclusive);
 
-        while (current <= maxCoarseInclusive) {
-            Optional<Long> candidateFine = getCandidatesInCoarsePartition(shardAndStrategy, current, range);
-            if (candidateFine.isPresent()) {
-                return candidateFine;
-            }
-            current++;
-        }
-        return Optional.empty();
+        return LongStream.rangeClosed(current, maxCoarseInclusive)
+                .boxed()
+                .flatMap(coarsePartition ->
+                        getCandidatesInCoarsePartitionLazy(shardAndStrategy, coarsePartition, range, batchSize));
     }
 
-    private Optional<Long> getCandidatesInCoarsePartition(
-            ShardAndStrategy shardStrategy, long partitionCoarse, ColumnRangeSelection colRange) {
+    private Stream<Long> getCandidatesInCoarsePartitionLazy(
+            ShardAndStrategy shardStrategy, long partitionCoarse, ColumnRangeSelection colRange, int batchSize) {
         byte[] rowBytes = computeRowBytes(shardStrategy, partitionCoarse);
 
-        RowColumnRangeIterator colIterator = getRowsColumnRange(ImmutableList.of(rowBytes), colRange, 1);
-        if (!colIterator.hasNext()) {
-            return Optional.empty();
-        }
-        Map.Entry<Cell, Value> firstColumnEntry = colIterator.next();
-
-        return Optional.of(getFinePartitionFromEntry(firstColumnEntry));
+        RowColumnRangeIterator colIterator = getRowsColumnRange(ImmutableList.of(rowBytes), colRange, batchSize);
+        Iterator<Long> partitionIterator = Iterators.transform(colIterator, this::getFinePartitionFromEntry);
+        return StreamSupport.stream(
+                Spliterators.spliteratorUnknownSize(
+                        partitionIterator, Spliterator.NONNULL | Spliterator.DISTINCT | Spliterator.ORDERED),
+                false);
     }
 
     private ColumnRangeSelection getColRangeSelection(long minFineInclusive, long maxFineExclusive) {
