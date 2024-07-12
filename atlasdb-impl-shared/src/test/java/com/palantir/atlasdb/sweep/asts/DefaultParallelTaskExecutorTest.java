@@ -94,6 +94,8 @@ public final class DefaultParallelTaskExecutorTest {
         CountDownLatch continueTest = new CountDownLatch(1);
         Function<Integer, Integer> task = i -> {
             waitForTasksToStart.countDown();
+
+            // We don't actually want the task to ever progress, so we don't count down continueTest
             awaitLatch(continueTest, Duration.ofSeconds(1));
             return i;
         };
