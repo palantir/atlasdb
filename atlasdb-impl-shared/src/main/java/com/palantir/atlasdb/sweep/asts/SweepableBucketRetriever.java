@@ -17,13 +17,9 @@
 package com.palantir.atlasdb.sweep.asts;
 
 import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
-import java.util.List;
+import java.util.Set;
 
 public interface SweepableBucketRetriever {
-    /**
-     * Returns the sweepable buckets for a given shard. The list of sweepable buckets will be ordered
-     * by bucket identifier, then by shard.
-     * TODO: Should the ordering of the buckets be done here, or in another class?
-     */
-    List<SweepableBucket> getSweepableBuckets();
+    // TODO: Consider making this a list and doing a K way merge sort internally.
+    Set<SweepableBucket> getSweepableBuckets();
 }
