@@ -22,9 +22,9 @@ import java.util.function.Consumer;
 import org.immutables.value.Value;
 
 public interface SweepStateCoordinator {
-    State tryRunTaskWithSweep(Consumer<SweepableBucket> task);
+    SweepOutcome tryRunTaskWithBucket(Consumer<SweepableBucket> task);
 
-    enum State {
+    enum SweepOutcome {
         NOTHING_AVAILABLE,
         NOTHING_TO_SWEEP,
         SWEPT;

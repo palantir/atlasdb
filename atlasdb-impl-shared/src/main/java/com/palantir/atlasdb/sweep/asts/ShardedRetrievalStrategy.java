@@ -21,7 +21,7 @@ import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import java.util.List;
 
-public interface ShardedRetrieverStrategy {
+public interface ShardedRetrievalStrategy {
     /**
      * Returns the sweepable buckets for a given shard. The list of sweepable buckets will be ordered by bucket
      * identifier.
