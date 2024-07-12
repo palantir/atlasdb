@@ -1,6 +1,4 @@
-type: local
-local:
-  releaseStrategy:
-    type: timeBasedRelease
-    timeBasedRelease:
-      timeSinceLastRelease: 1 days
+version: 3
+schedules:
+  timer:
+    time_since_last_release: 1 days
