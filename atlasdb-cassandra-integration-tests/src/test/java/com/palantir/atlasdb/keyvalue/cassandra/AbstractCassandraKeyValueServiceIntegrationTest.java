@@ -256,10 +256,8 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
     @SuppressWarnings("CompileTimeConstant")
     public void shouldNotErrorForTimestampTableWhenCreatingCassandraKvs() {
         verify(logger, atLeast(0))
-                .error(
-                        startsWith("Found a table {} that did not have persisted"),
-                        assertArg(
-                                (Arg<String> arg) -> assertThat(arg.getValue()).doesNotContain("timestamp")));
+                .error(startsWith("Found a table {} that did not have persisted"),
+                        assertArg((Arg<String> arg) -> assertThat(arg.getValue()).doesNotContain("timestamp")));
     }
 
     @Test
