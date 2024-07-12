@@ -38,7 +38,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-public final class DefaultParallelTestExecutorTest {
+public final class DefaultParallelTaskExecutorTest {
     private final ThreadGroup threadGroup = new ThreadGroup("workers");
 
     private final ExecutorService cachedExecutorService =
@@ -87,7 +87,7 @@ public final class DefaultParallelTestExecutorTest {
     }
 
     @Test
-    public void spinsUpNoMoreThanMaxParallelismTasks() {
+    public void spinsUpNoMoreThanMaxParallelismThreads() {
         int maxParallelism = 2;
         Stream<Integer> args = IntStream.range(0, 10).boxed();
         CountDownLatch waitForTasksToStart = new CountDownLatch(maxParallelism);
