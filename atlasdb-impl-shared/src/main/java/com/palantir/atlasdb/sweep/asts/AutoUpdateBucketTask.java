@@ -38,7 +38,7 @@ public final class AutoUpdateBucketTask {
         this.scheduledExecutorService = scheduledExecutorService;
         this.automaticSweepRefreshDelay = automaticSweepRefreshDelay;
         this.task = task;
-        scheduleNextIteration(automaticSweepRefreshDelay.get());
+        scheduleNextIteration(automaticSweepRefreshDelay.get()); // Probably should move to a start function
     }
 
     public static AutoUpdateBucketTask create(
