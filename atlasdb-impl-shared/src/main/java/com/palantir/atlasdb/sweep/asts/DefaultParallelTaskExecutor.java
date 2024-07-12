@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.sweep.asts;
 
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.refreshable.Refreshable;
 import java.time.Duration;
@@ -38,6 +39,10 @@ public final class DefaultParallelTaskExecutor implements ParallelTaskExecutor {
         this.semaphoreAcquireTimeout = semaphoreAcquireTimeout;
     }
 
+    // We're assuming that people will pass in a cachedExecutorService.
+    // TODO(mdaudali): Figure out if we want to enforce that by creating our own and managing it, or if there's another
+    // way
+    //  to make it explicit e.g. types.
     public static DefaultParallelTaskExecutor create(
             ExecutorService cachedExecutorService, Refreshable<Duration> semaphoreAcquireTimeout) {
         return new DefaultParallelTaskExecutor(cachedExecutorService, semaphoreAcquireTimeout);
@@ -78,10 +83,12 @@ public final class DefaultParallelTaskExecutor implements ParallelTaskExecutor {
     }
 
     private void acquireSemaphore(Semaphore semaphore) {
+        Duration timeout = semaphoreAcquireTimeout.get();
         try {
-            boolean result = semaphore.tryAcquire(semaphoreAcquireTimeout.get().toMillis(), TimeUnit.MILLISECONDS);
+            boolean result = semaphore.tryAcquire(timeout.toMillis(), TimeUnit.MILLISECONDS);
             if (!result) {
-                throw new SafeRuntimeException("Failed to acquire semaphore within timeout");
+                throw new SafeRuntimeException(
+                        "Failed to acquire semaphore within timeout", SafeArg.of("timeout", timeout));
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
