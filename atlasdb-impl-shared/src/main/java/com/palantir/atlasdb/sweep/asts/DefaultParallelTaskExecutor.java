@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 
 public final class DefaultParallelTaskExecutor implements ParallelTaskExecutor {
     private final ExecutorService cachedExecutorService;
+    // Should be the upper bound of the task duration + a little bit of buffer
     private final Refreshable<Duration> semaphoreAcquireTimeout;
 
     private DefaultParallelTaskExecutor(
