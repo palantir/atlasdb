@@ -32,11 +32,14 @@ public interface SweepStateCoordinator {
 
     @Value.Immutable
     @Safe
-    abstract class SweepableBucket implements Comparable<SweepableBucket> {
+    abstract class SweepableBucket {
         @Value.Parameter
         abstract ShardAndStrategy shardAndStrategy();
 
         // It's really just the fine partition, but we make it opaque so we can change it in the future
+        // TODO: consider wrapping the long if we _do_ want to make it even more opaque
+        // That said, code is going to depend on this being the fine partition ID anyway..., unless
+        // we do box it and have a method that's something like finePartitionId()
         @Value.Parameter
         abstract long bucketIdentifier();
 
@@ -44,16 +47,6 @@ public interface SweepStateCoordinator {
         @Override
         public String toString() {
             return shardAndStrategy().toText() + " and partition " + bucketIdentifier();
-        }
-
-        @Override
-        public int compareTo(SweepableBucket other) {
-            int shardComparison = Integer.compare(
-                    shardAndStrategy().shard(), other.shardAndStrategy().shard());
-            if (shardComparison != 0) {
-                return shardComparison;
-            }
-            return Long.compare(bucketIdentifier(), other.bucketIdentifier());
         }
 
         static SweepableBucket of(ShardAndStrategy shardAndStrategy, long bucketIdentifier) {
