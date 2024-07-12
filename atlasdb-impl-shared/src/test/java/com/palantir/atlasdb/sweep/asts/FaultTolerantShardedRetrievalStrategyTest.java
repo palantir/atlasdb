@@ -37,7 +37,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class FaultTolerantShardedRetrievalStrategyTest {
     private static final ShardAndStrategy SHARD_AND_STRATEGY = ShardAndStrategy.of(12, SweeperStrategy.CONSERVATIVE);
     private static final SweepTimestamps SWEEP_TIMESTAMPS =
-            SweepTimestamps.builder().sweepTimestamp(1).lastSweptTimestamp(12).build();
+            SweepTimestamps.builder().sweepTimestamp(1).lastSweptTimestamp(21).build();
     private static final RuntimeException EXCEPTION = new RuntimeException("failed");
 
     @Mock
