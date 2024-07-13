@@ -137,7 +137,8 @@ public final class DefaultParallelTaskExecutorTest {
             return i;
         };
         assertThatLoggableExceptionThrownBy(() -> taskExecutor.execute(args, task, 1))
-                .hasLogMessage("Failed to acquire semaphore within timeout").hasExactlyArgs(SafeArg.of("timeout", semaphoreAcquireTimeout.get()));
+                .hasLogMessage("Failed to acquire semaphore within timeout")
+                .hasExactlyArgs(SafeArg.of("timeout", semaphoreAcquireTimeout.get()));
     }
 
     private void awaitLatch(CountDownLatch latch, Duration timeout) {
