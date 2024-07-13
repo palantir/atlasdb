@@ -16,14 +16,12 @@
 
 package com.palantir.atlasdb.sweep.asts;
 
-import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
-public interface SweepableBucketRetriever {
-    /**
-     * Returns the sweepable buckets for a given shard. The list of sweepable buckets will be ordered
-     * by bucket identifier, then by shard.
-     * TODO: Should the ordering of the buckets be done here, or in another class?
-     */
-    List<SweepableBucket> getSweepableBuckets();
+// Came out of making ShardedSweepableBucketRetriever way easier to test. It was a pain to test
+// concurrency logic with no way of controlling the task from the test
+public interface ParallelTaskExecutor {
+    <V, K> List<V> execute(Stream<K> arg, Function<K, V> task, int maxParallelism);
 }
