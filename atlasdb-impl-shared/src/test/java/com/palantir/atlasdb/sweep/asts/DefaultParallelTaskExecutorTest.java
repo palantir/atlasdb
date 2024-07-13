@@ -17,9 +17,11 @@
 package com.palantir.atlasdb.sweep.asts;
 
 import static com.palantir.logsafe.testing.Assertions.assertThat;
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.palantir.logsafe.SafeArg;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.refreshable.SettableRefreshable;
 import java.time.Duration;
@@ -134,8 +136,8 @@ public final class DefaultParallelTaskExecutorTest {
             awaitLatch(continueTest, Duration.ofSeconds(1));
             return i;
         };
-        assertThatThrownBy(() -> taskExecutor.execute(args, task, 1))
-                .hasMessage("Failed to acquire semaphore within timeout");
+        assertThatLoggableExceptionThrownBy(() -> taskExecutor.execute(args, task, 1))
+                .hasLogMessage("Failed to acquire semaphore within timeout").hasExactlyArgs(SafeArg.of("timeout", semaphoreAcquireTimeout.get()));
     }
 
     private void awaitLatch(CountDownLatch latch, Duration timeout) {
