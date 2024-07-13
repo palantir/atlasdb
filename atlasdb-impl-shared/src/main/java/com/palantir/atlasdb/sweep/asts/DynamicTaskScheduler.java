@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.sweep.asts;
 
+import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -33,43 +34,54 @@ public final class DynamicTaskScheduler {
     private final Runnable task;
     private final AtomicBoolean isStarted = new AtomicBoolean(false);
 
+    // TODO(mdaudali): Use MDC
+    private final String safeLoggableTaskName;
+
     private DynamicTaskScheduler(
             ScheduledExecutorService scheduledExecutorService,
             Refreshable<Duration> automaticSweepRefreshDelay,
-            Runnable task) {
+            Runnable task,
+            @CompileTimeConstant String safeLoggableTaskName) {
         this.scheduledExecutorService = scheduledExecutorService;
         this.automaticSweepRefreshDelay = automaticSweepRefreshDelay;
         this.task = task;
+        this.safeLoggableTaskName = safeLoggableTaskName;
     }
 
     public static DynamicTaskScheduler create(
             ScheduledExecutorService scheduledExecutorService,
             Refreshable<Duration> automaticSweepRefreshDelay,
-            Runnable task) {
-        return new DynamicTaskScheduler(scheduledExecutorService, automaticSweepRefreshDelay, task);
+            Runnable task,
+            @CompileTimeConstant String safeLoggableTaskName) {
+        return new DynamicTaskScheduler(
+                scheduledExecutorService, automaticSweepRefreshDelay, task, safeLoggableTaskName);
     }
 
     public void start() {
         if (isStarted.compareAndSet(false, true)) {
             scheduleNextIteration(automaticSweepRefreshDelay.get());
         } else {
-            log.warn("Attempted to start an already started task");
+            log.warn("Attempted to start an already started task", SafeArg.of("task", safeLoggableTaskName));
         }
     }
 
     private void runOneIteration() {
         Duration delay = automaticSweepRefreshDelay.get();
         try {
-            log.info("Running task");
+            log.info("Running task", SafeArg.of("task", safeLoggableTaskName));
             task.run();
         } catch (Exception e) {
-            log.warn("Failed to run task. Will retry in the next interval", SafeArg.of("delay", delay), e);
+            log.warn(
+                    "Failed to run task. Will retry in the next interval",
+                    SafeArg.of("task", safeLoggableTaskName),
+                    SafeArg.of("delay", delay),
+                    e);
         }
         scheduleNextIteration(delay);
     }
 
     private void scheduleNextIteration(Duration delay) {
-        log.info("Scheduling next iteration", SafeArg.of("delay", delay));
+        log.info("Scheduling next iteration", SafeArg.of("task", safeLoggableTaskName), SafeArg.of("delay", delay));
         scheduledExecutorService.schedule(this::runOneIteration, delay.toMillis(), TimeUnit.MILLISECONDS);
     }
 }
