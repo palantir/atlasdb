@@ -29,7 +29,12 @@ import com.palantir.lock.watch.LockWatchReferences.LockWatchReference;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.UnlockEvent;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.Unsafe;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.util.RateLimitedLogger;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -38,6 +43,13 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class LockEventLogImpl implements LockEventLog {
+    private static final SafeLogger log = SafeLoggerFactory.get(LockEventLogImpl.class);
+
+    // Log at most 1 line every 2 minutes. Diagnostics are expected to be triggered
+    // on exceptional circumstances and a one-off basis. This de-duplicates when we
+    // need diagnostics on large clusters.
+    private static final RateLimitedLogger diagnosticLog = new RateLimitedLogger(log, 1 / 120.0);
+
     private final UUID logId;
     private final ArrayLockEventSlidingWindow slidingWindow;
     private final Supplier<LockWatches> watchesSupplier;
@@ -85,9 +97,19 @@ public class LockEventLogImpl implements LockEventLog {
         slidingWindow.add(LockWatchCreatedEvent.builder(newWatches.references(), openLocks));
     }
 
+    // This should only snapshot the internals of this class. Mutation is strictly
+    // prohibited.
     @Override
     public void dumpState() {
-        // TODO(aalouane): implement!
+        diagnosticLog.log(logger -> {
+            log.info(
+                    "Dumping lock event log state: {}, {}, {}, {}",
+                    SafeArg.of("logId", logId),
+                    SafeArg.of("lastVersion", slidingWindow.lastVersion()),
+                    UnsafeArg.of("watches", watchesSupplier.get()),
+                    UnsafeArg.of("openLocks", calculateAllOpenLocks()),
+                    UnsafeArg.of("buffer", slidingWindow.getBufferSnapshot()));
+        });
     }
 
     private Optional<LockWatchStateUpdate> tryGetNextEvents(Optional<LockWatchVersion> fromVersion) {
@@ -119,6 +141,18 @@ public class LockEventLogImpl implements LockEventLog {
         return heldLocksCollection.locksHeld().stream()
                 .flatMap(locksHeld -> locksHeld.getLocks().stream().map(AsyncLock::getDescriptor))
                 .filter(watchedRanges::contains)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Returns a set of all currently held locks.
+     * <p>
+     * Note that the set of held locks can be modified during the execution of this method. Therefore, this method is
+     * NOT guaranteed to return a consistent snapshot of the world.
+     */
+    private Set<LockDescriptor> calculateAllOpenLocks() {
+        return heldLocksCollection.locksHeld().stream()
+                .flatMap(locksHeld -> locksHeld.getLocks().stream().map(AsyncLock::getDescriptor))
                 .collect(Collectors.toSet());
     }
 }
