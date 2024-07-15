@@ -59,7 +59,7 @@ public class FaultTolerantShardedRetrievalStrategyTest {
         when(delegate.getSweepableBucketsForShard(SHARD_AND_STRATEGY, SWEEP_TIMESTAMPS))
                 .thenReturn(buckets);
         assertThat(strategy.getSweepableBucketsForShard(SHARD_AND_STRATEGY, SWEEP_TIMESTAMPS))
-                .isEqualTo(buckets);
+                .containsExactlyElementsOf(buckets);
         verifyNoInteractions(failureTracker);
     }
 
