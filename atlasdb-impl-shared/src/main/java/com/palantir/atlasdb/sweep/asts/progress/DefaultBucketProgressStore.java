@@ -18,13 +18,16 @@ package com.palantir.atlasdb.sweep.asts.progress;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
+import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.SweepBucketProgressTable;
 import com.palantir.atlasdb.schema.generated.SweepBucketProgressTable.SweepBucketProgressNamedColumn;
 import com.palantir.atlasdb.schema.generated.SweepBucketProgressTable.SweepBucketProgressRow;
+import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.logsafe.SafeArg;
@@ -36,8 +39,8 @@ import java.util.Optional;
 
 public class DefaultBucketProgressStore implements BucketProgressStore {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultBucketProgressStore.class);
-    //    private static final TableReference TABLE_REF =
-//            TargetedSweepTableFactory.of().getSweepBucketProgressTable(null).getTableRef();
+    private static final TableReference TABLE_REF =
+            TargetedSweepTableFactory.of().getSweepBucketProgressTable(null).getTableRef();
     public static final int CAS_ATTEMPT_LIMIT = 10;
 
     // I know, this is kind of suboptimal given our TKVS initiative elsewhere...
@@ -97,7 +100,9 @@ public class DefaultBucketProgressStore implements BucketProgressStore {
     @Override
     public void markBucketComplete(SweepableBucket bucket) {
         // Think carefully about the order of manipulating this table and sweepable timestamps!
-        kvs.delete(TABLE_REF, ImmutableMultimap.of(bucketToCell(bucket), Long.MAX_VALUE));
+        // TODO (jkong): KVS delete is NOT the right endpoint as far as C* is concerned.
+        // Need to add support for deleteWithTimestamp, deleteAtomic, or similar.
+        kvs.delete(TABLE_REF, ImmutableMultimap.of(bucketToCell(bucket), AtlasDbConstants.ATOMIC_TABLE_TS));
     }
 
     private Optional<byte[]> readBucketProgress(Cell cell) {
@@ -110,17 +115,17 @@ public class DefaultBucketProgressStore implements BucketProgressStore {
                 bucket.shardAndStrategy().shard(),
                 bucket.bucketIdentifier(),
                 persistStrategy(bucket.shardAndStrategy().strategy()));
-        return Cell.create(row.persistToBytes(), SweepBucketProgressNamedColumn.VALUE.getShortName());
+        return Cell.create(row.persistToBytes(), SweepBucketProgressNamedColumn.BUCKET_PROGRESS.getShortName());
     }
 
     private static byte[] persistStrategy(SweeperStrategy strategy) {
         switch (strategy) {
             case THOROUGH:
-                return new byte[]{0};
+                return new byte[] {0};
             case CONSERVATIVE:
-                return new byte[]{1};
+                return new byte[] {1};
             case NON_SWEEPABLE:
-                return new byte[]{2};
+                return new byte[] {2};
             default:
                 throw new SafeIllegalStateException(
                         "Unexpected sweeper strategy", SafeArg.of("sweeperStrategy", strategy));

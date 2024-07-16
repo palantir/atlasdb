@@ -31,4 +31,8 @@ public interface BucketProgress extends Comparable<BucketProgress> {
     default int compareTo(BucketProgress other) {
         return Long.compare(timestampOffset(), other.timestampOffset());
     }
+
+    static ImmutableBucketProgress.Builder builder() {
+        return ImmutableBucketProgress.builder();
+    }
 }

@@ -94,6 +94,7 @@ public final class AtlasDbConstants {
     public static final int DEFAULT_TABLES_TO_PUBLISH_TABLE_LEVEL_METRICS = 10;
 
     public static final long TRANSACTION_TS = 0L;
+    public static final long ATOMIC_TABLE_TS = TRANSACTION_TS;
     public static final long MAX_TS = Long.MAX_VALUE;
 
     public static final byte[] DEFAULT_METADATA_COORDINATION_KEY = PtBytes.toBytes("m");
@@ -135,7 +136,7 @@ public final class AtlasDbConstants {
      * Some key-value services may support atomic put unless exists and check and touch operations, but fail to
      * guarantee repeatable reads in the general case. They may offer (potentially more costly) options for reading
      * cells that do support repeatable reads.
-     *
+     * <p>
      * Where applicable, tables in this set should ideally not be read frequently. Implementers are encouraged to
      * provide alternative solutions in cases where the tables are read frequently and/or read performance is
      * critical. See ResilientCommitTimestampAtomicTable for an example of how to work around such
@@ -209,10 +210,10 @@ public final class AtlasDbConstants {
      * Oracle has a limit of 1000 expressions within a single IN (...) clause.
      * See
      * <a href="https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/IN-Condition.html">these docs</a>
-     *
+     * <p>
      * SQLite (used for tests) also has a limit of 999 in versions prior to 3.32.0 - see
      * <a href="https://www.sqlite.org/limits.html">here</a>
-     *
+     * <p>
      * In the interest of not running too close to DB limits, we're capping a little earlier than both of the
      * aforementioned limits.
      */
