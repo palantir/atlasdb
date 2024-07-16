@@ -18,8 +18,7 @@ package com.palantir.atlasdb.sweep.asts.progress;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
-import com.palantir.atlasdb.AtlasDbConstants;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -105,7 +104,7 @@ public class DefaultBucketProgressStore implements BucketProgressStore {
         // Think carefully about the order of manipulating this table and sweepable timestamps!
         // TODO (jkong): KVS delete is NOT the right endpoint as far as C* is concerned.
         // Need to add support for deleteWithTimestamp, deleteAtomic, or similar.
-        kvs.delete(TABLE_REF, ImmutableMultimap.of(bucketToCell(bucket), AtlasDbConstants.ATOMIC_TABLE_TS));
+        kvs.deleteFromAtomicTable(TABLE_REF, ImmutableSet.of(bucketToCell(bucket)));
     }
 
     private Optional<byte[]> readBucketProgress(Cell cell) {
