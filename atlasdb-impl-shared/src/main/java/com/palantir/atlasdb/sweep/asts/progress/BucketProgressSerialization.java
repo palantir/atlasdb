@@ -26,7 +26,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.IOException;
 
 final class BucketProgressSerialization {
-    private static final SafeLogger log = SafeLoggerFactory.get(BucketProgressStore.class);
+    private static final SafeLogger log = SafeLoggerFactory.get(BucketProgressSerialization.class);
 
     private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();
     private static final ObjectReader OBJECT_READER = OBJECT_MAPPER.readerFor(BucketProgress.class);

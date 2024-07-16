@@ -34,11 +34,11 @@ public interface SweepStateCoordinator {
     @Safe
     abstract class SweepableBucket implements Comparable<SweepableBucket> {
         @Value.Parameter
-        abstract ShardAndStrategy shardAndStrategy();
+        public abstract ShardAndStrategy shardAndStrategy();
 
         // It's really just the fine partition, but we make it opaque so we can change it in the future
         @Value.Parameter
-        abstract long bucketIdentifier();
+        public abstract long bucketIdentifier();
 
         @Safe
         @Override
