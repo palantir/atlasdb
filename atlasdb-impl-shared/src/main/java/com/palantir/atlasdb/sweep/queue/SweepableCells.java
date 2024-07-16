@@ -104,6 +104,11 @@ public class SweepableCells extends SweepQueueTable {
         return cells;
     }
 
+    @Override
+    long getWriteTimestampForPartition(PartitionInfo info) {
+        return info.timestamp();
+    }
+
     private Map<Cell, byte[]> addReferenceToDedicatedRows(PartitionInfo info, List<WriteInfo> writes) {
         return addCell(info, Optional.of(SweepQueueUtils.DUMMY), false, 0, entryIndicatingNumberOfRequiredRows(writes));
     }

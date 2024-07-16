@@ -70,7 +70,7 @@ public abstract class SweepQueueTable {
         });
 
         partitionedWrites.keySet().stream()
-                .map(PartitionInfo::timestamp)
+                .map(this::getWriteTimestampForPartition)
                 .mapToLong(x -> x)
                 .max()
                 .ifPresent(timestamp -> {
@@ -102,6 +102,11 @@ public abstract class SweepQueueTable {
      * @return map of cell to byte array persisting the write infomations into the kvs
      */
     abstract Map<Cell, byte[]> populateCells(PartitionInfo info, List<WriteInfo> writes);
+
+    /**
+     * Gets the timestamp at which data (cells or references) for a given partition should be written at.
+     */
+    abstract long getWriteTimestampForPartition(PartitionInfo info);
 
     private void write(Map<Cell, byte[]> cells, long timestamp) {
         if (!cells.isEmpty()) {

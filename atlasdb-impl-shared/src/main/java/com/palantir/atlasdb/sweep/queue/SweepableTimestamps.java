@@ -57,6 +57,11 @@ public class SweepableTimestamps extends SweepQueueTable {
         return ImmutableMap.of(SweepQueueUtils.toCell(row, colVal), colVal.persistValue());
     }
 
+    @Override
+    long getWriteTimestampForPartition(PartitionInfo info) {
+        return SweepQueueUtils.minTsForFinePartition(SweepQueueUtils.tsPartitionFine(info.timestamp()));
+    }
+
     private SweepableTimestampsTable.SweepableTimestampsRow computeRow(PartitionInfo partitionInfo) {
         return SweepableTimestampsTable.SweepableTimestampsRow.of(
                 partitionInfo.shardAndStrategy().shard(),
@@ -136,6 +141,7 @@ public class SweepableTimestamps extends SweepQueueTable {
 
     /**
      * Deletes complete rows of the Sweepable Timestamps table.
+     *
      * @param shardStrategy desired shard and strategy
      * @param partitionsCoarse coarse partitions for which the row should be deleted
      */
