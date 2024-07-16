@@ -112,7 +112,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     @Override
     public void multiCheckAndSet(MultiCheckAndSetRequest multiCheckAndSetRequest) throws MultiCheckAndSetException {
         try (CloseableTracer trace =
-                startLocalTrace("atlasdb-kvs.multiCheckAndSet", multiCheckAndSetRequest.tableRef())) {
+                     startLocalTrace("atlasdb-kvs.multiCheckAndSet", multiCheckAndSetRequest.tableRef())) {
             delegate().multiCheckAndSet(multiCheckAndSetRequest);
         }
     }
@@ -463,6 +463,16 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
+    public void deleteFromAtomicTable(TableReference tableRef, Set<Cell> cells) {
+        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.deleteFromAtomicTable", sink -> {
+            sink.tableRef(tableRef);
+            sink.size("cells", cells);
+        })) {
+            delegate().deleteFromAtomicTable(tableRef, cells);
+        }
+    }
+
+    @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
         return delegate().getCheckAndSetCompatibility();
     }
@@ -612,7 +622,7 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
 
     /**
      * Attach a detached span to the close of a closable iterator.
-     *
+     * <p>
      * Note: due to legacy code this span is not guaranteed to close. This will mean that some logs will be lost/missed.
      */
     @MustBeClosed

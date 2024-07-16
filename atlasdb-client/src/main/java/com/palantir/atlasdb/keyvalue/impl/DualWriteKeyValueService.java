@@ -48,7 +48,7 @@ import java.util.Set;
 /**
  * An implementation of KeyValueService which delegates reads to the first KeyValueService and
  * writes to both, except for putUnlessExists, which only goes to the first KeyValueService.
- *
+ * <p>
  * This is useful for Migration.
  */
 public class DualWriteKeyValueService implements KeyValueService {
@@ -113,6 +113,11 @@ public class DualWriteKeyValueService implements KeyValueService {
     @Override
     public void setOnce(TableReference tableRef, Map<Cell, byte[]> values) {
         delegate1.setOnce(tableRef, values);
+    }
+
+    @Override
+    public void deleteFromAtomicTable(TableReference tableRef, Set<Cell> cells) {
+        delegate1.deleteFromAtomicTable(tableRef, cells);
     }
 
     @Override

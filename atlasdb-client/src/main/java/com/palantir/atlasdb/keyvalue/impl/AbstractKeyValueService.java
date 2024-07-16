@@ -39,6 +39,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.concurrent.BlockingWorkerPool;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.streams.KeyedStream;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collection;
 import java.util.HashMap;
@@ -170,7 +171,7 @@ public abstract class AbstractKeyValueService implements KeyValueService {
     @Override
     public void deleteRange(TableReference tableRef, RangeRequest range) {
         try (ClosableIterator<RowResult<Set<Long>>> iterator =
-                getRangeOfTimestamps(tableRef, range, AtlasDbConstants.MAX_TS)) {
+                     getRangeOfTimestamps(tableRef, range, AtlasDbConstants.MAX_TS)) {
             while (iterator.hasNext()) {
                 RowResult<Set<Long>> rowResult = iterator.next();
                 Multimap<Cell, Long> cellsToDelete = HashMultimap.create();
@@ -241,5 +242,10 @@ public abstract class AbstractKeyValueService implements KeyValueService {
             long timestamp) {
         return KeyValueServices.mergeGetRowsColumnRangeIntoSingleIterator(
                 this, tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
+    }
+
+    @Override
+    public void deleteFromAtomicTable(TableReference tableRef, Set<Cell> cells) {
+        delete(tableRef, KeyedStream.of(cells).map(_unused -> AtlasDbConstants.ATOMIC_TABLE_TS).collectToSetMultimap());
     }
 }

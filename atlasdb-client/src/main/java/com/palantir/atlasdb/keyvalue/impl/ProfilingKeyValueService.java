@@ -378,6 +378,15 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void deleteFromAtomicTable(TableReference tableRef, Set<Cell> cells) {
+        // TODO (jkong): cells.size() is useful
+        maybeLog(
+                () -> delegate.deleteFromAtomicTable(tableRef, cells),
+                logTimeAndTable("deleteFromAtomicTable", tableRef)
+        );
+    }
+
+    @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
         return delegate.getCheckAndSetCompatibility();
     }
