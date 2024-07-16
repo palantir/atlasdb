@@ -102,7 +102,7 @@ public class LockEventLogImpl implements LockEventLog {
     @Override
     public void dumpState() {
         diagnosticLog.log(logger -> {
-            log.info(
+            logger.info(
                     "Dumping lock event log state: {}, {}, {}, {}, {}",
                     SafeArg.of("logId", logId),
                     SafeArg.of("lastVersion", slidingWindow.lastVersion()),
