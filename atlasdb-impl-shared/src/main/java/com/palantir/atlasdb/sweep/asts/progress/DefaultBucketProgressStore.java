@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.sweep.asts.progress;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.palantir.atlasdb.AtlasDbConstants;
@@ -39,9 +40,11 @@ import java.util.Optional;
 
 public class DefaultBucketProgressStore implements BucketProgressStore {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultBucketProgressStore.class);
-    private static final TableReference TABLE_REF =
+    private static final int CAS_ATTEMPT_LIMIT = 10;
+
+    @VisibleForTesting
+    static final TableReference TABLE_REF =
             TargetedSweepTableFactory.of().getSweepBucketProgressTable(null).getTableRef();
-    public static final int CAS_ATTEMPT_LIMIT = 10;
 
     // I know, this is kind of suboptimal given our TKVS initiative elsewhere...
     private final KeyValueService kvs;
@@ -121,11 +124,11 @@ public class DefaultBucketProgressStore implements BucketProgressStore {
     private static byte[] persistStrategy(SweeperStrategy strategy) {
         switch (strategy) {
             case THOROUGH:
-                return new byte[] {0};
+                return new byte[]{0};
             case CONSERVATIVE:
-                return new byte[] {1};
+                return new byte[]{1};
             case NON_SWEEPABLE:
-                return new byte[] {2};
+                return new byte[]{2};
             default:
                 throw new SafeIllegalStateException(
                         "Unexpected sweeper strategy", SafeArg.of("sweeperStrategy", strategy));

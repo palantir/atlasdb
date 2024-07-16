@@ -48,17 +48,18 @@ public class AbstractBucketProgressStoreTest {
     private static final BucketProgress PROGRESS_TWO_THOUSAND =
             ImmutableBucketProgress.builder().timestampOffset(2000L).build();
 
-    private KeyValueService kvs;
-    private BucketProgressStore store;
+    private final KeyValueService kvs;
+    private final BucketProgressStore store;
 
     protected AbstractBucketProgressStoreTest(KvsManager kvsManager) {
-        this.kvs = kvsManager.getDefaultKvs();
+        kvs = kvsManager.getDefaultKvs();
+        store = new DefaultBucketProgressStore(kvs);
     }
 
     @BeforeEach
     public void setup() {
-        store = new DefaultBucketProgressStore(kvs);
         Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
+        kvs.truncateTable(DefaultBucketProgressStore.TABLE_REF);
     }
 
     @ParameterizedTest
