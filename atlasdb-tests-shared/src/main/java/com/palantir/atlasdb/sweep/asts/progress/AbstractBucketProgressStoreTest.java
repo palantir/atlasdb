@@ -20,9 +20,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
+import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.asts.ImmutableSweepableBucket;
 import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
+import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +45,8 @@ public class AbstractBucketProgressStoreTest {
 
     private static final BucketProgress PROGRESS_ONE_THOUSAND =
             ImmutableBucketProgress.builder().timestampOffset(1000L).build();
+    private static final BucketProgress PROGRESS_TWO_THOUSAND =
+            ImmutableBucketProgress.builder().timestampOffset(2000L).build();
 
     private KeyValueService kvs;
     private BucketProgressStore store;
@@ -54,6 +58,41 @@ public class AbstractBucketProgressStoreTest {
     @BeforeEach
     public void setup() {
         store = new DefaultBucketProgressStore(kvs);
+        Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
+    }
+
+    @ParameterizedTest
+    @MethodSource("testBuckets")
+    public void bucketProgressIsEmptyIfNothingStored(SweepableBucket bucket) {
+        assertThat(store.getBucketProgress(bucket)).isEmpty();
+    }
+
+    @ParameterizedTest
+    @MethodSource("testBuckets")
+    public void bucketProgressReturnsStoredValue(SweepableBucket bucket) {
+        store.updateBucketProgressToAtLeast(bucket, PROGRESS_ONE_THOUSAND);
+        assertThat(store.getBucketProgress(bucket)).contains(PROGRESS_ONE_THOUSAND);
+        testBuckets().filter(testBucket -> !testBucket.equals(bucket)).forEach(testBucket -> {
+            assertThat(store.getBucketProgress(testBucket)).isEmpty();
+        });
+    }
+
+    @ParameterizedTest
+    @MethodSource("testBuckets")
+    public void updateBucketProgressToAtLeastIncreasesExistingProgress(SweepableBucket bucket) {
+        store.updateBucketProgressToAtLeast(bucket, PROGRESS_ONE_THOUSAND);
+        assertThat(store.getBucketProgress(bucket)).contains(PROGRESS_ONE_THOUSAND);
+        store.updateBucketProgressToAtLeast(bucket, PROGRESS_TWO_THOUSAND);
+        assertThat(store.getBucketProgress(bucket)).contains(PROGRESS_TWO_THOUSAND);
+    }
+
+    @ParameterizedTest
+    @MethodSource("testBuckets")
+    public void updateBucketProgressToAtLeastDoesNotDecreaseExistingProgress(SweepableBucket bucket) {
+        store.updateBucketProgressToAtLeast(bucket, PROGRESS_TWO_THOUSAND);
+        assertThat(store.getBucketProgress(bucket)).contains(PROGRESS_TWO_THOUSAND);
+        store.updateBucketProgressToAtLeast(bucket, PROGRESS_ONE_THOUSAND);
+        assertThat(store.getBucketProgress(bucket)).contains(PROGRESS_TWO_THOUSAND);
     }
 
     @ParameterizedTest
