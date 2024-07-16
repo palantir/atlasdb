@@ -194,5 +194,5 @@ public class AsyncResult<T> {
         }
     }
 
-    public static class TimeoutException extends RuntimeException {}
+    static class TimeoutException extends RuntimeException {}
 }
