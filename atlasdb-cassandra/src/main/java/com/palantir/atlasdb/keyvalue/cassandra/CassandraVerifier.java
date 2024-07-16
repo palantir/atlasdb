@@ -39,7 +39,6 @@ import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.DoNotLog;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.io.AvailabilityRequirement;
@@ -244,15 +243,13 @@ public final class CassandraVerifier {
             CassandraServer cassandraServer = CassandraServer.of(host);
             return keyspaceAlreadyExists(cassandraServer, verifierConfig)
                     || attemptToCreateKeyspaceOnHost(cassandraServer, verifierConfig);
-        } catch (Exception exception) {
+        } catch (Exception e) {
             log.warn(
                     "Couldn't use host {} to create keyspace."
-                            + " It returned exception \"{}\" during the attempt."
                             + " We will retry on other nodes, so this shouldn't be a problem unless all nodes failed."
                             + " See the debug-level log for the stack trace.",
                     SafeArg.of("host", CassandraLogHelper.host(host)),
-                    UnsafeArg.of("exceptionMessage", exception.toString()));
-            log.debug("Specifically, creating the keyspace failed with the following stack trace", exception);
+                    e);
             return false;
         }
     }
@@ -296,12 +293,11 @@ public final class CassandraVerifier {
             boolean keyspaceAlreadyExists = keyspaceAlreadyExists(host, verifierConfig);
             if (!keyspaceAlreadyExists) {
                 log.info(
-                        "Encountered an invalid request exception {} when attempting to create a keyspace"
+                        "Encountered an invalid request exception when attempting to create a keyspace"
                                 + " on a given Cassandra host {}, but the keyspace doesn't seem to exist yet. This may"
                                 + " cause issues if it recurs persistently, so logging for debugging purposes.",
                         SafeArg.of("host", CassandraLogHelper.host(host.proxy())),
-                        UnsafeArg.of("exceptionMessage", e.toString()));
-                log.debug("Specifically, creating the keyspace failed with the following stack trace", e);
+                        e);
             }
             return keyspaceAlreadyExists;
         }
