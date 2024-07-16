@@ -103,7 +103,7 @@ public class LockEventLogImpl implements LockEventLog {
     public void dumpState() {
         diagnosticLog.log(logger -> {
             log.info(
-                    "Dumping lock event log state: {}, {}, {}, {}",
+                    "Dumping lock event log state: {}, {}, {}, {}, {}",
                     SafeArg.of("logId", logId),
                     SafeArg.of("lastVersion", slidingWindow.lastVersion()),
                     UnsafeArg.of("watches", watchesSupplier.get()),
