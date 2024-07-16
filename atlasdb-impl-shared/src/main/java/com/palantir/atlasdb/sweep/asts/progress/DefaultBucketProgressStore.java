@@ -101,9 +101,7 @@ public class DefaultBucketProgressStore implements BucketProgressStore {
 
     @Override
     public void markBucketComplete(SweepableBucket bucket) {
-        // Think carefully about the order of manipulating this table and sweepable timestamps!
-        // TODO (jkong): KVS delete is NOT the right endpoint as far as C* is concerned.
-        // Need to add support for deleteWithTimestamp, deleteAtomic, or similar.
+        // Think carefully about the order of manipulating this table and other data tracking sweep.
         kvs.deleteFromAtomicTable(TABLE_REF, ImmutableSet.of(bucketToCell(bucket)));
     }
 
