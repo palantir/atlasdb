@@ -141,7 +141,6 @@ public class SweepableTimestamps extends SweepQueueTable {
 
     /**
      * Deletes complete rows of the Sweepable Timestamps table.
-     *
      * @param shardStrategy desired shard and strategy
      * @param partitionsCoarse coarse partitions for which the row should be deleted
      */
