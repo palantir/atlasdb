@@ -40,6 +40,7 @@ import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -102,6 +103,16 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
     TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps, Optional<LockWatchVersion> version) {
         return lockWatchCache.getEventCache().getUpdateForTransactions(startTimestamps, version);
+    }
+
+    @Override
+    void dumpState() {
+        // TODO: use a rate limited logger
+        log.info(
+                "Dumping lock watch manager state",
+                UnsafeArg.of("referencesFromSchema", referencesFromSchema),
+                UnsafeArg.of("lockWatchReferences", new HashSet<>(lockWatchReferences)));
+        lockWatchCache.dumpState();
     }
 
     @Override

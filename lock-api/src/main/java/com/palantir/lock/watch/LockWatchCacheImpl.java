@@ -68,4 +68,10 @@ public final class LockWatchCacheImpl implements LockWatchCache {
     public LockWatchValueCache getValueCache() {
         return valueCache;
     }
+
+    @Override
+    public void dumpState() {
+        eventCache.dumpState();
+        valueCache.dumpState();
+    }
 }

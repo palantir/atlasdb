@@ -144,6 +144,12 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         }
     }
 
+    @Override
+    public void dumpState() {
+        eventLog.dumpState();
+        timestampStateStore.dumpState();
+    }
+
     @VisibleForTesting
     synchronized LockWatchEventCacheState getStateForTesting() {
         return ImmutableLockWatchEventCacheState.builder()

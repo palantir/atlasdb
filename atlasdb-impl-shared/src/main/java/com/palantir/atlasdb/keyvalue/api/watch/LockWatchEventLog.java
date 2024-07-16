@@ -103,6 +103,10 @@ final class LockWatchEventLog {
         return latestVersion;
     }
 
+    void dumpState() {
+        // TODO
+    }
+
     private ClientLogEvents getEventsBetweenVersionsInternal(VersionBounds versionBounds) {
         Optional<LockWatchVersion> startVersion = versionBounds.startVersion().map(this::createStartVersion);
         LockWatchVersion currentVersion = getLatestVersionAndVerify(versionBounds.endVersion());

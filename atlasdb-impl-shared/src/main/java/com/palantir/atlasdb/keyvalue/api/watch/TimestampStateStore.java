@@ -126,6 +126,10 @@ final class TimestampStateStore {
         livingVersions.clear();
     }
 
+    void dumpState() {
+        // TODO
+    }
+
     Optional<LockWatchVersion> getStartVersion(long startTimestamp) {
         return getTimestampInfo(startTimestamp).map(TimestampVersionInfo::version);
     }

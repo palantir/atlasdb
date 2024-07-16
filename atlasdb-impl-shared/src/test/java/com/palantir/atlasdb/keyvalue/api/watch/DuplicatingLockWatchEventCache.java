@@ -79,6 +79,11 @@ final class DuplicatingLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
+    public void dumpState() {
+        mainCache.dumpState();
+    }
+
+    @Override
     public CommitUpdate getEventUpdate(long startTs) {
         return mainCache.getEventUpdate(startTs);
     }
