@@ -140,7 +140,7 @@ public class LockWatchEventCacheIntegrationTest {
                 .registerModule(new GuavaModule());
         try {
             Path path = Paths.get(BASE + testInfo.getTestMethod().get().getName() + "/event-cache-" + part + ".json");
-            LockWatchEventCacheState eventCacheState = realEventCache.getStateForTesting();
+            LockWatchEventCacheState eventCacheState = realEventCache.getStateForDiagnostics();
 
             if (MODE.isDev()) {
                 mapper.writeValue(path.toFile(), eventCacheState);

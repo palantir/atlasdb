@@ -30,6 +30,10 @@ import com.palantir.lock.watch.NoOpLockWatchEventCache;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.Unsafe;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
@@ -39,6 +43,8 @@ import javax.annotation.concurrent.ThreadSafe;
 public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     // The minimum number of events should be the same as Timelock's LockEventLogImpl.
     private static final int MIN_EVENTS = 1000;
+
+    private static final SafeLogger log = SafeLoggerFactory.get(LockWatchEventCacheImpl.class);
 
     private final LockWatchEventLog eventLog;
     private final TimestampStateStore timestampStateStore;
@@ -146,15 +152,14 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     @Override
     public void dumpState() {
-        eventLog.dumpState();
-        timestampStateStore.dumpState();
+        log.info("Dumping state from LockWatchEventCacheImpl", UnsafeArg.of("state", getStateForDiagnostics()));
     }
 
-    @VisibleForTesting
-    synchronized LockWatchEventCacheState getStateForTesting() {
+    @Unsafe
+    synchronized LockWatchEventCacheState getStateForDiagnostics() {
         return ImmutableLockWatchEventCacheState.builder()
-                .timestampStoreState(timestampStateStore.getStateForTesting())
-                .logState(eventLog.getStateForTesting())
+                .timestampStoreState(timestampStateStore.getStateForDiagnostics())
+                .logState(eventLog.getStateForDiagnostics())
                 .build();
     }
 

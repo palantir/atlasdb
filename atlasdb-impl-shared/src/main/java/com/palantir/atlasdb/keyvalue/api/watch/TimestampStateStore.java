@@ -23,21 +23,23 @@ import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
-import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.Unsafe;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashSet;
+import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Optional;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -128,21 +130,6 @@ final class TimestampStateStore {
         livingVersions.clear();
     }
 
-    void dumpState() {
-        log.info(
-                "Dumping state from TimestampStateStore",
-                SafeArg.of(
-                        "timestampMap",
-                        KeyedStream.stream(timestampMap)
-                                .map(TimestampVersionInfo::toSafeLoggable)
-                                .collectToMap()),
-                SafeArg.of(
-                        "livingVersions",
-                        KeyedStream.stream(livingVersions)
-                                .map(navigable -> new HashSet<>(navigable))
-                                .collectToMap()));
-    }
-
     Optional<LockWatchVersion> getStartVersion(long startTimestamp) {
         return getTimestampInfo(startTimestamp).map(TimestampVersionInfo::version);
     }
@@ -160,13 +147,16 @@ final class TimestampStateStore {
         return getTimestampInfo(startTimestamp).flatMap(TimestampVersionInfo::commitInfo);
     }
 
-    @VisibleForTesting
-    TimestampStateStoreState getStateForTesting() {
+    @Unsafe
+    TimestampStateStoreState getStateForDiagnostics() {
         // This method doesn't need to read a thread-safe snapshot of timestampMap and livingVersions
         SortedSetMultimap<Sequence, StartTimestamp> living = TreeMultimap.create();
-        livingVersions.forEach(living::putAll);
+        for (Entry<Sequence, NavigableSet<StartTimestamp>> entry : livingVersions.entrySet()) {
+            living.putAll(entry.getKey(), new TreeSet<>(entry.getValue()));
+        }
+
         return ImmutableTimestampStateStoreState.builder()
-                .timestampMap(timestampMap)
+                .timestampMap(new TreeMap<>(timestampMap))
                 .livingVersions(living)
                 .build();
     }
@@ -197,13 +187,6 @@ final class TimestampStateStore {
         @Value.Parameter
         Optional<CommitInfo> commitInfo();
 
-        default SafeLoggableTimestampVersionInfo toSafeLoggable() {
-            return ImmutableSafeLoggableTimestampVersionInfo.of(
-                    version(),
-                    commitInfo().map(CommitInfo::commitVersion),
-                    commitInfo().map(info -> info.commitLockToken().toSafeArg("lockToken")));
-        }
-
         static TimestampVersionInfo of(LockWatchVersion version) {
             return ImmutableTimestampVersionInfo.of(version, Optional.empty());
         }
@@ -229,18 +212,5 @@ final class TimestampStateStore {
         static CommitInfo of(LockToken commitLockToken, LockWatchVersion commitVersion) {
             return ImmutableCommitInfo.of(commitLockToken, commitVersion);
         }
-    }
-
-    // For diagnostics only
-    @Value.Immutable
-    interface SafeLoggableTimestampVersionInfo {
-        @Value.Parameter
-        LockWatchVersion version();
-
-        @Value.Parameter
-        Optional<LockWatchVersion> commitInfoVersion();
-
-        @Value.Parameter
-        Optional<SafeArg<?>> commitInfoTokenSafeArg();
     }
 }

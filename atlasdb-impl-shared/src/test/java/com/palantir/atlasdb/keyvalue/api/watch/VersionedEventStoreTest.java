@@ -136,7 +136,7 @@ public final class VersionedEventStoreTest {
         LockWatchEvents events = eventStore.retentionEvents(Optional.empty());
         assertThat(events.events()).isEmpty();
         assertThat(events.versionRange()).isEmpty();
-        assertThat(eventStore.getStateForTesting().eventMap().keySet()).containsExactlyInAnyOrder(SEQ_1);
+        assertThat(eventStore.getStateForDiagnostics().eventMap().keySet()).containsExactlyInAnyOrder(SEQ_1);
     }
 
     @Test
@@ -144,12 +144,12 @@ public final class VersionedEventStoreTest {
         eventStore.putAll(makeEvents(EVENT_1, EVENT_2, EVENT_3, EVENT_4));
         LockWatchEvents eventsRetentionedBeforeMinSeq = eventStore.retentionEvents(Optional.of(SEQ_MIN));
         assertThat(eventsRetentionedBeforeMinSeq.events()).isEmpty();
-        assertThat(eventStore.getStateForTesting().eventMap().keySet())
+        assertThat(eventStore.getStateForDiagnostics().eventMap().keySet())
                 .containsExactlyInAnyOrder(SEQ_1, SEQ_2, SEQ_3, SEQ_4);
 
         LockWatchEvents eventsRetentionedBeforeFirstSeq = eventStore.retentionEvents(Optional.of(SEQ_1));
         assertThat(eventsRetentionedBeforeFirstSeq.events()).isEmpty();
-        assertThat(eventStore.getStateForTesting().eventMap().keySet())
+        assertThat(eventStore.getStateForDiagnostics().eventMap().keySet())
                 .containsExactlyInAnyOrder(SEQ_1, SEQ_2, SEQ_3, SEQ_4);
     }
 
@@ -161,7 +161,7 @@ public final class VersionedEventStoreTest {
         assertThat(events.events().stream().map(LockWatchEvent::sequence).map(Sequence::of))
                 .containsExactly(SEQ_1, SEQ_2);
         assertThat(events.versionRange()).contains(Range.closed(EVENT_1.sequence(), EVENT_2.sequence()));
-        assertThat(eventStore.getStateForTesting().eventMap().firstKey()).isEqualTo(SEQ_3);
+        assertThat(eventStore.getStateForDiagnostics().eventMap().firstKey()).isEqualTo(SEQ_3);
     }
 
     @Test
@@ -172,7 +172,7 @@ public final class VersionedEventStoreTest {
         assertThat(events.events().stream().map(LockWatchEvent::sequence).map(Sequence::of))
                 .containsExactly(SEQ_1);
         assertThat(events.versionRange()).contains(Range.closed(EVENT_1.sequence(), EVENT_1.sequence()));
-        assertThat(eventStore.getStateForTesting().eventMap().firstKey()).isEqualTo(SEQ_2);
+        assertThat(eventStore.getStateForDiagnostics().eventMap().firstKey()).isEqualTo(SEQ_2);
     }
 
     @Test
@@ -183,12 +183,12 @@ public final class VersionedEventStoreTest {
         assertThat(events.events().stream().map(LockWatchEvent::sequence).map(Sequence::of))
                 .containsExactly(SEQ_1);
         assertThat(events.versionRange()).contains(Range.closed(EVENT_1.sequence(), EVENT_1.sequence()));
-        assertThat(eventStore.getStateForTesting().eventMap().firstKey()).isEqualTo(SEQ_2);
+        assertThat(eventStore.getStateForDiagnostics().eventMap().firstKey()).isEqualTo(SEQ_2);
 
         LockWatchEvents newEvents = eventStore.retentionEvents(Optional.of(SEQ_4));
         assertThat(newEvents.events().stream().map(LockWatchEvent::sequence).map(Sequence::of))
                 .containsExactly(SEQ_2, SEQ_3);
-        assertThat(eventStore.getStateForTesting().eventMap().firstKey()).isEqualTo(SEQ_4);
+        assertThat(eventStore.getStateForDiagnostics().eventMap().firstKey()).isEqualTo(SEQ_4);
     }
 
     @Test

@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.palantir.lock.LockDescriptor;
@@ -29,12 +28,17 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.Unsafe;
+import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 final class ClientLockWatchSnapshot {
+    private static final SafeLogger log = SafeLoggerFactory.get(ClientLockWatchSnapshot.class);
     private final Set<LockWatchReferences.LockWatchReference> watches;
     private final Set<LockDescriptor> locked;
     private final EventVisitor visitor;
@@ -94,16 +98,24 @@ final class ClientLockWatchSnapshot {
         locked.clear();
     }
 
+    void dumpState() {
+        log.info(
+                "Dumping state from ClientLockWatchSnapshot",
+                UnsafeArg.of("watches", new HashSet<>(watches)),
+                UnsafeArg.of("locked", new HashSet<>(locked)),
+                UnsafeArg.of("snapshotVersion", snapshotVersion));
+    }
+
     Optional<LockWatchVersion> getSnapshotVersion() {
         return snapshotVersion;
     }
 
-    @VisibleForTesting
-    ClientLockWatchSnapshotState getStateForTesting() {
+    @Unsafe
+    ClientLockWatchSnapshotState getStateForDiagnostics() {
         return ImmutableClientLockWatchSnapshotState.builder()
                 .snapshotVersion(snapshotVersion)
-                .locked(locked)
-                .watches(watches)
+                .locked(new HashSet<>(locked))
+                .watches(new HashSet<>(watches))
                 .build();
     }
 

@@ -16,9 +16,11 @@
 
 package com.palantir.lock.client;
 
+import com.google.common.base.MoreObjects;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.Unsafe;
 import com.palantir.tritium.ids.UniqueIds;
 import java.util.Optional;
 import java.util.UUID;
@@ -88,6 +90,16 @@ final class LockTokenShare implements LockToken {
             referenceCount--;
             return referenceCount == 0;
         }
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper("LockShareToken")
+                .omitNullValues()
+                .add("requestId", requestId)
+                .add("sharedLockToken", sharedLockToken)
+                .add("unlocked", unlocked)
+                .toString();
     }
 
     @Override

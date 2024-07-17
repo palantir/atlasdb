@@ -16,22 +16,26 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.Unsafe;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 final class VersionedEventStore {
+    private static final SafeLogger log = SafeLoggerFactory.get(VersionedEventStore.class);
     private static final boolean INCLUSIVE = true;
     private static final Sequence MAX_VERSION = Sequence.of(Long.MAX_VALUE);
 
@@ -114,9 +118,15 @@ final class VersionedEventStore {
         eventMap.clear();
     }
 
-    @VisibleForTesting
-    VersionedEventStoreState getStateForTesting() {
-        return ImmutableVersionedEventStoreState.builder().eventMap(eventMap).build();
+    void dumpState() {
+        log.info("Dumping state from VersionedEventStore", UnsafeArg.of("eventMap", eventMap));
+    }
+
+    @Unsafe
+    VersionedEventStoreState getStateForDiagnostics() {
+        return ImmutableVersionedEventStoreState.builder()
+                .eventMap(new TreeMap<>(eventMap))
+                .build();
     }
 
     private Collection<LockWatchEvent> getValuesBetweenInclusive(long endVersion, long startVersion) {

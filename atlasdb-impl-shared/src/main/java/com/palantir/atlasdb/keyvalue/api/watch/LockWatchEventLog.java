@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
@@ -25,6 +24,7 @@ import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.Unsafe;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -103,10 +103,6 @@ final class LockWatchEventLog {
         return latestVersion;
     }
 
-    void dumpState() {
-        // TODO
-    }
-
     private ClientLogEvents getEventsBetweenVersionsInternal(VersionBounds versionBounds) {
         Optional<LockWatchVersion> startVersion = versionBounds.startVersion().map(this::createStartVersion);
         LockWatchVersion currentVersion = getLatestVersionAndVerify(versionBounds.endVersion());
@@ -147,12 +143,12 @@ final class LockWatchEventLog {
         }
     }
 
-    @VisibleForTesting
-    LockWatchEventLogState getStateForTesting() {
+    @Unsafe
+    LockWatchEventLogState getStateForDiagnostics() {
         return ImmutableLockWatchEventLogState.builder()
                 .latestVersion(latestVersion)
-                .eventStoreState(eventStore.getStateForTesting())
-                .snapshotState(snapshot.getStateForTesting())
+                .eventStoreState(eventStore.getStateForDiagnostics())
+                .snapshotState(snapshot.getStateForDiagnostics())
                 .build();
     }
 
