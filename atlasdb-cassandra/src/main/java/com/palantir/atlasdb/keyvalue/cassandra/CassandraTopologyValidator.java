@@ -259,10 +259,8 @@ public final class CassandraTopologyValidator {
                             SafeArg.of("pastConsistentTopologies", pastTopologies),
                             SafeArg.of("newServers", CassandraLogHelper.collectionOfHosts(newlyAddedHosts)),
                             SafeArg.of("allServers", CassandraLogHelper.collectionOfHosts(allHosts)),
-                            SafeArg.of(
-                                    "hostIdResults",
-                                    CassandraLogHelper.idSupportingHostIdResultMap(
-                                            serversToConsiderWhenNoQuorumPresent)));
+                            SafeArg.of("hostIdResults", serversToConsiderWhenNoQuorumPresent));
+
                     return newServersWithoutSoftFailures.keySet();
                 }
                 log.info(
@@ -270,12 +268,8 @@ public final class CassandraTopologyValidator {
                                 + " servers presented host IDs that were a plausible evolution of the last agreed value"
                                 + " among the old servers. Adding new servers that were in consensus.",
                         SafeArg.of("pastConsistentTopologies", pastTopologies),
-                        SafeArg.of(
-                                "hostIdResults",
-                                CassandraLogHelper.idSupportingHostIdResultMap(serversToConsiderWhenNoQuorumPresent)),
-                        SafeArg.of(
-                                "serversMatchingPastTopology",
-                                CassandraLogHelper.idSupportingHostIdResultMap(matchingServers)),
+                        SafeArg.of("hostIdResults", serversToConsiderWhenNoQuorumPresent),
+                        SafeArg.of("serversMatchingPastTopology", matchingServers),
                         SafeArg.of("newServers", CassandraLogHelper.collectionOfHosts(newlyAddedHosts)),
                         SafeArg.of("allServers", CassandraLogHelper.collectionOfHosts(allHosts)));
 
