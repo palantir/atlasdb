@@ -129,7 +129,7 @@ final class ValueStoreImpl implements ValueStore {
     @Override
     public void dumpState() {
         log.info(
-                "Dumping ValueStoreImpl state",
+                "Dumping state from ValueStoreImpl",
                 UnsafeArg.of("allowedTables", allowedTables),
                 UnsafeArg.of("loadedValues", new java.util.HashMap<>(loadedValues.asMap())),
                 UnsafeArg.of("watchedTables", watchedTables.getSnapshot().toJavaSet()),

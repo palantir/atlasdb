@@ -80,7 +80,7 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
 
     @Override
     public void dumpState() {
-        log.info("Dumping NoOpLockWatchEventCache state", SafeArg.of("currentVersion", currentVersion));
+        log.info("Dumping state from NoOpLockWatchEventCache", SafeArg.of("currentVersion", currentVersion));
     }
 
     @Override

@@ -130,7 +130,7 @@ final class TimestampStateStore {
 
     void dumpState() {
         log.info(
-                "Dumping TimestampStateStore state",
+                "Dumping state from TimestampStateStore",
                 SafeArg.of(
                         "timestampMap",
                         KeyedStream.stream(timestampMap)

@@ -115,7 +115,7 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
     void dumpState() {
         diagnosticLog.log(logger -> {
             logger.info(
-                    "Dumping LockWatchManagerImpl state",
+                    "Dumping state from LockWatchManagerImpl",
                     UnsafeArg.of("referencesFromSchema", referencesFromSchema),
                     UnsafeArg.of("lockWatchReferences", new HashSet<>(lockWatchReferences)));
             lockWatchCache.dumpState();
