@@ -28,11 +28,9 @@ import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-import one.util.streamex.EntryStream;
 import org.apache.cassandra.thrift.TokenRange;
 import org.immutables.value.Value;
 
@@ -51,6 +49,7 @@ public final class CassandraLogHelper {
         return hostAddresses.intern(ImmutableHostAndIpAddress.of(hostString, ip));
     }
 
+    // TODO(boyoruk): Remove this as it can throw IllegalStateException if there are duplicate cassandra host names
     static Collection<String> collectionOfHosts(Collection<CassandraServer> hosts) {
         return hosts.stream().map(CassandraServer::cassandraHostName).collect(Collectors.toSet());
     }
@@ -62,12 +61,6 @@ public final class CassandraLogHelper {
                 .collect(Collectors.toList());
     }
 
-    static Map<String, NonSoftFailureHostIdResult> idSupportingHostIdResultMap(
-            Map<CassandraServer, NonSoftFailureHostIdResult> cassandraServerMap) {
-        return EntryStream.of(cassandraServerMap)
-                .mapKeys(CassandraServer::cassandraHostName)
-                .toMap();
-    }
 
     public static List<String> tokenMap(RangeMap<LightweightOppToken, ? extends Collection<CassandraServer>> tokenMap) {
         return tokenMap.asMapOfRanges().entrySet().stream()
