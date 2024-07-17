@@ -25,7 +25,8 @@ import io.vavr.collection.Set;
 import java.util.Optional;
 import org.immutables.value.Value;
 
-@Unsafe @Value.Immutable
+@Unsafe
+@Value.Immutable
 public interface ValueCacheSnapshotImpl extends ValueCacheSnapshot {
     Map<CellReference, CacheEntry> values();
 
