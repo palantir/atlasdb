@@ -34,4 +34,7 @@ public class NoOpLockWatchValueCache implements LockWatchValueCache {
 
     @Override
     public void onSuccessfulCommit(long startTimestamp) {}
+
+    @Override
+    public void dumpState() {}
 }

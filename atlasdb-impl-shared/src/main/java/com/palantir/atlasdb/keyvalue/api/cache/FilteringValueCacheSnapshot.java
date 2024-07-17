@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -63,6 +64,15 @@ final class FilteringValueCacheSnapshot implements ValueCacheSnapshot {
     @Override
     public boolean hasAnyTablesWatched() {
         return delegate.hasAnyTablesWatched();
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper("FilteredValueCacheSnapshot")
+                .omitNullValues()
+                .add("delegate", delegate)
+                .add("lockedCells", lockedCells)
+                .toString();
     }
 
     private static LockedCells toLockedCells(CommitUpdate commitUpdate) {

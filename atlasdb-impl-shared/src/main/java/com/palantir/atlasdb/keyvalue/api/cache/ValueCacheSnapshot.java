@@ -18,8 +18,10 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.logsafe.Unsafe;
 import java.util.Optional;
 
+@Unsafe
 public interface ValueCacheSnapshot {
     Optional<CacheEntry> getValue(CellReference cellReference);
 

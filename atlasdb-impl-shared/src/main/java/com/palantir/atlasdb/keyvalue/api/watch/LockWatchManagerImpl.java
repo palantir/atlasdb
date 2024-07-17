@@ -40,6 +40,7 @@ import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.util.RateLimitedLogger;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -51,6 +52,11 @@ import java.util.stream.Collectors;
 
 public final class LockWatchManagerImpl extends LockWatchManagerInternal {
     private static final SafeLogger log = SafeLoggerFactory.get(LockWatchManagerImpl.class);
+
+    // Log at most 1 line every 2 minutes. Diagnostics are expected to be triggered
+    // on exceptional circumstances and a one-off basis. This de-duplicates when we
+    // need diagnostics on large clusters.
+    private static final RateLimitedLogger diagnosticLog = new RateLimitedLogger(log, 1 / 120.0);
 
     private final Set<LockWatchReferences.LockWatchReference> referencesFromSchema;
     private final Set<LockWatchReferences.LockWatchReference> lockWatchReferences = ConcurrentHashMap.newKeySet();
@@ -107,12 +113,13 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
 
     @Override
     void dumpState() {
-        // TODO: use a rate limited logger
-        log.info(
-                "Dumping lock watch manager state",
-                UnsafeArg.of("referencesFromSchema", referencesFromSchema),
-                UnsafeArg.of("lockWatchReferences", new HashSet<>(lockWatchReferences)));
-        lockWatchCache.dumpState();
+        diagnosticLog.log(logger -> {
+            logger.info(
+                    "Dumping LockWatchManagerImpl state",
+                    UnsafeArg.of("referencesFromSchema", referencesFromSchema),
+                    UnsafeArg.of("lockWatchReferences", new HashSet<>(lockWatchReferences)));
+            lockWatchCache.dumpState();
+        });
     }
 
     @Override

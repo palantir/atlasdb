@@ -23,6 +23,7 @@ import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -103,6 +104,17 @@ final class SnapshotStoreImpl implements SnapshotStore {
         snapshotMap.clear();
         liveSequences.clear();
         timestampMap.clear();
+    }
+
+    @Override
+    public void dumpState() {
+        log.info(
+                "Dumping state from SnapshotStoreImpl",
+                UnsafeArg.of("snapshotMap", snapshotMap),
+                SafeArg.of("liveSequences", liveSequences),
+                SafeArg.of("timestampMap", timestampMap),
+                SafeArg.of("minimumUnusedSnapshots", minimumUnusedSnapshots),
+                SafeArg.of("maximumSize", maximumSize));
     }
 
     @Override

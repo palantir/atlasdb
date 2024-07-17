@@ -127,6 +127,7 @@ final class TimestampStateStore {
     }
 
     void dumpState() {
+        log.info("Dumping TimestampStateStore state", SafeArg.of("timestampMap", timestampMap));
         // TODO
     }
 
@@ -209,5 +210,17 @@ final class TimestampStateStore {
         static CommitInfo of(LockToken commitLockToken, LockWatchVersion commitVersion) {
             return ImmutableCommitInfo.of(commitLockToken, commitVersion);
         }
+    }
+
+    @Value.Immutable
+    interface SafeLoggableTimestampVersionInfo {
+        @Value.Parameter
+        LockWatchVersion version();
+
+        @Value.Parameter
+        Optional<LockWatchVersion> commitInfoVersion();
+
+        @Value.Parameter
+        Optional<SafeArg<?>> commitInfoTokenSafeArg();
     }
 }

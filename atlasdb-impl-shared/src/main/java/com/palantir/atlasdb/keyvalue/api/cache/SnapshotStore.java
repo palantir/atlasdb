@@ -44,4 +44,6 @@ public interface SnapshotStore {
     void removeTimestamp(StartTimestamp timestamp);
 
     void reset();
+
+    void dumpState();
 }
