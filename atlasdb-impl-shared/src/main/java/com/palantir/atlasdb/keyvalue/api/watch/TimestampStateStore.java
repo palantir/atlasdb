@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
@@ -33,6 +34,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Optional;
@@ -127,8 +129,18 @@ final class TimestampStateStore {
     }
 
     void dumpState() {
-        log.info("Dumping TimestampStateStore state", SafeArg.of("timestampMap", timestampMap));
-        // TODO
+        log.info(
+                "Dumping TimestampStateStore state",
+                SafeArg.of(
+                        "timestampMap",
+                        KeyedStream.stream(timestampMap)
+                                .map(TimestampVersionInfo::toSafeLoggable)
+                                .collectToMap()),
+                SafeArg.of(
+                        "livingVersions",
+                        KeyedStream.stream(livingVersions)
+                                .map(navigable -> new HashSet<>(navigable))
+                                .collectToMap()));
     }
 
     Optional<LockWatchVersion> getStartVersion(long startTimestamp) {
@@ -185,6 +197,13 @@ final class TimestampStateStore {
         @Value.Parameter
         Optional<CommitInfo> commitInfo();
 
+        default SafeLoggableTimestampVersionInfo toSafeLoggable() {
+            return ImmutableSafeLoggableTimestampVersionInfo.of(
+                    version(),
+                    commitInfo().map(CommitInfo::commitVersion),
+                    commitInfo().map(info -> info.commitLockToken().toSafeArg("lockToken")));
+        }
+
         static TimestampVersionInfo of(LockWatchVersion version) {
             return ImmutableTimestampVersionInfo.of(version, Optional.empty());
         }
@@ -212,6 +231,7 @@ final class TimestampStateStore {
         }
     }
 
+    // For diagnostics only
     @Value.Immutable
     interface SafeLoggableTimestampVersionInfo {
         @Value.Parameter
