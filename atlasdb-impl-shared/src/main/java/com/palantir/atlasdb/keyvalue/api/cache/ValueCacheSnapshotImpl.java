@@ -19,12 +19,13 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.logsafe.Unsafe;
 import io.vavr.collection.Map;
 import io.vavr.collection.Set;
 import java.util.Optional;
 import org.immutables.value.Value;
 
-@Value.Immutable
+@Unsafe @Value.Immutable
 public interface ValueCacheSnapshotImpl extends ValueCacheSnapshot {
     Map<CellReference, CacheEntry> values();
 
