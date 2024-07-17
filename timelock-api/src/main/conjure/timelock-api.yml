@@ -371,6 +371,20 @@ services:
           request: LockWatchRequest
         tags:
           - server-request-context
+  ConjureLockWatchDiagnosticsService:
+    name: Lock Watch Diagnostics service
+    default-auth: header
+    package: com.palantir.atlasdb.timelock.lock.watch
+    base-path: /lw/diagnostics
+    endpoints:
+        dumpState:
+          http: GET /dumpState/{namespace}
+          args:
+              namespace:
+                  type: string
+                  safety: safe
+          tags:
+            - server-request-context
   MultiClientConjureTimelockService:
     name: Multi Client Timelock Service
     default-auth: header

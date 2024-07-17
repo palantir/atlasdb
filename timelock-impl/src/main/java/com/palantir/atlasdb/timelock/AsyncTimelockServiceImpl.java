@@ -298,6 +298,11 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         lockService.getLockWatchingService().registerUnlock(locksUnlocked);
     }
 
+    @Override
+    public void dumpState() {
+        lockService.getLockWatchingService().dumpState();
+    }
+
     private static LockWatchVersion fromConjure(ConjureIdentifiedVersion conjure) {
         return LockWatchVersion.of(conjure.getId(), conjure.getVersion());
     }

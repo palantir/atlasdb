@@ -85,6 +85,11 @@ public class LockEventLogImpl implements LockEventLog {
         slidingWindow.add(LockWatchCreatedEvent.builder(newWatches.references(), openLocks));
     }
 
+    @Override
+    public void dumpState() {
+        // TODO(aalouane): implement!
+    }
+
     private Optional<LockWatchStateUpdate> tryGetNextEvents(Optional<LockWatchVersion> fromVersion) {
         if (!fromVersion.isPresent() || !fromVersion.get().id().equals(logId)) {
             return Optional.empty();

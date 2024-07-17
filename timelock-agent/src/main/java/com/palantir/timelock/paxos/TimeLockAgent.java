@@ -29,6 +29,7 @@ import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
+import com.palantir.atlasdb.timelock.ConjureLockWatchDiagnosticsResource;
 import com.palantir.atlasdb.timelock.ConjureLockWatchingResource;
 import com.palantir.atlasdb.timelock.ConjureTimelockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
@@ -369,6 +370,9 @@ public class TimeLockAgent {
                     MultiClientConjureTimelockResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
             NonConjureTimelockResources.createUndertowServices(namespaces, redirectRetryTargeter)
                     .forEach(service -> registerCorruptionHandlerWrappedService(presentUndertowRegistrar, service));
+            registerCorruptionHandlerWrappedService(
+                    presentUndertowRegistrar,
+                    ConjureLockWatchDiagnosticsResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
         } else {
             registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
             registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
@@ -377,6 +381,8 @@ public class TimeLockAgent {
             registrar.accept(
                     MultiClientConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
             NonConjureTimelockResources.createJerseyResources(namespaces).forEach(registrar);
+            registrar.accept(
+                    ConjureLockWatchDiagnosticsResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
         }
     }
 

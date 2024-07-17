@@ -38,4 +38,6 @@ public interface LockWatchingService extends LockWatchStarter {
     void registerLock(Set<LockDescriptor> locksTakenOut, LockToken token, Optional<LockRequestMetadata> metadata);
 
     void registerUnlock(Set<LockDescriptor> locksUnlocked);
+
+    void dumpState();
 }
