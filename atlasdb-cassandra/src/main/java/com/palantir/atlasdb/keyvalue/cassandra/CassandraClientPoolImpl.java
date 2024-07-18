@@ -462,14 +462,18 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 "The current pool of servers should not have any server(s) that are being added. This is unexpected"
                         + " and could lead to undefined behavior, as we should not be validating already validated"
                         + " servers. This suggests a bug in the calling method.",
-                SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())),
+                SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAddWithoutOrigin)),
                 SafeArg.of("currentServers", CassandraLogHelper.collectionOfHosts(currentContainers.keySet())));
 
         Map<CassandraServer, CassandraClientPoolingContainer> serversToAddContainers =
                 getContainerForNewServers(serversToAddWithoutOrigin);
+        Map<CassandraServer, CassandraClientPoolingContainer> allContainers =
+                ImmutableMap.<CassandraServer, CassandraClientPoolingContainer>builder()
+                        .putAll(serversToAddContainers)
+                        .putAll(currentContainers)
+                        .buildOrThrow();
         Set<CassandraServer> newHostsWithDifferingTopology =
-                tryGettingNewHostsWithDifferentTopologyOrInvalidateNewContainersAndThrow(
-                        serversToAdd, serversToAddContainers, currentContainers);
+                tryGettingNewHostsWithDifferentTopologyOrInvalidateNewContainersAndThrow(serversToAdd, allContainers);
 
         Set<CassandraServer> validatedServersToAdd =
                 Sets.difference(serversToAddWithoutOrigin, newHostsWithDifferingTopology);
@@ -490,19 +494,14 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     @VisibleForTesting
     Set<CassandraServer> tryGettingNewHostsWithDifferentTopologyOrInvalidateNewContainersAndThrow(
             Map<CassandraServer, CassandraServerOrigin> serversToAdd,
-            Map<CassandraServer, CassandraClientPoolingContainer> serversToAddContainers,
-            Map<CassandraServer, CassandraClientPoolingContainer> currentContainers) {
+            Map<CassandraServer, CassandraClientPoolingContainer> allContainers) {
         try {
-            Map<CassandraServer, CassandraClientPoolingContainer> allContainers =
-                    ImmutableMap.<CassandraServer, CassandraClientPoolingContainer>builder()
-                            .putAll(serversToAddContainers)
-                            .putAll(currentContainers)
-                            .buildOrThrow();
             // Max duration is one minute as we expect the cluster to have recovered by then due to gossip.
             return cassandraTopologyValidator.getNewHostsWithInconsistentTopologiesAndRetry(
                     serversToAdd, allContainers, Duration.ofSeconds(5), Duration.ofMinutes(1));
         } catch (Throwable t) {
-            serversToAddContainers
+            EntryStream.of(allContainers)
+                    .filterKeys(serversToAdd::containsKey)
                     .values()
                     .forEach(CassandraClientPoolImpl::tryShuttingDownCassandraClientPoolingContainer);
             log.warn("Failed to get new hosts with inconsistent topologies.", t);
