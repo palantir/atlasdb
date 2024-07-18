@@ -514,6 +514,7 @@ public final class CassandraClientPoolTest {
                         eq(serversToAdd), eq(allContainers), any(), any()))
                 .thenThrow(new RuntimeException());
         doThrow(new RuntimeException()).when(container1).shutdownPooling();
+        doThrow(new RuntimeException()).when(container2).shutdownPooling();
 
         assertThatCode(() -> pool.tryGettingNewHostsWithDifferentTopologyOrInvalidateNewContainersAndThrow(
                         serversToAdd, allContainers))
