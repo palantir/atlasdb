@@ -1729,6 +1729,43 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     @Test
+    public void deleteFromAtomicTableDeletesValuesWrittenByPutUnlessExists() {
+        Assumptions.assumeTrue(checkAndSetSupported());
+
+        keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, val(0, 0)));
+        assertThat(keyValueService
+                        .get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE))
+                        .get(TEST_CELL)
+                        .getContents())
+                .isEqualTo(val(0, 0));
+
+        keyValueService.deleteFromAtomicTable(TEST_TABLE, ImmutableSet.of(TEST_CELL));
+        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE)))
+                .isEmpty();
+    }
+
+    @Test
+    public void deleteFromAtomicTableDeletesValuesWrittenByCheckAndSet() {
+        Assumptions.assumeTrue(checkAndSetSupported());
+
+        CheckAndSetRequest request = CheckAndSetRequest.newCell(TEST_TABLE, TEST_CELL, val(0, 0));
+        keyValueService.checkAndSet(request);
+        verifyCheckAndSet(TEST_CELL, val(0, 0));
+
+        keyValueService.deleteFromAtomicTable(TEST_TABLE, ImmutableSet.of(TEST_CELL));
+        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE)))
+                .isEmpty();
+    }
+
+    @Test
+    public void deleteFromAtomicTableCanDeleteWithNothingPresent() {
+        keyValueService.deleteFromAtomicTable(TEST_TABLE, ImmutableSet.of(TEST_CELL));
+        keyValueService.deleteFromAtomicTable(TEST_TABLE, ImmutableSet.of(TEST_CELL));
+        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE)))
+                .isEmpty();
+    }
+
+    @Test
     public void testAddGcSentinelValues() {
         putTestDataForMultipleTimestamps();
 

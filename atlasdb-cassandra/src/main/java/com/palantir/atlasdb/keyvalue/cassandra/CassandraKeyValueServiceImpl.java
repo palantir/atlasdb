@@ -34,6 +34,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
+import com.google.common.io.BaseEncoding;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.UncheckedExecutionException;
@@ -110,6 +111,7 @@ import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
@@ -144,12 +146,14 @@ import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
+import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.Deletion;
 import org.apache.cassandra.thrift.KeyPredicate;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.SlicePredicate;
+import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
 /**
@@ -1881,6 +1885,36 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         }
     }
 
+    @Override
+    public void deleteFromAtomicTable(TableReference tableRef, Set<Cell> cells) {
+        // TODO (jkong): Be more efficient with multiple cells
+        clientPool.runWithRetry(client -> {
+            try {
+                for (Cell cell : cells) {
+                    client.execute_cql3_query(
+                            CqlQuery.builder()
+                                    .safeQueryFormat("DELETE FROM \"%s\" WHERE key=%s AND column1=%s AND column2=%s;")
+                                    .addArgs(
+                                            LoggingArgs.internalTableName(tableRef),
+                                            UnsafeArg.of("row", encodeCassandraHexString(cell.getRowName())),
+                                            UnsafeArg.of("column", encodeCassandraHexString(cell.getColumnName())),
+                                            SafeArg.of("cassandraTimestamp", -1L))
+                                    .build(),
+                            Compression.NONE,
+                            CassandraKeyValueServiceImpl.DELETE_CONSISTENCY);
+                }
+                return null;
+            } catch (UnavailableException e) {
+                throw new InsufficientConsistencyException(
+                        "deleteFromAtomicTable needs " + CassandraKeyValueServiceImpl.DELETE_CONSISTENCY
+                                + " consistency",
+                        e);
+            } catch (TException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
     public static Map<ByteString, Map<Cell, byte[]>> partitionPerRow(Map<Cell, byte[]> values) {
         return values.entrySet().stream()
                 .collect(Collectors.groupingBy(
@@ -2139,6 +2173,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } else {
             return Futures.immediateFuture(this.get(tableRef, timestampByCell));
         }
+    }
+
+    private static String encodeCassandraHexString(byte[] data) {
+        return "0x" + BaseEncoding.base16().upperCase().encode(data);
     }
 
     private static class TableCellAndValue {
