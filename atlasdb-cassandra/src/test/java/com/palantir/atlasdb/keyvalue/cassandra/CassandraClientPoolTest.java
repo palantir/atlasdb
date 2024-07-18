@@ -17,12 +17,14 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -465,6 +467,62 @@ public final class CassandraClientPoolTest {
                 .hasExactlyArgs(
                         SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())),
                         SafeArg.of("currentServers", CassandraLogHelper.collectionOfHosts(poolServers.keySet())));
+    }
+
+    @Test
+    public void tryGettingNewHostsWithDifferentTopologyInvalidatesNewContainers() {
+        setupThriftServers(Set.of(CASS_SERVER_1.proxy()));
+        CassandraClientPoolingContainer container = mock(CassandraClientPoolingContainer.class);
+        Map<CassandraServer, CassandraClientPoolingContainer> serversToAddContainers = Map.of(CASS_SERVER_1, container);
+        CassandraClientPoolImpl pool = createClientPool();
+
+        when(cassandraTopologyValidator.getNewHostsWithInconsistentTopologiesAndRetry(
+                        eq(Map.of()), eq(serversToAddContainers), any(), any()))
+                .thenThrow(new RuntimeException());
+
+        assertThatCode(() -> pool.tryGettingNewHostsWithDifferentTopologyOrInvalidateNewContainersAndThrow(
+                        Map.of(), serversToAddContainers, Map.of()))
+                .isInstanceOf(RuntimeException.class);
+        verify(container).shutdownPooling();
+    }
+
+    @Test
+    public void tryGettingNewHostsWithDifferentTopologyInvalidatesSecondContainerEvenIfFirstOneIsFailed() {
+        setupThriftServers(Set.of(CASS_SERVER_1.proxy(), CASS_SERVER_2.proxy()));
+        CassandraClientPoolingContainer container1 = mock(CassandraClientPoolingContainer.class);
+        CassandraClientPoolingContainer container2 = mock(CassandraClientPoolingContainer.class);
+        Map<CassandraServer, CassandraClientPoolingContainer> serversToAddContainers =
+                Map.of(CASS_SERVER_1, container1, CASS_SERVER_2, container2);
+        CassandraClientPoolImpl pool = createClientPool();
+
+        when(cassandraTopologyValidator.getNewHostsWithInconsistentTopologiesAndRetry(
+                        eq(Map.of()), eq(serversToAddContainers), any(), any()))
+                .thenThrow(new RuntimeException());
+        doThrow(new RuntimeException()).when(container1).shutdownPooling();
+
+        assertThatCode(() -> pool.tryGettingNewHostsWithDifferentTopologyOrInvalidateNewContainersAndThrow(
+                        Map.of(), serversToAddContainers, Map.of()))
+                .isInstanceOf(RuntimeException.class);
+        verify(container1).shutdownPooling();
+        verify(container2).shutdownPooling();
+    }
+
+    @Test
+    public void tryGettingNewHostsWithDifferentTopologyReturnsNewHostsWithDifferentTopology() {
+        setupThriftServers(Set.of(CASS_SERVER_1.proxy()));
+        CassandraClientPoolingContainer container = mock(CassandraClientPoolingContainer.class);
+        Map<CassandraServer, CassandraClientPoolingContainer> serversToAddContainers = Map.of(CASS_SERVER_1, container);
+        CassandraClientPoolImpl pool = createClientPool();
+
+        when(cassandraTopologyValidator.getNewHostsWithInconsistentTopologiesAndRetry(
+                        eq(Map.of()), eq(serversToAddContainers), any(), any()))
+                .thenReturn(Set.of(CASS_SERVER_1));
+
+        Set<CassandraServer> newHostsWithDifferentTopology =
+                pool.tryGettingNewHostsWithDifferentTopologyOrInvalidateNewContainersAndThrow(
+                        Map.of(), serversToAddContainers, Map.of());
+        assertThat(newHostsWithDifferentTopology).containsOnly(CASS_SERVER_1);
+        verifyNoInteractions(container);
     }
 
     @Test

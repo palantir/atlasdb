@@ -431,9 +431,9 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         Preconditions.checkState(
                 !getCurrentPools().isEmpty() || serversToAdd.isEmpty(),
                 "No servers were successfully added to the pool. This means we could not come to a consensus on"
-                    + " cluster topology, and the client cannot connect as there are no valid hosts. This state should"
-                    + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
-                    + " configured AltasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
+                        + " cluster topology, and the client cannot connect as there are no valid hosts. This state should"
+                        + " be transient (<5 minutes), and if it is not, indicates that the user may have accidentally"
+                        + " configured AtlasDB to use two separate Cassandra clusters (i.e., user-led split brain).",
                 SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())));
 
         logRefreshedHosts(validatedServersToAdd, serversToShutdown, absentServers);
@@ -454,29 +454,22 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         if (serversToAdd.isEmpty()) {
             return Set.of();
         }
-        Set<CassandraServer> serversToAddWithoutOrigin = serversToAdd.keySet();
-        Map<CassandraServer, CassandraClientPoolingContainer> serversToAddContainers =
-                getContainerForNewServers(serversToAddWithoutOrigin);
 
+        Set<CassandraServer> serversToAddWithoutOrigin = serversToAdd.keySet();
         Preconditions.checkArgument(
-                Sets.intersection(currentContainers.keySet(), serversToAddContainers.keySet())
+                Sets.intersection(currentContainers.keySet(), serversToAddWithoutOrigin)
                         .isEmpty(),
                 "The current pool of servers should not have any server(s) that are being added. This is unexpected"
                         + " and could lead to undefined behavior, as we should not be validating already validated"
                         + " servers. This suggests a bug in the calling method.",
-                SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAddContainers.keySet())),
+                SafeArg.of("serversToAdd", CassandraLogHelper.collectionOfHosts(serversToAdd.keySet())),
                 SafeArg.of("currentServers", CassandraLogHelper.collectionOfHosts(currentContainers.keySet())));
 
-        Map<CassandraServer, CassandraClientPoolingContainer> allContainers =
-                ImmutableMap.<CassandraServer, CassandraClientPoolingContainer>builder()
-                        .putAll(serversToAddContainers)
-                        .putAll(currentContainers)
-                        .buildOrThrow();
-
-        // Max duration is one minute as we expect the cluster to have recovered by then due to gossip.
+        Map<CassandraServer, CassandraClientPoolingContainer> serversToAddContainers =
+                getContainerForNewServers(serversToAddWithoutOrigin);
         Set<CassandraServer> newHostsWithDifferingTopology =
-                cassandraTopologyValidator.getNewHostsWithInconsistentTopologiesAndRetry(
-                        serversToAdd, allContainers, Duration.ofSeconds(5), Duration.ofMinutes(1));
+                tryGettingNewHostsWithDifferentTopologyOrInvalidateNewContainersAndThrow(
+                        serversToAdd, serversToAddContainers, currentContainers);
 
         Set<CassandraServer> validatedServersToAdd =
                 Sets.difference(serversToAddWithoutOrigin, newHostsWithDifferingTopology);
@@ -492,6 +485,40 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                             CassandraLogHelper.collectionOfHosts(newHostsWithDifferingTopology)));
         }
         return validatedServersToAdd;
+    }
+
+    @VisibleForTesting
+    Set<CassandraServer> tryGettingNewHostsWithDifferentTopologyOrInvalidateNewContainersAndThrow(
+            Map<CassandraServer, CassandraServerOrigin> serversToAdd,
+            Map<CassandraServer, CassandraClientPoolingContainer> serversToAddContainers,
+            Map<CassandraServer, CassandraClientPoolingContainer> currentContainers) {
+        try {
+            Map<CassandraServer, CassandraClientPoolingContainer> allContainers =
+                    ImmutableMap.<CassandraServer, CassandraClientPoolingContainer>builder()
+                            .putAll(serversToAddContainers)
+                            .putAll(currentContainers)
+                            .buildOrThrow();
+            // Max duration is one minute as we expect the cluster to have recovered by then due to gossip.
+            return cassandraTopologyValidator.getNewHostsWithInconsistentTopologiesAndRetry(
+                    serversToAdd, allContainers, Duration.ofSeconds(5), Duration.ofMinutes(1));
+        } catch (Throwable t) {
+            serversToAddContainers
+                    .values()
+                    .forEach(CassandraClientPoolImpl::tryShuttingDownCassandraClientPoolingContainer);
+            log.warn("Failed to get new hosts with inconsistent topologies.", t);
+            throw t;
+        }
+    }
+
+    public static void tryShuttingDownCassandraClientPoolingContainer(CassandraClientPoolingContainer container) {
+        try {
+            container.shutdownPooling();
+        } catch (Throwable t) {
+            log.warn(
+                    "Failed to close Cassandra client pooling container. It might be leaked now.",
+                    SafeArg.of("cassandraServer", container.getCassandraServer()),
+                    t);
+        }
     }
 
     private Map<CassandraServer, CassandraClientPoolingContainer> getContainerForNewServers(
@@ -569,7 +596,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         }
 
         StringBuilder errorBuilderForEntireCluster = new StringBuilder();
-        if (completelyUnresponsiveNodes.size() > 0) {
+        if (!completelyUnresponsiveNodes.isEmpty()) {
             errorBuilderForEntireCluster
                     .append("Performing routine startup checks,")
                     .append(" determined that the following hosts are unreachable for the following reasons: \n");
@@ -585,7 +612,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             throw new CassandraAllHostsUnresponsiveException(errorBuilderForEntireCluster.toString());
         }
 
-        if (aliveButInvalidPartitionerNodes.size() > 0) {
+        if (!aliveButInvalidPartitionerNodes.isEmpty()) {
             errorBuilderForEntireCluster
                     .append("Performing routine startup checks,")
                     .append("determined that the following hosts were alive but are configured")
