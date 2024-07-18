@@ -1766,6 +1766,22 @@ public abstract class AbstractKeyValueServiceTest {
     }
 
     @Test
+    public void deleteFromAtomicTableCanDeleteMultipleCellsAtATime() {
+        Assumptions.assumeTrue(checkAndSetSupported());
+        Cell firstTestCell = Cell.create(row(0), column(0));
+        Cell nextTestCell = Cell.create(row(0), column(1));
+
+        keyValueService.checkAndSet(CheckAndSetRequest.newCell(TEST_TABLE, firstTestCell, val(0, 0)));
+        keyValueService.checkAndSet(CheckAndSetRequest.newCell(TEST_TABLE, nextTestCell, val(0, 1)));
+
+        keyValueService.deleteFromAtomicTable(TEST_TABLE, ImmutableSet.of(firstTestCell, nextTestCell));
+        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(firstTestCell, Long.MAX_VALUE)))
+                .isEmpty();
+        assertThat(keyValueService.get(TEST_TABLE, ImmutableMap.of(nextTestCell, Long.MAX_VALUE)))
+                .isEmpty();
+    }
+
+    @Test
     public void testAddGcSentinelValues() {
         putTestDataForMultipleTimestamps();
 
