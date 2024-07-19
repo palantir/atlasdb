@@ -79,6 +79,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifi
 import com.palantir.atlasdb.keyvalue.cassandra.RowColumnRangeExtractor.RowColumnRangeResult;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
+import com.palantir.atlasdb.keyvalue.cassandra.cas.SinglePartitionAtomicTableCellDeleter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
@@ -110,7 +111,6 @@ import com.palantir.common.exception.PalantirRuntimeException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
@@ -145,14 +145,12 @@ import org.apache.cassandra.thrift.CASResult;
 import org.apache.cassandra.thrift.CfDef;
 import org.apache.cassandra.thrift.Column;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
-import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.Deletion;
 import org.apache.cassandra.thrift.KeyPredicate;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.SlicePredicate;
-import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
 /**
@@ -243,6 +241,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final CassandraTableDropper cassandraTableDropper;
     private final CassandraTableTruncator cassandraTableTruncator;
     private final CheckAndSetRunner checkAndSetRunner;
+    private final SinglePartitionAtomicTableCellDeleter atomicTableCellDeleter;
 
     private final CassandraTables cassandraTables;
 
@@ -465,6 +464,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 wrappingQueryRunner,
                 mutationTimestampProvider::getSweepSentinelWriteTimestamp);
         this.checkAndSetRunner = new CheckAndSetRunner(queryRunner);
+        this.atomicTableCellDeleter = new SinglePartitionAtomicTableCellDeleter(queryRunner, DELETE_CONSISTENCY);
         this.tableMetadata = new CassandraTableMetadata(rangeLoader, cassandraTables, clientPool, wrappingQueryRunner);
         this.cassandraTableCreator = new CassandraTableCreator(clientPool, config);
         this.cassandraTableTruncator = new CassandraTableTruncator(queryRunner, clientPool);
@@ -1886,34 +1886,15 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     @Override
     public void deleteFromAtomicTable(TableReference tableRef, Set<Cell> cells) {
-        // TODO (jkong): Be more efficient with multiple cells
         clientPool.runWithRetry(client -> {
-            try {
-                for (Cell cell : cells) {
-                    client.execute_cql3_query(
-                            CqlQuery.builder()
-                                    .safeQueryFormat("DELETE FROM \"%s\" WHERE key=%s AND column1=%s AND column2=%s;")
-                                    .addArgs(
-                                            LoggingArgs.internalTableName(tableRef),
-                                            UnsafeArg.of(
-                                                    "row", CqlUtilities.encodeCassandraHexBytes(cell.getRowName())),
-                                            UnsafeArg.of(
-                                                    "column",
-                                                    CqlUtilities.encodeCassandraHexBytes(cell.getColumnName())),
-                                            SafeArg.of("cassandraTimestamp", CqlUtilities.CASSANDRA_TIMESTAMP))
-                                    .build(),
-                            Compression.NONE,
-                            CassandraKeyValueServiceImpl.DELETE_CONSISTENCY);
+            for (Cell cell : cells) {
+                try {
+                    atomicTableCellDeleter.deleteFromAtomicTable(client, tableRef, cell);
+                } catch (TException e) {
+                    throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
                 }
-                return null;
-            } catch (UnavailableException e) {
-                throw new InsufficientConsistencyException(
-                        "deleteFromAtomicTable needs " + CassandraKeyValueServiceImpl.DELETE_CONSISTENCY
-                                + " consistency",
-                        e);
-            } catch (TException e) {
-                throw new RuntimeException(e);
             }
+            return null;
         });
     }
 
