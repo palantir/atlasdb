@@ -44,7 +44,7 @@ public final class SinglePartitionAtomicTableCellDeleter {
                 table,
                 () -> client.execute_cql3_query(
                         CqlQuery.builder()
-                                .safeQueryFormat("DELETE FROM \"%s\" WHERE key=%s AND column1=%s AND column2=%s;")
+                                .safeQueryFormat("DELETE FROM \"%s\" WHERE key=%s AND column1=%s AND column2=%s IF EXISTS;")
                                 .addArgs(
                                         LoggingArgs.internalTableName(table),
                                         UnsafeArg.of("row", CqlUtilities.encodeCassandraHexBytes(cell.getRowName())),
