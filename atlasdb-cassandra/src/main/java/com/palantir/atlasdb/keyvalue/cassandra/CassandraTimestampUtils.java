@@ -17,7 +17,6 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
-import com.google.common.io.BaseEncoding;
 import com.google.protobuf.ByteString;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
@@ -46,8 +45,8 @@ public final class CassandraTimestampUtils {
     public static final ByteString INVALIDATED_VALUE = ByteString.copyFrom(new byte[] {0});
     public static final long INITIAL_VALUE = 10000;
 
-    private static final long CASSANDRA_TIMESTAMP = -1;
-    private static final String ROW_AND_COLUMN_NAME_HEX_STRING = encodeCassandraHexString(ROW_AND_COLUMN_NAME);
+    private static final String ROW_AND_COLUMN_NAME_HEX_STRING =
+            CqlUtilities.encodeCassandraHexString(ROW_AND_COLUMN_NAME);
     private static final ByteString CQL_SUCCESS = ByteString.copyFrom(new byte[] {1});
 
     @VisibleForTesting
@@ -187,9 +186,9 @@ public final class CassandraTimestampUtils {
                 .addArgs(
                         LoggingArgs.internalTableName(AtlasDbConstants.TIMESTAMP_TABLE),
                         SafeArg.of("rowAndColumnName", ROW_AND_COLUMN_NAME_HEX_STRING),
-                        SafeArg.of("columnName", encodeCassandraHexString(columnName)),
-                        SafeArg.of("atlasTimestamp", CASSANDRA_TIMESTAMP),
-                        SafeArg.of("newValue", encodeCassandraHexBytes(target)))
+                        SafeArg.of("columnName", CqlUtilities.encodeCassandraHexString(columnName)),
+                        SafeArg.of("atlasTimestamp", CqlUtilities.CASSANDRA_TIMESTAMP),
+                        SafeArg.of("newValue", CqlUtilities.encodeCassandraHexBytes(target)))
                 .build();
     }
 
@@ -199,20 +198,12 @@ public final class CassandraTimestampUtils {
                 .safeQueryFormat("UPDATE \"%s\" SET value=%s WHERE key=%s AND column1=%s AND column2=%s IF value=%s;")
                 .addArgs(
                         LoggingArgs.internalTableName(AtlasDbConstants.TIMESTAMP_TABLE),
-                        SafeArg.of("newValue", encodeCassandraHexBytes(target)),
+                        SafeArg.of("newValue", CqlUtilities.encodeCassandraHexBytes(target)),
                         SafeArg.of("rowAndColumnName", ROW_AND_COLUMN_NAME_HEX_STRING),
-                        SafeArg.of("columnName", encodeCassandraHexString(columnName)),
-                        SafeArg.of("atlasTimestamp", CASSANDRA_TIMESTAMP),
-                        SafeArg.of("oldValue", encodeCassandraHexBytes(expected)))
+                        SafeArg.of("columnName", CqlUtilities.encodeCassandraHexString(columnName)),
+                        SafeArg.of("atlasTimestamp", CqlUtilities.CASSANDRA_TIMESTAMP),
+                        SafeArg.of("oldValue", CqlUtilities.encodeCassandraHexBytes(expected)))
                 .build();
-    }
-
-    private static String encodeCassandraHexString(String string) {
-        return encodeCassandraHexBytes(PtBytes.toBytes(string));
-    }
-
-    private static String encodeCassandraHexBytes(byte[] bytes) {
-        return "0x" + BaseEncoding.base16().upperCase().encode(bytes);
     }
 
     private static String wrapInQuotes(String tableName) {

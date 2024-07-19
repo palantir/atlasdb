@@ -34,7 +34,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.collect.SetMultimap;
 import com.google.common.collect.Sets;
-import com.google.common.io.BaseEncoding;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.UncheckedExecutionException;
@@ -1896,9 +1895,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                     .safeQueryFormat("DELETE FROM \"%s\" WHERE key=%s AND column1=%s AND column2=%s;")
                                     .addArgs(
                                             LoggingArgs.internalTableName(tableRef),
-                                            UnsafeArg.of("row", encodeCassandraHexString(cell.getRowName())),
-                                            UnsafeArg.of("column", encodeCassandraHexString(cell.getColumnName())),
-                                            SafeArg.of("cassandraTimestamp", -1L))
+                                            UnsafeArg.of(
+                                                    "row", CqlUtilities.encodeCassandraHexBytes(cell.getRowName())),
+                                            UnsafeArg.of(
+                                                    "column",
+                                                    CqlUtilities.encodeCassandraHexBytes(cell.getColumnName())),
+                                            SafeArg.of("cassandraTimestamp", CqlUtilities.CASSANDRA_TIMESTAMP))
                                     .build(),
                             Compression.NONE,
                             CassandraKeyValueServiceImpl.DELETE_CONSISTENCY);
@@ -2173,10 +2175,6 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } else {
             return Futures.immediateFuture(this.get(tableRef, timestampByCell));
         }
-    }
-
-    private static String encodeCassandraHexString(byte[] data) {
-        return "0x" + BaseEncoding.base16().upperCase().encode(data);
     }
 
     private static class TableCellAndValue {
