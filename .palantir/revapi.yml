@@ -151,6 +151,12 @@ acceptedBreaks:
       new: "method com.palantir.lock.LockState com.palantir.atlasdb.factory.timelock.TimeoutSensitiveLockRpcClient::getLockState(java.lang.String,\
         \ com.palantir.lock.LockDescriptor)"
       justification: "LockRpcClient#getLockState is broken"
+  "0.1121.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.addedToInterface"
+      new: "method void com.palantir.atlasdb.keyvalue.api.KeyValueService::deleteFromAtomicTable(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.util.Set<com.palantir.atlasdb.keyvalue.api.Cell>)"
+      justification: "internal KVS API"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"
