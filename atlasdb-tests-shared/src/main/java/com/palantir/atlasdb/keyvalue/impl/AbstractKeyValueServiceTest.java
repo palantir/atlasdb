@@ -1800,9 +1800,9 @@ public abstract class AbstractKeyValueServiceTest {
     public void deleteFromAtomicTableCanBeFollowedByPutUnlessExists() {
         Assumptions.assumeTrue(checkAndSetSupported());
 
-        keyValueService.checkAndSet(CheckAndSetRequest.newCell(TEST_TABLE, TEST_CELL, val(0, 0)));
+        keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, val(0, 0)));
         keyValueService.deleteFromAtomicTable(TEST_TABLE, ImmutableSet.of(TEST_CELL));
-        keyValueService.checkAndSet(CheckAndSetRequest.newCell(TEST_TABLE, TEST_CELL, val(0, 0)));
+        keyValueService.putUnlessExists(TEST_TABLE, ImmutableMap.of(TEST_CELL, val(0, 0)));
 
         assertThat(keyValueService
                         .get(TEST_TABLE, ImmutableMap.of(TEST_CELL, Long.MAX_VALUE))

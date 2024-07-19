@@ -119,6 +119,16 @@ public class TracingKeyValueServiceTest {
     }
 
     @Test
+    public void deleteFromAtomicTable() {
+        ImmutableSet<Cell> cells = ImmutableSet.of(CELL);
+        kvs.deleteFromAtomicTable(TABLE_REF, cells);
+
+        checkSpan("atlasdb-kvs.deleteFromAtomicTable", ImmutableMap.of("table", "{table}", "cells", "1"));
+        verify(delegate).deleteFromAtomicTable(TABLE_REF, cells);
+        verifyNoMoreInteractions(delegate);
+    }
+
+    @Test
     public void checkAndSet() throws Exception {
         CheckAndSetRequest request = CheckAndSetRequest.singleCell(TABLE_REF, CELL, ROW_NAME, ROW_NAME);
         kvs.checkAndSet(request);
