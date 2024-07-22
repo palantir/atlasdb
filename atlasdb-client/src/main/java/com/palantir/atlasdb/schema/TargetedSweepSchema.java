@@ -119,24 +119,6 @@ public enum TargetedSweepSchema implements AtlasSchema {
                 conflictHandler(ConflictHandler.IGNORE_ALL);
             }
         });
-
-        schema.addTableDefinition("sweepProgressPerBucket", new TableDefinition() {
-            {
-                javaTableName("SweepBucketProgress");
-                allSafeForLoggingByDefault();
-                rowName();
-                hashFirstNRowComponents(3);
-                rowComponent("shard", ValueType.VAR_SIGNED_LONG);
-                rowComponent("bucket_identifier", ValueType.VAR_LONG);
-                rowComponent("sweep_conservative", ValueType.BLOB);
-                columns();
-                column("bucket_progress", "p", ValueType.BLOB);
-
-                // we do our own cleanup
-                sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
-                conflictHandler(ConflictHandler.IGNORE_ALL);
-            }
-        });
     }
 
     private static void addTableIdentifierTables(Schema schema) {
