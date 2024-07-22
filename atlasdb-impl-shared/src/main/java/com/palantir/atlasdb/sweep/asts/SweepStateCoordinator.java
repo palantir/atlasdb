@@ -34,14 +34,14 @@ public interface SweepStateCoordinator {
     @Safe
     abstract class SweepableBucket {
         @Value.Parameter
-        abstract ShardAndStrategy shardAndStrategy();
+        public abstract ShardAndStrategy shardAndStrategy();
 
         // It's really just the fine partition, but we make it opaque so we can change it in the future
         // TODO: consider wrapping the long if we _do_ want to make it even more opaque
         // That said, code is going to depend on this being the fine partition ID anyway..., unless
         // we do box it and have a method that's something like finePartitionId()
         @Value.Parameter
-        abstract long bucketIdentifier();
+        public abstract long bucketIdentifier();
 
         @Safe
         @Override
@@ -49,7 +49,7 @@ public interface SweepStateCoordinator {
             return shardAndStrategy().toText() + " and partition " + bucketIdentifier();
         }
 
-        static SweepableBucket of(ShardAndStrategy shardAndStrategy, long bucketIdentifier) {
+        public static SweepableBucket of(ShardAndStrategy shardAndStrategy, long bucketIdentifier) {
             return ImmutableSweepableBucket.of(shardAndStrategy, bucketIdentifier);
         }
     }

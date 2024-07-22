@@ -26,7 +26,7 @@ import org.immutables.value.Value;
 @Value.Immutable
 @JsonSerialize(as = ImmutableBucketProgress.class)
 @JsonDeserialize(as = ImmutableBucketProgress.class)
-public interface BucketProgress {
+public interface BucketProgress extends Comparable<BucketProgress> {
     long timestampOffset();
 
     long cellOffset();
@@ -44,6 +44,16 @@ public interface BucketProgress {
 
         Preconditions.checkState(
                 cellOffset() >= 0, "Timestamp offset must be non-negative", SafeArg.of("cellOffset", cellOffset()));
+    }
+
+    @Override
+    default int compareTo(BucketProgress other) {
+        int timestampOffsetComparison = Long.compare(timestampOffset(), other.timestampOffset());
+        if (timestampOffsetComparison != 0) {
+            return timestampOffsetComparison;
+        } else {
+            return Long.compare(cellOffset(), other.cellOffset());
+        }
     }
 
     static BucketProgress createForTimestampOffset(long timestamp) {

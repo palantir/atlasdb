@@ -24,17 +24,17 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeUncheckedIoException;
 import java.io.IOException;
 
-final class BucketProgressPersister {
+final class BucketProgressSerializer {
     private final ObjectReader progressReader;
     private final ObjectWriter progressWriter;
 
-    private BucketProgressPersister(ObjectReader progressReader, ObjectWriter progressWriter) {
+    private BucketProgressSerializer(ObjectReader progressReader, ObjectWriter progressWriter) {
         this.progressReader = progressReader;
         this.progressWriter = progressWriter;
     }
 
-    static BucketProgressPersister create(ObjectMapper mapper) {
-        return new BucketProgressPersister(
+    static BucketProgressSerializer create(ObjectMapper mapper) {
+        return new BucketProgressSerializer(
                 mapper.readerFor(BucketProgress.class), mapper.writerFor(BucketProgress.class));
     }
 
