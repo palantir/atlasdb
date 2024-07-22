@@ -25,38 +25,42 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import org.junit.jupiter.api.Test;
 
 public final class BucketProgressTest {
-    private static final long TIMESTAMP_1 = 7L;
-    private static final long TIMESTAMP_2 = 777L;
+    private static final long TIMESTAMP_OFFSET_1 = 7L;
+    private static final long TIMESTAMP_OFFSET_2 = 777L;
+    private static final long CELL_OFFSET_1 = 42L;
+    private static final long CELL_OFFSET_2 = 9999L;
+
+    @Test
+    public void createForTimestampOffsetReturnsProgressWithMatchingTimestampOffset() {
+        assertThat(BucketProgress.createForTimestampOffset(TIMESTAMP_OFFSET_1).timestampOffset())
+                .isEqualTo(TIMESTAMP_OFFSET_1);
+        assertThat(BucketProgress.createForTimestampOffset(TIMESTAMP_OFFSET_2).timestampOffset())
+                .isEqualTo(TIMESTAMP_OFFSET_2);
+    }
 
     @Test
     public void createForTimestampOffsetReturnsProgressWithZeroCellOffset() {
-        assertThat(BucketProgress.createForTimestampOffset(TIMESTAMP_1))
-                .isEqualTo(ImmutableBucketProgress.builder()
-                        .timestampOffset(TIMESTAMP_1)
-                        .cellOffset(0L)
-                        .build());
-        assertThat(BucketProgress.createForTimestampOffset(TIMESTAMP_2))
-                .isEqualTo(ImmutableBucketProgress.builder()
-                        .timestampOffset(TIMESTAMP_2)
-                        .cellOffset(0L)
-                        .build());
+        assertThat(BucketProgress.createForTimestampOffset(TIMESTAMP_OFFSET_1).cellOffset())
+                .isEqualTo(0L);
+        assertThat(BucketProgress.createForTimestampOffset(TIMESTAMP_OFFSET_2).cellOffset())
+                .isEqualTo(0L);
     }
 
     @Test
     public void cannotCreateWithNegativeTimestampOffset() {
-        assertThatLoggableExceptionThrownBy(() -> BucketProgress.createForTimestampOffset(-42L))
+        assertThatLoggableExceptionThrownBy(() -> BucketProgress.createForTimestampOffset(-CELL_OFFSET_1))
                 .isInstanceOf(SafeIllegalStateException.class)
-                .hasExactlyArgs(SafeArg.of("timestampOffset", -42L));
+                .hasExactlyArgs(SafeArg.of("timestampOffset", -CELL_OFFSET_1));
     }
 
     @Test
     public void cannotCreateWithNegativeCellOffset() {
         assertThatLoggableExceptionThrownBy(() -> ImmutableBucketProgress.builder()
-                        .timestampOffset(TIMESTAMP_1)
-                        .cellOffset(-55L)
+                        .timestampOffset(TIMESTAMP_OFFSET_1)
+                        .cellOffset(-CELL_OFFSET_1)
                         .build())
                 .isInstanceOf(SafeIllegalStateException.class)
-                .hasExactlyArgs(SafeArg.of("cellOffset", -55L));
+                .hasExactlyArgs(SafeArg.of("cellOffset", -CELL_OFFSET_1));
     }
 
     @Test
@@ -68,5 +72,66 @@ public final class BucketProgressTest {
         assertThatLoggableExceptionThrownBy(() -> BucketProgress.createForTimestampOffset(Long.MAX_VALUE))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasExactlyArgs(SafeArg.of("timestampOffset", Long.MAX_VALUE));
+    }
+
+    @Test
+    public void sameTimestampAndCellOffsetComparesAsEqual() {
+        BucketProgress progressOne = BucketProgress.builder()
+                .timestampOffset(TIMESTAMP_OFFSET_1)
+                .cellOffset(CELL_OFFSET_1)
+                .build();
+        BucketProgress progressTwo = BucketProgress.builder()
+                .timestampOffset(TIMESTAMP_OFFSET_1)
+                .cellOffset(CELL_OFFSET_1)
+                .build();
+
+        assertThat(progressOne).isNotSameAs(progressTwo);
+        assertThat(progressOne.compareTo(progressTwo)).isEqualTo(0L);
+        assertThat(progressTwo.compareTo(progressOne)).isEqualTo(0L);
+    }
+
+    @Test
+    public void lowerTimestampOffsetComparesAsLesser() {
+        BucketProgress progressOne = BucketProgress.builder()
+                .timestampOffset(TIMESTAMP_OFFSET_1)
+                .cellOffset(CELL_OFFSET_1)
+                .build();
+        BucketProgress progressTwo = BucketProgress.builder()
+                .timestampOffset(TIMESTAMP_OFFSET_2)
+                .cellOffset(CELL_OFFSET_1)
+                .build();
+
+        assertThat(progressOne.compareTo(progressTwo)).isNegative();
+        assertThat(progressTwo.compareTo(progressOne)).isPositive();
+    }
+
+    @Test
+    public void lowerCellOffsetWithMatchingTimestampComparesAsLesser() {
+        BucketProgress progressOne = BucketProgress.builder()
+                .timestampOffset(TIMESTAMP_OFFSET_1)
+                .cellOffset(CELL_OFFSET_1)
+                .build();
+        BucketProgress progressTwo = BucketProgress.builder()
+                .timestampOffset(TIMESTAMP_OFFSET_1)
+                .cellOffset(CELL_OFFSET_2)
+                .build();
+
+        assertThat(progressOne.compareTo(progressTwo)).isNegative();
+        assertThat(progressTwo.compareTo(progressOne)).isPositive();
+    }
+
+    @Test
+    public void lowerTimestampOffsetAndHigherCellOffsetComparesAsLesser() {
+        BucketProgress progressOne = BucketProgress.builder()
+                .timestampOffset(TIMESTAMP_OFFSET_1)
+                .cellOffset(CELL_OFFSET_2)
+                .build();
+        BucketProgress progressTwo = BucketProgress.builder()
+                .timestampOffset(TIMESTAMP_OFFSET_2)
+                .cellOffset(CELL_OFFSET_1)
+                .build();
+
+        assertThat(progressOne.compareTo(progressTwo)).isNegative();
+        assertThat(progressTwo.compareTo(progressOne)).isPositive();
     }
 }
