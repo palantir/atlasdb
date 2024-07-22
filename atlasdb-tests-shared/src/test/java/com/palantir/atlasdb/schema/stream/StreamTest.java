@@ -496,7 +496,8 @@ public class StreamTest extends AtlasDbTestCase {
                 .isInstanceOf(SafeRuntimeException.class)
                 .hasMessageContaining("Block for stream not found")
                 .args()
-                .anyMatch(arg -> arg.getName().equals("streamId")) // This is based on an Atlas timestamp, so value is inconclusive
+                .anyMatch(arg -> arg.getName()
+                        .equals("streamId")) // This is based on an Atlas timestamp, so value is inconclusive
                 .contains(SafeArg.of("blockId", 0))
                 .hasSize(2);
     }
