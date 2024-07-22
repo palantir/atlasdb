@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.schema.stream;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -56,6 +57,8 @@ import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.io.ForwardingInputStream;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 import java.io.ByteArrayInputStream;
@@ -489,8 +492,13 @@ public class StreamTest extends AtlasDbTestCase {
             return null;
         });
 
-        // Gives a null pointer exception.
-        assertThatThrownBy(() -> assertStreamHasBytes(stream, bytes1)).isInstanceOf(NullPointerException.class);
+        assertThatLoggableExceptionThrownBy(() -> assertStreamHasBytes(stream, bytes1))
+                .isInstanceOf(SafeRuntimeException.class)
+                .hasMessageContaining("Block for stream not found")
+                .args()
+                .anyMatch(arg -> arg.getName().equals("streamId")) // This is based on an Atlas timestamp, so value is inconclusive
+                .contains(SafeArg.of("blockId", 0))
+                .hasSize(2);
     }
 
     private void deleteStream(
