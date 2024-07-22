@@ -16,25 +16,57 @@
 
 package com.palantir.atlasdb.sweep.asts.progress;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import org.junit.jupiter.api.Test;
 
 public final class BucketProgressTest {
     private static final long TIMESTAMP_1 = 7L;
-    private static final long TIMESTAMP_2 = 7777777L;
+    private static final long TIMESTAMP_2 = 777L;
 
     @Test
-    public void createForTimestampReturnsProgressWithZeroCellOffset() {
-        assertThat(BucketProgress.createForTimestamp(TIMESTAMP_1))
+    public void createForTimestampOffsetReturnsProgressWithZeroCellOffset() {
+        assertThat(BucketProgress.createForTimestampOffset(TIMESTAMP_1))
                 .isEqualTo(ImmutableBucketProgress.builder()
                         .timestampOffset(TIMESTAMP_1)
                         .cellOffset(0L)
                         .build());
-        assertThat(BucketProgress.createForTimestamp(TIMESTAMP_2))
+        assertThat(BucketProgress.createForTimestampOffset(TIMESTAMP_2))
                 .isEqualTo(ImmutableBucketProgress.builder()
                         .timestampOffset(TIMESTAMP_2)
                         .cellOffset(0L)
                         .build());
+    }
+
+    @Test
+    public void cannotCreateWithNegativeTimestampOffset() {
+        assertThatLoggableExceptionThrownBy(() -> BucketProgress.createForTimestampOffset(-42L))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasExactlyArgs(SafeArg.of("timestampOffset", -42L));
+    }
+
+    @Test
+    public void cannotCreateWithNegativeCellOffset() {
+        assertThatLoggableExceptionThrownBy(() -> ImmutableBucketProgress.builder()
+                        .timestampOffset(TIMESTAMP_1)
+                        .cellOffset(-55L)
+                        .build())
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasExactlyArgs(SafeArg.of("cellOffset", -55L));
+    }
+
+    @Test
+    public void cannotCreateWithTimestampOffsetGreaterThanFinePartition() {
+        assertThatLoggableExceptionThrownBy(
+                        () -> BucketProgress.createForTimestampOffset(SweepQueueUtils.TS_FINE_GRANULARITY))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasExactlyArgs(SafeArg.of("timestampOffset", SweepQueueUtils.TS_FINE_GRANULARITY));
+        assertThatLoggableExceptionThrownBy(() -> BucketProgress.createForTimestampOffset(Long.MAX_VALUE))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasExactlyArgs(SafeArg.of("timestampOffset", Long.MAX_VALUE));
     }
 }
