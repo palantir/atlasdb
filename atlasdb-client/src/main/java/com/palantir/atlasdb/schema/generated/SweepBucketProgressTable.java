@@ -205,7 +205,7 @@ public final class SweepBucketProgressTable implements
         @Override
         public byte[] persistToBytes() {
             byte[] hashOfRowComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfRowComponents);
-            byte[] shardBytes = EncodingUtils.encodeSignedVarLong(shard);
+            byte[] shardBytes = EncodingUtils.encodeUnsignedVarLong(shard);
             byte[] bucketIdentifierBytes = EncodingUtils.encodeUnsignedVarLong(bucketIdentifier);
             byte[] sweepConservativeBytes = sweepConservative;
             return EncodingUtils.add(hashOfRowComponentsBytes, shardBytes, bucketIdentifierBytes, sweepConservativeBytes);
@@ -217,8 +217,8 @@ public final class SweepBucketProgressTable implements
                 int __index = 0;
                 long hashOfRowComponents = Long.MIN_VALUE ^ PtBytes.toLong(__input, __index);
                 __index += 8;
-                long shard = EncodingUtils.decodeSignedVarLong(__input, __index);
-                __index += EncodingUtils.sizeOfSignedVarLong(shard);
+                long shard = EncodingUtils.decodeUnsignedVarLong(__input, __index);
+                __index += EncodingUtils.sizeOfUnsignedVarLong(shard);
                 long bucketIdentifier = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(bucketIdentifier);
                 byte[] sweepConservative = EncodingUtils.getBytesFromOffsetToEnd(__input, __index);
@@ -227,7 +227,7 @@ public final class SweepBucketProgressTable implements
         };
 
         public static long computeHashFirstComponents(long shard, long bucketIdentifier, byte[] sweepConservative) {
-            byte[] shardBytes = EncodingUtils.encodeSignedVarLong(shard);
+            byte[] shardBytes = EncodingUtils.encodeUnsignedVarLong(shard);
             byte[] bucketIdentifierBytes = EncodingUtils.encodeUnsignedVarLong(bucketIdentifier);
             byte[] sweepConservativeBytes = sweepConservative;
             return Hashing.murmur3_128().hashBytes(EncodingUtils.add(shardBytes, bucketIdentifierBytes, sweepConservativeBytes)).asLong();
@@ -730,5 +730,5 @@ public final class SweepBucketProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "wV1YiPCATShf1vpIcrUlgA==";
+    static String __CLASS_HASH = "boBsLMY3fSdKaI1RwPLdFA==";
 }
