@@ -26,7 +26,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-public class BucketProgressPersisterTest {
+public class BucketProgressSerializerTest {
     private static final long TIMESTAMP_OFFSET_1 = 100L;
     private static final long TIMESTAMP_OFFSET_2 = 200L;
     private static final long CELL_OFFSET_1 = 1000000L;
@@ -48,21 +48,20 @@ public class BucketProgressPersisterTest {
     private static final byte[] SERIALIZED_BUCKET_PROGRESS_2 = BaseEncoding.base64()
             .decode("OikKBfqQdGltZXN0YW1wUHJvZ3Jlc3MkBpCbY2VsbFByb2dyZXNzRm9yTmV4dFRpbWVzdGFtcCQDaCSA+w==");
 
-    private final BucketProgressPersister bucketProgressPersister = BucketProgressPersister.create(OBJECT_MAPPER);
+    private final BucketProgressSerializer bucketProgressSerializer = BucketProgressSerializer.create(OBJECT_MAPPER);
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("bucketProgresses")
     public void deserializationIsInverseOfSerialization(BucketProgress bucketProgress, byte[] _unused) {
-        assertThat(bucketProgressPersister.deserializeProgress(
-                        bucketProgressPersister.serializeProgress(bucketProgress)))
+        assertThat(bucketProgressSerializer.deserializeProgress(
+                        bucketProgressSerializer.serializeProgress(bucketProgress)))
                 .isEqualTo(bucketProgress);
     }
 
     @ParameterizedTest(name = "{0}")
     @MethodSource("bucketProgresses")
     public void canDeserializeExistingVersionOfProgress(BucketProgress bucketProgress, byte[] serializedForm) {
-        System.out.println(BaseEncoding.base64().encode(bucketProgressPersister.serializeProgress(bucketProgress)));
-        assertThat(bucketProgressPersister.deserializeProgress(serializedForm)).isEqualTo(bucketProgress);
+        assertThat(bucketProgressSerializer.deserializeProgress(serializedForm)).isEqualTo(bucketProgress);
     }
 
     private static Stream<Arguments> bucketProgresses() {

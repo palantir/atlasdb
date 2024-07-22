@@ -28,7 +28,7 @@ import org.immutables.value.Value;
 /**
  * Describes partial progress of Sweep within the context of a bucket.
  */
-public interface BucketProgress {
+public interface BucketProgress extends Comparable<BucketProgress> {
     /**
      * Within this bucket, timestamps starting from 0 up to {@link #timestampProgress()} inclusive have been fully swept.
      * -1 can be used to indicate that no timestamps are fully swept yet (e.g., if we are just starting this bucket,
@@ -62,6 +62,16 @@ public interface BucketProgress {
                 .timestampProgress(timestamp)
                 .cellProgressForNextTimestamp(-1L)
                 .build();
+    }
+
+    @Override
+    default int compareTo(BucketProgress other) {
+        int timestampOffsetComparison = Long.compare(timestampProgress(), other.timestampProgress());
+        if (timestampOffsetComparison != 0) {
+            return timestampOffsetComparison;
+        } else {
+            return Long.compare(cellProgressForNextTimestamp(), other.cellProgressForNextTimestamp());
+        }
     }
 
     static ImmutableBucketProgress.Builder builder() {
