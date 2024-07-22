@@ -40,17 +40,18 @@ public final class DefaultBucketKeySerializerTest {
     private static final ShardAndStrategy NON_SWEEPABLE = ShardAndStrategy.nonSweepable();
 
     // Think extremely carefully about changing this without a migration.
+    private static final byte[] BUCKET_ZERO_COLUMN = PtBytes.decodeHexString("70");
     private static final Map<ShardAndStrategy, Cell> GOLDEN_CELLS = ImmutableMap.of(
             SHARD_ZERO_CONSERVATIVE,
-                    Cell.create(PtBytes.decodeHexString("bd3fa0ff210b9da5000001"), PtBytes.decodeHexString("70")),
+            Cell.create(PtBytes.decodeHexString("bd3fa0ff210b9da5000001"), BUCKET_ZERO_COLUMN),
             SHARD_ZERO_THOROUGH,
-                    Cell.create(PtBytes.decodeHexString("f9d54dd1bf713748000000"), PtBytes.decodeHexString("70")),
+            Cell.create(PtBytes.decodeHexString("f9d54dd1bf713748000000"), BUCKET_ZERO_COLUMN),
             SHARD_ONE_CONSERVATIVE,
-                    Cell.create(PtBytes.decodeHexString("ff36dc4ac2339d2b010001"), PtBytes.decodeHexString("70")),
+            Cell.create(PtBytes.decodeHexString("ff36dc4ac2339d2b010001"), BUCKET_ZERO_COLUMN),
             SHARD_ONE_THOROUGH,
-                    Cell.create(PtBytes.decodeHexString("a24fa4b6616b22c0010000"), PtBytes.decodeHexString("70")),
+            Cell.create(PtBytes.decodeHexString("a24fa4b6616b22c0010000"), BUCKET_ZERO_COLUMN),
             NON_SWEEPABLE,
-                    Cell.create(PtBytes.decodeHexString("92635d16672ad89f000002"), PtBytes.decodeHexString("70")));
+            Cell.create(PtBytes.decodeHexString("92635d16672ad89f000002"), BUCKET_ZERO_COLUMN));
 
     @ParameterizedTest
     @MethodSource("testShardsAndStrategies")
@@ -72,7 +73,7 @@ public final class DefaultBucketKeySerializerTest {
 
     @ParameterizedTest
     @MethodSource("testShardsAndStrategies")
-    public void cellMatchesHistoricalCellMappings(ShardAndStrategy shardAndStrategy) {
+    public void bucketToCellMatchesHistoricalCellMappings(ShardAndStrategy shardAndStrategy) {
         assertThat(DefaultBucketKeySerializer.INSTANCE.bucketToCell(SweepableBucket.of(shardAndStrategy, 0)))
                 .isEqualTo(GOLDEN_CELLS.get(shardAndStrategy));
     }

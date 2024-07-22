@@ -25,10 +25,10 @@ import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
-public enum DefaultBucketKeySerializer {
+enum DefaultBucketKeySerializer {
     INSTANCE;
 
-    public Cell bucketToCell(SweepableBucket bucket) {
+    Cell bucketToCell(SweepableBucket bucket) {
         SweepBucketProgressTable.SweepBucketProgressRow row = SweepBucketProgressRow.of(
                 bucket.shardAndStrategy().shard(),
                 bucket.bucketIdentifier(),
