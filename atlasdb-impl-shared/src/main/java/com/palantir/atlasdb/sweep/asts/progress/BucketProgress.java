@@ -18,6 +18,9 @@ package com.palantir.atlasdb.sweep.asts.progress;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -28,7 +31,22 @@ public interface BucketProgress {
 
     long cellOffset();
 
-    static BucketProgress createForTimestamp(long timestamp) {
+    @Value.Check
+    default void check() {
+        Preconditions.checkState(
+                timestampOffset() >= 0,
+                "Timestamp offset must be non-negative",
+                SafeArg.of("timestampOffset", timestampOffset()));
+        Preconditions.checkState(
+                timestampOffset() < SweepQueueUtils.TS_FINE_GRANULARITY,
+                "Timestamp offset should not exceed the granularity of a fine partition.",
+                SafeArg.of("timestampOffset", timestampOffset()));
+
+        Preconditions.checkState(
+                cellOffset() >= 0, "Timestamp offset must be non-negative", SafeArg.of("cellOffset", cellOffset()));
+    }
+
+    static BucketProgress createForTimestampOffset(long timestamp) {
         return ImmutableBucketProgress.builder()
                 .timestampOffset(timestamp)
                 .cellOffset(0L)
