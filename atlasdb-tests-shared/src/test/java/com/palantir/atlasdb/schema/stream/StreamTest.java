@@ -498,7 +498,7 @@ public class StreamTest extends AtlasDbTestCase {
                 .args()
                 .anyMatch(arg -> arg.getName()
                         .equals("streamId")) // This is based on an Atlas timestamp, so value is inconclusive
-                .contains(SafeArg.of("blockId", 0))
+                .contains(SafeArg.of("blockId", 0L))
                 .hasSize(2);
     }
 
