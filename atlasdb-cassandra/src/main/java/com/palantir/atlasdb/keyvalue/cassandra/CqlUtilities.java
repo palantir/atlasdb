@@ -20,7 +20,7 @@ import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.encoding.PtBytes;
 
 public final class CqlUtilities {
-    public static final long CASSANDRA_TIMESTAMP = -1;
+    public static final long CASSANDRA_REPRESENTATION_OF_ATLASDB_ATOMIC_TABLE_TIMESTAMP = -1;
 
     private CqlUtilities() {
         // Utility class

@@ -50,7 +50,9 @@ final class CheckAndSetQueries {
                                 "column",
                                 CqlUtilities.encodeCassandraHexBytes(
                                         request.cell().getColumnName())),
-                        SafeArg.of("cassandraTimestamp", CqlUtilities.CASSANDRA_TIMESTAMP),
+                        SafeArg.of(
+                                "cassandraTimestamp",
+                                CqlUtilities.CASSANDRA_REPRESENTATION_OF_ATLASDB_ATOMIC_TABLE_TIMESTAMP),
                         UnsafeArg.of("newValue", CqlUtilities.encodeCassandraHexBytes(request.newValue())))
                 .build();
     }
@@ -73,7 +75,9 @@ final class CheckAndSetQueries {
                                 "column",
                                 CqlUtilities.encodeCassandraHexBytes(
                                         request.cell().getColumnName())),
-                        SafeArg.of("cassandraTimestamp", CqlUtilities.CASSANDRA_TIMESTAMP),
+                        SafeArg.of(
+                                "cassandraTimestamp",
+                                CqlUtilities.CASSANDRA_REPRESENTATION_OF_ATLASDB_ATOMIC_TABLE_TIMESTAMP),
                         UnsafeArg.of(
                                 "oldValue",
                                 CqlUtilities.encodeCassandraHexBytes(

@@ -51,7 +51,10 @@ public final class SinglePartitionAtomicTableCellDeleter {
                                         UnsafeArg.of("row", CqlUtilities.encodeCassandraHexBytes(cell.getRowName())),
                                         UnsafeArg.of(
                                                 "column", CqlUtilities.encodeCassandraHexBytes(cell.getColumnName())),
-                                        SafeArg.of("cassandraTimestamp", CqlUtilities.CASSANDRA_TIMESTAMP))
+                                        SafeArg.of(
+                                                "cassandraTimestamp",
+                                                CqlUtilities
+                                                        .CASSANDRA_REPRESENTATION_OF_ATLASDB_ATOMIC_TABLE_TIMESTAMP))
                                 .build(),
                         Compression.NONE,
                         deleteConsistency));

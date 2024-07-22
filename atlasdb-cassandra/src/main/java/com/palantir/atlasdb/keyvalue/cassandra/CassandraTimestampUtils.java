@@ -187,7 +187,9 @@ public final class CassandraTimestampUtils {
                         LoggingArgs.internalTableName(AtlasDbConstants.TIMESTAMP_TABLE),
                         SafeArg.of("rowAndColumnName", ROW_AND_COLUMN_NAME_HEX_STRING),
                         SafeArg.of("columnName", CqlUtilities.encodeCassandraHexString(columnName)),
-                        SafeArg.of("atlasTimestamp", CqlUtilities.CASSANDRA_TIMESTAMP),
+                        SafeArg.of(
+                                "atlasTimestamp",
+                                CqlUtilities.CASSANDRA_REPRESENTATION_OF_ATLASDB_ATOMIC_TABLE_TIMESTAMP),
                         SafeArg.of("newValue", CqlUtilities.encodeCassandraHexBytes(target)))
                 .build();
     }
@@ -201,7 +203,9 @@ public final class CassandraTimestampUtils {
                         SafeArg.of("newValue", CqlUtilities.encodeCassandraHexBytes(target)),
                         SafeArg.of("rowAndColumnName", ROW_AND_COLUMN_NAME_HEX_STRING),
                         SafeArg.of("columnName", CqlUtilities.encodeCassandraHexString(columnName)),
-                        SafeArg.of("atlasTimestamp", CqlUtilities.CASSANDRA_TIMESTAMP),
+                        SafeArg.of(
+                                "atlasTimestamp",
+                                CqlUtilities.CASSANDRA_REPRESENTATION_OF_ATLASDB_ATOMIC_TABLE_TIMESTAMP),
                         SafeArg.of("oldValue", CqlUtilities.encodeCassandraHexBytes(expected)))
                 .build();
     }
