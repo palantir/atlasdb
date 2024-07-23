@@ -49,8 +49,7 @@ public final class DefaultBucketProgressStore implements BucketProgressStore {
         this.bucketProgressSerializer = bucketProgressSerializer;
     }
 
-    public static BucketProgressStore create(
-            KeyValueService keyValueService, ObjectMapper objectMapper) {
+    public static BucketProgressStore create(KeyValueService keyValueService, ObjectMapper objectMapper) {
         return new DefaultBucketProgressStore(keyValueService, BucketProgressSerializer.create(objectMapper));
     }
 
