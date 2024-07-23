@@ -24,8 +24,9 @@ public interface BucketProgressStore {
 
     /**
      * If this method returned successfully, it is guaranteed that the stored bucket progress for the relevant bucket
-     * is at least the minimum. There is no guarantee that any writes are actually performed (e.g., if the bucket
-     * progress is already greater than the provided minimum).
+     * was at least the minimum at some point during this call, and is at least the minimum unless there was a
+     * concurrent call to {@link #deleteBucketProgress(SweepableBucket)}. There is no guarantee that any writes are
+     * actually performed (e.g., if the bucket progress is already greater than the provided minimum).
      */
     void updateBucketProgressToAtLeast(SweepableBucket bucket, BucketProgress minimum);
 
