@@ -43,8 +43,8 @@ public final class DefaultBucketProgressStore implements BucketProgressStore {
     private final KeyValueService keyValueService;
     private final BucketProgressSerializer bucketProgressSerializer;
 
-    private DefaultBucketProgressStore(
-            KeyValueService keyValueService, BucketProgressSerializer bucketProgressSerializer) {
+    @VisibleForTesting
+    DefaultBucketProgressStore(KeyValueService keyValueService, BucketProgressSerializer bucketProgressSerializer) {
         this.keyValueService = keyValueService;
         this.bucketProgressSerializer = bucketProgressSerializer;
     }
@@ -101,6 +101,7 @@ public final class DefaultBucketProgressStore implements BucketProgressStore {
                                 SafeArg.of("persistedProgress", extantCurrentProgress));
                     }
                 }
+                return;
             } catch (RuntimeException e) {
                 if (attempt == CAS_ATTEMPT_LIMIT - 1) {
                     log.warn(
