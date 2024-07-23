@@ -71,7 +71,7 @@ public class DefaultBucketProgressStoreTest {
     public void updateBucketProgressToAtLeastRetriesOnFailure() {
         doThrow(GENERIC_RUNTIME_EXCEPTION).doNothing().when(keyValueService).checkAndSet(any());
         assertThatCode(() -> bucketProgressStore.updateBucketProgressToAtLeast(
-                DEFAULT_BUCKET, BucketProgress.createForTimestampOffset(1000L)))
+                        DEFAULT_BUCKET, BucketProgress.createForTimestampOffset(1000L)))
                 .doesNotThrowAnyException();
         verify(keyValueService, times(2)).checkAndSet(any());
     }
@@ -80,7 +80,7 @@ public class DefaultBucketProgressStoreTest {
     public void updateBucketProgressToAtLeastDoesNotRetryIndefinitely() {
         doThrow(GENERIC_RUNTIME_EXCEPTION).when(keyValueService).checkAndSet(any());
         assertThatThrownBy(() -> bucketProgressStore.updateBucketProgressToAtLeast(
-                DEFAULT_BUCKET, BucketProgress.createForTimestampOffset(1000L)))
+                        DEFAULT_BUCKET, BucketProgress.createForTimestampOffset(1000L)))
                 .isEqualTo(GENERIC_RUNTIME_EXCEPTION);
         verify(keyValueService, times(10)).checkAndSet(any());
     }
@@ -137,7 +137,7 @@ public class DefaultBucketProgressStoreTest {
                                 Value.create(serializedIntermediateProgressTwo, AtlasDbConstants.TRANSACTION_TS)));
 
         doThrow(createCheckAndSetExceptionForDefaultBucket(
-                bucketProgress, BucketProgress.createForTimestampOffset(30L)))
+                        bucketProgress, BucketProgress.createForTimestampOffset(30L)))
                 .doThrow(createCheckAndSetExceptionForDefaultBucket(
                         bucketProgress, BucketProgress.createForTimestampOffset(70L)))
                 .doNothing()
