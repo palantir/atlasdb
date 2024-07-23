@@ -70,6 +70,12 @@ public final class DefaultBucketProgressStore implements BucketProgressStore {
                 if (currentProgress.isEmpty()) {
                     keyValueService.checkAndSet(
                             CheckAndSetRequest.newCell(TABLE_REF, bucketCell, serializedBucketProgress));
+                    if (log.isDebugEnabled()) {
+                        log.debug(
+                                "Persisted new sweep bucket progress",
+                                SafeArg.of("bucket", bucket),
+                                SafeArg.of("minimumProgress", minimum));
+                    }
                 } else {
                     BucketProgress extantCurrentProgress =
                             bucketProgressSerializer.deserializeProgress(currentProgress.get());
