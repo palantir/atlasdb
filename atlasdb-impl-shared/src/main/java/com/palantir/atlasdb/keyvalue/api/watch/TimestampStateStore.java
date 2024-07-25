@@ -34,7 +34,6 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Optional;
@@ -151,10 +150,7 @@ final class TimestampStateStore {
     TimestampStateStoreState getStateForDiagnostics() {
         // This method doesn't need to read a thread-safe snapshot of timestampMap and livingVersions
         SortedSetMultimap<Sequence, StartTimestamp> living = TreeMultimap.create();
-        for (Entry<Sequence, NavigableSet<StartTimestamp>> entry : livingVersions.entrySet()) {
-            living.putAll(entry.getKey(), new TreeSet<>(entry.getValue()));
-        }
-
+        livingVersions.forEach((sequence, startTimestamps) -> living.putAll(sequence, new TreeSet<>(startTimestamps)));
         return ImmutableTimestampStateStoreState.builder()
                 .timestampMap(new TreeMap<>(timestampMap))
                 .livingVersions(living)

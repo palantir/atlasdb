@@ -23,12 +23,14 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.CommitUpdate.Visitor;
+import com.palantir.logsafe.Unsafe;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
+@Unsafe
 final class FilteringValueCacheSnapshot implements ValueCacheSnapshot {
     private final ValueCacheSnapshot delegate;
     private final LockedCells lockedCells;
@@ -66,6 +68,7 @@ final class FilteringValueCacheSnapshot implements ValueCacheSnapshot {
         return delegate.hasAnyTablesWatched();
     }
 
+    @Unsafe
     @Override
     public String toString() {
         return MoreObjects.toStringHelper("FilteredValueCacheSnapshot")
