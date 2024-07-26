@@ -43,14 +43,13 @@ public final class DefaultBucketProgressStore implements BucketProgressStore {
     private final KeyValueService keyValueService;
     private final BucketProgressSerializer bucketProgressSerializer;
 
-    private DefaultBucketProgressStore(
-            KeyValueService keyValueService, BucketProgressSerializer bucketProgressSerializer) {
+    @VisibleForTesting
+    DefaultBucketProgressStore(KeyValueService keyValueService, BucketProgressSerializer bucketProgressSerializer) {
         this.keyValueService = keyValueService;
         this.bucketProgressSerializer = bucketProgressSerializer;
     }
 
-    public static BucketProgressStore create(
-            KeyValueService keyValueService, ObjectMapper objectMapper) {
+    public static BucketProgressStore create(KeyValueService keyValueService, ObjectMapper objectMapper) {
         return new DefaultBucketProgressStore(keyValueService, BucketProgressSerializer.create(objectMapper));
     }
 
@@ -70,6 +69,12 @@ public final class DefaultBucketProgressStore implements BucketProgressStore {
                 if (currentProgress.isEmpty()) {
                     keyValueService.checkAndSet(
                             CheckAndSetRequest.newCell(TABLE_REF, bucketCell, serializedBucketProgress));
+                    if (log.isDebugEnabled()) {
+                        log.debug(
+                                "Persisted new sweep bucket progress",
+                                SafeArg.of("bucket", bucket),
+                                SafeArg.of("minimumProgress", minimum));
+                    }
                 } else {
                     BucketProgress extantCurrentProgress =
                             bucketProgressSerializer.deserializeProgress(currentProgress.get());
@@ -96,6 +101,7 @@ public final class DefaultBucketProgressStore implements BucketProgressStore {
                                 SafeArg.of("persistedProgress", extantCurrentProgress));
                     }
                 }
+                return;
             } catch (RuntimeException e) {
                 if (attempt == CAS_ATTEMPT_LIMIT - 1) {
                     log.warn(
