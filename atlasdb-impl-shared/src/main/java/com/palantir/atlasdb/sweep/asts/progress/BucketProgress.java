@@ -27,8 +27,12 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableBucketProgress.class)
 @JsonDeserialize(as = ImmutableBucketProgress.class)
 public interface BucketProgress extends Comparable<BucketProgress> {
+    BucketProgress ZERO = BucketProgress.createForTimestampOffset(0L);
+
+    // This timestamp offset is exclusive: this means that any cells at this timestamp must still be swept.
     long timestampOffset();
 
+    // This cell offset is exclusive: this means that any cells at this timestamp must still be swept.
     long cellOffset();
 
     @Value.Check
@@ -37,8 +41,10 @@ public interface BucketProgress extends Comparable<BucketProgress> {
                 timestampOffset() >= 0,
                 "Timestamp offset must be non-negative",
                 SafeArg.of("timestampOffset", timestampOffset()));
+
+        // Note: Changing this so that we can accommodate reaching the end of a partition.
         Preconditions.checkState(
-                timestampOffset() < SweepQueueUtils.TS_FINE_GRANULARITY,
+                timestampOffset() <= SweepQueueUtils.TS_FINE_GRANULARITY,
                 "Timestamp offset should not exceed the granularity of a fine partition.",
                 SafeArg.of("timestampOffset", timestampOffset()));
 

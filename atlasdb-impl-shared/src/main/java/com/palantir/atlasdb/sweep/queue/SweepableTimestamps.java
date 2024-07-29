@@ -84,7 +84,7 @@ public class SweepableTimestamps extends SweepQueueTable {
      * @return Optional containing the fine partition, or Optional.empty() if there are no more candidates before
      * sweepTs
      */
-    Optional<Long> nextTimestampPartition(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
+    public Optional<Long> nextTimestampPartition(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
         List<Long> partitions = nextTimestampPartitions(shardStrategy, lastSweptTs, sweepTs, 1);
         if (partitions.isEmpty()) {
             return Optional.empty();
