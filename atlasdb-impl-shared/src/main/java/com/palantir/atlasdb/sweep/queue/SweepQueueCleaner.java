@@ -50,6 +50,24 @@ public class SweepQueueCleaner {
         progressTo(shardStrategy, lastTs);
     }
 
+    /**
+     * Variant of {@link #clean(ShardAndStrategy, Set, long, DedicatedRows)} but called by foreground sweep processes
+     * which are concerned with cleaning up the writes of individual partitions as they are processed.
+     */
+    public void foregroundClean(ShardAndStrategy shardStrategy, Set<Long> partitions, DedicatedRows dedicatedRows) {
+        cleanDedicatedRows(dedicatedRows);
+        cleanSweepableCells(shardStrategy, partitions);
+    }
+
+    /**
+     * Variant of {@link #clean(ShardAndStrategy, Set, long, DedicatedRows)} but called by background processes
+     * which are concerned with cleaning up sweepable timestamps data and progressing the sweep timestamp.
+     */
+    public void backgroundClean(ShardAndStrategy shardStrategy, Set<Long> partitions, long lastTs) {
+        cleanSweepableTimestamps(shardStrategy, partitions, lastTs);
+        progressTo(shardStrategy, lastTs);
+    }
+
     private void cleanSweepableCells(ShardAndStrategy shardStrategy, Set<Long> partitions) {
         sweepableCells.deleteNonDedicatedRows(shardStrategy, partitions);
         if (log.isDebugEnabled()) {

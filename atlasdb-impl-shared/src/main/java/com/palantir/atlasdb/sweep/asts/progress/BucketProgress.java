@@ -27,23 +27,33 @@ import org.immutables.value.Value;
 @JsonSerialize(as = ImmutableBucketProgress.class)
 @JsonDeserialize(as = ImmutableBucketProgress.class)
 public interface BucketProgress extends Comparable<BucketProgress> {
+    BucketProgress INITIAL_PROGRESS = BucketProgress.createForTimestampOffset(-1L);
+
+    // This timestamp offset is inclusive: this means that within this bucket, all timestamps up to this number
+    // have been fully swept, including this number itself.
     long timestampOffset();
 
+    // This cell offset is inclusive, and applies to the next timestamp: this means that within this bucket, the first
+    // cellOffset cells in the sweepable cells queue for timestampOffset() + 1 have been swept.
+    // We should probably name this differently.
     long cellOffset();
 
     @Value.Check
     default void check() {
         Preconditions.checkState(
-                timestampOffset() >= 0,
-                "Timestamp offset must be non-negative",
+                timestampOffset() >= -1,
+                "Timestamp offset must be non-negative, or -1 as an initial placeholder.",
                 SafeArg.of("timestampOffset", timestampOffset()));
+
         Preconditions.checkState(
                 timestampOffset() < SweepQueueUtils.TS_FINE_GRANULARITY,
                 "Timestamp offset should not exceed the granularity of a fine partition.",
                 SafeArg.of("timestampOffset", timestampOffset()));
 
         Preconditions.checkState(
-                cellOffset() >= 0, "Timestamp offset must be non-negative", SafeArg.of("cellOffset", cellOffset()));
+                cellOffset() >= -1,
+                "Cell offset must be non-negative, or -1 as an initial placeholder.",
+                SafeArg.of("cellOffset", cellOffset()));
     }
 
     @Override
@@ -56,10 +66,14 @@ public interface BucketProgress extends Comparable<BucketProgress> {
         }
     }
 
+    default boolean isBucketCompletelySwept() {
+        return timestampOffset() == SweepQueueUtils.TS_FINE_GRANULARITY - 1;
+    }
+
     static BucketProgress createForTimestampOffset(long timestamp) {
         return ImmutableBucketProgress.builder()
                 .timestampOffset(timestamp)
-                .cellOffset(0L)
+                .cellOffset(-1L)
                 .build();
     }
 
