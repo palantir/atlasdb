@@ -133,6 +133,7 @@ public final class LockableTest {
 
     @Test
     public void closingLockedItemCallsDisposeCallbackWithSameLockableItem() {
+        withLockMock().thenReturn(lockResponse(lockToken()));
         AtomicReference<Lockable<TestLockable>> disposedLockable = new AtomicReference<>();
         Optional<LockedItem<TestLockable>> lockedValue =
                 lockable.tryLock(item -> assertThat(disposedLockable.compareAndSet(null, item))
