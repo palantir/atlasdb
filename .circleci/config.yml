@@ -202,18 +202,13 @@ workflows:
               only: /(tlmete.*|develop)/
             tags:
               only: /.*/
-      - test:
-          requires: [test-tl, test-no-tl]
-          filters:
-            tags:
-              only: /.*/
       - trial-publish:
           requires: [build]
           filters:
             branches:
               ignore: [develop]
       - circle-all:
-          requires: [ trial-publish, test ]
+          requires: [ trial-publish, test-tl, test-no-tl ]
           filters:
             tags:
               only: /.*/
