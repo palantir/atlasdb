@@ -57,7 +57,6 @@ import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.lock.LockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -449,8 +448,8 @@ public class TimeLockAgent {
         if (!install.paxos().ignoreNewServiceCheck()) {
             log.info(
                     "Verifying the new service invariant",
-                    UnsafeArg.of("localServer", cluster.localServer()),
-                    UnsafeArg.of("clusterMembers", cluster.clusterMembers()));
+                    SafeArg.of("localServer", cluster.localServer()),
+                    SafeArg.of("clusterMembers", cluster.clusterMembers()));
             TimeLockPersistenceInvariants.checkPersistenceConsistentWithState(
                     install.isNewService() || cluster.isNewServiceNode(),
                     install.paxos().doDataDirectoriesExist());
