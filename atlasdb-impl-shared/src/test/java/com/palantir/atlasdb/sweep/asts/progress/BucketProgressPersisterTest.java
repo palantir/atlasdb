@@ -34,19 +34,19 @@ public class BucketProgressPersisterTest {
 
     private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();
     private static final BucketProgress BUCKET_PROGRESS_1 = BucketProgress.builder()
-            .timestampOffset(TIMESTAMP_OFFSET_1)
-            .cellOffset(CELL_OFFSET_1)
+            .timestampProgress(TIMESTAMP_OFFSET_1)
+            .cellProgressForNextTimestamp(CELL_OFFSET_1)
             .build();
     private static final BucketProgress BUCKET_PROGRESS_2 = BucketProgress.builder()
-            .timestampOffset(TIMESTAMP_OFFSET_2)
-            .cellOffset(CELL_OFFSET_2)
+            .timestampProgress(TIMESTAMP_OFFSET_2)
+            .cellProgressForNextTimestamp(CELL_OFFSET_2)
             .build();
 
     // Think very carefully about changing these without a migration.
     private static final byte[] SERIALIZED_BUCKET_PROGRESS_1 =
-            BaseEncoding.base64().decode("eyJ0aW1lc3RhbXBPZmZzZXQiOjEwMCwiY2VsbE9mZnNldCI6MTAwMDAwMH0=");
+            BaseEncoding.base64().decode("eyJ0aW1lc3RhbXBQcm9ncmVzcyI6MTAwLCJjZWxsUHJvZ3Jlc3NGb3JOZXh0VGltZXN0YW1wIjoxMDAwMDAwfQ==");
     private static final byte[] SERIALIZED_BUCKET_PROGRESS_2 =
-            BaseEncoding.base64().decode("eyJ0aW1lc3RhbXBPZmZzZXQiOjIwMCwiY2VsbE9mZnNldCI6MjAwMDAwMH0=");
+            BaseEncoding.base64().decode("eyJ0aW1lc3RhbXBQcm9ncmVzcyI6MjAwLCJjZWxsUHJvZ3Jlc3NGb3JOZXh0VGltZXN0YW1wIjoyMDAwMDAwfQ==");
 
     private final BucketProgressPersister bucketProgressPersister = BucketProgressPersister.create(OBJECT_MAPPER);
 

@@ -26,30 +26,46 @@ import org.immutables.value.Value;
 @Value.Immutable
 @JsonSerialize(as = ImmutableBucketProgress.class)
 @JsonDeserialize(as = ImmutableBucketProgress.class)
+/**
+ * Describes partial progress of Sweep within the context of a bucket.
+ */
 public interface BucketProgress {
-    long timestampOffset();
+    /**
+     * Within this bucket, timestamps starting from 0 up to {@link #timestampProgress()} inclusive have been fully swept.
+     * -1 can be used to indicate that no timestamps are fully swept yet (e.g., if we are just starting this bucket,
+     * or if we want to express partial progress within the cells at the timestamp at the head of this bucket).
+     */
+    long timestampProgress();
 
-    long cellOffset();
+    /**
+     * Considering the cells at timestamp equivalent to {@link #timestampProgress()} + 1, the cells up to index
+     * {@link #cellProgressForNextTimestamp()} have been swept. -1 can be used to indicate that no cells at the
+     * next timestamp have been swept yet.
+     */
+    long cellProgressForNextTimestamp();
 
     @Value.Check
     default void check() {
         Preconditions.checkState(
-                timestampOffset() >= 0,
-                "Timestamp offset must be non-negative",
-                SafeArg.of("timestampOffset", timestampOffset()));
+                timestampProgress() >= -1,
+                "Timestamp progress must be non-negative, or -1 (to indicate no timestamps are fully swept yet)",
+                SafeArg.of("timestampProgress", timestampProgress()));
         Preconditions.checkState(
-                timestampOffset() < SweepQueueUtils.TS_FINE_GRANULARITY,
-                "Timestamp offset should not exceed the granularity of a fine partition.",
-                SafeArg.of("timestampOffset", timestampOffset()));
+                timestampProgress() < SweepQueueUtils.TS_FINE_GRANULARITY,
+                "Timestamp progress should not exceed the granularity of a fine partition.",
+                SafeArg.of("timestampProgress", timestampProgress()));
 
         Preconditions.checkState(
-                cellOffset() >= 0, "Timestamp offset must be non-negative", SafeArg.of("cellOffset", cellOffset()));
+                cellProgressForNextTimestamp() >= -1,
+                "Cell progress for next timestamp must be non-negative, or -1 (to indicate no cells at the following"
+                        + " timestamp have been swept yet)",
+                SafeArg.of("cellProgressForNextTimestamp", cellProgressForNextTimestamp()));
     }
 
-    static BucketProgress createForTimestampOffset(long timestamp) {
+    static BucketProgress createForTimestampProgress(long timestamp) {
         return ImmutableBucketProgress.builder()
-                .timestampOffset(timestamp)
-                .cellOffset(0L)
+                .timestampProgress(timestamp)
+                .cellProgressForNextTimestamp(-1L)
                 .build();
     }
 

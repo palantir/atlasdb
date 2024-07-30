@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep.asts.progress;
 
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import com.palantir.logsafe.SafeArg;
@@ -25,48 +26,83 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import org.junit.jupiter.api.Test;
 
 public final class BucketProgressTest {
+    private static final long NO_PROGRESS = -1L;
     private static final long TIMESTAMP_1 = 7L;
     private static final long TIMESTAMP_2 = 777L;
+    private static final long CELL_PROGRESS_1 = 25L;
+    private static final long CELL_PROGRESS_2 = SweepQueueUtils.TS_FINE_GRANULARITY - 1;
 
     @Test
-    public void createForTimestampOffsetReturnsProgressWithZeroCellOffset() {
-        assertThat(BucketProgress.createForTimestampOffset(TIMESTAMP_1))
+    public void createForTimestampProgressReturnsProgressWithNoCellProgressForNextTimestamp() {
+        assertThat(BucketProgress.createForTimestampProgress(TIMESTAMP_1))
                 .isEqualTo(ImmutableBucketProgress.builder()
-                        .timestampOffset(TIMESTAMP_1)
-                        .cellOffset(0L)
+                        .timestampProgress(TIMESTAMP_1)
+                        .cellProgressForNextTimestamp(-1L)
                         .build());
-        assertThat(BucketProgress.createForTimestampOffset(TIMESTAMP_2))
+        assertThat(BucketProgress.createForTimestampProgress(TIMESTAMP_2))
                 .isEqualTo(ImmutableBucketProgress.builder()
-                        .timestampOffset(TIMESTAMP_2)
-                        .cellOffset(0L)
+                        .timestampProgress(TIMESTAMP_2)
+                        .cellProgressForNextTimestamp(-1L)
                         .build());
     }
 
     @Test
-    public void cannotCreateWithNegativeTimestampOffset() {
-        assertThatLoggableExceptionThrownBy(() -> BucketProgress.createForTimestampOffset(-42L))
+    public void canCreateWithPositiveCellProgress() {
+        assertCanCreateWith(TIMESTAMP_1, CELL_PROGRESS_1);
+        assertCanCreateWith(TIMESTAMP_2, CELL_PROGRESS_2);
+    }
+
+    @Test
+    public void canCreateWithTimestampProgressWithoutCellProgress() {
+        assertCanCreateWith(TIMESTAMP_1, NO_PROGRESS);
+        assertCanCreateWith(TIMESTAMP_2, NO_PROGRESS);
+    }
+
+    @Test
+    public void canCreateWithCellProgressWithoutTimestampProgress() {
+        assertCanCreateWith(NO_PROGRESS, CELL_PROGRESS_1);
+        assertCanCreateWith(NO_PROGRESS, CELL_PROGRESS_2);
+    }
+
+    @Test
+    public void canCreateWithNoProgress() {
+        assertCanCreateWith(NO_PROGRESS, NO_PROGRESS);
+    }
+
+    @Test
+    public void cannotCreateWithNegativeTimestampProgressOtherThanNegativeOne() {
+        assertThatLoggableExceptionThrownBy(() -> BucketProgress.createForTimestampProgress(-42L))
                 .isInstanceOf(SafeIllegalStateException.class)
-                .hasExactlyArgs(SafeArg.of("timestampOffset", -42L));
+                .hasExactlyArgs(SafeArg.of("timestampProgress", -42L));
     }
 
     @Test
-    public void cannotCreateWithNegativeCellOffset() {
+    @SuppressWarnings("ResultOfMethodCallIgnored") // Validating that an exception is thrown
+    public void cannotCreateWithNegativeCellProgressOtherThanNegativeOne() {
         assertThatLoggableExceptionThrownBy(() -> ImmutableBucketProgress.builder()
-                        .timestampOffset(TIMESTAMP_1)
-                        .cellOffset(-55L)
+                .timestampProgress(TIMESTAMP_1)
+                .cellProgressForNextTimestamp(-55L)
                         .build())
                 .isInstanceOf(SafeIllegalStateException.class)
-                .hasExactlyArgs(SafeArg.of("cellOffset", -55L));
+                .hasExactlyArgs(SafeArg.of("cellProgressForNextTimestamp", -55L));
     }
 
     @Test
-    public void cannotCreateWithTimestampOffsetGreaterThanFinePartition() {
+    public void cannotCreateWithTimestampProgressGreaterThanFinePartition() {
         assertThatLoggableExceptionThrownBy(
-                        () -> BucketProgress.createForTimestampOffset(SweepQueueUtils.TS_FINE_GRANULARITY))
+                () -> BucketProgress.createForTimestampProgress(SweepQueueUtils.TS_FINE_GRANULARITY))
                 .isInstanceOf(SafeIllegalStateException.class)
-                .hasExactlyArgs(SafeArg.of("timestampOffset", SweepQueueUtils.TS_FINE_GRANULARITY));
-        assertThatLoggableExceptionThrownBy(() -> BucketProgress.createForTimestampOffset(Long.MAX_VALUE))
+                .hasExactlyArgs(SafeArg.of("timestampProgress", SweepQueueUtils.TS_FINE_GRANULARITY));
+        assertThatLoggableExceptionThrownBy(() -> BucketProgress.createForTimestampProgress(Long.MAX_VALUE))
                 .isInstanceOf(SafeIllegalStateException.class)
-                .hasExactlyArgs(SafeArg.of("timestampOffset", Long.MAX_VALUE));
+                .hasExactlyArgs(SafeArg.of("timestampProgress", Long.MAX_VALUE));
+    }
+
+    @SuppressWarnings("ResultOfMethodCallIgnored") // Validating that no exception is thrown
+    private void assertCanCreateWith(long timestampProgress, long cellProgressForNextTimestamp) {
+        assertThatCode(() -> BucketProgress.builder()
+                .timestampProgress(timestampProgress)
+                .cellProgressForNextTimestamp(cellProgressForNextTimestamp)
+                .build()).doesNotThrowAnyException();
     }
 }
