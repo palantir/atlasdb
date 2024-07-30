@@ -20,8 +20,12 @@ import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
 
 /**
  * Given a single {@link com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket}, performs an iteration
- * of the task. This includes retrieving existing progress information,
+ * of sweep on the relevant bucket (resuming from existing partial progress and updating progress when done, as
+ * appropriate).
  */
 public interface SingleBucketSweepTask {
+    /**
+     * Returns the number of cells read by the sweep task.
+     */
     long runOneIteration(SweepableBucket sweepableBucket);
 }

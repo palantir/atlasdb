@@ -29,8 +29,8 @@ import java.util.Set;
 
 public class DefaultShardProgressUpdateProposer implements ShardProgressUpdateProposer {
     // At perhaps 5 millis per call to sweepableTimestamps#nextTimestampPartition, this will mean an iteration of
-    // this call will take 5 seconds.
-    private static final int MAX_PARTITIONS_TO_ADVANCE_PROGRESS_PER_ITERATION = 1000;
+    // this call will take half a second.
+    private static final int MAX_PARTITIONS_TO_ADVANCE_PROGRESS_PER_ITERATION = 100;
 
     private final ShardAndStrategy shardAndStrategy;
     private final ShardProgress shardProgress;
@@ -84,8 +84,7 @@ public class DefaultShardProgressUpdateProposer implements ShardProgressUpdatePr
                             .build();
                 } else {
                     BucketProgress presentProgress = partitionProgress.get();
-                    boolean complete = presentProgress.timestampOffset() == SweepQueueUtils.TS_FINE_GRANULARITY;
-                    if (!complete) {
+                    if (!presentProgress.isBucketCompletelySwept()) {
                         // As in the empty case, we do not want to rewind the sweep progress if we're already
                         // ahead of the start. This seems less likely, but I don't want to rule out us writing
                         // a zero marker or something to that effect.

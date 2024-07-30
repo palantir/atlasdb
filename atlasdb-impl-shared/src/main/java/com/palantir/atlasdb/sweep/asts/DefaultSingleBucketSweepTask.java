@@ -70,26 +70,28 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
         }
 
         BucketProgress existingBucketProgress =
-                bucketProgressStore.getBucketProgress(sweepableBucket).orElse(BucketProgress.ZERO);
-        long startTimestampForProgress = minTimestampForPartition + existingBucketProgress.timestampOffset();
-        if (sweepTimestampForIteration <= startTimestampForProgress) {
-            // There is nothing to sweep in this case too, though this is done as a separate check, because retrieving
-            // timestamp progress requires a database read.
-            return 0L;
-        } else if (existingBucketProgress.timestampOffset() == SweepQueueUtils.TS_FINE_GRANULARITY) {
+                bucketProgressStore.getBucketProgress(sweepableBucket).orElse(BucketProgress.INITIAL_PROGRESS);
+
+        if (existingBucketProgress.isBucketCompletelySwept()) {
             // The bucket has been fully swept. It might still be returned here if we accidentally thought it was a
             // candidate. In any case, there is no work to be done here: this bucket is done.
             return 0L;
         }
 
-        long maxTimestampForPartitionExclusive = minTimestampForPartition + SweepQueueUtils.TS_FINE_GRANULARITY;
-        long partitionEndExclusive = Math.min(sweepTimestampForIteration, maxTimestampForPartitionExclusive);
+        long lastSweptTimestampInPartition = minTimestampForPartition + existingBucketProgress.timestampOffset();
+        if (sweepTimestampForIteration <= lastSweptTimestampInPartition) {
+            // This is a bit unusual but can happen if we have some mechanism of initialising bucket progress beyond
+            // zero.
+            return 0L;
+        }
+
+        long partitionEndExclusive = Math.min(
+                sweepTimestampForIteration,
+                SweepQueueUtils.minTsForFinePartition(sweepableBucket.bucketIdentifier() + 1));
 
         // TODO (jkong): Don't just use this, it does a lot of unnecessary stuff
         SweepBatchWithPartitionInfo sweepBatchWithPartitionInfo = sweepQueueReader.getNextBatchToSweep(
-                sweepableBucket.shardAndStrategy(),
-                startTimestampForProgress - 1, // startTimestampForProgress must still be swept
-                partitionEndExclusive);
+                sweepableBucket.shardAndStrategy(), lastSweptTimestampInPartition, partitionEndExclusive);
         SweepBatch sweepBatch = sweepBatchWithPartitionInfo.sweepBatch();
 
         ShardAndStrategy shardAndStrategy = sweepableBucket.shardAndStrategy();
@@ -112,19 +114,18 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
             targetedSweepMetrics.registerOccurrenceOf(shardAndStrategy, SweepOutcome.SUCCESS);
         }
 
-        // New: Update per bucket progress
         long lastTs = sweepBatch.lastSweptTimestamp();
-        long lastTsOffset = lastTs - minTimestampForPartition + 1;
-        bucketProgressStore.updateBucketProgressToAtLeast(
-                sweepableBucket, BucketProgress.createForTimestampOffset(lastTsOffset));
+        long lastTsOffset = lastTs - minTimestampForPartition;
 
-        // If I am completed, delete stuff for my partition
-        if (lastTsOffset == SweepQueueUtils.TS_FINE_GRANULARITY) {
+        // If completing a fine partition, clean my stuff
+        if (lastTsOffset == SweepQueueUtils.TS_FINE_GRANULARITY - 1) {
             sweepQueueCleaner.foregroundClean(
                     shardAndStrategy,
                     sweepBatchWithPartitionInfo.finePartitions(),
                     sweepBatchWithPartitionInfo.sweepBatch().dedicatedRows());
         }
+        bucketProgressStore.updateBucketProgressToAtLeast(
+                sweepableBucket, BucketProgress.createForTimestampOffset(lastTsOffset));
 
         // No updating of overall progress. That is a responsibility of the background progress updating task
 
