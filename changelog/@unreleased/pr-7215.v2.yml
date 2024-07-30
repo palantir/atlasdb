@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Bump CI Oracle image to 19.24
+  links:
+  - https://github.com/palantir/atlasdb/pull/7215
