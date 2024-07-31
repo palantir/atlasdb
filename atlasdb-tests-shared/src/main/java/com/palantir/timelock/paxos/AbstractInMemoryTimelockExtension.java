@@ -153,7 +153,8 @@ public abstract class AbstractInMemoryTimelockExtension implements TimeLockServi
                 ImmutableSet.of(),
                 delegate.getTimelockService(),
                 LockWatchCachingConfig.builder().build(),
-                Optional::empty);
+                Optional::empty,
+                () -> {});
 
         RedirectRetryTargeter redirectRetryTargeter = timeLockAgent.redirectRetryTargeter();
         ConjureTimelockService conjureTimelockService = ConjureTimelockResource.jersey(
