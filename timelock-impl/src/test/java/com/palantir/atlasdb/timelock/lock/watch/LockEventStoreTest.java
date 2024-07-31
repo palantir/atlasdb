@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.lmax.disruptor.RingBufferLockEventStore;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.timelock.lockwatches.BufferMetrics;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -39,8 +40,8 @@ import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import org.junit.jupiter.api.Test;
 
-public class ArrayLockEventSlidingWindowTest {
-    private static final int WINDOW_SIZE = 10;
+public class LockEventStoreTest {
+    private static final int WINDOW_SIZE = 16;
 
     private static final LockDescriptor LOCK_1 = StringLockDescriptor.of("abc");
     private static final LockDescriptor LOCK_2 = StringLockDescriptor.of("def");
@@ -49,8 +50,8 @@ public class ArrayLockEventSlidingWindowTest {
 
     private final BufferMetrics bufferMetrics =
             BufferMetrics.of(MetricsManagers.createForTests().getTaggedRegistry());
-    private final ArrayLockEventSlidingWindow slidingWindow =
-            new ArrayLockEventSlidingWindow(WINDOW_SIZE, bufferMetrics);
+    //    private final LockEventStore slidingWindow = new ArrayLockEventSlidingWindow(WINDOW_SIZE, bufferMetrics);
+    private final LockEventStore slidingWindow = new RingBufferLockEventStore(WINDOW_SIZE, bufferMetrics);
 
     @Test
     public void whenLastKnownVersionIsAfterCurrentReturnEmpty() {
@@ -60,14 +61,16 @@ public class ArrayLockEventSlidingWindowTest {
 
     @Test
     public void whenLastKnownVersionIsTooOldReturnEmpty() {
-        whenLogContainsEvents5to14();
+        whenLogOverwritesFirst5Elements();
         assertThat(slidingWindow.getNextEvents(3)).isEmpty();
     }
 
     @Test
     public void whenNoNewEventsReturnEmptyList() {
         whenLogContainsEvents0To4();
-        assertThat(slidingWindow.getNextEvents(4).get()).isEmpty();
+        NextEvents nextEvents = slidingWindow.getNextEvents(4).get();
+        assertThat(nextEvents.getEvents()).isEmpty();
+        assertThat(nextEvents.getVersion()).isEqualTo(4);
     }
 
     @Test
@@ -78,20 +81,20 @@ public class ArrayLockEventSlidingWindowTest {
 
     @Test
     public void returnWrappingRange() {
-        whenLogContainsEvents5to14();
-        assertContainsNextEventsInOrder(8, 9, 14);
+        whenLogOverwritesFirst5Elements();
+        assertContainsNextEventsInOrder(WINDOW_SIZE / 2, WINDOW_SIZE / 2 + 1, WINDOW_SIZE + 4);
     }
 
     @Test
     public void returnWrappingRangeOnBoundary() {
-        whenLogContainsEvents5to14();
-        assertContainsNextEventsInOrder(9, 10, 14);
+        whenLogOverwritesFirst5Elements();
+        assertContainsNextEventsInOrder(WINDOW_SIZE - 1, WINDOW_SIZE, WINDOW_SIZE + 4);
     }
 
     @Test
     public void returnRangeAfterBoundary() {
-        whenLogContainsEvents5to14();
-        assertContainsNextEventsInOrder(10, 11, 14);
+        whenLogOverwritesFirst5Elements();
+        assertContainsNextEventsInOrder(WINDOW_SIZE, WINDOW_SIZE + 1, WINDOW_SIZE + 4);
     }
 
     @Test
@@ -161,13 +164,13 @@ public class ArrayLockEventSlidingWindowTest {
         addEvents(5);
     }
 
-    private void whenLogContainsEvents5to14() {
-        // Log contains events [5,6,7,8,9,10,11,12,13,14]
-        addEvents(15);
+    private void whenLogOverwritesFirst5Elements() {
+        // Log contains events [5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
+        addEvents(WINDOW_SIZE + 5);
     }
 
     private void addEvent() {
-        slidingWindow.add(ArrayLockEventSlidingWindowTest::createEvent);
+        slidingWindow.add(LockEventStoreTest::createEvent);
     }
 
     private void addEvents(int number) {
@@ -177,11 +180,11 @@ public class ArrayLockEventSlidingWindowTest {
     }
 
     private void assertContainsNextEventsInOrder(long version, int startInclusive, int endInclusive) {
-        List<LockWatchEvent> result = slidingWindow.getNextEvents(version).get();
+        List<LockWatchEvent> result = slidingWindow.getNextEvents(version).get().getEvents();
         assertThat(result)
                 .containsExactlyElementsOf(LongStream.rangeClosed(startInclusive, endInclusive)
                         .boxed()
-                        .map(ArrayLockEventSlidingWindowTest::createEvent)
+                        .map(LockEventStoreTest::createEvent)
                         .collect(Collectors.toList()));
     }
 
