@@ -14,22 +14,27 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.client;
+package com.palantir.atlasdb.timelock.lock.watch;
 
-import com.palantir.lock.v2.GetCommitTimestampResponse;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.timestamp.TimestampRange;
+import com.palantir.lock.watch.LockWatchEvent;
+import java.util.Optional;
 
-/**
- * Intended to be used for the {@link UnreliableTimeLockService} to randomly fast-forward the timestamp for the purpose
- * of Antithesis testing.
- */
-public interface RandomizedTimestampManager {
-    void randomlyIncreaseTimestamp();
+public interface LockEventStore {
+    /**
+     * Should return {@code -1} if there are no events.
+     */
+    long lastVersion();
 
-    long getFreshTimestamp();
+    // This method is only for one-off diagnostics purposes.
+    LockWatchEvent[] getBufferSnapshot();
 
-    GetCommitTimestampResponse getCommitTimestamp(long startTs, LockToken commitLocksToken);
+    void add(LockWatchEvent.Builder eventBuilder);
 
-    TimestampRange getFreshTimestamps(int numTimestampsRequested);
+    /**
+     * Returns next events (list of events can be empty if client up to date),
+     * or empty optional if client too far behind.
+     */
+    Optional<NextEvents> getNextEvents(long version);
+
+    int capacity();
 }

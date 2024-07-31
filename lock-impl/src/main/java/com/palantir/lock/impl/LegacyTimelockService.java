@@ -25,6 +25,7 @@ import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.v2.ClientLockingOptions;
+import com.palantir.lock.v2.GetCommitTimestampResponse;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -49,12 +50,17 @@ public class LegacyTimelockService implements TimelockService {
     private final TimestampService timestampService;
     private final LockService lockService;
     private final LockClient immutableTsLockClient;
+    private final LockClient commitImmutableTsLockClient;
 
     public LegacyTimelockService(
-            TimestampService timestampService, LockService lockService, LockClient immutableTsLockClient) {
+            TimestampService timestampService,
+            LockService lockService,
+            LockClient immutableTsLockClient,
+            LockClient commitImmutableTsLockClient) {
         this.timestampService = timestampService;
         this.lockService = lockService;
         this.immutableTsLockClient = immutableTsLockClient;
+        this.commitImmutableTsLockClient = commitImmutableTsLockClient;
     }
 
     @Override
@@ -68,8 +74,10 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
-        return getFreshTimestamp();
+    public GetCommitTimestampResponse getCommitTimestamp(long startTs, LockToken commitLocksToken) {
+        LockImmutableTimestampResponse lockImmutableTimestampResponse =
+                getLockImmutableTimestampResponse(commitImmutableTsLockClient);
+        return GetCommitTimestampResponse.of(lockImmutableTimestampResponse, getFreshTimestamp());
     }
 
     @Override
@@ -79,39 +87,19 @@ public class LegacyTimelockService implements TimelockService {
 
     @Override
     public LockImmutableTimestampResponse lockImmutableTimestamp() {
-        long immutableLockTs = timestampService.getFreshTimestamp();
-        LockDescriptor lockDesc = AtlasTimestampLockDescriptor.of(immutableLockTs);
-        com.palantir.lock.LockRequest lockRequest = com.palantir.lock.LockRequest.builder(
-                        ImmutableSortedMap.of(lockDesc, LockMode.READ))
-                .withLockedInVersionId(immutableLockTs)
-                .build();
-        LockRefreshToken lock;
-
-        try {
-            lock = lockService.lock(immutableTsLockClient.getClientId(), lockRequest);
-        } catch (InterruptedException e) {
-            throw Throwables.throwUncheckedException(e);
-        }
-
-        try {
-            return LockImmutableTimestampResponse.of(
-                    getImmutableTimestampInternal(immutableLockTs), LockTokenConverter.toTokenV2(lock));
-        } catch (Throwable e) {
-            if (lock != null) {
-                try {
-                    lockService.unlock(lock);
-                } catch (Throwable unlockThrowable) {
-                    e.addSuppressed(unlockThrowable);
-                }
-            }
-            throw Throwables.rewrapAndThrowUncheckedException(e);
-        }
+        return getLockImmutableTimestampResponse(immutableTsLockClient);
     }
 
     @Override
     public long getImmutableTimestamp() {
         long ts = timestampService.getFreshTimestamp();
-        return getImmutableTimestampInternal(ts);
+        return getImmutableTimestampInternal(ts, immutableTsLockClient);
+    }
+
+    @Override
+    public long getCommitImmutableTimestamp() {
+        long ts = timestampService.getFreshTimestamp();
+        return getImmutableTimestampInternal(ts, commitImmutableTsLockClient);
     }
 
     @Override
@@ -181,11 +169,6 @@ public class LegacyTimelockService implements TimelockService {
         return lockService.currentTimeMillis();
     }
 
-    private long getImmutableTimestampInternal(long ts) {
-        Long minLocked = lockService.getMinLockedInVersionId(immutableTsLockClient.getClientId());
-        return minLocked == null ? ts : minLocked;
-    }
-
     private LockRefreshToken lockAnonymous(com.palantir.lock.LockRequest request) {
         try {
             return lockService.lock(LockClient.ANONYMOUS.getClientId(), request);
@@ -201,5 +184,40 @@ public class LegacyTimelockService implements TimelockService {
             locks.put(descriptor, lockMode);
         }
         return locks;
+    }
+
+    private LockImmutableTimestampResponse getLockImmutableTimestampResponse(LockClient lockClient) {
+        long immutableLockTs = timestampService.getFreshTimestamp();
+        LockDescriptor lockDesc = AtlasTimestampLockDescriptor.of(immutableLockTs);
+        com.palantir.lock.LockRequest lockRequest = com.palantir.lock.LockRequest.builder(
+                        ImmutableSortedMap.of(lockDesc, LockMode.READ))
+                .withLockedInVersionId(immutableLockTs)
+                .build();
+        LockRefreshToken lock;
+
+        try {
+            lock = lockService.lock(lockClient.getClientId(), lockRequest);
+        } catch (InterruptedException e) {
+            throw Throwables.throwUncheckedException(e);
+        }
+
+        try {
+            return LockImmutableTimestampResponse.of(
+                    getImmutableTimestampInternal(immutableLockTs, lockClient), LockTokenConverter.toTokenV2(lock));
+        } catch (Throwable e) {
+            if (lock != null) {
+                try {
+                    lockService.unlock(lock);
+                } catch (Throwable unlockThrowable) {
+                    e.addSuppressed(unlockThrowable);
+                }
+            }
+            throw Throwables.rewrapAndThrowUncheckedException(e);
+        }
+    }
+
+    private long getImmutableTimestampInternal(long ts, LockClient lockClient) {
+        Long minLocked = lockService.getMinLockedInVersionId(lockClient.getClientId());
+        return minLocked == null ? ts : minLocked;
     }
 }
