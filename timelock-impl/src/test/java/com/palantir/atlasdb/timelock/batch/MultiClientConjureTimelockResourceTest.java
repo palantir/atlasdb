@@ -72,6 +72,12 @@ public class MultiClientConjureTimelockResourceTest {
     private static final RedirectRetryTargeter TARGETER =
             RedirectRetryTargeter.create(LOCAL, ImmutableList.of(LOCAL, REMOTE));
     private static final int DUMMY_COMMIT_TS_COUNT = 5;
+    private static final LeadershipId LEADERSHIP_ID = LeadershipId.random();
+    private static final LeaderTime LEADER_TIME = LeaderTime.of(LEADERSHIP_ID, NanoTime.createForTests(1L));
+    private static final Lease LEASE = Lease.of(LEADER_TIME, Duration.ofSeconds(977));
+    private static final LockToken COMMIT_TS_LOCK_TOKEN = mock(LockToken.class);
+    private static final LockImmutableTimestampResponse COMMIT_TS_RESPONSE =
+            LockImmutableTimestampResponse.of(1L, COMMIT_TS_LOCK_TOKEN);
 
     private Map<String, AsyncTimelockService> namespaces = new HashMap<>();
     private Map<String, LeadershipId> namespaceToLeaderMap = new HashMap<>();
@@ -234,8 +240,13 @@ public class MultiClientConjureTimelockResourceTest {
 
     private GetCommitTimestampsResponse getCommitTimestampResponse(String namespace) {
         int inclusiveLower = getInclusiveLowerCommitTs(namespace);
-        return GetCommitTimestampsResponse.of(
-                inclusiveLower, inclusiveLower + DUMMY_COMMIT_TS_COUNT, lockWatchStateUpdate);
+        return GetCommitTimestampsResponse.builder()
+                .inclusiveLower(inclusiveLower)
+                .inclusiveUpper(inclusiveLower + DUMMY_COMMIT_TS_COUNT)
+                .lockWatchUpdate(lockWatchStateUpdate)
+                .commitImmutableTimestamp(COMMIT_TS_RESPONSE)
+                .lease(LEASE)
+                .build();
     }
 
     private Integer getInclusiveLowerCommitTs(String namespace) {
