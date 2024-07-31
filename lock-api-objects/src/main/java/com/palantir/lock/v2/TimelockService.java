@@ -42,7 +42,7 @@ public interface TimelockService {
 
     long getFreshTimestamp();
 
-    long getCommitTimestamp(long startTs, LockToken commitLocksToken);
+    GetCommitTimestampResponse getCommitTimestamp(long startTs, LockToken commitLocksToken);
 
     TimestampRange getFreshTimestamps(@Safe @QueryParam("number") int numTimestampsRequested);
 
@@ -75,6 +75,8 @@ public interface TimelockService {
     }
 
     long getImmutableTimestamp();
+
+    long getCommitImmutableTimestamp();
 
     LockResponse lock(LockRequest request);
 

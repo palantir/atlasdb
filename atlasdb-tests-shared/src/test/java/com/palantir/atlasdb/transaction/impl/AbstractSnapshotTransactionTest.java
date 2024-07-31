@@ -140,6 +140,7 @@ import com.palantir.lock.LockRequest;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.TimeDuration;
+import com.palantir.lock.v2.GetCommitTimestampResponse;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -1612,7 +1613,9 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                 getSnapshotTransactionWith(spiedTimeLockService, () -> transactionTs, res, PreCommitConditions.NO_OP);
 
         when(spiedTimeLockService.getFreshTimestamp()).thenReturn(transactionTs + 1);
-        doReturn(transactionTs + 1).when(spiedTimeLockService).getCommitTimestamp(anyLong(), any());
+        doReturn(GetCommitTimestampResponse.of(res, transactionTs + 1))
+                .when(spiedTimeLockService)
+                .getCommitTimestamp(anyLong(), any());
 
         // forcing to try to commit a transaction that is already committed
         transactionService.putUnlessExists(transactionTs, spiedTimeLockService.getFreshTimestamp());
