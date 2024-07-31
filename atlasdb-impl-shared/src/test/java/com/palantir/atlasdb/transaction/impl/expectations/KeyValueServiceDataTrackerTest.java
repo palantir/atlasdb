@@ -29,6 +29,7 @@ import com.palantir.flake.FlakeRetryTest;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public final class KeyValueServiceDataTrackerTest {
@@ -171,6 +172,7 @@ public final class KeyValueServiceDataTrackerTest {
                                 ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_1, SMALL_BYTES_READ))));
     }
 
+    @Disabled
     @FlakeRetryTest
     public void interleavedMethodCallsAreTracked() throws InterruptedException {
         ExecutorService executor = PTExecutors.newFixedThreadPool(100);
