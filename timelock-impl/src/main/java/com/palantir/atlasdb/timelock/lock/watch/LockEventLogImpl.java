@@ -97,8 +97,6 @@ public class LockEventLogImpl implements LockEventLog {
         slidingWindow.add(LockWatchCreatedEvent.builder(newWatches.references(), openLocks));
     }
 
-    // This should only snapshot the internals of this class. Mutation is strictly
-    // prohibited.
     @Override
     public void logState() {
         diagnosticLog.log(logger -> {
