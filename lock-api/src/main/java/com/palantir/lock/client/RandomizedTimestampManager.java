@@ -16,6 +16,7 @@
 
 package com.palantir.lock.client;
 
+import com.palantir.lock.v2.GetCommitTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.timestamp.TimestampRange;
 
@@ -28,7 +29,7 @@ public interface RandomizedTimestampManager {
 
     long getFreshTimestamp();
 
-    long getCommitTimestamp(long startTs, LockToken commitLocksToken);
+    GetCommitTimestampResponse getCommitTimestamp(long startTs, LockToken commitLocksToken);
 
     TimestampRange getFreshTimestamps(int numTimestampsRequested);
 }
