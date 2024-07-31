@@ -144,6 +144,18 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         cacheStore.removeCache(startTs);
     }
 
+    private synchronized void ensureStateRemoved(Set<Long> elements) {
+        for (long startTimestamp : elements) {
+            ensureStateRemovedImpl(startTimestamp);
+        }
+    }
+
+    private synchronized void ensureStateRemovedImpl(long startTimestamp) {
+        StartTimestamp startTs = StartTimestamp.of(startTimestamp);
+        snapshotStore.removeTimestamp(startTs);
+        cacheStore.removeCache(startTs);
+    }
+
     @Override
     public void onSuccessfulCommit(long startTimestamp) {
         TransactionScopedCache cache = cacheStore.getCache(StartTimestamp.of(startTimestamp));
@@ -350,9 +362,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             // TODO (jkong): Implement a nicer version of multi-removal.
             // The current version for instance may, in between timestamps, spam the rate limiter or clean up snapshots
             // multiple times when it could just do the check once at the end.
-            for (long element : elements) {
-                ensureStateRemoved(element);
-            }
+            ensureStateRemoved(elements);
         }
     }
 }
