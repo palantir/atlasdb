@@ -34,6 +34,7 @@ import com.palantir.logsafe.Unsafe;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.tracing.CloseableTracer;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
@@ -129,17 +130,19 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     @Override
     public synchronized TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps, Optional<LockWatchVersion> lastKnownVersion) {
-        Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get update for empty set of transactions");
-        TimestampMapping timestampMapping = getTimestampMappings(startTimestamps);
+        try (CloseableTracer tracer = CloseableTracer.startSpan("LockWatchEventCacheImpl#getUpdateForTransactions")) {
+            Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get update for empty set of transactions");
+            TimestampMapping timestampMapping = getTimestampMappings(startTimestamps);
 
-        VersionBounds versionBounds = VersionBounds.builder()
-                .startVersion(lastKnownVersion)
-                .endVersion(timestampMapping.lastVersion())
-                .earliestSnapshotVersion(timestampMapping.versionRange().lowerEndpoint())
-                .build();
+            VersionBounds versionBounds = VersionBounds.builder()
+                    .startVersion(lastKnownVersion)
+                    .endVersion(timestampMapping.lastVersion())
+                    .earliestSnapshotVersion(timestampMapping.versionRange().lowerEndpoint())
+                    .build();
 
-        return eventLog.getEventsBetweenVersions(versionBounds)
-                .toTransactionsLockWatchUpdate(timestampMapping, lastKnownVersion);
+            return eventLog.getEventsBetweenVersions(versionBounds)
+                    .toTransactionsLockWatchUpdate(timestampMapping, lastKnownVersion);
+        }
     }
 
     @Override
@@ -165,13 +168,15 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     private synchronized TimestampMapping getTimestampMappings(Set<Long> startTimestamps) {
-        ImmutableTimestampMapping.Builder mappingBuilder = TimestampMapping.builder();
-        startTimestamps.forEach(timestamp -> {
-            Optional<LockWatchVersion> entry = timestampStateStore.getStartVersion(timestamp);
-            assertTrue(entry.isPresent(), "start timestamp missing from map");
-            mappingBuilder.putTimestampMapping(timestamp, entry.get());
-        });
-        return mappingBuilder.build();
+        try (CloseableTracer trace = CloseableTracer.startSpan("LockWatchEventCacheImpl#getTimestampMappings")) {
+            ImmutableTimestampMapping.Builder mappingBuilder = TimestampMapping.builder();
+            startTimestamps.forEach(timestamp -> {
+                Optional<LockWatchVersion> entry = timestampStateStore.getStartVersion(timestamp);
+                assertTrue(entry.isPresent(), "start timestamp missing from map");
+                mappingBuilder.putTimestampMapping(timestamp, entry.get());
+            });
+            return mappingBuilder.build();
+        }
     }
 
     private synchronized Optional<LockWatchVersion> processEventLogUpdate(LockWatchStateUpdate update) {

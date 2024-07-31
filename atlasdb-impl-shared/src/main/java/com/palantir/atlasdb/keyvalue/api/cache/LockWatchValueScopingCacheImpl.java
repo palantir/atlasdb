@@ -40,6 +40,7 @@ import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.tracing.CloseableTracer;
 import com.palantir.util.RateLimitedLogger;
 import java.util.Comparator;
 import java.util.List;
@@ -112,21 +113,28 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
 
     @Override
     public synchronized void processStartTransactions(Set<Long> startTimestamps) {
-        TransactionsLockWatchUpdate updateForTransactions =
-                eventCache.getUpdateForTransactions(startTimestamps, currentVersion);
+        try (CloseableTracer trace = CloseableTracer.startSpan("processStartTransactions")) {
+            TransactionsLockWatchUpdate updateForTransactions =
+                    eventCache.getUpdateForTransactions(startTimestamps, currentVersion);
 
-        Optional<LockWatchVersion> latestVersionFromUpdate = computeMaxUpdateVersion(updateForTransactions);
+            Optional<LockWatchVersion> latestVersionFromUpdate = computeMaxUpdateVersion(updateForTransactions);
 
-        if (updateForTransactions.clearCache()) {
-            clearCache(updateForTransactions, latestVersionFromUpdate);
+            if (updateForTransactions.clearCache()) {
+                clearCache(updateForTransactions, latestVersionFromUpdate);
+            }
+
+            try (CloseableTracer tracer = CloseableTracer.startSpan("LockWatchValueScopingCacheImpl#updateStores")) {
+                updateStores(updateForTransactions);
+            }
+            try (CloseableTracer tracer =
+                    CloseableTracer.startSpan("LockWatchValueScopingCacheImpl#updateCurrentVersion")) {
+                updateCurrentVersion(latestVersionFromUpdate);
+            }
         }
-
-        updateStores(updateForTransactions);
-        updateCurrentVersion(latestVersionFromUpdate);
     }
 
     @Override
-    public synchronized void updateCacheWithCommitTimestampsInformation(Set<Long> startTimestamps) {
+    public void updateCacheWithCommitTimestampsInformation(Set<Long> startTimestamps) {
         startTimestamps.forEach(this::processCommitUpdate);
     }
 
@@ -139,8 +147,27 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
 
     @Override
     public synchronized void ensureStateRemoved(long startTimestamp) {
+        ensureStateRemovedImpl(startTimestamp);
+    }
+
+    private synchronized void ensureStateRemoved(Set<Long> elements) {
+        try (CloseableTracer tracer = CloseableTracer.startSpan("ensureStateRemoved(Set<Long>)")) {
+            for (long startTimestamp : elements) {
+                ensureStateRemovedImpl(startTimestamp);
+            }
+        }
+    }
+
+    private synchronized void ensureStateRemovedImpl(long startTimestamp) {
+        // Not very concurrency safe, but should be fast, just removal from
+        // 2 maps. Once a second it runs some cleanup on internal datastructures,
+        // which will block, but should also be fairly quick.
+        // I think the requirement here is that sometimes we need to
+        // do computation on the whole datastrure, but we should figure out
+        // a way to not have to do that.
         StartTimestamp startTs = StartTimestamp.of(startTimestamp);
         snapshotStore.removeTimestamp(startTs);
+        // Concurrency safe
         cacheStore.removeCache(startTs);
     }
 
@@ -214,11 +241,16 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         return cacheStore.getReadOnlyCache(StartTimestamp.of(startTs));
     }
 
-    private synchronized void processCommitUpdate(long startTimestamp) {
+    private void processCommitUpdate(long startTimestamp) {
         StartTimestamp startTs = StartTimestamp.of(startTimestamp);
+        // Just a lookup to a map: threadsafe and doesn't really need to be synchronized.
         TransactionScopedCache cache = cacheStore.getCache(startTs);
         cache.finalise();
+
+        // This is already threadsafe and called directly from other places?
         CommitUpdate commitUpdate = eventCache.getCommitUpdate(startTimestamp);
+
+        // Just #computeIfPresent on a threadsafe map
         cacheStore.createReadOnlyCache(startTs, commitUpdate);
     }
 
@@ -350,9 +382,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
             // TODO (jkong): Implement a nicer version of multi-removal.
             // The current version for instance may, in between timestamps, spam the rate limiter or clean up snapshots
             // multiple times when it could just do the check once at the end.
-            for (long element : elements) {
-                ensureStateRemoved(element);
-            }
+            ensureStateRemoved(elements);
         }
     }
 }
