@@ -33,6 +33,7 @@ import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.watch.CommitUpdate;
+import com.palantir.tracing.CloseableTracer;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -181,8 +182,10 @@ public final class TransactionScopedCacheImpl implements TransactionScopedCache 
 
     @Override
     public TransactionScopedCache createReadOnlyCache(CommitUpdate commitUpdate) {
-        return ReadOnlyTransactionScopedCache.create(
-                new TransactionScopedCacheImpl(valueStore.createWithFilteredSnapshot(commitUpdate), metrics));
+        try (CloseableTracer tracer = CloseableTracer.startSpan("TransactionScopedCacheImpl#createReadOnlyCache")) {
+            return ReadOnlyTransactionScopedCache.create(
+                    new TransactionScopedCacheImpl(valueStore.createWithFilteredSnapshot(commitUpdate), metrics));
+        }
     }
 
     @Override

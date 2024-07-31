@@ -16,6 +16,7 @@ dependencies {
     implementation (project(":atlasdb-config")) {
         exclude group:'io.dropwizard'
     }
+    implementation 'com.lmax:disruptor'
 
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'org.mindrot:jbcrypt'
