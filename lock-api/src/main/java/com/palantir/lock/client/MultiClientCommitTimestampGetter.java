@@ -20,6 +20,7 @@ import static com.palantir.lock.client.ConjureLockRequests.toConjure;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Streams;
+import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
@@ -28,6 +29,8 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.common.streams.KeyedStream;
+import com.palantir.lock.v2.GetCommitTimestampResponse;
+import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchStateUpdate;
@@ -43,24 +46,27 @@ import java.util.Queue;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
+import java.util.stream.Stream;
 import org.immutables.value.Value;
 
 public final class MultiClientCommitTimestampGetter implements AutoCloseable {
-    private final DisruptorAutobatcher<NamespacedRequest, Long> autobatcher;
+    private final DisruptorAutobatcher<NamespacedRequest, GetCommitTimestampResponse> autobatcher;
 
-    private MultiClientCommitTimestampGetter(DisruptorAutobatcher<NamespacedRequest, Long> autobatcher) {
+    private MultiClientCommitTimestampGetter(
+            DisruptorAutobatcher<NamespacedRequest, GetCommitTimestampResponse> autobatcher) {
         this.autobatcher = autobatcher;
     }
 
     public static MultiClientCommitTimestampGetter create(InternalMultiClientConjureTimelockService delegate) {
-        DisruptorAutobatcher<NamespacedRequest, Long> autobatcher = Autobatchers.independent(consumer(delegate))
+        DisruptorAutobatcher<NamespacedRequest, GetCommitTimestampResponse> autobatcher = Autobatchers.independent(
+                        consumer(delegate))
                 .safeLoggablePurpose("multi-client-commit-timestamp-getter")
                 .batchFunctionTimeout(Duration.ofSeconds(30))
                 .build();
         return new MultiClientCommitTimestampGetter(autobatcher);
     }
 
-    public long getCommitTimestamp(
+    public GetCommitTimestampResponse getCommitTimestamp(
             Namespace namespace, long startTs, LockToken commitLocksToken, LockWatchCache cache) {
         return AtlasFutures.getUnchecked(autobatcher.apply(ImmutableNamespacedRequest.builder()
                 .namespace(namespace)
@@ -71,7 +77,7 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
     }
 
     @VisibleForTesting
-    static Consumer<List<BatchElement<NamespacedRequest, Long>>> consumer(
+    static Consumer<List<BatchElement<NamespacedRequest, GetCommitTimestampResponse>>> consumer(
             InternalMultiClientConjureTimelockService delegate) {
         return batch -> {
             BatchStateManager batchStateManager = BatchStateManager.createFromRequestBatch(batch);
@@ -88,10 +94,11 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
             this.requestMap = requestMap;
         }
 
-        static BatchStateManager createFromRequestBatch(List<BatchElement<NamespacedRequest, Long>> batch) {
+        static BatchStateManager createFromRequestBatch(
+                List<BatchElement<NamespacedRequest, GetCommitTimestampResponse>> batch) {
             Map<Namespace, NamespacedBatchStateManager> requestMap = new HashMap<>();
 
-            for (BatchElement<NamespacedRequest, Long> elem : batch) {
+            for (BatchElement<NamespacedRequest, GetCommitTimestampResponse> elem : batch) {
                 NamespacedRequest argument = elem.argument();
                 Namespace namespace = argument.namespace();
                 NamespacedBatchStateManager namespacedBatchStateManager = requestMap.computeIfAbsent(
@@ -120,7 +127,7 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
     }
 
     private static final class NamespacedBatchStateManager {
-        private final Queue<BatchElement<NamespacedRequest, Long>> pendingRequestQueue;
+        private final Queue<BatchElement<NamespacedRequest, GetCommitTimestampResponse>> pendingRequestQueue;
         private final LockWatchCache cache;
         private Optional<LockWatchVersion> lastKnownVersion;
 
@@ -134,7 +141,7 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
             return !pendingRequestQueue.isEmpty();
         }
 
-        private void addRequest(BatchElement<NamespacedRequest, Long> elem) {
+        private void addRequest(BatchElement<NamespacedRequest, GetCommitTimestampResponse> elem) {
             pendingRequestQueue.add(elem);
         }
 
@@ -151,20 +158,33 @@ public final class MultiClientCommitTimestampGetter implements AutoCloseable {
         }
 
         private void serviceRequests(GetCommitTimestampsResponse commitTimestampsResponse) {
-            List<Long> commitTimestamps = getCommitTimestampValues(commitTimestampsResponse);
-
-            processLockWatchUpdate(commitTimestamps, commitTimestampsResponse.getLockWatchUpdate());
-
-            for (Long commitTimestamp : commitTimestamps) {
-                pendingRequestQueue.poll().result().set(commitTimestamp);
-            }
-        }
-
-        private List<Long> getCommitTimestampValues(GetCommitTimestampsResponse commitTimestampsResponse) {
-            return LongStream.rangeClosed(
+            LockToken immutableTsLock =
+                    commitTimestampsResponse.getCommitImmutableTimestamp().getLock();
+            long immutableTs =
+                    commitTimestampsResponse.getCommitImmutableTimestamp().getImmutableTimestamp();
+            Stream<LockImmutableTimestampResponse> immutableTsAndLocks = LockTokenShare.share(
+                            immutableTsLock,
+                            Ints.checkedCast(commitTimestampsResponse.getInclusiveUpper()
+                                    - commitTimestampsResponse.getInclusiveLower()
+                                    + 1))
+                    .map(tokenShare -> LockImmutableTimestampResponse.of(immutableTs, tokenShare));
+            List<Long> timestamps = LongStream.rangeClosed(
                             commitTimestampsResponse.getInclusiveLower(), commitTimestampsResponse.getInclusiveUpper())
                     .boxed()
                     .collect(Collectors.toList());
+            List<GetCommitTimestampResponse> commitTimestamps = Streams.zip(
+                            immutableTsAndLocks, timestamps.stream(), GetCommitTimestampResponse::of)
+                    .collect(Collectors.toList());
+
+            processLockWatchUpdate(
+                    commitTimestamps.stream()
+                            .map(GetCommitTimestampResponse::timestamp)
+                            .collect(Collectors.toList()),
+                    commitTimestampsResponse.getLockWatchUpdate());
+
+            for (GetCommitTimestampResponse commitTimestamp : commitTimestamps) {
+                pendingRequestQueue.poll().result().set(commitTimestamp);
+            }
         }
 
         private void processLockWatchUpdate(List<Long> timestamps, LockWatchStateUpdate lockWatchUpdate) {

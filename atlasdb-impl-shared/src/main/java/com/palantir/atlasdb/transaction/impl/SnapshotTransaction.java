@@ -82,6 +82,7 @@ import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
+import com.palantir.atlasdb.transaction.api.DelayedWrite;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
@@ -147,6 +148,7 @@ import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.ClientLockingOptions;
+import com.palantir.lock.v2.GetCommitTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -162,6 +164,7 @@ import com.palantir.logsafe.exceptions.SafeNullPointerException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.timestamp.TimestampRange;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.RateLimitedLogger;
@@ -200,6 +203,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
@@ -1750,6 +1754,26 @@ public class SnapshotTransaction extends AbstractTransaction
                 Maps.transformValues(valuesAndMetadata, ValueAndChangeMetadata::metadata));
     }
 
+    @Override
+    public void putDelayed(List<DelayedWrite> values) {
+        //        Preconditions.checkArgument(!AtlasDbConstants.HIDDEN_TABLES.contains(tableRef));
+        //        markTableAsInvolvedInThisTransaction(tableRef);
+
+        if (values.isEmpty()) {
+            return;
+        }
+
+        numWriters.incrementAndGet();
+        try {
+            // We need to check the status after incrementing writers to ensure that we fail if we are committing.
+            ensureUncommitted();
+
+            localWriteBuffer.putDelayed(values);
+        } finally {
+            numWriters.decrementAndGet();
+        }
+    }
+
     private void putWithMetadataInternal(
             TableReference tableRef, Map<Cell, byte[]> values, Map<Cell, ChangeMetadata> metadata) {
         ensureNoEmptyValues(values);
@@ -1991,7 +2015,13 @@ public class SnapshotTransaction extends AbstractTransaction
             // This must happen before conflict checking, otherwise we could complete the checks and then have someone
             // else write underneath us before we proceed (thus missing a write/write conflict).
             // Timing still useful to distinguish bad lock percentiles from user-generated lock requests.
-            LockToken commitLocksToken = timedAndTraced("commitAcquireLocks", this::acquireLocksForCommit);
+            Set<LockToken> commitLocksToken = new HashSet<>();
+            commitLocksToken.add(timedAndTraced("commitAcquireLocks", this::acquireLocksForCommit));
+
+            // We could technically grab the commit timestamp as part of grabbing the locks and we would probably
+            // call it something slightly different then.
+            // The idea is the same though: have an idea of "beyond this point, writes are unsettled and therefore
+            // should not be read"
             try {
                 // Conflict checking. We can actually do this later without compromising correctness, but there is no
                 // reason to postpone this check - we waste resources writing unnecessarily if these are going to fail.
@@ -2030,9 +2060,14 @@ public class SnapshotTransaction extends AbstractTransaction
                 // We must do this before we check that our locks are still valid to ensure that other transactions that
                 // will hold these locks are sure to have start timestamps after our commit timestamp.
                 // Timing is still useful, as this may perform operations pertaining to lock watches.
-                long commitTimestamp = timedAndTraced(
+                // TODO(jakubk): Lalala, trying to code this fast. We know commitLocksToken is empty at this point!
+                GetCommitTimestampResponse commitTimestampResponse = timedAndTraced(
                         "getCommitTimestamp",
-                        () -> timelockService.getCommitTimestamp(getStartTimestamp(), commitLocksToken));
+                        () -> timelockService.getCommitTimestamp(
+                                getStartTimestamp(), Iterables.getOnlyElement(commitLocksToken)));
+                commitLocksToken.add(
+                        commitTimestampResponse.immutableTimestamp().getLock());
+                long commitTimestamp = commitTimestampResponse.timestamp();
                 commitTsForScrubbing = commitTimestamp;
 
                 // Punch on commit so that if hard delete is the only thing happening on a system,
@@ -2052,7 +2087,11 @@ public class SnapshotTransaction extends AbstractTransaction
                         "transactionKvsValidityCheck",
                         () -> throwIfTransactionKeyValueServiceNoLongerValid(commitTimestamp));
 
-                // Serializable transactions need to check their reads haven't changed, by reading again at
+                // TODO(jakubk): Add the special writes here. This can probably run in parallel with everything else.
+                // TODO(jakubk): Eventually we'd fold this into some other RPC, but for now just grab some fresh
+                // timestamps.
+                timedAndTraced("writeDelayedWrites", this::writeDelayedWrites);
+
                 // commitTs + 1. This must happen before the lock check for thorough tables, because the lock check
                 // verifies the immutable timestamp hasn't moved forward - thorough sweep might sweep a conflict out
                 // from underneath us.
@@ -2088,9 +2127,42 @@ public class SnapshotTransaction extends AbstractTransaction
                         .update(localWriteBuffer.getValuesByteCount());
             } finally {
                 // Not timed because tryUnlock() is an asynchronous operation.
-                traced("postCommitUnlock", () -> timelockService.tryUnlock(ImmutableSet.of(commitLocksToken)));
+                traced("postCommitUnlock", () -> timelockService.tryUnlock(commitLocksToken));
             }
         });
+    }
+
+    private void writeDelayedWrites() {
+        List<DelayedWrite> delayedWrites = localWriteBuffer.getDelayedWrites();
+        if (delayedWrites.isEmpty()) {
+            return;
+        }
+        TimestampRange freshTimestamps = timelockService.getFreshTimestamps(delayedWrites.size());
+        AtomicLong curFreshTimestamp = new AtomicLong(freshTimestamps.getLowerBound());
+        LongSupplier freshTimestampsSupplier = () -> {
+            long freshTimestamp = curFreshTimestamp.getAndIncrement();
+            Preconditions.checkState(freshTimestamp <= freshTimestamps.getUpperBound(), "Oops");
+            return freshTimestamp;
+        };
+        Map<TableReference, Map<Cell, byte[]>> materializedWrites = new HashMap<>();
+        for (DelayedWrite writeAction : delayedWrites) {
+            long freshTimestamp = freshTimestampsSupplier.getAsLong();
+            writeAction.apply(freshTimestamp).forEach((tableReference, writes) -> {
+                Map<Cell, byte[]> writesForTable =
+                        materializedWrites.computeIfAbsent(tableReference, k -> new HashMap<>());
+                writesForTable.putAll(writes);
+            });
+        }
+
+        // This is likely not 100% reliable and will require work to actually prove out/figure out
+        // safe way to not drop these writes on failed transactions.
+        // However, this is the art of the possible and I'm sure we can figure something out.
+        timedAndTraced(
+                "writeDelayedWritesWritingToSweepQueue",
+                () -> sweepQueue.enqueue(materializedWrites, getStartTimestamp()));
+        timedAndTraced(
+                "writeDelayedWritesCommitWrite",
+                () -> transactionKeyValueService.multiPut(materializedWrites, getStartTimestamp()));
     }
 
     private void throwIfTransactionKeyValueServiceNoLongerValid(long commitTimestamp) {
@@ -2128,9 +2200,10 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private boolean hasWrites() {
-        return !localWriteBuffer.getLocalWrites().isEmpty()
-                && localWriteBuffer.getLocalWrites().values().stream()
-                        .anyMatch(writesForTable -> !writesForTable.isEmpty());
+        return !localWriteBuffer.getDelayedWrites().isEmpty()
+                || (!localWriteBuffer.getLocalWrites().isEmpty()
+                        && localWriteBuffer.getLocalWrites().values().stream()
+                                .anyMatch(writesForTable -> !writesForTable.isEmpty()));
     }
 
     protected boolean hasReads() {
@@ -2149,7 +2222,7 @@ public class SnapshotTransaction extends AbstractTransaction
     /**
      * Make sure we have all the rows we are checking already locked before calling this.
      */
-    protected void throwIfConflictOnCommit(LockToken commitLocksToken, TransactionService transactionService)
+    protected void throwIfConflictOnCommit(Set<LockToken> commitLocksToken, TransactionService transactionService)
             throws TransactionConflictException {
         for (Map.Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> write :
                 localWriteBuffer.getLocalWrites().entrySet()) {
@@ -2163,7 +2236,7 @@ public class SnapshotTransaction extends AbstractTransaction
             TableReference tableRef,
             Map<Cell, byte[]> writes,
             ConflictHandler conflictHandler,
-            LockToken commitLocksToken,
+            Set<LockToken> commitLocksToken,
             TransactionService transactionService)
             throws TransactionConflictException {
         if (writes.isEmpty() || !conflictHandler.checkWriteWriteConflicts()) {
@@ -2203,7 +2276,7 @@ public class SnapshotTransaction extends AbstractTransaction
             Map<Cell, byte[]> writes,
             Set<CellConflict> spanningWrites,
             Set<CellConflict> dominatingWrites,
-            LockToken commitLocksToken) {
+            Set<LockToken> commitLocksToken) {
         Map<Cell, CellConflict> cellToConflict = new HashMap<>();
         Map<Cell, Long> cellToTs = new HashMap<>();
         for (CellConflict c : Sets.union(spanningWrites, dominatingWrites)) {
@@ -2548,7 +2621,8 @@ public class SnapshotTransaction extends AbstractTransaction
      * @throws TransactionLockTimeoutException If our locks timed out while trying to commit.
      * @throws TransactionCommitFailedException failed when committing in a way that isn't retriable
      */
-    private void putCommitTimestamp(long commitTimestamp, LockToken locksToken, TransactionService transactionService)
+    private void putCommitTimestamp(
+            long commitTimestamp, Set<LockToken> locksToken, TransactionService transactionService)
             throws TransactionFailedException {
         Preconditions.checkArgument(commitTimestamp > getStartTimestamp(), "commitTs must be greater than startTs");
         try {
@@ -2567,7 +2641,7 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     private void handleKeyAlreadyExistsException(
-            long commitTs, KeyAlreadyExistsException ex, LockToken commitLocksToken) {
+            long commitTs, KeyAlreadyExistsException ex, Set<LockToken> commitLocksToken) {
         try {
             if (wasCommitSuccessful(commitTs)) {
                 // We did actually commit successfully.  This case could happen if the impl
@@ -2593,7 +2667,11 @@ public class SnapshotTransaction extends AbstractTransaction
                                 .immutableTimestampLock()
                                 .map(token -> token.toSafeArg("immutableTimestampLock"))
                                 .orElseGet(() -> SafeArg.of("immutableTimestampLock", null)),
-                        lockCheckResult.userProvidedLock().toSafeArg("commitLocksToken"));
+                        SafeArg.of(
+                                "commitLocksToken",
+                                lockCheckResult.userProvidedLock().stream()
+                                        .map(LockToken::getRequestId)
+                                        .collect(Collectors.toSet())));
             }
         } catch (TransactionFailedException e1) {
             throw e1;
