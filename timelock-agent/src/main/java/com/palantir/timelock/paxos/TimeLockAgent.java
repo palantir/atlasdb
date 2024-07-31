@@ -446,6 +446,10 @@ public class TimeLockAgent {
     @VisibleForTesting
     static void verifyIsNewServiceInvariant(TimeLockInstallConfiguration install, ClusterConfiguration cluster) {
         if (!install.paxos().ignoreNewServiceCheck()) {
+            log.info(
+                    "Verifying the new service invariant",
+                    SafeArg.of("localServer", cluster.localServer()),
+                    SafeArg.of("clusterMembers", cluster.clusterMembers()));
             TimeLockPersistenceInvariants.checkPersistenceConsistentWithState(
                     install.isNewService() || cluster.isNewServiceNode(),
                     install.paxos().doDataDirectoriesExist());
