@@ -19,7 +19,9 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
@@ -28,6 +30,7 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.Unsafe;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -143,14 +146,16 @@ final class TimestampStateStore {
         return getTimestampInfo(startTimestamp).flatMap(TimestampVersionInfo::commitInfo);
     }
 
-    @VisibleForTesting
-    TimestampStateStoreState getStateForTesting() {
+    @Unsafe
+    TimestampStateStoreState getStateForDiagnostics() {
         // This method doesn't need to read a thread-safe snapshot of timestampMap and livingVersions
         SortedSetMultimap<Sequence, StartTimestamp> living = TreeMultimap.create();
-        livingVersions.forEach(living::putAll);
+        livingVersions.forEach(
+                (sequence, startTimestamps) -> living.putAll(sequence, ImmutableSortedSet.copyOf(startTimestamps)));
+
         return ImmutableTimestampStateStoreState.builder()
-                .timestampMap(timestampMap)
-                .livingVersions(living)
+                .timestampMap(ImmutableSortedMap.copyOf(timestampMap))
+                .livingVersions(Multimaps.unmodifiableSortedSetMultimap(living))
                 .build();
     }
 

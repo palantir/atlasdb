@@ -31,4 +31,6 @@ interface ValueStore {
     void putValue(CellReference cellReference, CacheValue value);
 
     ValueCacheSnapshot getSnapshot();
+
+    void logState();
 }

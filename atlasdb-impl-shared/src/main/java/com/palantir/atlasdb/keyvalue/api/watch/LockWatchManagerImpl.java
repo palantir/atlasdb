@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
@@ -40,6 +41,7 @@ import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.util.RateLimitedLogger;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,6 +52,11 @@ import java.util.stream.Collectors;
 
 public final class LockWatchManagerImpl extends LockWatchManagerInternal {
     private static final SafeLogger log = SafeLoggerFactory.get(LockWatchManagerImpl.class);
+
+    // Log at most 1 line every 2 minutes. Diagnostics are expected to be triggered
+    // on exceptional circumstances and a one-off basis. This de-duplicates when we
+    // need diagnostics on large clusters.
+    private static final RateLimitedLogger diagnosticLog = new RateLimitedLogger(log, 1 / 120.0);
 
     private final Set<LockWatchReferences.LockWatchReference> referencesFromSchema;
     private final Set<LockWatchReferences.LockWatchReference> lockWatchReferences = ConcurrentHashMap.newKeySet();
@@ -102,6 +109,17 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
     TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps, Optional<LockWatchVersion> version) {
         return lockWatchCache.getEventCache().getUpdateForTransactions(startTimestamps, version);
+    }
+
+    @Override
+    void logState() {
+        diagnosticLog.log(logger -> {
+            logger.info(
+                    "Logging state from LockWatchManagerImpl",
+                    UnsafeArg.of("referencesFromSchema", referencesFromSchema),
+                    UnsafeArg.of("lockWatchReferences", ImmutableSet.copyOf(lockWatchReferences)));
+            lockWatchCache.logState();
+        });
     }
 
     @Override

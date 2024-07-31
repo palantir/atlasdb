@@ -31,4 +31,6 @@ public interface LockWatchCache {
     LockWatchEventCache getEventCache();
 
     LockWatchValueCache getValueCache();
+
+    void logState();
 }

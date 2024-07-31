@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Weigher;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils.TableRefAndRemainder;
@@ -34,6 +35,8 @@ import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.HashSet;
 import java.util.Optional;
@@ -50,6 +53,8 @@ final class ValueStoreImpl implements ValueStore {
      * names more costly.
      */
     static final int CACHE_OVERHEAD = 128;
+
+    private static final SafeLogger log = SafeLoggerFactory.get(ValueStoreImpl.class);
 
     private final StructureHolder<io.vavr.collection.Map<CellReference, CacheEntry>> values;
     private final StructureHolder<io.vavr.collection.Set<TableReference>> watchedTables;
@@ -120,6 +125,16 @@ final class ValueStoreImpl implements ValueStore {
     @Override
     public ValueCacheSnapshot getSnapshot() {
         return ValueCacheSnapshotImpl.of(values.getSnapshot(), watchedTables.getSnapshot(), allowedTables);
+    }
+
+    @Override
+    public void logState() {
+        log.info(
+                "Logging state from ValueStoreImpl",
+                UnsafeArg.of("allowedTables", allowedTables),
+                UnsafeArg.of("loadedValues", ImmutableMap.copyOf(loadedValues.asMap())),
+                UnsafeArg.of("watchedTables", watchedTables.getSnapshot().toJavaSet()),
+                UnsafeArg.of("values", values.getSnapshot().toJavaMap()));
     }
 
     private void putLockedCell(CellReference cellReference) {

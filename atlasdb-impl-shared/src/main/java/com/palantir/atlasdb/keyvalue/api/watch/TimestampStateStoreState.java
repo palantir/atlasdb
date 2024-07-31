@@ -19,14 +19,15 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.collect.SortedSetMultimap;
-import java.util.Map;
+import com.palantir.atlasdb.keyvalue.api.watch.TimestampStateStore.TimestampVersionInfo;
+import java.util.NavigableMap;
 import org.immutables.value.Value;
 
 @Value.Immutable
 @JsonSerialize(as = ImmutableTimestampStateStoreState.class)
 @JsonDeserialize(as = ImmutableTimestampStateStoreState.class)
 interface TimestampStateStoreState {
-    Map<StartTimestamp, TimestampStateStore.TimestampVersionInfo> timestampMap();
+    NavigableMap<StartTimestamp, TimestampVersionInfo> timestampMap();
 
     SortedSetMultimap<Sequence, StartTimestamp> livingVersions();
 }
