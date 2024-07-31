@@ -126,7 +126,21 @@ public class LockLeaseService implements AutoCloseable {
                 .numTimestamps(batchSize)
                 .lastKnownVersion(ConjureLockRequests.toConjure(maybeVersion))
                 .build();
-        return delegate.getCommitTimestamps(request);
+        return assignLeasedLockTokenToImmutableCommitTimestampLock(delegate.getCommitTimestamps(request));
+    }
+
+    public static GetCommitTimestampsResponse assignLeasedLockTokenToImmutableCommitTimestampLock(
+            GetCommitTimestampsResponse response) {
+        Lease lease = response.getLease();
+        LeasedLockToken leasedLockToken = LeasedLockToken.of(
+                ConjureLockToken.of(
+                        response.getCommitImmutableTimestamp().getLock().getRequestId()),
+                lease);
+        long immutableTs = response.getCommitImmutableTimestamp().getImmutableTimestamp();
+        return GetCommitTimestampsResponse.builder()
+                .from(response)
+                .commitImmutableTimestamp(LockImmutableTimestampResponse.of(immutableTs, leasedLockToken))
+                .build();
     }
 
     LockResponse lock(LockRequest request) {
