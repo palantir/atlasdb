@@ -25,11 +25,15 @@ import com.palantir.atlasdb.timelock.lock.watch.ConjureLockWatchDiagnosticsServi
 import com.palantir.atlasdb.timelock.lock.watch.UndertowConjureLockWatchDiagnosticsService;
 import com.palantir.conjure.java.undertow.lib.RequestContext;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
 public final class ConjureLockWatchDiagnosticsResource implements UndertowConjureLockWatchDiagnosticsService {
+    private static final SafeLogger log = SafeLoggerFactory.get(ConjureLockWatchDiagnosticsResource.class);
     private final ConjureResourceExceptionHandler exceptionHandler;
     private final BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices;
 
@@ -54,14 +58,15 @@ public final class ConjureLockWatchDiagnosticsResource implements UndertowConjur
     }
 
     @Override
-    public ListenableFuture<Void> dumpState(AuthHeader authHeader, String namespace, RequestContext requestContext) {
-        return exceptionHandler.handleExceptions(() -> dumpStateSync(namespace, requestContext));
+    public ListenableFuture<Void> logState(AuthHeader authHeader, String namespace, RequestContext requestContext) {
+        return exceptionHandler.handleExceptions(() -> logStateSync(namespace, requestContext));
     }
 
-    private ListenableFuture<Void> dumpStateSync(String namespace, RequestContext context) {
+    private ListenableFuture<Void> logStateSync(String namespace, RequestContext context) {
+        log.info("Logging state for namespace {}", SafeArg.of("namespace", namespace));
         timelockServices
                 .apply(namespace, TimelockNamespaces.toUserAgent(context))
-                .dumpState();
+                .logState();
         return Futures.immediateFuture(null);
     }
 
@@ -73,8 +78,8 @@ public final class ConjureLockWatchDiagnosticsResource implements UndertowConjur
         }
 
         @Override
-        public void dumpState(AuthHeader authHeader, String namespace) {
-            AtlasFutures.getUnchecked(resource.dumpState(authHeader, namespace, null));
+        public void logState(AuthHeader authHeader, String namespace) {
+            AtlasFutures.getUnchecked(resource.logState(authHeader, namespace, null));
         }
     }
 }

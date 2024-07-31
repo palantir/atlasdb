@@ -86,7 +86,7 @@ public class LockEventLogImpl implements LockEventLog {
     }
 
     @Override
-    public void dumpState() {
+    public void logState() {
         // TODO(aalouane): implement!
     }
 

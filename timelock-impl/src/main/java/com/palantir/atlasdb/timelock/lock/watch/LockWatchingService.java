@@ -39,5 +39,5 @@ public interface LockWatchingService extends LockWatchStarter {
 
     void registerUnlock(Set<LockDescriptor> locksUnlocked);
 
-    void dumpState();
+    void logState();
 }

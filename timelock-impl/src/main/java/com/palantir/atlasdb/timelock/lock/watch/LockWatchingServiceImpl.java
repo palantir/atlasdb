@@ -125,8 +125,8 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     }
 
     @Override
-    public void dumpState() {
-        lockEventLog.dumpState();
+    public void logState() {
+        lockEventLog.logState();
     }
 
     private synchronized Optional<LockWatches> addToWatches(LockWatchRequest request) {
