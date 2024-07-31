@@ -512,6 +512,11 @@ import java.util.stream.Collectors;
         return immutableTs;
     }
 
+    @Override
+    public long getCommitImmutableTimestamp() {
+        return timelockService.getCommitImmutableTimestamp();
+    }
+
     private void recordImmutableTimestamp(long immutableTs) {
         recentImmutableTs.updateAndGet(current -> Math.max(current, immutableTs));
     }
