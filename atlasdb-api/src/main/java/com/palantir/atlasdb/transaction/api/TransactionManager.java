@@ -309,6 +309,8 @@ public interface TransactionManager extends AutoCloseable {
      */
     long getImmutableTimestamp();
 
+    long getCommitImmutableTimestamp();
+
     /**
      * Returns the lock service used by this transaction manager.
      *

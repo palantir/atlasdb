@@ -33,6 +33,11 @@ public class InMemoryNamespacedTimelockRpcClient implements NamespacedTimelockRp
     }
 
     @Override
+    public long getCommitImmutableTimestamp() {
+        return delegate.getCommitImmutableTimestamp();
+    }
+
+    @Override
     public long currentTimeMillis() {
         return delegate.currentTimeMillis();
     }
