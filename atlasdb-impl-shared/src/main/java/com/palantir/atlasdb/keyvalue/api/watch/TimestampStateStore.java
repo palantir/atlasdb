@@ -34,6 +34,7 @@ import com.palantir.logsafe.Unsafe;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.tracing.CloseableTracer;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.NavigableMap;
@@ -138,7 +139,9 @@ final class TimestampStateStore {
     }
 
     Optional<TimestampVersionInfo> getTimestampInfo(long startTimestamp) {
-        return Optional.ofNullable(timestampMap.get(StartTimestamp.of(startTimestamp)));
+        try (CloseableTracer tracer = CloseableTracer.startSpan("TimestampStateStore#getTimestampInfo")) {
+            return Optional.ofNullable(timestampMap.get(StartTimestamp.of(startTimestamp)));
+        }
     }
 
     Optional<Sequence> getEarliestLiveSequence() {

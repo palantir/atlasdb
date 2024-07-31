@@ -25,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
+import com.palantir.atlasdb.transaction.api.DelayedWrite;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
@@ -37,6 +38,7 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.util.result.Result;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
@@ -142,6 +144,11 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     @Override
     public void putWithMetadata(TableReference tableRef, Map<Cell, ValueAndChangeMetadata> valuesAndMetadata) {
         delegate().putWithMetadata(tableRef, valuesAndMetadata);
+    }
+
+    @Override
+    public void putDelayed(List<DelayedWrite> values) {
+        delegate().putDelayed(values);
     }
 
     @Override

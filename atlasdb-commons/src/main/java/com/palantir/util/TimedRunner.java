@@ -20,6 +20,7 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.tracing.CloseableTracer;
 import java.time.Duration;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -45,34 +46,40 @@ public final class TimedRunner {
     }
 
     public <T> T run(TaskContext<T> taskContext) throws Exception {
-        Future<T> future = executor.submit(() -> taskContext.task().call());
-        final Exception failure;
-        try {
-            return future.get(timeoutDuration.toMillis(), TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            log.warn("Execution failed with exception", e);
-            Thread.currentThread().interrupt();
-            failure = e;
-        } catch (ExecutionException e) {
-            log.warn("Execution failed with exception", e);
-            if (e.getCause() instanceof Error) {
-                throw (Error) e.getCause();
-            } else {
-                failure = (Exception) e.getCause();
+        try (CloseableTracer trace = CloseableTracer.startSpan("TimedRunner.run")) {
+            Future<T> future = executor.submit(() -> {
+                try (CloseableTracer trace1 = CloseableTracer.startSpan("TimedRunner.executorRun")) {
+                    return taskContext.task().call();
+                }
+            });
+            final Exception failure;
+            try {
+                return future.get(timeoutDuration.toMillis(), TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                log.warn("Execution failed with exception", e);
+                Thread.currentThread().interrupt();
+                failure = e;
+            } catch (ExecutionException e) {
+                log.warn("Execution failed with exception", e);
+                if (e.getCause() instanceof Error) {
+                    throw (Error) e.getCause();
+                } else {
+                    failure = (Exception) e.getCause();
+                }
+            } catch (TimeoutException e) {
+                log.warn("Execution timed out", SafeArg.of("timeoutDuration", timeoutDuration), e);
+                future.cancel(true);
+                failure = e;
             }
-        } catch (TimeoutException e) {
-            log.warn("Execution timed out", SafeArg.of("timeoutDuration", timeoutDuration), e);
-            future.cancel(true);
-            failure = e;
-        }
 
-        try {
-            taskContext.taskFailureHandler().run();
-        } catch (Throwable t) {
-            log.warn("Shutdown failure handler threw an exception itself!", t);
-            failure.addSuppressed(t);
+            try {
+                taskContext.taskFailureHandler().run();
+            } catch (Throwable t) {
+                log.warn("Shutdown failure handler threw an exception itself!", t);
+                failure.addSuppressed(t);
+            }
+            throw failure;
         }
-        throw failure;
     }
 
     @Value.Immutable
