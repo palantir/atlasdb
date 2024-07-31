@@ -14,22 +14,17 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.client;
+package com.palantir.atlasdb.transaction.api;
 
-import com.palantir.lock.v2.GetCommitTimestampResponse;
-import com.palantir.lock.v2.LockToken;
-import com.palantir.timestamp.TimestampRange;
+import com.palantir.atlasdb.keyvalue.api.Cell;
+import java.util.function.LongFunction;
 
 /**
- * Intended to be used for the {@link UnreliableTimeLockService} to randomly fast-forward the timestamp for the purpose
- * of Antithesis testing.
+ * Curious creature, but it allows the user to delay deciding the particular cell to write to until the actual commit,
+ * at which point the user will be provided with a unique long value that can be used to generate the cell.
+ *
+ * This is a very specific feature that not many people probably require, or should try to use.
+ *
  */
-public interface RandomizedTimestampManager {
-    void randomlyIncreaseTimestamp();
-
-    long getFreshTimestamp();
-
-    GetCommitTimestampResponse getCommitTimestamp(long startTs, LockToken commitLocksToken);
-
-    TimestampRange getFreshTimestamps(int numTimestampsRequested);
-}
+@FunctionalInterface
+public interface DelayedWrite extends LongFunction<Cell> {}

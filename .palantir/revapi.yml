@@ -79,6 +79,36 @@ acceptedBreaks:
     - code: "java.method.addedToInterface"
       new: "method boolean com.palantir.atlasdb.cell.api.TransactionKeyValueService::isValid(long)"
       justification: "internal API"
+  "0.1062.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.annotation.removed"
+      old: "parameter void com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator::throwIfImmutableTsOrCommitLocksExpired(===com.palantir.lock.v2.LockToken===)"
+      new: "parameter void com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator::throwIfImmutableTsOrCommitLocksExpired(===java.util.Set<com.palantir.lock.v2.LockToken>===)"
+      justification: "Prototyping"
+    - code: "java.annotation.removed"
+      old: "parameter void com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator::throwIfPreCommitRequirementsNotMet(===com.palantir.lock.v2.LockToken===,\
+        \ long)"
+      new: "parameter void com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator::throwIfPreCommitRequirementsNotMet(===java.util.Set<com.palantir.lock.v2.LockToken>===,\
+        \ long)"
+      justification: "Prototyping"
+    - code: "java.method.abstractMethodAdded"
+      new: "method void com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager::logState()"
+      justification: "Prototype"
+    - code: "java.method.addedToInterface"
+      new: "method void com.palantir.atlasdb.transaction.api.Transaction::putDelayed(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.util.List<java.util.Map.Entry<com.palantir.atlasdb.transaction.api.DelayedWrite,\
+        \ byte[]>>)"
+      justification: "Prototype"
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter void com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator::throwIfImmutableTsOrCommitLocksExpired(===com.palantir.lock.v2.LockToken===)"
+      new: "parameter void com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator::throwIfImmutableTsOrCommitLocksExpired(===java.util.Set<com.palantir.lock.v2.LockToken>===)"
+      justification: "Prototyping"
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter void com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator::throwIfPreCommitRequirementsNotMet(===com.palantir.lock.v2.LockToken===,\
+        \ long)"
+      new: "parameter void com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator::throwIfPreCommitRequirementsNotMet(===java.util.Set<com.palantir.lock.v2.LockToken>===,\
+        \ long)"
+      justification: "Prototyping"
   "0.1073.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.method.parameterTypeChanged"
@@ -151,6 +181,11 @@ acceptedBreaks:
       new: "method com.palantir.lock.LockState com.palantir.atlasdb.factory.timelock.TimeoutSensitiveLockRpcClient::getLockState(java.lang.String,\
         \ com.palantir.lock.LockDescriptor)"
       justification: "LockRpcClient#getLockState is broken"
+  "0.1129.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.addedToInterface"
+      new: "method long com.palantir.atlasdb.transaction.api.TransactionManager::getCommitImmutableTimestamp()"
+      justification: "Prototype"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"

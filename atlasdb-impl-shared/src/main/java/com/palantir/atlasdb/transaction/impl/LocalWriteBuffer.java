@@ -23,15 +23,19 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.transaction.api.DelayedWrite;
 import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -43,6 +47,8 @@ class LocalWriteBuffer {
     private static final SafeLogger log = SafeLoggerFactory.get(LocalWriteBuffer.class);
 
     private final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> writesByTable =
+            new ConcurrentHashMap<>();
+    private final ConcurrentMap<TableReference, List<Map.Entry<DelayedWrite, byte[]>>> delayedWritesByTable =
             new ConcurrentHashMap<>();
     private final ConcurrentMap<TableReference, Map<Cell, ChangeMetadata>> metadataByTable = new ConcurrentHashMap<>();
     private final ConcurrentMap<TableReference, Object> locksByTable = new ConcurrentHashMap<>();
@@ -92,6 +98,12 @@ class LocalWriteBuffer {
         }
     }
 
+    public void putDelayed(TableReference tableRef, List<Entry<DelayedWrite, byte[]>> values) {
+        synchronized (getLockForTable(tableRef)) {
+            getDelayedWritesForTable(tableRef).addAll(values);
+        }
+    }
+
     /**
      * Returns all local writes that have been buffered.
      */
@@ -99,11 +111,20 @@ class LocalWriteBuffer {
         return writesByTable;
     }
 
+    public ConcurrentMap<TableReference, List<Map.Entry<DelayedWrite, byte[]>>> getDelayedWrites() {
+        return delayedWritesByTable;
+    }
+
     /**
      * Returns the local writes for cells of the given table.
      */
     public ConcurrentNavigableMap<Cell, byte[]> getLocalWritesForTable(TableReference tableRef) {
         return writesByTable.computeIfAbsent(tableRef, unused -> new ConcurrentSkipListMap<>());
+    }
+
+    public List<Map.Entry<DelayedWrite, byte[]>> getDelayedWritesForTable(TableReference tableRef) {
+        return delayedWritesByTable.computeIfAbsent(
+                tableRef, unused -> Collections.synchronizedList(new ArrayList<>()));
     }
 
     /**

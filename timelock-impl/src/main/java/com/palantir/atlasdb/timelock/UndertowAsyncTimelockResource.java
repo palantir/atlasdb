@@ -138,6 +138,16 @@ public final class UndertowAsyncTimelockResource {
         return getAsyncTimelockService(namespace, userAgent).getImmutableTimestamp();
     }
 
+    @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/commit-immutable-timestamp")
+    public long getCommitImmutableTimestamp(
+            @Safe @Handle.PathParam String namespace,
+            @Safe
+                    @HeaderParam(TimelockNamespaces.USER_AGENT_HEADER)
+                    @Handle.Header(TimelockNamespaces.USER_AGENT_HEADER)
+                    Optional<String> userAgent) {
+        return getAsyncTimelockService(namespace, userAgent).getCommitImmutableTimestamp();
+    }
+
     @Handle(method = HttpMethod.POST, path = "/{namespace}/timelock/lock")
     public ListenableFuture<LockResponse> deprecatedLock(
             @Safe @Handle.PathParam String namespace,
