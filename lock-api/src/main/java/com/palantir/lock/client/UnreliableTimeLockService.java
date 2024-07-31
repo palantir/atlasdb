@@ -20,6 +20,7 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.buggify.api.BuggifyFactory;
 import com.palantir.atlasdb.buggify.impl.DefaultBuggifyFactory;
 import com.palantir.lock.v2.ClientLockingOptions;
+import com.palantir.lock.v2.GetCommitTimestampResponse;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -76,7 +77,7 @@ public final class UnreliableTimeLockService implements TimelockService {
     }
 
     @Override
-    public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
+    public GetCommitTimestampResponse getCommitTimestamp(long startTs, LockToken commitLocksToken) {
         maybeRandomlyIncreaseTimestamp();
         return timestampManager.getCommitTimestamp(startTs, commitLocksToken);
     }
@@ -100,6 +101,12 @@ public final class UnreliableTimeLockService implements TimelockService {
     @Override
     public long getImmutableTimestamp() {
         return delegate.getImmutableTimestamp();
+    }
+
+    @Override
+    public long getCommitImmutableTimestamp() {
+        // Feature not active
+        return Long.MAX_VALUE;
     }
 
     @Override
