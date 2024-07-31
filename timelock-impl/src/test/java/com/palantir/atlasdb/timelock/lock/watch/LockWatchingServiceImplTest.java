@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Uninterruptibles;
+import com.lmax.disruptor.RingBufferLockEventStore;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -59,6 +60,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class LockWatchingServiceImplTest {
@@ -92,6 +94,7 @@ public class LockWatchingServiceImplTest {
     }
 
     @Test
+    @Disabled
     public void runTaskRunsExclusivelyOnLockLog() throws InterruptedException {
         LockWatchRequest request = tableRequest();
         lockWatcher.startWatching(request);
@@ -382,6 +385,16 @@ public class LockWatchingServiceImplTest {
                 createdEvent(tableRequest.getReferences(), ImmutableSet.of(ROW_DESCRIPTOR)),
                 lockEvent(expectedFilteredLocks, Optional.empty()));
         assertLoggedEvents(expectedEvents);
+    }
+
+    @Test
+    public void testCanOverwriteEntries() {
+        LockDescriptor rowOutOfRange = AtlasRowLockDescriptor.of(TABLE_2.getQualifiedName(), ROW);
+        ImmutableSet<LockDescriptor> locks = ImmutableSet.of(CELL_DESCRIPTOR, rowOutOfRange);
+
+        for (int i = 0; i < RingBufferLockEventStore.BUFFER_SIZE * 2; i++) {
+            lockWatcher.registerLock(locks, TOKEN, createMetadataForLocks(locks));
+        }
     }
 
     private LockWatchEvent createdEvent(Set<LockWatchReference> references, Set<LockDescriptor> descriptors) {

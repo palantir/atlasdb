@@ -17,6 +17,7 @@
 package com.palantir.lock.client;
 
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.lock.v2.GetCommitTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchCache;
 
@@ -35,7 +36,7 @@ public class NamespacedCommitTimestampGetter implements CommitTimestampGetter {
     }
 
     @Override
-    public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
+    public GetCommitTimestampResponse getCommitTimestamp(long startTs, LockToken commitLocksToken) {
         return referenceTrackingBatcher.getDelegate().getCommitTimestamp(namespace, startTs, commitLocksToken, cache);
     }
 
