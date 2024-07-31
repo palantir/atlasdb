@@ -176,6 +176,7 @@ import org.immutables.value.Value;
 public abstract class TransactionManagers {
     private static final SafeLogger log = SafeLoggerFactory.get(TransactionManagers.class);
     public static final LockClient LOCK_CLIENT = LockClient.of("atlas instance");
+    public static final LockClient COMMIT_TIMESTAMP_LOCK_CLIENT = LockClient.of("commitTimestamp");
 
     abstract AtlasDbConfig config();
 

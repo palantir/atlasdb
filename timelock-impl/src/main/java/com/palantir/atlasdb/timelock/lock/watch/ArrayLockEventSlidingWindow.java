@@ -32,7 +32,7 @@ import java.util.Optional;
 import javax.annotation.concurrent.NotThreadSafe;
 
 @NotThreadSafe
-public class ArrayLockEventSlidingWindow {
+public class ArrayLockEventSlidingWindow implements LockEventStore {
     private final LockWatchEvent[] buffer;
     private final int maxSize;
     private long nextSequence = 0;
@@ -46,17 +46,20 @@ public class ArrayLockEventSlidingWindow {
         this.eventsWithMetadataCounter = bufferMetrics.eventsWithMetadata();
     }
 
-    long lastVersion() {
+    @Override
+    public synchronized long lastVersion() {
         return nextSequence - 1;
     }
 
     // This method is only for one-off diagnostics purposes.
-    LockWatchEvent[] getBufferSnapshot() {
+    @Override
+    public synchronized LockWatchEvent[] getBufferSnapshot() {
         // The contents of the buffer are immutable, thus not requiring a deep copy.
         return Arrays.copyOf(buffer, buffer.length);
     }
 
-    void add(LockWatchEvent.Builder eventBuilder) {
+    @Override
+    public synchronized void add(LockWatchEvent.Builder eventBuilder) {
         LockWatchEvent event = eventBuilder.build(nextSequence);
         int index = LongMath.mod(nextSequence, maxSize);
 
@@ -79,7 +82,8 @@ public class ArrayLockEventSlidingWindow {
         eventsWithMetadataCounter.dec();
     }
 
-    public Optional<List<LockWatchEvent>> getNextEvents(long version) {
+    @Override
+    public synchronized Optional<NextEvents> getNextEvents(long version) {
         if (versionInTheFuture(version) || versionTooOld(version)) {
             return Optional.empty();
         }
@@ -91,7 +95,12 @@ public class ArrayLockEventSlidingWindow {
             events.add(buffer[i]);
         }
 
-        return Optional.of(events);
+        return Optional.of(new NextEvents(events, lastVersion()));
+    }
+
+    @Override
+    public int capacity() {
+        return buffer.length;
     }
 
     private int incrementAndMod(int num) {
