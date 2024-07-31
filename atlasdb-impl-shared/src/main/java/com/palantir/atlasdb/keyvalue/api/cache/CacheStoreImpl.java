@@ -23,6 +23,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.tracing.CloseableTracer;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
@@ -86,7 +87,9 @@ final class CacheStoreImpl implements CacheStore {
 
     @Override
     public void createReadOnlyCache(StartTimestamp timestamp, CommitUpdate commitUpdate) {
-        cacheMap.computeIfPresent(timestamp, (_startTs, cache) -> cache.withReadOnlyCache(commitUpdate));
+        try (CloseableTracer tracer = CloseableTracer.startSpan("CacheStoreImpl#createReadOnlyCache")) {
+            cacheMap.computeIfPresent(timestamp, (_startTs, cache) -> cache.withReadOnlyCache(commitUpdate));
+        }
     }
 
     @Override

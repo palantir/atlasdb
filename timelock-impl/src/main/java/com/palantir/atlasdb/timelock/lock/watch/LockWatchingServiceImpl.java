@@ -102,6 +102,9 @@ public class LockWatchingServiceImpl implements LockWatchingService {
 
     @Override
     public LockWatchStateUpdate getWatchStateUpdate(Optional<LockWatchVersion> lastKnownVersion) {
+        // THIS does not need to lock the watches right?
+        // *I THINK* this is a bug, but we need to think about it more. #getLogDiff can calculate snapshots, which
+        // WOULD GRAB the lock watch set, which ideally wouldn't be allowed to change during that call?
         return lockEventLog.getLogDiff(lastKnownVersion);
     }
 
@@ -130,6 +133,8 @@ public class LockWatchingServiceImpl implements LockWatchingService {
     }
 
     private synchronized Optional<LockWatches> addToWatches(LockWatchRequest request) {
+        // TODO(jakubk): Let's double check the concurrency here, but I think the synchronized is enough here
+        // to serialize the lock watch changes.
         LockWatches oldWatches = watches.get();
         Optional<LockWatches> newWatches = filterNewWatches(request, oldWatches);
         if (newWatches.isPresent()) {

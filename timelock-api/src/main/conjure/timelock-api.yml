@@ -204,6 +204,8 @@ types:
           inclusiveLower: Long
           inclusiveUpper: Long
           lockWatchUpdate: LockWatchStateUpdate
+          commitImmutableTimestamp: LockImmutableTimestampResponse
+          lease: Lease
       GetCommitTimestampRequest:
         fields:
           lastKnownVersion: optional<ConjureIdentifiedVersion>
