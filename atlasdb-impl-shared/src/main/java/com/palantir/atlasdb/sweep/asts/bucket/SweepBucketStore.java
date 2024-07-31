@@ -19,28 +19,33 @@ package com.palantir.atlasdb.sweep.asts.bucket;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Stores information about the ranges of timestamps associated with given bucket identifiers.
+ */
 public interface SweepBucketStore {
     /**
      * Retrieves the range of timestamps associated with the given bucket identifier, or an empty optional if the
      * bucket does not exist.
      */
-    Optional<SweepableBucketRange> getSweepBucketRange(long bucketIdentifier);
+    Optional<SweepableBucketRange> getBucketRange(long bucketIdentifier);
 
     /**
      * Retrieves a list of buckets corresponding to the lowest buckets the sweep bucket store knows about, that are
-     * at least as high as the provided AtlasDB timestamp.
+     * at least as high as the provided AtlasDB timestamp. This list is guaranteed to be sorted in increasing bucket
+     * order.
      */
-    List<Long> getFirstLiveBuckets(long lowerBoundTimestamp);
+    List<Long> getFirstLiveBuckets(long lowerBoundTimestamp, int limit);
 
     /**
-     * Closes the currently open bucket at the provided timestamp, if it is greater than the start timestamp of the
-     * bucket. If it is not, is a no-op.
+     * Attempts to set progress for the provided bucket identifier to the provided range. May return false, if
+     * progress was not set to said range (e.g., because this would attempt to change a bucket that had already
+     * been closed, or re-open a bucket).
      */
-    void appendSweepBucketRange(long timestamp);
+    boolean trySetBucketRange(long bucketIdentifier, SweepableBucketRange range);
 
     /**
      * Deletes a sweep bucket from the sweep bucket store. The onus is on the user to ensure that this is a safe
-     * operation, and externally referenced state relating to the bucket in question has already been cleaned up.
+     * operation, and that externally referenced state relating to the bucket in question has already been cleaned up.
      */
-    void deleteSweepBucket(long bucketIdentifier);
+    void deleteBucket(long bucketIdentifier);
 }
