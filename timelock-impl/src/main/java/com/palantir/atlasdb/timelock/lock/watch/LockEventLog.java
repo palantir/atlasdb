@@ -40,5 +40,5 @@ public interface LockEventLog {
 
     void logLockWatchCreated(LockWatches newWatches);
 
-    void dumpState();
+    void logState();
 }

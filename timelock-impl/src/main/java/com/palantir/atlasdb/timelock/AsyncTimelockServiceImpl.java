@@ -299,8 +299,8 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public void dumpState() {
-        lockService.getLockWatchingService().dumpState();
+    public void logState() {
+        lockService.getLockWatchingService().logState();
     }
 
     private static LockWatchVersion fromConjure(ConjureIdentifiedVersion conjure) {

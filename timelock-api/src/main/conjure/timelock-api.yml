@@ -377,14 +377,14 @@ services:
     package: com.palantir.atlasdb.timelock.lock.watch
     base-path: /lw/diagnostics
     endpoints:
-        dumpState:
-          http: GET /dumpState/{namespace}
-          args:
-              namespace:
-                  type: string
-                  safety: safe
-          tags:
-            - server-request-context
+      logState:
+        http: POST /logState/{namespace}
+        args:
+          namespace:
+            type: string
+            safety: safe
+        tags:
+          - server-request-context
   MultiClientConjureTimelockService:
     name: Multi Client Timelock Service
     default-auth: header

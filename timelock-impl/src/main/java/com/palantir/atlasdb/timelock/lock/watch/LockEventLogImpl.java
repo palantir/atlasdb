@@ -100,10 +100,10 @@ public class LockEventLogImpl implements LockEventLog {
     // This should only snapshot the internals of this class. Mutation is strictly
     // prohibited.
     @Override
-    public void dumpState() {
+    public void logState() {
         diagnosticLog.log(logger -> {
             logger.info(
-                    "Dumping lock event log state: {}, {}, {}, {}, {}",
+                    "Logging state from LockEventLogImpl: {}, {}, {}, {}, {}",
                     SafeArg.of("logId", logId),
                     SafeArg.of("lastVersion", slidingWindow.lastVersion()),
                     UnsafeArg.of("watches", watchesSupplier.get()),
