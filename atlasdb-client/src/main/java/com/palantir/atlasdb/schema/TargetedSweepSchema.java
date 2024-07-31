@@ -119,6 +119,24 @@ public enum TargetedSweepSchema implements AtlasSchema {
                 conflictHandler(ConflictHandler.IGNORE_ALL);
             }
         });
+
+        schema.addTableDefinition("sweepBuckets", new TableDefinition() {
+            {
+                javaTableName("SweepBuckets");
+                allSafeForLoggingByDefault();
+                rowName();
+                hashFirstRowComponent();
+                // This component is signed, because to avoid doing BIG RANGE SCANS (tm), I plan to store some
+                // additional metadata using the -1 bucket.
+                rowComponent("majorBucketIdentifier", ValueType.VAR_SIGNED_LONG);
+                dynamicColumns();
+                columnComponent("minorBucketIdentifier", ValueType.VAR_LONG);
+
+                // we do our own cleanup
+                sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+                conflictHandler(ConflictHandler.IGNORE_ALL);
+            }
+        });
     }
 
     private static void addTableIdentifierTables(Schema schema) {
