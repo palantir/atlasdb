@@ -35,6 +35,10 @@ import com.palantir.conjure.java.api.errors.QosReason;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.DetachedSpan;
+import com.palantir.tracing.Observability;
+import com.palantir.tracing.Tracer;
+import com.palantir.tracing.Tracers;
+import com.palantir.tracing.api.SpanType;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import java.io.Closeable;
 import java.util.Optional;
@@ -205,13 +209,23 @@ public final class DisruptorAutobatcher<T, R>
                 threadFactory(safeLoggablePurpose),
                 ProducerType.MULTI,
                 waitStrategy.orElseGet(BlockingWaitStrategy::new));
-        disruptor.handleEventsWith(
-                (event, sequence, endOfBatch) -> eventHandler.onEvent(event.consume(), sequence, endOfBatch));
+        AutobatcherTelemetryComponents autobatcherTelemetryComponents =
+                AutobatcherTelemetryComponents.create(safeLoggablePurpose, SharedTaggedMetricRegistries.getSingleton());
+        disruptor.handleEventsWith((event, sequence, endOfBatch) -> {
+            try {
+                Tracer.initTraceWithSpan(
+                        Observability.SAMPLE,
+                        Tracers.randomId(),
+                        autobatcherTelemetryComponents.getSafeLoggablePurpose(),
+                        SpanType.LOCAL);
+                eventHandler.onEvent(event.consume(), sequence, endOfBatch);
+            } finally {
+                log.info("Finished in autobatcher");
+                Tracer.fastCompleteSpan();
+            }
+        });
         disruptor.start();
         return new DisruptorAutobatcher<>(
-                disruptor,
-                disruptor.getRingBuffer(),
-                AutobatcherTelemetryComponents.create(safeLoggablePurpose, SharedTaggedMetricRegistries.getSingleton()),
-                closingCallback);
+                disruptor, disruptor.getRingBuffer(), autobatcherTelemetryComponents, closingCallback);
     }
 }

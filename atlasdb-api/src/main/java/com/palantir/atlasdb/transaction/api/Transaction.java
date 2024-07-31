@@ -33,6 +33,7 @@ import com.palantir.common.base.BatchingVisitable;
 import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.util.result.Result;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
@@ -322,6 +323,9 @@ public interface Transaction {
      */
     @Idempotent
     void putWithMetadata(TableReference tableRef, Map<Cell, ValueAndChangeMetadata> valuesAndMetadata);
+
+    @Idempotent
+    void putDelayed(List<DelayedWrite> values);
 
     /**
      * Deletes values from the key-value store.
