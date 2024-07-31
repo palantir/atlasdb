@@ -26,6 +26,7 @@ import com.palantir.lock.watch.LockWatchCreatedEvent;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.lock.watch.UnlockEvent;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -47,6 +48,12 @@ public class ArrayLockEventSlidingWindow {
 
     long lastVersion() {
         return nextSequence - 1;
+    }
+
+    // This method is only for one-off diagnostics purposes.
+    LockWatchEvent[] getBufferSnapshot() {
+        // The contents of the buffer are immutable, thus not requiring a deep copy.
+        return Arrays.copyOf(buffer, buffer.length);
     }
 
     void add(LockWatchEvent.Builder eventBuilder) {
