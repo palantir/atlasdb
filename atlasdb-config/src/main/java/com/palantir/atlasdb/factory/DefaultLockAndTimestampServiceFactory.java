@@ -430,7 +430,11 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 .lock(lockService)
                 .timestamp(timeService)
                 .timestampManagement(timestampManagementService)
-                .timelock(new LegacyTimelockService(timeService, lockService, TransactionManagers.LOCK_CLIENT))
+                .timelock(new LegacyTimelockService(
+                        timeService,
+                        lockService,
+                        TransactionManagers.LOCK_CLIENT,
+                        TransactionManagers.COMMIT_TIMESTAMP_LOCK_CLIENT))
                 .build();
     }
 
@@ -452,7 +456,11 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 .lock(lockService)
                 .timestamp(timeService)
                 .timestampManagement(timestampManagementService)
-                .timelock(new LegacyTimelockService(timeService, lockService, TransactionManagers.LOCK_CLIENT))
+                .timelock(new LegacyTimelockService(
+                        timeService,
+                        lockService,
+                        TransactionManagers.LOCK_CLIENT,
+                        TransactionManagers.COMMIT_TIMESTAMP_LOCK_CLIENT))
                 .build();
     }
 }
