@@ -151,6 +151,19 @@ acceptedBreaks:
       new: "method com.palantir.lock.LockState com.palantir.atlasdb.factory.timelock.TimeoutSensitiveLockRpcClient::getLockState(java.lang.String,\
         \ com.palantir.lock.LockDescriptor)"
       justification: "LockRpcClient#getLockState is broken"
+  "0.1127.0":
+    com.palantir.atlasdb:atlasdb-config:
+    - code: "java.method.numberOfParametersChanged"
+      old: "method com.palantir.atlasdb.factory.TimeLockHelperServices com.palantir.atlasdb.factory.TimeLockHelperServices::create(java.lang.String,\
+        \ com.palantir.atlasdb.util.MetricsManager, java.util.Set<com.palantir.atlasdb.table.description.Schema>,\
+        \ com.palantir.lock.client.LockWatchStarter, com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig,\
+        \ java.util.function.Supplier<java.util.Optional<com.palantir.lock.client.RequestBatchersFactory.MultiClientRequestBatchers>>)"
+      new: "method com.palantir.atlasdb.factory.TimeLockHelperServices com.palantir.atlasdb.factory.TimeLockHelperServices::create(java.lang.String,\
+        \ com.palantir.atlasdb.util.MetricsManager, java.util.Set<com.palantir.atlasdb.table.description.Schema>,\
+        \ com.palantir.lock.client.LockWatchStarter, com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig,\
+        \ java.util.function.Supplier<java.util.Optional<com.palantir.lock.client.RequestBatchersFactory.MultiClientRequestBatchers>>,\
+        \ com.palantir.lock.client.LockWatchTimeLockDiagnosticsLogger)"
+      justification: "used in atlas only"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"
