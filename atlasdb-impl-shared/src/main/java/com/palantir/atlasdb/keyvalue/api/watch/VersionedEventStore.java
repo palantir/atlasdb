@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.logsafe.Preconditions;
@@ -29,7 +30,6 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Optional;
-import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 final class VersionedEventStore {
@@ -118,7 +118,7 @@ final class VersionedEventStore {
     @Unsafe
     VersionedEventStoreState getStateForDiagnostics() {
         return ImmutableVersionedEventStoreState.builder()
-                .eventMap(new TreeMap<>(eventMap))
+                .eventMap(ImmutableSortedMap.copyOf(eventMap))
                 .build();
     }
 

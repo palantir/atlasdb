@@ -155,6 +155,7 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
         log.info("Logging state from LockWatchEventCacheImpl", UnsafeArg.of("state", getStateForDiagnostics()));
     }
 
+    @VisibleForTesting
     @Unsafe
     synchronized LockWatchEventCacheState getStateForDiagnostics() {
         return ImmutableLockWatchEventCacheState.builder()
