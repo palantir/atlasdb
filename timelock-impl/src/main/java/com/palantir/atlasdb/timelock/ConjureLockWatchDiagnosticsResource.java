@@ -59,15 +59,13 @@ public final class ConjureLockWatchDiagnosticsResource implements UndertowConjur
 
     @Override
     public ListenableFuture<Void> logState(AuthHeader authHeader, String namespace, RequestContext requestContext) {
-        return exceptionHandler.handleExceptions(() -> logStateSync(namespace, requestContext));
-    }
-
-    private ListenableFuture<Void> logStateSync(String namespace, RequestContext context) {
-        log.info("Logging state for namespace {}", SafeArg.of("namespace", namespace));
-        timelockServices
-                .apply(namespace, TimelockNamespaces.toUserAgent(context))
-                .logState();
-        return Futures.immediateFuture(null);
+        return exceptionHandler.handleExceptions(() -> {
+            log.info("Logging state for namespace {}", SafeArg.of("namespace", namespace));
+            timelockServices
+                    .apply(namespace, TimelockNamespaces.toUserAgent(requestContext))
+                    .logState();
+            return Futures.immediateFuture(null);
+        });
     }
 
     public static final class JerseyAdapter implements ConjureLockWatchDiagnosticsService {
