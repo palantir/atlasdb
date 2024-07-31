@@ -79,8 +79,8 @@ public class NoOpLockWatchEventCache implements LockWatchEventCache {
     public void removeTransactionStateFromCache(long startTimestamp) {}
 
     @Override
-    public void dumpState() {
-        log.info("Dumping state from NoOpLockWatchEventCache", SafeArg.of("currentVersion", currentVersion));
+    public void logState() {
+        log.info("Logging state from NoOpLockWatchEventCache", SafeArg.of("currentVersion", currentVersion));
     }
 
     @Override

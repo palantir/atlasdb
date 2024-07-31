@@ -79,9 +79,9 @@ public final class NoOpLockWatchManager extends LockWatchManagerInternal {
     }
 
     @Override
-    void dumpState() {
-        log.info("Dumping state from NoOpLockWatchManager");
-        cache.dumpState();
+    void logState() {
+        log.info("Logging state from NoOpLockWatchManager");
+        cache.logState();
     }
 
     @Override

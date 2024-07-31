@@ -45,5 +45,5 @@ public interface SnapshotStore {
 
     void reset();
 
-    void dumpState();
+    void logState();
 }

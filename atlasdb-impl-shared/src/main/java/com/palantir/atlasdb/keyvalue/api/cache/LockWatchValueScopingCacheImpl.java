@@ -172,10 +172,10 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     }
 
     @Override
-    public synchronized void dumpState() {
-        log.info("Dumping state from LockWatchValueScopingCacheImpl", SafeArg.of("currentVersion", currentVersion));
-        valueStore.dumpState();
-        snapshotStore.dumpState();
+    public synchronized void logState() {
+        log.info("Logging state from LockWatchValueScopingCacheImpl", SafeArg.of("currentVersion", currentVersion));
+        valueStore.logState();
+        snapshotStore.logState();
     }
 
     /**

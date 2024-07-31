@@ -32,5 +32,5 @@ interface ValueStore {
 
     ValueCacheSnapshot getSnapshot();
 
-    void dumpState();
+    void logState();
 }

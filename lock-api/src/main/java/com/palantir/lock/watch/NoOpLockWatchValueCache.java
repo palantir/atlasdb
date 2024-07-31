@@ -16,9 +16,13 @@
 
 package com.palantir.lock.watch;
 
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Set;
 
 public class NoOpLockWatchValueCache implements LockWatchValueCache {
+    private static final SafeLogger log = SafeLoggerFactory.get(NoOpLockWatchValueCache.class);
+
     public static LockWatchValueCache create() {
         return new NoOpLockWatchValueCache();
     }
@@ -36,5 +40,7 @@ public class NoOpLockWatchValueCache implements LockWatchValueCache {
     public void onSuccessfulCommit(long startTimestamp) {}
 
     @Override
-    public void dumpState() {}
+    public void logState() {
+        log.info("Logging state from NoOpLockWatchValueCache");
+    }
 }

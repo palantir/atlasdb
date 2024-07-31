@@ -145,11 +145,11 @@ final class LockWatchEventLog {
 
     @Unsafe
     LockWatchEventLogState getStateForDiagnostics() {
-        return ImmutableLockWatchEventLogState.builder()
+        return runWithReadLock(() -> ImmutableLockWatchEventLogState.builder()
                 .latestVersion(latestVersion)
                 .eventStoreState(eventStore.getStateForDiagnostics())
                 .snapshotState(snapshot.getStateForDiagnostics())
-                .build();
+                .build());
     }
 
     private <T> T runWithReadLock(Supplier<T> task) {

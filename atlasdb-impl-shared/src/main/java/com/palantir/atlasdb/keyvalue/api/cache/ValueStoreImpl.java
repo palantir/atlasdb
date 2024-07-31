@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.api.cache;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Weigher;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils.TableRefAndRemainder;
@@ -127,11 +128,11 @@ final class ValueStoreImpl implements ValueStore {
     }
 
     @Override
-    public void dumpState() {
+    public void logState() {
         log.info(
-                "Dumping state from ValueStoreImpl",
+                "Logging state from ValueStoreImpl",
                 UnsafeArg.of("allowedTables", allowedTables),
-                UnsafeArg.of("loadedValues", new java.util.HashMap<>(loadedValues.asMap())),
+                UnsafeArg.of("loadedValues", ImmutableMap.copyOf(loadedValues.asMap())),
                 UnsafeArg.of("watchedTables", watchedTables.getSnapshot().toJavaSet()),
                 UnsafeArg.of("values", values.getSnapshot().toJavaMap()));
     }

@@ -107,9 +107,9 @@ final class SnapshotStoreImpl implements SnapshotStore {
     }
 
     @Override
-    public void dumpState() {
+    public void logState() {
         log.info(
-                "Dumping state from SnapshotStoreImpl",
+                "Logging state from SnapshotStoreImpl",
                 UnsafeArg.of("snapshotMap", snapshotMap),
                 SafeArg.of("liveSequences", liveSequences),
                 SafeArg.of("timestampMap", timestampMap),

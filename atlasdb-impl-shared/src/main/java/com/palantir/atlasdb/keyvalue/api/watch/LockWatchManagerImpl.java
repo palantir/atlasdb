@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
@@ -41,7 +42,6 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.RateLimitedLogger;
-import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -112,13 +112,13 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
     }
 
     @Override
-    void dumpState() {
+    void logState() {
         diagnosticLog.log(logger -> {
             logger.info(
-                    "Dumping state from LockWatchManagerImpl",
+                    "Logging state from LockWatchManagerImpl",
                     UnsafeArg.of("referencesFromSchema", referencesFromSchema),
-                    UnsafeArg.of("lockWatchReferences", new HashSet<>(lockWatchReferences)));
-            lockWatchCache.dumpState();
+                    UnsafeArg.of("lockWatchReferences", ImmutableSet.copyOf(lockWatchReferences)));
+            lockWatchCache.logState();
         });
     }
 

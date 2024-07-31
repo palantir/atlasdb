@@ -102,8 +102,8 @@ final class ClientLockWatchSnapshot {
     ClientLockWatchSnapshotState getStateForDiagnostics() {
         return ImmutableClientLockWatchSnapshotState.builder()
                 .snapshotVersion(snapshotVersion)
-                .locked(new HashSet<>(locked))
-                .watches(new HashSet<>(watches))
+                .locked(ImmutableSet.copyOf(locked))
+                .watches(ImmutableSet.copyOf(watches))
                 .build();
     }
 

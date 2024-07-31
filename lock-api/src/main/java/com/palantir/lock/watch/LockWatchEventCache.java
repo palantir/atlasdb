@@ -73,5 +73,5 @@ public interface LockWatchEventCache {
      */
     void removeTransactionStateFromCache(long startTimestamp);
 
-    void dumpState();
+    void logState();
 }

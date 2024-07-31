@@ -79,8 +79,9 @@ final class DuplicatingLockWatchEventCache implements LockWatchEventCache {
     }
 
     @Override
-    public void dumpState() {
-        mainCache.dumpState();
+    public void logState() {
+        mainCache.logState();
+        secondaryCache.logState();
     }
 
     @Override

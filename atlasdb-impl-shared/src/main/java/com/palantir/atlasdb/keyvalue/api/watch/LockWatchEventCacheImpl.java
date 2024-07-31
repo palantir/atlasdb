@@ -151,8 +151,8 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     @Override
-    public void dumpState() {
-        log.info("Dumping state from LockWatchEventCacheImpl", UnsafeArg.of("state", getStateForDiagnostics()));
+    public void logState() {
+        log.info("Logging state from LockWatchEventCacheImpl", UnsafeArg.of("state", getStateForDiagnostics()));
     }
 
     @Unsafe

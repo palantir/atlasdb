@@ -70,8 +70,8 @@ public final class LockWatchCacheImpl implements LockWatchCache {
     }
 
     @Override
-    public void dumpState() {
-        eventCache.dumpState();
-        valueCache.dumpState();
+    public void logState() {
+        eventCache.logState();
+        valueCache.logState();
     }
 }

@@ -27,5 +27,5 @@ public interface LockWatchValueCache {
 
     void onSuccessfulCommit(long startTimestamp);
 
-    void dumpState();
+    void logState();
 }

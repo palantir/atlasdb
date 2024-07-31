@@ -19,7 +19,9 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
@@ -37,8 +39,6 @@ import java.util.Comparator;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
 import java.util.Optional;
-import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -150,10 +150,12 @@ final class TimestampStateStore {
     TimestampStateStoreState getStateForDiagnostics() {
         // This method doesn't need to read a thread-safe snapshot of timestampMap and livingVersions
         SortedSetMultimap<Sequence, StartTimestamp> living = TreeMultimap.create();
-        livingVersions.forEach((sequence, startTimestamps) -> living.putAll(sequence, new TreeSet<>(startTimestamps)));
+        livingVersions.forEach(
+                (sequence, startTimestamps) -> living.putAll(sequence, ImmutableSortedSet.copyOf(startTimestamps)));
+
         return ImmutableTimestampStateStoreState.builder()
-                .timestampMap(new TreeMap<>(timestampMap))
-                .livingVersions(living)
+                .timestampMap(ImmutableSortedMap.copyOf(timestampMap))
+                .livingVersions(Multimaps.unmodifiableSortedSetMultimap(living))
                 .build();
     }
 
