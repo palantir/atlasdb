@@ -31,6 +31,7 @@ public final class NamespacedConjureLockWatchTimeLockDiagnosticsService implemen
         this.namespace = namespace;
     }
 
+    @Override
     public void logState() {
         lockWatchDiagnosticsService.logState(AUTH_HEADER, namespace);
     }
