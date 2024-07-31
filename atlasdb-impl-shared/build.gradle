@@ -48,6 +48,7 @@ dependencies {
   implementation 'org.apache.commons:commons-lang3'
   implementation 'org.eclipse.collections:eclipse-collections'
   implementation 'org.eclipse.collections:eclipse-collections-api'
+  implementation 'com.palantir.refreshable:refreshable'
 
   implementation project(':atlasdb-api')
   implementation project(':atlasdb-autobatch')

@@ -84,7 +84,8 @@ public final class BankBalanceWorkflows {
                     new AtomicBoolean(),
                     workflowConfiguration,
                     maybeBalances -> log.error(
-                            "Balance validation failed, indicating we have violated snapshot isolation.",
+                            "Balance validation failed, indicating we have violated snapshot isolation. "
+                                    + "Given balances are {}",
                             SafeArg.of("maybeBalances", maybeBalances)));
         }
 
