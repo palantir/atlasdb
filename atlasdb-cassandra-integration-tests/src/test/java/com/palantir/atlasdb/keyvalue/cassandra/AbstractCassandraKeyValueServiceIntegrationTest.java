@@ -231,7 +231,7 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
                 .collect(Collectors.toList()));
 
         assertThat(ColumnFamilyDefinitions.isMatchingCf(
-                kvs.getCfForTable(NEVER_SEEN, getMetadata(), FOUR_DAYS_IN_SECONDS), clusterSideCf))
+                        kvs.getCfForTable(NEVER_SEEN, getMetadata(), FOUR_DAYS_IN_SECONDS), clusterSideCf))
                 .as("After serialization and deserialization to database, Cf metadata did not match.")
                 .isTrue();
     }
@@ -256,8 +256,10 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
     @SuppressWarnings("CompileTimeConstant")
     public void shouldNotErrorForTimestampTableWhenCreatingCassandraKvs() {
         verify(logger, atLeast(0))
-                .error(startsWith("Found a table {} that did not have persisted"),
-                        assertArg((Arg<String> arg) -> assertThat(arg.getValue()).doesNotContain("timestamp")));
+                .error(
+                        startsWith("Found a table {} that did not have persisted"),
+                        assertArg(
+                                (Arg<String> arg) -> assertThat(arg.getValue()).doesNotContain("timestamp")));
     }
 
     @Test
@@ -492,20 +494,20 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
 
         keyValueService.putUnlessExists(userTable, ImmutableMap.of(CELL, sad));
         assertThat(keyValueService
-                .get(userTable, ImmutableMap.of(CELL, Long.MAX_VALUE))
-                .get(CELL)
-                .getContents())
+                        .get(userTable, ImmutableMap.of(CELL, Long.MAX_VALUE))
+                        .get(CELL)
+                        .getContents())
                 .containsExactly(sad);
 
         keyValueService.setOnce(userTable, ImmutableMap.of(CELL, happy));
         assertThat(keyValueService
-                .get(userTable, ImmutableMap.of(CELL, Long.MAX_VALUE))
-                .get(CELL)
-                .getContents())
+                        .get(userTable, ImmutableMap.of(CELL, Long.MAX_VALUE))
+                        .get(CELL)
+                        .getContents())
                 .containsExactly(happy);
         assertThat(keyValueService
-                .getAllTimestamps(userTable, ImmutableSet.of(CELL), Long.MAX_VALUE)
-                .size())
+                        .getAllTimestamps(userTable, ImmutableSet.of(CELL), Long.MAX_VALUE)
+                        .size())
                 .isEqualTo(1);
         keyValueService.truncateTable(userTable);
     }
@@ -665,9 +667,9 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
         Cell nextTestCell = Cell.create(row(1), column(1));
 
         assertThatThrownBy(() -> keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.newCells(
-                TEST_TABLE,
-                firstTestCell.getRowName(),
-                ImmutableMap.of(firstTestCell, val(0, 0), nextTestCell, val(0, 1)))))
+                        TEST_TABLE,
+                        firstTestCell.getRowName(),
+                        ImmutableMap.of(firstTestCell, val(0, 0), nextTestCell, val(0, 1)))))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasMessageContaining("Can only update cells in one row.");
     }
@@ -683,7 +685,7 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
                 TEST_TABLE, nextTestCell.getRowName(), ImmutableMap.of(nextTestCell, val(0, 1))));
 
         assertThatThrownBy(() -> keyValueService.multiCheckAndSet(MultiCheckAndSetRequest.newCells(
-                TEST_TABLE, nextTestCell.getRowName(), ImmutableMap.of(nextTestCell, val(0, 2)))))
+                        TEST_TABLE, nextTestCell.getRowName(), ImmutableMap.of(nextTestCell, val(0, 2)))))
                 .isInstanceOf(MultiCheckAndSetException.class);
 
         MultiCheckAndSetException ex = catchThrowableOfType(
@@ -808,7 +810,7 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
                 .setComment("")
                 .setColumn_metadata(new ArrayList<>())
                 .setTriggers(new ArrayList<>())
-                .setKey_alias(new byte[]{0x6B, 0x65, 0x79})
+                .setKey_alias(new byte[] {0x6B, 0x65, 0x79})
                 .setComparator_type("org.apache.cassandra.db.marshal.CompositeType"
                         + "(org.apache.cassandra.db.marshal.BytesType,org.apache.cassandra.db.marshal.LongType)")
                 .setCompaction_strategy_options(new HashMap<>())
