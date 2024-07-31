@@ -39,4 +39,6 @@ public interface LockEventLog {
     void logUnlock(Set<LockDescriptor> locksUnlocked);
 
     void logLockWatchCreated(LockWatches newWatches);
+
+    void logState();
 }
