@@ -24,6 +24,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraC
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolHostLevelMetric;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
+import com.palantir.atlasdb.tracing.Tracing;
+import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.PoolingContainer;
@@ -32,6 +34,7 @@ import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.nylon.threads.ThreadNames;
+import com.palantir.tracing.CloseableTracer;
 import com.palantir.util.TimedRunner;
 import com.palantir.util.TimedRunner.TaskContext;
 import java.lang.management.ManagementFactory;
@@ -116,35 +119,38 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     @Override
     public <V, K extends Exception> V runWithPooledResource(FunctionCheckedException<CassandraClient, V, K> fn)
             throws K {
-        final String origName = Thread.currentThread().getName();
-        String newThreadName = origName + " to cassandra " + proxy.getHostString() + ':' + proxy.getPort() + " - "
-                + count.getAndIncrement();
-        if (log.isDebugEnabled()) {
-            // the timestamp is expensive to stringify, only add to thread names when debugging
-            newThreadName += " started at " + Instant.now();
-        }
-        ThreadNames.setThreadName(Thread.currentThread(), newThreadName);
-        try {
-            openRequests.getAndIncrement();
-            return runWithGoodResource(fn);
-        } catch (Throwable t) {
-            log.warn("Error occurred talking to host '{}'", SafeArg.of("host", cassandraServer), t);
-            if (t instanceof NoSuchElementException && t.getMessage().contains("Pool exhausted")) {
-                log.warn(
-                        "Extra information about exhausted pool",
-                        SafeArg.of("numActive", clientPool.getNumActive()),
-                        SafeArg.of("maxTotal", clientPool.getMaxTotal()),
-                        SafeArg.of("meanActiveTimeMillis", clientPool.getMeanActiveTimeMillis()),
-                        SafeArg.of("meanIdleTimeMillis", clientPool.getMeanIdleTimeMillis()));
-                poolMetrics.recordPoolExhaustion();
-                if (log.isDebugEnabled()) {
-                    logThreadStates();
-                }
+        try (CloseableTracer trace =
+                Tracing.startLocalTrace("CassandraClientPoolingContainer.runWithPooledResource", tagConsumer -> {})) {
+            final String origName = Thread.currentThread().getName();
+            String newThreadName = origName + " to cassandra " + proxy.getHostString() + ':' + proxy.getPort() + " - "
+                    + count.getAndIncrement();
+            if (log.isDebugEnabled()) {
+                // the timestamp is expensive to stringify, only add to thread names when debugging
+                newThreadName += " started at " + Instant.now();
             }
-            throw t;
-        } finally {
-            openRequests.getAndDecrement();
-            ThreadNames.setThreadName(Thread.currentThread(), origName);
+            ThreadNames.setThreadName(Thread.currentThread(), newThreadName);
+            try {
+                openRequests.getAndIncrement();
+                return runWithGoodResource(fn);
+            } catch (Throwable t) {
+                log.warn("Error occurred talking to host '{}'", SafeArg.of("host", cassandraServer), t);
+                if (t instanceof NoSuchElementException && t.getMessage().contains("Pool exhausted")) {
+                    log.warn(
+                            "Extra information about exhausted pool",
+                            SafeArg.of("numActive", clientPool.getNumActive()),
+                            SafeArg.of("maxTotal", clientPool.getMaxTotal()),
+                            SafeArg.of("meanActiveTimeMillis", clientPool.getMeanActiveTimeMillis()),
+                            SafeArg.of("meanIdleTimeMillis", clientPool.getMeanIdleTimeMillis()));
+                    poolMetrics.recordPoolExhaustion();
+                    if (log.isDebugEnabled()) {
+                        logThreadStates();
+                    }
+                }
+                throw t;
+            } finally {
+                openRequests.getAndDecrement();
+                ThreadNames.setThreadName(Thread.currentThread(), origName);
+            }
         }
     }
 
@@ -157,51 +163,61 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     @SuppressWarnings("unchecked")
     private <V, K extends Exception> V runWithGoodResource(FunctionCheckedException<CassandraClient, V, K> fn)
             throws K {
-        boolean shouldReuse = true;
-        CassandraClient resource = null;
-        try {
-            resource = clientPool.borrowObject();
-            CassandraClient finalResource = resource;
-            TaskContext<V> taskContext = TaskContext.create(() -> fn.apply(finalResource), () -> {});
-            return timedRunner.run(taskContext);
-        } catch (Exception e) {
-            if (isInvalidClientConnection(resource)) {
-                log.warn(
-                        "Not reusing resource due to {} of host {}",
-                        UnsafeArg.of("exception", e.toString()),
-                        SafeArg.of("cassandraHostName", cassandraServer.cassandraHostName()),
-                        SafeArg.of("proxy", CassandraLogHelper.host(proxy)),
-                        e);
-                shouldReuse = false;
-            }
-            if (e instanceof TTransportException
-                    && ((TTransportException) e).getType() == TTransportException.END_OF_FILE) {
-                // If we have an end of file this is most likely due to this cassandra node being bounced.
-                log.warn(
-                        "Clearing client pool due to exception",
-                        SafeArg.of("cassandraHostName", cassandraServer.cassandraHostName()),
-                        SafeArg.of("proxy", CassandraLogHelper.host(proxy)),
-                        e);
-                clientPool.clear();
-            }
-            throw (K) e;
-        } finally {
-            if (resource != null) {
-                if (shouldReuse) {
-                    if (log.isDebugEnabled()) {
-                        log.debug(
-                                "Returning resource to pool of host {}",
-                                SafeArg.of("cassandraHostname", cassandraServer.cassandraHostName()),
-                                SafeArg.of("proxy", CassandraLogHelper.host(proxy)));
-                    }
-                    eagerlyCleanupReadBuffersFromIdleConnection(resource, cassandraServer);
-                    clientPool.returnObject(resource);
-                } else {
-                    invalidateQuietly(resource);
+        try (CloseableTracer trace =
+                Tracing.startLocalTrace("CassandraClientPoolingContainer.runWithGoodResource", tagConsumer -> {})) {
+            boolean shouldReuse = true;
+            CassandraClient resource = null;
+            try {
+                resource = getResource();
+                CassandraClient finalResource = resource;
+                TaskContext<V> taskContext = TaskContext.create(() -> fn.apply(finalResource), () -> {});
+                return timedRunner.run(taskContext);
+            } catch (Exception e) {
+                if (isInvalidClientConnection(resource)) {
+                    log.warn(
+                            "Not reusing resource due to {} of host {}",
+                            UnsafeArg.of("exception", e.toString()),
+                            SafeArg.of("cassandraHostName", cassandraServer.cassandraHostName()),
+                            SafeArg.of("proxy", CassandraLogHelper.host(proxy)),
+                            e);
+                    shouldReuse = false;
                 }
-            } else {
-                log.warn("Failed to acquire Cassandra resource from object pool");
+                if (e instanceof TTransportException
+                        && ((TTransportException) e).getType() == TTransportException.END_OF_FILE) {
+                    // If we have an end of file this is most likely due to this cassandra node being bounced.
+                    log.warn(
+                            "Clearing client pool due to exception",
+                            SafeArg.of("cassandraHostName", cassandraServer.cassandraHostName()),
+                            SafeArg.of("proxy", CassandraLogHelper.host(proxy)),
+                            e);
+                    clientPool.clear();
+                }
+                throw (K) e;
+            } finally {
+                if (resource != null) {
+                    if (shouldReuse) {
+                        if (log.isDebugEnabled()) {
+                            log.debug(
+                                    "Returning resource to pool of host {}",
+                                    SafeArg.of("cassandraHostname", cassandraServer.cassandraHostName()),
+                                    SafeArg.of("proxy", CassandraLogHelper.host(proxy)));
+                        }
+                        eagerlyCleanupReadBuffersFromIdleConnection(resource, cassandraServer);
+                        clientPool.returnObject(resource);
+                    } else {
+                        invalidateQuietly(resource);
+                    }
+                } else {
+                    log.warn("Failed to acquire Cassandra resource from object pool");
+                }
             }
+        }
+    }
+
+    private CassandraClient getResource() throws Exception {
+        try (CloseableTracer trace =
+                Tracing.startLocalTrace("CassandraClientPoolingContainer.getResource", tagConsumer -> {})) {
+            return clientPool.borrowObject();
         }
     }
 
@@ -329,7 +345,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
                 SafeArg.of("cassandraHost", cassandraServer.cassandraHostName()),
                 SafeArg.of("proxy", proxy),
                 SafeArg.of("poolConfig", poolConfig));
-        return pool;
+        return AtlasDbMetrics.instrumentTimed(metricsManager.getRegistry(), GenericObjectPool.class, pool);
     }
 
     private void logThreadStates() {
