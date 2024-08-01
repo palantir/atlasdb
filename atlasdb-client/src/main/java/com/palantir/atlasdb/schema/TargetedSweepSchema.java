@@ -131,6 +131,7 @@ public enum TargetedSweepSchema implements AtlasSchema {
                 rowComponent("majorBucketIdentifier", ValueType.VAR_SIGNED_LONG);
                 dynamicColumns();
                 columnComponent("minorBucketIdentifier", ValueType.VAR_LONG);
+                value(ValueType.BLOB);
 
                 // we do our own cleanup
                 sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
