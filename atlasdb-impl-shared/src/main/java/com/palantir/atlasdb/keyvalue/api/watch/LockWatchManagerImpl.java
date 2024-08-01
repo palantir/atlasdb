@@ -112,7 +112,7 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
     }
 
     @Override
-    void logState() {
+    public void logState() {
         diagnosticLog.log(logger -> {
             logger.info(
                     "Logging state from LockWatchManagerImpl",

@@ -79,7 +79,7 @@ public final class NoOpLockWatchManager extends LockWatchManagerInternal {
     }
 
     @Override
-    void logState() {
+    public void logState() {
         log.info("Logging state from NoOpLockWatchManager");
         cache.logState();
     }
