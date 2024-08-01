@@ -53,5 +53,5 @@ public abstract class LockWatchManager {
     abstract TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps, Optional<LockWatchVersion> version);
 
-    abstract void logState();
+    public abstract void logState();
 }
