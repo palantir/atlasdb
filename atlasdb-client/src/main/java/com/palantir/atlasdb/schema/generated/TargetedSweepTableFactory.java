@@ -42,6 +42,10 @@ public final class TargetedSweepTableFactory {
         return defaultTableFactory;
     }
 
+    public SweepBucketsTable getSweepBucketsTable(Transaction t, SweepBucketsTable.SweepBucketsTrigger... triggers) {
+        return SweepBucketsTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
     public SweepIdToNameTable getSweepIdToNameTable(
             Transaction t, SweepIdToNameTable.SweepIdToNameTrigger... triggers) {
         return SweepIdToNameTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
@@ -72,7 +76,8 @@ public final class TargetedSweepTableFactory {
     }
 
     public interface SharedTriggers
-            extends SweepIdToNameTable.SweepIdToNameTrigger,
+            extends SweepBucketsTable.SweepBucketsTrigger,
+                    SweepIdToNameTable.SweepIdToNameTrigger,
                     SweepNameToIdTable.SweepNameToIdTrigger,
                     SweepShardProgressTable.SweepShardProgressTrigger,
                     SweepableCellsTable.SweepableCellsTrigger,
@@ -80,6 +85,13 @@ public final class TargetedSweepTableFactory {
                     TableClearsTable.TableClearsTrigger {}
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
+        @Override
+        public void putSweepBuckets(
+                Multimap<SweepBucketsTable.SweepBucketsRow, ? extends SweepBucketsTable.SweepBucketsColumnValue>
+                        newRows) {
+            // do nothing
+        }
+
         @Override
         public void putSweepIdToName(
                 Multimap<SweepIdToNameTable.SweepIdToNameRow, ? extends SweepIdToNameTable.SweepIdToNameColumnValue>

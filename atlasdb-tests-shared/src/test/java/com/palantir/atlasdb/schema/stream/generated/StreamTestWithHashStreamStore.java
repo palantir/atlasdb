@@ -63,6 +63,8 @@ import com.palantir.common.io.ConcatenatedInputStream;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import com.palantir.logsafe.exceptions.SafeUncheckedIoException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.AssertUtils;
@@ -123,9 +125,9 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
             tables.getStreamTestWithHashStreamValueTable(t).putValue(row, block);
         } catch (RuntimeException e) {
             log.error(
-                    "Error storing block {} for stream id {}",
+                    "Error storing block for stream",
+                    SafeArg.of("streamId", row.getId()),
                     SafeArg.of("blockId", row.getBlockId()),
-                    SafeArg.of("id", row.getId()),
                     e);
             throw e;
         }
@@ -135,7 +137,7 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
         StreamTestWithHashStreamMetadataTable metaTable = tables.getStreamTestWithHashStreamMetadataTable(t);
         StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow row = StreamTestWithHashStreamMetadataTable.StreamTestWithHashStreamMetadataRow.of(id);
         StreamMetadata metadata = metaTable.getMetadatas(ImmutableSet.of(row)).values().iterator().next();
-        Preconditions.checkState(metadata.getStatus() == Status.STORING, "This stream is being cleaned up while storing blocks", SafeArg.of("id", id));
+        Preconditions.checkState(metadata.getStatus() == Status.STORING, "This stream is being cleaned up while storing blocks", SafeArg.of("streamId", id));
         StreamMetadata.Builder builder = StreamMetadata.newBuilder(metadata);
         builder.setLength(blockNumber * BLOCK_SIZE_IN_BYTES + 1);
         metaTable.putMetadata(row, builder.build());
@@ -190,21 +192,27 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
     protected void loadSingleBlockToOutputStream(Transaction t, Long streamId, long blockId, OutputStream os) {
         StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow row = StreamTestWithHashStreamValueTable.StreamTestWithHashStreamValueRow.of(streamId, blockId);
         try {
-            os.write(getBlock(t, row));
+            byte[] block = getBlock(t, row);
+            if (block == null) {
+                throw new SafeRuntimeException(
+                        "Block for stream not found. This is likely due to returning a stream from a transaction and attempting to use it after it has been marked as unused.",
+                        SafeArg.of("streamId", row.getId()),
+                        SafeArg.of("blockId", row.getBlockId()));
+            }
+            os.write(block);
         } catch (RuntimeException e) {
             log.error(
-                    "Error storing block {} for stream id {}",
+                    "Error storing block for stream",
+                    SafeArg.of("streamId", row.getId()),
                     SafeArg.of("blockId", row.getBlockId()),
-                    SafeArg.of("id", row.getId()),
                     e);
             throw e;
         } catch (IOException e) {
-            log.error(
-                    "Error writing block {} to file when getting stream id {}",
-                    SafeArg.of("blockId", row.getBlockId()),
-                    SafeArg.of("id", row.getId()),
-                    e);
-            throw Throwables.rewrapAndThrowUncheckedException("Error writing blocks to file when creating stream.", e);
+            throw new SafeUncheckedIoException(
+                    "Error writing block to file when getting stream",
+                    e,
+                    SafeArg.of("streamId", row.getId()),
+                    SafeArg.of("blockId", row.getBlockId()));
         }
     }
 
@@ -327,7 +335,7 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
             } else {
                 log.error(
                         "Empty hash for stream {}",
-                        SafeArg.of("id", streamId));
+                        SafeArg.of("streamId", streamId));
             }
             StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxRow hashRow = StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxRow.of(hash);
             StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxColumn column = StreamTestWithHashStreamHashAidxTable.StreamTestWithHashStreamHashAidxColumn.of(streamId);
@@ -447,6 +455,8 @@ public final class StreamTestWithHashStreamStore extends AbstractPersistentStrea
      * {@link SafeArg}
      * {@link SafeLogger}
      * {@link SafeLoggerFactory}
+     * {@link SafeRuntimeException}
+     * {@link SafeUncheckedIoException}
      * {@link Set}
      * {@link SetView}
      * {@link Sets}
