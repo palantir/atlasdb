@@ -37,9 +37,9 @@ public interface SweepBucketStore {
     List<Long> getFirstLiveBuckets(long lowerBoundTimestamp, int limit);
 
     /**
-     * Attempts to set progress for the provided bucket identifier to the provided range. May return false, if
-     * progress was not set to said range (e.g., because this would attempt to change a bucket that had already
-     * been closed, or re-open a bucket).
+     * Attempts to set progress for the provided bucket identifier to the provided range. May return false, in the
+     * event of CAS failures. Semantic management of how ranges are allowed to evolve is the responsibility of the
+     * caller.
      */
     boolean trySetBucketRange(long bucketIdentifier, SweepableBucketRange range);
 
@@ -48,4 +48,6 @@ public interface SweepBucketStore {
      * operation, and that externally referenced state relating to the bucket in question has already been cleaned up.
      */
     void deleteBucket(long bucketIdentifier);
+
+
 }

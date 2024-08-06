@@ -16,20 +16,19 @@
 
 package com.palantir.atlasdb.sweep.asts.bucket;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import java.util.OptionalLong;
-import org.immutables.value.Value;
+/**
+ * Stores information about bucket offsets.
+ */
+public interface SweepBucketOffsetStore {
+    // WRITE OFFSETS
+    // when writing a new bucket, we GET the current write offset
+    // AND THEN attempt to write at the current write offset
+    // AND THEN, if successful, update the write offset.
+    long getWriteOffset();
 
-@Value.Immutable
-@JsonSerialize(as = ImmutableSweepableBucketRange.class)
-@JsonDeserialize(as = ImmutableSweepableBucketRange.class)
-public interface SweepableBucketRange {
-    long start();
+    void setWriteOffset();
 
-    OptionalLong end();
-
-    default boolean isClosedRange() {
-        return end().isPresent();
-    }
+    // READ OFFSETS
+    // the bucket retriever reads the read offset
+    // the background task, when making progress, is allowed to CAS the read offset forward, if fully processed.
 }
