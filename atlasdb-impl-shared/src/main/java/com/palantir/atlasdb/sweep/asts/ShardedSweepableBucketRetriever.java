@@ -21,13 +21,13 @@ import com.palantir.atlasdb.sweep.asts.ShardedSweepTimestampManager.SweepTimesta
 import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
+import com.palantir.common.base.RunnableCheckedException;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tracing.CloseableTracer;
 import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -41,10 +41,8 @@ public final class ShardedSweepableBucketRetriever implements SweepableBucketRet
 
     private final Refreshable<Integer> maxParallelism;
 
-    private final Refreshable<Duration> maxBackoff;
-
-    // Exists to facilitate testing in unit tests, rather than needing to mock out ThreadLocalRandom.
-    private final Supplier<Long> backoffMillisGenerator;
+    // Exists to facilitate testing in unit tests, rather than needing to mock out ThreadLocalRandom and Thread#sleep.
+    private final RunnableCheckedException<InterruptedException> sleeper;
 
     @VisibleForTesting
     ShardedSweepableBucketRetriever(
@@ -54,16 +52,14 @@ public final class ShardedSweepableBucketRetriever implements SweepableBucketRet
             ShardedSweepTimestampManager sweepTimestampManager,
             ParallelTaskExecutor parallelTaskExecutor,
             Refreshable<Integer> maxParallelism,
-            Refreshable<Duration> maxBackoff,
-            Supplier<Long> backoffMillisGenerator) {
+            RunnableCheckedException<InterruptedException> sleeper) {
         this.numShards = numShards;
         this.shardedRetrievalStrategy = shardedRetrievalStrategy;
         this.strategy = strategy;
         this.sweepTimestampManager = sweepTimestampManager;
         this.parallelTaskExecutor = parallelTaskExecutor;
         this.maxParallelism = maxParallelism;
-        this.maxBackoff = maxBackoff;
-        this.backoffMillisGenerator = backoffMillisGenerator;
+        this.sleeper = sleeper;
     }
 
     public static SweepableBucketRetriever create(
@@ -81,9 +77,9 @@ public final class ShardedSweepableBucketRetriever implements SweepableBucketRet
                 sweepTimestampManager,
                 parallelTaskExecutor,
                 maxParallelism,
-                maxBackoff,
                 // We want _some_ backoff, hence the minimum is 1, rather than the standard 0.
-                () -> ThreadLocalRandom.current().nextLong(1, maxBackoff.get().toMillis()));
+                () -> Thread.sleep(
+                        ThreadLocalRandom.current().nextLong(1, maxBackoff.get().toMillis())));
     }
 
     @Override
@@ -117,7 +113,7 @@ public final class ShardedSweepableBucketRetriever implements SweepableBucketRet
      */
     private List<SweepableBucket> getSweepableBucketsForShardWithJitter(int shard) {
         try {
-            Thread.sleep(backoffMillisGenerator.get());
+            sleeper.run();
             return getSweepableBucketsForShard(shard);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
