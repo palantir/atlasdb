@@ -16,11 +16,25 @@
 
 package com.palantir.atlasdb.transaction.api;
 
+/**
+ * Describes how the write pattern of an AtlasDB table looks like. AtlasDB may use this information to perform
+ * protocol optimisations. AtlasDB will try to limit the extent to which users violate these settings, but is not able
+ * to do this in all cases, so users that specify these incorrectly may expose themselves to logical corruption
+ * (along similar lines of users declaring an incorrect conflict handler).
+ * <p>
+ * Mutability for a given table can be changed over time, though this must be done with caution. Downgrading
+ * immutability is generally simple, though requires a schema check-point as we first turn off the optimisations, make
+ * sure that no one is using them anymore, and then relax the actual behavioural constraints (permitting deletes
+ * or overwrites). Upgrading immutability is more complex because some of the optimisations affect processes like sweep.
+ * In theory, you need to stop all transactions that might perform deletes, and then get a fresh timestamp. Then, you
+ * need to make sure sweep progress goes past this timestamp. Only after that can we be certain sweep has processed
+ * everything without optimisations, and can we switch to strong immutable.
+ */
 public enum Mutability {
-    // Normal.
+    // This is the "standard" setting: cells in tables can be written to freely.
     MUTABLE,
     // Cells are written to at most twice: they are written, and then deleted strictly after they are written
-    // (blind deletes not allowed).
+    // (with blind deletes not allowed).
     WEAK_IMMUTABLE,
     // Cells are written to once and only once, and are never deleted.
     STRONG_IMMUTABLE;
