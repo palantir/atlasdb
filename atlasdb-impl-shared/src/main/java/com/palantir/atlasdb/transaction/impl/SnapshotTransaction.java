@@ -529,8 +529,17 @@ public class SnapshotTransaction extends AbstractTransaction
                     SafeArg.of("timeTakenMillis", getRowsMillis));
         }
 
-        /* can't skip lock check as we don't know how many cells to expect for the column selection */
-        validatePreCommitRequirementsOnNonExhaustiveReadIfNecessary(tableRef, getStartTimestamp());
+        Optional<SortedSet<byte[]>> maybeExhaustiveColumnSet = tableMutabilityArbitrator.getExhaustiveColumnSet(tableRef);
+        if (maybeExhaustiveColumnSet.isEmpty()) {
+            /* can't skip lock check as we don't know how many cells to expect for the column selection */
+            validatePreCommitRequirementsOnNonExhaustiveReadIfNecessary(tableRef, getStartTimestamp());
+        } else {
+            // TODO (jkong): IF we want this for prod we need to think about what happens if someone adds a column
+            // That's bad and you shouldn't do that but we should at least understand what happens.
+            int expectedCells = maybeExhaustiveColumnSet.get().size();
+            validatePreCommitRequirementsOnReadIfNecessary(tableRef, getStartTimestamp(),
+                    results.values().stream().allMatch(rowResult -> rowResult.getColumns().size() == expectedCells));
+        }
         return results;
     }
 
