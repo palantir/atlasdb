@@ -14,12 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.table.description;
-
-import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
-import com.palantir.logsafe.exceptions.SafeRuntimeException;
-import com.palantir.logsafe.logger.SafeLogger;
-import com.palantir.logsafe.logger.SafeLoggerFactory;
+package com.palantir.atlasdb.transaction.api;
 
 public enum Mutability {
     // Normal.
@@ -30,29 +25,11 @@ public enum Mutability {
     // Cells are written to once and only once, and are never deleted.
     STRONG_IMMUTABLE;
 
-    static final SafeLogger log = SafeLoggerFactory.get(Mutability.class);
-
     public boolean isAtLeastWeakImmutable() {
         return this == Mutability.WEAK_IMMUTABLE || this == Mutability.STRONG_IMMUTABLE;
     }
 
     public boolean isAtLeastStrongImmutable() {
         return this == Mutability.STRONG_IMMUTABLE;
-    }
-
-    public static Mutability fromProto(TableMetadataPersistence.Mutability mutability) {
-        switch (mutability) {
-            case MUTABLE:
-                return MUTABLE;
-            case WEAK_IMMUTABLE:
-                return WEAK_IMMUTABLE;
-            case STRONG_IMMUTABLE:
-                return STRONG_IMMUTABLE;
-            default:
-                log.warn(
-                        "unexpected mutability type, returning MUTABLE because that is safe",
-                        new SafeRuntimeException("I exist to show you the stack trace."));
-                return MUTABLE;
-        }
     }
 }

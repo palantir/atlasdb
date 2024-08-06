@@ -40,6 +40,7 @@ import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.tracing.TraceStatistics;
 import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
+import com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.metrics.KeyValueSnapshotMetricRecorder;
 import com.palantir.atlasdb.transaction.api.precommit.ReadSnapshotValidator;
@@ -85,6 +86,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
     private final ReadSnapshotValidator readSnapshotValidator;
     private final DeleteExecutor deleteExecutor;
     private final KeyValueSnapshotMetricRecorder metricRecorder;
+    private final TableMutabilityArbitrator mutabilityArbitrator;
 
     public DefaultKeyValueSnapshotReader(
             TransactionKeyValueService transactionKeyValueService,
@@ -95,7 +97,8 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             LongSupplier startTimestampSupplier,
             ReadSnapshotValidator readSnapshotValidator,
             DeleteExecutor deleteExecutor,
-            KeyValueSnapshotMetricRecorder metricRecorder) {
+            KeyValueSnapshotMetricRecorder metricRecorder,
+            TableMutabilityArbitrator mutabilityArbitrator) {
         this.transactionKeyValueService = transactionKeyValueService;
         this.transactionService = transactionService;
         this.commitTimestampLoader = commitTimestampLoader;
@@ -105,6 +108,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
         this.readSnapshotValidator = readSnapshotValidator;
         this.deleteExecutor = deleteExecutor;
         this.metricRecorder = metricRecorder;
+        this.mutabilityArbitrator = mutabilityArbitrator;
     }
 
     @Override
@@ -258,7 +262,13 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
                     // This means the value is from a transaction which committed
                     // after our transaction began. We need to try reading at an
                     // earlier timestamp.
-                    keysToReload.put(key, value.getTimestamp());
+                    if (mutabilityArbitrator.getMutability(tableRef).isAtLeastWeakImmutable()
+                            && value.getContents().length != 0) {
+                        // In this case, we don't actually need to reload the key. This is because in a weak immutable
+                        // table, we saw a committed non-delete, and this MUST by definition have been the first write.
+                    } else {
+                        keysToReload.put(key, value.getTimestamp());
+                    }
                     metricRecorder.recordFilteredTransactionCommittingAfterOurStart(tableRef);
                 } else {
                     // The value has a commit timestamp less than our start timestamp, and is visible and valid.

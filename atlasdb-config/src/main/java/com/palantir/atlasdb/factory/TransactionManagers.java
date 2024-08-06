@@ -542,11 +542,14 @@ public abstract class TransactionManagers {
                 asyncInitializationCallback(),
                 createClearsTable(internalKeyValueService)));
 
-        KeyValueSnapshotReaderManager keyValueSnapshotReaderManager = createKeyValueSnapshotReaderManager(
-                transactionKeyValueServiceManager, transactionService, sweepStrategyManager, metricsManager);
-
         TableMutabilityArbitrator tableMutabilityArbitrator =
                 MetadataBackedTableMutabilityArbitrator.create(internalKeyValueService);
+        KeyValueSnapshotReaderManager keyValueSnapshotReaderManager = createKeyValueSnapshotReaderManager(
+                transactionKeyValueServiceManager,
+                transactionService,
+                sweepStrategyManager,
+                metricsManager,
+                tableMutabilityArbitrator);
 
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.createInstrumented(
@@ -619,7 +622,8 @@ public abstract class TransactionManagers {
             TransactionKeyValueServiceManager transactionKeyValueServiceManager,
             TransactionService transactionService,
             SweepStrategyManager sweepStrategyManager,
-            MetricsManager metricsManager) {
+            MetricsManager metricsManager,
+            TableMutabilityArbitrator tableMutabilityArbitrator) {
         Optional<KeyValueSnapshotReaderManagerFactory> serviceDiscoveredFactory = config().transactionKeyValueService()
                 .map(AtlasDbServiceDiscovery::createKeyValueSnapshotReaderManagerFactoryOfCorrectType);
         DeleteExecutor deleteExecutor = DefaultDeleteExecutor.createDefault(
@@ -633,13 +637,15 @@ public abstract class TransactionManagers {
                         allowHiddenTableAccess(),
                         orphanedSentinelDeleter,
                         deleteExecutor,
-                        metricsManager))
+                        metricsManager,
+                        tableMutabilityArbitrator))
                 .orElseGet(() -> new DefaultKeyValueSnapshotReaderManager(
                         transactionKeyValueServiceManager,
                         transactionService,
                         allowHiddenTableAccess(),
                         orphanedSentinelDeleter,
-                        deleteExecutor));
+                        deleteExecutor,
+                        tableMutabilityArbitrator));
     }
 
     private <T> TransactionKeyValueServiceManager createTransactionKeyValueServiceManager(

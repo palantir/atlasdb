@@ -20,6 +20,7 @@ import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
 import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter;
+import com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.impl.ReadSentinelHandler;
@@ -31,18 +32,21 @@ public final class DefaultKeyValueSnapshotReaderManager implements KeyValueSnaps
     private final boolean allowHiddenTableAccess;
     private final OrphanedSentinelDeleter orphanedSentinelDeleter;
     private final DeleteExecutor deleteExecutor;
+    private final TableMutabilityArbitrator tableMutabilityArbitrator;
 
     public DefaultKeyValueSnapshotReaderManager(
             TransactionKeyValueServiceManager transactionKeyValueServiceManager,
             TransactionService transactionService,
             boolean allowHiddenTableAccess,
             OrphanedSentinelDeleter orphanedSentinelDeleter,
-            DeleteExecutor deleteExecutor) {
+            DeleteExecutor deleteExecutor,
+            TableMutabilityArbitrator tableMutabilityArbitrator) {
         this.transactionKeyValueServiceManager = transactionKeyValueServiceManager;
         this.transactionService = transactionService;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
         this.orphanedSentinelDeleter = orphanedSentinelDeleter;
         this.deleteExecutor = deleteExecutor;
+        this.tableMutabilityArbitrator = tableMutabilityArbitrator;
     }
 
     @Override
@@ -64,6 +68,7 @@ public final class DefaultKeyValueSnapshotReaderManager implements KeyValueSnaps
                 transactionContext.startTimestampSupplier(),
                 transactionContext.readSnapshotValidator(),
                 deleteExecutor,
-                transactionContext.keyValueSnapshotMetricRecorder());
+                transactionContext.keyValueSnapshotMetricRecorder(),
+                tableMutabilityArbitrator);
     }
 }

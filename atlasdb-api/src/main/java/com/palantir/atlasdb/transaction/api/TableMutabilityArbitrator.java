@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.transaction.api;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.table.description.Mutability;
 
 /**
  * Decides whether tables are mutable or not.

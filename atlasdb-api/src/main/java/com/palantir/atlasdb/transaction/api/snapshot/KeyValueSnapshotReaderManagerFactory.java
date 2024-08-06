@@ -19,6 +19,7 @@ package com.palantir.atlasdb.transaction.api.snapshot;
 import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter;
+import com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 
@@ -31,5 +32,6 @@ public interface KeyValueSnapshotReaderManagerFactory {
             boolean allowHiddenTableAccess,
             OrphanedSentinelDeleter orphanedSentinelDeleter,
             DeleteExecutor deleteExecutor,
-            MetricsManager metricsManager);
+            MetricsManager metricsManager,
+            TableMutabilityArbitrator tableMutabilityArbitrator);
 }

@@ -30,6 +30,7 @@ import com.palantir.atlasdb.table.description.constraints.ForeignKeyConstraintMe
 import com.palantir.atlasdb.table.description.constraints.RowConstraintMetadata;
 import com.palantir.atlasdb.table.description.constraints.TableConstraint;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
+import com.palantir.atlasdb.transaction.api.Mutability;
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.ArrayList;

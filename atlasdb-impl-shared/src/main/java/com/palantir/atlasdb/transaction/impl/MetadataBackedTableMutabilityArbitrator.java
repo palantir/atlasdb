@@ -21,12 +21,19 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.table.description.Mutability;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import com.palantir.atlasdb.transaction.api.Mutability;
 import com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.time.Duration;
 
 public final class MetadataBackedTableMutabilityArbitrator implements TableMutabilityArbitrator {
+    static final SafeLogger log = SafeLoggerFactory.get(MetadataBackedTableMutabilityArbitrator.class);
+
     // TODO (jkong): Is this really needed?
     private final RecomputingSupplier<LoadingCache<TableReference, Mutability>> kvsLoader;
 
@@ -58,6 +65,24 @@ public final class MetadataBackedTableMutabilityArbitrator implements TableMutab
 
     private static Mutability parseMutability(byte[] tableMetadata) {
         TableMetadata parsedMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMetadata);
-        return Mutability.fromProto(parsedMetadata.getMutability());
+        return fromProto(parsedMetadata.getMutability());
+    }
+
+    // TODO (jkong): This feels like a weird place for this
+    private static Mutability fromProto(TableMetadataPersistence.Mutability mutability) {
+        switch (mutability) {
+            case MUTABLE:
+                return Mutability.MUTABLE;
+            case WEAK_IMMUTABLE:
+                return Mutability.WEAK_IMMUTABLE;
+            case STRONG_IMMUTABLE:
+                return Mutability.STRONG_IMMUTABLE;
+            default:
+                log.warn(
+                        "unexpected mutability type, returning MUTABLE because that is safe",
+                        SafeArg.of("type", mutability),
+                        new SafeRuntimeException("I exist to show you the stack trace."));
+                return Mutability.MUTABLE;
+        }
     }
 }
