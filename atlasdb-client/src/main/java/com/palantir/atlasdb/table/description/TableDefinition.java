@@ -22,7 +22,9 @@ import com.google.protobuf.AbstractMessage;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.persist.api.Persister;
 import com.palantir.atlasdb.persist.api.ReusablePersister;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.Mutability;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.ValueByteOrder;
 import com.palantir.atlasdb.table.description.ColumnValueDescription.Compression;
 import com.palantir.atlasdb.table.description.constraints.ConstraintMetadata;
@@ -30,7 +32,6 @@ import com.palantir.atlasdb.table.description.constraints.ForeignKeyConstraintMe
 import com.palantir.atlasdb.table.description.constraints.RowConstraintMetadata;
 import com.palantir.atlasdb.table.description.constraints.TableConstraint;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
-import com.palantir.atlasdb.transaction.api.Mutability;
 import com.palantir.common.persist.Persistable;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.ArrayList;
@@ -44,8 +45,6 @@ import java.util.Set;
  * Can be thought of as a builder for {@link TableMetadata} objects.
  */
 public class TableDefinition extends AbstractDefinition {
-
-    private Mutability mutability = Mutability.MUTABLE;
 
     @Override
     protected ConflictHandler defaultConflictHandler() {
@@ -415,6 +414,7 @@ public class TableDefinition extends AbstractDefinition {
     private LogSafety tableNameSafety = LogSafety.UNSAFE;
     private LogSafety defaultNamedComponentLogSafety = LogSafety.UNSAFE;
     private boolean v2TableEnabled = false;
+    private TableMetadataPersistence.Mutability mutability = TableMetadataPersistence.Mutability.MUTABLE;
 
     public TableMetadata toTableMetadata() {
         com.palantir.logsafe.Preconditions.checkState(!rowNameComponents.isEmpty(), "No row name components defined.");
@@ -439,6 +439,7 @@ public class TableDefinition extends AbstractDefinition {
                 .sweepStrategy(sweepStrategy)
                 .appendHeavyAndReadLight(appendHeavyAndReadLight)
                 .nameLogSafety(tableNameSafety)
+                .mutability(mutability)
                 .build();
     }
 

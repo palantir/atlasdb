@@ -53,6 +53,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
+import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.Mutability;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
@@ -245,13 +246,15 @@ public class TableRenderer {
                     renderGetRange();
                     line();
                     renderGetRanges();
-                    line();
-                    renderDeleteRange();
-                    line();
-                    if (isDynamic(table)) {
-                        renderDynamicDeleteRanges();
-                    } else {
-                        renderNamedDeleteRanges();
+                    if (areDeletesAllowed(table)) {
+                        line();
+                        renderDeleteRange();
+                        line();
+                        if (isDynamic(table)) {
+                            renderDynamicDeleteRanges();
+                        } else {
+                            renderNamedDeleteRanges();
+                        }
                     }
                 } else {
                     renderOptimizeColumnSelection();
@@ -305,12 +308,14 @@ public class TableRenderer {
             }
             renderNamedPut();
             line();
-            for (NamedColumnDescription col : table.getColumns().getNamedColumns()) {
-                renderNamedDeleteColumn(col);
+            if (areDeletesAllowed(table)) {
+                for (NamedColumnDescription col : table.getColumns().getNamedColumns()) {
+                    renderNamedDeleteColumn(col);
+                    line();
+                }
+                renderNamedDelete();
                 line();
             }
-            renderNamedDelete();
-            line();
             renderNamedGetRow();
             line();
             renderNamedGetRows();
@@ -326,6 +331,7 @@ public class TableRenderer {
             if (!cellReferencingIndices.isEmpty()) {
                 line();
                 renderNamedGetAffectedCells();
+                // TODO (jkong): If we want to productionise we need to check if this one makes sense.
                 for (IndexMetadata index : cellReferencingIndices) {
                     line();
                     renderCellReferencingIndexDelete(index);
@@ -347,8 +353,10 @@ public class TableRenderer {
                             tableName,
                             table.getColumns().getDynamicColumn().getValue())
                     .run();
-            line();
-            renderDynamicDelete();
+            if (areDeletesAllowed(table)) {
+                line();
+                renderDynamicDelete();
+            }
             line();
             renderDynamicPut();
             line();
@@ -1851,6 +1859,10 @@ public class TableRenderer {
     // ================================================== //
     // Nothing after this point should have side-effects. //
     // ================================================== //
+
+    private static boolean areDeletesAllowed(TableMetadata table) {
+        return table.getMutability() != Mutability.STRONG_IMMUTABLE;
+    }
 
     private static boolean isNamedSet(TableMetadata table) {
         Set<NamedColumnDescription> namedColumns = table.getColumns().getNamedColumns();

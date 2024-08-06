@@ -63,10 +63,32 @@ public class TableRendererTest {
                 .contains("Optional.empty");
     }
 
+    @Test
+    public void testImmutableTable() {
+        TableRenderer renderer = new TableRenderer("package", Namespace.DEFAULT_NAMESPACE, OptionalType.JAVA8);
+        assertThat(renderer.render("table", getSimpleImmutableTableDefinition(TABLE_REF), NO_INDICES))
+                .doesNotContain("public void deleteCol1(TestTableRow row)")
+                .doesNotContain("public void delete(TestTableRow row)")
+                .doesNotContain("public void delete(Iterable<TestTableRow> rows)");
+    }
+
     private TableDefinition getSimpleTableDefinition(TableReference tableRef) {
         return new TableDefinition() {
             {
                 javaTableName(tableRef.getTableName());
+                rowName();
+                rowComponent("rowName", ValueType.STRING);
+                columns();
+                column("col1", "1", ValueType.VAR_LONG);
+            }
+        };
+    }
+
+    private TableDefinition getSimpleImmutableTableDefinition(TableReference tableRef) {
+        return new TableDefinition() {
+            {
+                javaTableName(tableRef.getTableName());
+                isStrongImmutable();
                 rowName();
                 rowComponent("rowName", ValueType.STRING);
                 columns();
