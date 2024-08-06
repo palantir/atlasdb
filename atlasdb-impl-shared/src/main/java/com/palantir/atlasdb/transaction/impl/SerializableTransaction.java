@@ -24,6 +24,7 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
@@ -102,6 +103,7 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -512,6 +514,11 @@ public class SerializableTransaction extends SnapshotTransaction {
         if (!isSerializableTable(table)) {
             return;
         }
+        if (isStrongImmutable(table) && searched.size() == result.size()) {
+            // Because the table is strong immutable, we don't actually need to track reads: our read was exhaustive
+            // and nothing can be subsequently overwritten by definition.
+            return;
+        }
         getReadsForTable(table).putAll(transformGetsForTesting(result));
         Set<Cell> cellsForTable = cellsRead.computeIfAbsent(table, unused -> ConcurrentHashMap.newKeySet());
         cellsForTable.addAll(searched);
@@ -556,10 +563,39 @@ public class SerializableTransaction extends SnapshotTransaction {
         if (!isSerializableTable(table)) {
             return;
         }
+
+        Predicate<Set<Cell>> completeAndKnownImmutableRowChecker = cells -> {
+            if (!isStrongImmutable(table)) {
+                // We don't really care about complete rows if the table is not strong immutable.
+                return false;
+            }
+
+            Optional<SortedSet<byte[]>> maybeExhaustiveColumnSet =
+                    tableMutabilityArbitrator.getExhaustiveColumnSet(table);
+            if (maybeExhaustiveColumnSet.isEmpty()) {
+                // Dynamic columns table, there's no real concept of a complete row here.
+                return false;
+            }
+
+            SortedSet<byte[]> exhaustiveColumnSet = maybeExhaustiveColumnSet.get();
+            if (cells.size() != exhaustiveColumnSet.size()) {
+                // The number of cells weren't the same
+                return false;
+            }
+
+            SortedSet<byte[]> presentColumnSet = ImmutableSortedSet.copyOf(
+                    UnsignedBytes.lexicographicalComparator(),
+                    cells.stream().map(Cell::getColumnName).collect(Collectors.toList()));
+            return exhaustiveColumnSet.equals(presentColumnSet);
+        };
+
         ConcurrentNavigableMap<Cell, byte[]> reads = getReadsForTable(table);
         for (RowResult<byte[]> row : result) {
             Map<Cell, byte[]> map = Maps2.fromEntries(row.getCells());
-            reads.putAll(transformGetsForTesting(map));
+            boolean isCompleteAndKnownImmutableRow = completeAndKnownImmutableRowChecker.test(map.keySet());
+            if (!isCompleteAndKnownImmutableRow) {
+                reads.putAll(transformGetsForTesting(map));
+            }
         }
 
         Set<RowRead> rowReads = rowsRead.computeIfAbsent(table, unused -> ConcurrentHashMap.newKeySet());
@@ -1052,5 +1088,9 @@ public class SerializableTransaction extends SnapshotTransaction {
 
         @Value.Parameter
         BatchColumnRangeSelection getColumnRangeSelection();
+    }
+
+    private boolean isStrongImmutable(TableReference tableReference) {
+        return tableMutabilityArbitrator.getMutability(tableReference).isAtLeastStrongImmutable();
     }
 }

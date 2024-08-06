@@ -155,7 +155,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 Optional.empty(),
                 knowledge,
                 keyValueSnapshotReaderManager,
-                TableMutabilityArbitrator.ALL_MUTABLE);
+                TableMutabilityArbitrator.A_PRIORI_ARBITRATOR);
         this.transactionWrapper = transactionWrapper;
     }
 
@@ -217,7 +217,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         commitTimestampLoaderFactory.createCommitTimestampLoader(
                                 startTimestampSupplier, immutableTimestamp, Optional.of(immutableTsLock)),
                         keyValueSnapshotReaderManager,
-                        TableMutabilityArbitrator.ALL_MUTABLE),
+                        TableMutabilityArbitrator.A_PRIORI_ARBITRATOR),
                 pathTypeTracker);
     }
 

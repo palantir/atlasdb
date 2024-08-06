@@ -17,12 +17,31 @@
 package com.palantir.atlasdb.transaction.api;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.util.Optional;
+import java.util.SortedSet;
 
 /**
  * Decides whether tables are mutable or not.
  */
 public interface TableMutabilityArbitrator {
-    TableMutabilityArbitrator ALL_MUTABLE = _unused -> Mutability.MUTABLE;
+    TableMutabilityArbitrator A_PRIORI_ARBITRATOR = new TableMutabilityArbitrator() {
+        @Override
+        public Mutability getMutability(TableReference tableReference) {
+            return Mutability.MUTABLE;
+        }
+
+        @Override
+        public Optional<SortedSet<byte[]>> getExhaustiveColumnSet(TableReference tableReference) {
+            return Optional.empty();
+        }
+    };
 
     Mutability getMutability(TableReference tableReference);
+
+    // EVIL - this should not be here. I'm doing it to avoid having to wire through loads of crap again,
+    // and because this thing calculates stuff with metadata.
+    // Realistically this should be in its own class, kind of like what we did with TransactionKeyValueService's bits.
+    // Optional empty means that the set of columns is not known.
+    // The set is expected to be sorted in accordance with UnsignedBytes lexicographical comparator.
+    Optional<SortedSet<byte[]>> getExhaustiveColumnSet(TableReference tableReference);
 }

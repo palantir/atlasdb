@@ -38,7 +38,7 @@ public interface TestKeyValueSnapshotReaderManagers {
                 false,
                 new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
                 deleteExecutor,
-                TableMutabilityArbitrator.ALL_MUTABLE);
+                TableMutabilityArbitrator.A_PRIORI_ARBITRATOR);
     }
 
     static KeyValueSnapshotReaderManager createForTests(
@@ -52,6 +52,6 @@ public interface TestKeyValueSnapshotReaderManagers {
                 false,
                 new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
                 deleteExecutor,
-                TableMutabilityArbitrator.ALL_MUTABLE);
+                TableMutabilityArbitrator.A_PRIORI_ARBITRATOR);
     }
 }

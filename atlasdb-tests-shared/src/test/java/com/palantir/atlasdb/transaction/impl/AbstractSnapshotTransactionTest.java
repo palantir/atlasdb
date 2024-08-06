@@ -484,7 +484,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         createCommitTimestampLoader(
                                 transactionTs, () -> transactionTs, Optional.empty(), timelockService),
                         manager,
-                        TableMutabilityArbitrator.ALL_MUTABLE),
+                        TableMutabilityArbitrator.A_PRIORI_ARBITRATOR),
                 pathTypeTracker);
         assertThatThrownBy(() -> snapshot.get(TABLE, ImmutableSet.of(cell))).isInstanceOf(RuntimeException.class);
 
@@ -3471,7 +3471,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         Optional.of(res.getLock()),
                         timelockService),
                 keyValueSnapshotReaderManager,
-                TableMutabilityArbitrator.ALL_MUTABLE);
+                TableMutabilityArbitrator.A_PRIORI_ARBITRATOR);
     }
 
     private Transaction getSnapshotTransactionWith(
@@ -3531,7 +3531,7 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         Optional.of(lockImmutableTimestampResponse.getLock()),
                         timelockService),
                 keyValueSnapshotReaderManager,
-                TableMutabilityArbitrator.ALL_MUTABLE);
+                TableMutabilityArbitrator.A_PRIORI_ARBITRATOR);
         return transactionWrapper.apply(transaction, pathTypeTracker);
     }
 

@@ -309,8 +309,8 @@ public class SerializableTransactionManagerTest {
                         false,
                         mock(DefaultOrphanedSentinelDeleter.class),
                         DefaultDeleteExecutor.createDefault(mockKvs),
-                        TableMutabilityArbitrator.ALL_MUTABLE),
-                TableMutabilityArbitrator.ALL_MUTABLE);
+                        TableMutabilityArbitrator.A_PRIORI_ARBITRATOR),
+                TableMutabilityArbitrator.A_PRIORI_ARBITRATOR);
     }
 
     private void nothingInitialized() {

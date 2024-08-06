@@ -184,7 +184,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 commitTimestampLoaderFactory.createCommitTimestampLoader(
                         startTimestampSupplier, 0L, options.immutableLockToken),
                 keyValueSnapshotReaderManager,
-                TableMutabilityArbitrator.ALL_MUTABLE) {
+                TableMutabilityArbitrator.A_PRIORI_ARBITRATOR) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, byte[]::clone);

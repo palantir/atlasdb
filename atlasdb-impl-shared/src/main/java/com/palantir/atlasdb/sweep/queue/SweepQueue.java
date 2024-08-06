@@ -292,7 +292,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                     transaction,
                     readBatchingRuntimeContext,
                     _unused -> Optional.empty(),
-                    TableMutabilityArbitrator.ALL_MUTABLE);
+                    TableMutabilityArbitrator.A_PRIORI_ARBITRATOR);
         }
 
         static SweepQueueFactory create(

@@ -41,7 +41,7 @@ public final class DefaultReadSnapshotValidator implements ReadSnapshotValidator
                 validateLocksOnReads,
                 sweepStrategyManager,
                 transactionConfigSupplier,
-                TableMutabilityArbitrator.ALL_MUTABLE);
+                TableMutabilityArbitrator.A_PRIORI_ARBITRATOR);
     }
 
     public DefaultReadSnapshotValidator(

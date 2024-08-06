@@ -533,8 +533,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                         false,
                         new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
                         deleteExecutor,
-                        TableMutabilityArbitrator.ALL_MUTABLE),
-                TableMutabilityArbitrator.ALL_MUTABLE);
+                        TableMutabilityArbitrator.A_PRIORI_ARBITRATOR),
+                TableMutabilityArbitrator.A_PRIORI_ARBITRATOR);
     }
 
     public SerializableTransactionManager(

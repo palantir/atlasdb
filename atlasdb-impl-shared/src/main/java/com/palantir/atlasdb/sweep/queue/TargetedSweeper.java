@@ -141,7 +141,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 ImmutableList.of(),
                 _unused -> {},
                 kvs,
-                TableMutabilityArbitrator.ALL_MUTABLE);
+                TableMutabilityArbitrator.A_PRIORI_ARBITRATOR);
     }
 
     public static TargetedSweeper createUninitializedForTest(KeyValueService kvs, Supplier<Integer> shards) {

@@ -165,7 +165,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 ImmutableList.of(),
                 _unused -> {},
                 spiedKvs,
-                TableMutabilityArbitrator.ALL_MUTABLE);
+                TableMutabilityArbitrator.A_PRIORI_ARBITRATOR);
         secondQueue.initializeWithoutRunning(
                 timestampsSupplier,
                 timelockService,
@@ -202,7 +202,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 ImmutableList.of(),
                 _unused -> {},
                 spiedKvs,
-                TableMutabilityArbitrator.ALL_MUTABLE);
+                TableMutabilityArbitrator.A_PRIORI_ARBITRATOR);
         secondQueue.initializeWithoutRunning(
                 timestampsSupplier,
                 mock(TimelockService.class),
@@ -1303,7 +1303,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 ImmutableList.of(),
                 _unused -> {},
                 spiedKvs,
-                TableMutabilityArbitrator.ALL_MUTABLE);
+                TableMutabilityArbitrator.A_PRIORI_ARBITRATOR);
 
         mockFollower = mock(TargetedSweepFollower.class);
         timelockService = mock(TimelockService.class);
@@ -1535,7 +1535,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                     ImmutableList.of(),
                     _unused -> {},
                     spiedKvs,
-                    TableMutabilityArbitrator.ALL_MUTABLE);
+                    TableMutabilityArbitrator.A_PRIORI_ARBITRATOR);
             sweeperInstance.initializeWithoutRunning(
                     timestampsSupplier, stickyLockService, spiedKvs, txnService, mockFollower);
             sweeperInstance.runInBackground();
