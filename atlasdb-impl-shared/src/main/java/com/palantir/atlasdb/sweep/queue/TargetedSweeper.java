@@ -33,6 +33,7 @@ import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConf
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
+import com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -68,6 +69,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     private final BackgroundSweepScheduler noneScheduler;
 
     private final KeyValueService keyValueService;
+    private final TableMutabilityArbitrator mutabilityArbitrator;
 
     private LastSweptTimestampUpdater lastSweptTimestampUpdater;
     private TargetedSweepMetrics metrics;
@@ -83,7 +85,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
             TargetedSweepInstallConfig install,
             List<Follower> followers,
             AbandonedTransactionConsumer abandonedTransactionConsumer,
-            KeyValueService keyValueService) {
+            KeyValueService keyValueService,
+            TableMutabilityArbitrator mutabilityArbitrator) {
         this.metricsManager = metricsManager;
         this.runtime = runtime;
         this.conservativeScheduler =
@@ -95,6 +98,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         this.metricsConfiguration = install.metricsConfiguration();
         this.abandonedTransactionConsumer = abandonedTransactionConsumer;
         this.keyValueService = keyValueService;
+        this.mutabilityArbitrator = mutabilityArbitrator;
     }
 
     public boolean isInitialized() {
@@ -118,8 +122,10 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
             TargetedSweepInstallConfig install,
             List<Follower> followers,
             AbandonedTransactionConsumer abandonedTransactionConsumer,
-            KeyValueService kvs) {
-        return new TargetedSweeper(metrics, runtime, install, followers, abandonedTransactionConsumer, kvs);
+            KeyValueService kvs,
+            TableMutabilityArbitrator mutabilityArbitrator) {
+        return new TargetedSweeper(
+                metrics, runtime, install, followers, abandonedTransactionConsumer, kvs, mutabilityArbitrator);
     }
 
     public static TargetedSweeper createUninitializedForTest(
@@ -128,7 +134,14 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 .conservativeThreads(0)
                 .thoroughThreads(0)
                 .build();
-        return createUninitialized(metricsManager, runtime, install, ImmutableList.of(), _unused -> {}, kvs);
+        return createUninitialized(
+                metricsManager,
+                runtime,
+                install,
+                ImmutableList.of(),
+                _unused -> {},
+                kvs,
+                TableMutabilityArbitrator.ALL_MUTABLE);
     }
 
     public static TargetedSweeper createUninitializedForTest(KeyValueService kvs, Supplier<Integer> shards) {
@@ -191,7 +204,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                         .maximumPartitions(this::getPartitionBatchLimit)
                         .cellsThreshold(() -> runtime.get().batchCellThreshold())
                         .build(),
-                table -> runtime.get().tablesToTrackDeletions().apply(table));
+                table -> runtime.get().tablesToTrackDeletions().apply(table),
+                mutabilityArbitrator);
         timestampsSupplier = timestamps;
         timeLock = timelockService;
         lastSweptTimestampUpdater = new LastSweptTimestampUpdater(

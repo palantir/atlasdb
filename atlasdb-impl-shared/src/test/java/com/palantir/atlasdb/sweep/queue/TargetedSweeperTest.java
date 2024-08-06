@@ -72,6 +72,7 @@ import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConf
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
+import com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -158,7 +159,13 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         setup(readBatchSize);
         MetricsManager secondQueueManager = MetricsManagers.createForTests();
         TargetedSweeper secondQueue = TargetedSweeper.createUninitialized(
-                secondQueueManager, runtimeSupplier::get, installConfig, ImmutableList.of(), _unused -> {}, spiedKvs);
+                secondQueueManager,
+                runtimeSupplier::get,
+                installConfig,
+                ImmutableList.of(),
+                _unused -> {},
+                spiedKvs,
+                TableMutabilityArbitrator.ALL_MUTABLE);
         secondQueue.initializeWithoutRunning(
                 timestampsSupplier,
                 timelockService,
@@ -189,7 +196,13 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         // Shard count is memoized, creating a second queue bypasses waiting for expiration
         TargetedSweeper secondQueue = TargetedSweeper.createUninitialized(
-                metricsManager, runtimeSupplier::get, installConfig, ImmutableList.of(), _unused -> {}, spiedKvs);
+                metricsManager,
+                runtimeSupplier::get,
+                installConfig,
+                ImmutableList.of(),
+                _unused -> {},
+                spiedKvs,
+                TableMutabilityArbitrator.ALL_MUTABLE);
         secondQueue.initializeWithoutRunning(
                 timestampsSupplier,
                 mock(TimelockService.class),
@@ -1284,7 +1297,13 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .build());
 
         sweepQueue = TargetedSweeper.createUninitialized(
-                metricsManager, runtimeSupplier::get, installConfig, ImmutableList.of(), _unused -> {}, spiedKvs);
+                metricsManager,
+                runtimeSupplier::get,
+                installConfig,
+                ImmutableList.of(),
+                _unused -> {},
+                spiedKvs,
+                TableMutabilityArbitrator.ALL_MUTABLE);
 
         mockFollower = mock(TargetedSweepFollower.class);
         timelockService = mock(TimelockService.class);
@@ -1510,7 +1529,13 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .build();
         for (int i = 0; i < sweepers; i++) {
             TargetedSweeper sweeperInstance = TargetedSweeper.createUninitialized(
-                    metricsManager, () -> runtime, install, ImmutableList.of(), _unused -> {}, spiedKvs);
+                    metricsManager,
+                    () -> runtime,
+                    install,
+                    ImmutableList.of(),
+                    _unused -> {},
+                    spiedKvs,
+                    TableMutabilityArbitrator.ALL_MUTABLE);
             sweeperInstance.initializeWithoutRunning(
                     timestampsSupplier, stickyLockService, spiedKvs, txnService, mockFollower);
             sweeperInstance.runInBackground();

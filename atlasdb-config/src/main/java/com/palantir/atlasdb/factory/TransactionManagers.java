@@ -481,13 +481,17 @@ public abstract class TransactionManagers {
         CoordinationService<InternalSchemaMetadata> coordinationService =
                 getSchemaMetadataCoordinationService(metricsManager, lockAndTimestampServices, internalKeyValueService);
 
+        TableMutabilityArbitrator tableMutabilityArbitrator =
+                MetadataBackedTableMutabilityArbitrator.create(internalKeyValueService);
+
         TargetedSweeper targetedSweeper = uninitializedTargetedSweeper(
                 internalKeyValueService,
                 metricsManager,
                 config().targetedSweep(),
                 follower,
                 runtime.map(AtlasDbRuntimeConfig::targetedSweep),
-                coordinationService);
+                coordinationService,
+                tableMutabilityArbitrator);
 
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
 
@@ -542,8 +546,6 @@ public abstract class TransactionManagers {
                 asyncInitializationCallback(),
                 createClearsTable(internalKeyValueService)));
 
-        TableMutabilityArbitrator tableMutabilityArbitrator =
-                MetadataBackedTableMutabilityArbitrator.create(internalKeyValueService);
         KeyValueSnapshotReaderManager keyValueSnapshotReaderManager = createKeyValueSnapshotReaderManager(
                 transactionKeyValueServiceManager,
                 transactionService,
@@ -1070,7 +1072,8 @@ public abstract class TransactionManagers {
             TargetedSweepInstallConfig install,
             Follower follower,
             Supplier<TargetedSweepRuntimeConfig> runtime,
-            CoordinationService<InternalSchemaMetadata> coordinationService) {
+            CoordinationService<InternalSchemaMetadata> coordinationService,
+            TableMutabilityArbitrator mutabilityArbitrator) {
         CoordinationAwareKnownAbandonedTransactionsStore abandonedTxnStore =
                 new CoordinationAwareKnownAbandonedTransactionsStore(
                         coordinationService, new AbandonedTimestampStoreImpl(kvs));
@@ -1080,7 +1083,8 @@ public abstract class TransactionManagers {
                 install,
                 ImmutableList.of(follower),
                 abandonedTxnStore::addAbandonedTimestamps,
-                kvs);
+                kvs,
+                mutabilityArbitrator);
     }
 
     @Value.Immutable
