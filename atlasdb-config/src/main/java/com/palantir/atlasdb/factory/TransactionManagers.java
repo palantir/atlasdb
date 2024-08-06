@@ -99,6 +99,7 @@ import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.LockWatchingCache;
 import com.palantir.atlasdb.transaction.api.NoOpLockWatchingCache;
 import com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter;
+import com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManagerFactory;
@@ -106,6 +107,7 @@ import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManagers;
 import com.palantir.atlasdb.transaction.impl.DefaultDeleteExecutor;
 import com.palantir.atlasdb.transaction.impl.DefaultOrphanedSentinelDeleter;
+import com.palantir.atlasdb.transaction.impl.MetadataBackedTableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManagers;
@@ -543,6 +545,9 @@ public abstract class TransactionManagers {
         KeyValueSnapshotReaderManager keyValueSnapshotReaderManager = createKeyValueSnapshotReaderManager(
                 transactionKeyValueServiceManager, transactionService, sweepStrategyManager, metricsManager);
 
+        TableMutabilityArbitrator tableMutabilityArbitrator =
+                MetadataBackedTableMutabilityArbitrator.create(internalKeyValueService);
+
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.createInstrumented(
                         metricsManager,
@@ -571,7 +576,8 @@ public abstract class TransactionManagers {
                         metricsFilterEvaluationContext(),
                         installConfig.sharedResourcesConfig().map(SharedResourcesConfig::sharedGetRangesPoolSize),
                         knowledge,
-                        keyValueSnapshotReaderManager),
+                        keyValueSnapshotReaderManager,
+                        tableMutabilityArbitrator),
                 closeables);
 
         transactionManager.registerClosingCallback(runtimeConfigRefreshable::close);

@@ -86,6 +86,7 @@ import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict;
@@ -319,6 +320,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private final ReadSentinelHandler readSentinelHandler;
     private final KeyValueSnapshotReader keyValueSnapshotReader;
     protected final KeyValueSnapshotReaderManager keyValueSnapshotReaderManager;
+    protected final TableMutabilityArbitrator tableMutabilityArbitrator;
 
     /**
      * @param immutableTimestamp If we find a row written before the immutableTimestamp we don't need to grab a read
@@ -353,7 +355,8 @@ public class SnapshotTransaction extends AbstractTransaction
             TableLevelMetricsController tableLevelMetricsController,
             TransactionKnowledgeComponents knowledge,
             CommitTimestampLoader commitTimestampLoader,
-            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager,
+            TableMutabilityArbitrator tableMutabilityArbitrator) {
         this.metricsManager = metricsManager;
         this.lockWatchManager = lockWatchManager;
         this.conflictTracer = conflictTracer;
@@ -409,6 +412,8 @@ public class SnapshotTransaction extends AbstractTransaction
                 new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor));
         this.keyValueSnapshotReaderManager = keyValueSnapshotReaderManager;
         this.keyValueSnapshotReader = getDefaultKeyValueSnapshotReader();
+
+        this.tableMutabilityArbitrator = tableMutabilityArbitrator;
     }
 
     private KeyValueSnapshotReader getDefaultKeyValueSnapshotReader() {

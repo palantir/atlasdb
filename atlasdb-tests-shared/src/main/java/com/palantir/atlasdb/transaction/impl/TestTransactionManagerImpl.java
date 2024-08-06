@@ -32,6 +32,7 @@ import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager;
@@ -214,7 +215,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                         knowledge,
                         commitTimestampLoaderFactory.createCommitTimestampLoader(
                                 startTimestampSupplier, immutableTimestamp, Optional.of(immutableTsLock)),
-                        keyValueSnapshotReaderManager),
+                        keyValueSnapshotReaderManager,
+                        TableMutabilityArbitrator.ALL_MUTABLE),
                 pathTypeTracker);
     }
 

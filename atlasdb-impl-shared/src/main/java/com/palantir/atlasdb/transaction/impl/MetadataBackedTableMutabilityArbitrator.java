@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.google.common.collect.Maps;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.Mutability;
@@ -25,7 +26,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator;
 import java.time.Duration;
 
-public class MetadataBackedTableMutabilityArbitrator implements TableMutabilityArbitrator {
+public final class MetadataBackedTableMutabilityArbitrator implements TableMutabilityArbitrator {
     // TODO (jkong): Is this really needed?
     private final RecomputingSupplier<LoadingCache<TableReference, Mutability>> kvsLoader;
 
@@ -40,6 +41,11 @@ public class MetadataBackedTableMutabilityArbitrator implements TableMutabilityA
             LoadingCache<TableReference, Mutability> cache = Caffeine.newBuilder()
                     .expireAfterAccess(Duration.ofDays(1))
                     .build(tableRef -> parseMutability(keyValueService.getMetadataForTable(tableRef)));
+
+            // Warm the cache.
+            cache.putAll(Maps.transformValues(
+                    keyValueService.getMetadataForTables(), MetadataBackedTableMutabilityArbitrator::parseMutability));
+
             return cache;
         });
         return new MetadataBackedTableMutabilityArbitrator(kvsLoader);

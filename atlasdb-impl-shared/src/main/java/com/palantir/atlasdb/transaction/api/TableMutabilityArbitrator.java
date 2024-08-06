@@ -23,5 +23,7 @@ import com.palantir.atlasdb.table.description.Mutability;
  * Decides whether tables are mutable or not.
  */
 public interface TableMutabilityArbitrator {
+    TableMutabilityArbitrator ALL_MUTABLE = _unused -> Mutability.MUTABLE;
+
     Mutability getMutability(TableReference tableReference);
 }

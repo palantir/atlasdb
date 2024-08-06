@@ -31,6 +31,7 @@ import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionManager;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager;
@@ -250,7 +251,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
             TransactionKnowledgeComponents knowledge,
-            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager,
+            TableMutabilityArbitrator tableMutabilityArbitrator) {
         return create(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -280,7 +282,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
                 knowledge,
-                keyValueSnapshotReaderManager);
+                keyValueSnapshotReaderManager,
+                tableMutabilityArbitrator);
     }
 
     public static TransactionManager create(
@@ -309,7 +312,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
             TransactionKnowledgeComponents knowledge,
-            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager,
+            TableMutabilityArbitrator tableMutabilityArbitrator) {
         return create(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -338,7 +342,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
                 knowledge,
-                keyValueSnapshotReaderManager);
+                keyValueSnapshotReaderManager,
+                tableMutabilityArbitrator);
     }
 
     public static TransactionManager create(
@@ -368,7 +373,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
             TransactionKnowledgeComponents knowledge,
-            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager,
+            TableMutabilityArbitrator tableMutabilityArbitrator) {
         return create(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -397,7 +403,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
                 knowledge,
-                keyValueSnapshotReaderManager);
+                keyValueSnapshotReaderManager,
+                tableMutabilityArbitrator);
     }
 
     private static TransactionManager create(
@@ -428,7 +435,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
             TransactionKnowledgeComponents knowledge,
-            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager,
+            TableMutabilityArbitrator tableMutabilityArbitrator) {
         TransactionManager transactionManager = new SerializableTransactionManager(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -455,7 +463,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
                 knowledge,
-                keyValueSnapshotReaderManager);
+                keyValueSnapshotReaderManager,
+                tableMutabilityArbitrator);
 
         if (shouldInstrument) {
             transactionManager = AtlasDbMetrics.instrumentTimed(
@@ -523,7 +532,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                         transactionService,
                         false,
                         new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
-                        deleteExecutor));
+                        deleteExecutor),
+                TableMutabilityArbitrator.ALL_MUTABLE);
     }
 
     public SerializableTransactionManager(
@@ -550,7 +560,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
             TransactionKnowledgeComponents knowledge,
-            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager,
+            TableMutabilityArbitrator tableMutabilityArbitrator) {
         super(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -575,7 +586,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 metricsFilterEvaluationContext,
                 sharedGetRangesPoolSize,
                 knowledge,
-                keyValueSnapshotReaderManager);
+                keyValueSnapshotReaderManager,
+                tableMutabilityArbitrator);
         this.conflictTracer = conflictTracer;
     }
 
@@ -614,7 +626,8 @@ public class SerializableTransactionManager extends SnapshotTransactionManager {
                 knowledge,
                 commitTimestampLoaderFactory.createCommitTimestampLoader(
                         startTimestampSupplier, immutableTimestamp, Optional.of(immutableTsLock)),
-                keyValueSnapshotReaderManager);
+                keyValueSnapshotReaderManager,
+                tableMutabilityArbitrator);
     }
 
     @VisibleForTesting

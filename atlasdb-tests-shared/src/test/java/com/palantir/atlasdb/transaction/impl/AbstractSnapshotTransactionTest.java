@@ -100,6 +100,7 @@ import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.LockAwareTransactionTask;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
@@ -482,7 +483,8 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         knowledge,
                         createCommitTimestampLoader(
                                 transactionTs, () -> transactionTs, Optional.empty(), timelockService),
-                        manager),
+                        manager,
+                        TableMutabilityArbitrator.ALL_MUTABLE),
                 pathTypeTracker);
         assertThatThrownBy(() -> snapshot.get(TABLE, ImmutableSet.of(cell))).isInstanceOf(RuntimeException.class);
 
@@ -3468,7 +3470,8 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         res::getImmutableTimestamp,
                         Optional.of(res.getLock()),
                         timelockService),
-                keyValueSnapshotReaderManager);
+                keyValueSnapshotReaderManager,
+                TableMutabilityArbitrator.ALL_MUTABLE);
     }
 
     private Transaction getSnapshotTransactionWith(
@@ -3527,7 +3530,8 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
                         lockImmutableTimestampResponse::getImmutableTimestamp,
                         Optional.of(lockImmutableTimestampResponse.getLock()),
                         timelockService),
-                keyValueSnapshotReaderManager);
+                keyValueSnapshotReaderManager,
+                TableMutabilityArbitrator.ALL_MUTABLE);
         return transactionWrapper.apply(transaction, pathTypeTracker);
     }
 

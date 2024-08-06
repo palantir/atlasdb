@@ -62,6 +62,7 @@ import com.palantir.atlasdb.table.description.ValueType;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedNonRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -182,7 +183,8 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 knowledge,
                 commitTimestampLoaderFactory.createCommitTimestampLoader(
                         startTimestampSupplier, 0L, options.immutableLockToken),
-                keyValueSnapshotReaderManager) {
+                keyValueSnapshotReaderManager,
+                TableMutabilityArbitrator.ALL_MUTABLE) {
             @Override
             protected Map<Cell, byte[]> transformGetsForTesting(Map<Cell, byte[]> map) {
                 return Maps.transformValues(map, byte[]::clone);

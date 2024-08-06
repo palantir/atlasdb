@@ -43,6 +43,7 @@ import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -117,6 +118,7 @@ import java.util.stream.Collectors;
     protected final TransactionKnowledgeComponents knowledge;
     protected final CommitTimestampLoaderFactory commitTimestampLoaderFactory;
     protected final KeyValueSnapshotReaderManager keyValueSnapshotReaderManager;
+    protected final TableMutabilityArbitrator tableMutabilityArbitrator;
 
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
@@ -142,7 +144,8 @@ import java.util.stream.Collectors;
             MetricsFilterEvaluationContext metricsFilterEvaluationContext,
             Optional<Integer> sharedGetRangesPoolSize,
             TransactionKnowledgeComponents knowledge,
-            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager,
+            TableMutabilityArbitrator tableMutabilityArbitrator) {
         super(metricsManager, timestampCache, () -> transactionConfig.get().retryStrategy());
         this.lockWatchManager = lockWatchManager;
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
@@ -175,6 +178,7 @@ import java.util.stream.Collectors;
         this.commitTimestampLoaderFactory = new CommitTimestampLoaderFactory(
                 timestampCache, metricsManager, timelockService, knowledge, transactionService, transactionConfig);
         this.keyValueSnapshotReaderManager = keyValueSnapshotReaderManager;
+        this.tableMutabilityArbitrator = tableMutabilityArbitrator;
     }
 
     @Override
@@ -344,7 +348,8 @@ import java.util.stream.Collectors;
                 knowledge,
                 commitTimestampLoaderFactory.createCommitTimestampLoader(
                         startTimestampSupplier, immutableTimestamp, immutableTimestampLock),
-                keyValueSnapshotReaderManager);
+                keyValueSnapshotReaderManager,
+                tableMutabilityArbitrator);
     }
 
     @Override
@@ -392,7 +397,8 @@ import java.util.stream.Collectors;
                 knowledge,
                 commitTimestampLoaderFactory.createCommitTimestampLoader(
                         startTimestampSupplier, immutableTs, immutableTimestampLock),
-                keyValueSnapshotReaderManager);
+                keyValueSnapshotReaderManager,
+                tableMutabilityArbitrator);
         return runTaskThrowOnConflictWithCallback(
                 txn -> task.execute(txn, condition),
                 new ReadTransaction(transaction, sweepStrategyManager),

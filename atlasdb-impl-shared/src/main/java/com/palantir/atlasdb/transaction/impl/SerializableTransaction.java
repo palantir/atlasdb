@@ -61,6 +61,7 @@ import com.palantir.atlasdb.transaction.api.CommitTimestampLoader;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.TransactionSerializableConflictException;
@@ -172,7 +173,8 @@ public class SerializableTransaction extends SnapshotTransaction {
             TableLevelMetricsController tableLevelMetricsController,
             TransactionKnowledgeComponents knowledge,
             CommitTimestampLoader commitTimestampLoader,
-            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager) {
+            KeyValueSnapshotReaderManager keyValueSnapshotReaderManager,
+            TableMutabilityArbitrator tableMutabilityArbitrator) {
         super(
                 metricsManager,
                 keyValueService,
@@ -201,7 +203,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 tableLevelMetricsController,
                 knowledge,
                 commitTimestampLoader,
-                keyValueSnapshotReaderManager);
+                keyValueSnapshotReaderManager,
+                tableMutabilityArbitrator);
     }
 
     @Override
@@ -942,7 +945,8 @@ public class SerializableTransaction extends SnapshotTransaction {
                 knowledge,
                 new ReadValidationCommitTimestampLoader(
                         commitTimestampLoader, getTimestamp(), commitTs, transactionOutcomeMetrics),
-                keyValueSnapshotReaderManager) {
+                keyValueSnapshotReaderManager,
+                tableMutabilityArbitrator) {
             @Override
             protected TransactionScopedCache getCache() {
                 return lockWatchManager.getReadOnlyTransactionScopedCache(SerializableTransaction.this.getTimestamp());

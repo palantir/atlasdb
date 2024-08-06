@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl.precommit;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.TransactionConfig;
+import com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator;
 import com.palantir.atlasdb.transaction.api.precommit.ReadSnapshotValidator;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
@@ -28,16 +29,32 @@ public final class DefaultReadSnapshotValidator implements ReadSnapshotValidator
     private volatile boolean validateLocksOnReads;
     private final SweepStrategyManager sweepStrategyManager;
     private final Supplier<TransactionConfig> transactionConfigSupplier;
+    private final TableMutabilityArbitrator tableMutabilityArbitrator;
 
     public DefaultReadSnapshotValidator(
             PreCommitRequirementValidator preCommitRequirementValidator,
             boolean validateLocksOnReads,
             SweepStrategyManager sweepStrategyManager,
             Supplier<TransactionConfig> transactionConfigSupplier) {
+        this(
+                preCommitRequirementValidator,
+                validateLocksOnReads,
+                sweepStrategyManager,
+                transactionConfigSupplier,
+                TableMutabilityArbitrator.ALL_MUTABLE);
+    }
+
+    public DefaultReadSnapshotValidator(
+            PreCommitRequirementValidator preCommitRequirementValidator,
+            boolean validateLocksOnReads,
+            SweepStrategyManager sweepStrategyManager,
+            Supplier<TransactionConfig> transactionConfigSupplier,
+            TableMutabilityArbitrator tableMutabilityArbitrator) {
         this.preCommitRequirementValidator = preCommitRequirementValidator;
         this.validateLocksOnReads = validateLocksOnReads;
         this.sweepStrategyManager = sweepStrategyManager;
         this.transactionConfigSupplier = transactionConfigSupplier;
+        this.tableMutabilityArbitrator = tableMutabilityArbitrator;
     }
 
     @Override
@@ -70,6 +87,10 @@ public final class DefaultReadSnapshotValidator implements ReadSnapshotValidator
     }
 
     private boolean requiresImmutableTimestampLocking(TableReference tableRef, boolean allPossibleCellsReadAndPresent) {
+        // If the table is strong-immutable, nothing can be deleted anyway, so this is correct.
+        if (tableMutabilityArbitrator.getMutability(tableRef).isAtLeastStrongImmutable()) {
+            return false;
+        }
         return sweepStrategyManager.get(tableRef).mustCheckImmutableLock(allPossibleCellsReadAndPresent)
                 || transactionConfigSupplier.get().lockImmutableTsOnReadOnlyTransactions();
     }
