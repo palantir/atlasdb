@@ -1738,6 +1738,10 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private void deleteWithMetadataInternal(
             TableReference tableRef, Set<Cell> cells, Map<Cell, ChangeMetadata> metadata) {
+        Preconditions.checkState(
+                !tableMutabilityArbitrator.getMutability(tableRef).isAtLeastStrongImmutable(),
+                "Detected an attempt to delete from an immutable table, this is not allowed",
+                LoggingArgs.tableRef(tableRef));
         getCache().delete(tableRef, cells);
         writeToLocalBuffer(tableRef, Cells.constantValueMap(cells, PtBytes.EMPTY_BYTE_ARRAY), metadata);
     }
