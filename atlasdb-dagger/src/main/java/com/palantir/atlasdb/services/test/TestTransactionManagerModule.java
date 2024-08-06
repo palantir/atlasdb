@@ -37,9 +37,11 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.DefaultDeleteExecutor;
 import com.palantir.atlasdb.transaction.impl.DefaultOrphanedSentinelDeleter;
+import com.palantir.atlasdb.transaction.impl.MetadataBackedTableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
@@ -127,6 +129,7 @@ public class TestTransactionManagerModule {
                 new DelegatingTransactionKeyValueServiceManager(kvs);
         DefaultDeleteExecutor deleteExecutor =
                 new DefaultDeleteExecutor(kvs, PTExecutors.newSingleThreadExecutor(true));
+        TableMutabilityArbitrator tableMutabilityArbitrator = MetadataBackedTableMutabilityArbitrator.create(kvs);
         return new SerializableTransactionManager(
                 metricsManager,
                 new DelegatingTransactionKeyValueServiceManager(kvs),
@@ -157,6 +160,8 @@ public class TestTransactionManagerModule {
                         transactionService,
                         config.allowAccessToHiddenTables(),
                         new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
-                        deleteExecutor));
+                        deleteExecutor,
+                        tableMutabilityArbitrator),
+                tableMutabilityArbitrator);
     }
 }

@@ -20,6 +20,7 @@ import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
+import com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.impl.snapshot.DefaultKeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -36,7 +37,8 @@ public interface TestKeyValueSnapshotReaderManagers {
                 transactionService,
                 false,
                 new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
-                deleteExecutor);
+                deleteExecutor,
+                TableMutabilityArbitrator.ALL_MUTABLE);
     }
 
     static KeyValueSnapshotReaderManager createForTests(
@@ -49,6 +51,7 @@ public interface TestKeyValueSnapshotReaderManagers {
                 transactionService,
                 false,
                 new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
-                deleteExecutor);
+                deleteExecutor,
+                TableMutabilityArbitrator.ALL_MUTABLE);
     }
 }

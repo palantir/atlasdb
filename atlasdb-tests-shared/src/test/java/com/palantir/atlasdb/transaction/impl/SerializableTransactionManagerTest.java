@@ -38,6 +38,7 @@ import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceMa
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
+import com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.impl.snapshot.DefaultKeyValueSnapshotReaderManager;
@@ -307,7 +308,9 @@ public class SerializableTransactionManagerTest {
                         mock(TransactionService.class),
                         false,
                         mock(DefaultOrphanedSentinelDeleter.class),
-                        DefaultDeleteExecutor.createDefault(mockKvs)));
+                        DefaultDeleteExecutor.createDefault(mockKvs),
+                        TableMutabilityArbitrator.ALL_MUTABLE),
+                TableMutabilityArbitrator.ALL_MUTABLE);
     }
 
     private void nothingInitialized() {

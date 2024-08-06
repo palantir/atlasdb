@@ -36,9 +36,11 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
+import com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.impl.ConflictDetectionManager;
 import com.palantir.atlasdb.transaction.impl.DefaultDeleteExecutor;
 import com.palantir.atlasdb.transaction.impl.DefaultOrphanedSentinelDeleter;
+import com.palantir.atlasdb.transaction.impl.MetadataBackedTableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.impl.SerializableTransactionManager;
 import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
@@ -129,6 +131,7 @@ public class TransactionManagerModule {
                 Executors.newSingleThreadExecutor(
                         new NamedThreadFactory(TransactionManagerModule.class + "-delete-executor", true)));
         // todo(gmaretic): should this be using a real sweep queue?
+        TableMutabilityArbitrator tableMutabilityArbitrator = MetadataBackedTableMutabilityArbitrator.create(kvs);
         return new SerializableTransactionManager(
                 metricsManager,
                 transactionKeyValueServiceManager,
@@ -159,6 +162,8 @@ public class TransactionManagerModule {
                         transactionService,
                         config.allowAccessToHiddenTables(),
                         new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
-                        deleteExecutor));
+                        deleteExecutor,
+                        tableMutabilityArbitrator),
+                tableMutabilityArbitrator);
     }
 }

@@ -154,7 +154,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
                 knowledge,
-                keyValueSnapshotReaderManager);
+                keyValueSnapshotReaderManager,
+                TableMutabilityArbitrator.ALL_MUTABLE);
         this.transactionWrapper = transactionWrapper;
     }
 

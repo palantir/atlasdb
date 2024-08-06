@@ -48,6 +48,7 @@ import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
+import com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager;
@@ -136,6 +137,7 @@ public abstract class TransactionTestSetup {
     protected Supplier<TransactionConfig> transactionConfigSupplier;
     protected CommitTimestampLoaderFactory commitTimestampLoaderFactory;
     protected KeyValueSnapshotReaderManager keyValueSnapshotReaderManager;
+    protected TableMutabilityArbitrator tableMutabilityArbitrator;
 
     @RegisterExtension
     public InMemoryTimelockExtension inMemoryTimelockExtension = new InMemoryTimelockExtension();
@@ -212,12 +214,14 @@ public abstract class TransactionTestSetup {
                 transactionConfigSupplier);
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
+        tableMutabilityArbitrator = MetadataBackedTableMutabilityArbitrator.create(keyValueService);
         keyValueSnapshotReaderManager = new DefaultKeyValueSnapshotReaderManager(
                 transactionKeyValueServiceManager,
                 transactionService,
                 false,
                 new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
-                deleteExecutor);
+                deleteExecutor,
+                tableMutabilityArbitrator);
         txMgr = createAndRegisterManager();
     }
 

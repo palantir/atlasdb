@@ -42,6 +42,7 @@ import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
+import com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.impl.metrics.DefaultMetricsFilterEvaluationContext;
 import com.palantir.atlasdb.transaction.knowledge.TransactionKnowledgeComponents;
@@ -82,6 +83,8 @@ public class SnapshotTransactionManagerTest {
 
     private final TransactionKeyValueServiceManager transactionKeyValueServiceManager =
             new DelegatingTransactionKeyValueServiceManager(keyValueService);
+    private final TableMutabilityArbitrator tableMutabilityArbitrator =
+            MetadataBackedTableMutabilityArbitrator.create(keyValueService);
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
@@ -124,7 +127,8 @@ public class SnapshotTransactionManagerTest {
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
                 knowledge,
-                getKeyValueSnapshotReaderManager(ThrowingSweepStrategyManager.INSTANCE));
+                getKeyValueSnapshotReaderManager(ThrowingSweepStrategyManager.INSTANCE),
+                tableMutabilityArbitrator);
     }
 
     @Test
@@ -182,7 +186,8 @@ public class SnapshotTransactionManagerTest {
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
                 knowledge,
-                getKeyValueSnapshotReaderManager(SweepStrategyManagers.createDefault(keyValueService)));
+                getKeyValueSnapshotReaderManager(SweepStrategyManagers.createDefault(keyValueService)),
+                tableMutabilityArbitrator);
         newTransactionManager.close(); // should not throw
     }
 
@@ -329,7 +334,8 @@ public class SnapshotTransactionManagerTest {
                 DefaultMetricsFilterEvaluationContext.createDefault(),
                 Optional.empty(),
                 knowledge,
-                getKeyValueSnapshotReaderManager(SweepStrategyManagers.createDefault(keyValueService)));
+                getKeyValueSnapshotReaderManager(SweepStrategyManagers.createDefault(keyValueService)),
+                tableMutabilityArbitrator);
     }
 
     private KeyValueSnapshotReaderManager getKeyValueSnapshotReaderManager(SweepStrategyManager sweepStrategyManager) {
