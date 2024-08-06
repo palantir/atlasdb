@@ -35,6 +35,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -52,10 +53,11 @@ public class ShardedSweepableBucketRetrieverTest {
             SweepTimestamps.builder().sweepTimestamp(1).lastSweptTimestamp(12).build();
     private final SettableRefreshable<Integer> numShards = Refreshable.create(1);
     private final SettableRefreshable<Integer> maxParallelism = Refreshable.create(1);
-    private final SettableRefreshable<Duration> maxBackoff = Refreshable.create(Duration.ofMillis(0));
     private final TestShardedRetrievalStrategy strategy = new TestShardedRetrievalStrategy();
     private final TestParallelTaskExecutor parallelTaskExecutor = new TestParallelTaskExecutor();
     private final ExecutorService executorService = PTExecutors.newSingleThreadScheduledExecutor();
+    private final AtomicBoolean wasSleepCalled = new AtomicBoolean(false);
+
     private SweepableBucketRetriever retriever;
 
     @BeforeEach
@@ -67,11 +69,7 @@ public class ShardedSweepableBucketRetrieverTest {
                 shardAndStrategy -> SWEEP_TIMESTAMPS,
                 parallelTaskExecutor,
                 maxParallelism,
-                maxBackoff,
-
-                // The tests that rely on this are based off the sleep duration being equal to the maxBackoff.
-                // so for simplicity, it's set to that for all tests.
-                () -> maxBackoff.get().toMillis());
+                () -> wasSleepCalled.set(true));
     }
 
     @AfterEach
@@ -106,27 +104,22 @@ public class ShardedSweepableBucketRetrieverTest {
     }
 
     @Test
-    public void boundedBackoffBetweenRequests() throws InterruptedException {
-        Duration backoff = Duration.ofMillis(100);
-        maxBackoff.update(backoff);
-        CountDownLatch latch = new CountDownLatch(1);
-        Future<?> future = executorService.submit(() -> {
-            latch.countDown();
-            retriever.getSweepableBuckets();
-        });
-        latch.await(); // reduce flakes from delay caused by executor not starting
-
-        Awaitility.await()
-                .atLeast(backoff)
-                // add an extra leeway to account for any context switching.
-                .atMost(backoff.plus(Duration.ofMillis(20)))
-                .pollInterval(Duration.ofMillis(10))
-                .until(future::isDone);
+    public void callsSleeperBetweenRequests() {
+        retriever.getSweepableBuckets();
+        assertThat(wasSleepCalled).isTrue();
     }
 
     @Test
-    public void backoffCanBeInterrupted() throws InterruptedException {
-        maxBackoff.update(Duration.ofSeconds(10));
+    public void defaultSleeperCanBeInterrupted() throws InterruptedException {
+        retriever = ShardedSweepableBucketRetriever.create(
+                numShards,
+                SweeperStrategy.CONSERVATIVE,
+                strategy,
+                shardAndStrategy -> SWEEP_TIMESTAMPS,
+                parallelTaskExecutor,
+                maxParallelism,
+                Refreshable.only(Duration.ofMinutes(10)));
+
         CountDownLatch latch = new CountDownLatch(1);
         Future<?> future = executorService.submit(() -> {
             latch.countDown();
@@ -136,8 +129,8 @@ public class ShardedSweepableBucketRetrieverTest {
         future.cancel(true);
         executorService.shutdown();
 
-        // Even though the backoff in 10s, interrupting the task should make it finish much faster.
-        Awaitility.await().atMost(Duration.ofMillis(200)).untilAsserted(() -> assertThat(
+        // Even though the backoff is up to 10 minutes, interrupting the task should make it finish much faster.
+        Awaitility.await().atMost(Duration.ofSeconds(1)).untilAsserted(() -> assertThat(
                         executorService.awaitTermination(0, TimeUnit.MILLISECONDS))
                 .isTrue());
     }
