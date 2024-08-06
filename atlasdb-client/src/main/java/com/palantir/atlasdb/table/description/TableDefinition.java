@@ -44,6 +44,8 @@ import java.util.Set;
  */
 public class TableDefinition extends AbstractDefinition {
 
+    private Mutability mutability = Mutability.MUTABLE;
+
     @Override
     protected ConflictHandler defaultConflictHandler() {
         return ConflictHandler.RETRY_ON_WRITE_WRITE;
@@ -63,6 +65,21 @@ public class TableDefinition extends AbstractDefinition {
 
     public void constraints() {
         state = State.DEFINING_CONSTRAINTS;
+    }
+
+    // TODO (jkong): For the production version these should not let you set things more than once.
+    public void isWeakImmutable() {
+        com.palantir.logsafe.Preconditions.checkState(
+                state == State.NONE,
+                "Specifying (im)mutability should be done outside of the subscopes of TableDefinition.");
+        mutability = Mutability.WEAK_IMMUTABLE;
+    }
+
+    public void isStrongImmutable() {
+        com.palantir.logsafe.Preconditions.checkState(
+                state == State.NONE,
+                "Specifying (im)mutability should be done outside of the subscopes of TableDefinition.");
+        mutability = Mutability.STRONG_IMMUTABLE;
     }
 
     /**

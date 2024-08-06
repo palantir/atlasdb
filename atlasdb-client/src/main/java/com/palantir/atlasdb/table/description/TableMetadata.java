@@ -90,6 +90,11 @@ public abstract class TableMetadata implements Persistable {
         return false;
     }
 
+    @Value.Default
+    public TableMetadataPersistence.Mutability getMutability() {
+        return TableMetadataPersistence.Mutability.MUTABLE;
+    }
+
     public static TableMetadata allDefault() {
         return builder().build();
     }
@@ -165,6 +170,7 @@ public abstract class TableMetadata implements Persistable {
         if (hasDenselyAccessedWideRows()) {
             builder.setDenselyAccessedWideRows(hasDenselyAccessedWideRows());
         }
+        builder.setMutability(getMutability());
         return builder;
     }
 
@@ -197,6 +203,9 @@ public abstract class TableMetadata implements Persistable {
         }
         if (message.hasDenselyAccessedWideRows()) {
             builder.denselyAccessedWideRows(message.getDenselyAccessedWideRows());
+        }
+        if (message.hasMutability()) {
+            builder.mutability(message.getMutability());
         }
 
         return builder.build();

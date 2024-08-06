@@ -14,6 +14,7 @@ message TableMetadata {
     optional bool appendHeavyAndReadLight = 11;
     optional LogSafety nameLogSafety = 12 [default = UNSAFE];
     optional bool denselyAccessedWideRows = 13;
+    optional Mutability mutability = 14 [default = MUTABLE];
 }
 
 message NameMetadataDescription {
@@ -129,4 +130,10 @@ enum SweepStrategy {
 enum LogSafety {
     SAFE = 0;
     UNSAFE = 1;
+}
+
+enum Mutability {
+    MUTABLE = 0;
+    WEAK_IMMUTABLE = 1;
+    STRONG_IMMUTABLE = 2;
 }
