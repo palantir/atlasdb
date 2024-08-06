@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Update intial capacity to avoid cache contention
+  links:
+  - https://github.com/palantir/atlasdb/pull/7224
