@@ -69,16 +69,13 @@ public class TableDefinition extends AbstractDefinition {
 
     // TODO (jkong): For the production version these should not let you set things more than once.
     public void isWeakImmutable() {
-        com.palantir.logsafe.Preconditions.checkState(
-                state == State.NONE,
-                "Specifying (im)mutability should be done outside of the subscopes of TableDefinition.");
+        // I did think about checking the state was NONE, but in the end I think a lot of people are going to write
+        // this next to their conflict handler, which kind of makes sense as the two things are about how one
+        // accesses their table and the guarantees they want from AtlasDB.
         mutability = Mutability.WEAK_IMMUTABLE;
     }
 
     public void isStrongImmutable() {
-        com.palantir.logsafe.Preconditions.checkState(
-                state == State.NONE,
-                "Specifying (im)mutability should be done outside of the subscopes of TableDefinition.");
         mutability = Mutability.STRONG_IMMUTABLE;
     }
 

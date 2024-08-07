@@ -102,6 +102,7 @@ public class StreamTableDefinitionBuilder {
                         columnComponent("stream_id", idType);
                         value(ValueType.VAR_LONG);
 
+                        isWeakImmutable(); // Only written to once.
                         conflictHandler(ConflictHandler.IGNORE_ALL);
                         maxValueSize(1);
                         explicitCompressionRequested();
@@ -180,6 +181,7 @@ public class StreamTableDefinitionBuilder {
                         columns();
                         column("value", "v", ValueType.BLOB);
 
+                        isWeakImmutable(); // Only written to once.
                         conflictHandler(ConflictHandler.IGNORE_ALL);
                         maxValueSize(GenericStreamStore.BLOCK_SIZE_IN_BYTES);
                         cachePriority(CachePriority.COLD);
