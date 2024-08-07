@@ -56,6 +56,7 @@ import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionTask;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.io.ForwardingInputStream;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.util.Pair;
 import com.palantir.util.crypto.Sha256Hash;
 import java.io.ByteArrayInputStream;
@@ -490,7 +491,7 @@ public class StreamTest extends AtlasDbTestCase {
         });
 
         // Gives a null pointer exception.
-        assertThatThrownBy(() -> assertStreamHasBytes(stream, bytes1)).isInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> assertStreamHasBytes(stream, bytes1)).isInstanceOf(SafeRuntimeException.class);
     }
 
     private void deleteStream(
