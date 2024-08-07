@@ -93,8 +93,7 @@ public final class MetadataBackedTableMutabilityArbitrator implements TableMutab
                 .build();
     }
 
-    private static Optional<SortedSet<byte[]>> parseColumnarSet(
-            ColumnMetadataDescription columnMetadataDescription) {
+    private static Optional<SortedSet<byte[]>> parseColumnarSet(ColumnMetadataDescription columnMetadataDescription) {
         if (columnMetadataDescription.hasDynamicColumns()) {
             return Optional.empty();
         }
