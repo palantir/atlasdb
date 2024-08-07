@@ -86,14 +86,14 @@ public final class MetadataBackedTableMutabilityArbitrator implements TableMutab
         TableMetadata parsedMetadata = TableMetadata.BYTES_HYDRATOR.hydrateFromBytes(tableMetadata);
 
         Mutability mutability = fromProto(parsedMetadata.getMutability());
-        Optional<SortedSet<byte[]>> exhaustiveColumnSet = getExhaustiveColumnSet(parsedMetadata.getColumns());
+        Optional<SortedSet<byte[]>> exhaustiveColumnSet = parseColumnarSet(parsedMetadata.getColumns());
         return ImmutableMutabilityAndColumnarSet.builder()
                 .mutability(mutability)
                 .exhaustiveColumnSet(exhaustiveColumnSet)
                 .build();
     }
 
-    private static Optional<SortedSet<byte[]>> getExhaustiveColumnSet(
+    private static Optional<SortedSet<byte[]>> parseColumnarSet(
             ColumnMetadataDescription columnMetadataDescription) {
         if (columnMetadataDescription.hasDynamicColumns()) {
             return Optional.empty();

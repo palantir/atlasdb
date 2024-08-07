@@ -151,6 +151,19 @@ acceptedBreaks:
       new: "method com.palantir.lock.LockState com.palantir.atlasdb.factory.timelock.TimeoutSensitiveLockRpcClient::getLockState(java.lang.String,\
         \ com.palantir.lock.LockDescriptor)"
       justification: "LockRpcClient#getLockState is broken"
+  "0.1129.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.numberOfParametersChanged"
+      old: "method com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager\
+        \ com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManagerFactory::createKeyValueSnapshotReaderManager(com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager,\
+        \ com.palantir.atlasdb.transaction.service.TransactionService, boolean, com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter,\
+        \ com.palantir.atlasdb.transaction.api.DeleteExecutor, com.palantir.atlasdb.util.MetricsManager)"
+      new: "method com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager\
+        \ com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManagerFactory::createKeyValueSnapshotReaderManager(com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager,\
+        \ com.palantir.atlasdb.transaction.service.TransactionService, boolean, com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter,\
+        \ com.palantir.atlasdb.transaction.api.DeleteExecutor, com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator)"
+      justification: "hacking prototype"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"
