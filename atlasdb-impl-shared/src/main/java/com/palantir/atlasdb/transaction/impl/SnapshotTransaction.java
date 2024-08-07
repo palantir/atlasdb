@@ -85,6 +85,7 @@ import com.palantir.atlasdb.transaction.api.ConstraintCheckingTransaction;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
+import com.palantir.atlasdb.transaction.api.Mutability;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TableMutabilityArbitrator;
 import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
@@ -477,6 +478,12 @@ public class SnapshotTransaction extends AbstractTransaction
     public void disableValidatingLocksOnReads() {
         this.validateLocksOnReads = false;
         this.readSnapshotValidator.disableValidatingLocksOnReads();
+    }
+
+    @ReviewedRestrictedApiUsage
+    @Override
+    public Mutability getMutability(TableReference tableReference) {
+        return tableMutabilityArbitrator.getMutability(tableReference);
     }
 
     @Override

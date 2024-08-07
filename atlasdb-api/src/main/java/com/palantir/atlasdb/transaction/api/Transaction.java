@@ -493,4 +493,13 @@ public interface Transaction {
     default void disableValidatingLocksOnReads() {
         throw new UnsupportedOperationException();
     }
+
+    @RestrictedApi(
+            explanation = "This API is only meant to be used by AtlasDb proxies that want to do clever things with"
+                    + " the mutability on an underlying table.",
+            allowlistAnnotations = {ReviewedRestrictedApiUsage.class})
+    @Idempotent
+    default Mutability getMutability(TableReference _tableReference) {
+        throw new UnsupportedOperationException();
+    }
 }

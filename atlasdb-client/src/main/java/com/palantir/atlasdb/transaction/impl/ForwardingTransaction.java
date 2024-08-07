@@ -26,6 +26,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.ConstraintCheckable;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
+import com.palantir.atlasdb.transaction.api.Mutability;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
@@ -208,6 +209,12 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     @Override
     public void disableValidatingLocksOnReads() {
         delegate().disableValidatingLocksOnReads();
+    }
+
+    @ReviewedRestrictedApiUsage
+    @Override
+    public Mutability getMutability(TableReference tableReference) {
+        return delegate().getMutability(tableReference);
     }
 
     @Override
