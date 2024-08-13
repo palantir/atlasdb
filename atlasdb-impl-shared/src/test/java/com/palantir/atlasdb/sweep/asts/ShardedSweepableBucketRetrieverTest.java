@@ -83,7 +83,8 @@ public class ShardedSweepableBucketRetrieverTest {
         numShards.update(shards);
         retriever.getSweepableBuckets();
         assertThat(strategy.getRequestedShards())
-                .isEqualTo(IntStream.range(0, shards).boxed().collect(Collectors.toSet()));
+                .containsExactlyInAnyOrderElementsOf(
+                        IntStream.range(0, shards).boxed().collect(Collectors.toSet()));
     }
 
     @Test
