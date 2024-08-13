@@ -19,21 +19,14 @@ package com.palantir.atlasdb.util;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import com.codahale.metrics.Timer;
-import com.google.common.collect.ImmutableMap;
 import com.palantir.tritium.event.InstrumentationProperties;
 import com.palantir.tritium.event.InvocationContext;
-import com.palantir.tritium.metrics.registry.MetricName;
 import java.lang.reflect.Method;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BooleanSupplier;
 
 final class InstrumentationUtils {
     private static final String FAILURES_NAME = "failures";
-
-    static final MetricName TAGGED_FAILURES_METRIC_NAME = MetricName.builder()
-            .safeName(FAILURES_NAME)
-            .safeTags(ImmutableMap.of("serviceUsesTaggedMetrics", "true"))
-            .build();
 
     private InstrumentationUtils() {
         // utility
