@@ -8,7 +8,7 @@ buildscript {
 
     dependencies {
         classpath 'com.palantir.jakartapackagealignment:jakarta-package-alignment:0.6.0'
-        classpath 'com.netflix.nebula:gradle-info-plugin:13.1.1'
+        classpath 'com.netflix.nebula:gradle-info-plugin:13.1.2'
         classpath 'com.netflix.nebula:nebula-publishing-plugin:21.0.0'
         classpath 'com.palantir.baseline:gradle-baseline-java:5.61.0'
         classpath 'com.palantir.gradle.conjure:gradle-conjure:5.50.0'
