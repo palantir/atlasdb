@@ -19,9 +19,12 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import org.apache.cassandra.thrift.ConsistencyLevel;
@@ -33,8 +36,11 @@ import org.apache.thrift.TException;
 
 @SuppressWarnings({"all"}) // thrift variable names.
 public class InstrumentedCassandraClient implements AutoDelegate_CassandraClient {
+    private static final SafeLogger log = SafeLoggerFactory.get(InstrumentedCassandraClient.class);
+
     private final CassandraClient delegate;
     private final TaggedMetricRegistry taggedMetricRegistry;
+    private final TopListFilter<String> cellsWrittenMetricTopListFilter = new TopListFilter<>(5, Duration.ofMinutes(2));
 
     public InstrumentedCassandraClient(CassandraClient client, TaggedMetricRegistry taggedMetricRegistry) {
         this.delegate = client;
@@ -63,14 +69,21 @@ public class InstrumentedCassandraClient implements AutoDelegate_CassandraClient
             });
         });
 
-        tablesToCells.forEach(this::updateCellsWrittenForTable);
+        tablesToCells.forEach(this::maybeUpdateCellsWrittenForTable);
     }
 
-    private void updateCellsWrittenForTable(String table, Long numberOfCells) {
+    private void maybeUpdateCellsWrittenForTable(String table, Long numberOfCells) {
+        String tableTag = LoggingArgs.safeInternalTableNameOrPlaceholder(table);
+        if (log.isDebugEnabled() || cellsWrittenMetricTopListFilter.updateAndGetStatus(tableTag, numberOfCells)) {
+            updateCellsWrittenForTable(tableTag, numberOfCells);
+        }
+    }
+
+    private void updateCellsWrittenForTable(String tableTag, Long numberOfCells) {
         taggedMetricRegistry
                 .counter(MetricName.builder()
                         .safeName(MetricRegistry.name(CassandraClient.class, "cellsWritten"))
-                        .safeTags(ImmutableMap.of("tableRef", LoggingArgs.safeInternalTableNameOrPlaceholder(table)))
+                        .safeTags(ImmutableMap.of("tableRef", tableTag))
                         .build())
                 .inc(numberOfCells);
     }
