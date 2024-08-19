@@ -72,7 +72,7 @@ public final class LockWatchManagerImplTest {
     @BeforeEach
     public void before() {
         manager = new LockWatchManagerImpl(
-                ImmutableSet.of(fromSchema), lockWatchEventCache, valueScopingCache, lockWatchingService);
+                ImmutableSet.of(fromSchema), lockWatchEventCache, valueScopingCache, lockWatchingService, () -> {});
     }
 
     @Test
@@ -84,7 +84,8 @@ public final class LockWatchManagerImplTest {
                 MetricsManagers.createForTests(),
                 ImmutableSet.of(schema),
                 lockWatchingService,
-                LockWatchCachingConfig.builder().build());
+                LockWatchCachingConfig.builder().build(),
+                () -> {});
         Awaitility.await("waiting for thread to start watching")
                 .atMost(Duration.ofSeconds(5))
                 .pollInterval(Duration.ofMillis(100L))

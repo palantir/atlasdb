@@ -48,6 +48,7 @@ import com.palantir.lock.client.LegacyLockTokenUnlocker;
 import com.palantir.lock.client.LockTokenUnlocker;
 import com.palantir.lock.client.MultiClientTimeLockUnlocker;
 import com.palantir.lock.client.NamespacedCoalescingLeaderTimeGetter;
+import com.palantir.lock.client.NamespacedConjureLockWatchTimeLockDiagnosticsService;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
 import com.palantir.lock.client.NamespacedConjureTimelockService;
 import com.palantir.lock.client.NamespacedLockTokenUnlocker;
@@ -332,6 +333,10 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
         NamespacedConjureLockWatchingService lockWatchingService = new NamespacedConjureLockWatchingService(
                 serviceProvider.getConjureLockWatchingService(), timelockNamespace);
 
+        NamespacedConjureLockWatchTimeLockDiagnosticsService lockWatchDiagnosticsService =
+                new NamespacedConjureLockWatchTimeLockDiagnosticsService(
+                        serviceProvider.getConjureLockWatchDiagnosticsService(), timelockNamespace);
+
         Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier =
                 getMultiClientTimelockServiceSupplier(serviceProvider);
 
@@ -341,7 +346,13 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                         batcherProviders.startTransactions().getBatcher(multiClientTimelockServiceSupplier)));
 
         TimeLockHelperServices timeLockHelperServices = TimeLockHelperServices.create(
-                timelockNamespace, metricsManager, schemas, lockWatchingService, cachingConfig, requestBatcherProvider);
+                timelockNamespace,
+                metricsManager,
+                schemas,
+                lockWatchingService,
+                cachingConfig,
+                requestBatcherProvider,
+                lockWatchDiagnosticsService);
         LockWatchManagerInternal lockWatchManager = timeLockHelperServices.lockWatchManager();
 
         RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter.create(
