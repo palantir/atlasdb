@@ -17,5 +17,5 @@
 package com.palantir.lock.client;
 
 public interface LockWatchTimeLockDiagnosticsLogger {
-    void logState();
+    void logStateOnTimeLockServer();
 }

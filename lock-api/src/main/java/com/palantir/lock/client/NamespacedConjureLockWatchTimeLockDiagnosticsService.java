@@ -32,7 +32,7 @@ public final class NamespacedConjureLockWatchTimeLockDiagnosticsService implemen
     }
 
     @Override
-    public void logState() {
+    public void logStateOnTimeLockServer() {
         lockWatchDiagnosticsService.logState(AUTH_HEADER, namespace);
     }
 }

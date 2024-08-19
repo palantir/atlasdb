@@ -125,7 +125,7 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
                     UnsafeArg.of("referencesFromSchema", referencesFromSchema),
                     UnsafeArg.of("lockWatchReferences", ImmutableSet.copyOf(lockWatchReferences)));
             lockWatchCache.logState();
-            lockWatchTimeLockDiagnosticsLogger.logState();
+            lockWatchTimeLockDiagnosticsLogger.logStateOnTimeLockServer();
         }
     }
 
