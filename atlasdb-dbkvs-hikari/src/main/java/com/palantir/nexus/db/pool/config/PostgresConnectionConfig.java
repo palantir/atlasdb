@@ -87,6 +87,7 @@ public abstract class PostgresConnectionConfig extends ConnectionConfig {
         props.setProperty("password", getDbPassword().unmasked());
 
         props.setProperty("tcpKeepAlive", "true");
+        props.setProperty("targetServerType", "primary");
         props.setProperty("socketTimeout", Integer.toString(getSocketTimeoutSeconds()));
 
         props.setProperty("connectTimeout", Integer.toString(getConnectionTimeoutSeconds()));

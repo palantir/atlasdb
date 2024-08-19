@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Set target server type primary
+  links:
+  - https://github.com/palantir/atlasdb/pull/7222
