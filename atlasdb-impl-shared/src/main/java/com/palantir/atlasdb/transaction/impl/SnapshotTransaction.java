@@ -2706,26 +2706,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     @VisibleForTesting
     static void reportExpectationsCollectedData(ExpectationsData expectationsData, ExpectationsMetrics metrics) {
-        metrics.ageMillis().update(expectationsData.ageMillis());
-        metrics.bytesRead().update(expectationsData.readInfo().bytesRead());
-        metrics.kvsReads().update(expectationsData.readInfo().kvsCalls());
-
-        expectationsData
-                .readInfo()
-                .maximumBytesKvsCallInfo()
-                .ifPresent(kvsCallReadInfo ->
-                        metrics.mostKvsBytesReadInSingleCall().update(kvsCallReadInfo.bytesRead()));
-
-        metrics.cellCommitLocksRequested()
-                .update(expectationsData.commitLockInfo().cellCommitLocksRequested());
-        metrics.rowCommitLocksRequested()
-                .update(expectationsData.commitLockInfo().rowCommitLocksRequested());
-        metrics.changeMetadataBuffered()
-                .update(expectationsData.writeMetadataInfo().changeMetadataBuffered());
-        metrics.cellChangeMetadataSent()
-                .update(expectationsData.writeMetadataInfo().cellChangeMetadataSent());
-        metrics.rowChangeMetadataSent()
-                .update(expectationsData.writeMetadataInfo().rowChangeMetadataSent());
+        ExpectationsMetricsReporter.INSTANCE.reportExpectationsCollectedData(expectationsData, metrics);
     }
 
     private long getStartTimestamp() {
