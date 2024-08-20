@@ -417,7 +417,7 @@ public class TargetedSweepMetrics {
          */
         @Value.Default
         default Set<SweeperStrategy> trackedSweeperStrategies() {
-            return ImmutableSet.copyOf(SweeperStrategy.values());
+            return ImmutableSet.of(SweeperStrategy.CONSERVATIVE, SweeperStrategy.THOROUGH);
         }
 
         /**
