@@ -31,6 +31,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.immutables.value.Value;
 
 public final class DefaultSweepStateCoordinator implements SweepStateCoordinator {
     private final LockableFactory<SweepableBucket> lockableFactory;
@@ -40,8 +41,7 @@ public final class DefaultSweepStateCoordinator implements SweepStateCoordinator
     private final Function<List<Lockable<SweepableBucket>>, Stream<Lockable<SweepableBucket>>> iterationOrderGenerator;
 
     private volatile Set<Lockable<SweepableBucket>> seenBuckets;
-    private volatile List<Lockable<SweepableBucket>> firstBucketsOfEachShard;
-    private volatile List<Lockable<SweepableBucket>> remainingBuckets;
+    private volatile BucketsLists bucketsLists;
 
     @VisibleForTesting
     DefaultSweepStateCoordinator(
@@ -68,15 +68,19 @@ public final class DefaultSweepStateCoordinator implements SweepStateCoordinator
         // This is a loose check - since the variables are not updated atomically, seenBuckets could represent
         // buckets from a previous update. This doesn't really matter, since we _may_ have one NOTHING_TO_SWEEP,
         // and then once seenBuckets has updated, things will be fine again.
-        if (seenBuckets.size() >= (firstBucketsOfEachShard.size() + remainingBuckets.size())) {
+
+        // We grab the bucketsLists at the time this method is called so that we don't need to reason about things
+        // atomicity between the two lists within, but _not_ capturing seenBuckets is ideal so that we always remove
+        // candidates from the _latest_ seen bucket set.
+        BucketsLists currentBucketsLists = bucketsLists;
+        if (seenBuckets.size()
+                >= (currentBucketsLists.firstBucketsOfEachShard().size()
+                        + currentBucketsLists.remainingBuckets().size())) {
             candidateSweepableBucketRetriever.requestUpdate();
             return SweepOutcome.NOTHING_TO_SWEEP;
         }
-        // It's possible that we pass the above check, but then there's a refresh and now there's no bucket
-        // available. This means we'll return NOTHING_AVAILABLE instead of NOTHING_TO_SWEEP, but the accuracy of
-        // the return value is not critical unless the wrong result is sustained.
 
-        Optional<LockedItem<SweepableBucket>> maybeBucket = chooseBucket();
+        Optional<LockedItem<SweepableBucket>> maybeBucket = chooseBucket(currentBucketsLists);
         if (maybeBucket.isEmpty()) {
             return SweepOutcome.NOTHING_AVAILABLE;
         }
@@ -86,12 +90,13 @@ public final class DefaultSweepStateCoordinator implements SweepStateCoordinator
         return SweepOutcome.SWEPT;
     }
 
-    private Optional<LockedItem<SweepableBucket>> chooseBucket() {
-        return getFirstUnlockedBucket(firstBucketsOfEachShard.stream()).or(this::randomUnlockedBucket);
+    private Optional<LockedItem<SweepableBucket>> chooseBucket(BucketsLists currentBucketsLists) {
+        return getFirstUnlockedBucket(currentBucketsLists.firstBucketsOfEachShard().stream())
+                .or(() -> randomUnlockedBucket(currentBucketsLists));
     }
 
-    private Optional<LockedItem<SweepableBucket>> randomUnlockedBucket() {
-        return getFirstUnlockedBucket(iterationOrderGenerator.apply(remainingBuckets));
+    private Optional<LockedItem<SweepableBucket>> randomUnlockedBucket(BucketsLists currentBucketsLists) {
+        return getFirstUnlockedBucket(iterationOrderGenerator.apply(currentBucketsLists.remainingBuckets()));
     }
 
     private Optional<LockedItem<SweepableBucket>> getFirstUnlockedBucket(Stream<Lockable<SweepableBucket>> lockables) {
@@ -116,21 +121,24 @@ public final class DefaultSweepStateCoordinator implements SweepStateCoordinator
                 .collect(Collectors.groupingBy(
                         bucket -> bucket.shardAndStrategy().shard()));
 
-        List<Lockable<SweepableBucket>> headElements = partition.values().stream()
+        List<Lockable<SweepableBucket>> firstBucketsOfEachShard = partition.values().stream()
                 .filter(list -> !list.isEmpty())
                 .map(list -> list.get(0))
                 .map(lockableFactory::createLockable)
                 .collect(Collectors.toUnmodifiableList());
 
-        List<Lockable<SweepableBucket>> otherElements = partition.values().stream()
+        List<Lockable<SweepableBucket>> remainingBuckets = partition.values().stream()
                 .flatMap(list -> list.stream().skip(1))
                 .map(lockableFactory::createLockable)
                 .collect(Collectors.toUnmodifiableList());
 
         // There's a delay between setting each variable, but we do not require (for correctness) that these three
         // variables are updated atomically.
-        firstBucketsOfEachShard = headElements;
-        remainingBuckets = otherElements;
+
+        bucketsLists = ImmutableBucketsLists.builder()
+                .firstBucketsOfEachShard(firstBucketsOfEachShard)
+                .remainingBuckets(remainingBuckets)
+                .build();
         seenBuckets = ConcurrentHashMap.newKeySet();
     }
 
@@ -147,5 +155,12 @@ public final class DefaultSweepStateCoordinator implements SweepStateCoordinator
             }
             return Long.compare(firstBucket.bucketIdentifier(), secondBucket.bucketIdentifier());
         }
+    }
+
+    @Value.Immutable
+    interface BucketsLists {
+        List<Lockable<SweepableBucket>> firstBucketsOfEachShard();
+
+        List<Lockable<SweepableBucket>> remainingBuckets();
     }
 }

@@ -68,6 +68,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 public class DefaultSweepStateCoordinatorTest {
+    private static final SweepableBucket HEAD_BUCKET_SHARD_ZERO = bucket(0, 0);
+    private static final SweepableBucket TAIL_BUCKET_SHARD_ZERO = bucket(0, 1);
+    private static final Set<SweepableBucket> SWEEPABLE_BUCKETS_SHARD_ZERO =
+            Set.of(HEAD_BUCKET_SHARD_ZERO, TAIL_BUCKET_SHARD_ZERO);
+    private static final Set<SweepableBucket> HEAD_BUCKET_SHARD_ZERO_ONLY = Set.of(HEAD_BUCKET_SHARD_ZERO);
     private final SettableRefreshable<Set<SweepableBucket>> buckets = Refreshable.create(Set.of());
     private final TestCandidateSweepableBucketRetriever retriever = new TestCandidateSweepableBucketRetriever(buckets);
     private final AtomicReference<Function<List<Lockable<SweepableBucket>>, Stream<Lockable<SweepableBucket>>>>
@@ -111,9 +116,7 @@ public class DefaultSweepStateCoordinatorTest {
 
     @Test
     public void failedTaskUnlocksBucket() {
-        SweepableBucket sweepableBucket = bucket(0, 0);
-        Set<SweepableBucket> sweepableBuckets = Set.of(sweepableBucket);
-        buckets.update(sweepableBuckets);
+        buckets.update(HEAD_BUCKET_SHARD_ZERO_ONLY);
 
         RuntimeException exception = new RuntimeException("I failed");
         assertThatThrownBy(() -> coordinator.tryRunTaskWithBucket(chosenBucket -> {
@@ -121,54 +124,42 @@ public class DefaultSweepStateCoordinatorTest {
                 }))
                 .isEqualTo(exception);
 
-        assertThat(isBucketLocked(sweepableBucket)).isFalse();
+        assertThat(isBucketLocked(HEAD_BUCKET_SHARD_ZERO)).isFalse();
     }
 
     @Test
     public void selectsALockOnChosenBucket() {
-        SweepableBucket headBucket = bucket(0, 0);
-        SweepableBucket tailBucket = bucket(0, 1);
-
-        Set<SweepableBucket> sweepableBuckets = Set.of(headBucket, tailBucket);
-        buckets.update(sweepableBuckets);
+        buckets.update(SWEEPABLE_BUCKETS_SHARD_ZERO);
         runTaskWithBucket(chosenBucket -> {
-            assertThat(chosenBucket).isEqualTo(headBucket);
-            assertThat(isBucketLocked(headBucket)).isTrue();
+            assertThat(chosenBucket).isEqualTo(HEAD_BUCKET_SHARD_ZERO);
+            assertThat(isBucketLocked(HEAD_BUCKET_SHARD_ZERO)).isTrue();
         });
 
         // We lock regardless of which set it comes from (this is really testing an implementation detail)
         runTaskWithBucket(chosenBucket -> {
-            assertThat(chosenBucket).isEqualTo(tailBucket);
-            assertThat(isBucketLocked(tailBucket)).isTrue();
+            assertThat(chosenBucket).isEqualTo(TAIL_BUCKET_SHARD_ZERO);
+            assertThat(isBucketLocked(TAIL_BUCKET_SHARD_ZERO)).isTrue();
         });
     }
 
     @Test
     public void removesFromCandidateSetOnceComplete() {
-        SweepableBucket head = bucket(0, 0);
-        SweepableBucket tail = bucket(0, 1);
-
-        Set<SweepableBucket> sweepableBuckets = Set.of(head, tail);
-        buckets.update(sweepableBuckets);
-        runTaskWithBucket(chosenBucket -> assertThat(chosenBucket).isEqualTo(head));
-        runTaskWithBucket(chosenBucket -> assertThat(chosenBucket).isEqualTo(tail));
+        buckets.update(SWEEPABLE_BUCKETS_SHARD_ZERO);
+        runTaskWithBucket(chosenBucket -> assertThat(chosenBucket).isEqualTo(HEAD_BUCKET_SHARD_ZERO));
+        runTaskWithBucket(chosenBucket -> assertThat(chosenBucket).isEqualTo(TAIL_BUCKET_SHARD_ZERO));
     }
 
     @Test
     public void removesFromCandidateSetIfRefreshMovesBucketToHeadSet() {
-        SweepableBucket head = bucket(0, 0);
-        SweepableBucket tail = bucket(0, 1);
-
-        Set<SweepableBucket> sweepableBuckets = Set.of(tail, head);
-        buckets.update(sweepableBuckets);
-        runTaskWithBucket(chosenBucket -> assertThat(chosenBucket).isEqualTo(head));
+        buckets.update(SWEEPABLE_BUCKETS_SHARD_ZERO);
+        runTaskWithBucket(chosenBucket -> assertThat(chosenBucket).isEqualTo(HEAD_BUCKET_SHARD_ZERO));
 
         runTaskWithBucket(chosenBucket -> {
             // The "tail" bucket will be in the non-head set
-            assertThat(chosenBucket).isEqualTo(tail);
+            assertThat(chosenBucket).isEqualTo(TAIL_BUCKET_SHARD_ZERO);
 
-            // Now, the "tail" bucket is moved to the head set.
-            buckets.update(Set.of(tail));
+            // Now, the "tail" bucket is moved to the head set (provided the refresh completes during the iteration)
+            buckets.update(Set.of(TAIL_BUCKET_SHARD_ZERO));
         });
 
         // We should have removed the "tail" bucket from the candidate set, even if it's moved to the headset.
@@ -177,9 +168,7 @@ public class DefaultSweepStateCoordinatorTest {
 
     @Test
     public void returnsNothingAvailableIfNoBucketUnlocked() {
-        SweepableBucket head = bucket(0, 0);
-        Set<SweepableBucket> sweepableBuckets = Set.of(head);
-        buckets.update(sweepableBuckets);
+        buckets.update(HEAD_BUCKET_SHARD_ZERO_ONLY);
         runTaskWithBucket(chosenBucket -> {
             // chosenBucket (the only bucket) is locked.
             assertThat(coordinator.tryRunTaskWithBucket(newBucket -> {
@@ -196,20 +185,25 @@ public class DefaultSweepStateCoordinatorTest {
 
     @Test
     public void requestsRefreshIfNoBucketsRemaining() {
-        coordinator.tryRunTaskWithBucket(chosenBucket -> {});
+        assertThat(retriever.getUpdateRequests()).isEqualTo(0);
+        coordinator.tryRunTaskWithBucket(chosenBucket -> {
+            throw new RuntimeException("Should not have been called");
+        });
         assertThat(retriever.getUpdateRequests()).isEqualTo(1);
     }
 
     @Test
+    @SuppressWarnings("CheckReturnValue") // We don't care about the result of the lock, just that we're locking it.
+    // but CheckReturnValue forces us to make that explicit.
     public void afterHeadBucketsLockedSelectsBucketBasedOnProvidedIterationOrderUntilFindsFirstUnlocked() {
         List<SweepableBucket> sweepableBuckets =
                 IntStream.range(1, 10).mapToObj(i -> bucket(0, i)).collect(Collectors.toList());
-        SweepableBucket headBucket =
-                bucket(0, 0); // This needs to go at the front since we're always going to visit the head of the sweep
         Collections.shuffle(sweepableBuckets);
 
-        List<SweepableBucket> rawIterationOrder =
-                Streams.concat(Stream.of(headBucket), sweepableBuckets.stream()).collect(Collectors.toList());
+        // The head bucket needs to go at the front since we're always going to visit the head of the sweep
+        List<SweepableBucket> rawIterationOrder = Streams.concat(
+                        Stream.of(HEAD_BUCKET_SHARD_ZERO), sweepableBuckets.stream())
+                .collect(Collectors.toList());
 
         List<Lockable<SweepableBucket>> iterationOrder = rawIterationOrder.stream()
                 .map(lockableFactory::createLockable)
@@ -220,10 +214,7 @@ public class DefaultSweepStateCoordinatorTest {
         int numberOfElementsToLockInAdvance = 5;
         for (int i = 0; i < numberOfElementsToLockInAdvance; i++) {
             Lockable<SweepableBucket> lockable = iterationOrder.get(i);
-
-            // We don't care about the result of the lock, just that we're locking it.
-            // but CheckReturnValue forces us to make that explicit.
-            Optional<LockedItem<SweepableBucket>> _unused = lockable.tryLock(_ignored -> {});
+            lockable.tryLock(_ignored -> {});
             reset(lockable); // Reset the spy to make checking lock count easier
         }
 
@@ -231,7 +222,7 @@ public class DefaultSweepStateCoordinatorTest {
         runTaskWithBucket(chosenBucket ->
                 assertThat(chosenBucket).isEqualTo(rawIterationOrder.get(numberOfElementsToLockInAdvance)));
 
-        // Ensure that we only try the first 5 buckets (that are locked) + the 6th bucket (which is unblocked)
+        // Ensure that we only try the first 5 buckets (that are locked) + the 6th bucket (which is unlocked)
         // and none of the others.
         for (int i = 0; i < numberOfElementsToLockInAdvance + 1; i++) {
             verify(iterationOrder.get(i), times(1)).tryLock(any());
@@ -243,12 +234,10 @@ public class DefaultSweepStateCoordinatorTest {
 
     @Test
     public void bucketIsUnlockedAfterTaskCompletes() {
-        SweepableBucket sweepableBucket = bucket(0, 0);
-        Set<SweepableBucket> sweepableBuckets = Set.of(sweepableBucket);
-        buckets.update(sweepableBuckets);
+        buckets.update(HEAD_BUCKET_SHARD_ZERO_ONLY);
 
         runTaskWithBucket(chosenBucket -> {});
-        assertThat(isBucketLocked(sweepableBucket)).isFalse();
+        assertThat(isBucketLocked(HEAD_BUCKET_SHARD_ZERO)).isFalse();
     }
 
     @Test // A test that is specifically here to ensure that we're locking and selecting a bucket
@@ -277,7 +266,7 @@ public class DefaultSweepStateCoordinatorTest {
         return item.stream().peek(LockedItem::close).findAny().isEmpty();
     }
 
-    private SweepableBucket bucket(int shard, int identifier) {
+    private static SweepableBucket bucket(int shard, int identifier) {
         return SweepableBucket.of(ShardAndStrategy.of(shard, SweeperStrategy.CONSERVATIVE), identifier);
     }
 
