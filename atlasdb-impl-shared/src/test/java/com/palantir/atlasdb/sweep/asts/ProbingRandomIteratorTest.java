@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.apache.commons.lang3.stream.Streams;
 import org.junit.jupiter.api.Test;
 
 public final class ProbingRandomIteratorTest {
@@ -50,21 +51,22 @@ public final class ProbingRandomIteratorTest {
     @Test
     public void iteratorDoesNotModifyUnderlyingList() {
         List<Integer> originalList = ImmutableList.copyOf(LARGE_INT_LIST);
-        List<Integer> _unused = ImmutableList.copyOf(new ProbingRandomIterator<>(LARGE_INT_LIST));
+        // Consume the entire iterator
+        Streams.of(new ProbingRandomIterator<>(LARGE_INT_LIST)).forEach(x -> {});
         assertThat(originalList).containsExactlyElementsOf(LARGE_INT_LIST);
     }
 
     @Test
-    public void iteratorDoesNotFailOnEmptyList() {
+    public void iteratorHasNextDoesNotFailOnEmptyList() {
         List<Integer> emptyList = ImmutableList.of();
         ProbingRandomIterator<Integer> iterator = new ProbingRandomIterator<>(emptyList);
         assertThat(iterator.hasNext()).isFalse();
-        assertThat(ImmutableList.copyOf(iterator)).isEmpty();
     }
 
     @Test
     public void iteratorNextThrowsNoSuchElementExceptionWhenNoMoreElements() {
         ProbingRandomIterator<Integer> iterator = new ProbingRandomIterator<>(ImmutableList.of(1));
+        assertThat(iterator.hasNext()).isTrue();
         iterator.next();
         assertThat(iterator.hasNext()).isFalse();
         assertThatThrownBy(iterator::next).isInstanceOf(NoSuchElementException.class);

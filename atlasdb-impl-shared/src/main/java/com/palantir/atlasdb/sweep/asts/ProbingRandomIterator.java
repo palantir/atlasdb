@@ -34,7 +34,6 @@ public final class ProbingRandomIterator<T> implements Iterator<T> {
     private final List<T> list;
     private final BitSet visited;
     private int probedElements = 0;
-    private int lastIndex = 0;
 
     public ProbingRandomIterator(List<T> list) {
         this.list = list;
@@ -51,14 +50,16 @@ public final class ProbingRandomIterator<T> implements Iterator<T> {
         if (!hasNext()) {
             throw new NoSuchElementException();
         }
-        int nextStart = (lastIndex + ThreadLocalRandom.current().nextInt(list.size())) % list.size();
+        int nextStart = ThreadLocalRandom.current().nextInt(list.size());
         int nextClearBit = visited.nextClearBit(nextStart);
+        // This is annoyingly undocumented in the nextClearBit API, but nextClearBit
+        // can return size(bitSet) if there's no clear bit after the start index.
+        // If we didn't do the next check, we'd end up with an IndexOutOfBoundsException
         if (nextClearBit >= list.size()) {
             nextClearBit = visited.nextClearBit(0);
         }
-        lastIndex = nextClearBit;
-        visited.set(lastIndex);
         probedElements++;
-        return list.get(lastIndex);
+        visited.set(nextClearBit);
+        return list.get(nextClearBit);
     }
 }
