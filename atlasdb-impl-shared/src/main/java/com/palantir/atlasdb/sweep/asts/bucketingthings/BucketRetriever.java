@@ -14,16 +14,11 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.sweep.asts;
+package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
-import java.util.function.Consumer;
+import com.palantir.atlasdb.sweep.asts.SweepableBucket;
+import java.util.Set;
 
-public interface SweepStateCoordinator {
-    SweepOutcome tryRunTaskWithBucket(Consumer<SweepableBucket> task);
-
-    enum SweepOutcome {
-        NOTHING_AVAILABLE,
-        NOTHING_TO_SWEEP,
-        SWEPT;
-    }
+public interface BucketRetriever {
+    Set<SweepableBucket> getSweepableBuckets();
 }

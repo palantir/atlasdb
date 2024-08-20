@@ -14,16 +14,16 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.sweep.asts;
+package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
-import java.util.function.Consumer;
+import com.palantir.atlasdb.sweep.asts.Bucket;
+import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
+import java.util.Set;
 
-public interface SweepStateCoordinator {
-    SweepOutcome tryRunTaskWithBucket(Consumer<SweepableBucket> task);
+public interface SweepBucketPointerTable {
+    long getStartingBucketForShardAndStrategy(ShardAndStrategy shardAndStrategy);
 
-    enum SweepOutcome {
-        NOTHING_AVAILABLE,
-        NOTHING_TO_SWEEP,
-        SWEPT;
-    }
+    Set<Bucket> getStartingBucketsForShards(Set<ShardAndStrategy> shardAndStrategies);
+
+    void updateStartingBucketForShardAndStrategy(Bucket newStartingBucket);
 }

@@ -16,14 +16,17 @@
 
 package com.palantir.atlasdb.sweep.asts;
 
-import java.util.function.Consumer;
+import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketsTable.TimestampRange;
+import org.immutables.value.Value;
 
-public interface SweepStateCoordinator {
-    SweepOutcome tryRunTaskWithBucket(Consumer<SweepableBucket> task);
+public interface SweepableBucket {
+    @Value.Parameter
+    Bucket bucket();
 
-    enum SweepOutcome {
-        NOTHING_AVAILABLE,
-        NOTHING_TO_SWEEP,
-        SWEPT;
+    @Value.Parameter
+    TimestampRange timestampRange();
+
+    static SweepableBucket of(Bucket bucket, TimestampRange timestampRange) {
+        return ImmutableSweepableBucket.of(bucket, timestampRange);
     }
 }

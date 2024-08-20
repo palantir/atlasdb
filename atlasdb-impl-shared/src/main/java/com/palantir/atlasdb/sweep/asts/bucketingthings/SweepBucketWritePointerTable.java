@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.sweep.asts;
+package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
-import java.util.function.Consumer;
+public interface SweepBucketWritePointerTable {
+    void updateHighestBucketNumber(long expectedBucketNumber, long newBucketNumber);
 
-public interface SweepStateCoordinator {
-    SweepOutcome tryRunTaskWithBucket(Consumer<SweepableBucket> task);
+    void updateLastWallClockTime(long lastWallClockTime, long newWallClockTime);
 
-    enum SweepOutcome {
-        NOTHING_AVAILABLE,
-        NOTHING_TO_SWEEP,
-        SWEPT;
-    }
+    long getHighestBucketNumber();
+
+    long getLastWallClockTime();
 }
