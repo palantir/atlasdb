@@ -286,7 +286,7 @@ class DefaultCandidateSweepableBucketRetrieverTest {
     }
 
     @Test
-    public void newMinimumDurationAppliesImmediately() {
+    public void newMinimumDurationAppliesAfterNextRefresh() {
         AtomicInteger numCallbacks = new AtomicInteger();
         CandidateSweepableBucketRetriever candidateSweepableBucketRetriever = candidateRetriever(WITH_BUCKETS);
 
@@ -304,7 +304,16 @@ class DefaultCandidateSweepableBucketRetrieverTest {
         tickTime(Duration.ofMillis(1)); // Inclusive wait.
         minimumDurationBetweenRefresh.update(Duration.ZERO);
         candidateSweepableBucketRetriever.requestUpdate();
+        // New update hasn't applied
+        tryWaitUntilAsserted(() -> assertThat(numCallbacks).hasValue(1));
+
+        tickTime(Duration.ofDays(1)); // The old minimum duration
+        candidateSweepableBucketRetriever.requestUpdate();
         tryWaitUntilAsserted(() -> assertThat(numCallbacks).hasValue(2));
+
+        tickTime(Duration.ofMillis(1)); // Now the new min duration is applied
+        candidateSweepableBucketRetriever.requestUpdate();
+        tryWaitUntilAsserted(() -> assertThat(numCallbacks).hasValue(3));
     }
 
     @Test

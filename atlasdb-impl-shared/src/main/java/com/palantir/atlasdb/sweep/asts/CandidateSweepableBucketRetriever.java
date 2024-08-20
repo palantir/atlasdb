@@ -35,9 +35,8 @@ public interface CandidateSweepableBucketRetriever {
      * Registers a callback that will execute after each refresh, including whenever the set of buckets remains constant
      * across refreshes.
      * <p>
-     * Callbacks will be executed in the order they are registered. If a callback fails, subsequent callbacks will not
-     * be executed. If a callback is slow, it will block subsequent callbacks, and may result in subsequent refreshes
-     * being delayed.
+     * There are no guarantees in the order that callbacks are executed. If any callback fails, it is not guaranteed
+     * that other callbacks will be executed. Moreover, slow callbacks may delay subsequent refreshes.
      */
     Disposable subscribeToChanges(Consumer<Set<SweepableBucket>> task);
 }

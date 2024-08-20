@@ -45,20 +45,17 @@ public final class DefaultCandidateSweepableBucketRetriever implements Candidate
 
     // This should be non-zero - see the comment above the coalescing supplier in the constructor.
     // But we've not preconditioning on it since zero is acceptable for testing.
+    // Updates to this will not be reflected until a subsequent refresh, as we store the duration at the time
+    // of the refresh in the TimestampedSweepableBuckets
     private final Refreshable<Duration> minimumDurationBetweenRefresh;
     // We use a supplier for the jitter (rather than directly using ThreadLocalRandom) to make testing simpler.
+    // We use a jitter to prevent thundering herd issues at the macro scale. The underlying SweepableBucketRetriever
+    // should have jitter between requests, but we also want to have the batch requests be scheduled at different times
+    // across nodes.
     private final Supplier<Long> jitterMillisGenerator;
 
     // Passed in for testing
     private final Clock clock;
-
-    // We use a jitter to prevent thundering herd issues at the macro scale. The underlying SweepableBucketRetriever
-    // should have jitter between requests, but we also want to have the batch requests be scheduled at different times
-    // across nodes.
-
-    // This is a field because we want to have a constant jitter for the duration of the refresh, rather than
-    // having each requested update use a different jitter and having an inconsistent debounce window.
-    private volatile long jitterMillis;
 
     @VisibleForTesting
     DefaultCandidateSweepableBucketRetriever(
@@ -79,7 +76,6 @@ public final class DefaultCandidateSweepableBucketRetriever implements Candidate
         // which should still be within the debounce window.
         this.supplier = new CoalescingSupplier<>(this::getNext);
         this.jitterMillisGenerator = jitterMillisGenerator;
-        this.jitterMillis = jitterMillisGenerator.get();
     }
 
     public static CandidateSweepableBucketRetriever create(
@@ -135,10 +131,11 @@ public final class DefaultCandidateSweepableBucketRetriever implements Candidate
             log.info("Retrieved sweepable buckets.", SafeArg.of("buckets", sweepableBuckets));
             underlyingRefreshable.update(ImmutableTimestampedSweepableBuckets.builder()
                     .sweepableBuckets(sweepableBuckets)
-                    .timestamp(Instant.now(clock))
+                    .noRefreshBeforeInclusive(Instant.now(clock)
+                            .plus(minimumDurationBetweenRefresh.get())
+                            .plusMillis(jitterMillisGenerator.get()))
                     .build());
 
-            updateJitter();
         } catch (Exception e) {
             // It possibly indicates a bug because in the current implementation, it's expected that the underlying
             // sweepable bucket retriever will fail silently on a given shard, rather than bubbling up the exception.
@@ -155,17 +152,9 @@ public final class DefaultCandidateSweepableBucketRetriever implements Candidate
     // in tests from zero to one millis (see the reason above coalescing supplier)
     private boolean isWithinDebounceWindow() {
         TimestampedSweepableBuckets existing = underlyingRefreshable.get();
+        // TODO: Check that this is inclusive still.
         return existing != null
-                && existing.timestamp()
-                                .plus(minimumDurationBetweenRefresh.get())
-                                .plusMillis(jitterMillis)
-                                .compareTo(Instant.now(clock))
-                        >= 0; // >= 0 => isAfterOrEqual
-    }
-
-    private void updateJitter() {
-        jitterMillis = jitterMillisGenerator.get();
-        log.trace("Next refresh will have new jitter", SafeArg.of("jitter", jitterMillis));
+                && existing.noRefreshBeforeInclusive().compareTo(Instant.now(clock)) >= 0; // >= 0 => isAfterOrEqual
     }
 
     @Value.Immutable
@@ -174,6 +163,6 @@ public final class DefaultCandidateSweepableBucketRetriever implements Candidate
         Set<SweepableBucket> sweepableBuckets();
 
         @Value.Parameter
-        Instant timestamp();
+        Instant noRefreshBeforeInclusive();
     }
 }
