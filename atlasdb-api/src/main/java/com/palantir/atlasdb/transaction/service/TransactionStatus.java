@@ -47,13 +47,25 @@ public interface TransactionStatus {
         }
     }
 
-    @Value.Immutable(singleton = true)
-    @PackageVisibleImmutablesStyle
-    interface InProgress extends TransactionStatus {}
+    <T> T accept(Visitor<T> visitor);
 
     @Value.Immutable(singleton = true)
     @PackageVisibleImmutablesStyle
-    interface Aborted extends TransactionStatus {}
+    interface InProgress extends TransactionStatus {
+        @Override
+        default <T> T accept(Visitor<T> visitor) {
+            return visitor.visitInProgress(this);
+        }
+    }
+
+    @Value.Immutable(singleton = true)
+    @PackageVisibleImmutablesStyle
+    interface Aborted extends TransactionStatus {
+        @Override
+        default <T> T accept(Visitor<T> visitor) {
+            return visitor.visitAborted(this);
+        }
+    }
 
     @Value.Immutable(builder = false)
     @PackageVisibleImmutablesStyle
@@ -61,9 +73,29 @@ public interface TransactionStatus {
 
         @Value.Parameter
         long commitTimestamp();
+
+        @Override
+        default <T> T accept(Visitor<T> visitor) {
+            return visitor.visitCommitted(this);
+        }
     }
 
     @Value.Immutable(singleton = true)
     @PackageVisibleImmutablesStyle
-    interface Unknown extends TransactionStatus {}
+    interface Unknown extends TransactionStatus {
+        @Override
+        default <T> T accept(Visitor<T> visitor) {
+            return visitor.visitUnknown(this);
+        }
+    }
+
+    interface Visitor<T> {
+        T visitInProgress(InProgress inProgress);
+
+        T visitAborted(Aborted aborted);
+
+        T visitCommitted(Committed committed);
+
+        T visitUnknown(Unknown unknown);
+    }
 }
