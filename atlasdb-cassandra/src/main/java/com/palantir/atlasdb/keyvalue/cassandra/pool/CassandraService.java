@@ -33,14 +33,18 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientInstrumentation;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientInstrumentationImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraLogHelper;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraServerOrigin;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraUtils;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
+import com.palantir.atlasdb.keyvalue.cassandra.NoOpCassandraClientInstrumentation;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.pooling.PoolingContainer;
 import com.palantir.common.streams.KeyedStream;
@@ -79,7 +83,7 @@ import java.util.stream.Stream;
 import org.apache.cassandra.thrift.EndpointDetails;
 import org.apache.cassandra.thrift.TokenRange;
 
-public class CassandraService implements AutoCloseable {
+public final class CassandraService implements AutoCloseable {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraService.class);
     private static final Interner<ImmutableRangeMap<LightweightOppToken, ImmutableSet<CassandraServer>>>
             tokensInterner = Interners.newWeakInterner();
@@ -102,13 +106,46 @@ public class CassandraService implements AutoCloseable {
     private final Supplier<Map<String, String>> hostnameByIpSupplier;
 
     private final Random random = new Random();
+    private final CassandraClientInstrumentation cassandraClientInstrumentation;
 
-    public CassandraService(
+    public static CassandraService create(
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             Blacklist blacklist,
             CassandraClientPoolMetrics poolMetrics) {
+        return new CassandraService(
+                metricsManager,
+                config,
+                runtimeConfig,
+                blacklist,
+                poolMetrics,
+                CassandraClientInstrumentationImpl.create(
+                        metricsManager.getTaggedRegistry(), PTExecutors.newSingleThreadScheduledExecutor()));
+    }
+
+    public static CassandraService createForTests(
+            MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
+            Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
+            Blacklist blacklist,
+            CassandraClientPoolMetrics poolMetrics) {
+        return new CassandraService(
+                metricsManager,
+                config,
+                runtimeConfig,
+                blacklist,
+                poolMetrics,
+                NoOpCassandraClientInstrumentation.INSTANCE);
+    }
+
+    private CassandraService(
+            MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
+            Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
+            Blacklist blacklist,
+            CassandraClientPoolMetrics poolMetrics,
+            CassandraClientInstrumentation cassandraClientInstrumentation) {
         this.metricsManager = metricsManager;
         this.config = config;
         this.runtimeConfig = runtimeConfig;
@@ -120,10 +157,13 @@ public class CassandraService implements AutoCloseable {
         Supplier<Map<String, String>> hostnamesByIpSupplier =
                 new HostnamesByIpSupplier(this::getAllNonBlacklistedHosts);
         this.hostnameByIpSupplier = Suppliers.memoizeWithExpiration(hostnamesByIpSupplier::get, 1, TimeUnit.MINUTES);
+        this.cassandraClientInstrumentation = cassandraClientInstrumentation;
     }
 
     @Override
-    public void close() {}
+    public void close() {
+        cassandraClientInstrumentation.close();
+    }
 
     public ImmutableMap<CassandraServer, CassandraServerOrigin> refreshTokenRangesAndGetServers() {
         // explicitly not using immutable builders to deduplicate nodes
@@ -487,7 +527,8 @@ public class CassandraService implements AutoCloseable {
 
     public CassandraClientPoolingContainer createPool(CassandraServer server) {
         int currentPoolNumber = cassandraHosts.indexOf(server) + 1;
-        return new CassandraClientPoolingContainer(metricsManager, server, config, currentPoolNumber, poolMetrics);
+        return new CassandraClientPoolingContainer(
+                metricsManager, server, config, currentPoolNumber, poolMetrics, cassandraClientInstrumentation);
     }
 
     public void addPool(CassandraServer server) {

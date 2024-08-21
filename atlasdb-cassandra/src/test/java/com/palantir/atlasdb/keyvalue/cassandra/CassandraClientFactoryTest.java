@@ -70,7 +70,8 @@ public class CassandraClientFactoryTest {
                     .enableEndpointVerification(false)
                     .keyspace("ks")
                     .timeoutOnConnectionClose(Duration.ZERO)
-                    .build());
+                    .build(),
+            NoOpCassandraClientInstrumentation.INSTANCE);
 
     private static final InetAddress DEFAULT_ADDRESS = mockInetAddress("1.2.3.4");
 

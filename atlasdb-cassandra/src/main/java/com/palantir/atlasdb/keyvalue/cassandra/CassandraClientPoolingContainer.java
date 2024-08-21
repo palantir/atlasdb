@@ -72,13 +72,15 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     private final int poolNumber;
     private final CassandraClientPoolMetrics poolMetrics;
     private final TimedRunner timedRunner;
+    private final CassandraClientInstrumentation cassandraClientInstrumentation;
 
     public CassandraClientPoolingContainer(
             MetricsManager metricsManager,
             CassandraServer cassandraServer,
             CassandraKeyValueServiceConfig config,
             int poolNumber,
-            CassandraClientPoolMetrics poolMetrics) {
+            CassandraClientPoolMetrics poolMetrics,
+            CassandraClientInstrumentation cassandraClientInstrumentation) {
         this.metricsManager = metricsManager;
         this.cassandraServer = cassandraServer;
         this.proxy = cassandraServer.proxy();
@@ -87,6 +89,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         this.poolMetrics = poolMetrics;
         this.clientPool = createClientPool();
         this.timedRunner = TimedRunner.create(config.timeoutOnConnectionBorrow().toJavaDuration());
+        this.cassandraClientInstrumentation = cassandraClientInstrumentation;
     }
 
     public CassandraServer getCassandraServer() {
@@ -292,8 +295,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
      */
     private GenericObjectPool<CassandraClient> createClientPool() {
         CassandraClientConfig clientConfig = CassandraClientConfig.of(config);
-        CassandraClientFactory cassandraClientFactory =
-                new CassandraClientFactory(metricsManager, cassandraServer, clientConfig);
+        CassandraClientFactory cassandraClientFactory = new CassandraClientFactory(
+                metricsManager, cassandraServer, clientConfig, cassandraClientInstrumentation);
         GenericObjectPoolConfig<CassandraClient> poolConfig = new GenericObjectPoolConfig<>();
 
         poolConfig.setMinIdle(config.poolSize());
