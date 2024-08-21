@@ -152,9 +152,7 @@ public final class DefaultCandidateSweepableBucketRetriever implements Candidate
     // in tests from zero to one millis (see the reason above coalescing supplier)
     private boolean isWithinDebounceWindow() {
         TimestampedSweepableBuckets existing = underlyingRefreshable.get();
-        // TODO: Check that this is inclusive still.
-        return existing != null
-                && existing.noRefreshBeforeInclusive().compareTo(Instant.now(clock)) >= 0; // >= 0 => isAfterOrEqual
+        return existing != null && !Instant.now(clock).isAfter(existing.noRefreshBeforeInclusive());
     }
 
     @Value.Immutable
