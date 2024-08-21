@@ -175,6 +175,11 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
+    public Map<Cell, Value> getHighConsistency(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        throw new UnsupportedOperationException("getHighConsistency not supported");
+    }
+
+    @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
             TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
         return KeyValueServices.getFirstBatchForRangesUsingGetRange(this, tableRef, rangeRequests, timestamp);

@@ -165,6 +165,12 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
+    public Map<Cell, Value> getHighConsistency(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        // OK to skip
+        return super.getHighConsistency(tableRef, timestampByCell);
+    }
+
+    @Override
     public Map<Cell, Value> getRows(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         long start = System.currentTimeMillis();

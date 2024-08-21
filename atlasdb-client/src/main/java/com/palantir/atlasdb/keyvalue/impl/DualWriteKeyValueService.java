@@ -83,6 +83,11 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
+    public Map<Cell, Value> getHighConsistency(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return delegate1.getHighConsistency(tableRef, timestampByCell);
+    }
+
+    @Override
     public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         return delegate1.getLatestTimestamps(tableRef, timestampByCell);
     }

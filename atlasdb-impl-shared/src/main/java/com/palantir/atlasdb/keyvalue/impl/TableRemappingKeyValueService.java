@@ -180,6 +180,15 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
+    public Map<Cell, Value> getHighConsistency(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        try {
+            return delegate().getHighConsistency(tableMapper.getMappedTableName(tableRef), timestampByCell);
+        } catch (TableMappingNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
     public Set<TableReference> getAllTableNames() {
         return ImmutableSet.copyOf(tableMapper
                 .generateMapToFullTableNames(delegate().getAllTableNames())

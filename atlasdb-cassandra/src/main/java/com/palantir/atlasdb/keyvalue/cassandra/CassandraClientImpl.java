@@ -18,7 +18,10 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -57,6 +60,8 @@ import org.apache.thrift.transport.TTransportException;
 
 @SuppressWarnings({"all"}) // thrift variable names.
 public class CassandraClientImpl implements CassandraClient {
+    private static final SafeLogger log = SafeLoggerFactory.get(CassandraClientImpl.class);
+
     private final Cassandra.Client client;
     private volatile AtomicReference<Throwable> invalidated = new AtomicReference<>();
 
@@ -195,7 +200,11 @@ public class CassandraClientImpl implements CassandraClient {
 
     @Override
     public List<TokenRange> describe_ring(String keyspace) throws InvalidRequestException, TException {
-        return executeHandlingExceptions(() -> client.describe_ring(keyspace));
+        return executeHandlingExceptions(() -> {
+            List<TokenRange> ring = client.describe_ring(keyspace);
+            log.info("Logging token ring for diagnostic purposes", SafeArg.of("ring", ring));
+            return ring;
+        });
     }
 
     @Override

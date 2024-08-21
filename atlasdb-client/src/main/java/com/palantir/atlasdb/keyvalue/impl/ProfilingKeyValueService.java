@@ -233,6 +233,12 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public Map<Cell, Value> getHighConsistency(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        // OK to not track this
+        return delegate.getHighConsistency(tableRef, timestampByCell);
+    }
+
+    @Override
     public Set<TableReference> getAllTableNames() {
         return maybeLog(delegate::getAllTableNames, logTime("getAllTableNames"));
     }

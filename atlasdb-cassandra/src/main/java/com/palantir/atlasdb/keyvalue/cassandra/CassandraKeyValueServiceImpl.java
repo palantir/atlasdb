@@ -840,6 +840,42 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         return collector.getCollectedResults();
     }
 
+    @Override
+    public Map<Cell, Value> getHighConsistency(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        if (timestampByCell.isEmpty()) {
+            log.info("Attempted get on '{}' table with empty cells", LoggingArgs.tableRef(tableRef));
+            return ImmutableMap.of();
+        }
+
+        try {
+            Long firstTs = timestampByCell.values().iterator().next();
+            if (Iterables.all(timestampByCell.values(), Predicates.equalTo(firstTs))) {
+                return getHighConsistency("getHighConsistency", tableRef, timestampByCell.keySet(), firstTs);
+            }
+
+            SetMultimap<Long, Cell> cellsByTs =
+                    Multimaps.invertFrom(Multimaps.forMap(timestampByCell), HashMultimap.create());
+            ImmutableMap.Builder<Cell, Value> builder = ImmutableMap.builder();
+            for (long ts : cellsByTs.keySet()) {
+                StartTsResultsCollector collector = new StartTsResultsCollector(ts, extractorFactory);
+                cellLoader.loadWithTs(
+                        "getHighConsistency", tableRef, cellsByTs.get(ts), ts, false, collector, ConsistencyLevel.ALL);
+                builder.putAll(collector.getCollectedResults());
+            }
+            return builder.buildOrThrow();
+        } catch (Exception e) {
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+        }
+    }
+
+    private Map<Cell, Value> getHighConsistency(
+            String kvsMethodName, TableReference tableRef, Set<Cell> cells, long maxTimestampExclusive) {
+        StartTsResultsCollector collector = new StartTsResultsCollector(maxTimestampExclusive, extractorFactory);
+        cellLoader.loadWithTs(
+                kvsMethodName, tableRef, cells, maxTimestampExclusive, false, collector, ConsistencyLevel.ALL);
+        return collector.getCollectedResults();
+    }
+
     /**
      * Gets values from the key-value store for the specified rows and column range as separate iterators for each row.
      * Requires a quorum of Cassandra nodes to be reachable, otherwise, the returned iterators will throw an

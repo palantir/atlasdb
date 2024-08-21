@@ -53,6 +53,12 @@ public class TrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
+    public Map<Cell, Value> getHighConsistency(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        tablesReadFrom.add(tableRef);
+        return super.getHighConsistency(tableRef, timestampByCell);
+    }
+
+    @Override
     public Map<Cell, Value> getRows(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         tablesReadFrom.add(tableRef);

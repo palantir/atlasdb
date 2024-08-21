@@ -181,6 +181,11 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public Map<Cell, Value> getHighConsistency(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return getDelegate(tableRef).getHighConsistency(tableRef, timestampByCell);
+    }
+
+    @Override
     public Set<TableReference> getAllTableNames() {
         Set<TableReference> ret = new HashSet<>();
         for (KeyValueService delegate : delegates) {

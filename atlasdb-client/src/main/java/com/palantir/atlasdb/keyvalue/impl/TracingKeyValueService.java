@@ -234,6 +234,12 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
+    public Map<Cell, Value> getHighConsistency(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        // ignoring tracing because of high prio issue
+        return delegate().getHighConsistency(tableRef, timestampByCell);
+    }
+
+    @Override
     public Set<TableReference> getAllTableNames() {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.getAllTableNames")) {

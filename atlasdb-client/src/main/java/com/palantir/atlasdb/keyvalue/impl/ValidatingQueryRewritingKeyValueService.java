@@ -139,6 +139,14 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
+    public Map<Cell, Value> getHighConsistency(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        if (timestampByCell.isEmpty()) {
+            return ImmutableMap.of();
+        }
+        return delegate.getHighConsistency(tableRef, timestampByCell);
+    }
+
+    @Override
     public Multimap<Cell, Long> getAllTimestamps(TableReference tableRef, Set<Cell> cells, long timestamp) {
         if (cells.isEmpty()) {
             return ImmutableSetMultimap.of();

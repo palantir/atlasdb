@@ -327,6 +327,11 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
                 cellBatch -> runReadAndExtractResults(tableRef, table -> table.getLatestCells(cellBatch, true)));
     }
 
+    @Override
+    public Map<Cell, Value> getHighConsistency(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        throw new UnsupportedOperationException("getHighConsistency not supported");
+    }
+
     private Map<Cell, Value> getRowsBatching(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         return batchingQueryRunner.runTask(
