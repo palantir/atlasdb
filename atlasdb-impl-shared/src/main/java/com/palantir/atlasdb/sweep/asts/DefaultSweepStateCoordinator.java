@@ -69,7 +69,7 @@ public final class DefaultSweepStateCoordinator implements SweepStateCoordinator
         // buckets from a previous update. This doesn't really matter, since we _may_ have one NOTHING_TO_SWEEP,
         // and then once seenBuckets has updated, things will be fine again.
 
-        // We grab the bucketsLists at the time this method is called so that we don't need to reason about things
+        // We grab the bucketsLists at the time this method is called so that we don't need to reason about
         // atomicity between the two lists within, but _not_ capturing seenBuckets is ideal so that we always remove
         // candidates from the _latest_ seen bucket set.
         BucketsLists currentBucketsLists = bucketsLists;
@@ -132,7 +132,7 @@ public final class DefaultSweepStateCoordinator implements SweepStateCoordinator
                 .map(lockableFactory::createLockable)
                 .collect(Collectors.toUnmodifiableList());
 
-        // There's a delay between setting each variable, but we do not require (for correctness) that these three
+        // There's a delay between setting each variable, but we do not require (for correctness) that these two
         // variables are updated atomically.
 
         bucketsLists = ImmutableBucketsLists.builder()
