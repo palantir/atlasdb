@@ -151,6 +151,11 @@ acceptedBreaks:
       new: "method com.palantir.lock.LockState com.palantir.atlasdb.factory.timelock.TimeoutSensitiveLockRpcClient::getLockState(java.lang.String,\
         \ com.palantir.lock.LockDescriptor)"
       justification: "LockRpcClient#getLockState is broken"
+  "0.1133.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.addedToInterface"
+      new: "method <T> T com.palantir.atlasdb.transaction.service.TransactionStatus::accept(com.palantir.atlasdb.transaction.service.TransactionStatus.Visitor<T>)"
+      justification: "purely addition - adding a visitor to transaction status"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"
