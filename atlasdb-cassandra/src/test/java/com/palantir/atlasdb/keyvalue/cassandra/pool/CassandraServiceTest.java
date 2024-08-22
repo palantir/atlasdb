@@ -335,7 +335,7 @@ public class CassandraServiceTest {
                 config, runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::unresponsiveHostBackoffTimeSeconds));
 
         MetricsManager metricsManager = MetricsManagers.createForTests();
-        CassandraService service = new CassandraService(
+        CassandraService service = CassandraService.create(
                 metricsManager, config, runtimeConfig, blacklist, new CassandraClientPoolMetrics(metricsManager));
 
         service.cacheInitialHostsForCalculatingPoolNumber(servers);

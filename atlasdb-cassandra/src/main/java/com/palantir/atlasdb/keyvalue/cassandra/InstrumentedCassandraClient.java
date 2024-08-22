@@ -15,12 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import com.palantir.atlasdb.logging.LoggingArgs;
-import com.palantir.tritium.metrics.registry.MetricName;
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
@@ -34,11 +29,11 @@ import org.apache.thrift.TException;
 @SuppressWarnings({"all"}) // thrift variable names.
 public class InstrumentedCassandraClient implements AutoDelegate_CassandraClient {
     private final CassandraClient delegate;
-    private final TaggedMetricRegistry taggedMetricRegistry;
+    private final CassandraClientInstrumentation instrumentation;
 
-    public InstrumentedCassandraClient(CassandraClient client, TaggedMetricRegistry taggedMetricRegistry) {
+    public InstrumentedCassandraClient(CassandraClient client, CassandraClientInstrumentation instrumentation) {
         this.delegate = client;
-        this.taggedMetricRegistry = taggedMetricRegistry;
+        this.instrumentation = instrumentation;
     }
 
     @Override
@@ -63,15 +58,6 @@ public class InstrumentedCassandraClient implements AutoDelegate_CassandraClient
             });
         });
 
-        tablesToCells.forEach(this::updateCellsWrittenForTable);
-    }
-
-    private void updateCellsWrittenForTable(String table, Long numberOfCells) {
-        taggedMetricRegistry
-                .counter(MetricName.builder()
-                        .safeName(MetricRegistry.name(CassandraClient.class, "cellsWritten"))
-                        .safeTags(ImmutableMap.of("tableRef", LoggingArgs.safeInternalTableNameOrPlaceholder(table)))
-                        .build())
-                .inc(numberOfCells);
+        tablesToCells.forEach(instrumentation::recordCellsWritten);
     }
 }
