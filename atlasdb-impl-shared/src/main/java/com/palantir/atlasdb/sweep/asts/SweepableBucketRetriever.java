@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.sweep.asts;
 
-import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
 import java.util.Set;
 
 public interface SweepableBucketRetriever {

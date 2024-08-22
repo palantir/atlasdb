@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.sweep.asts;
 
-import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
 import com.palantir.refreshable.Disposable;
 import java.util.List;
 import java.util.function.Consumer;

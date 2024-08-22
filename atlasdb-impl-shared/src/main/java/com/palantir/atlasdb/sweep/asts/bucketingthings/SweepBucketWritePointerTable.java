@@ -16,12 +16,13 @@
 
 package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
+// TODO: An equally poor name?
 public interface SweepBucketWritePointerTable {
     void updateHighestBucketNumber(long expectedBucketNumber, long newBucketNumber);
 
-    void updateLastWallClockTime(long lastWallClockTime, long newWallClockTime);
+    void updateLastTimestampForBucket(long lastLogicalTimestamp, long newLogicalTimestamp);
 
     long getHighestBucketNumber();
 
-    long getLastWallClockTime();
+    long getLastTimestampForBucket();
 }

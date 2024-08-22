@@ -19,40 +19,43 @@ package com.palantir.atlasdb.sweep.asts.bucketingthings;
 import com.palantir.atlasdb.sweep.asts.Bucket;
 import com.palantir.atlasdb.sweep.asts.SweepableBucket;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
+import com.palantir.atlasdb.sweep.queue.ShardProgress;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public final class DefaultBucketRetriever implements BucketRetriever {
-    private final ShardCountStore shardCountStore;
+    private final ShardProgress shardProgressStore;
     private final SweepBucketsTable sweepBucketsTable;
     private final SweepBucketPointerTable sweepBucketPointerTable;
     private final SweeperStrategy sweeperStrategy;
 
     private DefaultBucketRetriever(
-            ShardCountStore shardCountStore,
+            ShardProgress shardProgressStore,
             SweepBucketsTable sweepBucketsTable,
             SweepBucketPointerTable sweepBucketPointerTable,
             SweeperStrategy sweeperStrategy) {
-        this.shardCountStore = shardCountStore;
+        this.shardProgressStore = shardProgressStore;
         this.sweepBucketsTable = sweepBucketsTable;
         this.sweeperStrategy = sweeperStrategy;
         this.sweepBucketPointerTable = sweepBucketPointerTable;
     }
 
     public static BucketRetriever create(
-            ShardCountStore shardCountStore,
+            ShardProgress shardProgressStore,
             SweepBucketsTable sweepBucketsTable,
             SweepBucketPointerTable sweepBucketPointerTable,
             SweeperStrategy sweeperStrategy) {
-        return new DefaultBucketRetriever(shardCountStore, sweepBucketsTable, sweepBucketPointerTable, sweeperStrategy);
+        return new DefaultBucketRetriever(
+                shardProgressStore, sweepBucketsTable, sweepBucketPointerTable, sweeperStrategy);
     }
 
     @Override
     public Set<SweepableBucket> getSweepableBuckets() {
-        int shardCount = shardCountStore.getShardCount(sweeperStrategy);
-        // Is this correct? Is this inclusive or exclusive?
+        int shardCount = shardProgressStore.getNumberOfShards();
+        // Is this correct? Is this inclusive or exclusive? - Either it's wrong everywhere (see
+        // tryToAcquireLockForNextShardAndStrategy), or this is correct. :)
         Set<Bucket> startBuckets = sweepBucketPointerTable.getStartingBucketsForShards(IntStream.range(0, shardCount)
                 .mapToObj(i -> ShardAndStrategy.of(i, sweeperStrategy))
                 .collect(Collectors.toSet()));

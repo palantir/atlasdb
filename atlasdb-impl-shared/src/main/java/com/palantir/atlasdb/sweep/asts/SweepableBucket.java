@@ -19,6 +19,7 @@ package com.palantir.atlasdb.sweep.asts;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketsTable.TimestampRange;
 import org.immutables.value.Value;
 
+@Value.Immutable
 public interface SweepableBucket {
     @Value.Parameter
     Bucket bucket();

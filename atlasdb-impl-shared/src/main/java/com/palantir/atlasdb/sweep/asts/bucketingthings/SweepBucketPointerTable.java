@@ -20,9 +20,9 @@ import com.palantir.atlasdb.sweep.asts.Bucket;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import java.util.Set;
 
+// TODO: This feels like a terrible name, but oddly I cannot think of another one.
+//  StartingBucketsForShardStartStore?
 public interface SweepBucketPointerTable {
-    long getStartingBucketForShardAndStrategy(ShardAndStrategy shardAndStrategy);
-
     Set<Bucket> getStartingBucketsForShards(Set<ShardAndStrategy> shardAndStrategies);
 
     void updateStartingBucketForShardAndStrategy(Bucket newStartingBucket);

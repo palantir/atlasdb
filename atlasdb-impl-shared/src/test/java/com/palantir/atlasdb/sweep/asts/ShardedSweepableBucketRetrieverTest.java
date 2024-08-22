@@ -19,7 +19,6 @@ package com.palantir.atlasdb.sweep.asts;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.sweep.asts.ShardedSweepTimestampManager.SweepTimestamps;
-import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.common.concurrent.PTExecutors;

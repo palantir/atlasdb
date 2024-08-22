@@ -18,13 +18,14 @@ package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
 import com.palantir.atlasdb.sweep.asts.Bucket;
 import com.palantir.atlasdb.sweep.asts.SweepableBucket;
-import java.util.Optional;
 import java.util.Set;
 import org.immutables.value.Value.Immutable;
 
 public interface SweepBucketsTable {
-    Optional<SweepableBucket> getSweepableBucket(Bucket bucket);
-
+    /**
+     * Returns SweepableBuckets for each ShardAndStrategy given in the input set _where_ a sweepable bucket exists.
+     * It is not guaranteed that a SweepableBucket exists for each ShardAndStrategy in the input set.
+     */
     Set<SweepableBucket> getSweepableBuckets(Set<Bucket> startBuckets);
 
     void putTimestampRangeForBucket(Bucket bucket, TimestampRange timestampRange);
@@ -33,6 +34,6 @@ public interface SweepBucketsTable {
     interface TimestampRange {
         long startInclusive();
 
-        long endExclusive(); // Should this be inclusive?
+        long endExclusive(); // Should this be inclusive? I don't think it matters as long as we're consistent.
     }
 }
