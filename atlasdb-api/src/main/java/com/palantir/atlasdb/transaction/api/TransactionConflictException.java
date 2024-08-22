@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeLoggable;
+
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
@@ -102,8 +103,8 @@ public final class TransactionConflictException extends TransactionFailedRetriab
 
     @Override
     public @Safe String getLogMessage() {
-        return "There was a write-write transaction conflict. This transaction wrote a cell to which a concurrent"
-                + " transaction wrote a different value.";
+        return "There was a write-write transaction conflict. This transaction wrote to a cell while another, "
+                + "concurrent transaction wrote to the same cell.";
     }
 
     @Override
