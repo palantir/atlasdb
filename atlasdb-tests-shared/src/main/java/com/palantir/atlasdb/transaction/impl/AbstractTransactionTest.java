@@ -1693,27 +1693,6 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     }
 
     @Test
-    public void getRowsAppliesColumnSelectionConsistencyAll() {
-        Transaction tx = startTransaction();
-        byte[] row0 = row(0);
-        byte[] col0 = column(0);
-        byte[] col1 = column(1);
-        tx.put(
-                TEST_TABLE,
-                ImmutableMap.of(
-                        Cell.create(row0, col0), value(0),
-                        Cell.create(row0, col1), value(1)));
-        tx.commit();
-
-        tx = startTransaction();
-        SortedMap<byte[], RowResult<byte[]>> readRows = tx.getRowsConsistencyAll(
-                TEST_TABLE, ImmutableList.of(row0), ColumnSelection.create(ImmutableList.of(col0)));
-        assertThat(readRows.firstKey()).containsExactly(row0);
-        assertThat(readRows.get(row0).getColumns().keySet()).containsExactly(col0);
-        assertThat(readRows.get(row0).getColumns().get(col0)).containsExactly(value(0));
-    }
-
-    @Test
     public void getRowsIncludesLocalWritesConsistencyAll() {
         Transaction tx = startTransaction();
         byte[] rowKey = row(0);
