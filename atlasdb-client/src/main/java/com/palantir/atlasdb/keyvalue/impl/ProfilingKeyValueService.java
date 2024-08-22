@@ -578,7 +578,16 @@ public final class ProfilingKeyValueService implements KeyValueService {
     @Override
     public ListenableFuture<Map<Cell, Value>> getAsyncConsistencyAll(
             TableReference tableRef, Map<Cell, Long> timestampByCell) {
-        return null;
+        long startTime = System.currentTimeMillis();
+        return KvsProfilingLogger.maybeLogAsync(
+                () -> delegate.getAsyncConsistencyAll(tableRef, timestampByCell),
+                (logger, stopwatch) -> logger.log(
+                        "Call to KVS.getAsyncConsistencyAll",
+                        LoggingArgs.startTimeMillis(startTime),
+                        LoggingArgs.tableRef(tableRef),
+                        LoggingArgs.cellCount(timestampByCell.size()),
+                        LoggingArgs.durationMillis(stopwatch)),
+                logCellResultSize(4L));
     }
 
     @Override

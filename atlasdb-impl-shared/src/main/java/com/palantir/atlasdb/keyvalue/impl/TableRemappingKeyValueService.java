@@ -298,7 +298,7 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     public Map<Cell, Value> getRowsConsistencyAll(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         try {
-            return delegate.getRowsConsistencyAll(
+            return delegate().getRowsConsistencyAll(
                     tableMapper.getMappedTableName(tableRef), rows, columnSelection, timestamp);
         } catch (TableMappingNotFoundException e) {
             throw new IllegalArgumentException(e);

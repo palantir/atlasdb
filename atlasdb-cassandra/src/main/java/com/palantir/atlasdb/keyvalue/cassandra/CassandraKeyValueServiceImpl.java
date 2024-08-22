@@ -2217,16 +2217,16 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                             + " very rare, and only happen once after the Cassandra Server list has"
                                             + " changed.",
                                     e);
-                            return this.get(tableRef, timestampByCell);
+                            return this.getConsistencyAll(tableRef, timestampByCell);
                         },
                         executor);
             } catch (IllegalStateException | DriverInternalError e) {
                 // If the container is closed, or we've reloaded into an invalid ThrowingCqlClient, after testing for
                 // validity
-                return Futures.immediateFuture(this.get(tableRef, timestampByCell));
+                return Futures.immediateFuture(this.getConsistencyAll(tableRef, timestampByCell));
             }
         } else {
-            return Futures.immediateFuture(this.get(tableRef, timestampByCell));
+            return Futures.immediateFuture(this.getConsistencyAll(tableRef, timestampByCell));
         }
     }
 
