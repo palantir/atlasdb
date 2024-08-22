@@ -122,7 +122,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
                 tableReference, rows, columnSelection, startTimestampSupplier.getAsLong()));
         // We don't need to do work postFiltering if we have a write locally.
         rawResults.keySet().removeAll(resultCollector.buildOrThrow().keySet());
-        return filterRowResults(tableReference, rawResults, resultCollector);
+        return filterRowResults(tableReference, rawResults, resultCollector, false);
     }
 
     @Override
@@ -135,21 +135,24 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
                 tableReference, rows, columnSelection, startTimestampSupplier.getAsLong()));
         // We don't need to do work postFiltering if we have a write locally.
         rawResults.keySet().removeAll(resultCollector.buildOrThrow().keySet());
-        return filterRowResults(tableReference, rawResults, resultCollector);
+        return filterRowResults(tableReference, rawResults, resultCollector, true);
     }
 
     private ListenableFuture<Map<Cell, byte[]>> getInternal(TableReference tableReference, Set<Cell> cells) {
         Map<Cell, Long> timestampsByCell = Cells.constantValueMap(cells, startTimestampSupplier.getAsLong());
         ListenableFuture<Collection<Map.Entry<Cell, byte[]>>> postFilteredResults = Futures.transformAsync(
                 transactionKeyValueService.getAsync(tableReference, timestampsByCell),
-                rawResults -> getWithPostFilteringAsync(tableReference, rawResults, Value.GET_VALUE),
+                rawResults -> getWithPostFilteringAsync(tableReference, rawResults, Value.GET_VALUE, false),
                 MoreExecutors.directExecutor());
 
         return Futures.transform(postFilteredResults, ImmutableMap::copyOf, MoreExecutors.directExecutor());
     }
 
     private <T> ListenableFuture<Collection<Map.Entry<Cell, T>>> getWithPostFilteringAsync(
-            TableReference tableRef, Map<Cell, Value> rawResults, Function<Value, T> transformer) {
+            TableReference tableRef,
+            Map<Cell, Value> rawResults,
+            Function<Value, T> transformer,
+            boolean isConsistencyAll) {
         long bytes = 0;
         for (Map.Entry<Cell, Value> entry : rawResults.entrySet()) {
             bytes += entry.getValue().getContents().length + Cells.getApproxSizeOfCell(entry.getKey());
@@ -187,8 +190,8 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
 
         return Futures.transformAsync(
                 Futures.immediateFuture(rawResults),
-                resultsToPostFilter ->
-                        getWithPostFilteringIterate(tableRef, resultsToPostFilter, resultsAccumulator, transformer),
+                resultsToPostFilter -> getWithPostFilteringIterate(
+                        tableRef, resultsToPostFilter, resultsAccumulator, transformer, isConsistencyAll),
                 MoreExecutors.directExecutor());
     }
 
@@ -196,7 +199,8 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             TableReference tableReference,
             Map<Cell, Value> resultsToPostFilter,
             Collection<Map.Entry<Cell, T>> resultsAccumulator,
-            Function<Value, T> transformer) {
+            Function<Value, T> transformer,
+            boolean isConsistencyAll) {
         return Futures.transformAsync(
                 Futures.immediateFuture(resultsToPostFilter),
                 results -> {
@@ -204,7 +208,11 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
                     Map<Cell, Value> remainingResultsToPostFilter = results;
                     while (!remainingResultsToPostFilter.isEmpty()) {
                         remainingResultsToPostFilter = AtlasFutures.getUnchecked(getWithPostFilteringInternal(
-                                tableReference, remainingResultsToPostFilter, resultsAccumulator, transformer));
+                                tableReference,
+                                remainingResultsToPostFilter,
+                                resultsAccumulator,
+                                transformer,
+                                isConsistencyAll));
                         Preconditions.checkState(
                                 ++iterations < MAX_POST_FILTERING_ITERATIONS,
                                 "Unable to filter cells to find correct result after "
@@ -225,14 +233,21 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             TableReference tableRef,
             Map<Cell, Value> rawResults,
             @Output Collection<Map.Entry<Cell, T>> resultsCollector,
-            Function<Value, T> transformer) {
+            Function<Value, T> transformer,
+            boolean isConsistencyAll) {
         Set<Cell> orphans = readSentinelHandler.findAndMarkOrphanedSweepSentinelsForDeletion(tableRef, rawResults);
         LongSet valuesStartTimestamps = getStartTimestampsForValues(rawResults.values());
 
         return Futures.transformAsync(
                 getCommitTimestamps(tableRef, valuesStartTimestamps),
                 commitTimestamps -> collectCellsToPostFilter(
-                        tableRef, rawResults, resultsCollector, transformer, commitTimestamps, orphans),
+                        tableRef,
+                        rawResults,
+                        resultsCollector,
+                        transformer,
+                        commitTimestamps,
+                        orphans,
+                        isConsistencyAll),
                 MoreExecutors.directExecutor());
     }
 
@@ -242,7 +257,8 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             @Output Collection<Map.Entry<Cell, T>> resultsCollector,
             Function<Value, T> transformer,
             LongLongMap commitTimestamps,
-            Set<Cell> knownOrphans) {
+            Set<Cell> knownOrphans,
+            boolean isConsistencyAll) {
         Map<Cell, Long> keysToReload = Maps.newHashMapWithExpectedSize(0);
         Map<Cell, Long> keysToDelete = Maps.newHashMapWithExpectedSize(0);
         ImmutableSet.Builder<Cell> keysAddedBuilder = ImmutableSet.builder();
@@ -294,7 +310,9 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
         if (!keysToReload.isEmpty()) {
             // TODO (jkong): Consider removing when a decision on validating pre-commit requirements mid-read is made
             return Futures.transform(
-                    transactionKeyValueService.getAsync(tableRef, keysToReload),
+                    isConsistencyAll
+                            ? transactionKeyValueService.getAsyncConsistencyAll(tableRef, keysToReload)
+                            : transactionKeyValueService.getAsync(tableRef, keysToReload),
                     nextRawResults -> {
                         boolean allPossibleCellsReadAndPresent = nextRawResults.size() == keysToReload.size();
                         readSnapshotValidator.throwIfPreCommitRequirementsNotMetOnRead(
@@ -367,17 +385,24 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
     }
 
     private NavigableMap<byte[], RowResult<byte[]>> filterRowResults(
-            TableReference tableRef, Map<Cell, Value> rawResults, ImmutableMap.Builder<Cell, byte[]> resultCollector) {
+            TableReference tableRef,
+            Map<Cell, Value> rawResults,
+            ImmutableMap.Builder<Cell, byte[]> resultCollector,
+            boolean isConsistencyAll) {
         ImmutableMap<Cell, byte[]> collected = resultCollector
-                .putAll(getWithPostFilteringSync(tableRef, rawResults, Value.GET_VALUE))
+                .putAll(getWithPostFilteringSync(tableRef, rawResults, Value.GET_VALUE, isConsistencyAll))
                 .buildOrThrow();
         Map<Cell, byte[]> filterDeletedValues = removeEmptyColumns(collected, tableRef);
         return RowResults.viewOfSortedMap(Cells.breakCellsUpByRow(filterDeletedValues));
     }
 
     private <T> Collection<Map.Entry<Cell, T>> getWithPostFilteringSync(
-            TableReference tableRef, Map<Cell, Value> rawResults, Function<Value, T> transformer) {
-        return AtlasFutures.getUnchecked(getWithPostFilteringAsync(tableRef, rawResults, transformer));
+            TableReference tableRef,
+            Map<Cell, Value> rawResults,
+            Function<Value, T> transformer,
+            boolean isConsistencyAll) {
+        return AtlasFutures.getUnchecked(
+                getWithPostFilteringAsync(tableRef, rawResults, transformer, isConsistencyAll));
     }
 
     private Map<Cell, byte[]> removeEmptyColumns(Map<Cell, byte[]> unfiltered, TableReference tableReference) {

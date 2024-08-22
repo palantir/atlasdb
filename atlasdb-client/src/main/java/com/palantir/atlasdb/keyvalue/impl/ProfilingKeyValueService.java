@@ -233,6 +233,20 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public Map<Cell, Value> getConsistencyAll(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        long startTime = System.currentTimeMillis();
+        return KvsProfilingLogger.maybeLog(
+                () -> delegate.getConsistencyAll(tableRef, timestampByCell),
+                (logger, stopwatch) -> logger.log(
+                        "Call to KVS.getConsistencyAll at time {}, on table {}, requesting {} cells took {} ms ",
+                        LoggingArgs.startTimeMillis(startTime),
+                        LoggingArgs.tableRef(tableRef),
+                        LoggingArgs.cellCount(timestampByCell.size()),
+                        LoggingArgs.durationMillis(stopwatch)),
+                logCellResultSize(4L));
+    }
+
+    @Override
     public Set<TableReference> getAllTableNames() {
         return maybeLog(delegate::getAllTableNames, logTime("getAllTableNames"));
     }
@@ -559,6 +573,12 @@ public final class ProfilingKeyValueService implements KeyValueService {
                         LoggingArgs.cellCount(timestampByCell.size()),
                         LoggingArgs.durationMillis(stopwatch)),
                 logCellResultSize(4L));
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, Value>> getAsyncConsistencyAll(
+            TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return null;
     }
 
     @Override

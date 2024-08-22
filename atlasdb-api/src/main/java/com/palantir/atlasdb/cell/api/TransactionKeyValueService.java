@@ -68,6 +68,8 @@ public interface TransactionKeyValueService {
 
     ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell);
 
+    ListenableFuture<Map<Cell, Value>> getAsyncConsistencyAll(TableReference tableRef, Map<Cell, Long> timestampByCell);
+
     Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell);
 
     void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)

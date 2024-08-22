@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra.async;
 
+import com.datastax.driver.core.ConsistencyLevel;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.cassandra.ReloadingCloseableContainer;
 import com.palantir.atlasdb.futures.FuturesCombiner;
@@ -70,13 +71,31 @@ public final class CassandraAsyncKeyValueService implements AsyncKeyValueService
         }
 
         Map<Cell, ListenableFuture<Optional<Value>>> cellListenableFutureMap = KeyedStream.stream(timestampByCell)
-                .map((cell, timestamp) -> getCellAsync(tableReference, cell, timestamp))
+                .map((cell, timestamp) -> getCellAsync(tableReference, cell, timestamp, ConsistencyLevel.LOCAL_QUORUM))
                 .collectToMap();
 
         return futuresCombiner.allAsMap(cellListenableFutureMap);
     }
 
-    private ListenableFuture<Optional<Value>> getCellAsync(TableReference tableReference, Cell cell, long timestamp) {
+    @Override
+    public ListenableFuture<Map<Cell, Value>> getAsyncConsistencyAll(
+            TableReference tableReference, Map<Cell, Long> timestampByCell) {
+        if (log.isTraceEnabled()) {
+            log.trace(
+                    "Getting cells using CQL with consistency all.",
+                    SafeArg.of("cells", timestampByCell.size()),
+                    LoggingArgs.tableRef(tableReference));
+        }
+
+        Map<Cell, ListenableFuture<Optional<Value>>> cellListenableFutureMap = KeyedStream.stream(timestampByCell)
+                .map((cell, timestamp) -> getCellAsync(tableReference, cell, timestamp, ConsistencyLevel.ALL))
+                .collectToMap();
+
+        return futuresCombiner.allAsMap(cellListenableFutureMap);
+    }
+
+    private ListenableFuture<Optional<Value>> getCellAsync(
+            TableReference tableReference, Cell cell, long timestamp, ConsistencyLevel consistencyLevel) {
         CqlQueryContext queryContext = ImmutableCqlQueryContext.builder()
                 .tableReference(tableReference)
                 .keyspace(keyspace)
@@ -86,7 +105,9 @@ public final class CassandraAsyncKeyValueService implements AsyncKeyValueService
                 .humanReadableTimestamp(timestamp)
                 .build();
 
-        return cqlClientContainer.get().executeQuery(new GetQuerySpec(queryContext, getQueryParameters));
+        return cqlClientContainer
+                .get()
+                .executeQuery(new GetQuerySpec(queryContext, getQueryParameters, consistencyLevel));
     }
 
     @Override

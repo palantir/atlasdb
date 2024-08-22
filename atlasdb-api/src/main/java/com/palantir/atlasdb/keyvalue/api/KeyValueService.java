@@ -142,6 +142,10 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     @Timed
     Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell);
 
+    @Idempotent
+    @Timed
+    Map<Cell, Value> getConsistencyAll(TableReference tableRef, Map<Cell, Long> timestampByCell);
+
     /**
      * Gets timestamp values from the key-value store.
      *

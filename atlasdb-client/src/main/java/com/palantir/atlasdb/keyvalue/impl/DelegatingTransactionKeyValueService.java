@@ -92,6 +92,12 @@ public final class DelegatingTransactionKeyValueService implements TransactionKe
     }
 
     @Override
+    public ListenableFuture<Map<Cell, Value>> getAsyncConsistencyAll(
+            TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return delegate.getAsyncConsistencyAll(tableRef, timestampByCell);
+    }
+
+    @Override
     public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         return delegate.getLatestTimestamps(tableRef, timestampByCell);
     }

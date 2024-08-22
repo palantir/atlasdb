@@ -826,7 +826,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         try {
             Long firstTs = timestampByCell.values().iterator().next();
             if (Iterables.all(timestampByCell.values(), Predicates.equalTo(firstTs))) {
-                return get("get", tableRef, timestampByCell.keySet(), firstTs);
+                return get(
+                        "get",
+                        tableRef,
+                        timestampByCell.keySet(),
+                        firstTs,
+                        readConsistencyProvider.getConsistency(tableRef));
             }
 
             SetMultimap<Long, Cell> cellsByTs =
@@ -851,17 +856,42 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private Map<Cell, Value> get(
-            String kvsMethodName, TableReference tableRef, Set<Cell> cells, long maxTimestampExclusive) {
+            String kvsMethodName,
+            TableReference tableRef,
+            Set<Cell> cells,
+            long maxTimestampExclusive,
+            ConsistencyLevel consistencyLevel) {
         StartTsResultsCollector collector = new StartTsResultsCollector(maxTimestampExclusive, extractorFactory);
         cellLoader.loadWithTs(
-                kvsMethodName,
-                tableRef,
-                cells,
-                maxTimestampExclusive,
-                false,
-                collector,
-                readConsistencyProvider.getConsistency(tableRef));
+                kvsMethodName, tableRef, cells, maxTimestampExclusive, false, collector, consistencyLevel);
         return collector.getCollectedResults();
+    }
+
+    @Override
+    public Map<Cell, Value> getConsistencyAll(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        if (timestampByCell.isEmpty()) {
+            log.info("Attempted get on '{}' table with empty cells", LoggingArgs.tableRef(tableRef));
+            return ImmutableMap.of();
+        }
+
+        try {
+            Long firstTs = timestampByCell.values().iterator().next();
+            if (Iterables.all(timestampByCell.values(), Predicates.equalTo(firstTs))) {
+                return get("get", tableRef, timestampByCell.keySet(), firstTs, ConsistencyLevel.ALL);
+            }
+
+            SetMultimap<Long, Cell> cellsByTs =
+                    Multimaps.invertFrom(Multimaps.forMap(timestampByCell), HashMultimap.create());
+            ImmutableMap.Builder<Cell, Value> builder = ImmutableMap.builder();
+            for (long ts : cellsByTs.keySet()) {
+                StartTsResultsCollector collector = new StartTsResultsCollector(ts, extractorFactory);
+                cellLoader.loadWithTs("get", tableRef, cellsByTs.get(ts), ts, false, collector, ConsistencyLevel.ALL);
+                builder.putAll(collector.getCollectedResults());
+            }
+            return builder.buildOrThrow();
+        } catch (Exception e) {
+            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+        }
     }
 
     /**
@@ -1398,8 +1428,12 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             String kvsMethodName, TableReference tableRef, CandidateCellForSweepingRequest request) {
         RowGetter rowGetter = new RowGetter(clientPool, queryRunner, ConsistencyLevel.ALL, tableRef);
         return new CandidateRowsForSweepingIterator(
-                (iteratorTableRef, cells, maxTimestampExclusive) ->
-                        get(kvsMethodName, iteratorTableRef, cells, maxTimestampExclusive),
+                (iteratorTableRef, cells, maxTimestampExclusive) -> get(
+                        kvsMethodName,
+                        iteratorTableRef,
+                        cells,
+                        maxTimestampExclusive,
+                        readConsistencyProvider.getConsistency(tableRef)),
                 newInstrumentedCqlExecutor(),
                 rowGetter,
                 tableRef,
@@ -2145,6 +2179,37 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             try {
                 return Futures.catching(
                         asyncKeyValueService.getAsync(tableRef, timestampByCell),
+                        IllegalStateException.class,
+                        e -> {
+                            log.warn(
+                                    "CQL Client closed during getAsync. Delegating to synchronous get. This should be"
+                                            + " very rare, and only happen once after the Cassandra Server list has"
+                                            + " changed.",
+                                    e);
+                            return this.get(tableRef, timestampByCell);
+                        },
+                        executor);
+            } catch (IllegalStateException | DriverInternalError e) {
+                // If the container is closed, or we've reloaded into an invalid ThrowingCqlClient, after testing for
+                // validity
+                return Futures.immediateFuture(this.get(tableRef, timestampByCell));
+            }
+        } else {
+            return Futures.immediateFuture(this.get(tableRef, timestampByCell));
+        }
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, Value>> getAsyncConsistencyAll(
+            TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        if (timestampByCell.isEmpty()) {
+            log.info("Attempted get with no specified cells", LoggingArgs.tableRef(tableRef));
+            return Futures.immediateFuture(ImmutableMap.of());
+        }
+        if (asyncKeyValueService.isValid()) {
+            try {
+                return Futures.catching(
+                        asyncKeyValueService.getAsyncConsistencyAll(tableRef, timestampByCell),
                         IllegalStateException.class,
                         e -> {
                             log.warn(

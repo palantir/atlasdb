@@ -180,6 +180,15 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     }
 
     @Override
+    public Map<Cell, Value> getConsistencyAll(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        try {
+            return delegate().getConsistencyAll(tableMapper.getMappedTableName(tableRef), timestampByCell);
+        } catch (TableMappingNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
     public Set<TableReference> getAllTableNames() {
         return ImmutableSet.copyOf(tableMapper
                 .generateMapToFullTableNames(delegate().getAllTableNames())
@@ -498,6 +507,16 @@ public final class TableRemappingKeyValueService extends ForwardingObject implem
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         try {
             return delegate().getAsync(tableMapper.getMappedTableName(tableRef), timestampByCell);
+        } catch (TableMappingNotFoundException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, Value>> getAsyncConsistencyAll(
+            TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        try {
+            return delegate().getAsyncConsistencyAll(tableMapper.getMappedTableName(tableRef), timestampByCell);
         } catch (TableMappingNotFoundException e) {
             throw new IllegalArgumentException(e);
         }

@@ -89,6 +89,11 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
+    public Map<Cell, Value> getConsistencyAll(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return delegate1.getConsistencyAll(tableRef, timestampByCell);
+    }
+
+    @Override
     public Map<Cell, Long> getLatestTimestamps(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         return delegate1.getLatestTimestamps(tableRef, timestampByCell);
     }
@@ -323,6 +328,12 @@ public class DualWriteKeyValueService implements KeyValueService {
     @Override
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         return delegate1.getAsync(tableRef, timestampByCell);
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, Value>> getAsyncConsistencyAll(
+            TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return delegate1.getAsyncConsistencyAll(tableRef, timestampByCell);
     }
 
     @Override

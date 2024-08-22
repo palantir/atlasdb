@@ -181,6 +181,11 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     }
 
     @Override
+    public Map<Cell, Value> getConsistencyAll(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return get(tableRef, timestampByCell);
+    }
+
+    @Override
     public Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
             TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp) {
         return KeyValueServices.getFirstBatchForRangesUsingGetRange(this, tableRef, rangeRequests, timestamp);
@@ -739,6 +744,12 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
     @Override
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         return Futures.immediateFuture(get(tableRef, timestampByCell));
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, Value>> getAsyncConsistencyAll(
+            TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return getAsync(tableRef, timestampByCell);
     }
 
     // Marking this as true as it's only used for tests, so we can better replicate Cassandra behaviour.

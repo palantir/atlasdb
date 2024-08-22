@@ -181,6 +181,11 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public Map<Cell, Value> getConsistencyAll(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return getDelegate(tableRef).getConsistencyAll(tableRef, timestampByCell);
+    }
+
+    @Override
     public Set<TableReference> getAllTableNames() {
         Set<TableReference> ret = new HashSet<>();
         for (KeyValueService delegate : delegates) {
@@ -418,6 +423,12 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     @Override
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         return getDelegate(tableRef).getAsync(tableRef, timestampByCell);
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, Value>> getAsyncConsistencyAll(
+            TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return getDelegate(tableRef).getAsyncConsistencyAll(tableRef, timestampByCell);
     }
 
     @Override

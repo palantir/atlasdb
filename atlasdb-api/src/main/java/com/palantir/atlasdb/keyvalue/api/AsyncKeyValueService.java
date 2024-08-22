@@ -36,6 +36,10 @@ public interface AsyncKeyValueService extends AutoCloseable {
     @Timed
     ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell);
 
+    @Idempotent
+    @Timed
+    ListenableFuture<Map<Cell, Value>> getAsyncConsistencyAll(TableReference tableRef, Map<Cell, Long> timestampByCell);
+
     @Override
     void close();
 

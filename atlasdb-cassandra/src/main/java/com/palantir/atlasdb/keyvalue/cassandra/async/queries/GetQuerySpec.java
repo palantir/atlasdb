@@ -46,10 +46,17 @@ public final class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
     private final CqlQueryContext cqlQueryContext;
     private final GetQueryParameters getQueryParameters;
     private final GetQueryAccumulator getQueryAccumulator = new GetQueryAccumulator();
+    private final ConsistencyLevel consistencyLevel;
 
     public GetQuerySpec(CqlQueryContext cqlQueryContext, GetQueryParameters getQueryParameters) {
+        this(cqlQueryContext, getQueryParameters, ConsistencyLevel.LOCAL_QUORUM);
+    }
+
+    public GetQuerySpec(
+            CqlQueryContext cqlQueryContext, GetQueryParameters getQueryParameters, ConsistencyLevel consistencyLevel) {
         this.cqlQueryContext = cqlQueryContext;
         this.getQueryParameters = getQueryParameters;
+        this.consistencyLevel = consistencyLevel;
     }
 
     @Override
@@ -86,7 +93,7 @@ public final class GetQuerySpec implements CqlQuerySpec<Optional<Value>> {
 
     @Override
     public ConsistencyLevel queryConsistency() {
-        return ConsistencyLevel.LOCAL_QUORUM;
+        return consistencyLevel;
     }
 
     @Override

@@ -234,6 +234,16 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
+    public Map<Cell, Value> getConsistencyAll(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.getConsistencyAll", sink -> {
+            sink.tableRef(tableRef);
+            sink.size("cells", timestampByCell);
+        })) {
+            return delegate().getConsistencyAll(tableRef, timestampByCell);
+        }
+    }
+
+    @Override
     public Set<TableReference> getAllTableNames() {
         //noinspection unused - try-with-resources closes trace
         try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.getAllTableNames")) {
@@ -535,6 +545,29 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
         // Note that the trace statistics rely on the executor being compatible with
         // {@link ExecutorInheritableThreadLocal} to function correctly
         ListenableFuture<Map<Cell, Value>> future = delegate().getAsync(tableRef, timestampByCell);
+
+        return attachDetachedSpanCompletion(detachedSpan, future, tracingExecutorService, sink -> {
+            sink.statistics(current);
+            sink.tableRef(tableRef);
+            sink.size("cells", timestampByCell);
+        });
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, Value>> getAsyncConsistencyAll(
+            TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        // We'll be completing in a different unrelated thread, so we have no chance to restore the original; this is a
+        // known limitation of the async trace statistics. We still want to clear the current statistics.
+        TraceStatistics.getCurrentAndClear();
+
+        // As the trace executor will close out this span, we need to keep a reference to the current mutable statistics
+        TraceStatistic current = TraceStatistics.getReferenceToCurrent();
+
+        DetachedSpan detachedSpan = DetachedSpan.start("atlasdb-kvs.getAsyncConsistencyAll");
+
+        // Note that the trace statistics rely on the executor being compatible with
+        // {@link ExecutorInheritableThreadLocal} to function correctly
+        ListenableFuture<Map<Cell, Value>> future = delegate().getAsyncConsistencyAll(tableRef, timestampByCell);
 
         return attachDetachedSpanCompletion(detachedSpan, future, tracingExecutorService, sink -> {
             sink.statistics(current);

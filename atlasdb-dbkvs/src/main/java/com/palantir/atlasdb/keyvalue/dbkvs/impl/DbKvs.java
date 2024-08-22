@@ -333,6 +333,11 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
                 cellBatch -> runReadAndExtractResults(tableRef, table -> table.getLatestCells(cellBatch, true)));
     }
 
+    @Override
+    public Map<Cell, Value> getConsistencyAll(TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return get(tableRef, timestampByCell);
+    }
+
     private Map<Cell, Value> getRowsBatching(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         return batchingQueryRunner.runTask(
@@ -1262,6 +1267,12 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
     @Override
     public ListenableFuture<Map<Cell, Value>> getAsync(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         return Futures.immediateFuture(get(tableRef, timestampByCell));
+    }
+
+    @Override
+    public ListenableFuture<Map<Cell, Value>> getAsyncConsistencyAll(
+            TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return getAsync(tableRef, timestampByCell);
     }
 
     @Override

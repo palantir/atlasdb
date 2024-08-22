@@ -76,6 +76,18 @@ public final class TrackingTransactionKeyValueServiceImpl
     }
 
     @Override
+    public ListenableFuture<Map<Cell, Value>> getAsyncConsistencyAll(
+            TableReference tableRef, Map<Cell, Long> timestampByCell) {
+        return Futures.transform(
+                delegate.getAsyncConsistencyAll(tableRef, timestampByCell),
+                result -> {
+                    tracker.recordReadForTable(tableRef, "getAsyncConsistencyAll", MeasuringUtils.sizeOf(result));
+                    return result;
+                },
+                MoreExecutors.directExecutor());
+    }
+
+    @Override
     public Map<Cell, Value> getRows(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
         Map<Cell, Value> result = delegate.getRows(tableRef, rows, columnSelection, timestamp);
