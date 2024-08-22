@@ -60,6 +60,13 @@ public class TrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
+    public Map<Cell, Value> getRowsConsistencyAll(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+        tablesReadFrom.add(tableRef);
+        return super.getRowsConsistencyAll(tableRef, rows, columnSelection, timestamp);
+    }
+
+    @Override
     public ClosableIterator<RowResult<Value>> getRange(
             TableReference tableRef, RangeRequest rangeRequest, long timestamp) {
         tablesReadFrom.add(tableRef);

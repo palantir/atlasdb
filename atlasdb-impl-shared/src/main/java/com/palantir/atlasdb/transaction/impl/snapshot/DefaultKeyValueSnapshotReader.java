@@ -125,6 +125,19 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
         return filterRowResults(tableReference, rawResults, resultCollector);
     }
 
+    @Override
+    public NavigableMap<byte[], RowResult<byte[]>> getRowsConsistencyAll(
+            TableReference tableReference,
+            Iterable<byte[]> rows,
+            ColumnSelection columnSelection,
+            ImmutableMap.Builder<Cell, byte[]> resultCollector) {
+        Map<Cell, Value> rawResults = new HashMap<>(transactionKeyValueService.getRowsConsistencyAll(
+                tableReference, rows, columnSelection, startTimestampSupplier.getAsLong()));
+        // We don't need to do work postFiltering if we have a write locally.
+        rawResults.keySet().removeAll(resultCollector.buildOrThrow().keySet());
+        return filterRowResults(tableReference, rawResults, resultCollector);
+    }
+
     private ListenableFuture<Map<Cell, byte[]>> getInternal(TableReference tableReference, Set<Cell> cells) {
         Map<Cell, Long> timestampsByCell = Cells.constantValueMap(cells, startTimestampSupplier.getAsLong());
         ListenableFuture<Collection<Map.Entry<Cell, byte[]>>> postFilteredResults = Futures.transformAsync(

@@ -55,6 +55,12 @@ public final class DelegatingTransactionKeyValueService implements TransactionKe
     }
 
     @Override
+    public Map<Cell, Value> getRowsConsistencyAll(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+        return delegate.getRowsConsistencyAll(tableRef, rows, columnSelection, timestamp);
+    }
+
+    @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
             Iterable<byte[]> rows,

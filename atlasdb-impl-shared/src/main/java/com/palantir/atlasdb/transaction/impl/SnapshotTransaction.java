@@ -495,6 +495,15 @@ public class SnapshotTransaction extends AbstractTransaction
                         unCachedRows -> getRowsInternal(tableRef, unCachedRows, columnSelection));
     }
 
+    @Override
+    public NavigableMap<byte[], RowResult<byte[]>> getRowsConsistencyAll(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
+        if (columnSelection.allColumnsSelected()) {
+            return getRowsInternalConsistencyAll(tableRef, rows, columnSelection);
+        }
+        throw new SafeIllegalStateException("getRowsConsistencyAll should only be called with all columns selected");
+    }
+
     private NavigableMap<byte[], RowResult<byte[]>> getRowsInternal(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
         Timer.Context timer =
@@ -518,6 +527,41 @@ public class SnapshotTransaction extends AbstractTransaction
         if (perfLogger.isDebugEnabled()) {
             perfLogger.debug(
                     "getRows({}, {} rows) found {} rows, took {} ms",
+                    LoggingArgs.tableRef(tableRef),
+                    SafeArg.of("numRows", Iterables.size(rows)),
+                    SafeArg.of("resultSize", results.size()),
+                    SafeArg.of("timeTakenMillis", getRowsMillis));
+        }
+
+        /* can't skip lock check as we don't know how many cells to expect for the column selection */
+        validatePreCommitRequirementsOnNonExhaustiveReadIfNecessary(tableRef, getStartTimestamp());
+        return results;
+    }
+
+    private NavigableMap<byte[], RowResult<byte[]>> getRowsInternalConsistencyAll(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
+        Timer.Context timer = snapshotTransactionMetricFactory
+                .getTimer("getRowsInternalConsistencyAll")
+                .time();
+        checkGetPreconditions(tableRef);
+        if (Iterables.isEmpty(rows)) {
+            return AbstractTransaction.EMPTY_SORTED_ROWS;
+        }
+        hasReads = true;
+        ImmutableSortedMap.Builder<Cell, byte[]> resultCollector = ImmutableSortedMap.naturalOrder();
+        NavigableMap<Cell, byte[]> writes = localWriteBuffer.getLocalWrites().get(tableRef);
+        if (writes != null && !writes.isEmpty()) {
+            for (byte[] row : rows) {
+                extractLocalWritesForRow(resultCollector, writes, row, columnSelection);
+            }
+        }
+
+        NavigableMap<byte[], RowResult<byte[]>> results =
+                keyValueSnapshotReader.getRowsConsistencyAll(tableRef, rows, columnSelection, resultCollector);
+        long getRowsMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
+        if (perfLogger.isDebugEnabled()) {
+            perfLogger.debug(
+                    "getRowsInternalConsistencyAll({}, {} rows) found {} rows, took {} ms",
                     LoggingArgs.tableRef(tableRef),
                     SafeArg.of("numRows", Iterables.size(rows)),
                     SafeArg.of("resultSize", results.size()),

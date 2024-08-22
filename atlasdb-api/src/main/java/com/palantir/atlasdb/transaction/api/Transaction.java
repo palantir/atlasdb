@@ -78,6 +78,10 @@ public interface Transaction {
     NavigableMap<byte[], RowResult<byte[]>> getRows(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection);
 
+    @Idempotent
+    NavigableMap<byte[], RowResult<byte[]>> getRowsConsistencyAll(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection);
+
     /**
      * Returns a mapping of requested {@code rows} to corresponding columns from the queried table.
      * Only columns matching the provided predicate will be returned, and the single predicate provided applies across

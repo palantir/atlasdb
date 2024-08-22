@@ -121,6 +121,13 @@ public class OneNodeDownGetTest extends AbstractDegradedClusterTest {
                 .isInstanceOf(AtlasDbDependencyException.class);
     }
 
+    @Test
+    public void getRowsConsistencyAllThrows() {
+        assertThrowsInsufficientConsistencyExceptionAndDoesNotChangeCassandraSchema(
+                () -> getTestKvs().getRowsConsistencyAll(TEST_TABLE, ImmutableList.of(FIRST_ROW), ColumnSelection.all(), Long.MAX_VALUE));
+    }
+
+
     private void assertLatestValueInCellEquals(Cell cell, Value value) {
         Map<Cell, Value> result = getTestKvs().get(TEST_TABLE, ImmutableMap.of(cell, Long.MAX_VALUE));
         assertThat(result).containsEntry(cell, value);

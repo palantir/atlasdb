@@ -184,6 +184,15 @@ public class ValidatingQueryRewritingKeyValueService extends ForwardingKeyValueS
     }
 
     @Override
+    public Map<Cell, Value> getRowsConsistencyAll(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+        if (Iterables.isEmpty(rows) || columnSelection.noColumnsSelected()) {
+            return ImmutableMap.of();
+        }
+        return delegate.getRowsConsistencyAll(tableRef, rows, columnSelection, timestamp);
+    }
+
+    @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp)
             throws KeyAlreadyExistsException {
         if (valuesByTable.isEmpty()) {

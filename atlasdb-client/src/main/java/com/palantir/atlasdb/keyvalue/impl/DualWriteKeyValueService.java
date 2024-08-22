@@ -78,6 +78,12 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
+    public Map<Cell, Value> getRowsConsistencyAll(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+        return delegate1.getRowsConsistencyAll(tableRef, rows, columnSelection, timestamp);
+    }
+
+    @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         return delegate1.get(tableRef, timestampByCell);
     }

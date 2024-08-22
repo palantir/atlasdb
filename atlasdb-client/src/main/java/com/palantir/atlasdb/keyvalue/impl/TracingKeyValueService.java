@@ -368,6 +368,18 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
+    public Map<Cell, Value> getRowsConsistencyAll(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.getRowsConsistencyAll", sink -> {
+            sink.tableRef(tableRef);
+            sink.size("rows", rows);
+            sink.timestamp(timestamp);
+        })) {
+            return delegate().getRowsConsistencyAll(tableRef, rows, columnSelection, timestamp);
+        }
+    }
+
+    @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
             Iterable<byte[]> rows,

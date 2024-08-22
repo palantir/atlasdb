@@ -60,6 +60,12 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     }
 
     @Override
+    public NavigableMap<byte[], RowResult<byte[]>> getRowsConsistencyAll(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
+        return delegate().getRowsConsistencyAll(tableRef, rows, columnSelection);
+    }
+
+    @Override
     public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
             TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         return delegate().getRowsColumnRange(tableRef, rows, columnRangeSelection);

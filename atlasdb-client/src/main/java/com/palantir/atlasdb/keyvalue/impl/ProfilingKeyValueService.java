@@ -321,6 +321,12 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public Map<Cell, Value> getRowsConsistencyAll(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+        return delegate.getRowsConsistencyAll(tableRef, rows, columnSelection, timestamp);
+    }
+
+    @Override
     public void multiPut(Map<TableReference, ? extends Map<Cell, byte[]>> valuesByTable, long timestamp) {
         long startTime = System.currentTimeMillis();
         maybeLog(() -> delegate.multiPut(valuesByTable, timestamp), (logger, stopwatch) -> {

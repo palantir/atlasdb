@@ -135,6 +135,12 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
         return result;
     }
 
+    @Override
+    public Map<Cell, Value> getRowsConsistencyAll(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+        return getRows(tableRef, rows, columnSelection, timestamp);
+    }
+
     private void getLatestVersionOfCell(
             byte[] row,
             Key key,

@@ -84,6 +84,14 @@ public final class TrackingTransactionKeyValueServiceImpl
     }
 
     @Override
+    public Map<Cell, Value> getRowsConsistencyAll(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+        Map<Cell, Value> result = delegate.getRowsConsistencyAll(tableRef, rows, columnSelection, timestamp);
+        tracker.recordReadForTable(tableRef, "getRowsConsistencyAll", MeasuringUtils.sizeOf(result));
+        return result;
+    }
+
+    @Override
     public Map<byte[], RowColumnRangeIterator> getRowsColumnRange(
             TableReference tableRef,
             Iterable<byte[]> rows,

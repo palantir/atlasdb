@@ -71,6 +71,11 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     Map<Cell, Value> getRows(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp);
 
+    @Idempotent
+    @Timed
+    Map<Cell, Value> getRowsConsistencyAll(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp);
+
     /**
      * Gets values from the key-value store for the specified rows and column range
      * as separate iterators for each row. Note that rows and columns must be non-empty: behaviour is undefined when

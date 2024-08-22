@@ -1635,6 +1635,124 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     }
 
     @Test
+    public void getRowsAccessibleThroughCopiesConsistencyAll() {
+        Transaction tx = startTransaction();
+        byte[] rowKey = row(0);
+        byte[] value = value(0);
+        tx.put(TEST_TABLE, ImmutableMap.of(Cell.create(rowKey, column(0)), value));
+        tx.commit();
+
+        tx = startTransaction();
+        SortedMap<byte[], RowResult<byte[]>> result =
+                tx.getRowsConsistencyAll(TEST_TABLE, ImmutableList.of(rowKey), ColumnSelection.all());
+        assertThat(result.get(rowKey))
+                .as("it should be possible to get a row from getRows with a passed-in byte array")
+                .isNotNull()
+                .satisfies(
+                        rowResult -> assertThat(rowResult.getOnlyColumnValue()).isEqualTo(value));
+
+        byte[] rowKeyCopy = rowKey.clone();
+        assertThat(rowKeyCopy).isNotSameAs(rowKey);
+        assertThat(result.get(rowKeyCopy))
+                .as("it should be possible to get a row from getRows with a copy of a passed-in byte array")
+                .isNotNull()
+                .satisfies(
+                        rowResult -> assertThat(rowResult.getOnlyColumnValue()).isEqualTo(value));
+    }
+
+    @Test
+    public void getRowsSortedByByteOrderConsistencyAll() {
+        Transaction tx = startTransaction();
+        byte[] row0 = row(0);
+        byte[] row1 = row(1);
+        byte[] col0 = column(0);
+        tx.put(TEST_TABLE, ImmutableMap.of(Cell.create(row0, col0), value(0), Cell.create(row1, col0), value(1)));
+        tx.commit();
+
+        tx = startTransaction();
+        SortedMap<byte[], RowResult<byte[]>> readRows =
+                tx.getRowsConsistencyAll(TEST_TABLE, ImmutableList.of(row0, row1), ColumnSelection.all());
+        assertThat(readRows.firstKey()).containsExactly(row0);
+        assertThat(readRows.lastKey()).containsExactly(row1);
+    }
+
+    @Test
+    public void getRowsWithDuplicateQueriesConsistencyAll() {
+        Transaction tx = startTransaction();
+        byte[] row0 = row(0);
+        byte[] anotherRow0 = row(0);
+        byte[] col0 = column(0);
+        tx.put(TEST_TABLE, ImmutableMap.of(Cell.create(row0, col0), value(0)));
+        tx.commit();
+
+        tx = startTransaction();
+        SortedMap<byte[], RowResult<byte[]>> readRows =
+                tx.getRowsConsistencyAll(TEST_TABLE, ImmutableList.of(row0, anotherRow0), ColumnSelection.all());
+        assertThat(readRows.firstKey()).containsExactly(row0);
+        assertThat(readRows).hasSize(1);
+    }
+
+    @Test
+    public void getRowsAppliesColumnSelectionConsistencyAll() {
+        Transaction tx = startTransaction();
+        byte[] row0 = row(0);
+        byte[] col0 = column(0);
+        byte[] col1 = column(1);
+        tx.put(
+                TEST_TABLE,
+                ImmutableMap.of(
+                        Cell.create(row0, col0), value(0),
+                        Cell.create(row0, col1), value(1)));
+        tx.commit();
+
+        tx = startTransaction();
+        SortedMap<byte[], RowResult<byte[]>> readRows = tx.getRowsConsistencyAll(
+                TEST_TABLE, ImmutableList.of(row0), ColumnSelection.create(ImmutableList.of(col0)));
+        assertThat(readRows.firstKey()).containsExactly(row0);
+        assertThat(readRows.get(row0).getColumns().keySet()).containsExactly(col0);
+        assertThat(readRows.get(row0).getColumns().get(col0)).containsExactly(value(0));
+    }
+
+    @Test
+    public void getRowsIncludesLocalWritesConsistencyAll() {
+        Transaction tx = startTransaction();
+        byte[] rowKey = row(0);
+        byte[] value = value(0);
+        SortedMap<byte[], RowResult<byte[]>> prePut =
+                tx.getRowsConsistencyAll(TEST_TABLE, ImmutableList.of(row(0)), ColumnSelection.all());
+        assertThat(prePut).isEmpty();
+        tx.put(TEST_TABLE, ImmutableMap.of(Cell.create(rowKey, column(0)), value));
+        SortedMap<byte[], RowResult<byte[]>> postPut =
+                tx.getRowsConsistencyAll(TEST_TABLE, ImmutableList.of(row(0)), ColumnSelection.all());
+        assertThat(postPut).hasSize(1).containsKey(row(0));
+    }
+
+    @Test
+    public void getRowsDoesNotIncludePersistedRowsWithLocalDeletesConsistencyAll() {
+        Transaction tx = startTransaction();
+        tx.put(
+                TEST_TABLE,
+                ImmutableMap.of(
+                        Cell.create(row(0), column(0)), value(0),
+                        Cell.create(row(1), column(0)), value(1),
+                        Cell.create(row(1), column(1)), value(2)));
+        tx.commit();
+
+        tx = startTransaction();
+        SortedMap<byte[], RowResult<byte[]>> preDelete =
+                tx.getRowsConsistencyAll(TEST_TABLE, ImmutableList.of(row(0), row(1)), ColumnSelection.all());
+        // cannot use containsOnlyKeys because that internally uses a LinkedHashSet
+        assertThat(preDelete).hasSize(2).containsKey(row(0)).containsKey(row(1));
+        tx.delete(TEST_TABLE, ImmutableSet.of(Cell.create(row(0), column(0)), Cell.create(row(1), column(0))));
+        SortedMap<byte[], RowResult<byte[]>> postDelete =
+                tx.getRowsConsistencyAll(TEST_TABLE, ImmutableList.of(row(0), row(1)), ColumnSelection.all());
+        assertThat(postDelete).hasSize(1).containsKey(row(1));
+        assertThat(postDelete.get(row(1))).isNotNull().satisfies(rowResult -> assertThat(
+                        Arrays.equals(rowResult.getColumns().get(column(1)), value(2)))
+                .isTrue());
+    }
+
+    @Test
     public void lookupFromGetRowsColumnRange() {
         Transaction tx = startTransaction();
         byte[] row0 = row(0);

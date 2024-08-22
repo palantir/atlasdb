@@ -319,6 +319,12 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
     }
 
     @Override
+    public Map<Cell, Value> getRowsConsistencyAll(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+        return getRows(tableRef, rows, columnSelection, timestamp);
+    }
+
+    @Override
     public Map<Cell, Value> get(TableReference tableRef, Map<Cell, Long> timestampByCell) {
         return batchingQueryRunner.runTask(
                 timestampByCell,

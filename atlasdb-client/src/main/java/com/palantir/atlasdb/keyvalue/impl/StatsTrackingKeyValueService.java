@@ -184,6 +184,12 @@ public class StatsTrackingKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
+    public Map<Cell, Value> getRowsConsistencyAll(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+        return super.getRowsConsistencyAll(tableRef, rows, columnSelection, timestamp);
+    }
+
+    @Override
     public ClosableIterator<RowResult<Value>> getRange(
             final TableReference tableRef, RangeRequest range, long timestamp) {
         final TableStats s = getTableStats(tableRef);

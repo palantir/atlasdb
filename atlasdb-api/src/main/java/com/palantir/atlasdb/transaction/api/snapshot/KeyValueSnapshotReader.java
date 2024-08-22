@@ -52,4 +52,10 @@ public interface KeyValueSnapshotReader {
             Iterable<byte[]> rows,
             ColumnSelection columnSelection,
             ImmutableMap.Builder<Cell, byte[]> resultCollector);
+
+    NavigableMap<byte[], RowResult<byte[]>> getRowsConsistencyAll(
+            TableReference tableReference,
+            Iterable<byte[]> rows,
+            ColumnSelection columnSelection,
+            ImmutableMap.Builder<Cell, byte[]> resultCollector);
 }

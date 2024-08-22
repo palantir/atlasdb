@@ -214,6 +214,15 @@ public class SerializableTransaction extends SnapshotTransaction {
     }
 
     @Override
+    @Idempotent
+    public NavigableMap<byte[], RowResult<byte[]>> getRowsConsistencyAll(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
+        NavigableMap<byte[], RowResult<byte[]>> ret = super.getRowsConsistencyAll(tableRef, rows, columnSelection);
+        markRowsRead(tableRef, rows, columnSelection, ret.values());
+        return ret;
+    }
+
+    @Override
     public Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> getRowsColumnRange(
             TableReference tableRef, Iterable<byte[]> rows, BatchColumnRangeSelection columnRangeSelection) {
         Map<byte[], BatchingVisitable<Map.Entry<Cell, byte[]>>> ret =

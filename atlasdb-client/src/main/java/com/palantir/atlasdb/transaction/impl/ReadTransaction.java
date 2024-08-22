@@ -62,6 +62,13 @@ public class ReadTransaction extends ForwardingCallbackAwareTransaction {
     }
 
     @Override
+    public NavigableMap<byte[], RowResult<byte[]>> getRowsConsistencyAll(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection) {
+        checkTableName(tableRef);
+        return delegate().getRowsConsistencyAll(tableRef, rows, columnSelection);
+    }
+
+    @Override
     public Map<Cell, byte[]> get(TableReference tableRef, Set<Cell> cells) {
         checkTableName(tableRef);
         return delegate().get(tableRef, cells);

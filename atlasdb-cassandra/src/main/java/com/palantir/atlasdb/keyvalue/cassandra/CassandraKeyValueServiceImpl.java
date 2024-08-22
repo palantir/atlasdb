@@ -616,6 +616,21 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     @Override
     public Map<Cell, Value> getRows(
             TableReference tableRef, Iterable<byte[]> rows, ColumnSelection selection, long startTs) {
+        return getRowsInternal(tableRef, rows, selection, startTs, readConsistencyProvider.getConsistency(tableRef));
+    }
+
+    @Override
+    public Map<Cell, Value> getRowsConsistencyAll(
+            TableReference tableRef, Iterable<byte[]> rows, ColumnSelection columnSelection, long timestamp) {
+        return getRowsInternal(tableRef, rows, columnSelection, timestamp, ConsistencyLevel.ALL);
+    }
+
+    private Map<Cell, Value> getRowsInternal(
+            TableReference tableRef,
+            Iterable<byte[]> rows,
+            ColumnSelection selection,
+            long startTs,
+            ConsistencyLevel consistencyLevel) {
         if (!selection.allColumnsSelected()) {
             return getRowsForSpecificColumns(tableRef, rows, selection, startTs);
         }
@@ -629,7 +644,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     AnnotationType.PREPEND,
                     "Atlas getRows " + hostAndRows.getValue().size() + " rows from " + tableRef + " on "
                             + hostAndRows.getKey().cassandraHostName(),
-                    () -> getRowsForSingleHost(hostAndRows.getKey(), tableRef, hostAndRows.getValue(), startTs)));
+                    () -> getRowsForSingleHost(
+                            hostAndRows.getKey(), tableRef, hostAndRows.getValue(), startTs, consistencyLevel)));
         }
         List<Map<Cell, Value>> perHostResults = taskRunner.runAllTasksCancelOnFailure(tasks);
         Map<Cell, Value> result = Maps.newHashMapWithExpectedSize(Iterables.size(rows));
@@ -640,14 +656,18 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private Map<Cell, Value> getRowsForSingleHost(
-            final CassandraServer host, final TableReference tableRef, final List<byte[]> rows, final long startTs) {
+            final CassandraServer host,
+            final TableReference tableRef,
+            final List<byte[]> rows,
+            final long startTs,
+            ConsistencyLevel consistencyLevel) {
         try {
             int rowCount = 0;
             final Map<Cell, Value> result = new HashMap<>();
             int fetchBatchCount = runtimeConfig.get().fetchBatchCount();
             for (final List<byte[]> batch : Lists.partition(rows, fetchBatchCount)) {
                 rowCount += batch.size();
-                result.putAll(getAllCellsForRows(host, tableRef, batch, startTs));
+                result.putAll(getAllCellsForRows(host, tableRef, batch, startTs, consistencyLevel));
             }
             if (rowCount > fetchBatchCount) {
                 log.warn(
@@ -664,7 +684,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private Map<Cell, Value> getAllCellsForRows(
-            final CassandraServer host, final TableReference tableRef, final List<byte[]> rows, final long startTs)
+            final CassandraServer host,
+            final TableReference tableRef,
+            final List<byte[]> rows,
+            final long startTs,
+            ConsistencyLevel consistencyLevel)
             throws Exception {
 
         ListMultimap<ByteBuffer, ColumnOrSuperColumn> result = ArrayListMultimap.create(rows.size(), 1);
@@ -676,7 +700,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 .collect(Collectors.toList());
 
         while (!query.isEmpty()) {
-            query = EntryStream.of(getForKeyPredicates(host, tableRef, query, startTs))
+            query = EntryStream.of(getForKeyPredicates(host, tableRef, query, startTs, consistencyLevel))
                     .filterValues(cells -> !cells.isEmpty())
                     .peekKeyValue(result::putAll)
                     .mapKeyValue((row, cells) -> keyPredicate(row, getNextLexicographicalSlicePredicate(cells)))
@@ -697,7 +721,11 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     private Map<ByteBuffer, List<ColumnOrSuperColumn>> getForKeyPredicates(
-            final CassandraServer host, final TableReference tableRef, List<KeyPredicate> query, final long startTs)
+            final CassandraServer host,
+            final TableReference tableRef,
+            List<KeyPredicate> query,
+            final long startTs,
+            ConsistencyLevel consistencyLevel)
             throws Exception {
         return clientPool.runWithRetryOnServer(
                 host,
@@ -717,11 +745,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                         Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> results =
                                 wrappingQueryRunner.multiget_multislice(
-                                        "getRows",
-                                        client,
-                                        tableRef,
-                                        query,
-                                        readConsistencyProvider.getConsistency(tableRef));
+                                        "getRows", client, tableRef, query, consistencyLevel);
 
                         return Maps.transformValues(results, CellLoader::flattenReadOnlyLists);
                     }
