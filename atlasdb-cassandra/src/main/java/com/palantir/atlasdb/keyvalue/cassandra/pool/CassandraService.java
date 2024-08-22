@@ -53,6 +53,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
+import com.palantir.util.RateLimitedLogger;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -81,6 +82,7 @@ import org.apache.cassandra.thrift.TokenRange;
 
 public class CassandraService implements AutoCloseable {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraService.class);
+    private static final RateLimitedLogger tokenRangeLog = new RateLimitedLogger(log, 1.0 / 600);
     private static final Interner<ImmutableRangeMap<LightweightOppToken, ImmutableSet<CassandraServer>>>
             tokensInterner = Interners.newWeakInterner();
 
@@ -136,6 +138,8 @@ public class CassandraService implements AutoCloseable {
 
             // grab latest token ring view from a random node in the cluster and update local hosts
             List<TokenRange> tokenRanges = getTokenRanges();
+            tokenRangeLog.log(logger ->
+                    logger.info("Received token ranges from Cassandra", SafeArg.of("tokenRanges", tokenRanges)));
             localHosts = refreshLocalHosts(tokenRanges);
 
             // RangeMap needs a little help with weird 1-node, 1-vnode, this-entire-feature-is-useless case
