@@ -159,10 +159,25 @@ acceptedBreaks:
   "0.1134.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.method.addedToInterface"
+      new: "method com.google.common.util.concurrent.ListenableFuture<java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell,\
+        \ com.palantir.atlasdb.keyvalue.api.Value>> com.palantir.atlasdb.cell.api.TransactionKeyValueService::getAsyncConsistencyAll(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, java.lang.Long>)"
+      justification: "rc"
+    - code: "java.method.addedToInterface"
+      new: "method com.google.common.util.concurrent.ListenableFuture<java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell,\
+        \ com.palantir.atlasdb.keyvalue.api.Value>> com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService::getAsyncConsistencyAll(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, java.lang.Long>)"
+      justification: "rc"
+    - code: "java.method.addedToInterface"
       new: "method java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, com.palantir.atlasdb.keyvalue.api.Value>\
         \ com.palantir.atlasdb.cell.api.TransactionKeyValueService::getRowsConsistencyAll(com.palantir.atlasdb.keyvalue.api.TableReference,\
         \ java.lang.Iterable<byte[]>, com.palantir.atlasdb.keyvalue.api.ColumnSelection,\
         \ long)"
+      justification: "rc"
+    - code: "java.method.addedToInterface"
+      new: "method java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, com.palantir.atlasdb.keyvalue.api.Value>\
+        \ com.palantir.atlasdb.keyvalue.api.KeyValueService::getConsistencyAll(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, java.lang.Long>)"
       justification: "rc"
     - code: "java.method.addedToInterface"
       new: "method java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, com.palantir.atlasdb.keyvalue.api.Value>\
