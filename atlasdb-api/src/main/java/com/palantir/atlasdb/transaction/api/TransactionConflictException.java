@@ -22,7 +22,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeLoggable;
-
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
