@@ -156,6 +156,43 @@ acceptedBreaks:
     - code: "java.method.addedToInterface"
       new: "method <T> T com.palantir.atlasdb.transaction.service.TransactionStatus::accept(com.palantir.atlasdb.transaction.service.TransactionStatus.Visitor<T>)"
       justification: "purely addition - adding a visitor to transaction status"
+  "0.1134.0":
+    com.palantir.atlasdb:atlasdb-cassandra:
+    - code: "java.class.nowFinal"
+      old: "class com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService"
+      new: "class com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService"
+      justification: "Unused outside atlas"
+    - code: "java.method.numberOfParametersChanged"
+      old: "method void com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory::<init>(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer, com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig)"
+      new: "method void com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory::<init>(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer, com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraClientInstrumentation)"
+      justification: "Unused outside atlas"
+    - code: "java.method.numberOfParametersChanged"
+      old: "method void com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer::<init>(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer, com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig,\
+        \ int, com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics)"
+      new: "method void com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer::<init>(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer, com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig,\
+        \ int, com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraClientInstrumentation)"
+      justification: "Unused outside atlas"
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter void com.palantir.atlasdb.keyvalue.cassandra.InstrumentedCassandraClient::<init>(com.palantir.atlasdb.keyvalue.cassandra.CassandraClient,\
+        \ ===com.palantir.tritium.metrics.registry.TaggedMetricRegistry===)"
+      new: "parameter void com.palantir.atlasdb.keyvalue.cassandra.InstrumentedCassandraClient::<init>(com.palantir.atlasdb.keyvalue.cassandra.CassandraClient,\
+        \ ===com.palantir.atlasdb.keyvalue.cassandra.CassandraClientInstrumentation===)"
+      justification: "Unused outside atlas"
+    - code: "java.method.visibilityReduced"
+      old: "method void com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService::<init>(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig, com.palantir.refreshable.Refreshable<com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig>,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.Blacklist, com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics)"
+      new: "method void com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService::<init>(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig, com.palantir.refreshable.Refreshable<com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig>,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.Blacklist, com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraClientInstrumentation)"
+      justification: "Unused outside atlas"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"
