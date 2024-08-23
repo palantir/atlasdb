@@ -131,4 +131,10 @@ public final class LockWatchManagerImplTest {
         verify(valueScopingCache).getTransactionScopedCache(1L);
         verifyNoMoreInteractions(lockWatchEventCache);
     }
+
+    @Test
+    public void closePassesThroughCloseToValueScopingCache() {
+        manager.close();
+        verify(valueScopingCache).close();
+    }
 }
