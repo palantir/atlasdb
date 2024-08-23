@@ -63,6 +63,6 @@ public class LockWatchCacheImplTest {
     public void removeTest() {
         cache.requestTransactionStateRemovalFromCache(1L);
         verify(eventCache).removeTransactionStateFromCache(1L);
-        verify(valueCache).ensureStateRemoved(1L);
+        verify(valueCache).requestStateRemoved(1L);
     }
 }
