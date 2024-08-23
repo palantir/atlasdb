@@ -278,7 +278,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
                         commitTimestamps.getIfAbsent(value.getTimestamp(), TransactionConstants.FAILED_COMMIT_TS);
                 if (isConsistencyAll) {
                     log.info(
-                            "Remaining results to post filter",
+                            "Collect cells to post filter",
                             UnsafeArg.of("cell", key),
                             SafeArg.of("isEmpty", value.isEmpty()),
                             SafeArg.of("startTs", value.getTimestamp()),
