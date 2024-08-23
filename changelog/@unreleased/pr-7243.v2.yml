@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Asynchronously remove state from LockWatchValueScopingCacheImpl
+  links:
+  - https://github.com/palantir/atlasdb/pull/7243
