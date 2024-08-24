@@ -19,7 +19,9 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.github.benmanes.caffeine.cache.Interner;
+import com.google.common.base.CharMatcher;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Objects;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.Validate;
@@ -37,7 +39,10 @@ public final class Namespace {
      * <p>
      * Use {@link Namespace#LOOSELY_CHECKED_NAME} or {@link Namespace#STRICTLY_CHECKED_NAME} if possible.
      */
-    public static final Pattern UNCHECKED_NAME = Pattern.compile("^[^\\.\\s]+$");
+    public static final Pattern UNCHECKED_NAME = Pattern.compile("^[^.\\s]+$");
+
+    private static final CharMatcher UNCHECKED_CHAR_MATCHER =
+            CharMatcher.is('.').or(CharMatcher.whitespace()).negate().precomputed();
 
     /**
      * Less restrictive name pattern (letters, numbers, underscores, and hyphens).
@@ -49,7 +54,7 @@ public final class Namespace {
     /**
      * Restrictive name pattern (letters, numbers, and non-initial single underscores).
      */
-    public static final Pattern STRICTLY_CHECKED_NAME = Pattern.compile("^^(?!.*__.*)[a-zA-Z0-9][\\w]*$");
+    public static final Pattern STRICTLY_CHECKED_NAME = Pattern.compile("^(?!.*__.*)[a-zA-Z0-9]\\w*$");
 
     private final String name;
 
@@ -59,10 +64,27 @@ public final class Namespace {
 
     @SuppressWarnings("ValidateConstantMessage") // https://github.com/palantir/gradle-baseline/pull/175
     public static Namespace create(String name, Pattern pattern) {
-        Validate.notEmpty(name, "namespace name cannot be empty (see Namespace.EMPTY_NAMESPACE instead).");
-        Preconditions.checkArgument(!name.contains("."), "namespace cannot contain dots (atlas reserved).");
+        checkName(name);
         Validate.isTrue(pattern.matcher(name).matches(), "'%s' does not match namespace pattern '%s'.", name, pattern);
         return new Namespace(name);
+    }
+
+    /**
+     * Creates a namespace for the given name, validating that the name does not contain whitespace or dots..
+     *This will not protect you from creating namespace that are incompatible with your underlying datastore.
+     *      <p>
+     *      Use {@link Namespace#LOOSELY_CHECKED_NAME} or {@link Namespace#STRICTLY_CHECKED_NAME} if possible.
+     * @throws SafeIllegalArgumentException if name contains whitespace or dots (period)
+     */
+    static Namespace createUnchecked(String name) {
+        checkName(name);
+        return new Namespace(name);
+    }
+
+    private static void checkName(String name) {
+        Preconditions.checkArgument(
+                !name.isEmpty() && UNCHECKED_CHAR_MATCHER.matchesAllOf(name),
+                "namespace cannot be empty, contain whitespace, or contain dots (atlas reserved)");
     }
 
     @JsonCreator
