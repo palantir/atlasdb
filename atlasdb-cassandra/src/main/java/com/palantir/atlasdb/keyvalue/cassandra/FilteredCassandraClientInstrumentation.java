@@ -35,7 +35,7 @@ public final class FilteredCassandraClientInstrumentation implements CassandraCl
     public static CassandraClientInstrumentation create(
             TaggedMetricRegistry registry, ScheduledExecutorService executor) {
         TopListFilteredCounter<String> cellsWritten = TopListFilteredCounter.create(
-                2,
+                5,
                 Duration.ofSeconds(5),
                 Duration.ofSeconds(15),
                 CassandraClientInstrumentationUtils::createCellsWrittenMetricNameForTableTag,
