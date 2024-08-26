@@ -16,18 +16,17 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
+import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.tritium.metrics.registry.MetricName;
 
-public final class UnfilteredCassandraClientInstrumentation implements CassandraClientInstrumentation {
-    private final TaggedMetricRegistry registry;
+final class CassandraClientInstrumentationUtils {
+    private CassandraClientInstrumentationUtils() {}
 
-    public UnfilteredCassandraClientInstrumentation(TaggedMetricRegistry registry) {
-        this.registry = registry;
-    }
-
-    @Override
-    public void recordCellsWritten(String tableRef, long cellsWritten) {
-        registry.counter(CassandraClientInstrumentationUtils.createCellsWrittenMetricNameForTableTag(tableRef))
-                .inc(cellsWritten);
+    static MetricName createCellsWrittenMetricNameForTableTag(String tableTag) {
+        return MetricName.builder()
+                .safeName(MetricRegistry.name(CassandraClient.class, "cellsWritten"))
+                .safeTags(ImmutableMap.of("tableRef", tableTag))
+                .build();
     }
 }
