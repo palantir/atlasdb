@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
@@ -29,6 +30,7 @@ import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.client.LockWatchStarter;
+import com.palantir.lock.client.LockWatchTimeLockDiagnosticsLogger;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchCacheImpl;
@@ -41,7 +43,6 @@ import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import com.palantir.util.RateLimitedLogger;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,10 +54,10 @@ import java.util.stream.Collectors;
 public final class LockWatchManagerImpl extends LockWatchManagerInternal {
     private static final SafeLogger log = SafeLoggerFactory.get(LockWatchManagerImpl.class);
 
-    // Log at most 1 line every 2 minutes. Diagnostics are expected to be triggered
+    // Trigger diagnostics at most 1 line every 2 minutes. This is expected only
     // on exceptional circumstances and a one-off basis. This de-duplicates when we
     // need diagnostics on large clusters.
-    private static final RateLimitedLogger diagnosticLog = new RateLimitedLogger(log, 1 / 120.0);
+    private static final RateLimiter DIAGNOSTICS_RATE_LIMITER = RateLimiter.create(1 / 120.0);
 
     private final Set<LockWatchReferences.LockWatchReference> referencesFromSchema;
     private final Set<LockWatchReferences.LockWatchReference> lockWatchReferences = ConcurrentHashMap.newKeySet();
@@ -65,17 +66,20 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
     private final LockWatchStarter lockWatchingService;
     private final ScheduledExecutorService executorService = PTExecutors.newSingleThreadScheduledExecutor();
     private final ScheduledFuture<?> refreshTask;
+    private final LockWatchTimeLockDiagnosticsLogger lockWatchTimeLockDiagnosticsLogger;
 
     @VisibleForTesting
     LockWatchManagerImpl(
             Set<LockWatchReference> referencesFromSchema,
             LockWatchEventCache eventCache,
             LockWatchValueScopingCache valueCache,
-            LockWatchStarter lockWatchingService) {
+            LockWatchStarter lockWatchingService,
+            LockWatchTimeLockDiagnosticsLogger lockWatchTimeLockDiagnosticsLogger) {
         this.referencesFromSchema = referencesFromSchema;
         this.lockWatchCache = new LockWatchCacheImpl(eventCache, valueCache);
         this.valueScopingCache = valueCache;
         this.lockWatchingService = lockWatchingService;
+        this.lockWatchTimeLockDiagnosticsLogger = lockWatchTimeLockDiagnosticsLogger;
         lockWatchReferences.addAll(referencesFromSchema);
         refreshTask = executorService.scheduleWithFixedDelay(this::registerWatchesWithTimelock, 0, 5, TimeUnit.SECONDS);
     }
@@ -84,7 +88,8 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
             MetricsManager metricsManager,
             Set<Schema> schemas,
             LockWatchStarter lockWatchingService,
-            LockWatchCachingConfig config) {
+            LockWatchCachingConfig config,
+            LockWatchTimeLockDiagnosticsLogger lockWatchTimeLockDiagnosticsLogger) {
         Set<LockWatchReference> referencesFromSchema = schemas.stream()
                 .map(Schema::getLockWatches)
                 .flatMap(Set::stream)
@@ -97,7 +102,8 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
         LockWatchEventCache eventCache = LockWatchEventCacheImpl.create(metrics, config.maxEvents());
         LockWatchValueScopingCache valueCache = LockWatchValueScopingCacheImpl.create(
                 eventCache, metrics, config.cacheSize(), config.validationProbability(), watchedTablesFromSchema);
-        return new LockWatchManagerImpl(referencesFromSchema, eventCache, valueCache, lockWatchingService);
+        return new LockWatchManagerImpl(
+                referencesFromSchema, eventCache, valueCache, lockWatchingService, lockWatchTimeLockDiagnosticsLogger);
     }
 
     @Override
@@ -113,13 +119,14 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
 
     @Override
     public void logState() {
-        diagnosticLog.log(logger -> {
-            logger.info(
+        if (DIAGNOSTICS_RATE_LIMITER.tryAcquire()) {
+            log.info(
                     "Logging state from LockWatchManagerImpl",
                     UnsafeArg.of("referencesFromSchema", referencesFromSchema),
                     UnsafeArg.of("lockWatchReferences", ImmutableSet.copyOf(lockWatchReferences)));
             lockWatchCache.logState();
-        });
+            lockWatchTimeLockDiagnosticsLogger.logStateOnTimeLockServer();
+        }
     }
 
     @Override

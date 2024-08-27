@@ -23,6 +23,7 @@ import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.client.LockWatchStarter;
+import com.palantir.lock.client.LockWatchTimeLockDiagnosticsLogger;
 import com.palantir.lock.client.RequestBatchersFactory;
 import com.palantir.lock.watch.LockWatchCache;
 import java.util.Optional;
@@ -42,10 +43,11 @@ public interface TimeLockHelperServices {
             Set<Schema> schemas,
             LockWatchStarter lockWatchStarter,
             LockWatchCachingConfig lockWatchCachingConfig,
-            Supplier<Optional<RequestBatchersFactory.MultiClientRequestBatchers>> requestBatcherProvider) {
+            Supplier<Optional<RequestBatchersFactory.MultiClientRequestBatchers>> requestBatcherProvider,
+            LockWatchTimeLockDiagnosticsLogger lockWatchTimeLockDiagnosticsLogger) {
 
-        LockWatchManagerInternal lockWatchManager =
-                LockWatchManagerImpl.create(metricsManager, schemas, lockWatchStarter, lockWatchCachingConfig);
+        LockWatchManagerInternal lockWatchManager = LockWatchManagerImpl.create(
+                metricsManager, schemas, lockWatchStarter, lockWatchCachingConfig, lockWatchTimeLockDiagnosticsLogger);
         LockWatchCache lockWatchCache = lockWatchManager.getCache();
 
         RequestBatchersFactory requestBatchersFactory =
