@@ -22,6 +22,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.palantir.atlasdb.sweep.asts.ShardedSweepTimestampManager.SweepTimestamps;
+import com.palantir.atlasdb.sweep.asts.bucketingthings.ImmutableTimestampRange;
+import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketsTable.TimestampRange;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import java.util.List;
@@ -37,6 +39,7 @@ public class FaultTolerantShardedRetrievalStrategyTest {
     private static final ShardAndStrategy SHARD_AND_STRATEGY = ShardAndStrategy.of(12, SweeperStrategy.CONSERVATIVE);
     private static final SweepTimestamps SWEEP_TIMESTAMPS =
             SweepTimestamps.builder().sweepTimestamp(1).lastSweptTimestamp(21).build();
+
     private static final RuntimeException EXCEPTION = new RuntimeException("failed");
 
     @Mock
@@ -54,7 +57,11 @@ public class FaultTolerantShardedRetrievalStrategyTest {
 
     @Test
     public void passesThroughSuccessfulRequest() {
-        List<SweepableBucket> buckets = List.of(SweepableBucket.of(SHARD_AND_STRATEGY, 123L));
+        TimestampRange range = ImmutableTimestampRange.builder()
+                .startInclusive(1)
+                .endExclusive(2)
+                .build();
+        List<SweepableBucket> buckets = List.of(SweepableBucket.of(Bucket.of(SHARD_AND_STRATEGY, 123L), range));
         when(delegate.getSweepableBucketsForShard(SHARD_AND_STRATEGY, SWEEP_TIMESTAMPS))
                 .thenReturn(buckets);
         assertThat(strategy.getSweepableBucketsForShard(SHARD_AND_STRATEGY, SWEEP_TIMESTAMPS))

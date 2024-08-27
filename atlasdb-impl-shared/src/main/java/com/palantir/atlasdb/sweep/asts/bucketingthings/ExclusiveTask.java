@@ -16,23 +16,12 @@
 
 package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
-import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketsTable.TimestampRange;
+import com.palantir.lock.LockDescriptor;
 import org.immutables.value.Value;
 
-// TODO: An equally poor name?
-public interface SweepBucketWritePointerTable {
-    void updateHighestBucketNumber(long expectedBucketNumber, long newBucketNumber);
+@Value.Immutable
+public interface ExclusiveTask {
+    LockDescriptor lockDescriptor();
 
-    void updateLastTimestampForBucket(TimestampForBucket original, TimestampForBucket updated);
-
-    long getHighestBucketNumber();
-
-    TimestampForBucket getLastTimestampForBucket();
-
-    @Value.Immutable
-    interface TimestampForBucket {
-        long bucketIdentifier();
-
-        TimestampRange timestampRange();
-    }
+    Runnable task();
 }
