@@ -164,6 +164,11 @@ acceptedBreaks:
         \ java.util.function.Supplier<java.util.Optional<com.palantir.lock.client.RequestBatchersFactory.MultiClientRequestBatchers>>,\
         \ com.palantir.lock.client.LockWatchTimeLockDiagnosticsLogger)"
       justification: "used in atlas only"
+  "0.1133.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.addedToInterface"
+      new: "method <T> T com.palantir.atlasdb.transaction.service.TransactionStatus::accept(com.palantir.atlasdb.transaction.service.TransactionStatus.Visitor<T>)"
+      justification: "purely addition - adding a visitor to transaction status"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"
