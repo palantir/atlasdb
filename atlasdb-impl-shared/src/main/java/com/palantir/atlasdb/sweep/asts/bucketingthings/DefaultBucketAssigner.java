@@ -19,6 +19,7 @@ package com.palantir.atlasdb.sweep.asts.bucketingthings;
 import com.palantir.atlasdb.cleaner.PuncherStore;
 import com.palantir.atlasdb.sweep.asts.Bucket;
 import com.palantir.atlasdb.sweep.asts.SweepableBucket;
+import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketWritePointerTable.SweepBucketState;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketWritePointerTable.TimestampForBucket;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketsTable.TimestampRange;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
@@ -120,36 +121,44 @@ public final class DefaultBucketAssigner implements Runnable {
         int numberOfShards = shardProgressStore.getNumberOfShards();
 
         TimestampForBucket lastTimestampForBucket = sweepBucketWritePointerTable.getLastTimestampForBucket();
-        if (lastTimestampForBucket.bucketIdentifier() == latestBucketIdentifier) {
-            TimestampRange timestampRangeToApply;
-            if (lastTimestampForBucket.timestampRange().endExclusive() == -1) {
-                // This is potentially an open bucket.
-                // Get the new end timestamp
-                long endWallClockTime = puncherStore.getMillisForTimestamp(
-                                lastTimestampForBucket.timestampRange().startInclusive())
-                        + TEN_MINUTES_IN_MILLIS;
-                boolean isClosed = endWallClockTime <= Instant.now().toEpochMilli();
-                if (isClosed) {
-                    timestampRangeToApply = ImmutableTimestampRange.builder()
-                            .startInclusive(
-                                    lastTimestampForBucket.timestampRange().startInclusive())
-                            .endExclusive(puncherStore.get(endWallClockTime))
-                            .build();
-                    // HOW DO I KNOW WHAT TO CAS WITH?
-                    sweepBucketWritePointerTable.updateLastTimestampForBucket(
-                            lastTimestampForBucket,
-                            TimestampForBucket.of(lastTimestampForBucket.bucketIdentifier(), timestampRangeToApply));
+        long wallClockTimeAssociatedWithStart = puncherStore.getMillisForTimestamp(lastTimestampForBucket.timestampRange().startInclusive());
+        long closeTime = wallClockTimeAssociatedWithStart + TEN_MINUTES_IN_MILLIS;
+        boolean shouldClose = closeTime <= Instant.now().plus(CLOSE_BUCKET_LEEWAY).toEpochMilli();
+        switch (lastTimestampForBucket.state()) {
+            case START:
+                if (!shouldClose) {
+                    TimestampForBucket newTimestampForBucket = TimestampForBucket.of(
+                            latestBucketIdentifier,
+                            lastTimestampForBucket.timestampRange(),
+                            SweepBucketState.OPEN);
+                    sweepBucketWritePointerTable.updateLastTimestampForBucket(lastTimestampForBucket, TimestampForBucket.of(
+                            lastTimestampForBucket.bucketIdentifier(),
+                            lastTimestampForBucket.timestampRange(),
+                            SweepBucketState.OPEN));
+                    // TODO WRITE TO Buckets - null, X - 1
+                    sweepBucketWritePointerTable.updateLastTimestampForBucket(newTimestampForBucket, TimestampForBucket.of(latestBucketIdentifier, lastTimestampForBucket.timestampRange(), SweepBucketState.WAITING_CLOSE));
+                    return BucketState.INCOMPLETE;
                 } else {
-                    // This is an open bucket, so we don't need to update the last timestamp.
-                    timestampRangeToApply = lastTimestampForBucket.timestampRange();
+                    return null;
                 }
-            } else {
-                // We've already started on this bucket
-                timestampRangeToApply = lastTimestampForBucket.timestampRange();
-            }
-            // This is the current bucket. This is what we'll CAS with
-        } // Otherwise, we've actually already done the CAS, and so we can just update the bucket number.
-        sweepBucketWritePointerTable.updateHighestBucketNumber(previousBucketIdentifier, latestBucketIdentifier);
+            case OPEN: // You must finish opening all the buckets before you can start closing them.
+                // WRITE TO BUCKETS - null, X - 1
+                sweepBucketWritePointerTable.updateLastTimestampForBucket(lastTimestampForBucket, TimestampForBucket.of(latestBucketIdentifier, lastTimestampForBucket.timestampRange(), SweepBucketState.WAITING_CLOSE));
+                return null;
+            case WAITING_CLOSE:
+                if (!shouldClose) {
+                    return BucketState.INCOMPLETE;
+                }
+                long finalTimestamp = puncherStore.get(closeTime);
+                sweepBucketWritePointerTable.updateLastTimestampForBucket(lastTimestampForBucket, TimestampForBucket.of(latestBucketIdentifier, TimestampRange.of(lastTimestampForBucket.timestampRange().startInclusive(), finalTimestamp), SweepBucketState.CLOSE_FROM_OPEN));
+                // TODO WRITE TO BUCKETS - X - 1 -> X, finalTimestamp
+                // Update state to START
+                return
+            case CLOSE_FROM_OPEN:
+
+            case IMMEDIATE_CLOSE:
+                break;
+        }
     }
 
     // We actually can use this to assign any bucket, not just one that's partially open.

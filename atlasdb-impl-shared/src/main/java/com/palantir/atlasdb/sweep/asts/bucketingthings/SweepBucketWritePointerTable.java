@@ -34,5 +34,18 @@ public interface SweepBucketWritePointerTable {
         long bucketIdentifier();
 
         TimestampRange timestampRange();
+
+        SweepBucketState state();
+    }
+
+    // A state machine. We go from START X -> OPEN -> WAITING_CLOSE -> CLOSE_FROM_OPEN -> START X + 1
+    // Or, START X -> IMMEDIATE_CLOSE -> START X + 1
+
+    enum SweepBucketState {
+        START,
+        OPEN,
+        WAITING_CLOSE,
+        CLOSE_FROM_OPEN,
+        IMMEDIATE_CLOSE,
     }
 }
