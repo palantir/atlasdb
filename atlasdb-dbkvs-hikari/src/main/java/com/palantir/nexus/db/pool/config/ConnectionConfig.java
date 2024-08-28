@@ -182,14 +182,11 @@ public abstract class ConnectionConfig {
 
         initializeFailTimeoutMillis().ifPresent(config::setInitializationFailTimeout);
 
-        if (getTestQuery().isPresent()) {
-            config.setConnectionTestQuery(getTestQuery().get());
-        }
+        getTestQuery().ifPresent(config::setConnectionTestQuery);
 
-        if (getSqlExceptionOverrideClass().isPresent()) {
-            config.setExceptionOverrideClassName(
-                    getSqlExceptionOverrideClass().get().getName());
-        }
+        getSqlExceptionOverrideClass().ifPresent(c -> config.setExceptionOverrideClassName(c.getName()));
+
+        getConnectionInitSql().ifPresent(config::setConnectionInitSql);
 
         if (!props.isEmpty()) {
             config.setDataSourceProperties(props);
@@ -214,6 +211,11 @@ public abstract class ConnectionConfig {
 
     @JsonIgnore
     public Optional<Class<? extends SQLExceptionOverride>> getSqlExceptionOverrideClass() {
+        return Optional.empty();
+    }
+
+    @JsonIgnore
+    public Optional<String> getConnectionInitSql() {
         return Optional.empty();
     }
 }

@@ -105,4 +105,9 @@ public abstract class PostgresConnectionConfig extends ConnectionConfig {
     public final String type() {
         return TYPE;
     }
+
+    @Override
+    public Optional<String> getConnectionInitSql() {
+        return Optional.of("SET statement_timeout = " + (getSocketTimeoutSeconds() * 1000));
+    }
 }
