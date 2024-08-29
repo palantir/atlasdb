@@ -108,6 +108,13 @@ final class SnapshotStoreImpl implements SnapshotStore {
 
     @Override
     public void logState() {
+        String toStringMap;
+        try {
+            toStringMap = snapshotMap.toString();
+        } catch (Throwable throwable) {
+            log.info("Failed to call toString() on snapshot map", throwable);
+        }
+
         log.info(
                 "Logging state from SnapshotStoreImpl",
                 UnsafeArg.of("snapshotMap", snapshotMap),
