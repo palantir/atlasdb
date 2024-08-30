@@ -42,9 +42,7 @@ public final class TableReference implements Measurable {
             throw new SafeIllegalArgumentException(
                     "Table name is not a fully qualified table name.", UnsafeArg.of("tableName", fullTableName));
         }
-        return create(
-                Namespace.create(fullTableName.substring(0, index), Namespace.UNCHECKED_NAME),
-                fullTableName.substring(index + 1));
+        return create(Namespace.createUnchecked(fullTableName.substring(0, index)), fullTableName.substring(index + 1));
     }
 
     public static TableReference create(Namespace namespace, String tableName) {
