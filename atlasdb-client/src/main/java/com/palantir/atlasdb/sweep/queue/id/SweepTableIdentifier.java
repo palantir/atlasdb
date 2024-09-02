@@ -17,12 +17,28 @@ package com.palantir.atlasdb.sweep.queue.id;
 
 import static com.palantir.logsafe.Preconditions.checkState;
 
+import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.common.persist.Persistable;
 import org.immutables.value.Value;
 
 @Value.Immutable
 public interface SweepTableIdentifier extends Persistable {
+    Hydrator<SweepTableIdentifier> BYTES_HYDRATOR = input -> {
+        int identifier = Ints.checkedCast(EncodingUtils.decodeSignedVarLong(input));
+        if (identifier < 0) {
+            return ImmutableSweepTableIdentifier.builder()
+                    .isPending(true)
+                    .identifier(-identifier)
+                    .build();
+        } else {
+            return ImmutableSweepTableIdentifier.builder()
+                    .isPending(false)
+                    .identifier(identifier)
+                    .build();
+        }
+    };
+
     @Value.Parameter
     int identifier();
 

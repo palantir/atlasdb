@@ -41,7 +41,7 @@ public final class WriteReferencePersisterTest {
         String original = "{\"t\":{\"namespace\":{\"name\":\"test_ctx\"},\"tablename\":\"test__table_name\"},\"c\":{\""
                 + "rowName\":\"P7du\",\"columnName\":\"dg==\"},\"d\":true}";
         StoredWriteReference stored =
-                StoredWriteReferenceHydrator.INSTANCE.hydrateFromBytes(original.getBytes(StandardCharsets.UTF_8));
+                StoredWriteReference.BYTES_HYDRATOR.hydrateFromBytes(original.getBytes(StandardCharsets.UTF_8));
         assertThat(persister.unpersist(stored)).hasValue(WRITE_REFERENCE);
     }
 
@@ -53,13 +53,13 @@ public final class WriteReferencePersisterTest {
                 EncodingUtils.encodeSizedBytes(row),
                 EncodingUtils.encodeSizedBytes(column),
                 EncodingUtils.encodeVarLong(1));
-        StoredWriteReference stored = StoredWriteReferenceHydrator.INSTANCE.hydrateFromBytes(data);
+        StoredWriteReference stored = StoredWriteReference.BYTES_HYDRATOR.hydrateFromBytes(data);
         assertThat(persister.unpersist(stored)).hasValue(WRITE_REFERENCE);
     }
 
     @Test
     public void testCanUnpersistBinary_id() {
-        assertThat(persister.unpersist(StoredWriteReferenceHydrator.INSTANCE.hydrateFromBytes(
+        assertThat(persister.unpersist(StoredWriteReference.BYTES_HYDRATOR.hydrateFromBytes(
                         persister.persist(Optional.of(WRITE_REFERENCE)).persistToBytes())))
                 .hasValue(WRITE_REFERENCE);
     }
