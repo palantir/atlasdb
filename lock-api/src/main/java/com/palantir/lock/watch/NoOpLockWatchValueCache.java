@@ -34,6 +34,9 @@ public class NoOpLockWatchValueCache implements LockWatchValueCache {
     public void updateCacheWithCommitTimestampsInformation(Set<Long> startTimestamps) {}
 
     @Override
+    public void requestStateRemoved(long startTimestamp) {}
+
+    @Override
     public void ensureStateRemoved(long startTimestamp) {}
 
     @Override
@@ -43,4 +46,7 @@ public class NoOpLockWatchValueCache implements LockWatchValueCache {
     public void logState() {
         log.info("Logging state from NoOpLockWatchValueCache");
     }
+
+    @Override
+    public void close() {}
 }

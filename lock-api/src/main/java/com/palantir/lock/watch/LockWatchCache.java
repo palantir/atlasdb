@@ -24,7 +24,7 @@ public interface LockWatchCache {
 
     void processCommitTimestampsUpdate(Collection<TransactionUpdate> transactionUpdates, LockWatchStateUpdate update);
 
-    void removeTransactionStateFromCache(long startTs);
+    void requestTransactionStateRemovalFromCache(long startTs);
 
     void onTransactionCommit(long startTs);
 
