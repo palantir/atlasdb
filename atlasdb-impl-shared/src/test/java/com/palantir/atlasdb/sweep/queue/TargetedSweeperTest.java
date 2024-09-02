@@ -59,7 +59,6 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TargetedSweepMetadata;
-import com.palantir.atlasdb.keyvalue.api.TargetedSweepMetadataPersistence;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable;
@@ -1399,7 +1398,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                             .map(RowResult::getRowName)
                             .map(SweepableCellsTable.SweepableCellsRow.BYTES_HYDRATOR::hydrateFromBytes)
                             .map(SweepableCellsTable.SweepableCellsRow::getMetadata)
-                            .map(TargetedSweepMetadataPersistence.BYTES_HYDRATOR::hydrateFromBytes)
+                            .map(TargetedSweepMetadata.BYTES_HYDRATOR::hydrateFromBytes)
                             .filter(TargetedSweepMetadata::dedicatedRow)
                             .filter(metadata -> metadata.shard() == shard)
                             .collect(Collectors.toList()))

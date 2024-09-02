@@ -32,7 +32,6 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RowColumnRangeIterator;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TargetedSweepMetadata;
-import com.palantir.atlasdb.keyvalue.api.TargetedSweepMetadataPersistence;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.keyvalue.api.WriteReferencePersister;
@@ -191,7 +190,7 @@ public class SweepableCells extends SweepQueueTable {
         return DedicatedRows.of(rows.stream()
                 .filter(row -> {
                     TargetedSweepMetadata metadata =
-                            TargetedSweepMetadataPersistence.BYTES_HYDRATOR.hydrateFromBytes(row.getMetadata());
+                            TargetedSweepMetadata.BYTES_HYDRATOR.hydrateFromBytes(row.getMetadata());
                     Preconditions.checkState(
                             metadata.dedicatedRow(), "Row not a dedicated row", SafeArg.of("row", row));
                     return tsToSweep.timestampsDescending().contains(row.getTimestampPartition());
@@ -383,7 +382,7 @@ public class SweepableCells extends SweepQueueTable {
 
     private List<SweepableCellsRow> computeDedicatedRows(
             SweepableCellsRow row, SweepableCellsTable.SweepableCellsColumn col) {
-        TargetedSweepMetadata metadata = TargetedSweepMetadataPersistence.BYTES_HYDRATOR.hydrateFromBytes(row.getMetadata());
+        TargetedSweepMetadata metadata = TargetedSweepMetadata.BYTES_HYDRATOR.hydrateFromBytes(row.getMetadata());
         long timestamp = getTimestamp(row, col);
         int numberOfDedicatedRows = writeIndexToNumberOfDedicatedRows(col.getWriteIndex());
         List<SweepableCellsRow> dedicatedRows = new ArrayList<>();
