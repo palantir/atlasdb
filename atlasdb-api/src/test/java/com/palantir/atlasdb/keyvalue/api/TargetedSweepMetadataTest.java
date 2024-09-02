@@ -44,25 +44,26 @@ public class TargetedSweepMetadataTest {
 
     @Test
     public void hydrateAllZero() {
-        assertThat(TargetedSweepMetadata.BYTES_HYDRATOR.hydrateFromBytes(ALL_ZERO))
+        assertThat(TargetedSweepMetadataPersistence.BYTES_HYDRATOR.hydrateFromBytes(ALL_ZERO))
                 .isEqualTo(ALL_ZERO_METADATA);
     }
 
     @Test
     public void hydrateAllOne() {
-        assertThat(TargetedSweepMetadata.BYTES_HYDRATOR.hydrateFromBytes(MOSTLY_ONE))
+        assertThat(TargetedSweepMetadataPersistence.BYTES_HYDRATOR.hydrateFromBytes(MOSTLY_ONE))
                 .isEqualTo(MOSTLY_ONE_METADATA);
     }
 
     @Test
     public void persistAndHydrateMin() {
-        assertThat(TargetedSweepMetadata.BYTES_HYDRATOR.hydrateFromBytes(ALL_ZERO_METADATA.persistToBytes()))
+        assertThat(TargetedSweepMetadataPersistence.BYTES_HYDRATOR.hydrateFromBytes(ALL_ZERO_METADATA.persistToBytes()))
                 .isEqualTo(ALL_ZERO_METADATA);
     }
 
     @Test
     public void persistAndHydrateMax() {
-        assertThat(TargetedSweepMetadata.BYTES_HYDRATOR.hydrateFromBytes(MOSTLY_ONE_METADATA.persistToBytes()))
+        assertThat(TargetedSweepMetadataPersistence.BYTES_HYDRATOR.hydrateFromBytes(
+                        MOSTLY_ONE_METADATA.persistToBytes()))
                 .isEqualTo(MOSTLY_ONE_METADATA);
     }
 
@@ -75,7 +76,7 @@ public class TargetedSweepMetadataTest {
                 .dedicatedRowNumber(0)
                 .nonSweepableTransaction(false)
                 .build();
-        assertThat(TargetedSweepMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata.persistToBytes()))
+        assertThat(TargetedSweepMetadataPersistence.BYTES_HYDRATOR.hydrateFromBytes(metadata.persistToBytes()))
                 .isEqualTo(metadata);
     }
 
@@ -88,7 +89,7 @@ public class TargetedSweepMetadataTest {
                 .dedicatedRowNumber(2)
                 .nonSweepableTransaction(false)
                 .build();
-        assertThat(TargetedSweepMetadata.BYTES_HYDRATOR.hydrateFromBytes(metadata.persistToBytes()))
+        assertThat(TargetedSweepMetadataPersistence.BYTES_HYDRATOR.hydrateFromBytes(metadata.persistToBytes()))
                 .isEqualTo(metadata);
     }
 
@@ -125,7 +126,8 @@ public class TargetedSweepMetadataTest {
                 .conservative(true)
                 .nonSweepableTransaction(true)
                 .build();
-        assertThat(TargetedSweepMetadata.BYTES_HYDRATOR.hydrateFromBytes(nonSweepableMetadata.persistToBytes()))
+        assertThat(TargetedSweepMetadataPersistence.BYTES_HYDRATOR.hydrateFromBytes(
+                        nonSweepableMetadata.persistToBytes()))
                 .isEqualTo(nonSweepableMetadata);
     }
 
