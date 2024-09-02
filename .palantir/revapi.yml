@@ -169,11 +169,6 @@ acceptedBreaks:
     - code: "java.method.addedToInterface"
       new: "method <T> T com.palantir.atlasdb.transaction.service.TransactionStatus::accept(com.palantir.atlasdb.transaction.service.TransactionStatus.Visitor<T>)"
       justification: "purely addition - adding a visitor to transaction status"
-  "0.1139.0":
-    com.palantir.atlasdb:atlasdb-api:
-    - code: "java.field.removed"
-      old: "field com.palantir.atlasdb.keyvalue.api.TargetedSweepMetadata.BYTES_HYDRATOR"
-      justification: "used only internally"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"
