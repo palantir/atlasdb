@@ -48,11 +48,11 @@ public class AbstractDefaultBucketProgressStoreTest {
     private static final SweepableBucket SWEEPABLE_BUCKET_ONE_NON_SWEEPABLE_SHARD_ZERO =
             ImmutableSweepableBucket.of(ShardAndStrategy.of(0, SweeperStrategy.NON_SWEEPABLE), 1);
 
-    private static final BucketProgress PROGRESS_ONE_THOUSAND = BucketProgress.createForTimestampOffset(1000L);
-    private static final BucketProgress PROGRESS_TWO_THOUSAND_CELL_ZERO =
-            BucketProgress.createForTimestampOffset(2000L);
-    private static final BucketProgress PROGRESS_TWO_THOUSAND_CELL_ONE =
-            BucketProgress.builder().timestampOffset(2000L).cellOffset(1L).build();
+    private static final BucketProgress PROGRESS_ONE_THOUSAND = BucketProgress.createForTimestampProgress(1000L);
+    private static final BucketProgress PROGRESS_TWO_THOUSAND_NO_CELLS_SWEPT =
+            BucketProgress.createForTimestampProgress(2000L);
+    private static final BucketProgress PROGRESS_TWO_THOUSAND_ONE_CELL_SWEPT =
+            BucketProgress.builder().timestampProgress(2000L).cellProgressForNextTimestamp(0L).build();
 
     private final KeyValueService kvs;
     private final BucketProgressStore store;
@@ -89,21 +89,21 @@ public class AbstractDefaultBucketProgressStoreTest {
     public void updateBucketProgressToAtLeastIncreasesExistingProgress(SweepableBucket bucket) {
         store.updateBucketProgressToAtLeast(bucket, PROGRESS_ONE_THOUSAND);
         assertThat(store.getBucketProgress(bucket)).contains(PROGRESS_ONE_THOUSAND);
-        store.updateBucketProgressToAtLeast(bucket, PROGRESS_TWO_THOUSAND_CELL_ZERO);
-        assertThat(store.getBucketProgress(bucket)).contains(PROGRESS_TWO_THOUSAND_CELL_ZERO);
-        store.updateBucketProgressToAtLeast(bucket, PROGRESS_TWO_THOUSAND_CELL_ONE);
-        assertThat(store.getBucketProgress(bucket)).contains(PROGRESS_TWO_THOUSAND_CELL_ONE);
+        store.updateBucketProgressToAtLeast(bucket, PROGRESS_TWO_THOUSAND_NO_CELLS_SWEPT);
+        assertThat(store.getBucketProgress(bucket)).contains(PROGRESS_TWO_THOUSAND_NO_CELLS_SWEPT);
+        store.updateBucketProgressToAtLeast(bucket, PROGRESS_TWO_THOUSAND_ONE_CELL_SWEPT);
+        assertThat(store.getBucketProgress(bucket)).contains(PROGRESS_TWO_THOUSAND_ONE_CELL_SWEPT);
     }
 
     @ParameterizedTest
     @MethodSource("testBuckets")
     public void updateBucketProgressToAtLeastDoesNotDecreaseExistingProgress(SweepableBucket bucket) {
-        store.updateBucketProgressToAtLeast(bucket, PROGRESS_TWO_THOUSAND_CELL_ONE);
-        assertThat(store.getBucketProgress(bucket)).contains(PROGRESS_TWO_THOUSAND_CELL_ONE);
+        store.updateBucketProgressToAtLeast(bucket, PROGRESS_TWO_THOUSAND_ONE_CELL_SWEPT);
+        assertThat(store.getBucketProgress(bucket)).contains(PROGRESS_TWO_THOUSAND_ONE_CELL_SWEPT);
         store.updateBucketProgressToAtLeast(bucket, PROGRESS_ONE_THOUSAND);
-        assertThat(store.getBucketProgress(bucket)).contains(PROGRESS_TWO_THOUSAND_CELL_ONE);
-        store.updateBucketProgressToAtLeast(bucket, PROGRESS_TWO_THOUSAND_CELL_ZERO);
-        assertThat(store.getBucketProgress(bucket)).contains(PROGRESS_TWO_THOUSAND_CELL_ONE);
+        assertThat(store.getBucketProgress(bucket)).contains(PROGRESS_TWO_THOUSAND_ONE_CELL_SWEPT);
+        store.updateBucketProgressToAtLeast(bucket, PROGRESS_TWO_THOUSAND_NO_CELLS_SWEPT);
+        assertThat(store.getBucketProgress(bucket)).contains(PROGRESS_TWO_THOUSAND_ONE_CELL_SWEPT);
     }
 
     private static Stream<SweepableBucket> testBuckets() {
