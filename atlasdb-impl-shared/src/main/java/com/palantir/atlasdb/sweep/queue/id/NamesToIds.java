@@ -89,6 +89,6 @@ class NamesToIds {
         return Optional.ofNullable(kvs.get(NAME_TO_ID, Collections.singletonMap(cell, Long.MAX_VALUE))
                         .get(cell))
                 .map(Value::getContents)
-                .map(SweepTableIdentifier.BYTES_HYDRATOR::hydrateFromBytes);
+                .map(SweepTableIdentifierHydrator.INSTANCE::hydrateFromBytes);
     }
 }

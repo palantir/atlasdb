@@ -24,8 +24,6 @@ import org.immutables.value.Value.Parameter;
 
 @Immutable
 public interface StoredWriteReference extends Persistable {
-    Hydrator<StoredWriteReference> BYTES_HYDRATOR = ImmutableStoredWriteReference::of;
-
     default <T> T accept(Visitor<T> visitor) {
         byte[] data = data();
         if (Arrays.equals(data, PtBytes.EMPTY_BYTE_ARRAY)) {

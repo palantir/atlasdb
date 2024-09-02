@@ -1,27 +1,5 @@
 package com.palantir.atlasdb.schema.generated;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
-import java.util.function.Supplier;
-import java.util.stream.Stream;
-
-import javax.annotation.Nullable;
-import javax.annotation.processing.Generated;
-
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.MoreObjects;
@@ -58,6 +36,7 @@ import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
+import com.palantir.atlasdb.sweep.queue.id.SweepTableIdentifierHydrator;
 import com.palantir.atlasdb.table.api.AtlasDbDynamicMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbMutablePersistentTable;
 import com.palantir.atlasdb.table.api.AtlasDbNamedMutableTable;
@@ -85,6 +64,26 @@ import com.palantir.common.persist.Persistable.Hydrator;
 import com.palantir.common.persist.Persistables;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.crypto.Sha256Hash;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
+import javax.annotation.Nullable;
+import javax.annotation.processing.Generated;
 
 @Generated("com.palantir.atlasdb.table.description.render.TableRenderer")
 @SuppressWarnings({"deprecation"})
@@ -289,7 +288,7 @@ public final class SweepNameToIdTable implements
             @Override
             public Id hydrateFromBytes(byte[] bytes) {
                 bytes = CompressionUtils.decompress(bytes, Compression.NONE);
-                return of(com.palantir.atlasdb.sweep.queue.id.SweepTableIdentifier.BYTES_HYDRATOR.hydrateFromBytes(bytes));
+                return of(SweepTableIdentifierHydrator.INSTANCE.hydrateFromBytes(bytes));
             }
         };
 
