@@ -106,8 +106,18 @@ public abstract class PostgresConnectionConfig extends ConnectionConfig {
         return TYPE;
     }
 
+    /**
+     * Normally, time to retrieve the first result ~= time to retrieve all results (eg if there is a sort)
+     * but some SQL statements can deliver results incrementally (eg nested joins) in which case the socket timeout
+     * could be set low relative to the total tiem to run a statement.
+     */
+    @Value.Default
+    public int getStatementTimeoutSeconds() {
+        return getSocketTimeoutSeconds();
+    }
+
     @Override
     public Optional<String> getConnectionInitSql() {
-        return Optional.of("SET statement_timeout = " + (getSocketTimeoutSeconds() * 1000));
+        return Optional.of("SET statement_timeout = " + (getStatementTimeoutSeconds() * 1000));
     }
 }
