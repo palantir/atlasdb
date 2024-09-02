@@ -108,6 +108,27 @@ public final class CassandraService implements AutoCloseable {
     private final Random random = new Random();
     private final CassandraClientMetrics cassandraClientMetrics;
 
+    private CassandraService(
+            MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
+            Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
+            Blacklist blacklist,
+            CassandraClientPoolMetrics poolMetrics,
+            CassandraClientMetrics cassandraClientMetrics) {
+        this.metricsManager = metricsManager;
+        this.config = config;
+        this.runtimeConfig = runtimeConfig;
+        this.myLocationSupplier =
+                AsyncSupplier.create(HostLocationSupplier.create(this::getSnitch, config.overrideHostLocation()));
+        this.blacklist = blacklist;
+        this.poolMetrics = poolMetrics;
+
+        Supplier<Map<String, String>> hostnamesByIpSupplier =
+                new HostnamesByIpSupplier(this::getAllNonBlacklistedHosts);
+        this.hostnameByIpSupplier = Suppliers.memoizeWithExpiration(hostnamesByIpSupplier::get, 1, TimeUnit.MINUTES);
+        this.cassandraClientMetrics = cassandraClientMetrics;
+    }
+
     public static CassandraService create(
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
@@ -137,27 +158,6 @@ public final class CassandraService implements AutoCloseable {
                 blacklist,
                 poolMetrics,
                 new UnfilteredCassandraClientMetrics(metricsManager.getTaggedRegistry()));
-    }
-
-    private CassandraService(
-            MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
-            Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
-            Blacklist blacklist,
-            CassandraClientPoolMetrics poolMetrics,
-            CassandraClientMetrics cassandraClientMetrics) {
-        this.metricsManager = metricsManager;
-        this.config = config;
-        this.runtimeConfig = runtimeConfig;
-        this.myLocationSupplier =
-                AsyncSupplier.create(HostLocationSupplier.create(this::getSnitch, config.overrideHostLocation()));
-        this.blacklist = blacklist;
-        this.poolMetrics = poolMetrics;
-
-        Supplier<Map<String, String>> hostnamesByIpSupplier =
-                new HostnamesByIpSupplier(this::getAllNonBlacklistedHosts);
-        this.hostnameByIpSupplier = Suppliers.memoizeWithExpiration(hostnamesByIpSupplier::get, 1, TimeUnit.MINUTES);
-        this.cassandraClientMetrics = cassandraClientMetrics;
     }
 
     @Override
