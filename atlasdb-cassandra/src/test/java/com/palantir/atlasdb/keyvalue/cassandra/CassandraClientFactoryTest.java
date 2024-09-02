@@ -72,7 +72,7 @@ public class CassandraClientFactoryTest {
                     .keyspace("ks")
                     .timeoutOnConnectionClose(Duration.ZERO)
                     .build(),
-            new UnfilteredCassandraClientInstrumentation(new DefaultTaggedMetricRegistry()));
+            new UnfilteredCassandraClientMetrics(new DefaultTaggedMetricRegistry()));
 
     private static final InetAddress DEFAULT_ADDRESS = mockInetAddress("1.2.3.4");
 

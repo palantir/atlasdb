@@ -20,8 +20,8 @@ import com.codahale.metrics.MetricRegistry;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.tritium.metrics.registry.MetricName;
 
-final class CassandraClientInstrumentationUtils {
-    private CassandraClientInstrumentationUtils() {}
+final class CassandraClientMetricsUtils {
+    private CassandraClientMetricsUtils() {}
 
     static MetricName createCellsWrittenMetricNameForTableTag(String tableTag) {
         return MetricName.builder()

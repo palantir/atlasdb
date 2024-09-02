@@ -18,16 +18,16 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-public final class UnfilteredCassandraClientInstrumentation implements CassandraClientInstrumentation {
+public final class UnfilteredCassandraClientMetrics implements CassandraClientMetrics {
     private final TaggedMetricRegistry registry;
 
-    public UnfilteredCassandraClientInstrumentation(TaggedMetricRegistry registry) {
+    public UnfilteredCassandraClientMetrics(TaggedMetricRegistry registry) {
         this.registry = registry;
     }
 
     @Override
     public void recordCellsWritten(String tableRef, long cellsWritten) {
-        registry.counter(CassandraClientInstrumentationUtils.createCellsWrittenMetricNameForTableTag(tableRef))
+        registry.counter(CassandraClientMetricsUtils.createCellsWrittenMetricNameForTableTag(tableRef))
                 .inc(cellsWritten);
     }
 }

@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-public interface CassandraClientInstrumentation extends AutoCloseable {
+public interface CassandraClientMetrics extends AutoCloseable {
     void recordCellsWritten(String tableRef, long cellsWritten);
 
     @Override
