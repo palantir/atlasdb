@@ -32,7 +32,7 @@ public class BucketProgressPersisterTest {
     private static final long CELL_OFFSET_1 = 1000000L;
     private static final long CELL_OFFSET_2 = 2000000L;
 
-    private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newServerObjectMapper();
+    private static final ObjectMapper OBJECT_MAPPER = ObjectMappers.newSmileServerObjectMapper();
     private static final BucketProgress BUCKET_PROGRESS_1 = BucketProgress.builder()
             .timestampProgress(TIMESTAMP_OFFSET_1)
             .cellProgressForNextTimestamp(CELL_OFFSET_1)
@@ -43,10 +43,10 @@ public class BucketProgressPersisterTest {
             .build();
 
     // Think very carefully about changing these without a migration.
-    private static final byte[] SERIALIZED_BUCKET_PROGRESS_1 =
-            BaseEncoding.base64().decode("eyJ0aW1lc3RhbXBQcm9ncmVzcyI6MTAwLCJjZWxsUHJvZ3Jlc3NGb3JOZXh0VGltZXN0YW1wIjoxMDAwMDAwfQ==");
-    private static final byte[] SERIALIZED_BUCKET_PROGRESS_2 =
-            BaseEncoding.base64().decode("eyJ0aW1lc3RhbXBQcm9ncmVzcyI6MjAwLCJjZWxsUHJvZ3Jlc3NGb3JOZXh0VGltZXN0YW1wIjoyMDAwMDAwfQ==");
+    private static final byte[] SERIALIZED_BUCKET_PROGRESS_1 = BaseEncoding.base64()
+            .decode("OikKBfqQdGltZXN0YW1wUHJvZ3Jlc3MkA4ibY2VsbFByb2dyZXNzRm9yTmV4dFRpbWVzdGFtcCQBdBKA+w==");
+    private static final byte[] SERIALIZED_BUCKET_PROGRESS_2 = BaseEncoding.base64()
+            .decode("OikKBfqQdGltZXN0YW1wUHJvZ3Jlc3MkBpCbY2VsbFByb2dyZXNzRm9yTmV4dFRpbWVzdGFtcCQDaCSA+w==");
 
     private final BucketProgressPersister bucketProgressPersister = BucketProgressPersister.create(OBJECT_MAPPER);
 
@@ -61,6 +61,7 @@ public class BucketProgressPersisterTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("bucketProgresses")
     public void canDeserializeExistingVersionOfProgress(BucketProgress bucketProgress, byte[] serializedForm) {
+        System.out.println(BaseEncoding.base64().encode(bucketProgressPersister.serializeProgress(bucketProgress)));
         assertThat(bucketProgressPersister.deserializeProgress(serializedForm)).isEqualTo(bucketProgress);
     }
 

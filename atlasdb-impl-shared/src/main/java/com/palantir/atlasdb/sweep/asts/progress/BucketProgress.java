@@ -18,7 +18,6 @@ package com.palantir.atlasdb.sweep.asts.progress;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import org.immutables.value.Value;
@@ -49,10 +48,6 @@ public interface BucketProgress {
         Preconditions.checkState(
                 timestampProgress() >= -1,
                 "Timestamp progress must be non-negative, or -1 (to indicate no timestamps are fully swept yet)",
-                SafeArg.of("timestampProgress", timestampProgress()));
-        Preconditions.checkState(
-                timestampProgress() < SweepQueueUtils.TS_FINE_GRANULARITY,
-                "Timestamp progress should not exceed the granularity of a fine partition.",
                 SafeArg.of("timestampProgress", timestampProgress()));
 
         Preconditions.checkState(

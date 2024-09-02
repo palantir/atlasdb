@@ -80,29 +80,25 @@ public final class BucketProgressTest {
     @SuppressWarnings("ResultOfMethodCallIgnored") // Validating that an exception is thrown
     public void cannotCreateWithNegativeCellProgressOtherThanNegativeOne() {
         assertThatLoggableExceptionThrownBy(() -> ImmutableBucketProgress.builder()
-                .timestampProgress(TIMESTAMP_1)
-                .cellProgressForNextTimestamp(-55L)
+                        .timestampProgress(TIMESTAMP_1)
+                        .cellProgressForNextTimestamp(-55L)
                         .build())
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasExactlyArgs(SafeArg.of("cellProgressForNextTimestamp", -55L));
     }
 
     @Test
-    public void cannotCreateWithTimestampProgressGreaterThanFinePartition() {
-        assertThatLoggableExceptionThrownBy(
-                () -> BucketProgress.createForTimestampProgress(SweepQueueUtils.TS_FINE_GRANULARITY))
-                .isInstanceOf(SafeIllegalStateException.class)
-                .hasExactlyArgs(SafeArg.of("timestampProgress", SweepQueueUtils.TS_FINE_GRANULARITY));
-        assertThatLoggableExceptionThrownBy(() -> BucketProgress.createForTimestampProgress(Long.MAX_VALUE))
-                .isInstanceOf(SafeIllegalStateException.class)
-                .hasExactlyArgs(SafeArg.of("timestampProgress", Long.MAX_VALUE));
+    public void canCreateWithTimestampProgressGreaterThanSweepQueuePartitions() {
+        assertCanCreateWith(SweepQueueUtils.TS_FINE_GRANULARITY + 1, NO_PROGRESS);
+        assertCanCreateWith(SweepQueueUtils.TS_COARSE_GRANULARITY + 1, NO_PROGRESS);
     }
 
     @SuppressWarnings("ResultOfMethodCallIgnored") // Validating that no exception is thrown
     private void assertCanCreateWith(long timestampProgress, long cellProgressForNextTimestamp) {
         assertThatCode(() -> BucketProgress.builder()
-                .timestampProgress(timestampProgress)
-                .cellProgressForNextTimestamp(cellProgressForNextTimestamp)
-                .build()).doesNotThrowAnyException();
+                        .timestampProgress(timestampProgress)
+                        .cellProgressForNextTimestamp(cellProgressForNextTimestamp)
+                        .build())
+                .doesNotThrowAnyException();
     }
 }
