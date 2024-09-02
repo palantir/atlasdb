@@ -61,7 +61,6 @@ public class BucketProgressPersisterTest {
     @ParameterizedTest(name = "{0}")
     @MethodSource("bucketProgresses")
     public void canDeserializeExistingVersionOfProgress(BucketProgress bucketProgress, byte[] serializedForm) {
-        System.out.println(BaseEncoding.base64().encode(bucketProgressPersister.serializeProgress(bucketProgress)));
         assertThat(bucketProgressPersister.deserializeProgress(serializedForm)).isEqualTo(bucketProgress);
     }
 
