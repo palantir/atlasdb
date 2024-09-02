@@ -16,7 +16,6 @@
 package com.palantir.util.sql;
 
 import com.google.common.collect.Ordering;
-import com.google.common.primitives.Longs;
 import com.palantir.util.jmx.AbstractOperationStats;
 
 /**
@@ -56,7 +55,7 @@ public class SqlCallStats extends AbstractOperationStats implements SqlCallStats
     }
 
     private static final Ordering<SqlCallStats> TOTAL_TIME_ORDERING = Ordering.from((o1, o2) -> {
-        int cmp = Longs.compare(o1.getTotalTime(), o2.getTotalTime());
+        int cmp = Long.compare(o1.getTotalTime(), o2.getTotalTime());
         if (cmp != 0) {
             return cmp;
         }
