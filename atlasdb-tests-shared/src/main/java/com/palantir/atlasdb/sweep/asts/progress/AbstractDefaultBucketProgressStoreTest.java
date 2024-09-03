@@ -51,8 +51,10 @@ public class AbstractDefaultBucketProgressStoreTest {
     private static final BucketProgress PROGRESS_ONE_THOUSAND = BucketProgress.createForTimestampProgress(1000L);
     private static final BucketProgress PROGRESS_TWO_THOUSAND_NO_CELLS_SWEPT =
             BucketProgress.createForTimestampProgress(2000L);
-    private static final BucketProgress PROGRESS_TWO_THOUSAND_ONE_CELL_SWEPT =
-            BucketProgress.builder().timestampProgress(2000L).cellProgressForNextTimestamp(0L).build();
+    private static final BucketProgress PROGRESS_TWO_THOUSAND_ONE_CELL_SWEPT = BucketProgress.builder()
+            .timestampProgress(2000L)
+            .cellProgressForNextTimestamp(0L)
+            .build();
 
     private final KeyValueService kvs;
     private final BucketProgressStore store;
