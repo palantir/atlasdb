@@ -29,8 +29,9 @@ import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.common.base.BatchingVisitable;
-import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.util.result.Result;
 import java.util.Iterator;
 import java.util.Map;
@@ -149,11 +150,13 @@ public class ReadTransaction extends ForwardingCallbackAwareTransaction {
 
     private void checkTableName(TableReference tableRef) {
         Optional<SweeperStrategy> sweepStrategy = sweepStrategies.get(tableRef).getSweeperStrategy();
-        Preconditions.checkState(
-                sweepStrategy.isEmpty() || sweepStrategy.get().equals(SweeperStrategy.CONSERVATIVE),
-                "This table cannot be read from a read-only transaction, because its sweep strategy is neither NOTHING"
-                        + " nor CONSERVATIVE",
-                LoggingArgs.tableRef(tableRef));
+        if (sweepStrategy.isPresent() && !sweepStrategy.get().equals(SweeperStrategy.CONSERVATIVE)) {
+            throw new SafeIllegalStateException(
+                    "This table cannot be read from a read-only transaction, "
+                            + "because its sweep strategy is neither NOTHING nor CONSERVATIVE",
+                    LoggingArgs.tableRef(tableRef),
+                    SafeArg.of("sweepStrategy", sweepStrategy));
+        }
     }
 
     @Override
