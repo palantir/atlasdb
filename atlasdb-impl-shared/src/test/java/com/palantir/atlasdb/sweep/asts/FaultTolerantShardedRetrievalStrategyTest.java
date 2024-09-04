@@ -22,7 +22,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.palantir.atlasdb.sweep.asts.ShardedSweepTimestampManager.SweepTimestamps;
-import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
+import com.palantir.atlasdb.sweep.asts.SweepableBucket.TimestampRange;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import java.util.List;
@@ -55,7 +55,8 @@ public class FaultTolerantShardedRetrievalStrategyTest {
 
     @Test
     public void passesThroughSuccessfulRequest() {
-        List<SweepableBucket> buckets = List.of(SweepableBucket.of(SHARD_AND_STRATEGY, 123L));
+        List<SweepableBucket> buckets =
+                List.of(SweepableBucket.of(Bucket.of(SHARD_AND_STRATEGY, 1), TimestampRange.of(1, 3)));
         when(delegate.getSweepableBucketsForShard(SHARD_AND_STRATEGY, SWEEP_TIMESTAMPS))
                 .thenReturn(buckets);
         assertThat(strategy.getSweepableBucketsForShard(SHARD_AND_STRATEGY, SWEEP_TIMESTAMPS))
