@@ -184,7 +184,7 @@ public abstract class ConnectionConfig {
 
         getTestQuery().ifPresent(config::setConnectionTestQuery);
 
-        getSqlExceptionOverrideClass().ifPresent(c -> config.setExceptionOverrideClassName(c.getName()));
+        getSqlExceptionOverrideClass().map(Class::getName).ifPresent(config::setExceptionOverrideClassName);
 
         getConnectionInitSql().ifPresent(config::setConnectionInitSql);
 

@@ -109,7 +109,7 @@ public abstract class PostgresConnectionConfig extends ConnectionConfig {
     /**
      * Normally, time to retrieve the first result ~= time to retrieve all results (eg if there is a sort)
      * but some SQL statements can deliver results incrementally (eg nested joins) in which case the socket timeout
-     * could be set low relative to the total tiem to run a statement.
+     * could be set low relative to the total time to run a statement.
      */
     @Value.Default
     public int getStatementTimeoutSeconds() {
