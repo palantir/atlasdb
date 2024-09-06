@@ -20,7 +20,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.schema.generated.SweepBucketProgressTable;
 import com.palantir.atlasdb.schema.generated.SweepBucketProgressTable.SweepBucketProgressNamedColumn;
 import com.palantir.atlasdb.schema.generated.SweepBucketProgressTable.SweepBucketProgressRow;
-import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
+import com.palantir.atlasdb.sweep.asts.Bucket;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -28,7 +28,7 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 enum DefaultBucketKeySerializer {
     INSTANCE;
 
-    Cell bucketToCell(SweepableBucket bucket) {
+    Cell bucketToCell(Bucket bucket) {
         SweepBucketProgressTable.SweepBucketProgressRow row = SweepBucketProgressRow.of(
                 bucket.shardAndStrategy().shard(),
                 bucket.bucketIdentifier(),

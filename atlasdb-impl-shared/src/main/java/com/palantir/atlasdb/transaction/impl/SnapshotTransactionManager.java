@@ -236,7 +236,7 @@ import java.util.stream.Collectors;
             openTransactionCounter.inc(transactions.size());
             return transactions;
         } catch (Throwable t) {
-            responses.forEach(response -> lockWatchManager.removeTransactionStateFromCache(
+            responses.forEach(response -> lockWatchManager.requestTransactionStateRemovalFromCache(
                     response.startTimestampAndPartition().timestamp()));
             timelockService.tryUnlock(responses.stream()
                     .map(response -> response.immutableTimestamp().getLock())
@@ -279,7 +279,7 @@ import java.util.stream.Collectors;
             try {
                 result = runTaskThrowOnConflictWithCallback(wrappedTask, tx, callback);
             } finally {
-                lockWatchManager.removeTransactionStateFromCache(getTimestamp());
+                lockWatchManager.requestTransactionStateRemovalFromCache(getTimestamp());
                 postTaskContext = postTaskTimer.time();
                 timelockService.tryUnlock(ImmutableSet.of(immutableTsLock));
                 openTransactionCounter.dec();

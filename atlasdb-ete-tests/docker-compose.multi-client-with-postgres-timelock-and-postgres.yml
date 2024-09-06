@@ -1,5 +1,3 @@
-version: '2'
-
 services:
   timelock:
     image: palantirtechnologies/timelock-server-distribution
@@ -11,7 +9,7 @@ services:
       - "8422"
 
   postgres:
-    image: postgres:9.6-alpine
+    image: postgres:13.15-alpine
     environment:
        POSTGRES_PASSWORD: palantir
        POSTGRES_USER: palantir

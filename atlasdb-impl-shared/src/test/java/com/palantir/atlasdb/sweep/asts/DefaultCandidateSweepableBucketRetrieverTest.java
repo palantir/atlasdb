@@ -19,7 +19,7 @@ package com.palantir.atlasdb.sweep.asts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.lenient;
 
-import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
+import com.palantir.atlasdb.sweep.asts.SweepableBucket.TimestampRange;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.refreshable.Disposable;
@@ -48,8 +48,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class DefaultCandidateSweepableBucketRetrieverTest {
     private static final Set<SweepableBucket> BUCKETS = Set.of(
-            SweepableBucket.of(ShardAndStrategy.of(1, SweeperStrategy.CONSERVATIVE), 1),
-            SweepableBucket.of(ShardAndStrategy.of(2, SweeperStrategy.THOROUGH), 2));
+            SweepableBucket.of(
+                    Bucket.of(ShardAndStrategy.of(1, SweeperStrategy.CONSERVATIVE), 1), TimestampRange.of(1, 3)),
+            SweepableBucket.of(
+                    Bucket.of(ShardAndStrategy.of(2, SweeperStrategy.THOROUGH), 2), TimestampRange.of(4, 6)));
     private static final SweepableBucketRetriever WITH_BUCKETS = () -> BUCKETS;
 
     private final SettableRefreshable<Duration> minimumDurationBetweenRefresh = Refreshable.create(Duration.ZERO);

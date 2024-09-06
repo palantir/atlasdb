@@ -747,10 +747,12 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
         try {
             return runRead(tableRef, table -> getTimestampsPageInternal(table, range, timestamp, batchSize, token));
         } finally {
-            log.debug(
-                    "Call to KVS.getTimestampsPage on table {} took {} ms.",
-                    LoggingArgs.tableRef(tableRef),
-                    SafeArg.of("elapsed", watch.elapsed(TimeUnit.MILLISECONDS)));
+            if (log.isDebugEnabled()) {
+                log.debug(
+                        "Call to KVS.getTimestampsPage on table {} took {} ms.",
+                        LoggingArgs.tableRef(tableRef),
+                        SafeArg.of("elapsed", watch.elapsed(TimeUnit.MILLISECONDS)));
+            }
         }
     }
 
@@ -987,10 +989,12 @@ public final class DbKvs extends AbstractKeyValueService implements DbKeyValueSe
         try {
             return extractRowColumnRangePage(tableRef, columnRangeSelection, ts, rows);
         } finally {
-            log.debug(
-                    "Call to KVS.getFirstRowColumnRangePage on table {} took {} ms.",
-                    LoggingArgs.tableRef(tableRef),
-                    SafeArg.of("elapsed", watch.elapsed(TimeUnit.MILLISECONDS)));
+            if (log.isDebugEnabled()) {
+                log.debug(
+                        "Call to KVS.getFirstRowColumnRangePage on table {} took {} ms.",
+                        LoggingArgs.tableRef(tableRef),
+                        SafeArg.of("elapsed", watch.elapsed(TimeUnit.MILLISECONDS)));
+            }
         }
     }
 
