@@ -138,9 +138,8 @@ public class HikariCpConnectionManagerTest {
     @Test
     public void testStatementTimeout() throws SQLException {
         try (Connection conn = manager.getConnection();
-                Statement stmt =
-                        conn.prepareStatement("select setting from pg_settings where name = 'statement_timeout'")) {
-            ResultSet result = stmt.getResultSet();
+                Statement stmt = conn.createStatement()) {
+            ResultSet result = stmt.executeQuery("select setting from pg_settings where name = 'statement_timeout'");
             assertThat(result.next()).isTrue();
             assertThat(result.getLong(1))
                     .isEqualTo(DbKvsPostgresExtension.getConnectionConfig().getStatementTimeoutSeconds() * 1000);
