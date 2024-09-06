@@ -38,8 +38,14 @@ public interface SweepableBucket {
         @Value.Parameter
         long endExclusive();
 
+        // TODO(mdaudali): Should this be named closeBucket? It's really just a range, so it feels like no.
         static TimestampRange of(long startInclusive, long endExclusive) {
             return ImmutableTimestampRange.of(startInclusive, endExclusive);
+        }
+
+        static TimestampRange openBucket(long startInclusive) {
+            // Think very carefully about changing from -1 without a migration
+            return of(startInclusive, -1);
         }
     }
 }

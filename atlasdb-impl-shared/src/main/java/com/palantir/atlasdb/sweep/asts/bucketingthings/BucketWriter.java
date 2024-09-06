@@ -25,6 +25,6 @@ interface BucketWriter {
 
     enum WriteState {
         SUCCESS,
-        FAILURE
+        FAILED_CAS
     }
 }

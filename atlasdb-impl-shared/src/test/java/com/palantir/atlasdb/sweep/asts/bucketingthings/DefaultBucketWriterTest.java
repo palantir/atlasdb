@@ -110,7 +110,7 @@ public final class DefaultBucketWriterTest {
         setupThrowCompareAndSetExceptionOnWrite(SweeperStrategy.THOROUGH, 18);
         assertThat(bucketWriter.writeToAllBuckets(
                         BUCKET_IDENTIFIER, Optional.of(OLD_TIMESTAMP_RANGE), NEW_TIMESTAMP_RANGE))
-                .isEqualTo(WriteState.FAILURE);
+                .isEqualTo(WriteState.FAILED_CAS);
 
         // since it's the second strategy, we should have completed all of the conservative shards.
         assertAllBucketsUpToShardForStrategyUpdatedInOrder(
@@ -126,7 +126,7 @@ public final class DefaultBucketWriterTest {
         setupThrowCompareAndSetExceptionOnWrite(SweeperStrategy.THOROUGH, 0);
         assertThat(bucketWriter.writeToAllBuckets(
                         BUCKET_IDENTIFIER, Optional.of(OLD_TIMESTAMP_RANGE), NEW_TIMESTAMP_RANGE))
-                .isEqualTo(WriteState.FAILURE);
+                .isEqualTo(WriteState.FAILED_CAS);
 
         assertAllBucketsUpToShardForStrategyUpdatedInOrder(
                 SweeperStrategy.CONSERVATIVE, NUMBER_OF_SHARDS, Optional.of(OLD_TIMESTAMP_RANGE));
