@@ -14,7 +14,6 @@ dependencies {
   implementation 'org.awaitility:awaitility'
   implementation 'com.fasterxml.jackson.core:jackson-core'
   implementation 'com.fasterxml.jackson.core:jackson-databind'
-  implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-smile'
   implementation 'com.github.ben-manes.caffeine:caffeine'
   implementation 'com.google.guava:guava'
   implementation 'com.google.protobuf:protobuf-java'
