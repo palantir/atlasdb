@@ -136,6 +136,17 @@ public class HikariCpConnectionManagerTest {
     }
 
     @Test
+    public void testStatementTimeout() throws SQLException {
+        try (Connection conn = manager.getConnection();
+                Statement stmt = conn.createStatement()) {
+            ResultSet result = stmt.executeQuery("select setting from pg_settings where name = 'statement_timeout'");
+            assertThat(result.next()).isTrue();
+            assertThat(result.getLong(1))
+                    .isEqualTo(DbKvsPostgresExtension.getConnectionConfig().getStatementTimeoutSeconds() * 1000);
+        }
+    }
+
+    @Test
     public void testRuntimePasswordChange() throws SQLException {
         // create a new user to avoid messing up the main user for other tests
         // make username random in case concurrent runs makes things bad

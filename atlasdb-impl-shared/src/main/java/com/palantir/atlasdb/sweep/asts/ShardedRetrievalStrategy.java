@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.sweep.asts;
 
 import com.palantir.atlasdb.sweep.asts.ShardedSweepTimestampManager.SweepTimestamps;
-import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import java.util.List;
 

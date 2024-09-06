@@ -63,8 +63,8 @@ public final class NoOpLockWatchManager extends LockWatchManagerInternal {
     }
 
     @Override
-    public void removeTransactionStateFromCache(long startTs) {
-        cache.removeTransactionStateFromCache(startTs);
+    public void requestTransactionStateRemovalFromCache(long startTs) {
+        cache.requestTransactionStateRemovalFromCache(startTs);
     }
 
     @Override

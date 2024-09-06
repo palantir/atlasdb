@@ -14,11 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.sweep.asts;
+package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
+import com.palantir.atlasdb.sweep.asts.Bucket;
+import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import java.util.Set;
 
-public interface SweepableBucketRetriever {
-    // TODO: Consider making this a list and doing a K way merge sort internally.
-    Set<SweepableBucket> getSweepableBuckets();
+// TODO: This feels like a terrible name, but oddly I cannot think of another one.
+//  StartingBucketsForShardStartStore?
+public interface SweepBucketPointerTable {
+    // Temporary notes until we get further in the implementation - this table exists to reduce how much we range
+    // scan to find the first bucket
+    Set<Bucket> getStartingBucketsForShards(Set<ShardAndStrategy> shardAndStrategies);
+
+    void updateStartingBucketForShardAndStrategy(Bucket newStartingBucket);
 }

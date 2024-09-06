@@ -1,5 +1,3 @@
-version: '2'
-
 services:
   cassandra1:
     image: palantirtechnologies/cassandra:unspecified

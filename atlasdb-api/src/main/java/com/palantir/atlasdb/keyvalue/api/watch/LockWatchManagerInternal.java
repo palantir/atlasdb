@@ -22,7 +22,7 @@ import com.palantir.lock.watch.LockWatchCache;
 public abstract class LockWatchManagerInternal extends LockWatchManager implements AutoCloseable {
     public abstract LockWatchCache getCache();
 
-    public abstract void removeTransactionStateFromCache(long startTs);
+    public abstract void requestTransactionStateRemovalFromCache(long startTs);
 
     public abstract void onTransactionCommit(long startTs);
 

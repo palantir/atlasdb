@@ -177,15 +177,19 @@ public class CassandraTableMetadata {
                 if (newTableOrUpdate(existingTableMetadata, newMetadata, matchingTables)) {
                     tableMetadataUpdates.put(tableReference, newMetadata);
                 } else {
-                    log.debug(
-                            "Case-insensitive matched table already existed with same metadata,"
-                                    + " skipping update to {}",
-                            LoggingArgs.tableRef(tableReference));
+                    if (log.isDebugEnabled()) {
+                        log.debug(
+                                "Case-insensitive matched table already existed with same metadata,"
+                                        + " skipping update to {}",
+                                LoggingArgs.tableRef(tableReference));
+                    }
                 }
             } else {
-                log.debug(
-                        "Table already existed with same metadata, skipping update to {}",
-                        LoggingArgs.tableRef(tableReference));
+                if (log.isDebugEnabled()) {
+                    log.debug(
+                            "Table already existed with same metadata, skipping update to {}",
+                            LoggingArgs.tableRef(tableReference));
+                }
             }
         }
 

@@ -20,6 +20,9 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.autobatch.Autobatchers;
+import com.palantir.atlasdb.autobatch.CoalescingRequestConsumer;
+import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.ResilientLockWatchProxy;
@@ -61,6 +64,8 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     @GuardedBy("this")
     private final SnapshotStore snapshotStore;
 
+    private final DisruptorAutobatcher<Long, Void> cleanupBatcher;
+
     private volatile Optional<LockWatchVersion> currentVersion = Optional.empty();
 
     private final CacheMetrics cacheMetrics;
@@ -80,6 +85,9 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         this.cacheMetrics = metrics;
         this.cacheStore =
                 new CacheStoreImpl(snapshotStore, validationProbability, failureCallback, metrics, MAX_CACHE_COUNT);
+        this.cleanupBatcher = Autobatchers.coalescing(new CleanupFunction())
+                .safeLoggablePurpose("lock-watch-value-scoping-cache-cleanup")
+                .build();
     }
 
     public static LockWatchValueScopingCache create(
@@ -120,6 +128,13 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
     @Override
     public synchronized void updateCacheWithCommitTimestampsInformation(Set<Long> startTimestamps) {
         startTimestamps.forEach(this::processCommitUpdate);
+    }
+
+    @Override
+    public void requestStateRemoved(long startTs) {
+        // Ignoring the returned Future here is intentional, as the guarantees of this method are only that the
+        // associated state is eventually cleaned up (not necessarily immediately).
+        cleanupBatcher.apply(startTs);
     }
 
     @Override
@@ -168,7 +183,7 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 }
             });
         }
-        ensureStateRemoved(startTimestamp);
+        requestStateRemoved(startTimestamp);
     }
 
     @Override
@@ -176,6 +191,11 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
         log.info("Logging state from LockWatchValueScopingCacheImpl", SafeArg.of("currentVersion", currentVersion));
         valueStore.logState();
         snapshotStore.logState();
+    }
+
+    @Override
+    public synchronized void close() {
+        cleanupBatcher.close();
     }
 
     /**
@@ -322,5 +342,17 @@ public final class LockWatchValueScopingCacheImpl implements LockWatchValueScopi
                 .map(Sequence::of)
                 .mapEntries((timestamp, sequence) -> Maps.immutableEntry(sequence, timestamp))
                 .collectToSetMultimap();
+    }
+
+    private final class CleanupFunction implements CoalescingRequestConsumer<Long> {
+        @Override
+        public void accept(Set<Long> elements) {
+            // TODO (jkong): Implement a nicer version of multi-removal.
+            // The current version for instance may, in between timestamps, spam the rate limiter or clean up snapshots
+            // multiple times when it could just do the check once at the end.
+            for (long element : elements) {
+                ensureStateRemoved(element);
+            }
+        }
     }
 }

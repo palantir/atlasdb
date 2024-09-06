@@ -48,9 +48,9 @@ public final class LockWatchCacheImpl implements LockWatchCache {
     }
 
     @Override
-    public void removeTransactionStateFromCache(long startTs) {
+    public void requestTransactionStateRemovalFromCache(long startTs) {
         eventCache.removeTransactionStateFromCache(startTs);
-        valueCache.ensureStateRemoved(startTs);
+        valueCache.requestStateRemoved(startTs);
     }
 
     @Override
