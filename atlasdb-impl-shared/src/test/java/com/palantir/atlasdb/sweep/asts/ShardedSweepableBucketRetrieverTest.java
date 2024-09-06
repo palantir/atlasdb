@@ -19,7 +19,7 @@ package com.palantir.atlasdb.sweep.asts;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.sweep.asts.ShardedSweepTimestampManager.SweepTimestamps;
-import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
+import com.palantir.atlasdb.sweep.asts.SweepableBucket.TimestampRange;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.common.concurrent.PTExecutors;
@@ -153,7 +153,9 @@ public class ShardedSweepableBucketRetrieverTest {
 
         private static List<SweepableBucket> generateList(int shard) {
             return IntStream.range(0, new Random().nextInt(10))
-                    .mapToObj(i -> SweepableBucket.of(ShardAndStrategy.of(shard, SweeperStrategy.CONSERVATIVE), i))
+                    .mapToObj(i -> SweepableBucket.of(
+                            Bucket.of(ShardAndStrategy.of(shard, SweeperStrategy.CONSERVATIVE), i),
+                            TimestampRange.of(1, 3)))
                     .collect(Collectors.toList());
         }
     }

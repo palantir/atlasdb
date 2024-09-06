@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.sweep.asts;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
 import com.palantir.common.concurrent.CoalescingSupplier;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;

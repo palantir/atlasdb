@@ -119,7 +119,7 @@ public final class DefaultSweepStateCoordinator implements SweepStateCoordinator
         Map<Integer, List<SweepableBucket>> partition = newBuckets.stream()
                 .sorted(SweepableBucketComparator.INSTANCE)
                 .collect(Collectors.groupingBy(
-                        bucket -> bucket.shardAndStrategy().shard()));
+                        bucket -> bucket.bucket().shardAndStrategy().shard()));
 
         List<Lockable<SweepableBucket>> firstBucketsOfEachShard = partition.values().stream()
                 .filter(list -> !list.isEmpty())
@@ -148,12 +148,15 @@ public final class DefaultSweepStateCoordinator implements SweepStateCoordinator
         @Override
         public int compare(SweepableBucket firstBucket, SweepableBucket secondBucket) {
             int shardComparison = Integer.compare(
-                    firstBucket.shardAndStrategy().shard(),
-                    secondBucket.shardAndStrategy().shard());
+                    firstBucket.bucket().shardAndStrategy().shard(),
+                    secondBucket.bucket().shardAndStrategy().shard());
             if (shardComparison != 0) {
                 return shardComparison;
             }
-            return Long.compare(firstBucket.bucketIdentifier(), secondBucket.bucketIdentifier());
+            return Long.compare(
+                    firstBucket.bucket().bucketIdentifier(),
+                    secondBucket.bucket().bucketIdentifier());
+            // We're explicitly not comparing timestamp range, because it's irrelevant to the algorithm
         }
     }
 

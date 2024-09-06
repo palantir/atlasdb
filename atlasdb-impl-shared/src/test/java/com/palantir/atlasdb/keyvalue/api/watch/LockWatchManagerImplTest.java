@@ -121,9 +121,9 @@ public final class LockWatchManagerImplTest {
 
     @Test
     public void removeTransactionStateTest() {
-        manager.removeTransactionStateFromCache(1L);
+        manager.requestTransactionStateRemovalFromCache(1L);
         verify(lockWatchEventCache).removeTransactionStateFromCache(1L);
-        verify(valueScopingCache).ensureStateRemoved(1L);
+        verify(valueScopingCache).requestStateRemoved(1L);
     }
 
     @Test
@@ -131,5 +131,11 @@ public final class LockWatchManagerImplTest {
         manager.getTransactionScopedCache(1L);
         verify(valueScopingCache).getTransactionScopedCache(1L);
         verifyNoMoreInteractions(lockWatchEventCache);
+    }
+
+    @Test
+    public void closePassesThroughCloseToValueScopingCache() {
+        manager.close();
+        verify(valueScopingCache).close();
     }
 }

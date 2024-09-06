@@ -18,7 +18,6 @@ package com.palantir.atlasdb.sweep.asts;
 
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.sweep.asts.ShardedSweepTimestampManager.SweepTimestamps;
-import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;

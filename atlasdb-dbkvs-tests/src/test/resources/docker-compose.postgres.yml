@@ -1,8 +1,6 @@
-version: '2'
-
 services:
   postgres-dbkvs:
-    image: postgres:9.6-alpine
+    image: postgres:13.15-alpine
     environment:
        POSTGRES_PASSWORD: palantir
        POSTGRES_USER: palantir
