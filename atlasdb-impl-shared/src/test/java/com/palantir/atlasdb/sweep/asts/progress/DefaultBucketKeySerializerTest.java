@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
+import com.palantir.atlasdb.sweep.asts.Bucket;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import java.util.Arrays;
 import java.util.List;
@@ -57,28 +57,28 @@ public final class DefaultBucketKeySerializerTest {
     @MethodSource("testShardsAndStrategies")
     public void sameShardAndStrategyDifferentBucketsMapToDifferentCells(ShardAndStrategy shardAndStrategy) {
         assertBucketsMapToDifferentCells(
-                SweepableBucket.of(shardAndStrategy, 0),
-                SweepableBucket.of(shardAndStrategy, 1),
-                SweepableBucket.of(shardAndStrategy, 2),
-                SweepableBucket.of(shardAndStrategy, 3141592));
+                Bucket.of(shardAndStrategy, 0),
+                Bucket.of(shardAndStrategy, 1),
+                Bucket.of(shardAndStrategy, 2),
+                Bucket.of(shardAndStrategy, 3141592));
     }
 
     @Test
     public void differentShardsAndStrategiesSameBucketMapToDifferentCells() {
-        SweepableBucket[] bucketZeroForDifferentShardsAndStrategies = testShardsAndStrategies()
-                .map(shardAndStrategy -> SweepableBucket.of(shardAndStrategy, 0))
-                .toArray(SweepableBucket[]::new);
+        Bucket[] bucketZeroForDifferentShardsAndStrategies = testShardsAndStrategies()
+                .map(shardAndStrategy -> Bucket.of(shardAndStrategy, 0))
+                .toArray(Bucket[]::new);
         assertBucketsMapToDifferentCells(bucketZeroForDifferentShardsAndStrategies);
     }
 
     @ParameterizedTest
     @MethodSource("testShardsAndStrategies")
     public void bucketToCellMatchesHistoricalCellMappings(ShardAndStrategy shardAndStrategy) {
-        assertThat(DefaultBucketKeySerializer.INSTANCE.bucketToCell(SweepableBucket.of(shardAndStrategy, 0)))
+        assertThat(DefaultBucketKeySerializer.INSTANCE.bucketToCell(Bucket.of(shardAndStrategy, 0)))
                 .isEqualTo(GOLDEN_CELLS.get(shardAndStrategy));
     }
 
-    private static void assertBucketsMapToDifferentCells(SweepableBucket... buckets) {
+    private static void assertBucketsMapToDifferentCells(Bucket... buckets) {
         List<Cell> cells = Arrays.stream(buckets)
                 .map(DefaultBucketKeySerializer.INSTANCE::bucketToCell)
                 .collect(Collectors.toList());
