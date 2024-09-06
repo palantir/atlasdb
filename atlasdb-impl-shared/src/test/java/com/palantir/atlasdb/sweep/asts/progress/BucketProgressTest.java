@@ -101,4 +101,65 @@ public final class BucketProgressTest {
                         .build())
                 .doesNotThrowAnyException();
     }
+
+    @Test
+    public void sameTimestampAndCellOffsetComparesAsEqual() {
+        BucketProgress progressOne = BucketProgress.builder()
+                .timestampProgress(TIMESTAMP_1)
+                .cellProgressForNextTimestamp(CELL_PROGRESS_1)
+                .build();
+        BucketProgress progressTwo = BucketProgress.builder()
+                .timestampProgress(TIMESTAMP_1)
+                .cellProgressForNextTimestamp(CELL_PROGRESS_1)
+                .build();
+
+        assertThat(progressOne).isNotSameAs(progressTwo);
+        assertThat(progressOne.compareTo(progressTwo)).isEqualTo(0L);
+        assertThat(progressTwo.compareTo(progressOne)).isEqualTo(0L);
+    }
+
+    @Test
+    public void lowerTimestampOffsetComparesAsLesser() {
+        BucketProgress progressOne = BucketProgress.builder()
+                .timestampProgress(TIMESTAMP_1)
+                .cellProgressForNextTimestamp(CELL_PROGRESS_1)
+                .build();
+        BucketProgress progressTwo = BucketProgress.builder()
+                .timestampProgress(TIMESTAMP_2)
+                .cellProgressForNextTimestamp(CELL_PROGRESS_2)
+                .build();
+
+        assertThat(progressOne.compareTo(progressTwo)).isNegative();
+        assertThat(progressTwo.compareTo(progressOne)).isPositive();
+    }
+
+    @Test
+    public void lowerCellOffsetWithMatchingTimestampComparesAsLesser() {
+        BucketProgress progressOne = BucketProgress.builder()
+                .timestampProgress(TIMESTAMP_1)
+                .cellProgressForNextTimestamp(CELL_PROGRESS_1)
+                .build();
+        BucketProgress progressTwo = BucketProgress.builder()
+                .timestampProgress(TIMESTAMP_1)
+                .cellProgressForNextTimestamp(CELL_PROGRESS_2)
+                .build();
+
+        assertThat(progressOne.compareTo(progressTwo)).isNegative();
+        assertThat(progressTwo.compareTo(progressOne)).isPositive();
+    }
+
+    @Test
+    public void lowerTimestampOffsetAndHigherCellOffsetComparesAsLesser() {
+        BucketProgress progressOne = BucketProgress.builder()
+                .timestampProgress(TIMESTAMP_1)
+                .cellProgressForNextTimestamp(CELL_PROGRESS_2)
+                .build();
+        BucketProgress progressTwo = BucketProgress.builder()
+                .timestampProgress(TIMESTAMP_2)
+                .cellProgressForNextTimestamp(CELL_PROGRESS_1)
+                .build();
+
+        assertThat(progressOne.compareTo(progressTwo)).isNegative();
+        assertThat(progressTwo.compareTo(progressOne)).isPositive();
+    }
 }
