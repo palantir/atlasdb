@@ -42,7 +42,7 @@ public final class CassandraLogHelper {
     // Cache instances as there should be a relatively small, generally fixed number of Cassandra servers.
     private static final Interner<HostAndIpAddress> hostAddresses = Interner.newWeakInterner();
 
-    static HostAndIpAddress host(InetSocketAddress host) {
+    public static HostAndIpAddress host(InetSocketAddress host) {
         String hostString = host.getHostString().toLowerCase(Locale.ROOT);
         InetAddress inetAddress = host.getAddress();
         String ip = (inetAddress == null) ? null : /* unresolved IP */ inetAddress.getHostAddress();
