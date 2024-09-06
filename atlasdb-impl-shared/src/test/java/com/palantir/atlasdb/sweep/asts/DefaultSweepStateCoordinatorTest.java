@@ -28,7 +28,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepOutcome;
-import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
+import com.palantir.atlasdb.sweep.asts.SweepableBucket.TimestampRange;
 import com.palantir.atlasdb.sweep.asts.locks.Lockable;
 import com.palantir.atlasdb.sweep.asts.locks.Lockable.LockedItem;
 import com.palantir.atlasdb.sweep.asts.locks.LockableFactory;
@@ -267,7 +267,9 @@ public class DefaultSweepStateCoordinatorTest {
     }
 
     private static SweepableBucket bucket(int shard, int identifier) {
-        return SweepableBucket.of(ShardAndStrategy.of(shard, SweeperStrategy.CONSERVATIVE), identifier);
+        return SweepableBucket.of(
+                Bucket.of(ShardAndStrategy.of(shard, SweeperStrategy.CONSERVATIVE), identifier),
+                TimestampRange.of(1, 3));
     }
 
     // When we have assertions _inside_ tryRunTaskWithBucket, it's possible for those tests to spuriously pass if

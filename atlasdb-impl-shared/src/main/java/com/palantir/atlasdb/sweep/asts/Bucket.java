@@ -16,14 +16,25 @@
 
 package com.palantir.atlasdb.sweep.asts;
 
-import java.util.function.Consumer;
+import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
+import com.palantir.logsafe.Safe;
+import org.immutables.value.Value;
 
-public interface SweepStateCoordinator {
-    SweepOutcome tryRunTaskWithBucket(Consumer<SweepableBucket> task);
+@Value.Immutable
+public abstract class Bucket {
+    @Value.Parameter
+    public abstract ShardAndStrategy shardAndStrategy();
 
-    enum SweepOutcome {
-        NOTHING_AVAILABLE,
-        NOTHING_TO_SWEEP,
-        SWEPT;
+    @Value.Parameter
+    public abstract long bucketIdentifier();
+
+    @Safe
+    @Override
+    public String toString() {
+        return shardAndStrategy().toText() + " and partition " + bucketIdentifier();
+    }
+
+    public static Bucket of(ShardAndStrategy shardAndStrategy, long bucketIdentifier) {
+        return ImmutableBucket.of(shardAndStrategy, bucketIdentifier);
     }
 }

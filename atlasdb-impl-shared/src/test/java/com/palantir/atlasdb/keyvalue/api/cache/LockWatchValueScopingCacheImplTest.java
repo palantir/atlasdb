@@ -38,6 +38,7 @@ import com.palantir.atlasdb.keyvalue.api.watch.Sequence;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.v2.LockToken;
@@ -50,6 +51,7 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -57,10 +59,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 import org.assertj.core.api.IterableAssert;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -486,6 +491,58 @@ public final class LockWatchValueScopingCacheImplTest {
                 .isExactlyInstanceOf(TransactionLockWatchFailedException.class)
                 .hasMessage("snapshots were not taken for all sequences; this update must have been lost and is now too"
                         + " old to process. Transactions should be retried.");
+    }
+
+    @SuppressWarnings("SynchronizeOnNonFinalField") // For the context of this test, we know that the field won't change
+    @Test
+    public void requestStateRemovedDoesNotSynchronizeOnObject() throws InterruptedException {
+        ExecutorService executorService = PTExecutors.newSingleThreadExecutor();
+        CountDownLatch lockReleaseLatch = new CountDownLatch(1);
+        CountDownLatch testExecutionReleaseLatch = new CountDownLatch(1);
+
+        executorService.execute(() -> {
+            synchronized (valueCache) {
+                try {
+                    testExecutionReleaseLatch.countDown();
+                    lockReleaseLatch.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+
+        testExecutionReleaseLatch.await();
+
+        // The following calls would be unable to proceed if they synchronized on the value cache.
+        valueCache.requestStateRemoved(TIMESTAMP_1);
+        valueCache.requestStateRemoved(TIMESTAMP_2);
+        valueCache.requestStateRemoved(TIMESTAMP_3);
+
+        lockReleaseLatch.countDown();
+    }
+
+    @Test
+    public void requestStateRemovedEventuallyRemovesState() {
+        processStartTransactionsUpdate(LOCK_WATCH_SNAPSHOT, TIMESTAMP_1, TIMESTAMP_2, TIMESTAMP_3);
+
+        // Maybe this leans too heavily into implementation details, but there isn't otherwise a good way of
+        // determining whether we actually refer to a valid cache.
+        assertThat(valueCache.getTransactionScopedCache(TIMESTAMP_1)).isNotInstanceOf(NoOpTransactionScopedCache.class);
+        assertThat(valueCache.getTransactionScopedCache(TIMESTAMP_2)).isNotInstanceOf(NoOpTransactionScopedCache.class);
+        assertThat(valueCache.getTransactionScopedCache(TIMESTAMP_3)).isNotInstanceOf(NoOpTransactionScopedCache.class);
+
+        valueCache.requestStateRemoved(TIMESTAMP_1);
+        valueCache.requestStateRemoved(TIMESTAMP_3);
+
+        Awaitility.await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
+            assertThat(valueCache.getTransactionScopedCache(TIMESTAMP_1))
+                    .isInstanceOf(NoOpTransactionScopedCache.class);
+            assertThat(valueCache.getTransactionScopedCache(TIMESTAMP_2))
+                    .isNotInstanceOf(NoOpTransactionScopedCache.class);
+            assertThat(valueCache.getTransactionScopedCache(TIMESTAMP_3))
+                    .isInstanceOf(NoOpTransactionScopedCache.class);
+        });
     }
 
     private static void assertNoRowsCached(TransactionScopedCache scopedCache) {

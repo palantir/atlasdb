@@ -18,7 +18,6 @@ package com.palantir.atlasdb.sweep.asts;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.sweep.asts.ShardedSweepTimestampManager.SweepTimestamps;
-import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.common.base.RunnableCheckedException;

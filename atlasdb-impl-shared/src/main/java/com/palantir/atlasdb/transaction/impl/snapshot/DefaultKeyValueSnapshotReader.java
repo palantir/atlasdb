@@ -53,6 +53,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -192,8 +193,10 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
                     while (!remainingResultsToPostFilter.isEmpty()) {
                         remainingResultsToPostFilter = AtlasFutures.getUnchecked(getWithPostFilteringInternal(
                                 tableReference, remainingResultsToPostFilter, resultsAccumulator, transformer));
-                        Preconditions.checkState(
-                                ++iterations < MAX_POST_FILTERING_ITERATIONS,
+                        if (++iterations < MAX_POST_FILTERING_ITERATIONS) {
+                            continue;
+                        }
+                        throw new SafeIllegalStateException(
                                 "Unable to filter cells to find correct result after "
                                         + "reaching max iterations. This is likely due to aborted cells lying around,"
                                         + " or in the very rare case, could be due to transactions which constantly "

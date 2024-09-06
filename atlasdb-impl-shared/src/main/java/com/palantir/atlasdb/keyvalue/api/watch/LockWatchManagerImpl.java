@@ -133,6 +133,7 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
     public void close() {
         refreshTask.cancel(false);
         executorService.shutdown();
+        valueScopingCache.close();
     }
 
     @Override
@@ -154,8 +155,8 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
     }
 
     @Override
-    public void removeTransactionStateFromCache(long startTs) {
-        lockWatchCache.removeTransactionStateFromCache(startTs);
+    public void requestTransactionStateRemovalFromCache(long startTs) {
+        lockWatchCache.requestTransactionStateRemovalFromCache(startTs);
     }
 
     @Override

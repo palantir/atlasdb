@@ -1,5 +1,3 @@
-version: '2'
-
 services:
   cassandra2:
     image: palantirtechnologies/docker-cassandra-atlasdb:$CASSANDRA_VERSION

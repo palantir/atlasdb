@@ -159,6 +159,6 @@ final class TransactionStarterHelper {
         responses.stream()
                 .map(StartIdentifiedAtlasDbTransactionResponse::startTimestampAndPartition)
                 .map(TimestampAndPartition::timestamp)
-                .forEach(cache::removeTransactionStateFromCache);
+                .forEach(cache::requestTransactionStateRemovalFromCache);
     }
 }
