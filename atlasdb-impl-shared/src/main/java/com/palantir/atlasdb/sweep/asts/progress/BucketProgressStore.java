@@ -16,27 +16,27 @@
 
 package com.palantir.atlasdb.sweep.asts.progress;
 
-import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
+import com.palantir.atlasdb.sweep.asts.Bucket;
 import java.util.Optional;
 
 public interface BucketProgressStore {
-    Optional<BucketProgress> getBucketProgress(SweepableBucket bucket);
+    Optional<BucketProgress> getBucketProgress(Bucket bucket);
 
     /**
      * If this method returned successfully, it is guaranteed that the stored bucket progress for the relevant bucket
      * was at least the minimum at some point during this call, and is at least the minimum unless there was a
-     * concurrent call to {@link #deleteBucketProgress(SweepableBucket)}. There is no guarantee that any writes are
-     * actually performed (e.g., if the bucket progress is already greater than the provided minimum).
+     * concurrent call to {@link #deleteBucketProgress(Bucket)}. There is no guarantee that any writes are actually
+     * performed (e.g., if the bucket progress is already greater than the provided minimum).
      */
-    void updateBucketProgressToAtLeast(SweepableBucket bucket, BucketProgress minimum);
+    void updateBucketProgressToAtLeast(Bucket bucket, BucketProgress minimum);
 
     /**
      * Deletes the stored bucket progress for the relevant bucket. A consequence of this is that subsequent calls
-     * to {@link #getBucketProgress(SweepableBucket)} may return empty, which could indicate that the bucket has not
+     * to {@link #getBucketProgress(Bucket)} may return empty, which could indicate that the bucket has not
      * been swept yet.
      *
      * This method is only expected to be used for cleanup, once the system is in a state where the relevant bucket
      * will no longer be considered for sweeping (short of specific manual actions).
      */
-    void deleteBucketProgress(SweepableBucket bucket);
+    void deleteBucketProgress(Bucket bucket);
 }

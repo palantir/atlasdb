@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.sweep.asts.progress;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -25,14 +24,15 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
-import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
+import com.palantir.atlasdb.sweep.asts.Bucket;
+import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
 import java.util.Optional;
 
-public final class DefaultBucketProgressStore implements BucketProgressStore {
+final class DefaultBucketProgressStore implements BucketProgressStore {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultBucketProgressStore.class);
     private static final int CAS_ATTEMPT_LIMIT = 10;
 
@@ -49,18 +49,19 @@ public final class DefaultBucketProgressStore implements BucketProgressStore {
         this.bucketProgressSerializer = bucketProgressSerializer;
     }
 
-    public static BucketProgressStore create(KeyValueService keyValueService, ObjectMapper objectMapper) {
-        return new DefaultBucketProgressStore(keyValueService, BucketProgressSerializer.create(objectMapper));
+    public static BucketProgressStore create(KeyValueService keyValueService) {
+        return new DefaultBucketProgressStore(
+                keyValueService, BucketProgressSerializer.create(ObjectMappers.newServerSmileMapper()));
     }
 
     @Override
-    public Optional<BucketProgress> getBucketProgress(SweepableBucket bucket) {
+    public Optional<BucketProgress> getBucketProgress(Bucket bucket) {
         return readBucketProgress(DefaultBucketKeySerializer.INSTANCE.bucketToCell(bucket))
                 .map(bucketProgressSerializer::deserializeProgress);
     }
 
     @Override
-    public void updateBucketProgressToAtLeast(SweepableBucket bucket, BucketProgress minimum) {
+    public void updateBucketProgressToAtLeast(Bucket bucket, BucketProgress minimum) {
         Cell bucketCell = DefaultBucketKeySerializer.INSTANCE.bucketToCell(bucket);
         byte[] serializedBucketProgress = bucketProgressSerializer.serializeProgress(minimum);
         for (int attempt = 0; attempt < CAS_ATTEMPT_LIMIT; attempt++) {
@@ -125,7 +126,7 @@ public final class DefaultBucketProgressStore implements BucketProgressStore {
     }
 
     @Override
-    public void deleteBucketProgress(SweepableBucket bucket) {
+    public void deleteBucketProgress(Bucket bucket) {
         throw new UnsupportedOperationException("deleteBucketProgress is not implemented yet.");
     }
 

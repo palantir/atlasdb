@@ -35,7 +35,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
+import com.palantir.atlasdb.sweep.asts.Bucket;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.conjure.java.serialization.ObjectMappers;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,7 +51,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 public class DefaultBucketProgressStoreTest {
     private static final RuntimeException GENERIC_RUNTIME_EXCEPTION = new RuntimeException("oops");
-    private static final SweepableBucket DEFAULT_BUCKET = SweepableBucket.of(ShardAndStrategy.thorough(0), 1L);
+    private static final Bucket DEFAULT_BUCKET = Bucket.of(ShardAndStrategy.thorough(0), 1L);
     private static final Cell DEFAULT_BUCKET_CELL = DefaultBucketKeySerializer.INSTANCE.bucketToCell(DEFAULT_BUCKET);
 
     private static final BucketProgressSerializer BUCKET_PROGRESS_SERIALIZER =

@@ -21,32 +21,30 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
-import com.palantir.atlasdb.sweep.asts.ImmutableSweepableBucket;
-import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepableBucket;
+import com.palantir.atlasdb.sweep.asts.Bucket;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
-import com.palantir.conjure.java.serialization.ObjectMappers;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 // This exists as an abstract class, because the semantics of the atomic table operations are tricky, and novel as
-// part of the auto-scaling sweep project.
-public class AbstractDefaultBucketProgressStoreTest {
-    private static final SweepableBucket SWEEPABLE_BUCKET_ONE_CONSERVATIVE_SHARD_ZERO =
-            ImmutableSweepableBucket.of(ShardAndStrategy.of(0, SweeperStrategy.CONSERVATIVE), 1);
-    private static final SweepableBucket SWEEPABLE_BUCKET_TWO_CONSERVATIVE_SHARD_ZERO =
-            ImmutableSweepableBucket.of(ShardAndStrategy.of(0, SweeperStrategy.CONSERVATIVE), 2);
-    private static final SweepableBucket SWEEPABLE_BUCKET_ONE_CONSERVATIVE_SHARD_ONE =
-            ImmutableSweepableBucket.of(ShardAndStrategy.of(1, SweeperStrategy.CONSERVATIVE), 1);
-    private static final SweepableBucket SWEEPABLE_BUCKET_ONE_THOROUGH_SHARD_ZERO =
-            ImmutableSweepableBucket.of(ShardAndStrategy.of(0, SweeperStrategy.THOROUGH), 1);
-    private static final SweepableBucket SWEEPABLE_BUCKET_ONE_THOROUGH_SHARD_ONE =
-            ImmutableSweepableBucket.of(ShardAndStrategy.of(1, SweeperStrategy.THOROUGH), 1);
-    private static final SweepableBucket SWEEPABLE_BUCKET_ONE_NON_SWEEPABLE_SHARD_ZERO =
-            ImmutableSweepableBucket.of(ShardAndStrategy.of(0, SweeperStrategy.NON_SWEEPABLE), 1);
+// part of the auto-scaling sweep project. We want to test these against the various DB implementations
+public abstract class AbstractDefaultBucketProgressStoreTest {
+    private static final Bucket BUCKET_ONE_CONSERVATIVE_SHARD_ZERO =
+            Bucket.of(ShardAndStrategy.of(0, SweeperStrategy.CONSERVATIVE), 1);
+    private static final Bucket BUCKET_TWO_CONSERVATIVE_SHARD_ZERO =
+            Bucket.of(ShardAndStrategy.of(0, SweeperStrategy.CONSERVATIVE), 2);
+    private static final Bucket BUCKET_ONE_CONSERVATIVE_SHARD_ONE =
+            Bucket.of(ShardAndStrategy.of(1, SweeperStrategy.CONSERVATIVE), 1);
+    private static final Bucket BUCKET_ONE_THOROUGH_SHARD_ZERO =
+            Bucket.of(ShardAndStrategy.of(0, SweeperStrategy.THOROUGH), 1);
+    private static final Bucket BUCKET_ONE_THOROUGH_SHARD_ONE =
+            Bucket.of(ShardAndStrategy.of(1, SweeperStrategy.THOROUGH), 1);
+    private static final Bucket BUCKET_ONE_NON_SWEEPABLE_SHARD_ZERO =
+            Bucket.of(ShardAndStrategy.of(0, SweeperStrategy.NON_SWEEPABLE), 1);
 
     private static final BucketProgress PROGRESS_ONE_THOUSAND = BucketProgress.createForTimestampProgress(1000L);
     private static final BucketProgress PROGRESS_TWO_THOUSAND_NO_CELLS_SWEPT =
@@ -61,24 +59,24 @@ public class AbstractDefaultBucketProgressStoreTest {
 
     protected AbstractDefaultBucketProgressStoreTest(KvsManager kvsManager) {
         kvs = kvsManager.getDefaultKvs();
-        store = DefaultBucketProgressStore.create(kvs, ObjectMappers.newServerSmileMapper());
+        store = DefaultBucketProgressStore.create(kvs);
     }
 
     @BeforeEach
-    public void setup() {
+    public void setUp() {
         Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
         kvs.truncateTable(DefaultBucketProgressStore.TABLE_REF);
     }
 
     @ParameterizedTest
     @MethodSource("testBuckets")
-    public void bucketProgressIsEmptyIfNothingStored(SweepableBucket bucket) {
+    public void bucketProgressIsEmptyIfNothingStored(Bucket bucket) {
         assertThat(store.getBucketProgress(bucket)).isEmpty();
     }
 
     @ParameterizedTest
     @MethodSource("testBuckets")
-    public void bucketProgressReturnsStoredValue(SweepableBucket bucket) {
+    public void bucketProgressReturnsStoredValue(Bucket bucket) {
         store.updateBucketProgressToAtLeast(bucket, PROGRESS_ONE_THOUSAND);
         assertThat(store.getBucketProgress(bucket)).contains(PROGRESS_ONE_THOUSAND);
         testBuckets().filter(testBucket -> !testBucket.equals(bucket)).forEach(testBucket -> {
@@ -88,7 +86,7 @@ public class AbstractDefaultBucketProgressStoreTest {
 
     @ParameterizedTest
     @MethodSource("testBuckets")
-    public void updateBucketProgressToAtLeastIncreasesExistingProgress(SweepableBucket bucket) {
+    public void updateBucketProgressToAtLeastIncreasesExistingProgress(Bucket bucket) {
         store.updateBucketProgressToAtLeast(bucket, PROGRESS_ONE_THOUSAND);
         assertThat(store.getBucketProgress(bucket)).contains(PROGRESS_ONE_THOUSAND);
         store.updateBucketProgressToAtLeast(bucket, PROGRESS_TWO_THOUSAND_NO_CELLS_SWEPT);
@@ -99,7 +97,7 @@ public class AbstractDefaultBucketProgressStoreTest {
 
     @ParameterizedTest
     @MethodSource("testBuckets")
-    public void updateBucketProgressToAtLeastDoesNotDecreaseExistingProgress(SweepableBucket bucket) {
+    public void updateBucketProgressToAtLeastDoesNotDecreaseExistingProgress(Bucket bucket) {
         store.updateBucketProgressToAtLeast(bucket, PROGRESS_TWO_THOUSAND_ONE_CELL_SWEPT);
         assertThat(store.getBucketProgress(bucket)).contains(PROGRESS_TWO_THOUSAND_ONE_CELL_SWEPT);
         store.updateBucketProgressToAtLeast(bucket, PROGRESS_ONE_THOUSAND);
@@ -108,13 +106,13 @@ public class AbstractDefaultBucketProgressStoreTest {
         assertThat(store.getBucketProgress(bucket)).contains(PROGRESS_TWO_THOUSAND_ONE_CELL_SWEPT);
     }
 
-    private static Stream<SweepableBucket> testBuckets() {
+    private static Stream<Bucket> testBuckets() {
         return Stream.of(
-                SWEEPABLE_BUCKET_ONE_CONSERVATIVE_SHARD_ZERO,
-                SWEEPABLE_BUCKET_TWO_CONSERVATIVE_SHARD_ZERO,
-                SWEEPABLE_BUCKET_ONE_CONSERVATIVE_SHARD_ONE,
-                SWEEPABLE_BUCKET_ONE_THOROUGH_SHARD_ZERO,
-                SWEEPABLE_BUCKET_ONE_THOROUGH_SHARD_ONE,
-                SWEEPABLE_BUCKET_ONE_NON_SWEEPABLE_SHARD_ZERO);
+                BUCKET_ONE_CONSERVATIVE_SHARD_ZERO,
+                BUCKET_TWO_CONSERVATIVE_SHARD_ZERO,
+                BUCKET_ONE_CONSERVATIVE_SHARD_ONE,
+                BUCKET_ONE_THOROUGH_SHARD_ZERO,
+                BUCKET_ONE_THOROUGH_SHARD_ONE,
+                BUCKET_ONE_NON_SWEEPABLE_SHARD_ZERO);
     }
 }
