@@ -41,29 +41,29 @@ final class DefaultBucketProgressStore implements BucketProgressStore {
             TargetedSweepTableFactory.of().getSweepBucketProgressTable(null).getTableRef();
 
     private final KeyValueService keyValueService;
-    private final BucketProgressSerializer bucketProgressSerializer;
+    private final BucketProgressPersister bucketProgressPersister;
 
     @VisibleForTesting
-    DefaultBucketProgressStore(KeyValueService keyValueService, BucketProgressSerializer bucketProgressSerializer) {
+    DefaultBucketProgressStore(KeyValueService keyValueService, BucketProgressPersister bucketProgressPersister) {
         this.keyValueService = keyValueService;
-        this.bucketProgressSerializer = bucketProgressSerializer;
+        this.bucketProgressPersister = bucketProgressPersister;
     }
 
     public static BucketProgressStore create(KeyValueService keyValueService) {
         return new DefaultBucketProgressStore(
-                keyValueService, BucketProgressSerializer.create(ObjectMappers.newServerSmileMapper()));
+                keyValueService, BucketProgressPersister.create(ObjectMappers.newServerSmileMapper()));
     }
 
     @Override
     public Optional<BucketProgress> getBucketProgress(Bucket bucket) {
         return readBucketProgress(DefaultBucketKeySerializer.INSTANCE.bucketToCell(bucket))
-                .map(bucketProgressSerializer::deserializeProgress);
+                .map(bucketProgressPersister::deserializeProgress);
     }
 
     @Override
     public void updateBucketProgressToAtLeast(Bucket bucket, BucketProgress minimum) {
         Cell bucketCell = DefaultBucketKeySerializer.INSTANCE.bucketToCell(bucket);
-        byte[] serializedBucketProgress = bucketProgressSerializer.serializeProgress(minimum);
+        byte[] serializedBucketProgress = bucketProgressPersister.serializeProgress(minimum);
         for (int attempt = 0; attempt < CAS_ATTEMPT_LIMIT; attempt++) {
             try {
                 Optional<byte[]> currentProgress = readBucketProgress(bucketCell);
@@ -78,14 +78,14 @@ final class DefaultBucketProgressStore implements BucketProgressStore {
                     }
                 } else {
                     BucketProgress extantCurrentProgress =
-                            bucketProgressSerializer.deserializeProgress(currentProgress.get());
+                            bucketProgressPersister.deserializeProgress(currentProgress.get());
 
                     if (minimum.compareTo(extantCurrentProgress) > 0) {
                         keyValueService.checkAndSet(CheckAndSetRequest.singleCell(
                                 TABLE_REF,
                                 bucketCell,
                                 currentProgress.get(),
-                                bucketProgressSerializer.serializeProgress(minimum)));
+                                bucketProgressPersister.serializeProgress(minimum)));
                         if (log.isDebugEnabled()) {
                             log.debug(
                                     "Updated sweep bucket progress",

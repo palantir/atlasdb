@@ -54,8 +54,8 @@ public class DefaultBucketProgressStoreTest {
     private static final Bucket DEFAULT_BUCKET = Bucket.of(ShardAndStrategy.thorough(0), 1L);
     private static final Cell DEFAULT_BUCKET_CELL = DefaultBucketKeySerializer.INSTANCE.bucketToCell(DEFAULT_BUCKET);
 
-    private static final BucketProgressSerializer BUCKET_PROGRESS_SERIALIZER =
-            BucketProgressSerializer.create(ObjectMappers.newSmileServerObjectMapper());
+    private static final BucketProgressPersister BUCKET_PROGRESS_PERSISTER =
+            BucketProgressPersister.create(ObjectMappers.newSmileServerObjectMapper());
 
     @Mock
     private KeyValueService keyValueService;
@@ -64,7 +64,7 @@ public class DefaultBucketProgressStoreTest {
 
     @BeforeEach
     public void setUp() {
-        this.bucketProgressStore = new DefaultBucketProgressStore(keyValueService, BUCKET_PROGRESS_SERIALIZER);
+        this.bucketProgressStore = new DefaultBucketProgressStore(keyValueService, BUCKET_PROGRESS_PERSISTER);
     }
 
     @Test
@@ -91,7 +91,7 @@ public class DefaultBucketProgressStoreTest {
                 .thenReturn(ImmutableMap.of(
                         DEFAULT_BUCKET_CELL,
                         Value.create(
-                                BUCKET_PROGRESS_SERIALIZER.serializeProgress(
+                                BUCKET_PROGRESS_PERSISTER.serializeProgress(
                                         BucketProgress.createForTimestampProgress(200L)),
                                 AtlasDbConstants.TRANSACTION_TS)));
 
@@ -107,7 +107,7 @@ public class DefaultBucketProgressStoreTest {
                 .thenReturn(ImmutableMap.of(
                         DEFAULT_BUCKET_CELL,
                         Value.create(
-                                BUCKET_PROGRESS_SERIALIZER.serializeProgress(
+                                BUCKET_PROGRESS_PERSISTER.serializeProgress(
                                         BucketProgress.createForTimestampProgress(100L)),
                                 AtlasDbConstants.TRANSACTION_TS)));
 
@@ -121,11 +121,11 @@ public class DefaultBucketProgressStoreTest {
     public void updateBucketProgressToAtLeastRetriesWithNewExpectationsIfReceivingCheckAndSetExceptions() {
         BucketProgress bucketProgress = BucketProgress.createForTimestampProgress(100L);
 
-        byte[] serializedBucketProgress = BUCKET_PROGRESS_SERIALIZER.serializeProgress(bucketProgress);
+        byte[] serializedBucketProgress = BUCKET_PROGRESS_PERSISTER.serializeProgress(bucketProgress);
         byte[] serializedIntermediateProgressOne =
-                BUCKET_PROGRESS_SERIALIZER.serializeProgress(BucketProgress.createForTimestampProgress(10L));
+                BUCKET_PROGRESS_PERSISTER.serializeProgress(BucketProgress.createForTimestampProgress(10L));
         byte[] serializedIntermediateProgressTwo =
-                BUCKET_PROGRESS_SERIALIZER.serializeProgress(BucketProgress.createForTimestampProgress(50L));
+                BUCKET_PROGRESS_PERSISTER.serializeProgress(BucketProgress.createForTimestampProgress(50L));
         when(keyValueService.get(any(), anyMap()))
                 .thenReturn(
                         ImmutableMap.of(),
@@ -170,7 +170,7 @@ public class DefaultBucketProgressStoreTest {
         return new CheckAndSetException(
                 DEFAULT_BUCKET_CELL,
                 DefaultBucketProgressStore.TABLE_REF,
-                BUCKET_PROGRESS_SERIALIZER.serializeProgress(expectedProgress),
-                ImmutableList.of(BUCKET_PROGRESS_SERIALIZER.serializeProgress(progressInDatabase)));
+                BUCKET_PROGRESS_PERSISTER.serializeProgress(expectedProgress),
+                ImmutableList.of(BUCKET_PROGRESS_PERSISTER.serializeProgress(progressInDatabase)));
     }
 }
