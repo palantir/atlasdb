@@ -18,8 +18,11 @@ package com.palantir.atlasdb.autobatch;
 
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Snapshot;
+import com.google.common.base.Suppliers;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.time.Duration;
+import java.util.function.Supplier;
 
 public final class AutobatcherTelemetryComponents {
     private final String safeLoggablePurpose;
@@ -83,24 +86,34 @@ public final class AutobatcherTelemetryComponents {
     }
 
     private void registerGauges() {
+        // capturing a snapshot is expensive, so memoize for 10 milliseconds to reduce overhead during metrics read 50%.
+        Duration memoizeDuration = Duration.ofMillis(10);
+        Supplier<Snapshot> waitTimerSnapshot = Suppliers.memoizeWithExpiration(waitTimer::getSnapshot, memoizeDuration);
+        Supplier<Snapshot> waitTimeHistogramSnapshot =
+                Suppliers.memoizeWithExpiration(waitTimeHistogram::getSnapshot, memoizeDuration);
+        Supplier<Snapshot> runningTimerSnapshot =
+                Suppliers.memoizeWithExpiration(runningTimer::getSnapshot, memoizeDuration);
+        Supplier<Snapshot> totalTimerSnapshot =
+                Suppliers.memoizeWithExpiration(totalTimer::getSnapshot, memoizeDuration);
+
         overheadMetrics.waitTimeNanosP1(
-                (Gauge<Double>) () -> waitTimer.getSnapshot().getValue(0.01));
+                (Gauge<Double>) () -> waitTimerSnapshot.get().getValue(0.01));
         overheadMetrics.waitTimeNanosMedian(
-                (Gauge<Double>) () -> waitTimer.getSnapshot().getValue(0.5));
+                (Gauge<Double>) () -> waitTimerSnapshot.get().getValue(0.5));
 
         overheadMetrics.waitTimePercentageP1(
-                (Gauge<Double>) () -> waitTimeHistogram.getSnapshot().getValue(0.01));
+                (Gauge<Double>) () -> waitTimeHistogramSnapshot.get().getValue(0.01));
         overheadMetrics.waitTimePercentageMedian(
-                (Gauge<Double>) () -> waitTimeHistogram.getSnapshot().getValue(0.5));
+                (Gauge<Double>) () -> waitTimeHistogramSnapshot.get().getValue(0.5));
 
         overheadMetrics.runningTimeNanosP1(
-                (Gauge<Double>) () -> runningTimer.getSnapshot().getValue(0.01));
+                (Gauge<Double>) () -> runningTimerSnapshot.get().getValue(0.01));
         overheadMetrics.runningTimeNanosMedian(
-                (Gauge<Double>) () -> runningTimer.getSnapshot().getValue(0.5));
+                (Gauge<Double>) () -> runningTimerSnapshot.get().getValue(0.5));
 
         overheadMetrics.totalTimeNanosP1(
-                (Gauge<Double>) () -> totalTimer.getSnapshot().getValue(0.01));
+                (Gauge<Double>) () -> totalTimerSnapshot.get().getValue(0.01));
         overheadMetrics.totalTimeNanosMedian(
-                (Gauge<Double>) () -> totalTimer.getSnapshot().getValue(0.5));
+                (Gauge<Double>) () -> totalTimerSnapshot.get().getValue(0.5));
     }
 }
