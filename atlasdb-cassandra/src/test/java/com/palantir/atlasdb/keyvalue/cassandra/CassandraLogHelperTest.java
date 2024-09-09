@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraLogHelper.HostAndIpAddress;
+import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Set;
@@ -34,12 +35,23 @@ import org.apache.cassandra.thrift.TokenRange;
 import org.junit.jupiter.api.Test;
 
 public class CassandraLogHelperTest {
+    private static final String HOST_1 = "host1";
+    private static final String HOST_2 = "host2";
     private static final String TOKEN_1 = "i-am-a-token";
     private static final String TOKEN_2 = "this-is-another-token";
     private static final String TOKEN_3 = "yet-another-token";
 
     private static final TokenRange TOKEN_RANGE_1_TO_2 = new TokenRange(TOKEN_1, TOKEN_2, ImmutableList.of());
     private static final TokenRange TOKEN_RANGE_2_TO_3 = new TokenRange(TOKEN_2, TOKEN_3, ImmutableList.of());
+
+    @Test
+    public void collectionOfHostsDoesNotThrowIfDuplicatedHostNamesAreGiven() {
+        assertThat(CassandraLogHelper.collectionOfHosts(Set.of(
+                        createCassandraServer(HOST_1, 37),
+                        createCassandraServer(HOST_1, 88),
+                        createCassandraServer(HOST_2, 88))))
+                .containsExactly(HOST_1, HOST_1, HOST_2);
+    }
 
     @Test
     public void tokenRangeHashesHashesIndividualRanges() {
@@ -124,5 +136,9 @@ public class CassandraLogHelperTest {
             assertThat(deserialized).isEqualTo(hostAndIpAddress);
             assertThat(deserialized).asString().isEqualTo(hostAndIpAddress.toString());
         });
+    }
+
+    private static CassandraServer createCassandraServer(String hostname, int port) {
+        return CassandraServer.of(hostname, InetSocketAddress.createUnresolved(hostname, port));
     }
 }

@@ -19,7 +19,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.github.benmanes.caffeine.cache.Interner;
-import com.google.common.collect.Multimap;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeMap;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
@@ -49,16 +49,10 @@ public final class CassandraLogHelper {
         return hostAddresses.intern(ImmutableHostAndIpAddress.of(hostString, ip));
     }
 
-    // TODO(boyoruk): Remove this as it can throw IllegalStateException if there are duplicate cassandra host names
     static Collection<String> collectionOfHosts(Collection<CassandraServer> hosts) {
-        return hosts.stream().map(CassandraServer::cassandraHostName).collect(Collectors.toSet());
-    }
-
-    static List<String> tokenRangesToServer(Multimap<Set<TokenRange>, CassandraServer> tokenRangesToHost) {
-        return tokenRangesToHost.entries().stream()
-                .map(entry ->
-                        "host " + entry.getValue().cassandraHostName() + " with proxy has range " + entry.getKey())
-                .collect(Collectors.toList());
+        return hosts.stream()
+                .map(CassandraServer::cassandraHostName)
+                .collect(Collectors.toCollection(HashMultiset::create));
     }
 
     public static List<String> tokenMap(RangeMap<LightweightOppToken, ? extends Collection<CassandraServer>> tokenMap) {
