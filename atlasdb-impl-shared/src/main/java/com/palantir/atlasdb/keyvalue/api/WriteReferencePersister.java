@@ -27,6 +27,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.io.IOException;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 public final class WriteReferencePersister {
@@ -40,10 +41,12 @@ public final class WriteReferencePersister {
 
     private final SweepTableIndices tableIndices;
     private final WriteMethod writeMethod;
+    private final UnknownIdentifierHandlingMethod unknownIdentifierHandlingMethod;
 
-    WriteReferencePersister(SweepTableIndices tableIndices, WriteMethod writeMethod) {
+    WriteReferencePersister(SweepTableIndices tableIndices, WriteMethod writeMethod, UnknownIdentifierHandlingMethod unknownIdentifierHandlingMethod) {
         this.tableIndices = tableIndices;
         this.writeMethod = writeMethod;
+        this.unknownIdentifierHandlingMethod = unknownIdentifierHandlingMethod;
     }
 
     public static WriteReferencePersister create(
@@ -53,7 +56,8 @@ public final class WriteReferencePersister {
                 sweepTableIndices,
                 resetProgressStage.shouldWriteImmediateFormat()
                         ? WriteMethod.TABLE_NAME_AS_STRING_BINARY
-                        : WriteMethod.TABLE_ID_BINARY);
+                        : WriteMethod.TABLE_ID_BINARY,
+                resetProgressStage.shouldSkipUnknowns() ? UnknownIdentifierHandlingMethod.IGNORE : UnknownIdentifierHandlingMethod.THROW);
     }
 
     public Optional<WriteReference> unpersist(StoredWriteReference writeReference) {
@@ -89,7 +93,10 @@ public final class WriteReferencePersister {
             public Optional<WriteReference> visitTableIdBinary(byte[] ref) {
                 int offset = 1;
                 int tableId = Ints.checkedCast(EncodingUtils.decodeUnsignedVarLong(ref, offset));
-                TableReference tableReference = tableIndices.getTableReference(tableId);
+                Optional<TableReference> maybeTableReference = safeGetTableReference(tableId);
+                if (maybeTableReference.isEmpty()) {
+                    return Optional.empty();
+                }
                 offset += EncodingUtils.sizeOfUnsignedVarLong(tableId);
                 byte[] row = EncodingUtils.decodeSizedBytes(ref, offset);
                 offset += EncodingUtils.sizeOfSizedBytes(row);
@@ -97,10 +104,25 @@ public final class WriteReferencePersister {
                 offset += EncodingUtils.sizeOfSizedBytes(column);
                 long isTombstone = EncodingUtils.decodeUnsignedVarLong(ref, offset);
                 return Optional.of(ImmutableWriteReference.builder()
-                        .tableRef(tableReference)
+                        .tableRef(maybeTableReference.get())
                         .cell(Cell.create(row, column))
                         .isTombstone(isTombstone == 1)
                         .build());
+            }
+
+            private Optional<TableReference> safeGetTableReference(int tableId) {
+                try {
+                    return Optional.of(tableIndices.getTableReference(tableId));
+                } catch (NoSuchElementException e) {
+                    switch (unknownIdentifierHandlingMethod) {
+                        case IGNORE:
+                            return Optional.empty();
+                        case THROW:
+                            throw e;
+                        default:
+                            throw new SafeIllegalStateException("Unexpected unknown identifier handling method", e);
+                    }
+                }
             }
 
             @Override
@@ -148,5 +170,10 @@ public final class WriteReferencePersister {
         byte[] getBytePrefix() {
             return bytePrefix;
         }
+    }
+
+    enum UnknownIdentifierHandlingMethod {
+        THROW,
+        IGNORE;
     }
 }
