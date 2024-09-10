@@ -80,7 +80,6 @@ public class SweepableCells extends SweepQueueTable {
             SweepIndexResetProgressStage resetProgressStage) {
         super(kvs, TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef(), partitioner, metrics);
         this.commitTsCache = CommitTsCache.create(transactionService);
-
         this.writeReferencePersister = WriteReferencePersister.create(new SweepTableIndices(kvs), resetProgressStage);
     }
 
