@@ -115,7 +115,18 @@ public class TargetedSweepInstallConfig {
         return false;
     }
 
+    @Value.Default
+    public SweepIndexResetProgressStage sweepIndexResetProgressStage() {
+        return SweepIndexResetProgressStage.NO_ACTIVE_RESET;
+    }
+
     public static TargetedSweepInstallConfig defaultTargetedSweepConfig() {
         return ImmutableTargetedSweepInstallConfig.builder().build();
+    }
+
+    public enum SweepIndexResetProgressStage {
+        NO_ACTIVE_RESET,
+        WRITE_IMMEDIATE_FORMAT,
+        INVALIDATE_OLD_MAPPINGS;
     }
 }
