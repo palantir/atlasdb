@@ -43,7 +43,10 @@ public final class WriteReferencePersister {
     private final WriteMethod writeMethod;
     private final UnknownIdentifierHandlingMethod unknownIdentifierHandlingMethod;
 
-    WriteReferencePersister(SweepTableIndices tableIndices, WriteMethod writeMethod, UnknownIdentifierHandlingMethod unknownIdentifierHandlingMethod) {
+    WriteReferencePersister(
+            SweepTableIndices tableIndices,
+            WriteMethod writeMethod,
+            UnknownIdentifierHandlingMethod unknownIdentifierHandlingMethod) {
         this.tableIndices = tableIndices;
         this.writeMethod = writeMethod;
         this.unknownIdentifierHandlingMethod = unknownIdentifierHandlingMethod;
@@ -57,7 +60,9 @@ public final class WriteReferencePersister {
                 resetProgressStage.shouldWriteImmediateFormat()
                         ? WriteMethod.TABLE_NAME_AS_STRING_BINARY
                         : WriteMethod.TABLE_ID_BINARY,
-                resetProgressStage.shouldSkipUnknowns() ? UnknownIdentifierHandlingMethod.IGNORE : UnknownIdentifierHandlingMethod.THROW);
+                resetProgressStage.shouldSkipUnknowns()
+                        ? UnknownIdentifierHandlingMethod.IGNORE
+                        : UnknownIdentifierHandlingMethod.THROW);
     }
 
     public Optional<WriteReference> unpersist(StoredWriteReference writeReference) {
