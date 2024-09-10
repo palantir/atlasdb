@@ -68,6 +68,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     private final BackgroundSweepScheduler noneScheduler;
 
     private final KeyValueService keyValueService;
+    private final TargetedSweepInstallConfig.SweepIndexResetProgressStage resetProgressStage;
 
     private LastSweptTimestampUpdater lastSweptTimestampUpdater;
     private TargetedSweepMetrics metrics;
@@ -95,6 +96,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         this.metricsConfiguration = install.metricsConfiguration();
         this.abandonedTransactionConsumer = abandonedTransactionConsumer;
         this.keyValueService = keyValueService;
+        this.resetProgressStage = install.sweepIndexResetProgressStage();
     }
 
     public boolean isInitialized() {
@@ -191,7 +193,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                         .maximumPartitions(this::getPartitionBatchLimit)
                         .cellsThreshold(() -> runtime.get().batchCellThreshold())
                         .build(),
-                table -> runtime.get().tablesToTrackDeletions().apply(table));
+                table -> runtime.get().tablesToTrackDeletions().apply(table),
+                resetProgressStage);
         timestampsSupplier = timestamps;
         timeLock = timelockService;
         lastSweptTimestampUpdater = new LastSweptTimestampUpdater(

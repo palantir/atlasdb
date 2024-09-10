@@ -17,12 +17,16 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.atlasdb.keyvalue.api.WriteReferencePersister.WriteMethod;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.ptobject.EncodingUtils;
 import com.palantir.atlasdb.sweep.queue.id.SweepTableIndices;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 public final class WriteReferencePersisterTest {
     private static final TableReference TABLE = TableReference.create(Namespace.create("test_ctx"), "test__table_name");
@@ -34,10 +38,11 @@ public final class WriteReferencePersisterTest {
 
     private final KeyValueService kvs = new InMemoryKeyValueService(true);
     private final SweepTableIndices tableIndices = new SweepTableIndices(kvs);
-    private final WriteReferencePersister persister = new WriteReferencePersister(tableIndices);
 
-    @Test
-    public void testCanUnpersistJsonValues() {
+    @ParameterizedTest
+    @MethodSource("writeMethods")
+    public void testCanUnpersistJsonValues(WriteMethod writeMethod) {
+        WriteReferencePersister persister = new WriteReferencePersister(tableIndices, writeMethod);
         String original = "{\"t\":{\"namespace\":{\"name\":\"test_ctx\"},\"tablename\":\"test__table_name\"},\"c\":{\""
                 + "rowName\":\"P7du\",\"columnName\":\"dg==\"},\"d\":true}";
         StoredWriteReference stored =
@@ -45,8 +50,10 @@ public final class WriteReferencePersisterTest {
         assertThat(persister.unpersist(stored)).hasValue(WRITE_REFERENCE);
     }
 
-    @Test
-    public void testCanUnpersistBinary_tableNameAsString() {
+    @ParameterizedTest
+    @MethodSource("writeMethods")
+    public void testCanUnpersistBinary_tableNameAsString(WriteMethod writeMethod) {
+        WriteReferencePersister persister = new WriteReferencePersister(tableIndices, writeMethod);
         byte[] data = EncodingUtils.add(
                 new byte[1],
                 EncodingUtils.encodeVarString(TABLE.getQualifiedName()),
@@ -59,13 +66,40 @@ public final class WriteReferencePersisterTest {
 
     @Test
     public void testCanUnpersistBinary_id() {
-        assertThat(persister.unpersist(StoredWriteReference.BYTES_HYDRATOR.hydrateFromBytes(
-                        persister.persist(Optional.of(WRITE_REFERENCE)).persistToBytes())))
+        WriteReferencePersister persister = new WriteReferencePersister(tableIndices, WriteMethod.TABLE_ID_BINARY);
+        StoredWriteReference storedWriteReference = StoredWriteReference.BYTES_HYDRATOR.hydrateFromBytes(
+                persister.persist(Optional.of(WRITE_REFERENCE)).persistToBytes());
+        assertThat(persister.unpersist(storedWriteReference)).hasValue(WRITE_REFERENCE);
+
+        WriteReferencePersister stringPersister =
+                new WriteReferencePersister(tableIndices, WriteMethod.TABLE_NAME_AS_STRING_BINARY);
+        assertThat(stringPersister.unpersist(storedWriteReference))
+                .as("the string persister, given a known ID, should be able to interpret it")
                 .hasValue(WRITE_REFERENCE);
     }
 
-    @Test
-    public void canUnpersistEmpty() {
+    @ParameterizedTest
+    @MethodSource("writeMethods")
+    public void canUnpersistEmpty(WriteMethod writeMethod) {
+        WriteReferencePersister persister = new WriteReferencePersister(tableIndices, writeMethod);
         assertThat(persister.unpersist(persister.persist(Optional.empty()))).isEmpty();
+    }
+
+    @Test
+    public void canPersistBinary_tableNameAsString() {
+        WriteReferencePersister persister =
+                new WriteReferencePersister(tableIndices, WriteMethod.TABLE_NAME_AS_STRING_BINARY);
+        byte[] data = EncodingUtils.add(
+                new byte[1],
+                EncodingUtils.encodeVarString(TABLE.getQualifiedName()),
+                EncodingUtils.encodeSizedBytes(row),
+                EncodingUtils.encodeSizedBytes(column),
+                EncodingUtils.encodeVarLong(1));
+        assertThat(persister.persist(Optional.of(WRITE_REFERENCE)).persistToBytes())
+                .isEqualTo(data);
+    }
+
+    static Stream<WriteMethod> writeMethods() {
+        return Stream.of(WriteMethod.values());
     }
 }
