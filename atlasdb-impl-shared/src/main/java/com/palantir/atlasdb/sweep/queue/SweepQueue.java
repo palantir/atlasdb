@@ -16,11 +16,13 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
+import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
@@ -308,6 +310,26 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                 Function<TableReference, Optional<LogSafety>> tablesToTrackDeletions,
                 SweepIndexResetProgressStage resetProgressStage) {
             Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
+            if (resetProgressStage.shouldInvalidateOldMappings()) {
+                log.info("Invalidating old sweep mappings... now truncating sweep identifier tables.");
+
+                TargetedSweepTableFactory tableFactory = TargetedSweepTableFactory.of();
+                try {
+                    kvs.truncateTables(ImmutableSet.of(
+                            tableFactory.getSweepIdToNameTable(null).getTableRef(),
+                            tableFactory.getSweepNameToIdTable(null).getTableRef()));
+                    log.info("Successfully truncated the sweep identifier tables.");
+                } catch (Exception e) {
+                    log.warn(
+                            "A failure was observed when truncating the sweep identifier tables. If you are running"
+                                + " this as part of a broader clearance task, you MUST make sure that the success"
+                                + " message is logged BEFORE considering the reset to have been performed. Seeing this"
+                                + " message is neither an indication that the operation was success, nor is it an"
+                                + " indication that the operation was not a success.",
+                            e);
+                    throw e;
+                }
+            }
             ShardProgress shardProgress = new ShardProgress(kvs);
             Supplier<Integer> shards =
                     createProgressUpdatingSupplier(shardsConfig, shardProgress, SweepQueueUtils.REFRESH_TIME);
