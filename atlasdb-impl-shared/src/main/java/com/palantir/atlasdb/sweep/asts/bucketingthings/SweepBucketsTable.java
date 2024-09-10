@@ -31,4 +31,6 @@ public interface SweepBucketsTable {
 
     void putTimestampRangeForBucket(
             Bucket bucket, Optional<TimestampRange> oldTimestampRange, TimestampRange newTimestampRange);
+
+    void deleteBucketEntry(Bucket bucket);
 }

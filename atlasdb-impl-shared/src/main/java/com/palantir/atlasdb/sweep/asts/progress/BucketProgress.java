@@ -29,6 +29,8 @@ import org.immutables.value.Value;
  * Describes partial progress of Sweep within the context of a bucket.
  */
 public interface BucketProgress extends Comparable<BucketProgress> {
+    BucketProgress INITIAL_PROGRESS = createForTimestampProgress(-1L);
+
     /**
      * Within this bucket, timestamps starting from 0 up to {@link #timestampProgress()} inclusive have been fully swept.
      * -1 can be used to indicate that no timestamps are fully swept yet (e.g., if we are just starting this bucket,
