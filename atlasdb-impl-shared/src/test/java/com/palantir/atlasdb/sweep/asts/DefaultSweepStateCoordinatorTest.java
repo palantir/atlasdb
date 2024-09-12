@@ -111,7 +111,7 @@ public class DefaultSweepStateCoordinatorTest {
         for (int i = 0; i < shards; i++) {
             coordinator.tryRunTaskWithBucket(chosenBuckets::add);
         }
-        assertThat(chosenBuckets).isEqualTo(firstBucketPerShard);
+        assertThat(chosenBuckets).containsExactlyInAnyOrderElementsOf(firstBucketPerShard);
     }
 
     @Test
