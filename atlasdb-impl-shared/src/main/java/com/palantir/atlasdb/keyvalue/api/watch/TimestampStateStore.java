@@ -70,7 +70,7 @@ import org.immutables.value.Value;
 final class TimestampStateStore {
     private static final SafeLogger log = SafeLoggerFactory.get(TimestampStateStore.class);
 
-    // The purpose of this relates to concern about the timestamp state store using excessive memory.
+    // The purpose of this relates to a concern about the timestamp state store using excessive memory.
     // Each mapping is associated with a long (start timestamp), three UUIDs and two longs maximum (timestamp map)
     // and a reverse mapping of two longs in livingVersions. So even in the largest case, we have ~100 bytes per
     // mapping, meaning that the timestamp cache size should not exceed ~10 MiB.
