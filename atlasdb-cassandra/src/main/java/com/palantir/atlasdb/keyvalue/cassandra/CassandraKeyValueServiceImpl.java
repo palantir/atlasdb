@@ -1941,7 +1941,10 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         .collect(Collectors.toList());
 
                 throw new CheckAndSetException(
-                        request.cell(), request.table(), request.oldValue().orElse(null), currentValues);
+                        request.cell(),
+                        request.oldValue().orElse(null),
+                        currentValues,
+                        LoggingArgs.tableRef(request.table()));
             }
         } catch (CheckAndSetException e) {
             throw e;
