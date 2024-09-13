@@ -89,7 +89,7 @@ public class CheckAndSetException extends RuntimeException implements SafeLoggab
                 key,
                 expectedValue,
                 actualValues,
-                args);
+                toArgListWithKeyAndValues(key, expectedValue, actualValues, args));
     }
 
     private CheckAndSetException(
@@ -99,12 +99,7 @@ public class CheckAndSetException extends RuntimeException implements SafeLoggab
             @Nullable byte[] expectedValue,
             @Nullable List<byte[]> actualValues,
             List<Arg<?>> args) {
-        super(
-                SafeExceptions.renderMessage(
-                        logMessage,
-                        toArgListWithKeyAndValues(key, expectedValue, actualValues, args.toArray(new Arg<?>[0]))
-                                .toArray(new Arg<?>[0])),
-                cause);
+        super(SafeExceptions.renderMessage(logMessage, args.toArray(new Arg[0])), cause);
         this.logMessage = logMessage;
         this.key = key;
         this.expectedValue = expectedValue;
