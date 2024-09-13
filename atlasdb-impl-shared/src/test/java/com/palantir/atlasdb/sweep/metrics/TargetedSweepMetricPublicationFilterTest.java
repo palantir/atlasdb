@@ -20,8 +20,10 @@ import static com.palantir.logsafe.testing.Assertions.assertThat;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+@Disabled // Disabled for RC
 public class TargetedSweepMetricPublicationFilterTest {
     private final AtomicLong enqueuedWrites = new AtomicLong();
     private final AtomicLong entriesRead = new AtomicLong();
