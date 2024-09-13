@@ -9,9 +9,9 @@ dependencies {
     api project(':timestamp-api')
     testImplementation project(path: ':flake-extension')
 
+    runtimeOnly 'ch.qos.logback:logback-classic'
     compileOnly 'com.google.dagger:dagger'
     implementation 'io.airlift:airline'
-    implementation 'ch.qos.logback:logback-classic'
     implementation 'com.google.errorprone:error_prone_annotations'
     implementation 'com.google.guava:guava'
     implementation 'com.palantir.safe-logging:preconditions'
@@ -51,5 +51,3 @@ dependencies {
     testImplementation 'org.mockito:mockito-core'
     testImplementation 'org.junit.jupiter:junit-jupiter'
 }
-tasks.checkUnusedDependenciesMain.enabled = false
-tasks.checkUnusedDependenciesTest.enabled = false

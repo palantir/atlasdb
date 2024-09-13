@@ -189,6 +189,8 @@ public class KvsMigrationCommand implements Callable<Integer> {
         }
         if (validate) {
             Set<TableReference> tableNamesToSkip;
+            // A huge hack, but it works and we're rethinking how we're doing migrations
+            // in the future.
             try {
                 tableNamesToSkip = Files.readLines(tablesToSkip, StandardCharsets.UTF_8).stream()
                         .map(String::trim)
