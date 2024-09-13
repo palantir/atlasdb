@@ -17,6 +17,7 @@ package com.palantir.atlasdb.keyvalue.api;
 
 import com.google.common.collect.Multimap;
 import com.google.errorprone.annotations.MustBeClosed;
+import com.palantir.async.initializer.AsyncInitializing;
 import com.palantir.atlasdb.metrics.Timed;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.annotation.Idempotent;
@@ -36,7 +37,7 @@ import java.util.Set;
  * A service which stores key-value pairs.
  */
 @AutoDelegate
-public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
+public interface KeyValueService extends AutoCloseable, AsyncKeyValueService, AsyncInitializing {
     /**
      * Performs non-destructive cleanup when the KVS is no longer needed.
      */
@@ -661,16 +662,6 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     ////////////////////////////////////////////////////////////
     // SPECIAL CASING SOME KVSs
     ////////////////////////////////////////////////////////////
-
-    /**
-     * Returns true iff the KeyValueService has been initialized and is ready to use. Note that this check ignores the
-     * cluster's availability - use {@link #getClusterAvailabilityStatus()} if you wish to verify that we can talk to
-     * the backing store.
-     */
-    @DoDelegate
-    default boolean isInitialized() {
-        return true;
-    }
 
     /**
      * Whether or not read performance degrades significantly when many deleted cells are in the requested range.

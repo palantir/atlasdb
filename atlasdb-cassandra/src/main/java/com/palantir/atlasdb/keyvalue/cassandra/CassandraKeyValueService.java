@@ -25,7 +25,4 @@ public interface CassandraKeyValueService extends KeyValueService {
     TracingQueryRunner getTracingQueryRunner();
 
     CassandraClientPool getClientPool();
-
-    @Override
-    boolean isInitialized();
 }

@@ -438,6 +438,11 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public ListenableFuture<?> isInitializedAsync() {
+        return maybeLog(delegate::isInitializedAsync, logTime("isInitializedAsync"));
+    }
+
+    @Override
     public void compactInternally(TableReference tableRef, boolean inMaintenanceMode) {
         long startTime = System.currentTimeMillis();
         maybeLog(() -> delegate.compactInternally(tableRef, inMaintenanceMode), (logger, stopwatch) -> {

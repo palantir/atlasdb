@@ -17,7 +17,9 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.errorprone.annotations.MustBeClosed;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
@@ -275,8 +277,9 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
-    public boolean isInitialized() {
-        return delegate1.isInitialized() && delegate2.isInitialized();
+    public ListenableFuture<?> isInitializedAsync() {
+        return Futures.whenAllSucceed(delegate1.isInitializedAsync(), delegate2.isInitializedAsync())
+                .run(() -> {}, MoreExecutors.directExecutor());
     }
 
     @Override
