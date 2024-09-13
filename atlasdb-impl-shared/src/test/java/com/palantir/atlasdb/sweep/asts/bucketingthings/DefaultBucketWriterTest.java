@@ -143,7 +143,7 @@ public final class DefaultBucketWriterTest {
 
     private void setupThrowCompareAndSetExceptionOnWrite(SweeperStrategy strategy, int shard) {
         lenient()
-                .doThrow(new CheckAndSetException("failed", null))
+                .doThrow(new CheckAndSetException("failed"))
                 .when(sweepBucketsTable)
                 .putTimestampRangeForBucket(
                         Bucket.of(ShardAndStrategy.of(shard, strategy), BUCKET_IDENTIFIER),
