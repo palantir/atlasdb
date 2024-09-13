@@ -25,7 +25,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class MultiCheckAndSetExceptionTest {
     private static final byte[] ROW_NAME = bytes("row");

@@ -82,14 +82,14 @@ public class MultiCheckAndSetException extends RuntimeException implements SafeL
     private static List<Arg<?>> toArgListWithTableNameRowAndValues(
             Arg<String> tableReference,
             byte[] rowName,
-            Map<Cell, byte[]> expectedValue,
+            Map<Cell, byte[]> expectedValues,
             Map<Cell, byte[]> actualValues,
             Arg<?>... args) {
         return ImmutableList.<Arg<?>>builderWithExpectedSize(args.length + 4)
                 .add(args)
                 .add(tableReference)
                 .add(UnsafeArg.of("rowName", rowName))
-                .add(UnsafeArg.of("expectedValue", expectedValue))
+                .add(UnsafeArg.of("expectedValues", expectedValues))
                 .add(UnsafeArg.of("actualValues", actualValues))
                 .build();
     }
