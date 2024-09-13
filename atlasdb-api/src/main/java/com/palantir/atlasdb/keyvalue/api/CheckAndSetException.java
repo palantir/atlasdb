@@ -26,8 +26,6 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 public class CheckAndSetException extends RuntimeException implements SafeLoggable {
-    private static final String DEFAULT_MESSAGE = "Unexpected value observed in table."
-            + " If this is happening repeatedly, your program may be out of sync with the database.";
     private static final long serialVersionUID = 1L;
 
     @Nullable
@@ -84,7 +82,14 @@ public class CheckAndSetException extends RuntimeException implements SafeLoggab
     }
 
     public CheckAndSetException(Cell key, byte[] expectedValue, List<byte[]> actualValues, Arg<?>... args) {
-        this(DEFAULT_MESSAGE, null, key, expectedValue, actualValues, args);
+        this(
+                "Unexpected value observed in table. If this is happening repeatedly, your program may be out"
+                        + " of sync with the database.",
+                null,
+                key,
+                expectedValue,
+                actualValues,
+                args);
     }
 
     private CheckAndSetException(
