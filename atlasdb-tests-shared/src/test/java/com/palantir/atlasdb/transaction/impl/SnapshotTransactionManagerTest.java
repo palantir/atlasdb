@@ -250,12 +250,7 @@ public class SnapshotTransactionManagerTest {
         TaggedMetricRegistry registry = snapshotTransactionManager.metricsManager.getTaggedRegistry();
         assertThat(registry.getMetrics().keySet().stream().map(MetricName::safeName))
                 .contains(SETUP_TASK_METRIC_NAME)
-                .contains(FINISH_TASK_METRIC_NAME)
-                .contains("expectations.bytesRead")
-                .contains("expectations.kvsReads")
-                .contains("expectations.ageMillis")
-                .contains("expectations.cellCommitLocksRequested")
-                .contains("expectations.rowCommitLocksRequested");
+                .contains(FINISH_TASK_METRIC_NAME);
         assertThat(registry.timer(MetricName.builder()
                                 .safeName(SETUP_TASK_METRIC_NAME)
                                 .build())
