@@ -78,14 +78,15 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
             CassandraServer cassandraServer,
             CassandraKeyValueServiceConfig config,
             int poolNumber,
-            CassandraClientPoolMetrics poolMetrics) {
+            CassandraClientPoolMetrics poolMetrics,
+            CassandraClientInstrumentation cassandraClientInstrumentation) {
         this.metricsManager = metricsManager;
         this.cassandraServer = cassandraServer;
         this.proxy = cassandraServer.proxy();
         this.config = config;
         this.poolNumber = poolNumber;
         this.poolMetrics = poolMetrics;
-        this.clientPool = createClientPool();
+        this.clientPool = createClientPool(cassandraClientInstrumentation);
         this.timedRunner = TimedRunner.create(config.timeoutOnConnectionBorrow().toJavaDuration());
     }
 
@@ -290,10 +291,11 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
      *    Discard any connections in this tenth of the pool that have been idle for more than 10 minutes,
      *       while still keeping a minimum number of idle connections around for fast borrows.
      */
-    private GenericObjectPool<CassandraClient> createClientPool() {
+    private GenericObjectPool<CassandraClient> createClientPool(
+            CassandraClientInstrumentation cassandraClientInstrumentation) {
         CassandraClientConfig clientConfig = CassandraClientConfig.of(config);
-        CassandraClientFactory cassandraClientFactory =
-                new CassandraClientFactory(metricsManager, cassandraServer, clientConfig);
+        CassandraClientFactory cassandraClientFactory = new CassandraClientFactory(
+                metricsManager, cassandraServer, clientConfig, cassandraClientInstrumentation);
         GenericObjectPoolConfig<CassandraClient> poolConfig = new GenericObjectPoolConfig<>();
 
         poolConfig.setMinIdle(config.poolSize());
