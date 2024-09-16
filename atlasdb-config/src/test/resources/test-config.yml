@@ -1,5 +1,7 @@
 atlasdb:
   namespace: brian
+  targetedSweep:
+    sweepIndexResetProgressStage: WRITE_IMMEDIATE_FORMAT_AND_SKIP_UNKNOWNS
 
   keyValueService:
     type: memory
