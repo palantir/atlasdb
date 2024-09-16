@@ -142,7 +142,9 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
     @Override
     public void initialize(TransactionManager txManager) {
+        log.info("[PDS-586351] Initializing targeted sweep...");
         initializeWithoutRunning(txManager);
+        log.info("[PDS-586351] Initialized targeted sweep, now running in background...");
         runInBackground();
     }
 
@@ -171,8 +173,10 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
             TransactionService transaction,
             TargetedSweepFollower follower) {
         if (isInitialized) {
+            log.info("[PDS-586351] Targeted sweep thinks it's already initialized...");
             return;
         }
+        log.info("[PDS-586351] Now initializing targeted sweep, given an initialized kvs...");
         Preconditions.checkState(
                 kvs.isInitialized(), "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
         metrics = TargetedSweepMetrics.create(
@@ -181,6 +185,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 kvs,
                 metricsConfiguration,
                 runtime.get().shards());
+        log.info("[PDS-586351] Initializing a sweep queue...");
         queue = SweepQueue.create(
                 metrics,
                 kvs,

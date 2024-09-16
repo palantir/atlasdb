@@ -310,6 +310,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                 Function<TableReference, Optional<LogSafety>> tablesToTrackDeletions,
                 SweepIndexResetProgressStage resetProgressStage) {
             Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
+            log.info("[PDS-586351] Creating a sweep queue factory...");
             if (resetProgressStage.shouldInvalidateOldMappings()) {
                 log.info("Invalidating old sweep mappings... now truncating sweep identifier tables.");
 
@@ -329,7 +330,13 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                             e);
                     throw e;
                 }
+            } else {
+                log.info(
+                        "Not invalidating old sweep mappings, because we don't believe we've been configured to do"
+                                + " this.",
+                        SafeArg.of("resetProgressStage", resetProgressStage));
             }
+
             ShardProgress shardProgress = new ShardProgress(kvs);
             Supplier<Integer> shards =
                     createProgressUpdatingSupplier(shardsConfig, shardProgress, SweepQueueUtils.REFRESH_TIME);
