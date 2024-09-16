@@ -100,7 +100,7 @@ final class DefaultBucketWriter implements BucketWriter {
                                 SafeArg.of("newTimestampRange", newTimestampRange),
                                 SafeArg.of("oldTimestampRange", oldTimestampRange),
                                 e);
-                        return WriteState.FAILURE;
+                        return WriteState.FAILED_CAS;
                     }
                 }
             }
