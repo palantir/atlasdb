@@ -141,7 +141,7 @@ public final class SweepBucketProgressTable implements
      *   {@literal Long hashOfRowComponents};
      *   {@literal Long shard};
      *   {@literal Long bucketIdentifier};
-     *   {@literal byte[] sweepConservative};
+     *   {@literal byte[] strategy};
      * }
      * </pre>
      */
@@ -149,18 +149,18 @@ public final class SweepBucketProgressTable implements
         private final long hashOfRowComponents;
         private final long shard;
         private final long bucketIdentifier;
-        private final byte[] sweepConservative;
+        private final byte[] strategy;
 
-        public static SweepBucketProgressRow of(long shard, long bucketIdentifier, byte[] sweepConservative) {
-            long hashOfRowComponents = computeHashFirstComponents(shard, bucketIdentifier, sweepConservative);
-            return new SweepBucketProgressRow(hashOfRowComponents, shard, bucketIdentifier, sweepConservative);
+        public static SweepBucketProgressRow of(long shard, long bucketIdentifier, byte[] strategy) {
+            long hashOfRowComponents = computeHashFirstComponents(shard, bucketIdentifier, strategy);
+            return new SweepBucketProgressRow(hashOfRowComponents, shard, bucketIdentifier, strategy);
         }
 
-        private SweepBucketProgressRow(long hashOfRowComponents, long shard, long bucketIdentifier, byte[] sweepConservative) {
+        private SweepBucketProgressRow(long hashOfRowComponents, long shard, long bucketIdentifier, byte[] strategy) {
             this.hashOfRowComponents = hashOfRowComponents;
             this.shard = shard;
             this.bucketIdentifier = bucketIdentifier;
-            this.sweepConservative = sweepConservative;
+            this.strategy = strategy;
         }
 
         public long getShard() {
@@ -171,8 +171,8 @@ public final class SweepBucketProgressTable implements
             return bucketIdentifier;
         }
 
-        public byte[] getSweepConservative() {
-            return sweepConservative;
+        public byte[] getStrategy() {
+            return strategy;
         }
 
         public static Function<SweepBucketProgressRow, Long> getShardFun() {
@@ -193,11 +193,11 @@ public final class SweepBucketProgressTable implements
             };
         }
 
-        public static Function<SweepBucketProgressRow, byte[]> getSweepConservativeFun() {
+        public static Function<SweepBucketProgressRow, byte[]> getStrategyFun() {
             return new Function<SweepBucketProgressRow, byte[]>() {
                 @Override
                 public byte[] apply(SweepBucketProgressRow row) {
-                    return row.sweepConservative;
+                    return row.strategy;
                 }
             };
         }
@@ -207,8 +207,8 @@ public final class SweepBucketProgressTable implements
             byte[] hashOfRowComponentsBytes = PtBytes.toBytes(Long.MIN_VALUE ^ hashOfRowComponents);
             byte[] shardBytes = EncodingUtils.encodeUnsignedVarLong(shard);
             byte[] bucketIdentifierBytes = EncodingUtils.encodeUnsignedVarLong(bucketIdentifier);
-            byte[] sweepConservativeBytes = sweepConservative;
-            return EncodingUtils.add(hashOfRowComponentsBytes, shardBytes, bucketIdentifierBytes, sweepConservativeBytes);
+            byte[] strategyBytes = strategy;
+            return EncodingUtils.add(hashOfRowComponentsBytes, shardBytes, bucketIdentifierBytes, strategyBytes);
         }
 
         public static final Hydrator<SweepBucketProgressRow> BYTES_HYDRATOR = new Hydrator<SweepBucketProgressRow>() {
@@ -221,16 +221,16 @@ public final class SweepBucketProgressTable implements
                 __index += EncodingUtils.sizeOfUnsignedVarLong(shard);
                 long bucketIdentifier = EncodingUtils.decodeUnsignedVarLong(__input, __index);
                 __index += EncodingUtils.sizeOfUnsignedVarLong(bucketIdentifier);
-                byte[] sweepConservative = EncodingUtils.getBytesFromOffsetToEnd(__input, __index);
-                return new SweepBucketProgressRow(hashOfRowComponents, shard, bucketIdentifier, sweepConservative);
+                byte[] strategy = EncodingUtils.getBytesFromOffsetToEnd(__input, __index);
+                return new SweepBucketProgressRow(hashOfRowComponents, shard, bucketIdentifier, strategy);
             }
         };
 
-        public static long computeHashFirstComponents(long shard, long bucketIdentifier, byte[] sweepConservative) {
+        public static long computeHashFirstComponents(long shard, long bucketIdentifier, byte[] strategy) {
             byte[] shardBytes = EncodingUtils.encodeUnsignedVarLong(shard);
             byte[] bucketIdentifierBytes = EncodingUtils.encodeUnsignedVarLong(bucketIdentifier);
-            byte[] sweepConservativeBytes = sweepConservative;
-            return Hashing.murmur3_128().hashBytes(EncodingUtils.add(shardBytes, bucketIdentifierBytes, sweepConservativeBytes)).asLong();
+            byte[] strategyBytes = strategy;
+            return Hashing.murmur3_128().hashBytes(EncodingUtils.add(shardBytes, bucketIdentifierBytes, strategyBytes)).asLong();
         }
 
         @Override
@@ -239,7 +239,7 @@ public final class SweepBucketProgressTable implements
                 .add("hashOfRowComponents", hashOfRowComponents)
                 .add("shard", shard)
                 .add("bucketIdentifier", bucketIdentifier)
-                .add("sweepConservative", sweepConservative)
+                .add("strategy", strategy)
                 .toString();
         }
 
@@ -255,12 +255,12 @@ public final class SweepBucketProgressTable implements
                 return false;
             }
             SweepBucketProgressRow other = (SweepBucketProgressRow) obj;
-            return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(shard, other.shard) && Objects.equals(bucketIdentifier, other.bucketIdentifier) && Arrays.equals(sweepConservative, other.sweepConservative);
+            return Objects.equals(hashOfRowComponents, other.hashOfRowComponents) && Objects.equals(shard, other.shard) && Objects.equals(bucketIdentifier, other.bucketIdentifier) && Arrays.equals(strategy, other.strategy);
         }
 
         @Override
         public int hashCode() {
-            return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, shard, bucketIdentifier, sweepConservative });
+            return Arrays.deepHashCode(new Object[]{ hashOfRowComponents, shard, bucketIdentifier, strategy });
         }
 
         @Override
@@ -269,7 +269,7 @@ public final class SweepBucketProgressTable implements
                 .compare(this.hashOfRowComponents, o.hashOfRowComponents)
                 .compare(this.shard, o.shard)
                 .compare(this.bucketIdentifier, o.bucketIdentifier)
-                .compare(this.sweepConservative, o.sweepConservative, UnsignedBytes.lexicographicalComparator())
+                .compare(this.strategy, o.strategy, UnsignedBytes.lexicographicalComparator())
                 .result();
         }
     }
@@ -730,5 +730,5 @@ public final class SweepBucketProgressTable implements
      * {@link UnsignedBytes}
      * {@link ValueType}
      */
-    static String __CLASS_HASH = "boBsLMY3fSdKaI1RwPLdFA==";
+    static String __CLASS_HASH = "rTx91wHW58PfFODPz+Naxw==";
 }
