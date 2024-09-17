@@ -355,7 +355,8 @@ public class SingleBucketSweepTaskIntegrationTest {
                 BucketProgress.createForTimestampProgress(END_OF_BUCKET_ZERO - 1));
         assertThat(singleBucketSweepTask.runOneIteration(SweepableBucket.of(
                         sweepStrategyTestContext.bucketFactory().apply(0), BUCKET_ZERO_TIMESTAMP_RANGE)))
-                .as("no entries should have been read from the sweep queue, because the bucket was completed")
+                .as("no entries should have been read from the sweep queue, because the bucket had already been"
+                        + " completed")
                 .isEqualTo(0);
         verify(sweepBucketsTable, never())
                 .deleteBucketEntry(sweepStrategyTestContext.bucketFactory().apply(0));
@@ -380,7 +381,8 @@ public class SingleBucketSweepTaskIntegrationTest {
                 BucketProgress.createForTimestampProgress(END_OF_BUCKET_ZERO - 1));
         assertThat(singleBucketSweepTask.runOneIteration(SweepableBucket.of(
                         sweepStrategyTestContext.bucketFactory().apply(0), BUCKET_ZERO_TIMESTAMP_RANGE)))
-                .as("no entries should have been read from the sweep queue, because the bucket was completed")
+                .as("no entries should have been read from the sweep queue, because the bucket had already been"
+                        + " completed")
                 .isEqualTo(0);
         verify(sweepBucketsTable, times(1))
                 .deleteBucketEntry(sweepStrategyTestContext.bucketFactory().apply(0));
