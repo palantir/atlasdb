@@ -17,8 +17,8 @@
 package com.palantir.atlasdb.sweep.asts;
 
 import com.palantir.atlasdb.sweep.Sweeper;
-import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketAssignerStateMachineTable;
-import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketsTable;
+import com.palantir.atlasdb.sweep.asts.bucketingthings.BucketsTableDeleter;
+import com.palantir.atlasdb.sweep.asts.bucketingthings.CompletelyClosedSweepBucketRetriever;
 import com.palantir.atlasdb.sweep.asts.progress.BucketProgress;
 import com.palantir.atlasdb.sweep.asts.progress.BucketProgressStore;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
@@ -40,8 +40,8 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
     private final SweepQueueDeleter sweepQueueDeleter;
     private final LongSupplier sweepTimestampSupplier;
     private final TargetedSweepMetrics targetedSweepMetrics;
-    private final SweepBucketsTable sweepBucketsTable;
-    private final SweepBucketAssignerStateMachineTable sweepBucketAssignerStateMachineTable;
+    private final BucketsTableDeleter bucketsTableDeleter;
+    private final CompletelyClosedSweepBucketRetriever completelyClosedSweepBucketRetriever;
 
     public DefaultSingleBucketSweepTask(
             BucketProgressStore bucketProgressStore,
@@ -49,15 +49,15 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
             SweepQueueDeleter sweepQueueDeleter,
             LongSupplier sweepTimestampSupplier,
             TargetedSweepMetrics targetedSweepMetrics,
-            SweepBucketsTable sweepBucketsTable,
-            SweepBucketAssignerStateMachineTable sweepBucketAssignerStateMachineTable) {
+            BucketsTableDeleter bucketsTableDeleter,
+            CompletelyClosedSweepBucketRetriever completelyClosedSweepBucketRetriever) {
         this.bucketProgressStore = bucketProgressStore;
         this.sweepQueueReader = sweepQueueReader;
         this.sweepQueueDeleter = sweepQueueDeleter;
         this.sweepTimestampSupplier = sweepTimestampSupplier;
         this.targetedSweepMetrics = targetedSweepMetrics;
-        this.sweepBucketsTable = sweepBucketsTable;
-        this.sweepBucketAssignerStateMachineTable = sweepBucketAssignerStateMachineTable;
+        this.bucketsTableDeleter = bucketsTableDeleter;
+        this.completelyClosedSweepBucketRetriever = completelyClosedSweepBucketRetriever;
     }
 
     @Override
@@ -125,10 +125,8 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
 
     private void deleteBucketEntryIfDeleteable(SweepableBucket sweepableBucket) {
         if (sweepableBucket.bucket().bucketIdentifier()
-                < sweepBucketAssignerStateMachineTable
-                        .getBucketStateAndIdentifier()
-                        .bucketIdentifier()) {
-            sweepBucketsTable.deleteBucketEntry(sweepableBucket.bucket());
+                < completelyClosedSweepBucketRetriever.getStrictUpperBoundForCompletelyClosedBuckets()) {
+            bucketsTableDeleter.deleteBucketEntry(sweepableBucket.bucket());
         }
     }
 
