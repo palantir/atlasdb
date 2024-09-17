@@ -27,7 +27,7 @@ public final class UnfilteredCassandraClientMetrics implements CassandraClientMe
 
     @Override
     public void recordCellsWritten(String tableRef, long cellsWritten) {
-        registry.counter(CassandraClientInstrumentationUtils.createCellsWrittenMetricNameForTableTag(tableRef))
+        registry.counter(CassandraClientMetricsUtils.createCellsWrittenMetricNameForTableTag(tableRef))
                 .inc(cellsWritten);
     }
 }

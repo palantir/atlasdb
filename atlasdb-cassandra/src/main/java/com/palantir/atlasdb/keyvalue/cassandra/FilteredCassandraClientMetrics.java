@@ -39,7 +39,7 @@ public final class FilteredCassandraClientMetrics implements CassandraClientMetr
                 5,
                 Duration.ofSeconds(5),
                 Duration.ofSeconds(15),
-                CassandraClientInstrumentationUtils::createCellsWrittenMetricNameForTableTag,
+                CassandraClientMetricsUtils::createCellsWrittenMetricNameForTableTag,
                 Comparator.<String>naturalOrder(),
                 registry,
                 executor);
