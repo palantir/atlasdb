@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -44,8 +43,6 @@ public class SweepQueueDeleter {
     private final TargetedSweepFilter filter;
     private final Function<TableReference, Optional<LogSafety>> tablesToTrackDeletions;
 
-    @SuppressWarnings("VisibleForTestingPackagePrivate") // Visible for testing sometimes needs to be public
-    @VisibleForTesting // ASTS integration tests
     public SweepQueueDeleter(
             KeyValueService kvs,
             TargetedSweepFollower follower,
