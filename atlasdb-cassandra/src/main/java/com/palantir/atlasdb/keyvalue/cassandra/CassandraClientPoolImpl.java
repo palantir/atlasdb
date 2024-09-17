@@ -142,7 +142,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 cassandraClientPoolMetrics,
                 cassandraTopologyValidator,
                 absentHostTracker,
-                CassandraService.create(metricsManager, config, runtimeConfig, blacklist, cassandraClientPoolMetrics));
+                CassandraService.createForTests(
+                        metricsManager, config, runtimeConfig, blacklist, cassandraClientPoolMetrics));
         cassandraClientPool.wrapper.initialize(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
         return cassandraClientPool;
     }

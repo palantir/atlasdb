@@ -38,11 +38,13 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraLogHelper;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraServerOrigin;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraUtils;
+import com.palantir.atlasdb.keyvalue.cassandra.FilteredCassandraClientInstrumentation;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.keyvalue.cassandra.UnfilteredCassandraClientInstrumentation;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.common.pooling.PoolingContainer;
 import com.palantir.common.streams.KeyedStream;
@@ -107,6 +109,22 @@ public final class CassandraService implements AutoCloseable {
     private final CassandraClientInstrumentation cassandraClientInstrumentation;
 
     public static CassandraService create(
+            MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
+            Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
+            Blacklist blacklist,
+            CassandraClientPoolMetrics poolMetrics) {
+        return new CassandraService(
+                metricsManager,
+                config,
+                runtimeConfig,
+                blacklist,
+                poolMetrics,
+                FilteredCassandraClientInstrumentation.create(
+                        metricsManager.getTaggedRegistry(), PTExecutors.newSingleThreadScheduledExecutor()));
+    }
+
+    public static CassandraService createForTests(
             MetricsManager metricsManager,
             CassandraKeyValueServiceConfig config,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
