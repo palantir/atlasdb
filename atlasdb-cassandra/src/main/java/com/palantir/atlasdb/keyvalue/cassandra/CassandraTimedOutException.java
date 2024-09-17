@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.net.HostAndPort;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeArg;
@@ -53,6 +54,10 @@ public class CassandraTimedOutException extends RuntimeException implements Safe
     @Override
     public @Safe String getLogMessage() {
         return logMessage;
+    }
+
+    public Optional<String> getCassandraServer() {
+        return cassandraServer;
     }
 
     @Override
