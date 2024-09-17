@@ -65,6 +65,7 @@ final class TopListFilteredCounter<T> {
             TaggedMetricRegistry registry,
             ScheduledExecutorService executor) {
         // the tag comparator is used to provide a stable ordering of tags when they have the same count
+        // this makes reporting consistent and avoids unnecessary churn across service nodes
         Comparator<Entry<T, Long>> entryComparator =
                 Entry.<T, Long>comparingByValue(Comparator.reverseOrder()).thenComparing(Entry::getKey, tagComparator);
 
