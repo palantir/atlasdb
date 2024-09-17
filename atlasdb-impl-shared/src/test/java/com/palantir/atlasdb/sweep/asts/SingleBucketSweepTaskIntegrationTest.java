@@ -52,12 +52,15 @@ import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
 import com.palantir.atlasdb.sweep.queue.WriteInfo;
 import com.palantir.atlasdb.sweep.queue.WriteInfoPartitioner;
 import com.palantir.atlasdb.sweep.queue.clear.DefaultTableClearer;
+import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.transaction.service.SimpleTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.time.Clock;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -65,30 +68,30 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
+import java.util.stream.Stream;
 import one.util.streamex.EntryStream;
 import org.immutables.value.Value;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 public class SingleBucketSweepTaskIntegrationTest {
-    private static final int SHARDS = 1;
+    private static final int SHARDS = 1; // Used to avoid complications of the hash function
 
     private static final TableReference CONSERVATIVE_TABLE = TableReference.createFromFullyQualifiedName("terri.tory");
-    private static final Bucket CONSERVATIVE_BUCKET_ZERO = Bucket.of(ShardAndStrategy.conservative(0), 0);
+    private static final TableReference THOROUGH_TABLE = TableReference.createFromFullyQualifiedName("comp.lete");
+
     private static final long END_OF_BUCKET_ZERO = 1000L;
     private static final long END_OF_BUCKET_ONE = 5000L;
     private static final TimestampRange BUCKET_ZERO_TIMESTAMP_RANGE = TimestampRange.of(0L, END_OF_BUCKET_ZERO);
-    private static final SweepableBucket SWEEPABLE_CONSERVATIVE_BUCKET_ZERO =
-            SweepableBucket.of(CONSERVATIVE_BUCKET_ZERO, BUCKET_ZERO_TIMESTAMP_RANGE);
-    private static final Bucket CONSERVATIVE_BUCKET_ONE = Bucket.of(ShardAndStrategy.conservative(0), 1);
-    private static final SweepableBucket SWEEPABLE_CONSERVATIVE_BUCKET_ONE =
-            SweepableBucket.of(CONSERVATIVE_BUCKET_ONE, TimestampRange.of(END_OF_BUCKET_ZERO, END_OF_BUCKET_ONE));
-    private static final Bucket CONSERVATIVE_BUCKET_TWO = Bucket.of(ShardAndStrategy.conservative(0), 2);
-    private static final SweepableBucket SWEEPABLE_CONSERVATIVE_BUCKET_TWO =
-            SweepableBucket.of(CONSERVATIVE_BUCKET_TWO, TimestampRange.of(END_OF_BUCKET_ONE, -1)); // open bucket
+    private static final TimestampRange BUCKET_ONE_TIMESTAMP_RANGE =
+            TimestampRange.of(END_OF_BUCKET_ZERO, END_OF_BUCKET_ONE);
+    private static final TimestampRange BUCKET_TWO_TIMESTAMP_RANGE =
+            TimestampRange.of(END_OF_BUCKET_ONE, -1L); // open bucket
+
     private static final Cell DEFAULT_CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
     private static final byte[] DEFAULT_VALUE = PtBytes.toBytes("value");
     private static final byte[] ANOTHER_VALUE = PtBytes.toBytes("another");
@@ -143,106 +146,113 @@ public class SingleBucketSweepTaskIntegrationTest {
                         .sweepStrategy(SweepStrategy.CONSERVATIVE)
                         .build()
                         .persistToBytes());
+        keyValueService.createTable(
+                THOROUGH_TABLE,
+                TableMetadata.builder()
+                        .sweepStrategy(SweepStrategy.THOROUGH)
+                        .build()
+                        .persistToBytes());
     }
 
     // [vw       x]
     //      ^ Sweep Timestamp
     //      ^ Sweep Task
-    @Test
-    public void sweepsFromClosedBucketUpToSweepTimestamp() {
-        writeCell(100L, DEFAULT_VALUE, 200L);
-        writeCell(300L, ANOTHER_VALUE, 400L);
-        writeCell(500L, THIRD_VALUE, 600L);
+    @ParameterizedTest
+    @MethodSource("testContexts")
+    public void sweepsFromClosedBucketUpToSweepTimestamp(SweepStrategyTestContext sweepStrategyTestContext) {
+        writeCell(sweepStrategyTestContext.dataTable(), 100L, DEFAULT_VALUE, 200L);
+        writeCell(sweepStrategyTestContext.dataTable(), 300L, ANOTHER_VALUE, 400L);
+        writeCell(sweepStrategyTestContext.dataTable(), 500L, THIRD_VALUE, 600L);
         sweepTimestamp.set(450L);
 
-        assertThat(singleBucketSweepTask.runOneIteration(SWEEPABLE_CONSERVATIVE_BUCKET_ZERO))
+        assertThat(singleBucketSweepTask.runOneIteration(SweepableBucket.of(
+                        sweepStrategyTestContext.bucketFactory().apply(0), BUCKET_ZERO_TIMESTAMP_RANGE)))
                 .as("two entries should have been read from the sweep queue")
                 .isEqualTo(2);
 
-        assertThat(keyValueService.get(CONSERVATIVE_TABLE, ImmutableMap.of(DEFAULT_CELL, 499L)))
+        assertThat(keyValueService.get(sweepStrategyTestContext.dataTable(), ImmutableMap.of(DEFAULT_CELL, 499L)))
                 .as("sweep should NOT have deleted the second version of the default cell")
                 .hasSize(1)
                 .hasEntrySatisfying(DEFAULT_CELL, value -> {
                     assertThat(value.getContents()).isEqualTo(ANOTHER_VALUE);
                     assertThat(value.getTimestamp()).isEqualTo(300L);
                 });
-        assertThat(keyValueService.get(CONSERVATIVE_TABLE, ImmutableMap.of(DEFAULT_CELL, 299L)))
-                .as("sweep should have placed a tombstone on the older version of the default cell")
-                .hasEntrySatisfying(DEFAULT_CELL, value -> {
-                    assertThat(value.getContents()).isEmpty();
-                    assertThat(value.getTimestamp()).isEqualTo(-1L);
-                });
+        checkValueSwept(DEFAULT_CELL, 299L, sweepStrategyTestContext);
 
-        assertThat(bucketProgressStore.getBucketProgress(CONSERVATIVE_BUCKET_ZERO))
+        assertThat(bucketProgressStore.getBucketProgress(
+                        sweepStrategyTestContext.bucketFactory().apply(0)))
                 .as("bucket progress is updated to the sweep timestamp (non-inclusively)")
                 .hasValue(BucketProgress.createForTimestampProgress(450L - 1));
         // The bucket has not been completed yet, because it is still not fully swept.
-        verify(sweepBucketsTable, never()).deleteBucketEntry(CONSERVATIVE_BUCKET_ZERO);
+        verify(sweepBucketsTable, never())
+                .deleteBucketEntry(sweepStrategyTestContext.bucketFactory().apply(0));
     }
 
     // [vw x-----x]
     //        ^ Sweep Timestamp
     //      ^ Sweep Task
-    @Test
-    public void sweepsFromClosedBucketUpToCellCommittingAfterSweepTimestamp() {
-        writeCell(100L, DEFAULT_VALUE, 200L);
-        writeCell(300L, ANOTHER_VALUE, 400L);
-        writeCell(500L, THIRD_VALUE, 600L);
+    @ParameterizedTest
+    @MethodSource("testContexts")
+    public void sweepsFromClosedBucketUpToCellCommittingAfterSweepTimestamp(
+            SweepStrategyTestContext sweepStrategyTestContext) {
+        writeCell(sweepStrategyTestContext.dataTable(), 100L, DEFAULT_VALUE, 200L);
+        writeCell(sweepStrategyTestContext.dataTable(), 300L, ANOTHER_VALUE, 400L);
+        writeCell(sweepStrategyTestContext.dataTable(), 500L, THIRD_VALUE, 600L);
         sweepTimestamp.set(555L);
 
-        assertThat(singleBucketSweepTask.runOneIteration(SWEEPABLE_CONSERVATIVE_BUCKET_ZERO))
+        assertThat(singleBucketSweepTask.runOneIteration(SweepableBucket.of(
+                        sweepStrategyTestContext.bucketFactory().apply(0), BUCKET_ZERO_TIMESTAMP_RANGE)))
                 .as("three entries should have been read from the sweep queue")
                 .isEqualTo(3);
 
-        assertThat(keyValueService.get(CONSERVATIVE_TABLE, ImmutableMap.of(DEFAULT_CELL, 499L)))
+        assertThat(keyValueService.get(sweepStrategyTestContext.dataTable(), ImmutableMap.of(DEFAULT_CELL, 499L)))
                 .as("sweep should NOT have deleted the second version of the default cell")
                 .hasSize(1)
                 .hasEntrySatisfying(DEFAULT_CELL, value -> {
                     assertThat(value.getContents()).isEqualTo(ANOTHER_VALUE);
                     assertThat(value.getTimestamp()).isEqualTo(300L);
                 });
-        assertThat(keyValueService.get(CONSERVATIVE_TABLE, ImmutableMap.of(DEFAULT_CELL, 299L)))
-                .as("sweep should have placed a tombstone on the older version of the default cell")
-                .hasEntrySatisfying(DEFAULT_CELL, value -> {
-                    assertThat(value.getContents()).isEmpty();
-                    assertThat(value.getTimestamp()).isEqualTo(-1L);
-                });
+        checkValueSwept(DEFAULT_CELL, 299L, sweepStrategyTestContext);
 
-        assertThat(bucketProgressStore.getBucketProgress(CONSERVATIVE_BUCKET_ZERO))
+        assertThat(bucketProgressStore.getBucketProgress(
+                        sweepStrategyTestContext.bucketFactory().apply(0)))
                 .as("bucket progress is updated up to the correct point in the queue")
                 .hasValue(BucketProgress.createForTimestampProgress(500L - 1));
         // The bucket has not been completed yet, because it is still not fully swept.
-        verify(sweepBucketsTable, never()).deleteBucketEntry(CONSERVATIVE_BUCKET_ZERO);
+        verify(sweepBucketsTable, never())
+                .deleteBucketEntry(sweepStrategyTestContext.bucketFactory().apply(0));
     }
 
     // [v        w][          ]
     //                  ^ Sweep Timestamp
     //                  ^ Sweep Task
-    @Test
-    public void doesNotSweepValuesInOtherBuckets() {
-        writeTwoCells();
+    @ParameterizedTest
+    @MethodSource("testContexts")
+    public void doesNotSweepValuesInOtherBuckets(SweepStrategyTestContext sweepStrategyTestContext) {
+        writeTwoCells(sweepStrategyTestContext.dataTable());
         sweepTimestamp.set(4500L);
 
-        assertThat(singleBucketSweepTask.runOneIteration(SWEEPABLE_CONSERVATIVE_BUCKET_ONE))
+        assertThat(singleBucketSweepTask.runOneIteration(SweepableBucket.of(
+                        sweepStrategyTestContext.bucketFactory().apply(1), BUCKET_ONE_TIMESTAMP_RANGE)))
                 .as("no entries should have been read from the sweep queue, because this task should not be"
                         + " sweeping bucket zero")
                 .isEqualTo(0);
 
-        assertThat(keyValueService.get(CONSERVATIVE_TABLE, ImmutableMap.of(DEFAULT_CELL, 250L)))
+        assertThat(keyValueService.get(sweepStrategyTestContext.dataTable(), ImmutableMap.of(DEFAULT_CELL, 250L)))
                 .as("sweep should not have run yet on the older version of the default cell")
                 .hasEntrySatisfying(DEFAULT_CELL, value -> {
                     assertThat(value.getContents()).isEqualTo(DEFAULT_VALUE);
                     assertThat(value.getTimestamp()).isEqualTo(100L);
                 });
 
-        assertThat(bucketProgressStore.getBucketProgress(CONSERVATIVE_BUCKET_ZERO))
+        assertThat(bucketProgressStore.getBucketProgress(
+                        sweepStrategyTestContext.bucketFactory().apply(0)))
                 .as("bucket progress for other buckets is untouched")
                 .isEmpty();
-        assertThat(bucketProgressStore.getBucketProgress(CONSERVATIVE_BUCKET_ONE))
+        assertThat(bucketProgressStore.getBucketProgress(
+                        sweepStrategyTestContext.bucketFactory().apply(1)))
                 .as("bucket progress is updated up to the sweep timestamp (non-inclusively)")
-                .hasValue(BucketProgress.createForTimestampProgress(4500
-                        - SWEEPABLE_CONSERVATIVE_BUCKET_ONE.timestampRange().startInclusive()
-                        - 1));
+                .hasValue(BucketProgress.createForTimestampProgress(4500 - END_OF_BUCKET_ZERO - 1));
         // The bucket has not been completed yet, because it is still not fully swept.
         verify(sweepBucketsTable, never()).deleteBucketEntry(any());
     }
@@ -250,71 +260,75 @@ public class SingleBucketSweepTaskIntegrationTest {
     // [v        w]
     //                  ^ Sweep Timestamp
     //       ^ Sweep Task
-    @Test
-    public void sweepsBucketAndDeletesBucketGuaranteedNotToBeRecreatedByAssigner() {
+    @ParameterizedTest
+    @MethodSource("testContexts")
+    public void sweepsBucketAndDeletesBucketGuaranteedNotToBeRecreatedByAssigner(
+            SweepStrategyTestContext sweepStrategyTestContext) {
         when(sweepBucketAssignerStateMachineTable.getBucketStateAndIdentifier())
                 .thenReturn(BucketStateAndIdentifier.of(
                         1, BucketAssignerState.start(1000))); // All buckets at 0 are guaranteed closed
-        writeTwoCells();
+        writeTwoCells(sweepStrategyTestContext.dataTable());
         sweepTimestamp.set(1337L);
 
-        assertThat(singleBucketSweepTask.runOneIteration(SWEEPABLE_CONSERVATIVE_BUCKET_ZERO))
+        assertThat(singleBucketSweepTask.runOneIteration(SweepableBucket.of(
+                        sweepStrategyTestContext.bucketFactory().apply(0), BUCKET_ZERO_TIMESTAMP_RANGE)))
                 .as("two entries should have been read from the sweep queue")
                 .isEqualTo(2);
 
-        assertThat(bucketProgressStore.getBucketProgress(CONSERVATIVE_BUCKET_ZERO))
+        assertThat(bucketProgressStore.getBucketProgress(
+                        sweepStrategyTestContext.bucketFactory().apply(0)))
                 .as("bucket 0 is completely swept")
-                .hasValue(BucketProgress.createForTimestampProgress(SWEEPABLE_CONSERVATIVE_BUCKET_ZERO
-                                .timestampRange()
-                                .endExclusive()
-                        - SWEEPABLE_CONSERVATIVE_BUCKET_ZERO.timestampRange().startInclusive()
-                        - 1));
-        verify(sweepBucketsTable, times(1)).deleteBucketEntry(CONSERVATIVE_BUCKET_ZERO);
+                .hasValue(BucketProgress.createForTimestampProgress(END_OF_BUCKET_ZERO - 1));
+        verify(sweepBucketsTable, times(1))
+                .deleteBucketEntry(sweepStrategyTestContext.bucketFactory().apply(0));
     }
 
     // [v        w)
     //                  ^ Sweep Timestamp
     //       ^ Sweep Task
-    @Test
-    public void sweepsButWillNotDeleteBucketThatCouldBeRecreatedByAssigner() {
+    @ParameterizedTest
+    @MethodSource("testContexts")
+    public void sweepsButWillNotDeleteBucketThatCouldBeRecreatedByAssigner(
+            SweepStrategyTestContext sweepStrategyTestContext) {
         when(sweepBucketAssignerStateMachineTable.getBucketStateAndIdentifier())
                 .thenReturn(BucketStateAndIdentifier.of(
                         0,
                         BucketAssignerState.immediatelyClosing(
                                 0, END_OF_BUCKET_ZERO))); // This can happen if we have more shards
-        writeTwoCells();
+        writeTwoCells(sweepStrategyTestContext.dataTable());
         sweepTimestamp.set(1337L);
 
-        assertThat(singleBucketSweepTask.runOneIteration(SWEEPABLE_CONSERVATIVE_BUCKET_ZERO))
+        assertThat(singleBucketSweepTask.runOneIteration(SweepableBucket.of(
+                        sweepStrategyTestContext.bucketFactory().apply(0), BUCKET_ZERO_TIMESTAMP_RANGE)))
                 .as("two entries should have been read from the sweep queue")
                 .isEqualTo(2);
 
-        assertThat(bucketProgressStore.getBucketProgress(CONSERVATIVE_BUCKET_ZERO))
+        assertThat(bucketProgressStore.getBucketProgress(
+                        sweepStrategyTestContext.bucketFactory().apply(0)))
                 .as("bucket 0 is completely swept")
-                .hasValue(BucketProgress.createForTimestampProgress(SWEEPABLE_CONSERVATIVE_BUCKET_ZERO
-                                .timestampRange()
-                                .endExclusive()
-                        - SWEEPABLE_CONSERVATIVE_BUCKET_ZERO.timestampRange().startInclusive()
-                        - 1));
+                .hasValue(BucketProgress.createForTimestampProgress(END_OF_BUCKET_ZERO - 1));
 
         // We don't delete the bucket in this case BECAUSE it might get rewritten by the state machine
-        verify(sweepBucketsTable, never()).deleteBucketEntry(CONSERVATIVE_BUCKET_ZERO);
+        verify(sweepBucketsTable, never())
+                .deleteBucketEntry(sweepStrategyTestContext.bucketFactory().apply(0));
     }
 
     // [v        w)
     //       ^ Progress
     //                  ^ Sweep Timestamp
     //       ^ Sweep Task
-    @Test
-    public void resumesProgressFromStoredProgress() {
+    @ParameterizedTest
+    @MethodSource("testContexts")
+    public void resumesProgressFromStoredProgress(SweepStrategyTestContext sweepStrategyTestContext) {
         when(sweepBucketAssignerStateMachineTable.getBucketStateAndIdentifier())
                 .thenReturn(
                         BucketStateAndIdentifier.of(2, BucketAssignerState.waitingUntilCloseable(END_OF_BUCKET_ONE)));
-        writeTwoCells();
+        writeTwoCells(sweepStrategyTestContext.dataTable());
         sweepTimestamp.set(END_OF_BUCKET_ZERO);
         bucketProgressStore.updateBucketProgressToAtLeast(
-                CONSERVATIVE_BUCKET_ZERO, BucketProgress.createForTimestampProgress(250L));
-        assertThat(singleBucketSweepTask.runOneIteration(SWEEPABLE_CONSERVATIVE_BUCKET_ZERO))
+                sweepStrategyTestContext.bucketFactory().apply(0), BucketProgress.createForTimestampProgress(250L));
+        assertThat(singleBucketSweepTask.runOneIteration(SweepableBucket.of(
+                        sweepStrategyTestContext.bucketFactory().apply(0), BUCKET_ZERO_TIMESTAMP_RANGE)))
                 .as("only one entry should be read from the sweep queue, because the first write info is behind"
                         + " the progress pointer")
                 .isEqualTo(1);
@@ -324,53 +338,66 @@ public class SingleBucketSweepTaskIntegrationTest {
     //            ^ Progress
     //                  ^ Sweep Timestamp
     //       ^ Sweep Task
-    @Test
-    public void doesNotRereadEntriesAndReattemptsDeleteOnCompletedBucket_NotDeleteable() {
+    @ParameterizedTest
+    @MethodSource("testContexts")
+    public void doesNotRereadEntriesAndReattemptsDeleteOnCompletedBucket_NotDeleteable(
+            SweepStrategyTestContext sweepStrategyTestContext) {
         when(sweepBucketAssignerStateMachineTable.getBucketStateAndIdentifier())
                 .thenReturn(BucketStateAndIdentifier.of(
                         0,
                         BucketAssignerState.immediatelyClosing(
                                 0, END_OF_BUCKET_ZERO))); // This can happen if we have more shards
-        writeTwoCells();
+        writeTwoCells(sweepStrategyTestContext.dataTable());
         sweepTimestamp.set(1337L);
 
         bucketProgressStore.updateBucketProgressToAtLeast(
-                CONSERVATIVE_BUCKET_ZERO, BucketProgress.createForTimestampProgress(END_OF_BUCKET_ZERO - 1));
-        assertThat(singleBucketSweepTask.runOneIteration(SWEEPABLE_CONSERVATIVE_BUCKET_ZERO))
+                sweepStrategyTestContext.bucketFactory().apply(0),
+                BucketProgress.createForTimestampProgress(END_OF_BUCKET_ZERO - 1));
+        assertThat(singleBucketSweepTask.runOneIteration(SweepableBucket.of(
+                        sweepStrategyTestContext.bucketFactory().apply(0), BUCKET_ZERO_TIMESTAMP_RANGE)))
                 .as("no entries should have been read from the sweep queue, because the bucket was completed")
                 .isEqualTo(0);
-        verify(sweepBucketsTable, never()).deleteBucketEntry(CONSERVATIVE_BUCKET_ZERO);
+        verify(sweepBucketsTable, never())
+                .deleteBucketEntry(sweepStrategyTestContext.bucketFactory().apply(0));
     }
 
     // [v        w)
     //            ^ Progress
     //                  ^ Sweep Timestamp
     //       ^ Sweep Task
-    @Test
-    public void doesNotRereadEntriesAndReattemptsDeleteOnCompletedBucket_Deleteable() {
+    @ParameterizedTest
+    @MethodSource("testContexts")
+    public void doesNotRereadEntriesAndReattemptsDeleteOnCompletedBucket_Deleteable(
+            SweepStrategyTestContext sweepStrategyTestContext) {
         when(sweepBucketAssignerStateMachineTable.getBucketStateAndIdentifier())
                 .thenReturn(BucketStateAndIdentifier.of(
                         1, BucketAssignerState.start(END_OF_BUCKET_ZERO))); // This can happen if we have more shards
-        writeTwoCells();
+        writeTwoCells(sweepStrategyTestContext.dataTable());
         sweepTimestamp.set(1337L);
 
         bucketProgressStore.updateBucketProgressToAtLeast(
-                CONSERVATIVE_BUCKET_ZERO, BucketProgress.createForTimestampProgress(END_OF_BUCKET_ZERO - 1));
-        assertThat(singleBucketSweepTask.runOneIteration(SWEEPABLE_CONSERVATIVE_BUCKET_ZERO))
+                sweepStrategyTestContext.bucketFactory().apply(0),
+                BucketProgress.createForTimestampProgress(END_OF_BUCKET_ZERO - 1));
+        assertThat(singleBucketSweepTask.runOneIteration(SweepableBucket.of(
+                        sweepStrategyTestContext.bucketFactory().apply(0), BUCKET_ZERO_TIMESTAMP_RANGE)))
                 .as("no entries should have been read from the sweep queue, because the bucket was completed")
                 .isEqualTo(0);
-        verify(sweepBucketsTable, times(1)).deleteBucketEntry(CONSERVATIVE_BUCKET_ZERO);
+        verify(sweepBucketsTable, times(1))
+                .deleteBucketEntry(sweepStrategyTestContext.bucketFactory().apply(0));
     }
 
     // [          ][          ][vw        )
     //               ^ Sweep Timestamp
     //                               ^ Sweep Task
-    @Test
-    public void doesNotReadEntriesFromQueueIfSweepTimestampTooEarlyForBucket() {
-        writeCell(5200L, DEFAULT_VALUE, 5900L);
-        writeCell(6400L, ANOTHER_VALUE, 7300L);
+    @ParameterizedTest
+    @MethodSource("testContexts")
+    public void doesNotReadEntriesFromQueueIfSweepTimestampTooEarlyForBucket(
+            SweepStrategyTestContext sweepStrategyTestContext) {
+        writeCell(sweepStrategyTestContext.dataTable(), 5200L, DEFAULT_VALUE, 5900L);
+        writeCell(sweepStrategyTestContext.dataTable(), 6400L, ANOTHER_VALUE, 7300L);
         sweepTimestamp.set(END_OF_BUCKET_ZERO + 1);
-        assertThat(singleBucketSweepTask.runOneIteration(SWEEPABLE_CONSERVATIVE_BUCKET_TWO))
+        assertThat(singleBucketSweepTask.runOneIteration(SweepableBucket.of(
+                        sweepStrategyTestContext.bucketFactory().apply(2), BUCKET_TWO_TIMESTAMP_RANGE)))
                 .as("nothing should have been read from the queue, because sweep can't enter bucket 2")
                 .isEqualTo(0);
     }
@@ -378,35 +405,39 @@ public class SingleBucketSweepTaskIntegrationTest {
     // [          ][          ][vwx       )
     //                               ^ Sweep Timestamp
     //                               ^ Sweep Task
-    @Test
-    public void makesProgressUpToSweepTimestampOnAnOpenBucketButWillNotDeleteIt() {
+    @ParameterizedTest
+    @MethodSource("testContexts")
+    public void makesProgressUpToSweepTimestampOnAnOpenBucketButWillNotDeleteIt(
+            SweepStrategyTestContext sweepStrategyTestContext) {
         when(sweepBucketAssignerStateMachineTable.getBucketStateAndIdentifier())
                 .thenReturn(
                         BucketStateAndIdentifier.of(2, BucketAssignerState.waitingUntilCloseable(END_OF_BUCKET_ONE)));
-        writeCell(5200L, DEFAULT_VALUE, 5900L);
-        writeCell(6400L, ANOTHER_VALUE, 7300L);
-        writeTransactionalDelete(7500L, 7800L);
+        writeCell(sweepStrategyTestContext.dataTable(), 5200L, DEFAULT_VALUE, 5900L);
+        writeCell(sweepStrategyTestContext.dataTable(), 6400L, ANOTHER_VALUE, 7300L);
+        writeTransactionalDelete(sweepStrategyTestContext.dataTable(), 7500L, 7800L);
         sweepTimestamp.set(8000L);
 
-        assertThat(singleBucketSweepTask.runOneIteration(SWEEPABLE_CONSERVATIVE_BUCKET_TWO))
+        assertThat(singleBucketSweepTask.runOneIteration(SweepableBucket.of(
+                        sweepStrategyTestContext.bucketFactory().apply(2), BUCKET_TWO_TIMESTAMP_RANGE)))
                 .as("three entries should have been read from the sweep queue")
                 .isEqualTo(3);
 
-        assertThat(bucketProgressStore.getBucketProgress(CONSERVATIVE_BUCKET_TWO))
+        assertThat(bucketProgressStore.getBucketProgress(
+                        sweepStrategyTestContext.bucketFactory().apply(2)))
                 .as("bucket 2 makes progress up to the sweep timestamp")
-                .hasValue(BucketProgress.createForTimestampProgress(8000L
-                        - SWEEPABLE_CONSERVATIVE_BUCKET_TWO.timestampRange().startInclusive()
-                        - 1));
+                .hasValue(BucketProgress.createForTimestampProgress(8000L - END_OF_BUCKET_ONE - 1));
 
         // We don't delete the bucket in this case because it is still open
-        verify(sweepBucketsTable, never()).deleteBucketEntry(CONSERVATIVE_BUCKET_TWO);
+        verify(sweepBucketsTable, never())
+                .deleteBucketEntry(sweepStrategyTestContext.bucketFactory().apply(2));
     }
 
     // [          ][          ][vwxyz01234)
     //                               ^ Sweep Timestamp
     //                               ^ Sweep Task
-    @Test
-    public void makesPartialProgressOnAnOpenBucket() {
+    @ParameterizedTest
+    @MethodSource("testContexts")
+    public void makesPartialProgressOnAnOpenBucket(SweepStrategyTestContext sweepStrategyTestContext) {
         when(sweepBucketAssignerStateMachineTable.getBucketStateAndIdentifier())
                 .thenReturn(
                         BucketStateAndIdentifier.of(2, BucketAssignerState.waitingUntilCloseable(END_OF_BUCKET_ONE)));
@@ -424,37 +455,42 @@ public class SingleBucketSweepTaskIntegrationTest {
                 })
                 .collect(Collectors.toList());
 
-        writeCells(CONSERVATIVE_TABLE, knownTableWrites);
+        writeCells(sweepStrategyTestContext.dataTable(), knownTableWrites);
 
         long partialProgressOnSecondBatch = 3333;
         sweepTimestamp.set(END_OF_BUCKET_ONE + numberOfCellsSweptInOneIteration + partialProgressOnSecondBatch);
 
-        assertThat(singleBucketSweepTask.runOneIteration(SWEEPABLE_CONSERVATIVE_BUCKET_TWO))
+        SweepableBucket sweepableBucketTwo =
+                SweepableBucket.of(sweepStrategyTestContext.bucketFactory().apply(2), BUCKET_TWO_TIMESTAMP_RANGE);
+        assertThat(singleBucketSweepTask.runOneIteration(sweepableBucketTwo))
                 .isEqualTo(numberOfCellsSweptInOneIteration);
-        assertThat(bucketProgressStore.getBucketProgress(CONSERVATIVE_BUCKET_TWO))
+        assertThat(bucketProgressStore.getBucketProgress(
+                        sweepStrategyTestContext.bucketFactory().apply(2)))
                 .as("bucket 2 has partial progress up to the first batch read")
                 .hasValue(BucketProgress.createForTimestampProgress(SweepQueueUtils.SWEEP_BATCH_SIZE - 1));
 
-        assertThat(singleBucketSweepTask.runOneIteration(SWEEPABLE_CONSERVATIVE_BUCKET_TWO))
-                .isEqualTo(partialProgressOnSecondBatch);
-        assertThat(bucketProgressStore.getBucketProgress(CONSERVATIVE_BUCKET_TWO))
+        assertThat(singleBucketSweepTask.runOneIteration(sweepableBucketTwo)).isEqualTo(partialProgressOnSecondBatch);
+        assertThat(bucketProgressStore.getBucketProgress(
+                        sweepStrategyTestContext.bucketFactory().apply(2)))
                 .as("bucket 2 has partial progress up to the second batch read")
                 .hasValue(BucketProgress.createForTimestampProgress(
                         SweepQueueUtils.SWEEP_BATCH_SIZE + partialProgressOnSecondBatch - 1));
 
-        assertThat(singleBucketSweepTask.runOneIteration(SWEEPABLE_CONSERVATIVE_BUCKET_TWO))
+        assertThat(singleBucketSweepTask.runOneIteration(sweepableBucketTwo))
                 .as("no further progress is made past the sweep timestamp")
                 .isEqualTo(0);
 
-        verify(sweepBucketsTable, never()).deleteBucketEntry(CONSERVATIVE_BUCKET_TWO);
+        verify(sweepBucketsTable, never())
+                .deleteBucketEntry(sweepStrategyTestContext.bucketFactory().apply(2));
     }
 
     // [          ][          ][vwxyz01234)
     //                               ^ Sweep Timestamp
     //                               ^ Sweep Task
     // except that the values are spaced far apart in timestamps, and so in the underlying sweep queue storage.
-    @Test
-    public void makesProgressOnCellsInDifferentSweepQueuePartitions() {
+    @ParameterizedTest
+    @MethodSource("testContexts")
+    public void makesProgressOnCellsInDifferentSweepQueuePartitions(SweepStrategyTestContext sweepStrategyTestContext) {
         when(sweepBucketAssignerStateMachineTable.getBucketStateAndIdentifier())
                 .thenReturn(
                         BucketStateAndIdentifier.of(2, BucketAssignerState.waitingUntilCloseable(END_OF_BUCKET_ONE)));
@@ -472,31 +508,89 @@ public class SingleBucketSweepTaskIntegrationTest {
                     .build());
             currentTimestamp += timestampIncrement;
         }
-        writeCells(CONSERVATIVE_TABLE, knownTableWrites);
+        writeCells(sweepStrategyTestContext.dataTable(), knownTableWrites);
         sweepTimestamp.set(currentTimestamp + 1);
 
+        SweepableBucket sweepableBucketTwo =
+                SweepableBucket.of(sweepStrategyTestContext.bucketFactory().apply(2), BUCKET_TWO_TIMESTAMP_RANGE);
         // We don't care exactly how the sweep batching works, other than that we are able to make progress.
         // + 1 because we need to explicitly discover there is nothing after the last cell
         int allowedIterations = numberOfCellsToWrite + 1;
+        long entriesRead = 0;
         for (int i = 0; i < allowedIterations; i++) {
-            singleBucketSweepTask.runOneIteration(SWEEPABLE_CONSERVATIVE_BUCKET_TWO);
+            entriesRead += singleBucketSweepTask.runOneIteration(sweepableBucketTwo);
         }
+        assertThat(entriesRead)
+                .as("all cells that were enqueued should eventually be read")
+                .isEqualTo(numberOfCellsToWrite);
 
-        assertThat(bucketProgressStore.getBucketProgress(CONSERVATIVE_BUCKET_TWO))
+        assertThat(bucketProgressStore.getBucketProgress(
+                        sweepStrategyTestContext.bucketFactory().apply(2)))
                 .hasValueSatisfying(progress -> assertThat(progress.timestampProgress())
                         .as("after the allowed number of iterations, sweep made progress within the same bucket")
                         .isEqualTo(sweepTimestamp.get() - 1 - END_OF_BUCKET_ONE));
     }
 
-    private void writeTwoCells() {
-        writeCell(100L, DEFAULT_VALUE, 200L);
-        writeCell(300L, ANOTHER_VALUE, 400L);
+    @ParameterizedTest
+    @MethodSource("testContexts")
+    public void doesNotSweepCellsForDifferentShards(SweepStrategyTestContext sweepStrategyTestContext) {
+        when(sweepBucketAssignerStateMachineTable.getBucketStateAndIdentifier())
+                .thenReturn(
+                        BucketStateAndIdentifier.of(2, BucketAssignerState.waitingUntilCloseable(END_OF_BUCKET_ONE)));
+        writeTwoCells(sweepStrategyTestContext.dataTable());
+        sweepTimestamp.set(END_OF_BUCKET_ONE);
+
+        assertThat(singleBucketSweepTask.runOneIteration(SweepableBucket.of(
+                        Bucket.of(ShardAndStrategy.of(42, sweepStrategyTestContext.strategy()), 0),
+                        BUCKET_ZERO_TIMESTAMP_RANGE)))
+                .as("the writes should have been enqueued to shard zero, not 42")
+                .isEqualTo(0);
+        assertThat(bucketProgressStore.getBucketProgress(
+                        sweepStrategyTestContext.bucketFactory().apply(0)))
+                .as("we should not have swept bucket 0 for the strategy in our context yet")
+                .isEmpty();
     }
 
-    private void writeCell(long startTimestamp, byte[] defaultValue, long commitTimestamp) {
-        sweepQueueWriter.enqueue(ImmutableList.of(WriteInfo.write(CONSERVATIVE_TABLE, DEFAULT_CELL, startTimestamp)));
-        keyValueService.put(CONSERVATIVE_TABLE, ImmutableMap.of(DEFAULT_CELL, defaultValue), startTimestamp);
-        transactionService.putUnlessExists(startTimestamp, commitTimestamp);
+    @ParameterizedTest
+    @MethodSource("testContexts")
+    public void doesNotSweepCellsForDifferentStrategies(SweepStrategyTestContext sweepStrategyTestContext) {
+        when(sweepBucketAssignerStateMachineTable.getBucketStateAndIdentifier())
+                .thenReturn(
+                        BucketStateAndIdentifier.of(2, BucketAssignerState.waitingUntilCloseable(END_OF_BUCKET_ONE)));
+        SweeperStrategy otherStrategy = sweepStrategyTestContext.strategy() == SweeperStrategy.CONSERVATIVE
+                ? SweeperStrategy.THOROUGH
+                : SweeperStrategy.CONSERVATIVE;
+        writeTwoCells(sweepStrategyTestContext.dataTable());
+        sweepTimestamp.set(END_OF_BUCKET_ONE);
+
+        assertThat(singleBucketSweepTask.runOneIteration(SweepableBucket.of(
+                        Bucket.of(ShardAndStrategy.of(0, otherStrategy), 0), BUCKET_ZERO_TIMESTAMP_RANGE)))
+                .as("the writes should have been enqueued to the other sweeper strategy")
+                .isEqualTo(0);
+        assertThat(bucketProgressStore.getBucketProgress(
+                        sweepStrategyTestContext.bucketFactory().apply(0)))
+                .as("we should not have swept bucket 0 for the strategy in our context yet")
+                .isEmpty();
+    }
+
+    private void writeTwoCells(TableReference tableReference) {
+        writeCell(tableReference, 100L, DEFAULT_VALUE, 200L);
+        writeCell(tableReference, 300L, ANOTHER_VALUE, 400L);
+    }
+
+    private void writeCell(TableReference tableReference, long startTimestamp, byte[] value, long commitTimestamp) {
+        writeCells(
+                tableReference,
+                ImmutableList.of(KnownTableWrite.builder()
+                        .cell(DEFAULT_CELL)
+                        .value(value)
+                        .startTimestamp(startTimestamp)
+                        .commitTimestamp(commitTimestamp)
+                        .build()));
+    }
+
+    private void writeTransactionalDelete(TableReference tableReference, long startTimestamp, long commitTimestamp) {
+        writeCell(tableReference, startTimestamp, PtBytes.EMPTY_BYTE_ARRAY, commitTimestamp);
     }
 
     private void writeCells(TableReference tableReference, List<KnownTableWrite> knownTableWrites) {
@@ -504,14 +598,12 @@ public class SingleBucketSweepTaskIntegrationTest {
                 .map(knownTableWrite -> getWriteInfo(tableReference, knownTableWrite))
                 .collect(Collectors.toList()));
 
-        // More clever users could try a Collections.groupingBy on the start timestamp here, but in the interest of
+        // Cleverer implementations could try a groupingBy on the start timestamp here, but in the interest of
         // readability and in existing usage we only use one cell at a time, therefore I won't optimise this yet.
-        knownTableWrites.forEach(knownTableWrite -> {
-            keyValueService.put(
-                    tableReference,
-                    ImmutableMap.of(knownTableWrite.cell(), knownTableWrite.value()),
-                    knownTableWrite.startTimestamp());
-        });
+        knownTableWrites.forEach(knownTableWrite -> keyValueService.put(
+                tableReference,
+                ImmutableMap.of(knownTableWrite.cell(), knownTableWrite.value()),
+                knownTableWrite.startTimestamp()));
 
         // If multiple writes say different things about a given start timestamp, this will throw, and users will deal
         // with the fallout.
@@ -522,20 +614,57 @@ public class SingleBucketSweepTaskIntegrationTest {
         transactionService.putUnlessExists(startToCommitTimestamps);
     }
 
-    private void writeTransactionalDelete(long startTimestamp, long commitTimestamp) {
-        sweepQueueWriter.enqueue(
-                ImmutableList.of(WriteInfo.tombstone(CONSERVATIVE_TABLE, DEFAULT_CELL, startTimestamp)));
-        keyValueService.put(
-                CONSERVATIVE_TABLE, ImmutableMap.of(DEFAULT_CELL, PtBytes.EMPTY_BYTE_ARRAY), startTimestamp);
-        transactionService.putUnlessExists(startTimestamp, commitTimestamp);
+    private void checkValueSwept(Cell cell, long timestamp, SweepStrategyTestContext sweepStrategyTestContext) {
+        switch (sweepStrategyTestContext.strategy()) {
+            case THOROUGH:
+                checkNoValueExistsBefore(sweepStrategyTestContext.dataTable(), cell, timestamp);
+                break;
+            case CONSERVATIVE:
+                checkSentinelExistsBefore(sweepStrategyTestContext.dataTable(), cell, timestamp);
+                break;
+            default:
+                throw new SafeIllegalStateException(
+                        "Not expecting to see the included sweep strategy in this test",
+                        SafeArg.of("sweepStrategy", sweepStrategyTestContext.strategy()));
+        }
     }
 
-    private static @NotNull WriteInfo getWriteInfo(TableReference tableReference, KnownTableWrite knownTableWrite) {
+    private void checkNoValueExistsBefore(TableReference tableReference, Cell cell, long timestamp) {
+        assertThat(keyValueService.get(tableReference, ImmutableMap.of(cell, timestamp)))
+                .isEmpty();
+    }
+
+    private void checkSentinelExistsBefore(TableReference tableReference, Cell cell, long timestamp) {
+        assertThat(keyValueService.get(tableReference, ImmutableMap.of(cell, timestamp)))
+                .hasSize(1)
+                .hasEntrySatisfying(cell, value -> {
+                    assertThat(value.getTimestamp())
+                            .isEqualTo(com.palantir.atlasdb.keyvalue.api.Value.INVALID_VALUE_TIMESTAMP);
+                    assertThat(com.palantir.atlasdb.keyvalue.api.Value.isTombstone(value.getContents()))
+                            .isTrue();
+                });
+    }
+
+    private static WriteInfo getWriteInfo(TableReference tableReference, KnownTableWrite knownTableWrite) {
         if (Arrays.equals(knownTableWrite.value(), PtBytes.EMPTY_BYTE_ARRAY)) {
             return WriteInfo.tombstone(tableReference, knownTableWrite.cell(), knownTableWrite.startTimestamp());
         } else {
             return WriteInfo.write(tableReference, knownTableWrite.cell(), knownTableWrite.startTimestamp());
         }
+    }
+
+    public static Stream<SweepStrategyTestContext> testContexts() {
+        return Stream.of(
+                SweepStrategyTestContext.builder()
+                        .strategy(SweeperStrategy.CONSERVATIVE)
+                        .dataTable(CONSERVATIVE_TABLE)
+                        .bucketFactory(index -> Bucket.of(ShardAndStrategy.conservative(0), index))
+                        .build(),
+                SweepStrategyTestContext.builder()
+                        .strategy(SweeperStrategy.THOROUGH)
+                        .dataTable(THOROUGH_TABLE)
+                        .bucketFactory(index -> Bucket.of(ShardAndStrategy.thorough(0), index))
+                        .build());
     }
 
     private static final class TestBucketProgressStore implements BucketProgressStore {
@@ -569,6 +698,19 @@ public class SingleBucketSweepTaskIntegrationTest {
 
         static ImmutableKnownTableWrite.Builder builder() {
             return ImmutableKnownTableWrite.builder();
+        }
+    }
+
+    @Value.Immutable
+    public interface SweepStrategyTestContext {
+        SweeperStrategy strategy();
+
+        TableReference dataTable();
+
+        Function<Integer, Bucket> bucketFactory();
+
+        static ImmutableSweepStrategyTestContext.Builder builder() {
+            return ImmutableSweepStrategyTestContext.builder();
         }
     }
 }
