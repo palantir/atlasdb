@@ -19,6 +19,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.time.Duration;
+import java.util.Comparator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -39,6 +40,7 @@ public final class FilteredCassandraClientInstrumentation implements CassandraCl
                 Duration.ofSeconds(5),
                 Duration.ofSeconds(15),
                 CassandraClientInstrumentationUtils::createCellsWrittenMetricNameForTableTag,
+                Comparator.<String>naturalOrder(),
                 registry,
                 executor);
 
