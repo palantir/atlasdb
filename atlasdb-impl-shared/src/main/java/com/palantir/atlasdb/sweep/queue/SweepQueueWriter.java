@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.logsafe.SafeArg;
@@ -22,14 +23,16 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 
-class SweepQueueWriter implements MultiTableSweepQueueWriter {
+public class SweepQueueWriter implements MultiTableSweepQueueWriter {
     private static final SafeLogger log = SafeLoggerFactory.get(SweepQueueWriter.class);
 
     private final SweepableTimestamps sweepableTimestamps;
     private final SweepableCells sweepableCells;
     private final WriteInfoPartitioner partitioner;
 
-    SweepQueueWriter(
+    @SuppressWarnings("VisibleForTestingPackagePrivate") // integration tests
+    @VisibleForTesting // integration tests
+    public SweepQueueWriter(
             SweepableTimestamps sweepableTimestamps, SweepableCells sweepableCells, WriteInfoPartitioner partitioner) {
         this.sweepableTimestamps = sweepableTimestamps;
         this.sweepableCells = sweepableCells;

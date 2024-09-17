@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.util.Optional;
 import java.util.function.IntSupplier;
 import org.immutables.value.Value.Immutable;
@@ -24,7 +25,9 @@ public class SweepQueueReader {
     private final SweepableCells sweepableCells;
     private final ReadBatchingRuntimeContext runtime;
 
-    SweepQueueReader(
+    @SuppressWarnings("VisibleForTestingPackagePrivate") // Visible for testing sometimes needs to be public
+    @VisibleForTesting // Integration tests for ASTS
+    public SweepQueueReader(
             SweepableTimestamps sweepableTimestamps,
             SweepableCells sweepableCells,
             ReadBatchingRuntimeContext runtime) {
