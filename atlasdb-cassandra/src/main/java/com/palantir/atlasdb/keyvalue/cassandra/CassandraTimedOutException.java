@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.google.common.collect.ImmutableList;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeLoggable;
@@ -28,15 +27,15 @@ public class CassandraTimedOutException extends RuntimeException implements Safe
     private static final long serialVersionUID = 1L;
     private static final String LOG_MESSAGE =
             "Cassandra query threw a TimedOut exception. Possible reasons and possible actions to resolve: 1. Reason:"
-                + " atlasdb clients are requesting too much data from Cassandra. Resolution: Change query to request"
-                + " less data.2. Reason: Data deleted is being read in the query (eg// Large amount of tombstones)."
-                + " Resolution: Run a compaction on your cassandra server.3. Reason: Cassandra is struggling, either"
-                + " due to another large query or server health or network outage. Resolution: Ask your CassandraOps"
-                + " to check the state of the Cassandra server.";
+                    + " atlasdb clients are requesting too much data from Cassandra. Resolution: Change query to request"
+                    + " less data.2. Reason: Data deleted is being read in the query (eg// Large amount of tombstones)."
+                    + " Resolution: Run a compaction on your cassandra server.3. Reason: Cassandra is struggling, either"
+                    + " due to another large query or server health or network outage. Resolution: Ask your CassandraOps"
+                    + " to check the state of the Cassandra server.";
     private final List<Arg<?>> args;
 
     public CassandraTimedOutException(Throwable throwable, Arg<?>... args) {
-        this(throwable, toArgList(args));
+        this(throwable, List.of(args));
     }
 
     private CassandraTimedOutException(@Nullable Throwable cause, List<Arg<?>> args) {
@@ -52,11 +51,5 @@ public class CassandraTimedOutException extends RuntimeException implements Safe
     @Override
     public List<Arg<?>> getArgs() {
         return args;
-    }
-
-    private static List<Arg<?>> toArgList(Arg<?>[] args) {
-        return ImmutableList.<Arg<?>>builderWithExpectedSize(args.length + 1)
-                .add(args)
-                .build();
     }
 }
