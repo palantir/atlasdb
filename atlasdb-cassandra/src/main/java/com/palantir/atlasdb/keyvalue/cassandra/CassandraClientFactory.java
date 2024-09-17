@@ -78,20 +78,20 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     private final SSLSocketFactory sslSocketFactory;
     private final TimedRunner timedRunner;
     private final TSocketFactory tSocketFactory;
-    private final CassandraClientInstrumentation cassandraClientInstrumentation;
+    private final CassandraClientMetrics cassandraClientMetrics;
 
     public CassandraClientFactory(
             MetricsManager metricsManager,
             CassandraServer cassandraServer,
             CassandraClientConfig clientConfig,
-            CassandraClientInstrumentation cassandraClientInstrumentation) {
+            CassandraClientMetrics cassandraClientMetrics) {
         this.metricsManager = metricsManager;
         this.cassandraServer = cassandraServer;
         this.clientConfig = clientConfig;
         this.sslSocketFactory = createSslSocketFactory(clientConfig.sslConfiguration());
         this.timedRunner = TimedRunner.create(clientConfig.timeoutOnConnectionClose());
         this.tSocketFactory = new InstrumentedTSocket.Factory(metricsManager);
-        this.cassandraClientInstrumentation = cassandraClientInstrumentation;
+        this.cassandraClientMetrics = cassandraClientMetrics;
     }
 
     @Override
@@ -114,7 +114,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         client = AtlasDbMetrics.instrumentTimed(metricsManager.getRegistry(), CassandraClient.class, client);
         client = new ProfilingCassandraClient(client);
         client = new TracingCassandraClient(client);
-        client = new InstrumentedCassandraClient(client, cassandraClientInstrumentation);
+        client = new InstrumentedCassandraClient(client, cassandraClientMetrics);
         client = QosCassandraClient.instrumentWithMetrics(client, metricsManager);
         return client;
     }

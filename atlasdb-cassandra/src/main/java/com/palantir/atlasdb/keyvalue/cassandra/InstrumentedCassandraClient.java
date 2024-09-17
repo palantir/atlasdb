@@ -29,9 +29,9 @@ import org.apache.thrift.TException;
 @SuppressWarnings({"all"}) // thrift variable names.
 public class InstrumentedCassandraClient implements AutoDelegate_CassandraClient {
     private final CassandraClient delegate;
-    private final CassandraClientInstrumentation instrumentation;
+    private final CassandraClientMetrics instrumentation;
 
-    public InstrumentedCassandraClient(CassandraClient client, CassandraClientInstrumentation instrumentation) {
+    public InstrumentedCassandraClient(CassandraClient client, CassandraClientMetrics instrumentation) {
         this.delegate = client;
         this.instrumentation = instrumentation;
     }
