@@ -33,8 +33,7 @@ public final class FilteredCassandraClientMetrics implements CassandraClientMetr
         this.executorService = executorService;
     }
 
-    public static CassandraClientMetrics create(
-            TaggedMetricRegistry registry, ScheduledExecutorService executor) {
+    public static CassandraClientMetrics create(TaggedMetricRegistry registry, ScheduledExecutorService executor) {
         TopListFilteredCounter<String> cellsWritten = TopListFilteredCounter.create(
                 5,
                 Duration.ofSeconds(5),
