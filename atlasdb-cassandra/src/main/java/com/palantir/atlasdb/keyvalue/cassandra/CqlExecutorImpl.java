@@ -53,6 +53,7 @@ import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlPreparedResult;
 import org.apache.cassandra.thrift.CqlResult;
 import org.apache.cassandra.thrift.CqlRow;
+import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.thrift.TException;
 
 public class CqlExecutorImpl implements CqlExecutor {
@@ -303,6 +304,9 @@ public class CqlExecutorImpl implements CqlExecutor {
                     throw CassandraUtils.wrapInIceForDeleteOrRethrow(e);
                 }
                 throw e;
+            } catch (TimedOutException e) {
+                log.error("Query timed out on server: {}", UnsafeArg.of("server", cassandraServer), e);
+                throw CassandraUtils.wrapInCassandraTimedOutExceptionReThrow(e);
             } catch (TException e) {
                 throw Throwables.throwUncheckedException(e);
             }

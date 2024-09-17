@@ -21,6 +21,7 @@ import com.palantir.atlasdb.keyvalue.api.RetryLimitReachedException;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import java.util.List;
+import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.TokenRange;
 import org.apache.cassandra.thrift.UnavailableException;
 
@@ -45,5 +46,9 @@ public final class CassandraUtils {
             throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be available.", ex);
         }
         throw ex;
+    }
+
+    public static CassandraTimedOutException wrapInCassandraTimedOutExceptionReThrow(TimedOutException ex) {
+        throw new CassandraTimedOutException(ex);
     }
 }
