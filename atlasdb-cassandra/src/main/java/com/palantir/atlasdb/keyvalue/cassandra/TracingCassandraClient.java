@@ -179,6 +179,23 @@ public class TracingCassandraClient implements AutoDelegate_CassandraClient {
     }
 
     @Override
+    public CASResult put_unless_exists(
+            TableReference tableReference,
+            ByteBuffer key,
+            List<Column> updates,
+            ConsistencyLevel serial_consistency_level,
+            ConsistencyLevel commit_consistency_level)
+            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+        try (CloseableTracer trace = startLocalTrace("cassandra-thrift-client.client.put_unless_exists", sink -> {
+            sink.tableRef(tableReference);
+            sink.size("updates", updates);
+        })) {
+            return client.put_unless_exists(
+                    tableReference, key, updates, serial_consistency_level, commit_consistency_level);
+        }
+    }
+
+    @Override
     public CqlResult execute_cql3_query(CqlQuery cqlQuery, Compression compression, ConsistencyLevel consistency)
             throws InvalidRequestException, UnavailableException, TimedOutException, SchemaDisagreementException,
                     TException {
