@@ -28,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraC
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.exception.SafeSSLPeerUnverifiedException;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.security.cert.Certificate;
@@ -70,7 +71,8 @@ public class CassandraClientFactoryTest {
                     .enableEndpointVerification(false)
                     .keyspace("ks")
                     .timeoutOnConnectionClose(Duration.ZERO)
-                    .build());
+                    .build(),
+            new UnfilteredCassandraClientInstrumentation(new DefaultTaggedMetricRegistry()));
 
     private static final InetAddress DEFAULT_ADDRESS = mockInetAddress("1.2.3.4");
 
