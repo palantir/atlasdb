@@ -23,17 +23,17 @@ import java.util.Comparator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 
-public final class FilteredCassandraClientInstrumentation implements CassandraClientInstrumentation {
+public final class FilteredCassandraClientMetrics implements CassandraClientMetrics {
     private final TopListFilteredCounter<String> cellsWrittenCounter;
     private final ExecutorService executorService;
 
-    private FilteredCassandraClientInstrumentation(
+    private FilteredCassandraClientMetrics(
             TopListFilteredCounter<String> cellsWrittenCounter, ExecutorService executorService) {
         this.cellsWrittenCounter = cellsWrittenCounter;
         this.executorService = executorService;
     }
 
-    public static CassandraClientInstrumentation create(
+    public static CassandraClientMetrics create(
             TaggedMetricRegistry registry, ScheduledExecutorService executor) {
         TopListFilteredCounter<String> cellsWritten = TopListFilteredCounter.create(
                 5,
@@ -44,7 +44,7 @@ public final class FilteredCassandraClientInstrumentation implements CassandraCl
                 registry,
                 executor);
 
-        return new FilteredCassandraClientInstrumentation(cellsWritten, executor);
+        return new FilteredCassandraClientMetrics(cellsWritten, executor);
     }
 
     @Override

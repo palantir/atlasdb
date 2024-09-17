@@ -33,14 +33,14 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.ThriftHostsExtractingVisitor;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientInstrumentation;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraLogHelper;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraServerOrigin;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraUtils;
-import com.palantir.atlasdb.keyvalue.cassandra.FilteredCassandraClientInstrumentation;
+import com.palantir.atlasdb.keyvalue.cassandra.FilteredCassandraClientMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
-import com.palantir.atlasdb.keyvalue.cassandra.UnfilteredCassandraClientInstrumentation;
+import com.palantir.atlasdb.keyvalue.cassandra.UnfilteredCassandraClientMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
@@ -106,7 +106,7 @@ public final class CassandraService implements AutoCloseable {
     private final Supplier<Map<String, String>> hostnameByIpSupplier;
 
     private final Random random = new Random();
-    private final CassandraClientInstrumentation cassandraClientInstrumentation;
+    private final CassandraClientMetrics cassandraClientMetrics;
 
     private CassandraService(
             MetricsManager metricsManager,
@@ -114,7 +114,7 @@ public final class CassandraService implements AutoCloseable {
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             Blacklist blacklist,
             CassandraClientPoolMetrics poolMetrics,
-            CassandraClientInstrumentation cassandraClientInstrumentation) {
+            CassandraClientMetrics cassandraClientMetrics) {
         this.metricsManager = metricsManager;
         this.config = config;
         this.runtimeConfig = runtimeConfig;
@@ -126,7 +126,7 @@ public final class CassandraService implements AutoCloseable {
         Supplier<Map<String, String>> hostnamesByIpSupplier =
                 new HostnamesByIpSupplier(this::getAllNonBlacklistedHosts);
         this.hostnameByIpSupplier = Suppliers.memoizeWithExpiration(hostnamesByIpSupplier::get, 1, TimeUnit.MINUTES);
-        this.cassandraClientInstrumentation = cassandraClientInstrumentation;
+        this.cassandraClientMetrics = cassandraClientMetrics;
     }
 
     public static CassandraService create(
@@ -141,7 +141,7 @@ public final class CassandraService implements AutoCloseable {
                 runtimeConfig,
                 blacklist,
                 poolMetrics,
-                FilteredCassandraClientInstrumentation.create(
+                FilteredCassandraClientMetrics.create(
                         metricsManager.getTaggedRegistry(), PTExecutors.newSingleThreadScheduledExecutor()));
     }
 
@@ -157,12 +157,12 @@ public final class CassandraService implements AutoCloseable {
                 runtimeConfig,
                 blacklist,
                 poolMetrics,
-                new UnfilteredCassandraClientInstrumentation(metricsManager.getTaggedRegistry()));
+                new UnfilteredCassandraClientMetrics(metricsManager.getTaggedRegistry()));
     }
 
     @Override
     public void close() {
-        cassandraClientInstrumentation.close();
+        cassandraClientMetrics.close();
     }
 
     public ImmutableMap<CassandraServer, CassandraServerOrigin> refreshTokenRangesAndGetServers() {
@@ -528,7 +528,7 @@ public final class CassandraService implements AutoCloseable {
     public CassandraClientPoolingContainer createPool(CassandraServer server) {
         int currentPoolNumber = cassandraHosts.indexOf(server) + 1;
         return new CassandraClientPoolingContainer(
-                metricsManager, server, config, currentPoolNumber, poolMetrics, cassandraClientInstrumentation);
+                metricsManager, server, config, currentPoolNumber, poolMetrics, cassandraClientMetrics);
     }
 
     public void addPool(CassandraServer server) {
