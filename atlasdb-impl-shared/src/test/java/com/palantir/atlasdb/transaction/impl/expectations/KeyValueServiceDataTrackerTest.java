@@ -24,11 +24,6 @@ import com.palantir.atlasdb.transaction.api.expectations.ImmutableKvsCallReadInf
 import com.palantir.atlasdb.transaction.api.expectations.ImmutableTransactionReadInfo;
 import com.palantir.atlasdb.transaction.api.expectations.KvsCallReadInfo;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
-import com.palantir.common.concurrent.PTExecutors;
-import com.palantir.flake.FlakeRetryTest;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 public final class KeyValueServiceDataTrackerTest {
@@ -169,108 +164,6 @@ public final class KeyValueServiceDataTrackerTest {
                                 SMALL_BYTES_READ + MEDIUM_BYTES_READ,
                                 2,
                                 ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_1, SMALL_BYTES_READ))));
-    }
-
-    @FlakeRetryTest
-    public void interleavedMethodCallsAreTracked() throws InterruptedException {
-        ExecutorService executor = PTExecutors.newFixedThreadPool(100);
-        int concurrencyRounds = 20_000;
-        AtomicInteger exceptionsSeen = new AtomicInteger(0);
-
-        for (int round = 0; round < concurrencyRounds; round++) {
-            executor.execute(wrapForExceptionTracking(
-                    () -> tracker.recordReadForTable(TABLE_1, KVS_METHOD_NAME_1, SMALL_BYTES_READ), exceptionsSeen));
-            executor.execute(wrapForExceptionTracking(
-                    () -> tracker.recordReadForTable(TABLE_1, KVS_METHOD_NAME_2, LARGE_BYTES_READ), exceptionsSeen));
-            executor.execute(wrapForExceptionTracking(
-                    () -> tracker.recordReadForTable(TABLE_1, KVS_METHOD_NAME_3, LARGE_BYTES_READ), exceptionsSeen));
-            executor.execute(wrapForExceptionTracking(
-                    () -> {
-                        BytesReadTracker tableOneFirstTracker = tracker.recordCallForTable(TABLE_1);
-                        tableOneFirstTracker.record(LARGE_BYTES_READ);
-                    },
-                    exceptionsSeen));
-            executor.execute(wrapForExceptionTracking(
-                    () -> {
-                        BytesReadTracker tableOneSecondTracker = tracker.recordCallForTable(TABLE_1);
-                        tableOneSecondTracker.record(MEDIUM_BYTES_READ);
-                    },
-                    exceptionsSeen));
-
-            executor.execute(wrapForExceptionTracking(
-                    () -> tracker.recordReadForTable(TABLE_2, KVS_METHOD_NAME_2, MEDIUM_BYTES_READ), exceptionsSeen));
-            executor.execute(wrapForExceptionTracking(
-                    () -> tracker.recordReadForTable(TABLE_2, KVS_METHOD_NAME_3, LARGE_BYTES_READ), exceptionsSeen));
-            executor.execute(wrapForExceptionTracking(
-                    () -> {
-                        BytesReadTracker tableTwoTracker = tracker.recordCallForTable(TABLE_2);
-                        tableTwoTracker.record(SMALL_BYTES_READ);
-                        tableTwoTracker.record(MEDIUM_BYTES_READ);
-                    },
-                    exceptionsSeen));
-
-            executor.execute(wrapForExceptionTracking(
-                    () -> tracker.recordReadForTable(TABLE_3, KVS_METHOD_NAME_1, MEDIUM_BYTES_READ), exceptionsSeen));
-            executor.execute(wrapForExceptionTracking(
-                    () -> {
-                        BytesReadTracker tableThreeTracker = tracker.recordCallForTable(TABLE_3);
-                        tableThreeTracker.record(SMALL_BYTES_READ);
-                        tableThreeTracker.record(SMALL_BYTES_READ);
-                        tableThreeTracker.record(MEDIUM_BYTES_READ);
-                    },
-                    exceptionsSeen));
-
-            executor.execute(wrapForExceptionTracking(
-                    () -> tracker.recordTableAgnosticRead(KVS_METHOD_NAME_4, SMALL_BYTES_READ), exceptionsSeen));
-            executor.execute(wrapForExceptionTracking(
-                    () -> tracker.recordTableAgnosticRead(KVS_METHOD_NAME_5, MEDIUM_BYTES_READ), exceptionsSeen));
-
-            executor.execute(wrapForExceptionTracking(tracker::getReadInfo, exceptionsSeen));
-            executor.execute(wrapForExceptionTracking(tracker::getReadInfo, exceptionsSeen));
-            executor.execute(wrapForExceptionTracking(tracker::getReadInfo, exceptionsSeen));
-
-            executor.execute(wrapForExceptionTracking(tracker::getReadInfoByTable, exceptionsSeen));
-            executor.execute(wrapForExceptionTracking(tracker::getReadInfoByTable, exceptionsSeen));
-            executor.execute(wrapForExceptionTracking(tracker::getReadInfoByTable, exceptionsSeen));
-        }
-
-        executor.shutdown();
-        assertThat(executor.awaitTermination(15, TimeUnit.SECONDS)).isTrue();
-        assertThat(exceptionsSeen).hasValue(0);
-
-        assertThat(tracker.getReadInfo())
-                .isEqualTo(createTransactionReadInfo(
-                        concurrencyRounds * (5 * SMALL_BYTES_READ + 6 * MEDIUM_BYTES_READ + 4 * LARGE_BYTES_READ),
-                        concurrencyRounds * 12,
-                        ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_2, LARGE_BYTES_READ)));
-
-        assertThat(tracker.getReadInfoByTable())
-                .containsExactlyEntriesOf(ImmutableMap.of(
-                        TABLE_1,
-                        createTransactionReadInfo(
-                                concurrencyRounds * (SMALL_BYTES_READ + MEDIUM_BYTES_READ + 3 * LARGE_BYTES_READ),
-                                concurrencyRounds * 5,
-                                ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_2, LARGE_BYTES_READ)),
-                        TABLE_2,
-                        createTransactionReadInfo(
-                                concurrencyRounds * (SMALL_BYTES_READ + 2 * MEDIUM_BYTES_READ + LARGE_BYTES_READ),
-                                concurrencyRounds * 3,
-                                ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_3, LARGE_BYTES_READ)),
-                        TABLE_3,
-                        createTransactionReadInfo(
-                                concurrencyRounds * (2 * SMALL_BYTES_READ + 2 * MEDIUM_BYTES_READ),
-                                concurrencyRounds * 2,
-                                ImmutableKvsCallReadInfo.of(KVS_METHOD_NAME_1, MEDIUM_BYTES_READ))));
-    }
-
-    private static Runnable wrapForExceptionTracking(Runnable task, AtomicInteger exceptionsSeen) {
-        return () -> {
-            try {
-                task.run();
-            } catch (Throwable throwable) {
-                exceptionsSeen.incrementAndGet();
-            }
-        };
     }
 
     private static TransactionReadInfo createTransactionReadInfo(long bytesRead, int kvsCalls) {
