@@ -24,6 +24,7 @@ import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.MetricName;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.time.Duration;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -125,7 +126,13 @@ public final class TopListFilteredCounterTest {
     private TopListFilteredCounter<String> createCounterWithMaxSizeTwo(
             Function<String, MetricName> tagToMetricNameFunction) {
         return TopListFilteredCounter.create(
-                2, INITIAL_DELAY, RESET_INTERVAL, tagToMetricNameFunction, registry, scheduler);
+                2,
+                INITIAL_DELAY,
+                RESET_INTERVAL,
+                tagToMetricNameFunction,
+                Comparator.naturalOrder(),
+                registry,
+                scheduler);
     }
 
     private void tick(Duration duration) {

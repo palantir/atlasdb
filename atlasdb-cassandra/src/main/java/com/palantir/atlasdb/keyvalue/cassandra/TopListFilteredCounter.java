@@ -40,15 +40,20 @@ final class TopListFilteredCounter<T> {
     private final int maxSize;
     private final TaggedMetricRegistry registry;
     private final Function<T, MetricName> tagToMetricName;
+    private final Comparator<Entry<T, Long>> entryComparator;
 
     private final Map<T, Counter> counters = new ConcurrentHashMap<>();
     private final Set<T> reportedTags = ConcurrentHashMap.newKeySet();
 
     private TopListFilteredCounter(
-            int maxSize, TaggedMetricRegistry registry, Function<T, MetricName> tagToMetricName) {
+            int maxSize,
+            TaggedMetricRegistry registry,
+            Function<T, MetricName> tagToMetricName,
+            Comparator<Entry<T, Long>> entryComparator) {
         this.maxSize = maxSize;
         this.registry = registry;
         this.tagToMetricName = tagToMetricName;
+        this.entryComparator = entryComparator;
     }
 
     static <T> TopListFilteredCounter<T> create(
@@ -56,14 +61,21 @@ final class TopListFilteredCounter<T> {
             Duration initialDelay,
             Duration resetInterval,
             Function<T, MetricName> tagToMetricName,
+            Comparator<T> tagComparator,
             TaggedMetricRegistry registry,
             ScheduledExecutorService executor) {
-        TopListFilteredCounter<T> counter = new TopListFilteredCounter<>(maxSize, registry, tagToMetricName);
+        // the tag comparator is used to provide a stable ordering of tags when they have the same count
+        Comparator<Entry<T, Long>> entryComparator =
+                Entry.<T, Long>comparingByValue(Comparator.reverseOrder()).thenComparing(Entry::getKey, tagComparator);
+
+        TopListFilteredCounter<T> counter =
+                new TopListFilteredCounter<>(maxSize, registry, tagToMetricName, entryComparator);
         executor.scheduleAtFixedRate(
                 counter::resilientUpdateMetricsReporting,
                 initialDelay.toNanos(),
                 resetInterval.toNanos(),
                 TimeUnit.NANOSECONDS);
+
         return counter;
     }
 
@@ -115,7 +127,7 @@ final class TopListFilteredCounter<T> {
                 EntryStream.of(counters).mapValues(Counter::getCount).toMap();
 
         return counterSnapshots.entrySet().stream()
-                .sorted(Entry.comparingByValue(Comparator.reverseOrder()))
+                .sorted(entryComparator)
                 .limit(maxSize)
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toUnmodifiableSet());
