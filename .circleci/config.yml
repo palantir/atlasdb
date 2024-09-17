@@ -160,15 +160,15 @@ jobs:
       - run: {command: echo "All required jobs finished successfully"}
 
 workflows:
-#  scheduled-antithesis-simulation:
-#    jobs:
-#      - trigger-antithesis-simulation
-#    triggers:
-#      - schedule:
-#          cron: "0 10 * * 1" # Every Monday 10am
-#          filters:
-#            branches:
-#              only: develop
+  scheduled-antithesis-simulation:
+    jobs:
+      - trigger-antithesis-simulation
+    triggers:
+      - schedule:
+          cron: "0 10 * * 1" # Every Monday 10am
+          filters:
+            branches:
+              only: develop
   check:
     jobs:
       - build:
