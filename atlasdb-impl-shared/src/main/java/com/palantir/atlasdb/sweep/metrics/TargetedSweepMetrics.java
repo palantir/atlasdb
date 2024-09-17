@@ -88,8 +88,9 @@ public class TargetedSweepMetrics {
         return createWithClock(metricsManager, kvs, timelock::currentTimeMillis, metricsConfiguration, shards);
     }
 
+    @SuppressWarnings("VisibleForTestingPackagePrivate") // Visible for testing sometimes needs to be public
     @VisibleForTesting
-    static TargetedSweepMetrics createWithClock(
+    public static TargetedSweepMetrics createWithClock(
             MetricsManager metricsManager,
             KeyValueService kvs,
             Clock clock,
