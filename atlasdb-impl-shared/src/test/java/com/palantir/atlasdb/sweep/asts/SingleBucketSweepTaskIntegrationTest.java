@@ -486,8 +486,8 @@ public class SingleBucketSweepTaskIntegrationTest {
                 .deleteBucketEntry(sweepStrategyTestContext.bucketFactory().apply(2));
     }
 
-    // [          ][          ][vwxyz01234)
-    //                               ^ Sweep Timestamp
+    // [          ][          ][vwxyz01   )
+    //                                 ^ Sweep Timestamp
     //                               ^ Sweep Task
     // except that the values are spaced far apart in timestamps, and so in the underlying sweep queue storage.
     @ParameterizedTest
