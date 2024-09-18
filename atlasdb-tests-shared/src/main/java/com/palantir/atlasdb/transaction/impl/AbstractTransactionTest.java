@@ -1575,6 +1575,20 @@ public abstract class AbstractTransactionTest extends TransactionTestSetup {
     }
 
     @Test
+    public void getRowsWithDuplicateQueriesOfLocalWrites() {
+        Transaction tx = startTransaction();
+        byte[] row0 = row(0);
+        byte[] anotherRow0 = row(0);
+        byte[] col0 = column(0);
+        tx.put(TEST_TABLE, ImmutableMap.of(Cell.create(row0, col0), value(0)));
+
+        SortedMap<byte[], RowResult<byte[]>> readRows =
+                tx.getRows(TEST_TABLE, ImmutableList.of(row0, anotherRow0), ColumnSelection.all());
+        assertThat(readRows.firstKey()).containsExactly(row0);
+        assertThat(readRows).hasSize(1);
+    }
+
+    @Test
     public void getRowsAppliesColumnSelection() {
         Transaction tx = startTransaction();
         byte[] row0 = row(0);
