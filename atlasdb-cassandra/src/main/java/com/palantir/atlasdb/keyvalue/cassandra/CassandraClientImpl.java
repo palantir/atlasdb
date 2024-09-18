@@ -98,10 +98,14 @@ public class CassandraClientImpl implements CassandraClient {
             TableReference tableRef,
             List<KeyPredicate> keyPredicates,
             ConsistencyLevel consistency_level)
-            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+            throws InvalidRequestException, UnavailableException, TException {
         ColumnParent colFam = getColumnParent(tableRef);
 
-        return executeHandlingExceptions(() -> client.multiget_multislice(keyPredicates, colFam, consistency_level));
+        try {
+            return executeHandlingExceptions(() -> client.multiget_multislice(keyPredicates, colFam, consistency_level));
+        } catch (TimedOutException e) {
+            throw new CassandraTimedOutException(e, SafeArg.of("kvsMethodName", kvsMethodName), SafeArg.of("tableRef", tableRef));
+        }
     }
 
     @Override
