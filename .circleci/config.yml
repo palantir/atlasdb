@@ -213,3 +213,10 @@ workflows:
               only: develop
             tags:
               only: /.*/
+      - trigger-antithesis-simulation:
+          requires: [ deploy ]
+          filters:
+            branches:
+              only: develop
+            tags:
+              only: /.*/
