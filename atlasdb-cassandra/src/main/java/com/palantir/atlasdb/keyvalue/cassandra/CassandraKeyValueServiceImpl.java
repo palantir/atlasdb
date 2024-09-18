@@ -150,6 +150,7 @@ import org.apache.cassandra.thrift.KeyPredicate;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.SlicePredicate;
+import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.thrift.TException;
 
 /**
@@ -249,6 +250,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig;
     private final CassandraVerifierConfig verifierConfig;
     private final Function<Map<Cell, Value>, ResultsExtractor<Value>> extractorFactory;
+
+    private CassandraTimedOutException cassandraTimedOutException;
 
     public static CassandraKeyValueService createForTesting(
             CassandraKeyValueServiceConfig config, Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig) {
@@ -714,14 +717,22 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                     SafeArg.of("startTs", startTs),
                                     SafeArg.of("host", host));
                         }
+                        Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> results;
+                        try {
+                            results = wrappingQueryRunner.multiget_multislice(
+                                    "getRows",
+                                    client,
+                                    tableRef,
+                                    query,
+                                    readConsistencyProvider.getConsistency(tableRef));
 
-                        Map<ByteBuffer, List<List<ColumnOrSuperColumn>>> results =
-                                wrappingQueryRunner.multiget_multislice(
-                                        "getRows",
-                                        client,
-                                        tableRef,
-                                        query,
-                                        readConsistencyProvider.getConsistency(tableRef));
+                        } catch (TimedOutException e) {
+                            log.error("Query timed out for: {}", SafeArg.of("tableRef", tableRef), e);
+                            cassandraTimedOutException =
+                                    new CassandraTimedOutException(e, SafeArg.of("tableRef", tableRef));
+                            throw Throwables.rewrap(
+                                    cassandraTimedOutException.getLogMessage(), cassandraTimedOutException);
+                        }
 
                         return Maps.transformValues(results, CellLoader::flattenReadOnlyLists);
                     }
