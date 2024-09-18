@@ -104,16 +104,6 @@ jobs:
       - attach_workspace: { at: . }
       - run: ./gradlew --scan --profile --stacktrace --continue publishToMavenLocal
 
-  trigger-antithesis-simulation:
-    machine:
-      image: ubuntu-2204:2023.10.1
-    resource_class: small
-
-    steps:
-      - checkout
-      - run:
-          command: ./scripts/circle-ci/trigger-antithesis-simulation.sh
-
   deploy:
     docker:
       - image: cimg/openjdk:11.0.10-node
@@ -152,6 +142,8 @@ jobs:
             if [ $CIRCLE_PROJECT_USERNAME = 'palantir' ] && [ -z $CIRCLE_PR_NUMBER ] && [ $CIRCLE_TAG ]; then
               ./scripts/circle-ci/publish-images-to-antithesis.sh
             fi
+      - run:
+          command: ./scripts/circle-ci/trigger-antithesis-simulation.sh
 
   circle-all:
     docker: [{ image: 'busybox:1.36.1@sha256:6d9ac9237a84afe1516540f40a0fafdc86859b2141954b4d643af7066d598b74' }]
@@ -160,15 +152,6 @@ jobs:
       - run: {command: echo "All required jobs finished successfully"}
 
 workflows:
-  scheduled-antithesis-simulation:
-    jobs:
-      - trigger-antithesis-simulation
-    triggers:
-      - schedule:
-          cron: "0 10 * * 1" # Every Monday 10am
-          filters:
-            branches:
-              only: develop
   check:
     jobs:
       - build:
@@ -208,13 +191,6 @@ workflows:
               only: /.*/
       - deploy:
           requires: [circle-all]
-          filters:
-            branches:
-              only: develop
-            tags:
-              only: /.*/
-      - trigger-antithesis-simulation:
-          requires: [ deploy ]
           filters:
             branches:
               only: develop
