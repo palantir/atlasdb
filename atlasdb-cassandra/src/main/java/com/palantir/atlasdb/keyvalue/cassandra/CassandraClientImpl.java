@@ -87,7 +87,8 @@ public class CassandraClientImpl implements CassandraClient {
         try {
             return executeHandlingExceptions(() -> client.multiget_slice(keys, colFam, predicate, consistency_level));
         } catch (TimedOutException e) {
-            throw new CassandraTimedOutException(e, SafeArg.of("kvsMethodName", kvsMethodName), SafeArg.of("tableRef", tableRef));
+            throw new CassandraTimedOutException(
+                    e, SafeArg.of("kvsMethodName", kvsMethodName), SafeArg.of("tableRef", tableRef));
         }
     }
 

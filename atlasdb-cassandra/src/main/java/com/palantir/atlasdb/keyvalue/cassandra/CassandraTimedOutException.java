@@ -27,11 +27,11 @@ public class CassandraTimedOutException extends RuntimeException implements Safe
     private static final long serialVersionUID = 1L;
     private static final String LOG_MESSAGE =
             "Cassandra query threw a TimedOut exception. Possible reasons and possible actions to resolve: 1. Reason:"
-                    + " atlasdb clients are requesting too much data from Cassandra. Resolution: Change query to request"
-                    + " less data.2. Reason: Data deleted is being read in the query (eg// Large amount of tombstones)."
-                    + " Resolution: Run a compaction on your cassandra server.3. Reason: Cassandra is struggling, either"
-                    + " due to another large query or server health or network outage. Resolution: Ask your CassandraOps"
-                    + " to check the state of the Cassandra server.";
+                + " atlasdb clients are requesting too much data from Cassandra. Resolution: Change query to request"
+                + " less data.2. Reason: Data deleted is being read in the query (eg// Large amount of tombstones)."
+                + " Resolution: Run a compaction on your cassandra server.3. Reason: Cassandra is struggling, either"
+                + " due to another large query or server health or network outage. Resolution: Ask your CassandraOps"
+                + " to check the state of the Cassandra server.";
     private final List<Arg<?>> args;
 
     public CassandraTimedOutException(Throwable throwable, Arg<?>... args) {
