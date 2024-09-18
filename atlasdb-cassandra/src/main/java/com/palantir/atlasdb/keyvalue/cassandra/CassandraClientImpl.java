@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -80,10 +81,14 @@ public class CassandraClientImpl implements CassandraClient {
             List<ByteBuffer> keys,
             SlicePredicate predicate,
             ConsistencyLevel consistency_level)
-            throws InvalidRequestException, UnavailableException, TimedOutException, TException {
+            throws InvalidRequestException, UnavailableException, CassandraTimedOutException, TException {
         ColumnParent colFam = getColumnParent(tableRef);
 
-        return executeHandlingExceptions(() -> client.multiget_slice(keys, colFam, predicate, consistency_level));
+        try {
+            return executeHandlingExceptions(() -> client.multiget_slice(keys, colFam, predicate, consistency_level));
+        } catch (TimedOutException e) {
+            throw new CassandraTimedOutException(e, SafeArg.of("kvsMethodName", kvsMethodName), SafeArg.of("tableRef", tableRef));
+        }
     }
 
     @Override
