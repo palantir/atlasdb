@@ -493,4 +493,10 @@ public interface Transaction {
     default void disableValidatingLocksOnReads() {
         throw new UnsupportedOperationException();
     }
+
+    /**
+     * Plugin point for adding custom logic to the commit path.
+     * Extension will run in the order they are registered with the transaction.
+     */
+    void addCommitExtension(CommitExtension commitExtension);
 }
