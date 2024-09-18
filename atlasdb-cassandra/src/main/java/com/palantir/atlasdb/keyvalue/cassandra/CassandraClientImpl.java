@@ -81,7 +81,7 @@ public class CassandraClientImpl implements CassandraClient {
             List<ByteBuffer> keys,
             SlicePredicate predicate,
             ConsistencyLevel consistency_level)
-            throws InvalidRequestException, UnavailableException, CassandraTimedOutException, TException {
+            throws InvalidRequestException, UnavailableException, TException {
         ColumnParent colFam = getColumnParent(tableRef);
 
         try {
