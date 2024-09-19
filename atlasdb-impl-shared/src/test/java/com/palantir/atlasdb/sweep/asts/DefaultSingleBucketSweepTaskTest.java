@@ -30,8 +30,8 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.asts.SweepableBucket.TimestampRange;
-import com.palantir.atlasdb.sweep.asts.bucketingthings.BucketsTableDeleter;
-import com.palantir.atlasdb.sweep.asts.bucketingthings.CompletelyClosedSweepBucketRetriever;
+import com.palantir.atlasdb.sweep.asts.bucketingthings.BucketCompletionListener;
+import com.palantir.atlasdb.sweep.asts.bucketingthings.CompletelyClosedSweepBucketBoundRetriever;
 import com.palantir.atlasdb.sweep.asts.progress.BucketProgress;
 import com.palantir.atlasdb.sweep.asts.progress.BucketProgressStore;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
@@ -81,10 +81,10 @@ public class DefaultSingleBucketSweepTaskTest {
     private TargetedSweepMetrics targetedSweepMetrics;
 
     @Mock
-    private BucketsTableDeleter bucketsTableDeleter;
+    private BucketCompletionListener completionListener;
 
     @Mock
-    private CompletelyClosedSweepBucketRetriever completelyClosedSweepBucketRetriever;
+    private CompletelyClosedSweepBucketBoundRetriever boundRetriever;
 
     private DefaultSingleBucketSweepTask defaultSingleBucketSweepTask;
 
@@ -96,8 +96,8 @@ public class DefaultSingleBucketSweepTaskTest {
                 sweepQueueDeleter,
                 sweepTimestampSupplier,
                 targetedSweepMetrics,
-                bucketsTableDeleter,
-                completelyClosedSweepBucketRetriever);
+                completionListener,
+                boundRetriever);
     }
 
     @ParameterizedTest
@@ -107,7 +107,7 @@ public class DefaultSingleBucketSweepTaskTest {
         assertThat(defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket()))
                 .isEqualTo(0);
 
-        verifyNoInteractions(bucketProgressStore, sweepQueueReader, sweepQueueDeleter, bucketsTableDeleter);
+        verifyNoInteractions(bucketProgressStore, sweepQueueReader, sweepQueueDeleter, completionListener);
     }
 
     @ParameterizedTest
@@ -116,12 +116,12 @@ public class DefaultSingleBucketSweepTaskTest {
             SweepBucketTestContext context) {
         when(sweepTimestampSupplier.getAsLong()).thenReturn(Long.MAX_VALUE);
         when(bucketProgressStore.getBucketProgress(context.bucket())).thenReturn(context.completeProgressForBucket());
-        when(completelyClosedSweepBucketRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
+        when(boundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
                 .thenReturn(Long.MAX_VALUE);
 
         assertThat(defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket()))
                 .isEqualTo(0);
-        verify(bucketsTableDeleter).deleteBucketEntry(context.bucket());
+        verify(completionListener).markBucketCompleteAndRemoveFromScheduling(context.bucket());
         verifyNoInteractions(sweepQueueReader, sweepQueueDeleter);
     }
 
@@ -131,12 +131,12 @@ public class DefaultSingleBucketSweepTaskTest {
             SweepBucketTestContext context) {
         when(sweepTimestampSupplier.getAsLong()).thenReturn(Long.MAX_VALUE);
         when(bucketProgressStore.getBucketProgress(context.bucket())).thenReturn(context.completeProgressForBucket());
-        when(completelyClosedSweepBucketRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
+        when(boundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
                 .thenReturn(context.bucketIdentifier());
 
         assertThat(defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket()))
                 .isEqualTo(0);
-        verifyNoInteractions(bucketsTableDeleter, sweepQueueReader, sweepQueueDeleter);
+        verifyNoInteractions(completionListener, sweepQueueReader, sweepQueueDeleter);
     }
 
     @ParameterizedTest
@@ -148,7 +148,7 @@ public class DefaultSingleBucketSweepTaskTest {
 
         assertThat(defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket()))
                 .isEqualTo(0);
-        verifyNoInteractions(bucketsTableDeleter, sweepQueueReader, sweepQueueDeleter);
+        verifyNoInteractions(completionListener, sweepQueueReader, sweepQueueDeleter);
     }
 
     @ParameterizedTest
@@ -160,7 +160,7 @@ public class DefaultSingleBucketSweepTaskTest {
 
         assertThat(defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket()))
                 .isEqualTo(0);
-        verifyNoInteractions(bucketsTableDeleter, sweepQueueReader, sweepQueueDeleter);
+        verifyNoInteractions(completionListener, sweepQueueReader, sweepQueueDeleter);
     }
 
     @ParameterizedTest
@@ -177,7 +177,7 @@ public class DefaultSingleBucketSweepTaskTest {
                                 DedicatedRows.of(ImmutableList.of()),
                                 context.endTimestampExclusive() - 1),
                         ImmutableSet.of()));
-        when(completelyClosedSweepBucketRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
+        when(boundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
                 .thenReturn(Long.MAX_VALUE);
 
         defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket());
@@ -185,7 +185,7 @@ public class DefaultSingleBucketSweepTaskTest {
         verify(bucketProgressStore)
                 .updateBucketProgressToAtLeast(
                         context.bucket(), context.completeProgressForBucket().orElseThrow());
-        verify(bucketsTableDeleter).deleteBucketEntry(context.bucket());
+        verify(completionListener).markBucketCompleteAndRemoveFromScheduling(context.bucket());
     }
 
     @ParameterizedTest
@@ -202,7 +202,7 @@ public class DefaultSingleBucketSweepTaskTest {
                                 DedicatedRows.of(ImmutableList.of()),
                                 context.endTimestampExclusive() - 1),
                         ImmutableSet.of()));
-        when(completelyClosedSweepBucketRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
+        when(boundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
                 .thenReturn(context.bucketIdentifier());
 
         defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket());
@@ -210,7 +210,7 @@ public class DefaultSingleBucketSweepTaskTest {
         verify(bucketProgressStore)
                 .updateBucketProgressToAtLeast(
                         context.bucket(), context.completeProgressForBucket().orElseThrow());
-        verifyNoInteractions(bucketsTableDeleter);
+        verifyNoInteractions(completionListener);
     }
 
     @ParameterizedTest
@@ -232,7 +232,7 @@ public class DefaultSingleBucketSweepTaskTest {
                         context.bucket(),
                         BucketProgress.createForTimestampProgress(
                                 sweepTimestamp - 1 - context.startTimestampInclusive()));
-        verifyNoInteractions(bucketsTableDeleter);
+        verifyNoInteractions(completionListener);
     }
 
     @ParameterizedTest
@@ -272,7 +272,7 @@ public class DefaultSingleBucketSweepTaskTest {
         assertThat(writeInfoCaptor.getValue()).containsExactlyInAnyOrderElementsOf(writeInfoSet);
         verify(bucketProgressStore)
                 .updateBucketProgressToAtLeast(context.bucket(), BucketProgress.createForTimestampProgress(30L));
-        verifyNoInteractions(bucketsTableDeleter);
+        verifyNoInteractions(completionListener);
     }
 
     public static Stream<Arguments> allSweepBuckets() {
