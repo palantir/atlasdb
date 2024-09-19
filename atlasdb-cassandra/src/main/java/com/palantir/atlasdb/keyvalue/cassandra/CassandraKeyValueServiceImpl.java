@@ -1038,17 +1038,17 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                                         Map<ByteBuffer, List<ColumnOrSuperColumn>> results = Collections.emptyMap();
                                         try {
-                                            results =
-                                                    wrappingQueryRunner.multiget(
-                                                            "getRowsColumnRange",
-                                                            client,
-                                                            tableRef,
-                                                            ImmutableList.of(rowByteBuffer),
-                                                            pred,
-                                                            readConsistencyProvider.getConsistency(tableRef));
+                                            results = wrappingQueryRunner.multiget(
+                                                    "getRowsColumnRange",
+                                                    client,
+                                                    tableRef,
+                                                    ImmutableList.of(rowByteBuffer),
+                                                    pred,
+                                                    readConsistencyProvider.getConsistency(tableRef));
                                         } catch (TException e) {
                                             log.error("Query timed out for: {}", SafeArg.of("tableRef", tableRef), e);
-                                            throw CassandraTExceptions.mapToUncheckedException(e, SafeArg.of("tableRef", tableRef));
+                                            throw CassandraTExceptions.mapToUncheckedException(
+                                                    e, SafeArg.of("tableRef", tableRef));
                                         }
                                         if (results.isEmpty()) {
                                             return SimpleTokenBackedResultsPage.create(
