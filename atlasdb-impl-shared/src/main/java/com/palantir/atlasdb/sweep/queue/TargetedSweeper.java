@@ -68,6 +68,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     private final BackgroundSweepScheduler noneScheduler;
 
     private final KeyValueService keyValueService;
+    private final TargetedSweepInstallConfig.SweepIndexResetProgressStage resetProgressStage;
 
     private LastSweptTimestampUpdater lastSweptTimestampUpdater;
     private TargetedSweepMetrics metrics;
@@ -95,6 +96,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
         this.metricsConfiguration = install.metricsConfiguration();
         this.abandonedTransactionConsumer = abandonedTransactionConsumer;
         this.keyValueService = keyValueService;
+        this.resetProgressStage = install.sweepIndexResetProgressStage();
     }
 
     public boolean isInitialized() {
@@ -140,7 +142,9 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
 
     @Override
     public void initialize(TransactionManager txManager) {
+        log.info("[PDS-586351] Initializing targeted sweep...");
         initializeWithoutRunning(txManager);
+        log.info("[PDS-586351] Initialized targeted sweep, now running in background...");
         runInBackground();
     }
 
@@ -169,8 +173,10 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
             TransactionService transaction,
             TargetedSweepFollower follower) {
         if (isInitialized) {
+            log.info("[PDS-586351] Targeted sweep thinks it's already initialized...");
             return;
         }
+        log.info("[PDS-586351] Now initializing targeted sweep, given an initialized kvs...");
         Preconditions.checkState(
                 kvs.isInitialized(), "Attempted to initialize targeted sweeper with an uninitialized backing KVS.");
         metrics = TargetedSweepMetrics.create(
@@ -179,6 +185,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 kvs,
                 metricsConfiguration,
                 runtime.get().shards());
+        log.info("[PDS-586351] Initializing a sweep queue...");
         queue = SweepQueue.create(
                 metrics,
                 kvs,
@@ -191,7 +198,8 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                         .maximumPartitions(this::getPartitionBatchLimit)
                         .cellsThreshold(() -> runtime.get().batchCellThreshold())
                         .build(),
-                table -> runtime.get().tablesToTrackDeletions().apply(table));
+                table -> runtime.get().tablesToTrackDeletions().apply(table),
+                resetProgressStage);
         timestampsSupplier = timestamps;
         timeLock = timelockService;
         lastSweptTimestampUpdater = new LastSweptTimestampUpdater(

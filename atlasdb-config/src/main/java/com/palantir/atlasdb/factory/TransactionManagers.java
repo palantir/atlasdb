@@ -1062,6 +1062,7 @@ public abstract class TransactionManagers {
         CoordinationAwareKnownAbandonedTransactionsStore abandonedTxnStore =
                 new CoordinationAwareKnownAbandonedTransactionsStore(
                         coordinationService, new AbandonedTimestampStoreImpl(kvs));
+        log.info("[PDS-586351] Creating an uninitialized targeted sweeper...");
         return TargetedSweeper.createUninitialized(
                 metricsManager,
                 runtime,

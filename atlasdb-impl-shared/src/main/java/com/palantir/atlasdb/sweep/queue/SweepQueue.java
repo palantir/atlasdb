@@ -16,16 +16,19 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import com.google.common.base.Suppliers;
+import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
+import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.SweepQueueReader.ReadBatchingRuntimeContext;
 import com.palantir.atlasdb.sweep.queue.clear.DefaultTableClearer;
+import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig.SweepIndexResetProgressStage;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
@@ -78,9 +81,17 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             AbandonedTransactionConsumer abortedTransactionConsumer,
             TargetedSweepFollower follower,
             ReadBatchingRuntimeContext readBatchingRuntimeContext,
-            Function<TableReference, Optional<LogSafety>> tablesToTrackDeletions) {
+            Function<TableReference, Optional<LogSafety>> tablesToTrackDeletions,
+            SweepIndexResetProgressStage resetProgressStage) {
         SweepQueueFactory factory = SweepQueueFactory.create(
-                metrics, kvs, timelock, shardsConfig, transaction, readBatchingRuntimeContext, tablesToTrackDeletions);
+                metrics,
+                kvs,
+                timelock,
+                shardsConfig,
+                transaction,
+                readBatchingRuntimeContext,
+                tablesToTrackDeletions,
+                resetProgressStage);
         return new SweepQueue(factory, follower, abortedTransactionConsumer);
     }
 
@@ -93,7 +104,13 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             TimelockService timelock,
             Supplier<Integer> shardsConfig,
             ReadBatchingRuntimeContext readBatchingRuntimeContext) {
-        return SweepQueueFactory.create(metrics, kvs, timelock, shardsConfig, readBatchingRuntimeContext)
+        return SweepQueueFactory.create(
+                        metrics,
+                        kvs,
+                        timelock,
+                        shardsConfig,
+                        readBatchingRuntimeContext,
+                        SweepIndexResetProgressStage.NO_ACTIVE_RESET)
                 .createWriter();
     }
 
@@ -266,7 +283,8 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                 KeyValueService kvs,
                 TimelockService timelock,
                 Supplier<Integer> shardsConfig,
-                ReadBatchingRuntimeContext readBatchingRuntimeContext) {
+                ReadBatchingRuntimeContext readBatchingRuntimeContext,
+                SweepIndexResetProgressStage resetProgressStage) {
             // It is OK that the transaction service is different from the one used by the transaction manager,
             // as transaction services must not hold any local state in them that would affect correctness.
             TransactionService transaction =
@@ -278,7 +296,8 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                     shardsConfig,
                     transaction,
                     readBatchingRuntimeContext,
-                    _unused -> Optional.empty());
+                    _unused -> Optional.empty(),
+                    resetProgressStage);
         }
 
         static SweepQueueFactory create(
@@ -288,13 +307,41 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                 Supplier<Integer> shardsConfig,
                 TransactionService transaction,
                 ReadBatchingRuntimeContext readBatchingRuntimeContext,
-                Function<TableReference, Optional<LogSafety>> tablesToTrackDeletions) {
+                Function<TableReference, Optional<LogSafety>> tablesToTrackDeletions,
+                SweepIndexResetProgressStage resetProgressStage) {
             Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
+            log.info("[PDS-586351] Creating a sweep queue factory...");
+            if (resetProgressStage.shouldInvalidateOldMappings()) {
+                log.info("Invalidating old sweep mappings... now truncating sweep identifier tables.");
+
+                TargetedSweepTableFactory tableFactory = TargetedSweepTableFactory.of();
+                try {
+                    kvs.truncateTables(ImmutableSet.of(
+                            tableFactory.getSweepIdToNameTable(null).getTableRef(),
+                            tableFactory.getSweepNameToIdTable(null).getTableRef()));
+                    log.info("Successfully truncated the sweep identifier tables.");
+                } catch (Exception e) {
+                    log.warn(
+                            "A failure was observed when truncating the sweep identifier tables. If you are running"
+                                    + " this as part of a broader clearance task, you MUST make sure that the success"
+                                    + " message is logged BEFORE considering the reset to have been performed. Seeing this"
+                                    + " message is neither an indication that the operation was success, nor is it an"
+                                    + " indication that the operation was not a success.",
+                            e);
+                    throw e;
+                }
+            } else {
+                log.info(
+                        "Not invalidating old sweep mappings, because we don't believe we've been configured to do"
+                                + " this.",
+                        SafeArg.of("resetProgressStage", resetProgressStage));
+            }
+
             ShardProgress shardProgress = new ShardProgress(kvs);
             Supplier<Integer> shards =
                     createProgressUpdatingSupplier(shardsConfig, shardProgress, SweepQueueUtils.REFRESH_TIME);
             WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
-            SweepableCells cells = new SweepableCells(kvs, partitioner, metrics, transaction);
+            SweepableCells cells = new SweepableCells(kvs, partitioner, metrics, transaction, resetProgressStage);
             SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);
             return new SweepQueueFactory(
                     shardProgress,

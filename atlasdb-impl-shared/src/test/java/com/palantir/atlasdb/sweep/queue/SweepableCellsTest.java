@@ -42,6 +42,7 @@ import com.palantir.atlasdb.schema.generated.SweepableCellsTable.SweepableCellsR
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.metrics.SweepMetricsAssert;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
+import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig.SweepIndexResetProgressStage;
 import com.palantir.lock.v2.TimelockService;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -73,7 +74,8 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
                         .millisBetweenRecomputingMetrics(1)
                         .build(),
                 numShards);
-        sweepableCells = new SweepableCells(spiedKvs, partitioner, metrics, txnService);
+        sweepableCells = new SweepableCells(
+                spiedKvs, partitioner, metrics, txnService, SweepIndexResetProgressStage.NO_ACTIVE_RESET);
 
         shardCons = writeToDefaultCellCommitted(sweepableCells, TS, TABLE_CONS);
         shardThor = writeToDefaultCellCommitted(sweepableCells, TS2, TABLE_THOR);
