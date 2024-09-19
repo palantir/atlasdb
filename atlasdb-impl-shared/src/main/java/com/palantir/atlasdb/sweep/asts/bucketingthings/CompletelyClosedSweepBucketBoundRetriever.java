@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
-public interface CompletelyClosedSweepBucketRetriever {
+public interface CompletelyClosedSweepBucketBoundRetriever {
     /**
      * It is guaranteed that all sweep buckets up to, BUT NOT including this number, are closed, and that we will
      * not add new entries to the buckets table with numbers before a value returned by this method.
