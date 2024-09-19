@@ -70,6 +70,7 @@ import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetricsConfigurations;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
+import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig.SweepIndexResetProgressStage;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
@@ -1293,7 +1294,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         progress = new ShardProgress(spiedKvs);
         sweepableTimestamps = new SweepableTimestamps(spiedKvs, partitioner);
-        sweepableCells = new SweepableCells(spiedKvs, partitioner, null, txnService);
+        sweepableCells = new SweepableCells(
+                spiedKvs, partitioner, null, txnService, SweepIndexResetProgressStage.NO_ACTIVE_RESET);
         puncherStore = KeyValueServicePuncherStore.create(spiedKvs, false);
     }
 

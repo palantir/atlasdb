@@ -43,6 +43,7 @@ import com.palantir.atlasdb.schema.generated.SweepableCellsTable.SweepableCellsR
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.CommitTsCache;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
+import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig.SweepIndexResetProgressStage;
 import com.palantir.atlasdb.sweep.queue.id.SweepTableIndices;
 import com.palantir.atlasdb.transaction.impl.TransactionConstants;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -75,10 +76,12 @@ public class SweepableCells extends SweepQueueTable {
             KeyValueService kvs,
             WriteInfoPartitioner partitioner,
             TargetedSweepMetrics metrics,
-            TransactionService transactionService) {
+            TransactionService transactionService,
+            SweepIndexResetProgressStage resetProgressStage) {
         super(kvs, TargetedSweepTableFactory.of().getSweepableCellsTable(null).getTableRef(), partitioner, metrics);
         this.commitTsCache = CommitTsCache.create(transactionService);
-        this.writeReferencePersister = new WriteReferencePersister(new SweepTableIndices(kvs));
+
+        this.writeReferencePersister = WriteReferencePersister.create(new SweepTableIndices(kvs), resetProgressStage);
     }
 
     @Override
