@@ -725,7 +725,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                         } catch (TException e) {
                             log.error("Query timed out for: {}", SafeArg.of("tableRef", tableRef), e);
-                            CassandraTExceptions.unwrap(e, SafeArg.of("tableRef", tableRef));
+                            throw CassandraTExceptions.unwrap(e, SafeArg.of("tableRef", tableRef));
                         }
 
                         return Maps.transformValues(results, CellLoader::flattenReadOnlyLists);

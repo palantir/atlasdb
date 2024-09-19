@@ -24,11 +24,10 @@ final class CassandraTExceptions {
 
     private CassandraTExceptions() {}
 
-    @SuppressWarnings("ThrowError")
-    static void unwrap(Throwable throwable, Arg<?>... args) {
+    static RuntimeException unwrap(Throwable throwable, Arg<?>... args) {
         if (throwable instanceof TimedOutException) {
-            throw new CassandraTimedOutException(throwable, args);
+            return new CassandraTimedOutException(throwable, args);
         }
-        throw Throwables.throwUncheckedException(throwable);
+        return Throwables.throwUncheckedException(throwable);
     }
 }
