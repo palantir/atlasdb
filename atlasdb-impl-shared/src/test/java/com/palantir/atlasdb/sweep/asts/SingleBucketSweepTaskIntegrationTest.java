@@ -183,7 +183,8 @@ public class SingleBucketSweepTaskIntegrationTest {
                 .hasValue(BucketProgress.createForTimestampProgress(450L - 1));
         // The bucket has not been completed yet, because it is still not fully swept.
         verify(bucketCompletionListener, never())
-                .markBucketCompleteAndRemoveFromScheduling(sweepStrategyTestContext.bucketFactory().apply(0));
+                .markBucketCompleteAndRemoveFromScheduling(
+                        sweepStrategyTestContext.bucketFactory().apply(0));
     }
 
     // [vw x-----x]
@@ -218,7 +219,8 @@ public class SingleBucketSweepTaskIntegrationTest {
                 .hasValue(BucketProgress.createForTimestampProgress(500L - 1));
         // The bucket has not been completed yet, because it is still not fully swept.
         verify(bucketCompletionListener, never())
-                .markBucketCompleteAndRemoveFromScheduling(sweepStrategyTestContext.bucketFactory().apply(0));
+                .markBucketCompleteAndRemoveFromScheduling(
+                        sweepStrategyTestContext.bucketFactory().apply(0));
     }
 
     // [v        w][          ]
@@ -277,7 +279,8 @@ public class SingleBucketSweepTaskIntegrationTest {
                 .as("bucket 0 is completely swept")
                 .hasValue(BucketProgress.createForTimestampProgress(END_OF_BUCKET_ZERO - 1));
         verify(bucketCompletionListener, times(1))
-                .markBucketCompleteAndRemoveFromScheduling(sweepStrategyTestContext.bucketFactory().apply(0));
+                .markBucketCompleteAndRemoveFromScheduling(
+                        sweepStrategyTestContext.bucketFactory().apply(0));
     }
 
     // [v        w)
@@ -304,7 +307,8 @@ public class SingleBucketSweepTaskIntegrationTest {
 
         // We don't delete the bucket in this case BECAUSE it might get rewritten by the state machine
         verify(bucketCompletionListener, never())
-                .markBucketCompleteAndRemoveFromScheduling(sweepStrategyTestContext.bucketFactory().apply(0));
+                .markBucketCompleteAndRemoveFromScheduling(
+                        sweepStrategyTestContext.bucketFactory().apply(0));
     }
 
     // [v        w)
@@ -349,7 +353,8 @@ public class SingleBucketSweepTaskIntegrationTest {
                         + " completed")
                 .isEqualTo(0);
         verify(bucketCompletionListener, never())
-                .markBucketCompleteAndRemoveFromScheduling(sweepStrategyTestContext.bucketFactory().apply(0));
+                .markBucketCompleteAndRemoveFromScheduling(
+                        sweepStrategyTestContext.bucketFactory().apply(0));
     }
 
     // [v        w)
@@ -374,7 +379,8 @@ public class SingleBucketSweepTaskIntegrationTest {
                         + " completed")
                 .isEqualTo(0);
         verify(bucketCompletionListener, times(1))
-                .markBucketCompleteAndRemoveFromScheduling(sweepStrategyTestContext.bucketFactory().apply(0));
+                .markBucketCompleteAndRemoveFromScheduling(
+                        sweepStrategyTestContext.bucketFactory().apply(0));
     }
 
     // [          ][          ][vw        )
@@ -419,7 +425,8 @@ public class SingleBucketSweepTaskIntegrationTest {
 
         // We don't delete the bucket in this case because it is still open
         verify(bucketCompletionListener, never())
-                .markBucketCompleteAndRemoveFromScheduling(sweepStrategyTestContext.bucketFactory().apply(2));
+                .markBucketCompleteAndRemoveFromScheduling(
+                        sweepStrategyTestContext.bucketFactory().apply(2));
     }
 
     // [          ][          ][vwxyz01234)
@@ -470,7 +477,8 @@ public class SingleBucketSweepTaskIntegrationTest {
                 .isEqualTo(0);
 
         verify(bucketCompletionListener, never())
-                .markBucketCompleteAndRemoveFromScheduling(sweepStrategyTestContext.bucketFactory().apply(2));
+                .markBucketCompleteAndRemoveFromScheduling(
+                        sweepStrategyTestContext.bucketFactory().apply(2));
     }
 
     // [          ][          ][vwxyz01   )
