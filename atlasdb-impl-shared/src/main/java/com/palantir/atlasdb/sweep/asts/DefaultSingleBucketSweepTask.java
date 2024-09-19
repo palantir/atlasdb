@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.sweep.asts;
 
 import com.palantir.atlasdb.sweep.Sweeper;
-import com.palantir.atlasdb.sweep.asts.bucketingthings.BucketsTableDeleter;
+import com.palantir.atlasdb.sweep.asts.bucketingthings.BucketCompletionListener;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.CompletelyClosedSweepBucketBoundRetriever;
 import com.palantir.atlasdb.sweep.asts.progress.BucketProgress;
 import com.palantir.atlasdb.sweep.asts.progress.BucketProgressStore;
@@ -40,7 +40,7 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
     private final SweepQueueDeleter sweepQueueDeleter;
     private final LongSupplier sweepTimestampSupplier;
     private final TargetedSweepMetrics targetedSweepMetrics;
-    private final BucketsTableDeleter bucketsTableDeleter;
+    private final BucketCompletionListener bucketCompletionListener;
     private final CompletelyClosedSweepBucketBoundRetriever completelyClosedSweepBucketBoundRetriever;
 
     public DefaultSingleBucketSweepTask(
@@ -49,14 +49,14 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
             SweepQueueDeleter sweepQueueDeleter,
             LongSupplier sweepTimestampSupplier,
             TargetedSweepMetrics targetedSweepMetrics,
-            BucketsTableDeleter bucketsTableDeleter,
+            BucketCompletionListener bucketCompletionListener,
             CompletelyClosedSweepBucketBoundRetriever completelyClosedSweepBucketBoundRetriever) {
         this.bucketProgressStore = bucketProgressStore;
         this.sweepQueueReader = sweepQueueReader;
         this.sweepQueueDeleter = sweepQueueDeleter;
         this.sweepTimestampSupplier = sweepTimestampSupplier;
         this.targetedSweepMetrics = targetedSweepMetrics;
-        this.bucketsTableDeleter = bucketsTableDeleter;
+        this.bucketCompletionListener = bucketCompletionListener;
         this.completelyClosedSweepBucketBoundRetriever = completelyClosedSweepBucketBoundRetriever;
     }
 
@@ -126,7 +126,7 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
     private void deleteBucketEntryIfDeleteable(SweepableBucket sweepableBucket) {
         if (sweepableBucket.bucket().bucketIdentifier()
                 < completelyClosedSweepBucketBoundRetriever.getStrictUpperBoundForCompletelyClosedBuckets()) {
-            bucketsTableDeleter.deleteBucketEntry(sweepableBucket.bucket());
+            bucketCompletionListener.markBucketCompleteAndRemoveFromScheduling(sweepableBucket.bucket());
         }
     }
 

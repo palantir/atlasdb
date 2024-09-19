@@ -18,6 +18,10 @@ package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
 import com.palantir.atlasdb.sweep.asts.Bucket;
 
-public interface BucketsTableDeleter {
-    void deleteBucketEntry(Bucket bucket);
+public interface BucketCompletionListener {
+    /**
+     * Marks a bucket as complete. This method should ONLY be called once we are certain the bucket no longer needs
+     * to be swept.
+     */
+    void markBucketCompleteAndRemoveFromScheduling(Bucket bucket);
 }
