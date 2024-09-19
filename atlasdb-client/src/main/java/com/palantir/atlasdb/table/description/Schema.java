@@ -292,10 +292,10 @@ public class Schema {
                         "In index, a component derived from column must reference an existing column");
             }
 
-            if (indexMetadata.getIndexType().equals(IndexType.CELL_REFERENCING)) {
+            if (!indexMetadata.getIndexType().equals(IndexType.ADDITIVE)) {
                 com.palantir.logsafe.Preconditions.checkArgument(
-                        ConflictHandler.RETRY_ON_WRITE_WRITE.equals(tableMetadata.getConflictHandler()),
-                        "Nonadditive indexes require write-write conflicts on their tables");
+                        tableMetadata.getConflictHandler().checkWriteWriteConflicts(),
+                        "Nonadditive indexes must check write-write conflicts");
             }
         }
     }
