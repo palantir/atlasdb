@@ -16,9 +16,13 @@
 
 package com.palantir.atlasdb.sweep.asts;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.immutables.value.Value;
 
 @Value.Immutable
+@JsonSerialize(as = ImmutableTimestampRange.class)
+@JsonDeserialize(as = ImmutableTimestampRange.class)
 public interface TimestampRange {
     @Value.Parameter
     long startInclusive();
