@@ -116,8 +116,7 @@ public class DefaultSingleBucketSweepTaskTest {
             SweepBucketTestContext context) {
         when(sweepTimestampSupplier.getAsLong()).thenReturn(Long.MAX_VALUE);
         when(bucketProgressStore.getBucketProgress(context.bucket())).thenReturn(context.completeProgressForBucket());
-        when(boundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
-                .thenReturn(Long.MAX_VALUE);
+        when(boundRetriever.getStrictUpperBoundForCompletelyClosedBuckets()).thenReturn(Long.MAX_VALUE);
 
         assertThat(defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket()))
                 .isEqualTo(0);
@@ -131,8 +130,7 @@ public class DefaultSingleBucketSweepTaskTest {
             SweepBucketTestContext context) {
         when(sweepTimestampSupplier.getAsLong()).thenReturn(Long.MAX_VALUE);
         when(bucketProgressStore.getBucketProgress(context.bucket())).thenReturn(context.completeProgressForBucket());
-        when(boundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
-                .thenReturn(context.bucketIdentifier());
+        when(boundRetriever.getStrictUpperBoundForCompletelyClosedBuckets()).thenReturn(context.bucketIdentifier());
 
         assertThat(defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket()))
                 .isEqualTo(0);
@@ -177,8 +175,7 @@ public class DefaultSingleBucketSweepTaskTest {
                                 DedicatedRows.of(ImmutableList.of()),
                                 context.endTimestampExclusive() - 1),
                         ImmutableSet.of()));
-        when(boundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
-                .thenReturn(Long.MAX_VALUE);
+        when(boundRetriever.getStrictUpperBoundForCompletelyClosedBuckets()).thenReturn(Long.MAX_VALUE);
 
         defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket());
         verify(sweepQueueDeleter).sweep(eq(ImmutableList.of()), eq(Sweeper.of(context.shardAndStrategy())));
@@ -202,8 +199,7 @@ public class DefaultSingleBucketSweepTaskTest {
                                 DedicatedRows.of(ImmutableList.of()),
                                 context.endTimestampExclusive() - 1),
                         ImmutableSet.of()));
-        when(boundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
-                .thenReturn(context.bucketIdentifier());
+        when(boundRetriever.getStrictUpperBoundForCompletelyClosedBuckets()).thenReturn(context.bucketIdentifier());
 
         defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket());
         verify(sweepQueueDeleter).sweep(eq(ImmutableList.of()), eq(Sweeper.of(context.shardAndStrategy())));
