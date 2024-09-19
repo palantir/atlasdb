@@ -79,7 +79,7 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
         if (isCompletelySwept(sweepableBucket.timestampRange().endExclusive(), lastSweptTimestampInBucket)) {
             // The bucket is fully swept; it might still be returned here if we thought it was a candidate, or if
             // the bucket state machine is still doing things
-            deleteBucketEntryIfDeleteable(sweepableBucket);
+            markBucketCompleteIfEligible(sweepableBucket);
             return 0L;
         }
 
@@ -116,14 +116,14 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
                 sweepableBucket.bucket(), BucketProgress.createForTimestampProgress(lastTsOffset));
         if (isCompletelySwept(sweepableBucket.timestampRange().endExclusive(), lastTs)) {
             // we've finished the bucket!
-            deleteBucketEntryIfDeleteable(sweepableBucket);
+            markBucketCompleteIfEligible(sweepableBucket);
         }
 
         // No updating of overall progress; that's a responsibility of the background upgrading task
         return sweepBatch.entriesRead();
     }
 
-    private void deleteBucketEntryIfDeleteable(SweepableBucket sweepableBucket) {
+    private void markBucketCompleteIfEligible(SweepableBucket sweepableBucket) {
         if (sweepableBucket.bucket().bucketIdentifier()
                 < completelyClosedSweepBucketBoundRetriever.getStrictUpperBoundForCompletelyClosedBuckets()) {
             bucketCompletionListener.markBucketCompleteAndRemoveFromScheduling(sweepableBucket.bucket());
