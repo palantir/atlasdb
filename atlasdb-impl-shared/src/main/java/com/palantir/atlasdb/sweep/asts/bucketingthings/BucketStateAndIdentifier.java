@@ -16,8 +16,12 @@
 
 package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.immutables.value.Value;
 
+@JsonSerialize(as = ImmutableBucketStateAndIdentifier.class)
+@JsonDeserialize(as = ImmutableBucketStateAndIdentifier.class)
 @Value.Immutable
 public interface BucketStateAndIdentifier {
     @Value.Parameter
