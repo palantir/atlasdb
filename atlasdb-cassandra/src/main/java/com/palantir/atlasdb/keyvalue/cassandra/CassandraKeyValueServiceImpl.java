@@ -725,7 +725,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                         } catch (TException e) {
                             log.error("Query timed out for: {}", SafeArg.of("tableRef", tableRef), e);
-                            throw CassandraTExceptions.unwrap(e, SafeArg.of("tableRef", tableRef));
+                            throw CassandraTExceptions.mapToUncheckedException(e, SafeArg.of("tableRef", tableRef));
                         }
 
                         return Maps.transformValues(results, CellLoader::flattenReadOnlyLists);
@@ -968,14 +968,19 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                     startTs);
                             Limit limit = Limit.of(batchColumnRangeSelection.getBatchHint());
                             SlicePredicate pred = SlicePredicates.create(range, limit);
-
-                            Map<ByteBuffer, List<ColumnOrSuperColumn>> results = wrappingQueryRunner.multiget(
-                                    "getRowsColumnRange",
-                                    client,
-                                    tableRef,
-                                    wrap(rows),
-                                    pred,
-                                    readConsistencyProvider.getConsistency(tableRef));
+                            Map<ByteBuffer, List<ColumnOrSuperColumn>> results = Collections.emptyMap();
+                            try {
+                                results = wrappingQueryRunner.multiget(
+                                        "getRowsColumnRange",
+                                        client,
+                                        tableRef,
+                                        wrap(rows),
+                                        pred,
+                                        readConsistencyProvider.getConsistency(tableRef));
+                            } catch (TException e) {
+                                log.error("Query timed out for: {}", SafeArg.of("tableRef", tableRef), e);
+                                throw CassandraTExceptions.mapToUncheckedException(e, SafeArg.of("tableRef", tableRef));
+                            }
 
                             return RowColumnRangeExtractor.extract(rows, results, startTs, metricsManager);
                         }
@@ -1031,15 +1036,20 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
                                         ByteBuffer rowByteBuffer = ByteBuffer.wrap(row);
 
-                                        Map<ByteBuffer, List<ColumnOrSuperColumn>> results =
-                                                wrappingQueryRunner.multiget(
-                                                        "getRowsColumnRange",
-                                                        client,
-                                                        tableRef,
-                                                        ImmutableList.of(rowByteBuffer),
-                                                        pred,
-                                                        readConsistencyProvider.getConsistency(tableRef));
-
+                                        Map<ByteBuffer, List<ColumnOrSuperColumn>> results = Collections.emptyMap();
+                                        try {
+                                            results =
+                                                    wrappingQueryRunner.multiget(
+                                                            "getRowsColumnRange",
+                                                            client,
+                                                            tableRef,
+                                                            ImmutableList.of(rowByteBuffer),
+                                                            pred,
+                                                            readConsistencyProvider.getConsistency(tableRef));
+                                        } catch (TException e) {
+                                            log.error("Query timed out for: {}", SafeArg.of("tableRef", tableRef), e);
+                                            throw CassandraTExceptions.mapToUncheckedException(e, SafeArg.of("tableRef", tableRef));
+                                        }
                                         if (results.isEmpty()) {
                                             return SimpleTokenBackedResultsPage.create(
                                                     startCol, ImmutableList.of(), false);
@@ -1717,7 +1727,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             } catch (RetryLimitReachedException e) {
                 throw CassandraUtils.wrapInIceForDeleteOrRethrow(e);
             } catch (TException e) {
-                throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+                throw CassandraTExceptions.mapToUncheckedException(e);
             }
         } else {
             super.deleteRange(tableRef, range);

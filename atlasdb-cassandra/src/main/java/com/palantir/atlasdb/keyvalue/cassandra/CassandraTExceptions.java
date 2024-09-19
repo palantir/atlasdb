@@ -24,7 +24,7 @@ final class CassandraTExceptions {
 
     private CassandraTExceptions() {}
 
-    static RuntimeException unwrap(Throwable throwable, Arg<?>... args) {
+    static RuntimeException mapToUncheckedException(Throwable throwable, Arg<?>... args) {
         if (throwable instanceof TimedOutException) {
             return new CassandraTimedOutException(throwable, args);
         }
