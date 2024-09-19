@@ -251,6 +251,32 @@ acceptedBreaks:
         \ com.palantir.atlasdb.keyvalue.cassandra.Blacklist, com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics,\
         \ com.palantir.atlasdb.keyvalue.cassandra.CassandraClientMetrics)"
       justification: "Unused outside atlas"
+  "0.1152.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter java.util.NavigableMap<byte[], com.palantir.atlasdb.keyvalue.api.RowResult<byte[]>>\
+        \ com.palantir.atlasdb.transaction.api.snapshot.AutoDelegate_KeyValueSnapshotReader::getRows(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.lang.Iterable<byte[]>, com.palantir.atlasdb.keyvalue.api.ColumnSelection,\
+        \ ===com.google.common.collect.ImmutableMap.Builder<com.palantir.atlasdb.keyvalue.api.Cell,\
+        \ byte[]>===)"
+      new: "parameter java.util.NavigableMap<byte[], com.palantir.atlasdb.keyvalue.api.RowResult<byte[]>>\
+        \ com.palantir.atlasdb.transaction.api.snapshot.AutoDelegate_KeyValueSnapshotReader::getRows(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.lang.Iterable<byte[]>, com.palantir.atlasdb.keyvalue.api.ColumnSelection,\
+        \ ===java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, byte[]>===)"
+      justification: "KeyValueSnapshotReader is a relatively new API and is not widely\
+        \ used"
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter java.util.NavigableMap<byte[], com.palantir.atlasdb.keyvalue.api.RowResult<byte[]>>\
+        \ com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReader::getRows(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.lang.Iterable<byte[]>, com.palantir.atlasdb.keyvalue.api.ColumnSelection,\
+        \ ===com.google.common.collect.ImmutableMap.Builder<com.palantir.atlasdb.keyvalue.api.Cell,\
+        \ byte[]>===)"
+      new: "parameter java.util.NavigableMap<byte[], com.palantir.atlasdb.keyvalue.api.RowResult<byte[]>>\
+        \ com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReader::getRows(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.lang.Iterable<byte[]>, com.palantir.atlasdb.keyvalue.api.ColumnSelection,\
+        \ ===java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, byte[]>===)"
+      justification: "KeyValueSnapshotReader is a relatively new API and is not widely\
+        \ used"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"

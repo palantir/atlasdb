@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.transaction.impl.snapshot;
 
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -118,12 +117,22 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             TableReference tableReference,
             Iterable<byte[]> rows,
             ColumnSelection columnSelection,
-            ImmutableMap.Builder<Cell, byte[]> resultCollector) {
+            Map<Cell, byte[]> localWrites) {
         Map<Cell, Value> rawResults = new HashMap<>(transactionKeyValueService.getRows(
                 tableReference, rows, columnSelection, startTimestampSupplier.getAsLong()));
+
         // We don't need to do work postFiltering if we have a write locally.
-        rawResults.keySet().removeAll(resultCollector.buildOrThrow().keySet());
-        return filterRowResults(tableReference, rawResults, resultCollector);
+        rawResults.keySet().removeAll(localWrites.keySet());
+
+        Map<Cell, byte[]> results = Maps.newHashMapWithExpectedSize(rawResults.size());
+        getWithPostFilteringSync(tableReference, rawResults, Value.GET_VALUE).forEach(e -> {
+            results.put(e.getKey(), e.getValue());
+        });
+        results.putAll(localWrites);
+
+        removeEmptyColumns(tableReference, results);
+
+        return RowResults.viewOfSortedMap(Cells.breakCellsUpByRow(results));
     }
 
     private ListenableFuture<Map<Cell, byte[]>> getInternal(TableReference tableReference, Set<Cell> cells) {
@@ -356,28 +365,19 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
         }
     }
 
-    private NavigableMap<byte[], RowResult<byte[]>> filterRowResults(
-            TableReference tableRef, Map<Cell, Value> rawResults, ImmutableMap.Builder<Cell, byte[]> resultCollector) {
-        ImmutableMap<Cell, byte[]> collected = resultCollector
-                .putAll(getWithPostFilteringSync(tableRef, rawResults, Value.GET_VALUE))
-                .buildOrThrow();
-        Map<Cell, byte[]> filterDeletedValues = removeEmptyColumns(collected, tableRef);
-        return RowResults.viewOfSortedMap(Cells.breakCellsUpByRow(filterDeletedValues));
-    }
-
     private <T> Collection<Map.Entry<Cell, T>> getWithPostFilteringSync(
             TableReference tableRef, Map<Cell, Value> rawResults, Function<Value, T> transformer) {
         return AtlasFutures.getUnchecked(getWithPostFilteringAsync(tableRef, rawResults, transformer));
     }
 
-    private Map<Cell, byte[]> removeEmptyColumns(Map<Cell, byte[]> unfiltered, TableReference tableReference) {
-        Map<Cell, byte[]> filtered = Maps.filterValues(unfiltered, Predicates.not(Value::isTombstone));
+    private void removeEmptyColumns(TableReference tableReference, Map<Cell, byte[]> results) {
+        int unfilteredSize = results.size();
 
-        int emptyValues = unfiltered.size() - filtered.size();
+        results.values().removeIf(Value::isTombstone);
+
+        int emptyValues = unfilteredSize - results.size();
         metricRecorder.recordFilteredEmptyValues(tableReference, emptyValues);
         TraceStatistics.incEmptyValues(emptyValues);
-
-        return filtered;
     }
 
     private static boolean isSweepSentinel(Value value) {
