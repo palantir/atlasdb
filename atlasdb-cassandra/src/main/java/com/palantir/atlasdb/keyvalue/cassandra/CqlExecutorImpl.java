@@ -304,7 +304,6 @@ public class CqlExecutorImpl implements CqlExecutor {
                 }
                 throw e;
             } catch (TException e) {
-                log.error("Query timed out on server: {}", SafeArg.of("server", cassandraServer), e);
                 throw CassandraTExceptions.mapToUncheckedException(e, SafeArg.of("server", cassandraServer));
             }
         }
