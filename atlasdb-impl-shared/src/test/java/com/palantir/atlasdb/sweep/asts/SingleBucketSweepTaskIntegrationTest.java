@@ -33,10 +33,8 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
 import com.palantir.atlasdb.sweep.asts.SweepableBucket.TimestampRange;
-import com.palantir.atlasdb.sweep.asts.bucketingthings.BucketAssignerState;
-import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketAssignerStateMachineTable;
-import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketAssignerStateMachineTable.BucketStateAndIdentifier;
-import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketsTable;
+import com.palantir.atlasdb.sweep.asts.bucketingthings.BucketCompletionListener;
+import com.palantir.atlasdb.sweep.asts.bucketingthings.CompletelyClosedSweepBucketBoundRetriever;
 import com.palantir.atlasdb.sweep.asts.progress.BucketProgress;
 import com.palantir.atlasdb.sweep.asts.progress.BucketProgressStore;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
@@ -122,23 +120,23 @@ public class SingleBucketSweepTaskIntegrationTest {
 
     private final BucketProgressStore bucketProgressStore = new TestBucketProgressStore();
 
-    private SweepBucketsTable sweepBucketsTable;
-    private SweepBucketAssignerStateMachineTable sweepBucketAssignerStateMachineTable;
+    private BucketCompletionListener bucketCompletionListener;
+    private CompletelyClosedSweepBucketBoundRetriever completelyClosedSweepBucketBoundRetriever;
 
     private SingleBucketSweepTask singleBucketSweepTask;
 
     @BeforeEach
     public void setUp() {
-        sweepBucketsTable = mock(SweepBucketsTable.class);
-        sweepBucketAssignerStateMachineTable = mock(SweepBucketAssignerStateMachineTable.class);
+        bucketCompletionListener = mock(BucketCompletionListener.class);
+        completelyClosedSweepBucketBoundRetriever = mock(CompletelyClosedSweepBucketBoundRetriever.class);
         singleBucketSweepTask = new DefaultSingleBucketSweepTask(
                 bucketProgressStore,
                 sweepQueueReader,
                 sweepQueueDeleter,
                 sweepTimestamp::get,
                 targetedSweepMetrics,
-                sweepBucketsTable,
-                sweepBucketAssignerStateMachineTable);
+                bucketCompletionListener,
+                completelyClosedSweepBucketBoundRetriever);
 
         keyValueService.createTable(
                 CONSERVATIVE_TABLE,
@@ -184,8 +182,8 @@ public class SingleBucketSweepTaskIntegrationTest {
                 .as("bucket progress is updated to the sweep timestamp (non-inclusively)")
                 .hasValue(BucketProgress.createForTimestampProgress(450L - 1));
         // The bucket has not been completed yet, because it is still not fully swept.
-        verify(sweepBucketsTable, never())
-                .deleteBucketEntry(sweepStrategyTestContext.bucketFactory().apply(0));
+        verify(bucketCompletionListener, never())
+                .markBucketCompleteAndRemoveFromScheduling(sweepStrategyTestContext.bucketFactory().apply(0));
     }
 
     // [vw x-----x]
@@ -219,8 +217,8 @@ public class SingleBucketSweepTaskIntegrationTest {
                 .as("bucket progress is updated up to the correct point in the queue")
                 .hasValue(BucketProgress.createForTimestampProgress(500L - 1));
         // The bucket has not been completed yet, because it is still not fully swept.
-        verify(sweepBucketsTable, never())
-                .deleteBucketEntry(sweepStrategyTestContext.bucketFactory().apply(0));
+        verify(bucketCompletionListener, never())
+                .markBucketCompleteAndRemoveFromScheduling(sweepStrategyTestContext.bucketFactory().apply(0));
     }
 
     // [v        w][          ]
@@ -254,7 +252,7 @@ public class SingleBucketSweepTaskIntegrationTest {
                 .as("bucket progress is updated up to the sweep timestamp (non-inclusively)")
                 .hasValue(BucketProgress.createForTimestampProgress(4500 - END_OF_BUCKET_ZERO - 1));
         // The bucket has not been completed yet, because it is still not fully swept.
-        verify(sweepBucketsTable, never()).deleteBucketEntry(any());
+        verify(bucketCompletionListener, never()).markBucketCompleteAndRemoveFromScheduling(any());
     }
 
     // [v        w]
@@ -264,9 +262,8 @@ public class SingleBucketSweepTaskIntegrationTest {
     @MethodSource("testContexts")
     public void sweepsBucketAndDeletesBucketGuaranteedNotToBeRecreatedByAssigner(
             SweepStrategyTestContext sweepStrategyTestContext) {
-        when(sweepBucketAssignerStateMachineTable.getBucketStateAndIdentifier())
-                .thenReturn(BucketStateAndIdentifier.of(
-                        1, BucketAssignerState.start(1000))); // All buckets at 0 are guaranteed closed
+        when(completelyClosedSweepBucketBoundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
+                .thenReturn(1L); // All buckets at 0 are guaranteed closed
         writeTwoCells(sweepStrategyTestContext.dataTable());
         sweepTimestamp.set(1337L);
 
@@ -279,8 +276,8 @@ public class SingleBucketSweepTaskIntegrationTest {
                         sweepStrategyTestContext.bucketFactory().apply(0)))
                 .as("bucket 0 is completely swept")
                 .hasValue(BucketProgress.createForTimestampProgress(END_OF_BUCKET_ZERO - 1));
-        verify(sweepBucketsTable, times(1))
-                .deleteBucketEntry(sweepStrategyTestContext.bucketFactory().apply(0));
+        verify(bucketCompletionListener, times(1))
+                .markBucketCompleteAndRemoveFromScheduling(sweepStrategyTestContext.bucketFactory().apply(0));
     }
 
     // [v        w)
@@ -290,11 +287,8 @@ public class SingleBucketSweepTaskIntegrationTest {
     @MethodSource("testContexts")
     public void sweepsButWillNotDeleteBucketThatCouldBeRecreatedByAssigner(
             SweepStrategyTestContext sweepStrategyTestContext) {
-        when(sweepBucketAssignerStateMachineTable.getBucketStateAndIdentifier())
-                .thenReturn(BucketStateAndIdentifier.of(
-                        0,
-                        BucketAssignerState.immediatelyClosing(
-                                0, END_OF_BUCKET_ZERO))); // This can happen if we have more shards
+        when(completelyClosedSweepBucketBoundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
+                .thenReturn(0L); // This can happen if we have more shards
         writeTwoCells(sweepStrategyTestContext.dataTable());
         sweepTimestamp.set(1337L);
 
@@ -309,8 +303,8 @@ public class SingleBucketSweepTaskIntegrationTest {
                 .hasValue(BucketProgress.createForTimestampProgress(END_OF_BUCKET_ZERO - 1));
 
         // We don't delete the bucket in this case BECAUSE it might get rewritten by the state machine
-        verify(sweepBucketsTable, never())
-                .deleteBucketEntry(sweepStrategyTestContext.bucketFactory().apply(0));
+        verify(bucketCompletionListener, never())
+                .markBucketCompleteAndRemoveFromScheduling(sweepStrategyTestContext.bucketFactory().apply(0));
     }
 
     // [v        w)
@@ -320,9 +314,8 @@ public class SingleBucketSweepTaskIntegrationTest {
     @ParameterizedTest
     @MethodSource("testContexts")
     public void resumesProgressFromStoredProgress(SweepStrategyTestContext sweepStrategyTestContext) {
-        when(sweepBucketAssignerStateMachineTable.getBucketStateAndIdentifier())
-                .thenReturn(
-                        BucketStateAndIdentifier.of(2, BucketAssignerState.waitingUntilCloseable(END_OF_BUCKET_ONE)));
+        when(completelyClosedSweepBucketBoundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
+                .thenReturn(2L);
         writeTwoCells(sweepStrategyTestContext.dataTable());
         sweepTimestamp.set(END_OF_BUCKET_ZERO);
         bucketProgressStore.updateBucketProgressToAtLeast(
@@ -342,11 +335,8 @@ public class SingleBucketSweepTaskIntegrationTest {
     @MethodSource("testContexts")
     public void doesNotRereadEntriesAndReattemptsDeleteOnCompletedBucket_NotDeleteable(
             SweepStrategyTestContext sweepStrategyTestContext) {
-        when(sweepBucketAssignerStateMachineTable.getBucketStateAndIdentifier())
-                .thenReturn(BucketStateAndIdentifier.of(
-                        0,
-                        BucketAssignerState.immediatelyClosing(
-                                0, END_OF_BUCKET_ZERO))); // This can happen if we have more shards
+        when(completelyClosedSweepBucketBoundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
+                .thenReturn(0L); // This can happen if we have more shards
         writeTwoCells(sweepStrategyTestContext.dataTable());
         sweepTimestamp.set(1337L);
 
@@ -358,8 +348,8 @@ public class SingleBucketSweepTaskIntegrationTest {
                 .as("no entries should have been read from the sweep queue, because the bucket had already been"
                         + " completed")
                 .isEqualTo(0);
-        verify(sweepBucketsTable, never())
-                .deleteBucketEntry(sweepStrategyTestContext.bucketFactory().apply(0));
+        verify(bucketCompletionListener, never())
+                .markBucketCompleteAndRemoveFromScheduling(sweepStrategyTestContext.bucketFactory().apply(0));
     }
 
     // [v        w)
@@ -370,9 +360,8 @@ public class SingleBucketSweepTaskIntegrationTest {
     @MethodSource("testContexts")
     public void doesNotRereadEntriesAndReattemptsDeleteOnCompletedBucket_Deleteable(
             SweepStrategyTestContext sweepStrategyTestContext) {
-        when(sweepBucketAssignerStateMachineTable.getBucketStateAndIdentifier())
-                .thenReturn(BucketStateAndIdentifier.of(
-                        1, BucketAssignerState.start(END_OF_BUCKET_ZERO))); // This can happen if we have more shards
+        when(completelyClosedSweepBucketBoundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
+                .thenReturn(1L); // This can happen if we have more shards
         writeTwoCells(sweepStrategyTestContext.dataTable());
         sweepTimestamp.set(1337L);
 
@@ -384,8 +373,8 @@ public class SingleBucketSweepTaskIntegrationTest {
                 .as("no entries should have been read from the sweep queue, because the bucket had already been"
                         + " completed")
                 .isEqualTo(0);
-        verify(sweepBucketsTable, times(1))
-                .deleteBucketEntry(sweepStrategyTestContext.bucketFactory().apply(0));
+        verify(bucketCompletionListener, times(1))
+                .markBucketCompleteAndRemoveFromScheduling(sweepStrategyTestContext.bucketFactory().apply(0));
     }
 
     // [          ][          ][vw        )
@@ -411,9 +400,8 @@ public class SingleBucketSweepTaskIntegrationTest {
     @MethodSource("testContexts")
     public void makesProgressUpToSweepTimestampOnAnOpenBucketButWillNotDeleteIt(
             SweepStrategyTestContext sweepStrategyTestContext) {
-        when(sweepBucketAssignerStateMachineTable.getBucketStateAndIdentifier())
-                .thenReturn(
-                        BucketStateAndIdentifier.of(2, BucketAssignerState.waitingUntilCloseable(END_OF_BUCKET_ONE)));
+        when(completelyClosedSweepBucketBoundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
+                .thenReturn(2L);
         writeCell(sweepStrategyTestContext.dataTable(), 5200L, DEFAULT_VALUE, 5900L);
         writeCell(sweepStrategyTestContext.dataTable(), 6400L, ANOTHER_VALUE, 7300L);
         writeTransactionalDelete(sweepStrategyTestContext.dataTable(), 7500L, 7800L);
@@ -430,8 +418,8 @@ public class SingleBucketSweepTaskIntegrationTest {
                 .hasValue(BucketProgress.createForTimestampProgress(8000L - END_OF_BUCKET_ONE - 1));
 
         // We don't delete the bucket in this case because it is still open
-        verify(sweepBucketsTable, never())
-                .deleteBucketEntry(sweepStrategyTestContext.bucketFactory().apply(2));
+        verify(bucketCompletionListener, never())
+                .markBucketCompleteAndRemoveFromScheduling(sweepStrategyTestContext.bucketFactory().apply(2));
     }
 
     // [          ][          ][vwxyz01234)
@@ -440,9 +428,8 @@ public class SingleBucketSweepTaskIntegrationTest {
     @ParameterizedTest
     @MethodSource("testContexts")
     public void makesPartialProgressOnAnOpenBucket(SweepStrategyTestContext sweepStrategyTestContext) {
-        when(sweepBucketAssignerStateMachineTable.getBucketStateAndIdentifier())
-                .thenReturn(
-                        BucketStateAndIdentifier.of(2, BucketAssignerState.waitingUntilCloseable(END_OF_BUCKET_ONE)));
+        when(completelyClosedSweepBucketBoundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
+                .thenReturn(2L);
         int numberOfCellsSweptInOneIteration = SweepQueueUtils.SWEEP_BATCH_SIZE;
         int numberOfCellsWritten = 2 * numberOfCellsSweptInOneIteration + 1;
         List<KnownTableWrite> knownTableWrites = LongStream.range(0, numberOfCellsWritten)
@@ -482,8 +469,8 @@ public class SingleBucketSweepTaskIntegrationTest {
                 .as("no further progress is made past the sweep timestamp")
                 .isEqualTo(0);
 
-        verify(sweepBucketsTable, never())
-                .deleteBucketEntry(sweepStrategyTestContext.bucketFactory().apply(2));
+        verify(bucketCompletionListener, never())
+                .markBucketCompleteAndRemoveFromScheduling(sweepStrategyTestContext.bucketFactory().apply(2));
     }
 
     // [          ][          ][vwxyz01   )
@@ -493,9 +480,8 @@ public class SingleBucketSweepTaskIntegrationTest {
     @ParameterizedTest
     @MethodSource("testContexts")
     public void makesProgressOnCellsInDifferentSweepQueuePartitions(SweepStrategyTestContext sweepStrategyTestContext) {
-        when(sweepBucketAssignerStateMachineTable.getBucketStateAndIdentifier())
-                .thenReturn(
-                        BucketStateAndIdentifier.of(2, BucketAssignerState.waitingUntilCloseable(END_OF_BUCKET_ONE)));
+        when(completelyClosedSweepBucketBoundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
+                .thenReturn(2L);
         int numberOfCellsToWrite = 79;
         long timestampIncrement = SweepQueueUtils.TS_COARSE_GRANULARITY + SweepQueueUtils.TS_FINE_GRANULARITY;
 
@@ -536,9 +522,8 @@ public class SingleBucketSweepTaskIntegrationTest {
     @ParameterizedTest
     @MethodSource("testContexts")
     public void doesNotSweepCellsForDifferentShards(SweepStrategyTestContext sweepStrategyTestContext) {
-        when(sweepBucketAssignerStateMachineTable.getBucketStateAndIdentifier())
-                .thenReturn(
-                        BucketStateAndIdentifier.of(2, BucketAssignerState.waitingUntilCloseable(END_OF_BUCKET_ONE)));
+        when(completelyClosedSweepBucketBoundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
+                .thenReturn(2L);
         writeTwoCells(sweepStrategyTestContext.dataTable());
         sweepTimestamp.set(END_OF_BUCKET_ONE);
 
@@ -556,9 +541,8 @@ public class SingleBucketSweepTaskIntegrationTest {
     @ParameterizedTest
     @MethodSource("testContexts")
     public void doesNotSweepCellsForDifferentStrategies(SweepStrategyTestContext sweepStrategyTestContext) {
-        when(sweepBucketAssignerStateMachineTable.getBucketStateAndIdentifier())
-                .thenReturn(
-                        BucketStateAndIdentifier.of(2, BucketAssignerState.waitingUntilCloseable(END_OF_BUCKET_ONE)));
+        when(completelyClosedSweepBucketBoundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
+                .thenReturn(2L);
         SweeperStrategy otherStrategy = sweepStrategyTestContext.strategy() == SweeperStrategy.CONSERVATIVE
                 ? SweeperStrategy.THOROUGH
                 : SweeperStrategy.CONSERVATIVE;
