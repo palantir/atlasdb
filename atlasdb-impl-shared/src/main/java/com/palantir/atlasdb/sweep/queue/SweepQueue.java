@@ -323,10 +323,10 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                 } catch (Exception e) {
                     log.warn(
                             "A failure was observed when truncating the sweep identifier tables. If you are running"
-                                + " this as part of a broader clearance task, you MUST make sure that the success"
-                                + " message is logged BEFORE considering the reset to have been performed. Seeing this"
-                                + " message is neither an indication that the operation was success, nor is it an"
-                                + " indication that the operation was not a success.",
+                                    + " this as part of a broader clearance task, you MUST make sure that the success"
+                                    + " message is logged BEFORE considering the reset to have been performed. Seeing this"
+                                    + " message is neither an indication that the operation was success, nor is it an"
+                                    + " indication that the operation was not a success.",
                             e);
                     throw e;
                 }
