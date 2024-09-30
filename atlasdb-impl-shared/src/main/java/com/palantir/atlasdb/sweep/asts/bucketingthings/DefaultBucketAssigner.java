@@ -17,10 +17,9 @@
 package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.palantir.atlasdb.sweep.asts.SweepableBucket.TimestampRange;
+import com.palantir.atlasdb.sweep.asts.TimestampRange;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.BucketWriter.WriteState;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.DefaultBucketAssigner.IterationResult.OperationResult;
-import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketAssignerStateMachineTable.BucketStateAndIdentifier;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;

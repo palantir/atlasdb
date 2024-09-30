@@ -26,11 +26,10 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import com.palantir.atlasdb.sweep.asts.SweepableBucket.TimestampRange;
+import com.palantir.atlasdb.sweep.asts.TimestampRange;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.BucketWriter.WriteState;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.DefaultBucketAssigner.BucketAssignerMetrics;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.DefaultBucketAssigner.IterationResult.OperationResult;
-import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketAssignerStateMachineTable.BucketStateAndIdentifier;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;

@@ -19,7 +19,6 @@ package com.palantir.atlasdb.sweep.asts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.lenient;
 
-import com.palantir.atlasdb.sweep.asts.SweepableBucket.TimestampRange;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.refreshable.Disposable;

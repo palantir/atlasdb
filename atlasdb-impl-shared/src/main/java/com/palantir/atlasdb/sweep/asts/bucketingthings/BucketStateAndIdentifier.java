@@ -16,19 +16,17 @@
 
 package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
-import com.palantir.atlasdb.sweep.asts.Bucket;
-import com.palantir.atlasdb.sweep.asts.SweepableBucket;
-import com.palantir.atlasdb.sweep.asts.TimestampRange;
-import java.util.Optional;
-import java.util.Set;
+import org.immutables.value.Value;
 
-public interface SweepBucketsTable {
-    /**
-     * Returns SweepableBuckets for each ShardAndStrategy given in the input set _where_ a sweepable bucket exists.
-     * It is not guaranteed that a SweepableBucket exists for each ShardAndStrategy in the input set.
-     */
-    Set<SweepableBucket> getSweepableBuckets(Set<Bucket> startBuckets);
+@Value.Immutable
+public interface BucketStateAndIdentifier {
+    @Value.Parameter
+    long bucketIdentifier();
 
-    void putTimestampRangeForBucket(
-            Bucket bucket, Optional<TimestampRange> oldTimestampRange, TimestampRange newTimestampRange);
+    @Value.Parameter
+    BucketAssignerState state();
+
+    static BucketStateAndIdentifier of(long bucketIdentifier, BucketAssignerState state) {
+        return ImmutableBucketStateAndIdentifier.of(bucketIdentifier, state);
+    }
 }

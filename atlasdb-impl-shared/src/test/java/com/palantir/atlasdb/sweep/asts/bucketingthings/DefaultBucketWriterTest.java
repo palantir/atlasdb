@@ -25,7 +25,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.sweep.asts.Bucket;
-import com.palantir.atlasdb.sweep.asts.SweepableBucket.TimestampRange;
+import com.palantir.atlasdb.sweep.asts.TimestampRange;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.BucketWriter.WriteState;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
