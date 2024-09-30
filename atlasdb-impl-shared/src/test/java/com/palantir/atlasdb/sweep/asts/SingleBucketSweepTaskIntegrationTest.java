@@ -29,9 +29,14 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.keyvalue.api.RangeRequest;
+import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrategy;
+import com.palantir.atlasdb.schema.generated.SweepableCellsTable.SweepableCellsRow;
+import com.palantir.atlasdb.schema.generated.SweepableTimestampsTable.SweepableTimestampsRow;
+import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.asts.SweepableBucket.TimestampRange;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.BucketCompletionListener;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.CompletelyClosedSweepBucketBoundRetriever;
@@ -58,6 +63,7 @@ import com.palantir.atlasdb.transaction.service.SimpleTransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.time.Clock;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -66,6 +72,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
@@ -80,12 +87,13 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 public class SingleBucketSweepTaskIntegrationTest {
     private static final int SHARDS = 1; // Used to avoid complications of the hash function
+    private static final int SHARD_ZERO = 0;
 
     private static final TableReference CONSERVATIVE_TABLE = TableReference.createFromFullyQualifiedName("terri.tory");
     private static final TableReference THOROUGH_TABLE = TableReference.createFromFullyQualifiedName("comp.lete");
 
-    private static final long END_OF_BUCKET_ZERO = 1000L;
-    private static final long END_OF_BUCKET_ONE = 5000L;
+    private static final long END_OF_BUCKET_ZERO = SweepQueueUtils.minTsForCoarsePartition(73L);
+    private static final long END_OF_BUCKET_ONE = SweepQueueUtils.minTsForCoarsePartition(84L);
     private static final TimestampRange BUCKET_ZERO_TIMESTAMP_RANGE = TimestampRange.of(0L, END_OF_BUCKET_ZERO);
     private static final TimestampRange BUCKET_ONE_TIMESTAMP_RANGE =
             TimestampRange.of(END_OF_BUCKET_ZERO, END_OF_BUCKET_ONE);
@@ -187,6 +195,10 @@ public class SingleBucketSweepTaskIntegrationTest {
                         sweepStrategyTestContext.bucketFactory().apply(0)))
                 .as("bucket progress is updated to the sweep timestamp (non-inclusively)")
                 .hasValue(BucketProgress.createForTimestampProgress(450L - 1));
+        assertThat(shardProgress.getLastSweptTimestamp(sweepStrategyTestContext.shardAndStrategy()))
+                .as("progress is not updated by the single bucket task")
+                .isEqualTo(-1L);
+
         // The bucket has not been completed yet, because it is still not fully swept.
         verify(bucketCompletionListener, never())
                 .markBucketCompleteAndRemoveFromScheduling(
@@ -223,6 +235,10 @@ public class SingleBucketSweepTaskIntegrationTest {
                         sweepStrategyTestContext.bucketFactory().apply(0)))
                 .as("bucket progress is updated up to the correct point in the queue")
                 .hasValue(BucketProgress.createForTimestampProgress(500L - 1));
+        assertThat(shardProgress.getLastSweptTimestamp(sweepStrategyTestContext.shardAndStrategy()))
+                .as("progress is not updated by the single bucket task")
+                .isEqualTo(-1L);
+
         // The bucket has not been completed yet, because it is still not fully swept.
         verify(bucketCompletionListener, never())
                 .markBucketCompleteAndRemoveFromScheduling(
@@ -236,7 +252,7 @@ public class SingleBucketSweepTaskIntegrationTest {
     @MethodSource("testContexts")
     public void doesNotSweepValuesInOtherBuckets(SweepStrategyTestContext sweepStrategyTestContext) {
         writeTwoCells(sweepStrategyTestContext.dataTable());
-        sweepTimestamp.set(4500L);
+        sweepTimestamp.set(END_OF_BUCKET_ZERO + 4500L);
 
         assertThat(singleBucketSweepTask.runOneIteration(SweepableBucket.of(
                         sweepStrategyTestContext.bucketFactory().apply(1), BUCKET_ONE_TIMESTAMP_RANGE)))
@@ -258,7 +274,7 @@ public class SingleBucketSweepTaskIntegrationTest {
         assertThat(bucketProgressStore.getBucketProgress(
                         sweepStrategyTestContext.bucketFactory().apply(1)))
                 .as("bucket progress is updated up to the sweep timestamp (non-inclusively)")
-                .hasValue(BucketProgress.createForTimestampProgress(4500 - END_OF_BUCKET_ZERO - 1));
+                .hasValue(BucketProgress.createForTimestampProgress(4500L - 1L));
         // The bucket has not been completed yet, because it is still not fully swept.
         verify(bucketCompletionListener, never()).markBucketCompleteAndRemoveFromScheduling(any());
     }
@@ -273,13 +289,36 @@ public class SingleBucketSweepTaskIntegrationTest {
         when(completelyClosedSweepBucketBoundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
                 .thenReturn(1L); // All buckets at 0 are guaranteed closed
         writeTwoCells(sweepStrategyTestContext.dataTable());
-        sweepTimestamp.set(1337L);
+        sweepTimestamp.set(END_OF_BUCKET_ZERO + 5842L);
 
         assertThat(singleBucketSweepTask.runOneIteration(SweepableBucket.of(
                         sweepStrategyTestContext.bucketFactory().apply(0), BUCKET_ZERO_TIMESTAMP_RANGE)))
                 .as("two entries should have been read from the sweep queue")
                 .isEqualTo(2);
+        assertThat(bucketProgressStore.getBucketProgress(
+                        sweepStrategyTestContext.bucketFactory().apply(0)))
+                .as("the first read processes up to the end of the partition")
+                .hasValue(BucketProgress.createForTimestampProgress(SweepQueueUtils.maxTsForFinePartition(0L)));
+        assertThat(getRangeFromTable(TargetedSweepTableFactory.of()
+                        .getSweepableCellsTable(null)
+                        .getTableRef()))
+                .as("sweepable cells should have been swept")
+                .isEmpty();
+        assertThat(getRangeFromTable(TargetedSweepTableFactory.of()
+                        .getSweepableTimestampsTable(null)
+                        .getTableRef()))
+                .as("sweepable timestamps should not yet have been swept")
+                .isNotEmpty();
 
+        assertThat(singleBucketSweepTask.runOneIteration(SweepableBucket.of(
+                        sweepStrategyTestContext.bucketFactory().apply(0), BUCKET_ZERO_TIMESTAMP_RANGE)))
+                .as("no more entries should have been read from the sweep queue")
+                .isEqualTo(0);
+        assertThat(getRangeFromTable(TargetedSweepTableFactory.of()
+                        .getSweepableTimestampsTable(null)
+                        .getTableRef()))
+                .as("sweepable timestamps should have been swept")
+                .isEmpty();
         assertThat(bucketProgressStore.getBucketProgress(
                         sweepStrategyTestContext.bucketFactory().apply(0)))
                 .as("bucket 0 is completely swept")
@@ -299,13 +338,21 @@ public class SingleBucketSweepTaskIntegrationTest {
         when(completelyClosedSweepBucketBoundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
                 .thenReturn(0L); // This can happen if we have more shards
         writeTwoCells(sweepStrategyTestContext.dataTable());
-        sweepTimestamp.set(1337L);
+        sweepTimestamp.set(END_OF_BUCKET_ZERO + 4289L);
 
         assertThat(singleBucketSweepTask.runOneIteration(SweepableBucket.of(
                         sweepStrategyTestContext.bucketFactory().apply(0), BUCKET_ZERO_TIMESTAMP_RANGE)))
                 .as("two entries should have been read from the sweep queue")
                 .isEqualTo(2);
+        assertThat(bucketProgressStore.getBucketProgress(
+                        sweepStrategyTestContext.bucketFactory().apply(0)))
+                .as("the first read processes up to the end of the partition")
+                .hasValue(BucketProgress.createForTimestampProgress(SweepQueueUtils.maxTsForFinePartition(0L)));
 
+        assertThat(singleBucketSweepTask.runOneIteration(SweepableBucket.of(
+                        sweepStrategyTestContext.bucketFactory().apply(0), BUCKET_ZERO_TIMESTAMP_RANGE)))
+                .as("no more entries should have been read from the sweep queue")
+                .isEqualTo(0);
         assertThat(bucketProgressStore.getBucketProgress(
                         sweepStrategyTestContext.bucketFactory().apply(0)))
                 .as("bucket 0 is completely swept")
@@ -414,10 +461,19 @@ public class SingleBucketSweepTaskIntegrationTest {
             SweepStrategyTestContext sweepStrategyTestContext) {
         when(completelyClosedSweepBucketBoundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
                 .thenReturn(2L);
-        writeCell(sweepStrategyTestContext.dataTable(), 5200L, DEFAULT_VALUE, 5900L);
-        writeCell(sweepStrategyTestContext.dataTable(), 6400L, ANOTHER_VALUE, 7300L);
-        writeTransactionalDelete(sweepStrategyTestContext.dataTable(), 7500L, 7800L);
-        sweepTimestamp.set(8000L);
+        writeCell(
+                sweepStrategyTestContext.dataTable(),
+                END_OF_BUCKET_ONE + 200L,
+                DEFAULT_VALUE,
+                END_OF_BUCKET_ONE + 500L);
+        writeCell(
+                sweepStrategyTestContext.dataTable(),
+                END_OF_BUCKET_ONE + 1200L,
+                ANOTHER_VALUE,
+                END_OF_BUCKET_ONE + 1500L);
+        writeTransactionalDelete(
+                sweepStrategyTestContext.dataTable(), END_OF_BUCKET_ONE + 2200L, END_OF_BUCKET_ONE + 2500L);
+        sweepTimestamp.set(END_OF_BUCKET_ONE + 3000L);
 
         assertThat(singleBucketSweepTask.runOneIteration(SweepableBucket.of(
                         sweepStrategyTestContext.bucketFactory().apply(2), BUCKET_TWO_TIMESTAMP_RANGE)))
@@ -427,7 +483,7 @@ public class SingleBucketSweepTaskIntegrationTest {
         assertThat(bucketProgressStore.getBucketProgress(
                         sweepStrategyTestContext.bucketFactory().apply(2)))
                 .as("bucket 2 makes progress up to the sweep timestamp")
-                .hasValue(BucketProgress.createForTimestampProgress(8000L - END_OF_BUCKET_ONE - 1));
+                .hasValue(BucketProgress.createForTimestampProgress(sweepTimestamp.get() - END_OF_BUCKET_ONE - 1));
 
         // We don't delete the bucket in this case because it is still open
         verify(bucketCompletionListener, never())
@@ -470,6 +526,17 @@ public class SingleBucketSweepTaskIntegrationTest {
                         sweepStrategyTestContext.bucketFactory().apply(2)))
                 .as("bucket 2 has partial progress up to the first batch read")
                 .hasValue(BucketProgress.createForTimestampProgress(SweepQueueUtils.SWEEP_BATCH_SIZE - 1));
+        assertThat(shardProgress.getLastSweptTimestamp(sweepStrategyTestContext.shardAndStrategy()))
+                .as("progress is not updated by the single bucket task")
+                .isEqualTo(-1L);
+        assertThat(getRangeFromTable(TargetedSweepTableFactory.of()
+                        .getSweepableCellsTable(null)
+                        .getTableRef()))
+                .as("sweepable cells for the relevant partition should not have been deleted")
+                .anyMatch(rowResult -> SweepableCellsRow.BYTES_HYDRATOR
+                                .hydrateFromBytes(rowResult.getRowName())
+                                .getTimestampPartition()
+                        == SweepQueueUtils.tsPartitionFine(END_OF_BUCKET_ONE));
 
         assertThat(singleBucketSweepTask.runOneIteration(sweepableBucketTwo)).isEqualTo(partialProgressOnSecondBatch);
         assertThat(bucketProgressStore.getBucketProgress(
@@ -477,6 +544,17 @@ public class SingleBucketSweepTaskIntegrationTest {
                 .as("bucket 2 has partial progress up to the second batch read")
                 .hasValue(BucketProgress.createForTimestampProgress(
                         SweepQueueUtils.SWEEP_BATCH_SIZE + partialProgressOnSecondBatch - 1));
+        assertThat(shardProgress.getLastSweptTimestamp(sweepStrategyTestContext.shardAndStrategy()))
+                .as("progress is not updated by the single bucket task")
+                .isEqualTo(-1L);
+        assertThat(getRangeFromTable(TargetedSweepTableFactory.of()
+                        .getSweepableCellsTable(null)
+                        .getTableRef()))
+                .as("sweepable cells for the relevant partition should not have been deleted")
+                .anyMatch(rowResult -> SweepableCellsRow.BYTES_HYDRATOR
+                                .hydrateFromBytes(rowResult.getRowName())
+                                .getTimestampPartition()
+                        == SweepQueueUtils.tsPartitionFine(END_OF_BUCKET_ONE));
 
         assertThat(singleBucketSweepTask.runOneIteration(sweepableBucketTwo))
                 .as("no further progress is made past the sweep timestamp")
@@ -515,16 +593,44 @@ public class SingleBucketSweepTaskIntegrationTest {
 
         SweepableBucket sweepableBucketTwo =
                 SweepableBucket.of(sweepStrategyTestContext.bucketFactory().apply(2), BUCKET_TWO_TIMESTAMP_RANGE);
-        // We don't care exactly how the sweep batching works, other than that we are able to make progress.
+
         // + 1 because we need to explicitly discover there is nothing after the last cell
         int allowedIterations = numberOfCellsToWrite + 1;
         long entriesRead = 0;
-        for (int i = 0; i < allowedIterations; i++) {
+
+        for (int iteration = 0; iteration < allowedIterations; iteration++) {
             entriesRead += singleBucketSweepTask.runOneIteration(sweepableBucketTwo);
+
+            assertThat(shardProgress.getLastSweptTimestamp(sweepStrategyTestContext.shardAndStrategy()))
+                    .as("progress is not updated by the single bucket task")
+                    .isEqualTo(-1L);
         }
         assertThat(entriesRead)
                 .as("all cells that were enqueued should eventually be read")
                 .isEqualTo(numberOfCellsToWrite);
+
+        Set<Long> knownFinePartitionsInSweepableCells =
+                getRangeFromTable(TargetedSweepTableFactory.of()
+                                .getSweepableCellsTable(null)
+                                .getTableRef())
+                        .stream()
+                        .map(row -> SweepableCellsRow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName()))
+                        .map(SweepableCellsRow::getTimestampPartition)
+                        .collect(Collectors.toSet());
+        Set<Long> knownCoarsePartitionsInSweepableTimestamps =
+                getRangeFromTable(TargetedSweepTableFactory.of()
+                                .getSweepableTimestampsTable(null)
+                                .getTableRef())
+                        .stream()
+                        .map(row -> SweepableTimestampsRow.BYTES_HYDRATOR.hydrateFromBytes(row.getRowName()))
+                        .map(SweepableTimestampsRow::getTimestampPartition)
+                        .collect(Collectors.toSet());
+        assertThat(knownFinePartitionsInSweepableCells)
+                .as("everything is cleared from sweepable cells eventually")
+                .isEmpty();
+        assertThat(knownCoarsePartitionsInSweepableTimestamps)
+                .as("everything is cleared from sweepable timestamps eventually")
+                .isEmpty();
 
         assertThat(bucketProgressStore.getBucketProgress(
                         sweepStrategyTestContext.bucketFactory().apply(2)))
@@ -629,6 +735,13 @@ public class SingleBucketSweepTaskIntegrationTest {
         }
     }
 
+    private List<RowResult<com.palantir.atlasdb.keyvalue.api.Value>> getRangeFromTable(TableReference tableRef) {
+        try (ClosableIterator<RowResult<com.palantir.atlasdb.keyvalue.api.Value>> iterator =
+                keyValueService.getRange(tableRef, RangeRequest.all(), Long.MAX_VALUE)) {
+            return iterator.stream().collect(Collectors.toList());
+        }
+    }
+
     private void checkNoValueExistsBefore(TableReference tableReference, Cell cell, long timestamp) {
         assertThat(keyValueService.get(tableReference, ImmutableMap.of(cell, timestamp)))
                 .isEmpty();
@@ -708,6 +821,11 @@ public class SingleBucketSweepTaskIntegrationTest {
         TableReference dataTable();
 
         Function<Integer, Bucket> bucketFactory();
+
+        @Value.Derived
+        default ShardAndStrategy shardAndStrategy() {
+            return ShardAndStrategy.of(SHARD_ZERO, strategy());
+        }
 
         static ImmutableSweepStrategyTestContext.Builder builder() {
             return ImmutableSweepStrategyTestContext.builder();
