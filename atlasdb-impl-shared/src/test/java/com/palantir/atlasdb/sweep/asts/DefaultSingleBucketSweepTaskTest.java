@@ -39,8 +39,10 @@ import com.palantir.atlasdb.sweep.queue.DedicatedRows;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SweepBatch;
 import com.palantir.atlasdb.sweep.queue.SweepBatchWithPartitionInfo;
+import com.palantir.atlasdb.sweep.queue.SweepQueueCleaner;
 import com.palantir.atlasdb.sweep.queue.SweepQueueDeleter;
 import com.palantir.atlasdb.sweep.queue.SweepQueueReader;
+import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import com.palantir.atlasdb.sweep.queue.WriteInfo;
 import com.palantir.logsafe.Preconditions;
 import java.util.Collection;
@@ -75,6 +77,9 @@ public class DefaultSingleBucketSweepTaskTest {
     private SweepQueueDeleter sweepQueueDeleter;
 
     @Mock
+    private SweepQueueCleaner sweepQueueCleaner;
+
+    @Mock
     private LongSupplier sweepTimestampSupplier;
 
     @Mock
@@ -94,6 +99,7 @@ public class DefaultSingleBucketSweepTaskTest {
                 bucketProgressStore,
                 sweepQueueReader,
                 sweepQueueDeleter,
+                sweepQueueCleaner,
                 sweepTimestampSupplier,
                 targetedSweepMetrics,
                 completionListener,
@@ -107,7 +113,7 @@ public class DefaultSingleBucketSweepTaskTest {
         assertThat(defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket()))
                 .isEqualTo(0);
 
-        verifyNoInteractions(bucketProgressStore, sweepQueueReader, sweepQueueDeleter, completionListener);
+        verifyNoInteractions(bucketProgressStore, sweepQueueReader, sweepQueueDeleter, sweepQueueCleaner, completionListener);
     }
 
     @ParameterizedTest
@@ -121,7 +127,7 @@ public class DefaultSingleBucketSweepTaskTest {
         assertThat(defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket()))
                 .isEqualTo(0);
         verify(completionListener).markBucketCompleteAndRemoveFromScheduling(context.bucket());
-        verifyNoInteractions(sweepQueueReader, sweepQueueDeleter);
+        verifyNoInteractions(sweepQueueReader, sweepQueueDeleter, sweepQueueCleaner);
     }
 
     @ParameterizedTest
@@ -134,7 +140,7 @@ public class DefaultSingleBucketSweepTaskTest {
 
         assertThat(defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket()))
                 .isEqualTo(0);
-        verifyNoInteractions(completionListener, sweepQueueReader, sweepQueueDeleter);
+        verifyNoInteractions(completionListener, sweepQueueReader, sweepQueueDeleter, sweepQueueCleaner);
     }
 
     @ParameterizedTest
@@ -146,7 +152,7 @@ public class DefaultSingleBucketSweepTaskTest {
 
         assertThat(defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket()))
                 .isEqualTo(0);
-        verifyNoInteractions(completionListener, sweepQueueReader, sweepQueueDeleter);
+        verifyNoInteractions(completionListener, sweepQueueReader, sweepQueueDeleter, sweepQueueCleaner);
     }
 
     @ParameterizedTest
@@ -158,7 +164,7 @@ public class DefaultSingleBucketSweepTaskTest {
 
         assertThat(defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket()))
                 .isEqualTo(0);
-        verifyNoInteractions(completionListener, sweepQueueReader, sweepQueueDeleter);
+        verifyNoInteractions(completionListener, sweepQueueReader, sweepQueueDeleter, sweepQueueCleaner);
     }
 
     @ParameterizedTest
@@ -179,6 +185,10 @@ public class DefaultSingleBucketSweepTaskTest {
 
         defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket());
         verify(sweepQueueDeleter).sweep(eq(ImmutableList.of()), eq(Sweeper.of(context.shardAndStrategy())));
+        verify(sweepQueueCleaner).clean(eq(context.shardAndStrategy()),
+                eq(ImmutableSet.of()),
+                eq(context.endTimestampExclusive() - 1L),
+                eq(DedicatedRows.of(ImmutableList.of())));
         verify(bucketProgressStore)
                 .updateBucketProgressToAtLeast(
                         context.bucket(), context.completeProgressForBucket().orElseThrow());
@@ -282,16 +292,16 @@ public class DefaultSingleBucketSweepTaskTest {
                         SweepBucketTestContext.builder()
                                 .bucketIdentifier(42)
                                 .shardAndStrategy(ShardAndStrategy.conservative(35))
-                                .startTimestampInclusive(1_345_796L)
-                                .endTimestampExclusive(8_888_888L)
+                                .startTimestampInclusive(SweepQueueUtils.minTsForCoarsePartition(1_345_796L))
+                                .endTimestampExclusive(SweepQueueUtils.minTsForCoarsePartition(8_888_888L))
                                 .build())),
                 Arguments.of(Named.of(
                         "closed thorough bucket",
                         SweepBucketTestContext.builder()
                                 .bucketIdentifier(3)
                                 .shardAndStrategy(ShardAndStrategy.thorough(99))
-                                .startTimestampInclusive(147_258_369L)
-                                .endTimestampExclusive(741_852_963L)
+                                .startTimestampInclusive(SweepQueueUtils.minTsForCoarsePartition(147_258_369L))
+                                .endTimestampExclusive(SweepQueueUtils.minTsForCoarsePartition(741_852_963L))
                                 .build())));
     }
 
