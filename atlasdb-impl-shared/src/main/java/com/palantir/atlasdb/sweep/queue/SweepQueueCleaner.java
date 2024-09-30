@@ -43,11 +43,19 @@ public class SweepQueueCleaner {
      * @param lastTs last swept timestamp for this iteration of sweep.
      * @param dedicatedRows the dedicated rows that have now been swept that should now be removed.
      */
+    public void cleanAndUpdateProgress(
+            ShardAndStrategy shardStrategy, Set<Long> partitions, long lastTs, DedicatedRows dedicatedRows) {
+        clean(shardStrategy, partitions, lastTs, dedicatedRows);
+        progressTo(shardStrategy, lastTs);
+    }
+
+    /**
+     * Cleans up all the sweep queue data corresponding to the partitions and dedicated rows indicated.
+     */
     public void clean(ShardAndStrategy shardStrategy, Set<Long> partitions, long lastTs, DedicatedRows dedicatedRows) {
         cleanDedicatedRows(dedicatedRows);
         cleanSweepableCells(shardStrategy, partitions);
         cleanSweepableTimestamps(shardStrategy, partitions, lastTs);
-        progressTo(shardStrategy, lastTs);
     }
 
     private void cleanSweepableCells(ShardAndStrategy shardStrategy, Set<Long> partitions) {

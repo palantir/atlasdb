@@ -25,6 +25,7 @@ import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SweepBatch;
 import com.palantir.atlasdb.sweep.queue.SweepBatchWithPartitionInfo;
+import com.palantir.atlasdb.sweep.queue.SweepQueueCleaner;
 import com.palantir.atlasdb.sweep.queue.SweepQueueDeleter;
 import com.palantir.atlasdb.sweep.queue.SweepQueueReader;
 import com.palantir.logsafe.SafeArg;
@@ -38,6 +39,7 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
     private final BucketProgressStore bucketProgressStore;
     private final SweepQueueReader sweepQueueReader;
     private final SweepQueueDeleter sweepQueueDeleter;
+    private final SweepQueueCleaner sweepQueueCleaner;
     private final LongSupplier sweepTimestampSupplier;
     private final TargetedSweepMetrics targetedSweepMetrics;
     private final BucketCompletionListener bucketCompletionListener;
@@ -47,6 +49,7 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
             BucketProgressStore bucketProgressStore,
             SweepQueueReader sweepQueueReader,
             SweepQueueDeleter sweepQueueDeleter,
+            SweepQueueCleaner sweepQueueCleaner,
             LongSupplier sweepTimestampSupplier,
             TargetedSweepMetrics targetedSweepMetrics,
             BucketCompletionListener bucketCompletionListener,
@@ -54,6 +57,7 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
         this.bucketProgressStore = bucketProgressStore;
         this.sweepQueueReader = sweepQueueReader;
         this.sweepQueueDeleter = sweepQueueDeleter;
+        this.sweepQueueCleaner = sweepQueueCleaner;
         this.sweepTimestampSupplier = sweepTimestampSupplier;
         this.targetedSweepMetrics = targetedSweepMetrics;
         this.bucketCompletionListener = bucketCompletionListener;
@@ -107,9 +111,10 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
                     SafeArg.of("shardStrategy", shardAndStrategy.toText()));
         }
 
-        // Metrics are handled at the layer above.
-
         long lastTs = sweepBatch.lastSweptTimestamp();
+        sweepQueueCleaner.clean(
+                shardAndStrategy, sweepBatchWithPartitionInfo.finePartitions(), lastTs, sweepBatch.dedicatedRows());
+
         long lastTsOffset = lastTs - sweepableBucket.timestampRange().startInclusive();
 
         bucketProgressStore.updateBucketProgressToAtLeast(
@@ -119,7 +124,7 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
             markBucketCompleteIfEligible(sweepableBucket);
         }
 
-        // No updating of overall progress; that's a responsibility of the background upgrading task
+        // No updating of overall progress; that's a responsibility of the background updating task
         return sweepBatch.entriesRead();
     }
 

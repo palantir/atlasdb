@@ -169,7 +169,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                     SafeArg.of("shardStrategy", shardStrategy.toText()));
         }
 
-        cleaner.clean(
+        cleaner.cleanAndUpdateProgress(
                 shardStrategy,
                 batchWithInfo.partitionsForPreviousLastSweptTs(lastSweptTs),
                 sweepBatch.lastSweptTimestamp(),
