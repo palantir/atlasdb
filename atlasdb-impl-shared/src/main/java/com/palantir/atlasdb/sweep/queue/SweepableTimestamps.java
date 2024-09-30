@@ -77,7 +77,7 @@ public class SweepableTimestamps extends SweepQueueTable {
      * @return Optional containing the fine partition, or Optional.empty() if there are no more candidates before
      * sweepTs
      */
-    Optional<Long> nextTimestampPartition(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
+    public Optional<Long> nextTimestampPartition(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
         long minFineInclusive = SweepQueueUtils.tsPartitionFine(lastSweptTs + 1);
         long maxFineInclusive = SweepQueueUtils.tsPartitionFine(sweepTs - 1);
         return nextSweepablePartition(shardStrategy, minFineInclusive, maxFineInclusive);
