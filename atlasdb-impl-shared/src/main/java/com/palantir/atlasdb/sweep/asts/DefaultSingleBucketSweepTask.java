@@ -114,7 +114,9 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
         long lastTs = sweepBatch.lastSweptTimestamp();
         sweepQueueCleaner.clean(
                 shardAndStrategy,
-                sweepBatchWithPartitionInfo.partitionsForPreviousLastSweptTs(lastSweptTimestampInBucket),
+                sweepBatchWithPartitionInfo.partitionsForPreviousLastSweptTsWithMinimumBound(
+                        lastSweptTimestampInBucket,
+                        sweepableBucket.timestampRange().startInclusive()),
                 lastTs,
                 sweepBatch.dedicatedRows());
 
