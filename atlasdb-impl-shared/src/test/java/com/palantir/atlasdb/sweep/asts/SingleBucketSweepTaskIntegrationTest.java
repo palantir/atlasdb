@@ -40,6 +40,8 @@ import com.palantir.atlasdb.sweep.asts.progress.BucketProgressStore;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetricsConfigurations;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
+import com.palantir.atlasdb.sweep.queue.ShardProgress;
+import com.palantir.atlasdb.sweep.queue.SweepQueueCleaner;
 import com.palantir.atlasdb.sweep.queue.SweepQueueDeleter;
 import com.palantir.atlasdb.sweep.queue.SweepQueueReader;
 import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
@@ -117,6 +119,9 @@ public class SingleBucketSweepTaskIntegrationTest {
             _unused -> Optional.empty()); // Telemetry, not used for this test
     private final SweepQueueWriter sweepQueueWriter =
             new SweepQueueWriter(sweepableTimestamps, sweepableCells, writeInfoPartitioner);
+    private final ShardProgress shardProgress = new ShardProgress(keyValueService);
+    private final SweepQueueCleaner sweepQueueCleaner =
+            new SweepQueueCleaner(sweepableCells, sweepableTimestamps, shardProgress);
 
     private final BucketProgressStore bucketProgressStore = new TestBucketProgressStore();
 
@@ -133,6 +138,7 @@ public class SingleBucketSweepTaskIntegrationTest {
                 bucketProgressStore,
                 sweepQueueReader,
                 sweepQueueDeleter,
+                sweepQueueCleaner,
                 sweepTimestamp::get,
                 targetedSweepMetrics,
                 bucketCompletionListener,
