@@ -724,7 +724,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                     readConsistencyProvider.getConsistency(tableRef));
 
                         } catch (TException e) {
-                            log.error("Query timed out for: {}", SafeArg.of("tableRef", tableRef), e);
+                            log.error("TException for: {}", SafeArg.of("tableRef", tableRef), e);
                             throw CassandraTExceptions.mapToUncheckedException(e, SafeArg.of("tableRef", tableRef));
                         }
 
@@ -978,7 +978,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                         pred,
                                         readConsistencyProvider.getConsistency(tableRef));
                             } catch (TException e) {
-                                log.error("Query timed out for: {}", SafeArg.of("tableRef", tableRef), e);
+                                log.error("TException for: {}", SafeArg.of("tableRef", tableRef), e);
                                 throw CassandraTExceptions.mapToUncheckedException(e, SafeArg.of("tableRef", tableRef));
                             }
 
@@ -1046,7 +1046,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                                     pred,
                                                     readConsistencyProvider.getConsistency(tableRef));
                                         } catch (TException e) {
-                                            log.error("Query timed out for: {}", SafeArg.of("tableRef", tableRef), e);
+                                            log.error("TException for: {}", SafeArg.of("tableRef", tableRef), e);
                                             throw CassandraTExceptions.mapToUncheckedException(
                                                     e, SafeArg.of("tableRef", tableRef));
                                         }
