@@ -288,7 +288,7 @@ public class DefaultSingleBucketSweepTaskTest {
     @ParameterizedTest
     @MethodSource("allSweepBuckets")
     @SuppressWarnings("unchecked") // ArgumentCaptor invocation on known type
-    public void passesThroughCellsAndRowsInSweepBatchToDeleterAndStoresPartialProgress(SweepBucketTestContext context) {
+    public void passesThroughCellsAndDedicatedRowsInSweepBatchToDeleterAndStoresPartialProgress(SweepBucketTestContext context) {
         long sweepTimestamp = Long.MAX_VALUE - 858319L; // arbitrary, but confirming pass through for open buckets
         when(sweepTimestampSupplier.getAsLong()).thenReturn(sweepTimestamp);
 

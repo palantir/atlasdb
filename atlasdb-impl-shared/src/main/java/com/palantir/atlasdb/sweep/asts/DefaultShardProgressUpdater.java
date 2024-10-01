@@ -58,10 +58,16 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
         long bucketPointer = getStrictUpperBoundForSweptBuckets(shardAndStrategy);
         BucketProbe bucketProbe = findFirstUnsweptBucket(shardAndStrategy, bucketPointer);
 
+        // This order of clearing the metadata is intentional:
+        // (1) if bucket progress is deleted but the pointer is not updated, we might sweep the relevant buckets
+        //     again, but that is acceptable because sweepable cells and timestamps were already cleared, and
+        //     these tables are not range scanned, so we will not read a lot of tombstones.
+        // (2) if the pointer is updated but progress is not, we will update progress to the right value on the
+        //     next iteration (notice that we only use the pointer, and not the existing progress, to track where
+        //     we are in the timeline.
         for (long bucket = bucketProbe.startInclusive(); bucket < bucketProbe.endExclusive(); bucket++) {
             bucketProgressStore.deleteBucketProgress(Bucket.of(shardAndStrategy, bucket));
         }
-
         sweepBucketPointerTable.updateStartingBucketForShardAndStrategy(
                 Bucket.of(shardAndStrategy, bucketProbe.endExclusive()));
         sweepQueueProgressUpdater.progressTo(shardAndStrategy, bucketProbe.knownSweepProgress());

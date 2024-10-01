@@ -58,10 +58,6 @@ public class SweepQueueCleaner {
         cleanSweepableTimestamps(shardStrategy, partitions, lastTs);
     }
 
-    private void cleanDedicatedRows(DedicatedRows dedicatedRows) {
-        sweepableCells.deleteDedicatedRows(dedicatedRows);
-    }
-
     private void cleanSweepableCells(ShardAndStrategy shardStrategy, Set<Long> partitions) {
         sweepableCells.deleteNonDedicatedRows(shardStrategy, partitions);
         if (log.isDebugEnabled()) {
@@ -72,6 +68,10 @@ public class SweepQueueCleaner {
                             .getTableRef()),
                     SafeArg.of("partitions", partitions));
         }
+    }
+
+    private void cleanDedicatedRows(DedicatedRows dedicatedRows) {
+        sweepableCells.deleteDedicatedRows(dedicatedRows);
     }
 
     private void cleanSweepableTimestamps(ShardAndStrategy shardStrategy, Set<Long> finePartitions, long lastTs) {
