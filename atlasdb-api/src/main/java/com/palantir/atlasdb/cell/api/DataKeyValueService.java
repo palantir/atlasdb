@@ -40,7 +40,7 @@ import java.util.Map;
  * to transactions.
  */
 @AutoDelegate
-public interface TransactionKeyValueService {
+public interface DataKeyValueService {
     Map<RangeRequest, TokenBackedBasicResultsPage<RowResult<Value>, byte[]>> getFirstBatchForRanges(
             TableReference tableRef, Iterable<RangeRequest> rangeRequests, long timestamp);
 

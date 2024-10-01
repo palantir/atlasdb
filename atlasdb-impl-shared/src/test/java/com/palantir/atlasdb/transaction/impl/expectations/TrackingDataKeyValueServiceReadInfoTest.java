@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
+import com.palantir.atlasdb.cell.api.DataKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -57,7 +57,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
  * Note that the range of possible sizes will be larger if we use different sizes for different tests.
  */
 @ExtendWith(MockitoExtension.class)
-public final class TrackingTransactionKeyValueServiceReadInfoTest {
+public final class TrackingDataKeyValueServiceReadInfoTest {
     private static final String PARAMETERIZED_TEST_NAME = "size = {0}";
 
     public static List<Integer> sizes() {
@@ -73,14 +73,14 @@ public final class TrackingTransactionKeyValueServiceReadInfoTest {
     private RangeRequest rangeRequest;
 
     @Mock
-    private TransactionKeyValueService tkvs;
+    private DataKeyValueService tkvs;
 
-    private TrackingTransactionKeyValueService trackingKvs;
+    private TrackingDataKeyValueService trackingKvs;
     private ImmutableMap<Cell, Value> valueByCellMapOfSize;
 
     @BeforeEach
     public void beforeEach() {
-        this.trackingKvs = new TrackingTransactionKeyValueServiceImpl(tkvs);
+        this.trackingKvs = new TrackingDataKeyValueServiceImpl(tkvs);
     }
 
     @Mock

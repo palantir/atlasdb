@@ -57,14 +57,14 @@ public final class CoordinationServices {
         return wrapHidingVersionSerialization(versionedService);
     }
 
-    public static <T> CoordinationService<T> createTransactionKeyValueServiceManagerCoordinator(
+    public static <T> CoordinationService<T> createDataKeyValueServiceManagerCoordinator(
             Class<T> valueClass,
             KeyValueService keyValueService,
             TimestampService timestampService,
             MetricsManager _metricsManager,
             boolean initializeAsync) {
         // TODO(jakubk): Add the versioning.
-        return new CoordinationServiceImpl<>(createTransactionKeyValueServiceManagerCoordinationStore(
+        return new CoordinationServiceImpl<>(createDataKeyValueServiceManagerCoordinationStore(
                 keyValueService, timestampService::getFreshTimestamp, valueClass, initializeAsync));
     }
 
@@ -80,12 +80,12 @@ public final class CoordinationServices {
                 initializeAsync);
     }
 
-    private static <T> CoordinationStore<T> createTransactionKeyValueServiceManagerCoordinationStore(
+    private static <T> CoordinationStore<T> createDataKeyValueServiceManagerCoordinationStore(
             KeyValueService keyValueService, LongSupplier timestampSupplier, Class<T> clazz, boolean initializeAsync) {
         return KeyValueServiceCoordinationStore.create(
                 ObjectMappers.newServerObjectMapper(),
                 keyValueService,
-                AtlasDbConstants.DEFAULT_TRANSACTION_KEY_VALUE_SERVICE_COORDINATION_KEY,
+                AtlasDbConstants.DEFAULT_DATA_KEY_VALUE_SERVICE_COORDINATION_KEY,
                 timestampSupplier,
                 Object::equals,
                 clazz,

@@ -29,7 +29,7 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
-import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingDataKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -123,7 +123,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
         LockService mockLockService = mock(LockService.class);
         TransactionManager txnManagerWithMocks = SerializableTransactionManager.createForTest(
                 metricsManager,
-                new DelegatingTransactionKeyValueServiceManager(getKeyValueService()),
+                new DelegatingDataKeyValueServiceManager(getKeyValueService()),
                 mockTimeLockService,
                 mockTimestampManagementService,
                 mockLockService,
@@ -248,7 +248,7 @@ public class TransactionManagerTest extends TransactionTestSetup {
         LockService mockLockService = mock(LockService.class);
         TransactionManager txnManagerWithMocks = new SerializableTransactionManager(
                 metricsManager,
-                new DelegatingTransactionKeyValueServiceManager(keyValueService),
+                new DelegatingDataKeyValueServiceManager(keyValueService),
                 timelock,
                 NoOpLockWatchManager.create(),
                 timeManagement,

@@ -17,9 +17,8 @@
 package com.palantir.atlasdb.spi;
 
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = As.PROPERTY, property = "type", visible = false)
-public interface TransactionKeyValueServiceConfig {
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type", visible = false)
+public interface DataKeyValueServiceRuntimeConfig {
     String type();
 }

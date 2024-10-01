@@ -20,8 +20,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
-import com.palantir.atlasdb.cell.api.AutoDelegate_TransactionKeyValueService;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
+import com.palantir.atlasdb.cell.api.AutoDelegate_DataKeyValueService;
+import com.palantir.atlasdb.cell.api.DataKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -40,17 +40,17 @@ import java.util.Map;
 import java.util.function.ToLongFunction;
 import one.util.streamex.EntryStream;
 
-public final class TrackingTransactionKeyValueServiceImpl
-        implements AutoDelegate_TransactionKeyValueService, TrackingTransactionKeyValueService {
-    private final TransactionKeyValueService delegate;
+public final class TrackingDataKeyValueServiceImpl
+        implements AutoDelegate_DataKeyValueService, TrackingDataKeyValueService {
+    private final DataKeyValueService delegate;
     private final KeyValueServiceDataTracker tracker = new KeyValueServiceDataTracker();
 
-    public TrackingTransactionKeyValueServiceImpl(TransactionKeyValueService delegate) {
+    public TrackingDataKeyValueServiceImpl(DataKeyValueService delegate) {
         this.delegate = delegate;
     }
 
     @Override
-    public TransactionKeyValueService delegate() {
+    public DataKeyValueService delegate() {
         return delegate;
     }
 

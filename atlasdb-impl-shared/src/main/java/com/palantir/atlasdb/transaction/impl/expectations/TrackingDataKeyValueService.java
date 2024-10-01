@@ -17,11 +17,11 @@
 package com.palantir.atlasdb.transaction.impl.expectations;
 
 import com.google.common.collect.ImmutableMap;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
+import com.palantir.atlasdb.cell.api.DataKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.expectations.TransactionReadInfo;
 
-public interface TrackingTransactionKeyValueService extends TransactionKeyValueService {
+public interface TrackingDataKeyValueService extends DataKeyValueService {
     TransactionReadInfo getOverallReadInfo();
 
     ImmutableMap<TableReference, TransactionReadInfo> getReadInfoByTable();

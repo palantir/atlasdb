@@ -26,8 +26,8 @@ import com.palantir.atlasdb.internalschema.ImmutableInternalSchemaInstallConfig;
 import com.palantir.atlasdb.internalschema.InternalSchemaInstallConfig;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.atlasdb.spi.DataKeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.logsafe.DoNotLog;
@@ -51,7 +51,7 @@ public abstract class AtlasDbConfig {
     public abstract KeyValueServiceConfig keyValueService();
 
     @Beta
-    public abstract Optional<TransactionKeyValueServiceConfig> transactionKeyValueService();
+    public abstract Optional<DataKeyValueServiceConfig> dataKeyValueService();
 
     public abstract Optional<LeaderConfig> leader();
 
