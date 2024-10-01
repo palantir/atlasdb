@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 /**
@@ -376,6 +377,14 @@ public interface Transaction {
      */
     @Idempotent
     void abort();
+
+    /**
+     * Pre-commit hooks that are run on commit() just before the transaction is closed.
+     * Consumers can perform any actions as they wish - e.g. reading new data or writing to tables.
+     *
+     * @param preCommitAction the lambda executed just before commit
+     */
+    void preCommit(Runnable preCommitAction);
 
     /**
      * Commits the transaction. Can be called repeatedly, but will only commit the first time.

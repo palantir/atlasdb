@@ -86,6 +86,7 @@ import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.TimestampLockAwareTransaction;
 import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict;
@@ -197,6 +198,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
@@ -224,7 +226,7 @@ import org.eclipse.collections.impl.factory.primitive.LongSets;
  * different rows and using range scans.
  */
 public class SnapshotTransaction extends AbstractTransaction
-        implements ConstraintCheckingTransaction, CallbackAwareTransaction {
+        implements ConstraintCheckingTransaction, CallbackAwareTransaction, TimestampLockAwareTransaction {
     private static final SafeLogger log = SafeLoggerFactory.get(SnapshotTransaction.class);
     private static final SafeLogger perfLogger = SafeLoggerFactory.get("dualschema.perf");
     private static final SafeLogger transactionLengthLogger = SafeLoggerFactory.get("txn.length");
@@ -1859,6 +1861,23 @@ public class SnapshotTransaction extends AbstractTransaction
      */
     private boolean isDefinitivelyCommitted() {
         return state.get() == State.COMMITTED;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    /// Pre-commit hooks
+    ///////////////////////////////////////////////////////////////////////////
+    @Override
+    public void preCommit(Runnable preCommitAction) {
+        preCommit("", 0, _unused -> preCommitAction.run());
+    }
+
+    @Override
+    public void preCommit(
+            String timestampLockDescriptor, int timestampCount, Consumer<TimestampSupplier> preCommitAction) {}
+
+    @Override
+    public long getLockedTimestamp(String timestampLockDescriptor) {
+        return 0;
     }
 
     ///////////////////////////////////////////////////////////////////////////
