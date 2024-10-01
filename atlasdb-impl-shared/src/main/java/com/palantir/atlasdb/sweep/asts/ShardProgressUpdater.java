@@ -18,6 +18,6 @@ package com.palantir.atlasdb.sweep.asts;
 
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 
-public interface ShardProgressUpdateProposer {
-    ShardProgressUpdate proposeUpdate(ShardAndStrategy shardAndStrategy, long currentSweepTimestamp);
+public interface ShardProgressUpdater {
+    void updateProgress(ShardAndStrategy shardAndStrategy, long currentSweepTimestamp);
 }

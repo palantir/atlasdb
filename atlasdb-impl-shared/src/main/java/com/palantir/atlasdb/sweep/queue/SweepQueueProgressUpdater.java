@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.sweep.asts;
+package com.palantir.atlasdb.sweep.queue;
 
+public class SweepQueueProgressUpdater {
+    private final SweepQueueCleaner sweepQueueCleaner;
 
-import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
+    public SweepQueueProgressUpdater(SweepQueueCleaner sweepQueueCleaner) {
+        this.sweepQueueCleaner = sweepQueueCleaner;
+    }
 
-/**
- * Task that is invoked when global sweep progress should be updated. This can take place on a recurring basis (e.g.,
- * as a background task), or with some information that this in general needs to be updated (or both).
- */
-public interface GlobalSweepProgressUpdatingTask {
-    void updateProgress(ShardAndStrategy shardAndStrategy);
+    public void progressTo(ShardAndStrategy shardAndStrategy, long lastSweptTs) {
+        sweepQueueCleaner.progressTo(shardAndStrategy, lastSweptTs);
+    }
 }
