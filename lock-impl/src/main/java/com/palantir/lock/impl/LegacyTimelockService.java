@@ -16,8 +16,8 @@
 package com.palantir.lock.impl;
 
 import com.google.common.collect.ImmutableSortedMap;
+import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import com.palantir.atlasdb.timelock.api.ConjureTimestampRange;
-import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.AtlasTimestampLockDescriptor;
 import com.palantir.lock.ConjureTimestampRangeTimestampSupplier;

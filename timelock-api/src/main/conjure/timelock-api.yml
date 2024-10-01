@@ -11,7 +11,7 @@ types:
     TimestampLeaseName:
       base-type: string
       external:
-        java: com.palantir.atlasdb.timelock.api.TimestampLeaseName
+        java: com.palantir.atlasdb.common.api.timelock.TimestampLeaseName
     NanoTime:
       base-type: safelong
       external:

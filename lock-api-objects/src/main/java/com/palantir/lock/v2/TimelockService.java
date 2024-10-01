@@ -17,7 +17,7 @@ package com.palantir.lock.v2;
 
 import com.google.errorprone.annotations.RestrictedApi;
 import com.palantir.atlasdb.common.api.annotations.ReviewedRestrictedApiUsage;
-import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
+import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import com.palantir.logsafe.Safe;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.processors.DoNotDelegate;

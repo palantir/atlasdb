@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.api;
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
+import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import org.junit.jupiter.params.ParameterizedTest;

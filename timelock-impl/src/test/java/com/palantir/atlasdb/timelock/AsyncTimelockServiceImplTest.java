@@ -21,8 +21,8 @@ import static org.mockito.Mockito.when;
 
 import com.codahale.metrics.MetricRegistry;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import com.palantir.atlasdb.futures.AtlasFutures;
-import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
 import com.palantir.atlasdb.timelock.api.TimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.api.TimestampLeaseResponses;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;

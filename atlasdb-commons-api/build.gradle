@@ -1,1 +1,11 @@
 apply from: "../gradle/shared.gradle"
+
+dependencies {
+    compileOnly 'org.immutables:value::annotations'
+    annotationProcessor 'org.immutables:value'
+
+    implementation 'com.fasterxml.jackson.core:jackson-annotations'
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.google.errorprone:error_prone_annotations'
+    implementation 'com.palantir.safe-logging:preconditions'
+}

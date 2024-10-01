@@ -4,6 +4,7 @@ apply plugin: 'com.palantir.metric-schema'
 apply from: "../gradle/shared.gradle"
 
 dependencies {
+    api project(':atlasdb-commons-api')
     api project(':timelock-api')
     api 'com.palantir.conjure.java:conjure-undertow-annotations'
 

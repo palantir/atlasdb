@@ -1,6 +1,7 @@
 apply from: "../gradle/shared.gradle"
 
 dependencies {
+  api project(":atlasdb-commons-api")
   api project(":lock-api")
 
   implementation 'com.fasterxml.jackson.core:jackson-annotations'
@@ -20,7 +21,6 @@ dependencies {
   implementation project(":atlasdb-commons")
   implementation project(':commons-executors')
   implementation project(':lock-api-objects')
-  implementation project(':timelock-api')
   implementation project(':timestamp-api')
   implementation project(':timelock-api:timelock-api-objects')
 

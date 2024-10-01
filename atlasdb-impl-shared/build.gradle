@@ -24,7 +24,6 @@ dependencies {
   implementation project(":atlasdb-client")
   implementation project(":atlasdb-commons")
   implementation project(":atlasdb-coordination-impl")
-  implementation project(':timelock-api')
   implementation project(":timestamp-api")
 
   implementation 'com.github.ben-manes.caffeine:caffeine'
