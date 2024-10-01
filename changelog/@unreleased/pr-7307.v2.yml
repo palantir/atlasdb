@@ -1,0 +1,5 @@
+type: feature
+feature:
+  description: rename TransactionKeyValueService to DataKeyValueService
+  links:
+  - https://github.com/palantir/atlasdb/pull/7307
