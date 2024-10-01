@@ -54,8 +54,21 @@ public class SweepQueueCleaner {
      */
     public void clean(ShardAndStrategy shardStrategy, Set<Long> partitions, long lastTs, DedicatedRows dedicatedRows) {
         cleanDedicatedRows(dedicatedRows);
+        cleanQueueMetadata(shardStrategy, partitions, lastTs);
+    }
+
+    /**
+     * Cleans the sweep queue data from the last update of progress up to and including the given sweep partition.
+     * Then, updates the sweep queue progress. Differently from {@link #clean(ShardAndStrategy, Set, long, DedicatedRows)},
+     * this method assumes that the dedicated rows have already been successfully cleared from the database.
+     */
+    public void cleanQueueMetadata(ShardAndStrategy shardStrategy, Set<Long> partitions, long lastTs) {
         cleanSweepableCells(shardStrategy, partitions);
         cleanSweepableTimestamps(shardStrategy, partitions, lastTs);
+    }
+
+    public void cleanDedicatedRows(DedicatedRows dedicatedRows) {
+        sweepableCells.deleteDedicatedRows(dedicatedRows);
     }
 
     private void cleanSweepableCells(ShardAndStrategy shardStrategy, Set<Long> partitions) {
@@ -68,10 +81,6 @@ public class SweepQueueCleaner {
                             .getTableRef()),
                     SafeArg.of("partitions", partitions));
         }
-    }
-
-    private void cleanDedicatedRows(DedicatedRows dedicatedRows) {
-        sweepableCells.deleteDedicatedRows(dedicatedRows);
     }
 
     private void cleanSweepableTimestamps(ShardAndStrategy shardStrategy, Set<Long> finePartitions, long lastTs) {

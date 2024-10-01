@@ -66,7 +66,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 public class DefaultSingleBucketSweepTaskTest {
     private static final long MIN_BUCKET_SIZE = SweepQueueUtils.TS_COARSE_GRANULARITY;
 
-    public static final TableReference TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("t.table");
+    private static final TableReference TABLE_REFERENCE = TableReference.createFromFullyQualifiedName("t.table");
 
     @Mock
     private BucketProgressStore bucketProgressStore;
@@ -288,7 +288,7 @@ public class DefaultSingleBucketSweepTaskTest {
     @ParameterizedTest
     @MethodSource("allSweepBuckets")
     @SuppressWarnings("unchecked") // ArgumentCaptor invocation on known type
-    public void passesThroughCellsInSweepBatchToDeleterAndStoresPartialProgress(SweepBucketTestContext context) {
+    public void passesThroughCellsAndRowsInSweepBatchToDeleterAndStoresPartialProgress(SweepBucketTestContext context) {
         long sweepTimestamp = Long.MAX_VALUE - 858319L; // arbitrary, but confirming pass through for open buckets
         when(sweepTimestampSupplier.getAsLong()).thenReturn(sweepTimestamp);
 

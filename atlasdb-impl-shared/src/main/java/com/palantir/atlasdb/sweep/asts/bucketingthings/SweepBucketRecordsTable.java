@@ -17,9 +17,12 @@
 package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
 import com.palantir.atlasdb.sweep.asts.SweepableBucket.TimestampRange;
+import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 
 public interface SweepBucketRecordsTable {
-    TimestampRange get(long bucketIdentifier);
-    void putTimestampRange(long bucketIdentifier, TimestampRange timestampRange);
-    void deleteTimestampRange(long bucketIdentifier);
+    TimestampRange get(ShardAndStrategy shardAndStrategy, long bucketIdentifier);
+
+    void putTimestampRange(ShardAndStrategy shardAndStrategy, long bucketIdentifier, TimestampRange timestampRange);
+
+    void deleteTimestampRange(ShardAndStrategy shardAndStrategy, long bucketIdentifier);
 }

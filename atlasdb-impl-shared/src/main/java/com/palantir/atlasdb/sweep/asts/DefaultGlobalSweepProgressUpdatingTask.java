@@ -38,6 +38,6 @@ public class DefaultGlobalSweepProgressUpdatingTask implements GlobalSweepProgre
     @Override
     public void updateProgress(ShardAndStrategy shardAndStrategy) {
         long currentSweepTimestamp = sweepTimestampSupplier.getAsLong();
-        sweepQueueCleaner.clean(shardAndStrategy, progressUpdate.completedFinePartitions(), progressUpdate.progressTimestamp());
+        // TODO
     }
 }
