@@ -434,6 +434,11 @@ acceptedBreaks:
         \ long)"
       new: "method void com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator::throwIfPreCommitRequirementsNotMet(long)"
       justification: "Internal APIs"
+  "0.1172.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.addedToInterface"
+      new: "method long com.palantir.atlasdb.transaction.api.TransactionManager::getLeasedTimestamp(com.palantir.atlasdb.timelock.api.TimestampLeaseName)"
+      justification: "adding leased timestamps feature"
   "0.1173.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.annotation.noLongerPresent"

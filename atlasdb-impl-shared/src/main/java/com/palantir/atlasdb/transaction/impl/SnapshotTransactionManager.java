@@ -35,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.monitoring.TimestampTracker;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.ConditionAwareTransactionTask;
@@ -42,6 +43,7 @@ import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.TimestampLeaseAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -57,6 +59,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.LockService;
+import com.palantir.lock.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.lock.client.StartTransactionFailedException;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
@@ -72,6 +75,7 @@ import com.palantir.util.SafeShutdownRunner;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
@@ -82,7 +86,8 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-/* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
+/* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager
+        implements TimestampLeaseAwareTransactionManager {
     private static final SafeLogger log = SafeLoggerFactory.get(SnapshotTransactionManager.class);
 
     private static final int NUM_RETRIES = 10;
@@ -518,6 +523,12 @@ import java.util.stream.Collectors;
     @Override
     public long getUnreadableTimestamp() {
         return cleaner.getUnreadableTimestamp();
+    }
+
+    @Override
+    @ReviewedRestrictedApiUsage
+    public long getLeasedTimestamp(TimestampLeaseName leaseName) {
+        return timelockService.getMinLeasedTimestamps(Set.of(leaseName)).get(leaseName);
     }
 
     @Override
