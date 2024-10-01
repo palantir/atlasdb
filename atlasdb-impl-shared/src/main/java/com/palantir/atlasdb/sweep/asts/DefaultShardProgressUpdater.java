@@ -40,7 +40,12 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
     private final CompletelyClosedSweepBucketBoundRetriever boundRetriever;
     private final SweepBucketPointerTable sweepBucketPointerTable;
 
-    public DefaultShardProgressUpdater(BucketProgressStore bucketProgressStore, SweepQueueProgressUpdater sweepQueueProgressUpdater, SweepBucketRecordsTable recordsTable, CompletelyClosedSweepBucketBoundRetriever boundRetriever, SweepBucketPointerTable sweepBucketPointerTable) {
+    public DefaultShardProgressUpdater(
+            BucketProgressStore bucketProgressStore,
+            SweepQueueProgressUpdater sweepQueueProgressUpdater,
+            SweepBucketRecordsTable recordsTable,
+            CompletelyClosedSweepBucketBoundRetriever boundRetriever,
+            SweepBucketPointerTable sweepBucketPointerTable) {
         this.bucketProgressStore = bucketProgressStore;
         this.sweepQueueProgressUpdater = sweepQueueProgressUpdater;
         this.recordsTable = recordsTable;
@@ -65,16 +70,19 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
     private BucketProbe findFirstUnsweptBucket(ShardAndStrategy shardAndStrategy, long searchStart) {
         for (long offset = 0; offset < MAX_BUCKETS_TO_CHECK_PER_ITERATION; offset++) {
             long currentBucket = searchStart + offset;
-            Optional<BucketProgress> bucketProgress = bucketProgressStore.getBucketProgress(Bucket.of(shardAndStrategy, currentBucket));
+            Optional<BucketProgress> bucketProgress =
+                    bucketProgressStore.getBucketProgress(Bucket.of(shardAndStrategy, currentBucket));
             if (bucketProgress.isPresent()) {
                 BucketProgress presentBucketProgress = bucketProgress.get();
                 TimestampRange requiredRange = recordsTable.get(shardAndStrategy, currentBucket);
-                if (presentBucketProgress.timestampProgress() != requiredRange.endExclusive() - requiredRange.startInclusive() - 1) {
+                if (presentBucketProgress.timestampProgress()
+                        != requiredRange.endExclusive() - requiredRange.startInclusive() - 1) {
                     // Bucket still has progress to go, so we can stop here.
                     return BucketProbe.builder()
                             .startInclusive(searchStart)
                             .endExclusive(currentBucket)
-                            .knownSweepProgress(requiredRange.startInclusive() + presentBucketProgress.timestampProgress())
+                            .knownSweepProgress(
+                                    requiredRange.startInclusive() + presentBucketProgress.timestampProgress())
                             .build();
                 } else {
                     // Bucket fully processed, keep going!
@@ -92,7 +100,10 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
                 return BucketProbe.builder()
                         .startInclusive(searchStart)
                         .endExclusive(currentBucket)
-                        .knownSweepProgress(recordsTable.get(shardAndStrategy, currentBucket).startInclusive() - 1L)
+                        .knownSweepProgress(recordsTable
+                                        .get(shardAndStrategy, currentBucket)
+                                        .startInclusive()
+                                - 1L)
                         .build();
             }
         }
@@ -100,7 +111,8 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
     }
 
     private long getStrictUpperBoundForSweptBuckets(ShardAndStrategy shardAndStrategy) {
-        Set<Bucket> startingBuckets = sweepBucketPointerTable.getStartingBucketsForShards(ImmutableSet.of(shardAndStrategy));
+        Set<Bucket> startingBuckets =
+                sweepBucketPointerTable.getStartingBucketsForShards(ImmutableSet.of(shardAndStrategy));
         if (startingBuckets.isEmpty()) {
             // Every bucket up to the last bucket guaranteed to be closed must have been fully swept.
             return boundRetriever.getStrictUpperBoundForCompletelyClosedBuckets();
