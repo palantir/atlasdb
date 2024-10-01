@@ -56,7 +56,7 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
     @Override
     public void updateProgress(ShardAndStrategy shardAndStrategy, long currentSweepTimestamp) {
         long bucketPointer = getStrictUpperBoundForSweptBuckets(shardAndStrategy);
-        BucketProbe bucketProbe = findFirstUnsweptBucket(shardAndStrategy, bucketPointer);
+        BucketProbeResult bucketProbeResult = findCompletedBuckets(shardAndStrategy, bucketPointer);
 
         // This order of clearing the metadata is intentional:
         // (1) if bucket progress is deleted but the pointer is not updated, we might sweep the relevant buckets
@@ -65,15 +65,15 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
         // (2) if the pointer is updated but progress is not, we will update progress to the right value on the
         //     next iteration (notice that we only use the pointer, and not the existing progress, to track where
         //     we are in the timeline.
-        for (long bucket = bucketProbe.startInclusive(); bucket < bucketProbe.endExclusive(); bucket++) {
+        for (long bucket = bucketPointer; bucket < bucketProbeResult.endExclusive(); bucket++) {
             bucketProgressStore.deleteBucketProgress(Bucket.of(shardAndStrategy, bucket));
         }
         sweepBucketPointerTable.updateStartingBucketForShardAndStrategy(
-                Bucket.of(shardAndStrategy, bucketProbe.endExclusive()));
-        sweepQueueProgressUpdater.progressTo(shardAndStrategy, bucketProbe.knownSweepProgress());
+                Bucket.of(shardAndStrategy, bucketProbeResult.endExclusive()));
+        sweepQueueProgressUpdater.progressTo(shardAndStrategy, bucketProbeResult.knownSweepProgress());
     }
 
-    private BucketProbe findFirstUnsweptBucket(ShardAndStrategy shardAndStrategy, long searchStart) {
+    private BucketProbeResult findCompletedBuckets(ShardAndStrategy shardAndStrategy, long searchStart) {
         for (long offset = 0; offset < MAX_BUCKETS_TO_CHECK_PER_ITERATION; offset++) {
             long currentBucket = searchStart + offset;
             Optional<BucketProgress> bucketProgress =
@@ -84,8 +84,7 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
                 if (presentBucketProgress.timestampProgress()
                         != requiredRange.endExclusive() - requiredRange.startInclusive() - 1) {
                     // Bucket still has progress to go, so we can stop here.
-                    return BucketProbe.builder()
-                            .startInclusive(searchStart)
+                    return BucketProbeResult.builder()
                             .endExclusive(currentBucket)
                             .knownSweepProgress(
                                     requiredRange.startInclusive() + presentBucketProgress.timestampProgress())
@@ -94,8 +93,7 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
                     // Bucket fully processed, keep going!
                     if (offset == MAX_BUCKETS_TO_CHECK_PER_ITERATION - 1) {
                         // We actually finished a full set of buckets and all were completed.
-                        return BucketProbe.builder()
-                                .startInclusive(searchStart)
+                        return BucketProbeResult.builder()
                                 .endExclusive(currentBucket + 1)
                                 .knownSweepProgress(requiredRange.endExclusive() + 1)
                                 .build();
@@ -103,8 +101,7 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
                 }
             } else {
                 // No progress; we're ahead of the pointer, so interpret as unstarted. Return where we got
-                return BucketProbe.builder()
-                        .startInclusive(searchStart)
+                return BucketProbeResult.builder()
                         .endExclusive(currentBucket)
                         .knownSweepProgress(recordsTable
                                         .get(shardAndStrategy, currentBucket)
@@ -128,15 +125,21 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
     }
 
     @Value.Immutable
-    interface BucketProbe {
-        long startInclusive();
-
+    interface BucketProbeResult {
+        /**
+         * Buckets from the starting point of the probe to this bucket, exclusive, have been fully processed.
+         * It is possible for this to be equal to the initial bucket, meaning that the initial bucket itself
+         * has not been fully processed.
+         */
         long endExclusive();
 
+        /**
+         * AtlasDB logical time to which sweep is known to have progressed (possibly within the endExclusive bucket).
+         */
         long knownSweepProgress();
 
-        static ImmutableBucketProbe.Builder builder() {
-            return ImmutableBucketProbe.builder();
+        static ImmutableBucketProbeResult.Builder builder() {
+            return ImmutableBucketProbeResult.builder();
         }
     }
 }
