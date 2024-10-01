@@ -53,9 +53,13 @@ public class SweepQueueCleaner {
      * Cleans up all the sweep queue data corresponding to the partitions and dedicated rows indicated.
      */
     public void clean(ShardAndStrategy shardStrategy, Set<Long> partitions, long lastTs, DedicatedRows dedicatedRows) {
-        sweepableCells.deleteDedicatedRows(dedicatedRows);
+        cleanDedicatedRows(dedicatedRows);
         cleanSweepableCells(shardStrategy, partitions);
         cleanSweepableTimestamps(shardStrategy, partitions, lastTs);
+    }
+
+    private void cleanDedicatedRows(DedicatedRows dedicatedRows) {
+        sweepableCells.deleteDedicatedRows(dedicatedRows);
     }
 
     private void cleanSweepableCells(ShardAndStrategy shardStrategy, Set<Long> partitions) {
