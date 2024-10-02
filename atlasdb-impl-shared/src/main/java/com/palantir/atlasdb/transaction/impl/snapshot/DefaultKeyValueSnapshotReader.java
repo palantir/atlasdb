@@ -118,8 +118,8 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             Iterable<byte[]> rows,
             ColumnSelection columnSelection,
             Map<Cell, byte[]> localWrites) {
-        Map<Cell, Value> rawResults = new HashMap<>(dataKeyValueService.getRows(
-                tableReference, rows, columnSelection, startTimestampSupplier.getAsLong()));
+        Map<Cell, Value> rawResults = new HashMap<>(
+                dataKeyValueService.getRows(tableReference, rows, columnSelection, startTimestampSupplier.getAsLong()));
 
         // We don't need to do work postFiltering if we have a write locally.
         rawResults.keySet().removeAll(localWrites.keySet());

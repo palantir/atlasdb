@@ -329,9 +329,6 @@ public class SnapshotTransactionManagerTest {
 
     private KeyValueSnapshotReaderManager getKeyValueSnapshotReaderManager(SweepStrategyManager sweepStrategyManager) {
         return TestKeyValueSnapshotReaderManagers.createForTests(
-                dataKeyValueServiceManager,
-                mock(TransactionService.class),
-                sweepStrategyManager,
-                deleteExecutor);
+                dataKeyValueServiceManager, mock(TransactionService.class), sweepStrategyManager, deleteExecutor);
     }
 }

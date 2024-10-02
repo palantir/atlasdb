@@ -59,8 +59,7 @@ public class GetRowsColumnRangeIteratorTest {
     public static final BatchColumnRangeSelection COLUMN_RANGE_SELECTION =
             BatchColumnRangeSelection.create(null, null, BATCH_SIZE);
 
-    private final DataKeyValueService tkvs =
-            new DelegatingDataKeyValueService(new InMemoryKeyValueService(true));
+    private final DataKeyValueService tkvs = new DelegatingDataKeyValueService(new InMemoryKeyValueService(true));
     private final ColumnRangeBatchProvider batchProvider =
             new ColumnRangeBatchProvider(tkvs, TABLE_REFERENCE, ROW, COLUMN_RANGE_SELECTION, Long.MAX_VALUE);
 
