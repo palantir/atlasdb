@@ -177,10 +177,14 @@ public class SweepableCells extends SweepQueueTable {
             long minTsExclusive,
             long maxStartTsExclusive,
             long sweepTs) {
-        long maxSweepableCellStart = Math.min(maxStartTsExclusive, sweepTs);
+        Preconditions.checkState(
+                maxStartTsExclusive <= sweepTs,
+                "The maximum start timestamp should not be higher than the sweep timestamp!",
+                SafeArg.of("maxStartTsExclusive", maxStartTsExclusive),
+                SafeArg.of("sweepTs", sweepTs));
         SweepableCellsRow row = computeRow(partitionFine, shardStrategy);
         RowColumnRangeIterator resultIterator =
-                getRowColumnRange(row, partitionFine, minTsExclusive, maxSweepableCellStart);
+                getRowColumnRange(row, partitionFine, minTsExclusive, maxStartTsExclusive);
         PeekingIterator<Map.Entry<Cell, Value>> peekingResultIterator = Iterators.peekingIterator(resultIterator);
         WriteBatch writeBatch = getBatchOfWrites(row, peekingResultIterator, sweepTs);
         Multimap<Long, WriteInfo> writesByStartTs = writeBatch.writesByStartTs;
@@ -191,7 +195,7 @@ public class SweepableCells extends SweepQueueTable {
                 shardStrategy, minTsExclusive, sweepTs, writesByStartTs);
         Collection<WriteInfo> writes = getWritesToSweep(writesByStartTs, tsToSweep.timestampsDescending());
         DedicatedRows filteredDedicatedRows = getDedicatedRowsToClear(writeBatch.dedicatedRows, tsToSweep);
-        long lastSweptTs = getLastSweptTs(tsToSweep, peekingResultIterator, partitionFine, maxSweepableCellStart);
+        long lastSweptTs = getLastSweptTs(tsToSweep, peekingResultIterator, partitionFine, maxStartTsExclusive);
         return SweepBatch.of(
                 writes,
                 tsToSweep.abortedTimestamps(),

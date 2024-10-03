@@ -48,7 +48,7 @@ class SweepBatchAccumulator {
     void accumulateBatch(SweepBatch sweepBatch) {
         Preconditions.checkState(
                 sweepBatch.lastSweptTimestamp() < lastProcessableCellStartTimestamp,
-                "Tried to accumulate a batch %s at timestamp %s that went beyond the sweep timestamp %s!"
+                "Tried to accumulate a batch %s at timestamp %s that went beyond the last processable timestamp %s!"
                         + " This is unexpected, and suggests a bug in the way we read in targeted sweep."
                         + " This by itself does not mean that AtlasDB service is compromised, but targeted sweep"
                         + " may not be working.",
