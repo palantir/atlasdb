@@ -504,16 +504,11 @@ public class SnapshotTransaction extends AbstractTransaction
             return AbstractTransaction.EMPTY_SORTED_ROWS;
         }
         hasReads = true;
-        ImmutableSortedMap.Builder<Cell, byte[]> resultCollector = ImmutableSortedMap.naturalOrder();
         NavigableMap<Cell, byte[]> writes = localWriteBuffer.getLocalWrites().get(tableRef);
-        if (writes != null && !writes.isEmpty()) {
-            for (byte[] row : rows) {
-                extractLocalWritesForRow(resultCollector, writes, row, columnSelection);
-            }
-        }
+        Map<Cell, byte[]> writesForRows = extractLocalWritesForRows(writes, rows, columnSelection);
 
         NavigableMap<byte[], RowResult<byte[]>> results =
-                keyValueSnapshotReader.getRows(tableRef, rows, columnSelection, resultCollector);
+                keyValueSnapshotReader.getRows(tableRef, rows, columnSelection, writesForRows);
         long getRowsMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
         if (perfLogger.isDebugEnabled()) {
             perfLogger.debug(
@@ -926,53 +921,55 @@ public class SnapshotTransaction extends AbstractTransaction
 
         // can't skip lock check as we don't know how many cells to expect for the column selection
         validatePreCommitRequirementsOnNonExhaustiveReadIfNecessary(tableRef, getStartTimestamp());
-        return filterRowResults(tableRef, rawResults, ImmutableMap.builderWithExpectedSize(rawResults.size()));
+
+        Map<Cell, byte[]> results = Maps.newHashMapWithExpectedSize(rawResults.size());
+        getWithPostFilteringSync(tableRef, rawResults, Value.GET_VALUE).forEach(e -> {
+            results.put(e.getKey(), e.getValue());
+        });
+
+        removeEmptyColumns(tableRef, results);
+
+        return RowResults.viewOfSortedMap(Cells.breakCellsUpByRow(results));
     }
 
-    private NavigableMap<byte[], RowResult<byte[]>> filterRowResults(
-            TableReference tableRef, Map<Cell, Value> rawResults, ImmutableMap.Builder<Cell, byte[]> resultCollector) {
-        ImmutableMap<Cell, byte[]> collected = resultCollector
-                .putAll(getWithPostFilteringSync(tableRef, rawResults, Value.GET_VALUE))
-                .buildOrThrow();
-        Map<Cell, byte[]> filterDeletedValues = removeEmptyColumns(collected, tableRef);
-        return RowResults.viewOfSortedMap(Cells.breakCellsUpByRow(filterDeletedValues));
-    }
+    private void removeEmptyColumns(TableReference tableReference, Map<Cell, byte[]> results) {
+        int unfilteredSize = results.size();
 
-    private Map<Cell, byte[]> removeEmptyColumns(Map<Cell, byte[]> unfiltered, TableReference tableReference) {
-        Map<Cell, byte[]> filtered = Maps.filterValues(unfiltered, Predicates.not(Value::isTombstone));
-        // compute filtered size without traversing lazily transformed map `size()` as that allocates entries
-        long filteredCount = unfiltered.values().stream()
-                .filter(Predicates.not(Value::isTombstone))
-                .count();
+        results.values().removeIf(Value::isTombstone);
 
-        long emptyValues = unfiltered.size() - filteredCount;
+        int emptyValues = unfilteredSize - results.size();
         snapshotEventRecorder.recordFilteredEmptyValues(tableReference, emptyValues);
         TraceStatistics.incEmptyValues(emptyValues);
-
-        return filtered;
     }
 
     /**
-     * This will add any local writes for this row to the result map.
+     * This will return any local writes for these rows.
      * <p>
      * If an empty value was written as a delete, this will also be included in the map.
      */
-    private void extractLocalWritesForRow(
-            @Output ImmutableMap.Builder<Cell, byte[]> result,
-            SortedMap<Cell, byte[]> writes,
-            byte[] row,
-            ColumnSelection columnSelection) {
-        Cell lowCell = Cells.createSmallestCellForRow(row);
-        for (Map.Entry<Cell, byte[]> entry : writes.tailMap(lowCell).entrySet()) {
-            Cell cell = entry.getKey();
-            if (!Arrays.equals(row, cell.getRowName())) {
-                break;
-            }
-            if (columnSelection.allColumnsSelected()
-                    || columnSelection.getSelectedColumns().contains(cell.getColumnName())) {
-                result.put(cell, entry.getValue());
+    private Map<Cell, byte[]> extractLocalWritesForRows(
+            SortedMap<Cell, byte[]> writes, Iterable<byte[]> rows, ColumnSelection columnSelection) {
+        if (writes == null || writes.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<Cell, byte[]> results = new HashMap<>();
+
+        for (byte[] row : rows) {
+            Cell lowCell = Cells.createSmallestCellForRow(row);
+            for (Map.Entry<Cell, byte[]> entry : writes.tailMap(lowCell).entrySet()) {
+                Cell cell = entry.getKey();
+                if (!Arrays.equals(row, cell.getRowName())) {
+                    break;
+                }
+                if (columnSelection.allColumnsSelected()
+                        || columnSelection.getSelectedColumns().contains(cell.getColumnName())) {
+                    results.put(cell, entry.getValue());
+                }
             }
         }
+
+        return Collections.unmodifiableMap(results);
     }
 
     @Override
@@ -1019,14 +1016,14 @@ public class SnapshotTransaction extends AbstractTransaction
         }
         hasReads = true;
 
-        Map<Cell, byte[]> result = new HashMap<>();
+        Map<Cell, byte[]> results = new HashMap<>();
         Map<Cell, byte[]> writes = localWriteBuffer.getLocalWrites().get(tableRef);
         long numberOfNonDeleteLocalWrites = 0;
         if (writes != null && !writes.isEmpty()) {
             for (Cell cell : cells) {
                 byte[] value = writes.get(cell);
                 if (value != null) {
-                    result.put(cell, value);
+                    results.put(cell, value);
                     if (value != PtBytes.EMPTY_BYTE_ARRAY) {
                         numberOfNonDeleteLocalWrites++;
                     }
@@ -1036,12 +1033,12 @@ public class SnapshotTransaction extends AbstractTransaction
 
         // We don't need to read any cells that were written locally.
         long expectedNumberOfPresentCellsToFetch = numberOfExpectedPresentCells - numberOfNonDeleteLocalWrites;
-        Set<Cell> cellsToFetch = Sets.difference(cells, result.keySet());
+        Set<Cell> cellsToFetch = Sets.difference(cells, results.keySet());
         ListenableFuture<Map<Cell, byte[]>> initialResults = keyValueSnapshotReader.getAsync(tableRef, cellsToFetch);
         return Futures.transform(
                 initialResults,
                 fromKeyValueService -> {
-                    result.putAll(fromKeyValueService);
+                    results.putAll(fromKeyValueService);
 
                     long getMillis = TimeUnit.NANOSECONDS.toMillis(timer.stop());
                     if (perfLogger.isDebugEnabled()) {
@@ -1049,7 +1046,7 @@ public class SnapshotTransaction extends AbstractTransaction
                                 "Snapshot transaction get cells (some possibly deleted)",
                                 LoggingArgs.tableRef(tableRef),
                                 SafeArg.of("numberOfCells", cells.size()),
-                                SafeArg.of("numberOfCellsRetrieved", result.size()),
+                                SafeArg.of("numberOfCellsRetrieved", results.size()),
                                 SafeArg.of("getOperation", operationName),
                                 SafeArg.of("durationMillis", getMillis));
                     }
@@ -1060,7 +1057,9 @@ public class SnapshotTransaction extends AbstractTransaction
                             fromKeyValueService.size() == expectedNumberOfPresentCellsToFetch;
                     validatePreCommitRequirementsOnReadIfNecessary(
                             tableRef, getStartTimestamp(), allPossibleCellsReadAndPresent);
-                    return removeEmptyColumns(result, tableRef);
+                    removeEmptyColumns(tableRef, results);
+
+                    return Collections.unmodifiableMap(results);
                 },
                 MoreExecutors.directExecutor());
     }
@@ -2706,26 +2705,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     @VisibleForTesting
     static void reportExpectationsCollectedData(ExpectationsData expectationsData, ExpectationsMetrics metrics) {
-        metrics.ageMillis().update(expectationsData.ageMillis());
-        metrics.bytesRead().update(expectationsData.readInfo().bytesRead());
-        metrics.kvsReads().update(expectationsData.readInfo().kvsCalls());
-
-        expectationsData
-                .readInfo()
-                .maximumBytesKvsCallInfo()
-                .ifPresent(kvsCallReadInfo ->
-                        metrics.mostKvsBytesReadInSingleCall().update(kvsCallReadInfo.bytesRead()));
-
-        metrics.cellCommitLocksRequested()
-                .update(expectationsData.commitLockInfo().cellCommitLocksRequested());
-        metrics.rowCommitLocksRequested()
-                .update(expectationsData.commitLockInfo().rowCommitLocksRequested());
-        metrics.changeMetadataBuffered()
-                .update(expectationsData.writeMetadataInfo().changeMetadataBuffered());
-        metrics.cellChangeMetadataSent()
-                .update(expectationsData.writeMetadataInfo().cellChangeMetadataSent());
-        metrics.rowChangeMetadataSent()
-                .update(expectationsData.writeMetadataInfo().rowChangeMetadataSent());
+        ExpectationsMetricsReporter.INSTANCE.reportExpectationsCollectedData(expectationsData, metrics);
     }
 
     private long getStartTimestamp() {

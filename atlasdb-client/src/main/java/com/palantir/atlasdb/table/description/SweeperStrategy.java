@@ -23,6 +23,10 @@ import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Arrays;
 import java.util.stream.Stream;
 
+/**
+ * If sweep metrics are required for a particular strategy, the strategy should be included in
+ * {@link com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics.MetricsConfiguration#trackedSweeperStrategies()}.
+ */
 public enum SweeperStrategy implements Persistable {
     CONSERVATIVE {
         @Override

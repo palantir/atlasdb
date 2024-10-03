@@ -14,10 +14,20 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.sweep.asts.bucketingthings;
+package com.palantir.atlasdb.keyvalue.cassandra;
 
-public interface SweepBucketAssignerStateMachineTable {
-    void updateStateMachineForBucketAssigner(BucketStateAndIdentifier original, BucketStateAndIdentifier updated);
+import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 
-    BucketStateAndIdentifier getBucketStateAndIdentifier();
+public final class UnfilteredCassandraClientMetrics implements CassandraClientMetrics {
+    private final TaggedMetricRegistry registry;
+
+    public UnfilteredCassandraClientMetrics(TaggedMetricRegistry registry) {
+        this.registry = registry;
+    }
+
+    @Override
+    public void recordCellsWritten(String tableRef, long cellsWritten) {
+        registry.counter(CassandraClientMetricsUtils.createCellsWrittenMetricNameForTableTag(tableRef))
+                .inc(cellsWritten);
+    }
 }

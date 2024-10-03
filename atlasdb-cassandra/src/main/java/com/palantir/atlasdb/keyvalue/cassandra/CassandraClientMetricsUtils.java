@@ -14,10 +14,19 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.sweep.asts.bucketingthings;
+package com.palantir.atlasdb.keyvalue.cassandra;
 
-public interface SweepBucketAssignerStateMachineTable {
-    void updateStateMachineForBucketAssigner(BucketStateAndIdentifier original, BucketStateAndIdentifier updated);
+import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableMap;
+import com.palantir.tritium.metrics.registry.MetricName;
 
-    BucketStateAndIdentifier getBucketStateAndIdentifier();
+final class CassandraClientMetricsUtils {
+    private CassandraClientMetricsUtils() {}
+
+    static MetricName createCellsWrittenMetricNameForTableTag(String tableTag) {
+        return MetricName.builder()
+                .safeName(MetricRegistry.name(CassandraClient.class, "cellsWritten"))
+                .safeTags(ImmutableMap.of("tableRef", tableTag))
+                .build();
+    }
 }

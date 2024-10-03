@@ -91,7 +91,7 @@ afterEvaluate {
 
 tasks.withType(Test) {
     enableAssertions = true
-    failFast = true
+    failFast = System.getenv().containsKey('CI')
 }
 
 ext.atlasdb_shaded = 'com.palantir.atlasdb.shaded.'

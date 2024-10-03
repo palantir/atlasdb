@@ -18,7 +18,7 @@ package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
 import com.palantir.atlasdb.sweep.asts.Bucket;
 import com.palantir.atlasdb.sweep.asts.SweepableBucket;
-import com.palantir.atlasdb.sweep.asts.SweepableBucket.TimestampRange;
+import com.palantir.atlasdb.sweep.asts.TimestampRange;
 import java.util.Optional;
 import java.util.Set;
 

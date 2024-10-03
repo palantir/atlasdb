@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepOutcome;
-import com.palantir.atlasdb.sweep.asts.SweepableBucket.TimestampRange;
 import com.palantir.atlasdb.sweep.asts.locks.Lockable;
 import com.palantir.atlasdb.sweep.asts.locks.Lockable.LockedItem;
 import com.palantir.atlasdb.sweep.asts.locks.LockableFactory;
@@ -111,7 +110,7 @@ public class DefaultSweepStateCoordinatorTest {
         for (int i = 0; i < shards; i++) {
             coordinator.tryRunTaskWithBucket(chosenBuckets::add);
         }
-        assertThat(chosenBuckets).isEqualTo(firstBucketPerShard);
+        assertThat(chosenBuckets).containsExactlyInAnyOrderElementsOf(firstBucketPerShard);
     }
 
     @Test

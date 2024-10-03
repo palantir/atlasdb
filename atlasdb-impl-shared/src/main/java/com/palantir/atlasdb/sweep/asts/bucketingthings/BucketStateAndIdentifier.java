@@ -16,8 +16,17 @@
 
 package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
-public interface SweepBucketAssignerStateMachineTable {
-    void updateStateMachineForBucketAssigner(BucketStateAndIdentifier original, BucketStateAndIdentifier updated);
+import org.immutables.value.Value;
 
-    BucketStateAndIdentifier getBucketStateAndIdentifier();
+@Value.Immutable
+public interface BucketStateAndIdentifier {
+    @Value.Parameter
+    long bucketIdentifier();
+
+    @Value.Parameter
+    BucketAssignerState state();
+
+    static BucketStateAndIdentifier of(long bucketIdentifier, BucketAssignerState state) {
+        return ImmutableBucketStateAndIdentifier.of(bucketIdentifier, state);
+    }
 }

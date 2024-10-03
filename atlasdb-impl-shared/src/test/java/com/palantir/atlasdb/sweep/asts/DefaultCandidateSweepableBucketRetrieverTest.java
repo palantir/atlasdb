@@ -19,7 +19,6 @@ package com.palantir.atlasdb.sweep.asts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.lenient;
 
-import com.palantir.atlasdb.sweep.asts.SweepableBucket.TimestampRange;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.refreshable.Disposable;
@@ -91,7 +90,7 @@ class DefaultCandidateSweepableBucketRetrieverTest {
                 runCallbackIfBucketsMatchExpected(() -> callbackTracker.add(2), BUCKETS));
 
         candidateBucketRetriever.requestUpdate();
-        tryWaitUntilAsserted(() -> assertThat(callbackTracker).isEqualTo(List.of(1, 2)));
+        tryWaitUntilAsserted(() -> assertThat(callbackTracker).containsExactly(1, 2));
     }
 
     @Test
@@ -185,13 +184,13 @@ class DefaultCandidateSweepableBucketRetrieverTest {
                 runCallbackIfBucketsMatchExpected(() -> callbackTracker.add(2), BUCKETS));
 
         candidateSweepableBucketRetriever.requestUpdate();
-        tryWaitUntilAsserted(() -> assertThat(callbackTracker).isEqualTo(List.of(1)));
+        tryWaitUntilAsserted(() -> assertThat(callbackTracker).containsExactly(1));
 
         tickTime(minimumDurationBetweenRefresh.get().plusMillis(1));
         buckets.set(BUCKETS);
 
         candidateSweepableBucketRetriever.requestUpdate();
-        tryWaitUntilAsserted(() -> assertThat(callbackTracker).isEqualTo(List.of(1, 2)));
+        tryWaitUntilAsserted(() -> assertThat(callbackTracker).containsExactly(1, 2));
     }
 
     @Test

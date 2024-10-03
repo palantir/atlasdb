@@ -29,17 +29,4 @@ public interface SweepableBucket {
     static SweepableBucket of(Bucket bucket, TimestampRange timestampRange) {
         return ImmutableSweepableBucket.of(bucket, timestampRange);
     }
-
-    @Value.Immutable
-    interface TimestampRange {
-        @Value.Parameter
-        long startInclusive();
-
-        @Value.Parameter
-        long endExclusive();
-
-        static TimestampRange of(long startInclusive, long endExclusive) {
-            return ImmutableTimestampRange.of(startInclusive, endExclusive);
-        }
-    }
 }

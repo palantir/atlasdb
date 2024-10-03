@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.sweep.asts.bucketingthings;
+package com.palantir.atlasdb.keyvalue.cassandra;
 
-public interface SweepBucketAssignerStateMachineTable {
-    void updateStateMachineForBucketAssigner(BucketStateAndIdentifier original, BucketStateAndIdentifier updated);
+public interface CassandraClientMetrics extends AutoCloseable {
+    void recordCellsWritten(String tableRef, long cellsWritten);
 
-    BucketStateAndIdentifier getBucketStateAndIdentifier();
+    @Override
+    default void close() {}
 }
