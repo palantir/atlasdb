@@ -17,20 +17,11 @@
 package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
 import com.palantir.atlasdb.sweep.asts.Bucket;
-import com.palantir.atlasdb.sweep.asts.SweepableBucket;
-import com.palantir.atlasdb.sweep.asts.TimestampRange;
-import java.util.Optional;
-import java.util.Set;
 
-public interface SweepBucketsTable {
+public interface BucketCompletionListener {
     /**
-     * Returns SweepableBuckets for each ShardAndStrategy given in the input set _where_ a sweepable bucket exists.
-     * It is not guaranteed that a SweepableBucket exists for each ShardAndStrategy in the input set.
+     * Marks a bucket as complete. This method should ONLY be called once we are certain the bucket no longer needs
+     * to be swept.
      */
-    Set<SweepableBucket> getSweepableBuckets(Set<Bucket> startBuckets);
-
-    void putTimestampRangeForBucket(
-            Bucket bucket, Optional<TimestampRange> oldTimestampRange, TimestampRange newTimestampRange);
-
-    void deleteBucketEntry(Bucket bucket);
+    void markBucketCompleteAndRemoveFromScheduling(Bucket bucket);
 }
