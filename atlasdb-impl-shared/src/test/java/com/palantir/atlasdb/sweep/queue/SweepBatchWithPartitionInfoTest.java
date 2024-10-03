@@ -73,6 +73,17 @@ public class SweepBatchWithPartitionInfoTest {
                 .containsExactlyInAnyOrder(67L);
     }
 
+
+    @Test
+    public void includesLastTimestampForFinePartitionIfAboveMinimumBound() {
+        when(batch.lastSweptTimestamp()).thenReturn(SweepQueueUtils.maxTsForFinePartition(67L));
+        SweepBatchWithPartitionInfo batchWithPartitionInfo =
+                SweepBatchWithPartitionInfo.of(batch, ImmutableSet.of(67L));
+        assertThat(batchWithPartitionInfo.partitionsForPreviousLastSweptTsWithMinimumBound(
+                SweepQueueUtils.maxTsForFinePartition(66L), SweepQueueUtils.maxTsForFinePartition(66L)))
+                .containsExactlyInAnyOrder(66L, 67L);
+    }
+
     @Test
     public void partitionsNeedNotBeContiguous() {
         when(batch.lastSweptTimestamp()).thenReturn(SweepQueueUtils.maxTsForFinePartition(19));
