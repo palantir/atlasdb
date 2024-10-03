@@ -583,17 +583,17 @@ public class SingleBucketSweepTaskIntegrationTest {
 
         checkValueSwept(DEFAULT_CELL, END_OF_BUCKET_ONE - 1L, sweepStrategyTestContext);
         assertThat(getRangeFromTable(TargetedSweepTableFactory.of()
-                .getSweepableCellsTable(null)
-                .getTableRef()))
+                        .getSweepableCellsTable(null)
+                        .getTableRef()))
                 .as("sweepable cells should have been swept")
                 .isEmpty();
         assertThat(getRangeFromTable(TargetedSweepTableFactory.of()
-                .getSweepableTimestampsTable(null)
-                .getTableRef()))
+                        .getSweepableTimestampsTable(null)
+                        .getTableRef()))
                 .as("sweepable timestamps should have been swept")
                 .isEmpty();
         assertThat(bucketProgressStore.getBucketProgress(
-                sweepStrategyTestContext.bucketFactory().apply(1)))
+                        sweepStrategyTestContext.bucketFactory().apply(1)))
                 .as("bucket 1 is completely swept")
                 .hasValue(BucketProgress.createForTimestampProgress(END_OF_BUCKET_ONE - END_OF_BUCKET_ZERO - 1));
     }
