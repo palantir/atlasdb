@@ -627,7 +627,7 @@ public class SingleBucketSweepTaskIntegrationTest {
                 .isNotEmpty();
         assertThat(bucketProgressStore.getBucketProgress(
                         sweepStrategyTestContext.bucketFactory().apply(1)))
-                .as("bucket 1 swept up to but not including its end")
+                .as("bucket 1 swept up to the cell with a transaction crossing the bucket boundary")
                 .hasValue(BucketProgress.createForTimestampProgress(END_OF_BUCKET_ONE - END_OF_BUCKET_ZERO - 10 - 1));
     }
 
