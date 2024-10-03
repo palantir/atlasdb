@@ -569,7 +569,7 @@ public class SingleBucketSweepTaskIntegrationTest {
     //                     ^ Sweep Task
     @ParameterizedTest
     @MethodSource("testContexts")
-    public void successfullySweepsCellInMyBucketCommittingInTheNextBucket(
+    public void successfullySweepsCellInMyBucketCommittingInAFutureBucket(
             SweepStrategyTestContext sweepStrategyTestContext) {
         when(completelyClosedSweepBucketBoundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
                 .thenReturn(2L);
@@ -603,7 +603,7 @@ public class SingleBucketSweepTaskIntegrationTest {
     //                     ^ Sweep Task
     @ParameterizedTest
     @MethodSource("testContexts")
-    public void doesNotSweepCellInMyBucketCommittingInTheNextBucketIfSweepTimestampNotPastItsCommit(
+    public void doesNotSweepCellInMyBucketCommittingInAFutureBucketIfSweepTimestampNotPastItsCommit(
             SweepStrategyTestContext sweepStrategyTestContext) {
         when(completelyClosedSweepBucketBoundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
                 .thenReturn(2L);
