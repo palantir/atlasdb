@@ -18,7 +18,6 @@ package com.palantir.atlasdb.sweep.metrics;
 import com.codahale.metrics.Gauge;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.AtlasDbMetricNames;
@@ -88,8 +87,8 @@ public class TargetedSweepMetrics {
         return createWithClock(metricsManager, kvs, timelock::currentTimeMillis, metricsConfiguration, shards);
     }
 
-    @VisibleForTesting
-    static TargetedSweepMetrics createWithClock(
+    // Public visibility because of usage in integration tests
+    public static TargetedSweepMetrics createWithClock(
             MetricsManager metricsManager,
             KeyValueService kvs,
             Clock clock,

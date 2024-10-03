@@ -22,14 +22,14 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 
-class SweepQueueWriter implements MultiTableSweepQueueWriter {
+public class SweepQueueWriter implements MultiTableSweepQueueWriter {
     private static final SafeLogger log = SafeLoggerFactory.get(SweepQueueWriter.class);
 
     private final SweepableTimestamps sweepableTimestamps;
     private final SweepableCells sweepableCells;
     private final WriteInfoPartitioner partitioner;
 
-    SweepQueueWriter(
+    public SweepQueueWriter(
             SweepableTimestamps sweepableTimestamps, SweepableCells sweepableCells, WriteInfoPartitioner partitioner) {
         this.sweepableTimestamps = sweepableTimestamps;
         this.sweepableCells = sweepableCells;
