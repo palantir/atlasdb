@@ -581,7 +581,7 @@ public class SingleBucketSweepTaskIntegrationTest {
                 SweepableBucket.of(sweepStrategyTestContext.bucketFactory().apply(1), BUCKET_ONE_TIMESTAMP_RANGE);
         assertThat(singleBucketSweepTask.runOneIteration(sweepableBucketOne)).isEqualTo(2L);
 
-        checkValueSwept(DEFAULT_CELL, END_OF_BUCKET_ONE - 1L, sweepStrategyTestContext);
+        checkValueSwept(DEFAULT_CELL, END_OF_BUCKET_ONE - 1, sweepStrategyTestContext);
         assertThat(getRangeFromTable(TargetedSweepTableFactory.of()
                         .getSweepableCellsTable(null)
                         .getTableRef()))
@@ -596,6 +596,39 @@ public class SingleBucketSweepTaskIntegrationTest {
                         sweepStrategyTestContext.bucketFactory().apply(1)))
                 .as("bucket 1 is completely swept")
                 .hasValue(BucketProgress.createForTimestampProgress(END_OF_BUCKET_ONE - END_OF_BUCKET_ZERO - 1));
+    }
+
+    // [          ][        S ][  C       )
+    //                           ^ Sweep Timestamp
+    //                     ^ Sweep Task
+    @ParameterizedTest
+    @MethodSource("testContexts")
+    public void doesNotSweepCellInMyBucketCommittingInTheNextBucketIfSweepTimestampNotPastItsCommit(
+            SweepStrategyTestContext sweepStrategyTestContext) {
+        when(completelyClosedSweepBucketBoundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
+                .thenReturn(2L);
+        writeCell(sweepStrategyTestContext.dataTable(), END_OF_BUCKET_ONE - 30, DEFAULT_VALUE, END_OF_BUCKET_ONE - 20);
+        writeCell(sweepStrategyTestContext.dataTable(), END_OF_BUCKET_ONE - 10, ANOTHER_VALUE, END_OF_BUCKET_ONE + 1);
+
+        sweepTimestamp.set(END_OF_BUCKET_ONE);
+        SweepableBucket sweepableBucketOne =
+                SweepableBucket.of(sweepStrategyTestContext.bucketFactory().apply(1), BUCKET_ONE_TIMESTAMP_RANGE);
+        assertThat(singleBucketSweepTask.runOneIteration(sweepableBucketOne)).isEqualTo(2L);
+
+        assertThat(getRangeFromTable(TargetedSweepTableFactory.of()
+                .getSweepableCellsTable(null)
+                .getTableRef()))
+                .as("sweepable cells should not have been swept")
+                .isNotEmpty();
+        assertThat(getRangeFromTable(TargetedSweepTableFactory.of()
+                .getSweepableTimestampsTable(null)
+                .getTableRef()))
+                .as("sweepable timestamps should not have been swept")
+                .isNotEmpty();
+        assertThat(bucketProgressStore.getBucketProgress(
+                sweepStrategyTestContext.bucketFactory().apply(1)))
+                .as("bucket 1 swept up to but not including its end")
+                .hasValue(BucketProgress.createForTimestampProgress(END_OF_BUCKET_ONE - END_OF_BUCKET_ZERO - 10 - 1));
     }
 
     // [          ][          ][vwxyz01   )
