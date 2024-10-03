@@ -175,6 +175,7 @@ public class DefaultSingleBucketSweepTaskTest {
         when(sweepQueueReader.getNextBatchToSweep(
                         context.shardAndStrategy(),
                         context.startTimestampInclusive() - 1,
+                        context.endTimestampExclusive(),
                         context.endTimestampExclusive()))
                 .thenReturn(SweepBatchWithPartitionInfo.of(
                         SweepBatch.of(
@@ -205,6 +206,7 @@ public class DefaultSingleBucketSweepTaskTest {
         when(sweepQueueReader.getNextBatchToSweep(
                         context.shardAndStrategy(),
                         context.startTimestampInclusive() - 1,
+                        context.endTimestampExclusive(),
                         context.endTimestampExclusive()))
                 .thenReturn(SweepBatchWithPartitionInfo.of(
                         SweepBatch.of(
@@ -235,7 +237,10 @@ public class DefaultSingleBucketSweepTaskTest {
 
         when(sweepTimestampSupplier.getAsLong()).thenReturn(sweepTimestamp);
         when(sweepQueueReader.getNextBatchToSweep(
-                        context.shardAndStrategy(), context.startTimestampInclusive() - 1, sweepTimestamp))
+                        context.shardAndStrategy(),
+                        context.startTimestampInclusive() - 1,
+                        sweepTimestamp,
+                        sweepTimestamp))
                 .thenReturn(SweepBatchWithPartitionInfo.of(
                         SweepBatch.of(ImmutableSet.of(), DedicatedRows.of(ImmutableList.of()), sweepTimestamp - 1),
                         ImmutableSet.of()));
@@ -263,7 +268,10 @@ public class DefaultSingleBucketSweepTaskTest {
 
         when(sweepTimestampSupplier.getAsLong()).thenReturn(sweepTimestamp);
         when(sweepQueueReader.getNextBatchToSweep(
-                        context.shardAndStrategy(), context.startTimestampInclusive() - 1, sweepTimestamp))
+                        context.shardAndStrategy(),
+                        context.startTimestampInclusive() - 1,
+                        sweepTimestamp,
+                        sweepTimestamp))
                 .thenReturn(SweepBatchWithPartitionInfo.of(
                         SweepBatch.of(ImmutableSet.of(), DedicatedRows.of(ImmutableList.of()), sweepTimestamp - 1),
                         ImmutableSet.of(SweepQueueUtils.tsPartitionFine(context.startTimestampInclusive()))));
@@ -281,6 +289,40 @@ public class DefaultSingleBucketSweepTaskTest {
                         context.bucket(),
                         BucketProgress.createForTimestampProgress(
                                 sweepTimestamp - 1 - context.startTimestampInclusive()));
+        verifyNoInteractions(completionListener);
+    }
+
+    @ParameterizedTest
+    @MethodSource("closedSweepBuckets")
+    public void passesThroughSweepTimestampAndBucketEndToSweepQueueReaderSeparately(SweepBucketTestContext context) {
+        long sweepTimestamp = context.endTimestampExclusive() + 1_000_000L;
+
+        when(sweepTimestampSupplier.getAsLong()).thenReturn(sweepTimestamp);
+        when(sweepQueueReader.getNextBatchToSweep(
+                        context.shardAndStrategy(),
+                        context.startTimestampInclusive() - 1,
+                        context.endTimestampExclusive(),
+                        sweepTimestamp))
+                .thenReturn(SweepBatchWithPartitionInfo.of(
+                        SweepBatch.of(
+                                ImmutableSet.of(),
+                                DedicatedRows.of(ImmutableList.of()),
+                                context.endTimestampExclusive() - 1),
+                        ImmutableSet.of(SweepQueueUtils.tsPartitionFine(context.startTimestampInclusive()))));
+
+        defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket());
+        verify(sweepQueueDeleter).sweep(ImmutableList.of(), Sweeper.of(context.shardAndStrategy()));
+        verify(sweepQueueCleaner)
+                .clean(
+                        context.shardAndStrategy(),
+                        ImmutableSet.of(SweepQueueUtils.tsPartitionFine(context.startTimestampInclusive())),
+                        context.endTimestampExclusive() - 1, // does not attempt to delete data in the next bucket
+                        DedicatedRows.of(ImmutableList.of()));
+        verify(bucketProgressStore)
+                .updateBucketProgressToAtLeast(
+                        context.bucket(),
+                        BucketProgress.createForTimestampProgress(
+                                context.endTimestampExclusive() - 1 - context.startTimestampInclusive()));
         verifyNoInteractions(completionListener);
     }
 
@@ -310,7 +352,8 @@ public class DefaultSingleBucketSweepTaskTest {
         when(sweepQueueReader.getNextBatchToSweep(
                         context.shardAndStrategy(),
                         context.startTimestampInclusive() - 1,
-                        context.isBucketClosed() ? context.endTimestampExclusive() : sweepTimestamp))
+                        context.isBucketClosed() ? context.endTimestampExclusive() : sweepTimestamp,
+                        sweepTimestamp))
                 .thenReturn(SweepBatchWithPartitionInfo.of(
                         SweepBatch.of(
                                 writeInfoSet,

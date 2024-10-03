@@ -616,17 +616,17 @@ public class SingleBucketSweepTaskIntegrationTest {
         assertThat(singleBucketSweepTask.runOneIteration(sweepableBucketOne)).isEqualTo(2L);
 
         assertThat(getRangeFromTable(TargetedSweepTableFactory.of()
-                .getSweepableCellsTable(null)
-                .getTableRef()))
+                        .getSweepableCellsTable(null)
+                        .getTableRef()))
                 .as("sweepable cells should not have been swept")
                 .isNotEmpty();
         assertThat(getRangeFromTable(TargetedSweepTableFactory.of()
-                .getSweepableTimestampsTable(null)
-                .getTableRef()))
+                        .getSweepableTimestampsTable(null)
+                        .getTableRef()))
                 .as("sweepable timestamps should not have been swept")
                 .isNotEmpty();
         assertThat(bucketProgressStore.getBucketProgress(
-                sweepStrategyTestContext.bucketFactory().apply(1)))
+                        sweepStrategyTestContext.bucketFactory().apply(1)))
                 .as("bucket 1 swept up to but not including its end")
                 .hasValue(BucketProgress.createForTimestampProgress(END_OF_BUCKET_ONE - END_OF_BUCKET_ZERO - 10 - 1));
     }

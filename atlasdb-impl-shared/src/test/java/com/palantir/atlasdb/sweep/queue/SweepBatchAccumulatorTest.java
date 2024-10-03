@@ -187,7 +187,7 @@ public class SweepBatchAccumulatorTest {
                         SWEEP_TIMESTAMP)))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Tried to accumulate a batch")
-                .hasMessageContaining("went beyond the sweep timestamp");
+                .hasMessageContaining("went beyond the max processable timestamp");
     }
 
     @Test
@@ -198,7 +198,7 @@ public class SweepBatchAccumulatorTest {
                         SWEEP_TIMESTAMP + 1)))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("Tried to accumulate a batch")
-                .hasMessageContaining("went beyond the sweep timestamp");
+                .hasMessageContaining("went beyond the max processable timestamp");
     }
 
     @Test
