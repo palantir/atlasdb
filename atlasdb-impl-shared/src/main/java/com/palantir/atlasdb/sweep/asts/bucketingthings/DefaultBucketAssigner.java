@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.sweep.asts.TimestampRange;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.BucketWriter.WriteState;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.DefaultBucketAssigner.IterationResult.OperationResult;
@@ -33,29 +34,37 @@ public final class DefaultBucketAssigner {
     private static final int MAX_BUCKETS_PER_ITERATION = 5;
 
     private final SweepBucketAssignerStateMachineTable sweepBucketAssignerStateMachineTable;
-    private final BucketAssignerMetrics metrics;
     private final BucketWriter bucketWriter;
+    private final SweepBucketRecordsTable sweepBucketRecordsTable;
+    private final BucketAssignerMetrics metrics;
     private final Function<Long, OptionalLong> closeTimestampCalculator;
 
     @VisibleForTesting
     DefaultBucketAssigner(
             SweepBucketAssignerStateMachineTable sweepBucketAssignerStateMachineTable,
             BucketWriter bucketWriter,
+            SweepBucketRecordsTable sweepBucketRecordsTable,
             BucketAssignerMetrics metrics,
             Function<Long, OptionalLong> closeTimestampCalculator) {
         this.sweepBucketAssignerStateMachineTable = sweepBucketAssignerStateMachineTable;
-        this.metrics = metrics;
         this.bucketWriter = bucketWriter;
+        this.sweepBucketRecordsTable = sweepBucketRecordsTable;
+        this.metrics = metrics;
         this.closeTimestampCalculator = closeTimestampCalculator;
     }
 
     public static DefaultBucketAssigner create(
             SweepBucketAssignerStateMachineTable sweepBucketAssignerStateMachineTable,
             BucketWriter bucketWriter,
+            SweepBucketRecordsTable sweepBucketRecordsTable,
             BucketAssignerMetrics metrics,
             Function<Long, OptionalLong> closeTimestampCalculator) {
         return new DefaultBucketAssigner(
-                sweepBucketAssignerStateMachineTable, bucketWriter, metrics, closeTimestampCalculator);
+                sweepBucketAssignerStateMachineTable,
+                bucketWriter,
+                sweepBucketRecordsTable,
+                metrics,
+                closeTimestampCalculator);
     }
 
     public void run() {
@@ -94,6 +103,25 @@ public final class DefaultBucketAssigner {
                 SafeArg.of("bucketIdentifier", iterationResult.bucketIdentifier()),
                 SafeArg.of("bucketAssignerState", iterationResult.bucketAssignerState()));
         return iterationResult;
+    }
+
+    // If we've called this method, it's because we've successfully written all the buckets without detecting contention
+    // with another writer. It's possible that a previous write attempt did also write to the records table and failed
+    // before updating the state machine, and so we need to ignore the exception for that case.
+    // If there's active contention that we didn't detect, it's still safe to ignore the CAS _because_ the writes
+    // to this table are set in advance by the state machine, and so both writers must be proposing the same value.
+    private void tryWriteBucketRecordIgnoringCasException(long bucketIdentifier, TimestampRange timestampRange) {
+        try {
+            sweepBucketRecordsTable.putTimestampRangeRecord(bucketIdentifier, timestampRange);
+        } catch (CheckAndSetException e) {
+            log.warn(
+                    "Failed to write bucket record for bucket {} with timestamp range {} due to a CAS exception."
+                            + " This is likely due to a previous attempt failing to update the state machine state"
+                            + " after having written the record.",
+                    SafeArg.of("bucketIdentifier", bucketIdentifier),
+                    SafeArg.of("timestampRange", timestampRange),
+                    e);
+        }
     }
 
     private final class BucketStateVisitor implements BucketAssignerState.Visitor<IterationResult> {
@@ -182,6 +210,7 @@ public final class DefaultBucketAssigner {
             if (writeState == WriteState.FAILED_CAS) {
                 return IterationResult.of(OperationResult.CONTENTION_ON_WRITES, bucketIdentifier, lastState);
             }
+            tryWriteBucketRecordIgnoringCasException(bucketIdentifier, newTimestampRange);
 
             BucketAssignerState start = BucketAssignerState.start(newTimestampRange.endExclusive());
             sweepBucketAssignerStateMachineTable.updateStateMachineForBucketAssigner(
