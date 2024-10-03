@@ -564,6 +564,40 @@ public class SingleBucketSweepTaskIntegrationTest {
                         sweepStrategyTestContext.bucketFactory().apply(2));
     }
 
+    // [          ][        S ][C         )
+    //                                 ^ Sweep Timestamp
+    //                     ^ Sweep Task
+    @ParameterizedTest
+    @MethodSource("testContexts")
+    public void successfullySweepsCellInMyBucketCommittingInTheNextBucket(
+            SweepStrategyTestContext sweepStrategyTestContext) {
+        when(completelyClosedSweepBucketBoundRetriever.getStrictUpperBoundForCompletelyClosedBuckets())
+                .thenReturn(2L);
+        writeCell(sweepStrategyTestContext.dataTable(), END_OF_BUCKET_ONE - 3, DEFAULT_VALUE, END_OF_BUCKET_ONE - 2);
+        writeCell(sweepStrategyTestContext.dataTable(), END_OF_BUCKET_ONE - 1, ANOTHER_VALUE, END_OF_BUCKET_ONE);
+
+        sweepTimestamp.set(Long.MAX_VALUE);
+        SweepableBucket sweepableBucketOne =
+                SweepableBucket.of(sweepStrategyTestContext.bucketFactory().apply(1), BUCKET_ONE_TIMESTAMP_RANGE);
+        assertThat(singleBucketSweepTask.runOneIteration(sweepableBucketOne)).isEqualTo(2L);
+
+        checkValueSwept(DEFAULT_CELL, END_OF_BUCKET_ONE - 1L, sweepStrategyTestContext);
+        assertThat(getRangeFromTable(TargetedSweepTableFactory.of()
+                .getSweepableCellsTable(null)
+                .getTableRef()))
+                .as("sweepable cells should have been swept")
+                .isEmpty();
+        assertThat(getRangeFromTable(TargetedSweepTableFactory.of()
+                .getSweepableTimestampsTable(null)
+                .getTableRef()))
+                .as("sweepable timestamps should have been swept")
+                .isEmpty();
+        assertThat(bucketProgressStore.getBucketProgress(
+                sweepStrategyTestContext.bucketFactory().apply(1)))
+                .as("bucket 1 is completely swept")
+                .hasValue(BucketProgress.createForTimestampProgress(END_OF_BUCKET_ONE - END_OF_BUCKET_ZERO - 1));
+    }
+
     // [          ][          ][vwxyz01   )
     //                                 ^ Sweep Timestamp
     //                               ^ Sweep Task
@@ -751,6 +785,7 @@ public class SingleBucketSweepTaskIntegrationTest {
                 .hasSize(1)
                 .hasEntrySatisfying(cell, value -> {
                     assertThat(value.getTimestamp())
+                            .as("expected to read a sweep sentinel, but read a value at a different timestamp")
                             .isEqualTo(com.palantir.atlasdb.keyvalue.api.Value.INVALID_VALUE_TIMESTAMP);
                     assertThat(com.palantir.atlasdb.keyvalue.api.Value.isTombstone(value.getContents()))
                             .isTrue();
