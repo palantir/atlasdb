@@ -37,7 +37,6 @@ import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.SweepStrat
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable.SweepableCellsRow;
 import com.palantir.atlasdb.schema.generated.SweepableTimestampsTable.SweepableTimestampsRow;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
-import com.palantir.atlasdb.sweep.asts.SweepableBucket.TimestampRange;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.BucketCompletionListener;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.CompletelyClosedSweepBucketBoundRetriever;
 import com.palantir.atlasdb.sweep.asts.progress.BucketProgress;
