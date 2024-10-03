@@ -18,7 +18,6 @@ package com.palantir.atlasdb.sweep.asts;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.sweep.asts.SweepableBucket.TimestampRange;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.CompletelyClosedSweepBucketBoundRetriever;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketPointerTable;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketRecordsTable;
