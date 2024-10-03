@@ -21,9 +21,6 @@ import com.palantir.atlasdb.schema.generated.SweepBucketProgressTable;
 import com.palantir.atlasdb.schema.generated.SweepBucketProgressTable.SweepBucketProgressNamedColumn;
 import com.palantir.atlasdb.schema.generated.SweepBucketProgressTable.SweepBucketProgressRow;
 import com.palantir.atlasdb.sweep.asts.Bucket;
-import com.palantir.atlasdb.table.description.SweeperStrategy;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 
 enum DefaultBucketKeySerializer {
     INSTANCE;
@@ -32,21 +29,7 @@ enum DefaultBucketKeySerializer {
         SweepBucketProgressTable.SweepBucketProgressRow row = SweepBucketProgressRow.of(
                 bucket.shardAndStrategy().shard(),
                 bucket.bucketIdentifier(),
-                persistStrategy(bucket.shardAndStrategy().strategy()));
+                bucket.shardAndStrategy().strategy().persistToBytes());
         return Cell.create(row.persistToBytes(), SweepBucketProgressNamedColumn.BUCKET_PROGRESS.getShortName());
-    }
-
-    private static byte[] persistStrategy(SweeperStrategy strategy) {
-        switch (strategy) {
-            case THOROUGH:
-                return new byte[] {0};
-            case CONSERVATIVE:
-                return new byte[] {1};
-            case NON_SWEEPABLE:
-                return new byte[] {2};
-            default:
-                throw new SafeIllegalStateException(
-                        "Unexpected sweeper strategy", SafeArg.of("sweeperStrategy", strategy));
-        }
     }
 }
