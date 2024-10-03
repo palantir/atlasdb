@@ -74,6 +74,16 @@ public class SweepBatchWithPartitionInfoTest {
     }
 
     @Test
+    public void includesLastTimestampForFinePartitionIfAboveMinimumBound() {
+        when(batch.lastSweptTimestamp()).thenReturn(SweepQueueUtils.maxTsForFinePartition(67L));
+        SweepBatchWithPartitionInfo batchWithPartitionInfo =
+                SweepBatchWithPartitionInfo.of(batch, ImmutableSet.of(67L));
+        assertThat(batchWithPartitionInfo.partitionsForPreviousLastSweptTsWithMinimumBound(
+                SweepQueueUtils.maxTsForFinePartition(66L), SweepQueueUtils.maxTsForFinePartition(66L)))
+                .containsExactlyInAnyOrder(66L, 67L);
+    }
+
+    @Test
     public void partitionsNeedNotBeContiguous() {
         when(batch.lastSweptTimestamp()).thenReturn(SweepQueueUtils.maxTsForFinePartition(19));
         Set<Long> partitions = ImmutableSet.of(3L, 9L, 12L, 15L, 17L);

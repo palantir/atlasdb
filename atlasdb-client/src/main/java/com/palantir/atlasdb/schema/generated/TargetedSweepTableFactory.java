@@ -42,6 +42,11 @@ public final class TargetedSweepTableFactory {
         return defaultTableFactory;
     }
 
+    public SweepAssignedBucketsTable getSweepAssignedBucketsTable(
+            Transaction t, SweepAssignedBucketsTable.SweepAssignedBucketsTrigger... triggers) {
+        return SweepAssignedBucketsTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
     public SweepBucketProgressTable getSweepBucketProgressTable(
             Transaction t, SweepBucketProgressTable.SweepBucketProgressTrigger... triggers) {
         return SweepBucketProgressTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
@@ -77,7 +82,8 @@ public final class TargetedSweepTableFactory {
     }
 
     public interface SharedTriggers
-            extends SweepBucketProgressTable.SweepBucketProgressTrigger,
+            extends SweepAssignedBucketsTable.SweepAssignedBucketsTrigger,
+                    SweepBucketProgressTable.SweepBucketProgressTrigger,
                     SweepIdToNameTable.SweepIdToNameTrigger,
                     SweepNameToIdTable.SweepNameToIdTrigger,
                     SweepShardProgressTable.SweepShardProgressTrigger,
@@ -86,6 +92,15 @@ public final class TargetedSweepTableFactory {
                     TableClearsTable.TableClearsTrigger {}
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
+        @Override
+        public void putSweepAssignedBuckets(
+                Multimap<
+                                SweepAssignedBucketsTable.SweepAssignedBucketsRow,
+                                ? extends SweepAssignedBucketsTable.SweepAssignedBucketsColumnValue>
+                        newRows) {
+            // do nothing
+        }
+
         @Override
         public void putSweepBucketProgress(
                 Multimap<

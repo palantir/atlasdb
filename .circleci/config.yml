@@ -104,16 +104,6 @@ jobs:
       - attach_workspace: { at: . }
       - run: ./gradlew --scan --profile --stacktrace --continue publishToMavenLocal
 
-  trigger-antithesis-simulation:
-    machine:
-      image: ubuntu-2204:2023.10.1
-    resource_class: small
-
-    steps:
-      - checkout
-      - run:
-          command: ./scripts/circle-ci/trigger-antithesis-simulation.sh
-
   deploy:
     docker:
       - image: cimg/openjdk:11.0.10-node
@@ -151,6 +141,7 @@ jobs:
             # hack - notion of "owners" isn't supported in Circle 2
             if [ $CIRCLE_PROJECT_USERNAME = 'palantir' ] && [ -z $CIRCLE_PR_NUMBER ] && [ $CIRCLE_TAG ]; then
               ./scripts/circle-ci/publish-images-to-antithesis.sh
+              ./scripts/circle-ci/trigger-antithesis-simulation.sh
             fi
 
   circle-all:
@@ -160,15 +151,6 @@ jobs:
       - run: {command: echo "All required jobs finished successfully"}
 
 workflows:
-#  scheduled-antithesis-simulation:
-#    jobs:
-#      - trigger-antithesis-simulation
-#    triggers:
-#      - schedule:
-#          cron: "0 10 * * 1" # Every Monday 10am
-#          filters:
-#            branches:
-#              only: develop
   check:
     jobs:
       - build:

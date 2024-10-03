@@ -1,0 +1,6 @@
+type: fix
+fix:
+  description: Fix bug that causes queries with duplicate rows to fail when the duplicate
+    row has a local write.
+  links:
+  - https://github.com/palantir/atlasdb/pull/7293

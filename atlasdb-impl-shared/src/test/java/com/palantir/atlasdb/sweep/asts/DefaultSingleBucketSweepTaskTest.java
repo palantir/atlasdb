@@ -30,7 +30,6 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable.SweepableCellsRow;
 import com.palantir.atlasdb.sweep.Sweeper;
-import com.palantir.atlasdb.sweep.asts.SweepableBucket.TimestampRange;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.BucketCompletionListener;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.CompletelyClosedSweepBucketBoundRetriever;
 import com.palantir.atlasdb.sweep.asts.progress.BucketProgress;
@@ -186,13 +185,13 @@ public class DefaultSingleBucketSweepTaskTest {
         when(boundRetriever.getStrictUpperBoundForCompletelyClosedBuckets()).thenReturn(Long.MAX_VALUE);
 
         defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket());
-        verify(sweepQueueDeleter).sweep(eq(ImmutableList.of()), eq(Sweeper.of(context.shardAndStrategy())));
+        verify(sweepQueueDeleter).sweep(ImmutableList.of(), Sweeper.of(context.shardAndStrategy()));
         verify(sweepQueueCleaner)
                 .clean(
-                        eq(context.shardAndStrategy()),
-                        eq(ImmutableSet.of()),
-                        eq(context.endTimestampExclusive() - 1L),
-                        eq(DedicatedRows.of(ImmutableList.of())));
+                        context.shardAndStrategy(),
+                        ImmutableSet.of(),
+                        context.endTimestampExclusive() - 1L,
+                        DedicatedRows.of(ImmutableList.of()));
         verify(bucketProgressStore)
                 .updateBucketProgressToAtLeast(
                         context.bucket(), context.completeProgressForBucket().orElseThrow());
@@ -216,13 +215,13 @@ public class DefaultSingleBucketSweepTaskTest {
         when(boundRetriever.getStrictUpperBoundForCompletelyClosedBuckets()).thenReturn(context.bucketIdentifier());
 
         defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket());
-        verify(sweepQueueDeleter).sweep(eq(ImmutableList.of()), eq(Sweeper.of(context.shardAndStrategy())));
+        verify(sweepQueueDeleter).sweep(ImmutableList.of(), Sweeper.of(context.shardAndStrategy()));
         verify(sweepQueueCleaner)
                 .clean(
-                        eq(context.shardAndStrategy()),
-                        eq(ImmutableSet.of()),
-                        eq(context.endTimestampExclusive() - 1L),
-                        eq(DedicatedRows.of(ImmutableList.of())));
+                        context.shardAndStrategy(),
+                        ImmutableSet.of(),
+                        context.endTimestampExclusive() - 1L,
+                        DedicatedRows.of(ImmutableList.of()));
         verify(bucketProgressStore)
                 .updateBucketProgressToAtLeast(
                         context.bucket(), context.completeProgressForBucket().orElseThrow());
@@ -242,13 +241,13 @@ public class DefaultSingleBucketSweepTaskTest {
                         ImmutableSet.of()));
 
         defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket());
-        verify(sweepQueueDeleter).sweep(eq(ImmutableList.of()), eq(Sweeper.of(context.shardAndStrategy())));
+        verify(sweepQueueDeleter).sweep(ImmutableList.of(), Sweeper.of(context.shardAndStrategy()));
         verify(sweepQueueCleaner)
                 .clean(
-                        eq(context.shardAndStrategy()),
-                        eq(ImmutableSet.of()),
-                        eq(sweepTimestamp - 1),
-                        eq(DedicatedRows.of(ImmutableList.of())));
+                        context.shardAndStrategy(),
+                        ImmutableSet.of(),
+                        sweepTimestamp - 1,
+                        DedicatedRows.of(ImmutableList.of()));
         verify(bucketProgressStore)
                 .updateBucketProgressToAtLeast(
                         context.bucket(),
@@ -270,13 +269,13 @@ public class DefaultSingleBucketSweepTaskTest {
                         ImmutableSet.of(SweepQueueUtils.tsPartitionFine(context.startTimestampInclusive()))));
 
         defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket());
-        verify(sweepQueueDeleter).sweep(eq(ImmutableList.of()), eq(Sweeper.of(context.shardAndStrategy())));
+        verify(sweepQueueDeleter).sweep(ImmutableList.of(), Sweeper.of(context.shardAndStrategy()));
         verify(sweepQueueCleaner)
                 .clean(
-                        eq(context.shardAndStrategy()),
-                        eq(ImmutableSet.of(SweepQueueUtils.tsPartitionFine(context.startTimestampInclusive()))),
-                        eq(sweepTimestamp - 1),
-                        eq(DedicatedRows.of(ImmutableList.of())));
+                        context.shardAndStrategy(),
+                        ImmutableSet.of(SweepQueueUtils.tsPartitionFine(context.startTimestampInclusive())),
+                        sweepTimestamp - 1,
+                        DedicatedRows.of(ImmutableList.of()));
         verify(bucketProgressStore)
                 .updateBucketProgressToAtLeast(
                         context.bucket(),
@@ -328,10 +327,10 @@ public class DefaultSingleBucketSweepTaskTest {
 
         verify(sweepQueueCleaner)
                 .clean(
-                        eq(context.shardAndStrategy()),
-                        eq(ImmutableSet.of(SweepQueueUtils.tsPartitionFine(context.startTimestampInclusive()))),
-                        eq(context.startTimestampInclusive() + SweepQueueUtils.TS_FINE_GRANULARITY),
-                        eq(dedicatedRows));
+                        context.shardAndStrategy(),
+                        ImmutableSet.of(SweepQueueUtils.tsPartitionFine(context.startTimestampInclusive())),
+                        context.startTimestampInclusive() + SweepQueueUtils.TS_FINE_GRANULARITY,
+                        dedicatedRows);
         verify(bucketProgressStore)
                 .updateBucketProgressToAtLeast(
                         context.bucket(),

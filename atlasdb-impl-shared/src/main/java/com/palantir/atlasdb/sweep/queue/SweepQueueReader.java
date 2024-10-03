@@ -24,7 +24,7 @@ public class SweepQueueReader {
     private final SweepableCells sweepableCells;
     private final ReadBatchingRuntimeContext runtime;
 
-    SweepQueueReader(
+    public SweepQueueReader(
             SweepableTimestamps sweepableTimestamps,
             SweepableCells sweepableCells,
             ReadBatchingRuntimeContext runtime) {

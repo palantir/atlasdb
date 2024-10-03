@@ -29,10 +29,27 @@ public interface SweepBatchWithPartitionInfo {
     Set<Long> finePartitions();
 
     default Set<Long> partitionsForPreviousLastSweptTs(long previousLastSweptTs) {
-        return partitionsForPreviousLastSweptTs(previousLastSweptTs, SweepQueueUtils::firstSweep);
+        return partitionsForPreviousLastSweptTsInternal(previousLastSweptTs, SweepQueueUtils::firstSweep);
     }
 
-    default Set<Long> partitionsForPreviousLastSweptTs(
+    /**
+     * Determines the partitions that were completed from a previously swept timestamp until the end of this batch.
+     * Differently from {@link #partitionsForPreviousLastSweptTs(long)}, this method applies a minimum bound to
+     * the partition range, which may be useful if we want to consider a sub-range of the sweep queue (which,
+     * in particular, may itself not contain previousLastSweptTs).
+     */
+    default Set<Long> partitionsForPreviousLastSweptTsWithMinimumBound(long previousLastSweptTs, long minimumBound) {
+        return partitionsForPreviousLastSweptTsInternal(previousLastSweptTs, value -> value < minimumBound);
+    }
+
+    static SweepBatchWithPartitionInfo of(SweepBatch sweepBatch, Set<Long> finePartitions) {
+        return ImmutableSweepBatchWithPartitionInfo.builder()
+                .sweepBatch(sweepBatch)
+                .finePartitions(finePartitions)
+                .build();
+    }
+
+    private Set<Long> partitionsForPreviousLastSweptTsInternal(
             long previousLastSweptTs, LongPredicate criteriaForExcludingPreviousTimestamp) {
         Set<Long> encounteredPartitions = criteriaForExcludingPreviousTimestamp.test(previousLastSweptTs)
                 ? finePartitions()
@@ -41,16 +58,5 @@ public interface SweepBatchWithPartitionInfo {
         return Sets.difference(
                 encounteredPartitions,
                 ImmutableSet.of(SweepQueueUtils.tsPartitionFine(sweepBatch().lastSweptTimestamp() + 1)));
-    }
-
-    default Set<Long> partitionsForPreviousLastSweptTsWithMinimumBound(long previousLastSweptTs, long minimumBound) {
-        return partitionsForPreviousLastSweptTs(previousLastSweptTs, value -> value < minimumBound);
-    }
-
-    static SweepBatchWithPartitionInfo of(SweepBatch sweepBatch, Set<Long> finePartitions) {
-        return ImmutableSweepBatchWithPartitionInfo.builder()
-                .sweepBatch(sweepBatch)
-                .finePartitions(finePartitions)
-                .build();
     }
 }

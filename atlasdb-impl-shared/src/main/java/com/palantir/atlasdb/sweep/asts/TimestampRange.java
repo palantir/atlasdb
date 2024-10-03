@@ -14,10 +14,24 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.sweep.asts.bucketingthings;
+package com.palantir.atlasdb.sweep.asts;
 
-public interface SweepBucketAssignerStateMachineTable {
-    void updateStateMachineForBucketAssigner(BucketStateAndIdentifier original, BucketStateAndIdentifier updated);
+import org.immutables.value.Value;
 
-    BucketStateAndIdentifier getBucketStateAndIdentifier();
+@Value.Immutable
+public interface TimestampRange {
+    @Value.Parameter
+    long startInclusive();
+
+    @Value.Parameter
+    long endExclusive();
+
+    static TimestampRange of(long startInclusive, long endExclusive) {
+        return ImmutableTimestampRange.of(startInclusive, endExclusive);
+    }
+
+    static TimestampRange openBucket(long startInclusive) {
+        // Think very carefully about changing from -1 without a migration
+        return of(startInclusive, -1);
+    }
 }

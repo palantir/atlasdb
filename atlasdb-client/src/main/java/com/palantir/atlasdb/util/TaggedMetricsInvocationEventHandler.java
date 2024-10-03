@@ -23,6 +23,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.event.AbstractInvocationEventHandler;
@@ -162,7 +163,6 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
 
     @Override
     public void onFailure(@Nullable InvocationContext context, @Nonnull Throwable cause) {
-        markGlobalFailure();
         if (context == null) {
             log.debug("Encountered null metric context likely due to exception in preInvocation", cause);
             return;
@@ -176,18 +176,13 @@ public class TaggedMetricsInvocationEventHandler extends AbstractInvocationEvent
                         .safeTags(tags)
                         .build())
                 .mark();
-        taggedMetricRegistry
-                .meter(MetricName.builder()
-                        .safeName(MetricRegistry.name(
-                                failuresMetricName, cause.getClass().getName()))
-                        .safeTags(tags)
-                        .build())
-                .mark();
-    }
-
-    private void markGlobalFailure() {
-        taggedMetricRegistry
-                .meter(InstrumentationUtils.TAGGED_FAILURES_METRIC_NAME)
-                .mark();
+        if (log.isDebugEnabled()) {
+            log.debug(
+                    "Instrumented service method failed with exception",
+                    SafeArg.of("service", serviceName),
+                    SafeArg.of("method", context.getMethod()),
+                    SafeArg.of("tags", tags),
+                    cause);
+        }
     }
 }
