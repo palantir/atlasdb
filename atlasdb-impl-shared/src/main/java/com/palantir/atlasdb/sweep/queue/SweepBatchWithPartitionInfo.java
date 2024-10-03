@@ -32,17 +32,12 @@ public interface SweepBatchWithPartitionInfo {
         return partitionsForPreviousLastSweptTs(previousLastSweptTs, SweepQueueUtils::firstSweep);
     }
 
-    default Set<Long> partitionsForPreviousLastSweptTs(
-            long previousLastSweptTs, LongPredicate criteriaForExcludingPreviousTimestamp) {
-        Set<Long> encounteredPartitions = criteriaForExcludingPreviousTimestamp.test(previousLastSweptTs)
-                ? finePartitions()
-                : Sets.union(finePartitions(), ImmutableSet.of(SweepQueueUtils.tsPartitionFine(previousLastSweptTs)));
-
-        return Sets.difference(
-                encounteredPartitions,
-                ImmutableSet.of(SweepQueueUtils.tsPartitionFine(sweepBatch().lastSweptTimestamp() + 1)));
-    }
-
+    /**
+     * Determines the partitions that were completed from a previously swept timestamp until the end of this batch.
+     * Differently from {@link #partitionsForPreviousLastSweptTs(long)}, this method applies a minimum bound to
+     * the partition range, which may be useful if we want to consider a sub-range of the sweep queue (which,
+     * in particular, may not itself contain previousLastSweptTs).
+     */
     default Set<Long> partitionsForPreviousLastSweptTsWithMinimumBound(long previousLastSweptTs, long minimumBound) {
         return partitionsForPreviousLastSweptTs(previousLastSweptTs, value -> value < minimumBound);
     }
@@ -52,5 +47,16 @@ public interface SweepBatchWithPartitionInfo {
                 .sweepBatch(sweepBatch)
                 .finePartitions(finePartitions)
                 .build();
+    }
+
+    private Set<Long> partitionsForPreviousLastSweptTs(
+            long previousLastSweptTs, LongPredicate criteriaForExcludingPreviousTimestamp) {
+        Set<Long> encounteredPartitions = criteriaForExcludingPreviousTimestamp.test(previousLastSweptTs)
+                ? finePartitions()
+                : Sets.union(finePartitions(), ImmutableSet.of(SweepQueueUtils.tsPartitionFine(previousLastSweptTs)));
+
+        return Sets.difference(
+                encounteredPartitions,
+                ImmutableSet.of(SweepQueueUtils.tsPartitionFine(sweepBatch().lastSweptTimestamp() + 1)));
     }
 }
