@@ -104,13 +104,6 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
         targetedSweepMetrics.registerEntriesReadInBatch(shardAndStrategy, sweepBatch.entriesRead());
 
         if (!sweepBatch.isEmpty()) {
-<<<<<<< HEAD
-            log.debug(
-                    "Put {} ranged tombstones and swept up to timestamp {} for {}.",
-                    SafeArg.of("tombstones", sweepBatch.writes().size()),
-                    SafeArg.of("lastSweptTs", sweepBatch.lastSweptTimestamp()),
-                    SafeArg.of("shardStrategy", shardAndStrategy.toText()));
-=======
             if (log.isDebugEnabled()) {
                 log.debug(
                         "Put {} ranged tombstones and swept up to timestamp {} for {}.",
@@ -118,7 +111,6 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
                         SafeArg.of("lastSweptTs", sweepBatch.lastSweptTimestamp()),
                         SafeArg.of("shardStrategy", shardAndStrategy.toText()));
             }
->>>>>>> develop
         }
 
         long lastTs = sweepBatch.lastSweptTimestamp();
@@ -139,12 +131,9 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
             markBucketCompleteIfEligible(sweepableBucket);
         }
 
-<<<<<<< HEAD
-=======
         targetedSweepMetrics.updateNumberOfTombstones(
                 shardAndStrategy, sweepBatch.writes().size());
 
->>>>>>> develop
         // No updating of overall progress; that's a responsibility of the background updating task
         return sweepBatch.entriesRead();
     }
