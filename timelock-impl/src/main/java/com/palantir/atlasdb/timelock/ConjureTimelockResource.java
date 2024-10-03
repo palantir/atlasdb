@@ -24,6 +24,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
+import com.palantir.atlasdb.timelock.api.AcquireNamedTimestampMinimumLeaseRequest;
+import com.palantir.atlasdb.timelock.api.AcquireNamedTimestampMinimumLeaseResponse;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
@@ -53,6 +55,7 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UndertowConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
@@ -116,6 +119,16 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
             @Nullable RequestContext context) {
         return handleExceptions(() ->
                 forNamespace(namespace, TimelockNamespaces.toUserAgent(context)).startTransactionsWithWatches(request));
+    }
+
+    @Override
+    public ListenableFuture<AcquireNamedTimestampMinimumLeaseResponse> acquireNamedTimestampMinimumLease(
+            AuthHeader authHeader,
+            Namespace namespace,
+            AcquireNamedTimestampMinimumLeaseRequest request,
+            RequestContext requestContext) {
+        // TODO(aalouane): Add a method to the AsyncTimeLockService interface
+        return null;
     }
 
     @Override
@@ -461,6 +474,12 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         public GetCommitTimestampResponse getCommitTimestamp(
                 AuthHeader authHeader, String namespace, GetCommitTimestampRequest request) {
             return unwrap(resource.getCommitTimestamp(authHeader, namespace, request, null));
+        }
+
+        @Override
+        public AcquireNamedTimestampMinimumLeaseResponse acquireNamedTimestampMinimumLease(
+                AuthHeader authHeader, Namespace namespace, AcquireNamedTimestampMinimumLeaseRequest request) {
+            return unwrap(resource.acquireNamedTimestampMinimumLease(authHeader, namespace, request, null));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {

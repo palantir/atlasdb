@@ -29,6 +29,8 @@ import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
+import com.palantir.atlasdb.timelock.api.AcquireNamedTimestampMinimumLeaseRequest;
+import com.palantir.atlasdb.timelock.api.AcquireNamedTimestampMinimumLeaseResponse;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
@@ -144,6 +146,16 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
                         requests.entrySet(), e -> unlockForSingleNamespace(e.getKey(), e.getValue(), context))),
                 ImmutableMap::copyOf,
                 MoreExecutors.directExecutor()));
+    }
+
+    @Override
+    public ListenableFuture<Map<Namespace, AcquireNamedTimestampMinimumLeaseResponse>>
+            acquireNamedTimestampMinimumLease(
+                    AuthHeader authHeader,
+                    Map<Namespace, AcquireNamedTimestampMinimumLeaseRequest> requests,
+                    RequestContext requestContext) {
+        // TODO(aalouane): add to AsyncTimeLockService
+        return null;
     }
 
     private ListenableFuture<Entry<Namespace, ConjureUnlockResponseV2>> unlockForSingleNamespace(
@@ -262,6 +274,12 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
         public Map<Namespace, ConjureUnlockResponseV2> unlock(
                 AuthHeader authHeader, Map<Namespace, ConjureUnlockRequestV2> requests) {
             return unwrap(resource.unlock(authHeader, requests, null));
+        }
+
+        @Override
+        public Map<Namespace, AcquireNamedTimestampMinimumLeaseResponse> acquireNamedTimestampMinimumLease(
+                AuthHeader authHeader, Map<Namespace, AcquireNamedTimestampMinimumLeaseRequest> requests) {
+            return unwrap(resource.acquireNamedTimestampMinimumLease(authHeader, requests, null));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {

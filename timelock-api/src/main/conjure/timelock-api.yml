@@ -217,6 +217,24 @@ types:
       LeaderTimes:
         fields:
           leaderTimes: map<Namespace, LeaderTime>
+      NamedMinimumTimestampLeaseIdentifier:
+        alias: string
+        safety: safe
+      AcquireNamedTimestampMinimumLeaseRequest:
+        fields:
+          namedTimestampIdentifier: NamedMinimumTimestampLeaseIdentifier
+          requestId:
+            type: uuid
+            safety: safe
+          numFreshTimestamps:
+            type: integer
+            safety: safe
+      AcquireNamedTimestampMinimumLeaseResponse:
+        fields:
+          # should I add an identifier here? it's redundant but could help validate?
+          barrierTimestamp: Long
+          leaseLockToken: LockToken
+          freshTimestamps: ConjureTimestampRange
 
 services:
   ConjureTimelockService:
@@ -356,6 +374,14 @@ services:
         tags:
           - server-request-context
         returns: GetCommitTimestampResponse
+      acquireNamedTimestampMinimumLease:
+        http: POST /lnit/{namespace}
+        args:
+          namespace: Namespace
+          request: AcquireNamedTimestampMinimumLeaseRequest
+        tags:
+          - server-request-context
+        returns: AcquireNamedTimestampMinimumLeaseResponse
   ConjureLockWatchingService:
     name: Lock Watching service
     default-auth: header
@@ -449,3 +475,12 @@ services:
         returns: map<Namespace, ConjureUnlockResponseV2>
         docs: |
           Version of unlockV2 to unlock locks across multiple namespaces.
+      acquireNamedTimestampMinimumLease:
+        # batching across clients for one type of timestamp is useful
+        # mixing, probably not so much
+        http: POST /lnit
+        args:
+          requests: map<Namespace, AcquireNamedTimestampMinimumLeaseRequest>
+        tags:
+          - server-request-context
+        returns: map<Namespace, AcquireNamedTimestampMinimumLeaseResponse>

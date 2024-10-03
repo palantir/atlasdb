@@ -15,46 +15,22 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-import com.palantir.atlasdb.timelock.util.LoggableIllegalStateException;
-import com.palantir.logsafe.SafeArg;
 import java.util.Optional;
-import java.util.SortedMap;
-import java.util.TreeMap;
 import java.util.UUID;
-import javax.annotation.concurrent.GuardedBy;
 
 public class ImmutableTimestampTracker {
+    private final MinimumTimestampLessorImpl lessor = new MinimumTimestampLessorImpl();
 
-    @GuardedBy("this")
-    private final SortedMap<Long, UUID> holdersByTimestamp = new TreeMap<>();
-
-    public synchronized void lock(long timestamp, UUID requestId) {
-        boolean wasAdded = holdersByTimestamp.putIfAbsent(timestamp, requestId) == null;
-        if (!wasAdded) {
-            throw new LoggableIllegalStateException(
-                    "A request attempted to lock a timestamp that was already locked",
-                    SafeArg.of("timestamp", timestamp),
-                    SafeArg.of("requestId", requestId),
-                    SafeArg.of("currentHolder", holdersByTimestamp.get(timestamp)));
-        }
+    public void lock(long timestamp, UUID requestId) {
+        lessor.hold(timestamp, requestId);
     }
 
-    public synchronized void unlock(long timestamp, UUID requestId) {
-        boolean wasRemoved = holdersByTimestamp.remove(timestamp, requestId);
-        if (!wasRemoved) {
-            throw new LoggableIllegalStateException(
-                    "A request attempted to unlock a timestamp that was not locked or was locked by another request",
-                    SafeArg.of("timestamp", timestamp),
-                    SafeArg.of("requestId", requestId),
-                    SafeArg.of("currentHolder", holdersByTimestamp.get(timestamp)));
-        }
+    public void unlock(long timestamp, UUID requestId) {
+        lessor.release(timestamp, requestId);
     }
 
-    public synchronized Optional<Long> getImmutableTimestamp() {
-        if (holdersByTimestamp.isEmpty()) {
-            return Optional.empty();
-        }
-        return Optional.of(holdersByTimestamp.firstKey());
+    public Optional<Long> getImmutableTimestamp() {
+        return lessor.getMinimumLeased();
     }
 
     // TODO(nziebart): should these locks should be created by LockCollection for consistency?
