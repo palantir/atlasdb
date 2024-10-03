@@ -277,6 +277,7 @@ public class DefaultSingleBucketSweepTaskTest {
                         ImmutableSet.of(SweepQueueUtils.tsPartitionFine(context.startTimestampInclusive()))));
 
         defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket());
+
         verify(sweepQueueDeleter).sweep(ImmutableList.of(), Sweeper.of(context.shardAndStrategy()));
         verify(sweepQueueCleaner)
                 .clean(
@@ -311,6 +312,16 @@ public class DefaultSingleBucketSweepTaskTest {
                         ImmutableSet.of(SweepQueueUtils.tsPartitionFine(context.startTimestampInclusive()))));
 
         defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket());
+
+        // This is implied by strict mocking plus subsequent validations using information that was returned, but for
+        // this test it is essential that we fail if this call does not happen, hence explicitly stating this.
+        verify(sweepQueueReader)
+                .getNextBatchToSweep(
+                        context.shardAndStrategy(),
+                        context.startTimestampInclusive() - 1,
+                        context.endTimestampExclusive(),
+                        sweepTimestamp);
+
         verify(sweepQueueDeleter).sweep(ImmutableList.of(), Sweeper.of(context.shardAndStrategy()));
         verify(sweepQueueCleaner)
                 .clean(
