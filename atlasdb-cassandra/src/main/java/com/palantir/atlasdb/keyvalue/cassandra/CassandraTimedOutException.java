@@ -26,12 +26,13 @@ import javax.annotation.Nullable;
 public class CassandraTimedOutException extends RuntimeException implements SafeLoggable {
     private static final long serialVersionUID = 1L;
     private static final String LOG_MESSAGE =
-            "Cassandra query threw a TimedOut exception. Possible reasons and possible actions to resolve: 1. Reason:"
-                + " atlasdb clients are requesting too much data from Cassandra. Resolution: Change query to request"
-                + " less data.2. Reason: Data deleted is being read in the query (eg// Large amount of tombstones)."
-                + " Resolution: Run a compaction on your cassandra server.3. Reason: Cassandra is struggling, either"
-                + " due to another large query or server health or network outage. Resolution: Ask your CassandraOps"
-                + " to check the state of the Cassandra server.";
+            "Cassandra query threw a TimedOut exception. Possible reasons and actions to resolve include:\n"
+                    + "1. Reason: AtlasDB clients are requesting too much data from Cassandra.\n"
+                    + "   Resolution: Change the query to request less data.\n"
+                    + "2. Reason: Data that has been deleted is being read in the query (e.g., a large amount of tombstones).\n"
+                    + "   Resolution: Run a compaction on your Cassandra server.\n"
+                    + "3. Reason: Cassandra is struggling, possibly due to another large query, server health issues, or a network outage.\n"
+                    + "   Resolution: Ask your CassandraOps to check the state of the Cassandra server.";
     private final List<Arg<?>> args;
 
     public CassandraTimedOutException(Throwable throwable, Arg<?>... args) {
