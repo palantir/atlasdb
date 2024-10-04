@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.sweep.asts;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.CompletelyClosedSweepBucketBoundRetriever;
@@ -31,7 +32,8 @@ import java.util.Set;
 import org.immutables.value.Value;
 
 public class DefaultShardProgressUpdater implements ShardProgressUpdater {
-    private static final long MAX_BUCKETS_TO_CHECK_PER_ITERATION = 100L;
+    @VisibleForTesting
+    static final long MAX_BUCKETS_TO_CHECK_PER_ITERATION = 100L;
 
     private final BucketProgressStore bucketProgressStore;
     private final SweepQueueProgressUpdater sweepQueueProgressUpdater;
@@ -53,7 +55,7 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
     }
 
     @Override
-    public void updateProgress(ShardAndStrategy shardAndStrategy, long currentSweepTimestamp) {
+    public void updateProgress(ShardAndStrategy shardAndStrategy) {
         long bucketPointer = getStrictUpperBoundForSweptBuckets(shardAndStrategy);
         BucketProbeResult bucketProbeResult = findCompletedBuckets(shardAndStrategy, bucketPointer);
 
@@ -72,6 +74,11 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
         sweepQueueProgressUpdater.progressTo(shardAndStrategy, bucketProbeResult.knownSweepProgress());
     }
 
+    /**
+     * Returns a {@link BucketProbeResult} indicating a prefix of cells that have been swept successfully, starting
+     * from a given point in time. It is assumed that all buckets before searchStart have been swept successfully;
+     * if this is not the case, behaviour is undefined.
+     */
     private BucketProbeResult findCompletedBuckets(ShardAndStrategy shardAndStrategy, long searchStart) {
         for (long offset = 0; offset < MAX_BUCKETS_TO_CHECK_PER_ITERATION; offset++) {
             long currentBucket = searchStart + offset;
@@ -99,7 +106,7 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
                     }
                 }
             } else {
-                // No progress; we're ahead of the pointer, so interpret as unstarted. Return where we got
+                // No progress; we're ahead of the read pointer, so interpret as unstarted.
                 return BucketProbeResult.builder()
                         .endExclusive(currentBucket)
                         .knownSweepProgress(recordsTable

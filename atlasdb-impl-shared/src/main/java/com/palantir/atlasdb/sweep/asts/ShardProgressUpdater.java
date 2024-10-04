@@ -19,5 +19,5 @@ package com.palantir.atlasdb.sweep.asts;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 
 public interface ShardProgressUpdater {
-    void updateProgress(ShardAndStrategy shardAndStrategy, long currentSweepTimestamp);
+    void updateProgress(ShardAndStrategy shardAndStrategy);
 }

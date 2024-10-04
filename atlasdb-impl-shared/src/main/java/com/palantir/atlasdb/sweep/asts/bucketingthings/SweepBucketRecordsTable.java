@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
-import com.palantir.atlasdb.sweep.asts.SweepableBucket.TimestampRange;
+import com.palantir.atlasdb.sweep.asts.TimestampRange;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 
 public interface SweepBucketRecordsTable {
