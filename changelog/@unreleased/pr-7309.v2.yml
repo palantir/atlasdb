@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: TransactionManagers#createInMemory uses synchronous unlocker.
+  links:
+  - https://github.com/palantir/atlasdb/pull/7309
