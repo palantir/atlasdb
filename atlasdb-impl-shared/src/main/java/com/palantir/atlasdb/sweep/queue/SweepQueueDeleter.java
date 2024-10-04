@@ -43,7 +43,7 @@ public class SweepQueueDeleter {
     private final TargetedSweepFilter filter;
     private final Function<TableReference, Optional<LogSafety>> tablesToTrackDeletions;
 
-    SweepQueueDeleter(
+    public SweepQueueDeleter(
             KeyValueService kvs,
             TargetedSweepFollower follower,
             TargetedSweepFilter filter,

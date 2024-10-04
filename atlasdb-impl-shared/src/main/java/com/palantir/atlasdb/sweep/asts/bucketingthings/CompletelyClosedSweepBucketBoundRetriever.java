@@ -16,21 +16,10 @@
 
 package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import org.immutables.value.Value;
-
-@JsonSerialize(as = ImmutableBucketStateAndIdentifier.class)
-@JsonDeserialize(as = ImmutableBucketStateAndIdentifier.class)
-@Value.Immutable
-public interface BucketStateAndIdentifier {
-    @Value.Parameter
-    long bucketIdentifier();
-
-    @Value.Parameter
-    BucketAssignerState state();
-
-    static BucketStateAndIdentifier of(long bucketIdentifier, BucketAssignerState state) {
-        return ImmutableBucketStateAndIdentifier.of(bucketIdentifier, state);
-    }
+public interface CompletelyClosedSweepBucketBoundRetriever {
+    /**
+     * It is guaranteed that all sweep buckets up to, BUT NOT including this number, are closed, and that we will
+     * not add new entries to the buckets table with numbers before a value returned by this method.
+     */
+    long getStrictUpperBoundForCompletelyClosedBuckets();
 }

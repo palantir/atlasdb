@@ -16,21 +16,12 @@
 
 package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import org.immutables.value.Value;
+import com.palantir.atlasdb.sweep.asts.Bucket;
 
-@JsonSerialize(as = ImmutableBucketStateAndIdentifier.class)
-@JsonDeserialize(as = ImmutableBucketStateAndIdentifier.class)
-@Value.Immutable
-public interface BucketStateAndIdentifier {
-    @Value.Parameter
-    long bucketIdentifier();
-
-    @Value.Parameter
-    BucketAssignerState state();
-
-    static BucketStateAndIdentifier of(long bucketIdentifier, BucketAssignerState state) {
-        return ImmutableBucketStateAndIdentifier.of(bucketIdentifier, state);
-    }
+public interface BucketCompletionListener {
+    /**
+     * Marks a bucket as complete. This method should ONLY be called once we are certain the bucket no longer needs
+     * to be swept.
+     */
+    void markBucketCompleteAndRemoveFromScheduling(Bucket bucket);
 }
