@@ -45,7 +45,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 final class DefaultSweepAssignedBucketStore
-        implements SweepBucketAssignerStateMachineTable, SweepBucketPointerTable, SweepBucketsTable {
+        implements SweepBucketAssignerStateMachineTable,
+                SweepBucketPointerTable,
+                SweepBucketsTable,
+                SweepBucketRecordsTable {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultSweepAssignedBucketStore.class);
     private static final int CAS_ATTEMPT_LIMIT = 5;
 
@@ -220,6 +223,26 @@ final class DefaultSweepAssignedBucketStore
     @Override
     public void deleteBucketEntry(Bucket bucket) {
         throw new UnsupportedOperationException("deleteBucketEntry is not implemented yet.");
+    }
+
+    @Override
+    public TimestampRange getTimestampRangeRecord(long bucketIdentifier) {
+        Cell cell = SweepAssignedBucketStoreKeyPersister.INSTANCE.sweepBucketRecordsCell(bucketIdentifier);
+        return readCell(cell, timestampRangePersister::tryDeserialize)
+                .orElseThrow(() -> new SafeIllegalStateException(
+                        "No timestamp range record found for bucket identifier",
+                        SafeArg.of("bucketIdentifier", bucketIdentifier)));
+    }
+
+    @Override
+    public void putTimestampRangeRecord(long bucketIdentifier, TimestampRange timestampRange) {
+        Cell cell = SweepAssignedBucketStoreKeyPersister.INSTANCE.sweepBucketRecordsCell(bucketIdentifier);
+        casCell(cell, Optional.empty(), timestampRangePersister.trySerialize(timestampRange));
+    }
+
+    @Override
+    public void deleteTimestampRangeRecord(long bucketIdentifier) {
+        throw new UnsupportedOperationException("deleteTimestampRangeRecord is not implemented yet.");
     }
 
     private void casCell(Cell cell, Optional<byte[]> existingValue, byte[] newValue) {
