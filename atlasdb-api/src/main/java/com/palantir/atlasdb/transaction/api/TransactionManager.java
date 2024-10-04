@@ -423,8 +423,12 @@ public interface TransactionManager extends AutoCloseable {
      * account only timestamps returned in that method for the given {@code timestampLockDescriptor},
      * rather than all start timestamps for open transactions.
      * <p>
-     * If no transactions with a {@code timestampLockDescriptor} lock are open, then we'd return a new fresh timestamp,
+     * If no transactions with a {@code timestampLockDescriptor} lock are open, this method is
      * equivalent to {@link Transaction#getTimestamp()}.
+     * <p>
+     * Do consider to fetch the lock timestamp outside of transactions that potentially use it - if fetching the
+     * locked timestamp inside a transaction, it's possible for the locked timestamp to be greater than the
+     * transaction's start timestamp, meaning the transaction cannot read all data up to locked timestamp.
      *
      * @param timestampLockDescriptor the string representing the timestampLockDescriptor locks
      * @return the timestamp that is before any timestamp returned by the consumer of {@link TimestampLockAwareTransaction#preCommit(com.palantir.lock.LockDescriptor, int, Consumer)}

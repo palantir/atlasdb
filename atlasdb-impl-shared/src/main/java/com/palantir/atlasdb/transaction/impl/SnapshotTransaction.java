@@ -1910,22 +1910,22 @@ public class SnapshotTransaction extends AbstractTransaction
 
     private void runPreCommitCallbacks() {
         preCommitActions.forEach((lockDescriptor, actions) -> {
-            TimestampRange freshTimestamps;
-            if (actions.lockedTimestampCount > 0) {
-                //            timelockService.getLockedTimestamp(lockDescriptor);
-                 freshTimestamps = timelockService.getFreshTimestamps(actions.lockedTimestampCount);
-            } else {
-                // TODO: clean this up for empty case
-                freshTimestamps = TimestampRange.createInclusiveRange(0L, 0L);
-            }
-
-            long[] lockTimestamp = new long[] {freshTimestamps.getLowerBound()};
-            actions.actions.forEach(action -> action.accept(() -> {
-                if (lockTimestamp[0] > freshTimestamps.getUpperBound()) {
+            Supplier<Long> lockedTimestampSupplier;
+            if (actions.lockedTimestampCount == 0) {
+                lockedTimestampSupplier = () -> {
                     throw new RuntimeException();
-                }
-                return lockTimestamp[0]++;
-            }));
+                };
+            } else {
+                TimestampRange timestampRange = timelockService.getFreshTimestamps(actions.lockedTimestampCount);
+                long[] lockedTimestamp = new long[] {timestampRange.getLowerBound()};
+                lockedTimestampSupplier = () -> {
+                    if (lockedTimestamp[0] > timestampRange.getUpperBound()) {
+                        throw new RuntimeException();
+                    }
+                    return lockedTimestamp[0]++;
+                };
+            }
+            actions.actions.forEach(action -> action.accept(lockedTimestampSupplier::get));
         });
     }
 
