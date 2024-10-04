@@ -18,6 +18,8 @@ package com.palantir.atlasdb.timelock;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.palantir.atlasdb.timelock.api.AcquireNamedTimestampMinimumLeaseRequest;
+import com.palantir.atlasdb.timelock.api.AcquireNamedTimestampMinimumLeaseResponse;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
@@ -72,6 +74,9 @@ public interface AsyncTimelockService
     ListenableFuture<LeaderTime> leaderTime();
 
     ListenableFuture<TimestampRange> getFreshTimestampsAsync(int timestampsToRequest);
+
+    ListenableFuture<AcquireNamedTimestampMinimumLeaseResponse> acquireNamedTimestampMinimumLease(
+            AcquireNamedTimestampMinimumLeaseRequest request);
 
     default ListenableFuture<Long> getFreshTimestampAsync() {
         return Futures.transform(

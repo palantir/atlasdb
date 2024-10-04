@@ -126,9 +126,9 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
             AuthHeader authHeader,
             Namespace namespace,
             AcquireNamedTimestampMinimumLeaseRequest request,
-            RequestContext requestContext) {
-        // TODO(aalouane): Add a method to the AsyncTimeLockService interface
-        return null;
+            @Nullable RequestContext context) {
+        return handleExceptions(() -> forNamespace(namespace.get(), TimelockNamespaces.toUserAgent(context))
+                .acquireNamedTimestampMinimumLease(request));
     }
 
     @Override

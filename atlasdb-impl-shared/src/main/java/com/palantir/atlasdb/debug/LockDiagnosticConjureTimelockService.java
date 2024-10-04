@@ -167,7 +167,7 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
     @Override
     public AcquireNamedTimestampMinimumLeaseResponse acquireNamedTimestampMinimumLease(
             AuthHeader authHeader, Namespace namespace, AcquireNamedTimestampMinimumLeaseRequest request) {
-        return null;
+        return conjureDelegate.acquireNamedTimestampMinimumLease(authHeader, namespace, request);
     }
 
     private static Optional<Long> tryParseStartTimestamp(String description) {

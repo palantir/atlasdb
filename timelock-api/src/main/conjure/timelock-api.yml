@@ -232,9 +232,12 @@ types:
       AcquireNamedTimestampMinimumLeaseResponse:
         fields:
           # should I add an identifier here? it's redundant but could help validate?
-          barrierTimestamp: Long
+          barrierTimestamp: Long # rename to minimumLeasedTimestamp
           leaseLockToken: LockToken
           freshTimestamps: ConjureTimestampRange
+      GetNamedMinimumLeasedTimestampRequest:
+        fields:
+          namedTimestampIdentifier: NamedMinimumTimestampLeaseIdentifier
 
 services:
   ConjureTimelockService:
@@ -377,11 +380,23 @@ services:
       acquireNamedTimestampMinimumLease:
         http: POST /lnit/{namespace}
         args:
-          namespace: Namespace
+          namespace:
+            type: string
+            safety: safe
           request: AcquireNamedTimestampMinimumLeaseRequest
         tags:
           - server-request-context
         returns: AcquireNamedTimestampMinimumLeaseResponse
+      getNamedTimestampMinimumLeased:
+        http: GET /gntml/{namespace}
+        args:
+          namespace:
+            type: string
+            safety: safe
+          namedTimestampIdentifier: NamedMinimumTimestampLeaseIdentifier
+        tags:
+          - server-request-context
+        returns: Long
   ConjureLockWatchingService:
     name: Lock Watching service
     default-auth: header
@@ -484,3 +499,13 @@ services:
         tags:
           - server-request-context
         returns: map<Namespace, AcquireNamedTimestampMinimumLeaseResponse>
+      getNamedTimestampMinimumLeased:
+        http: POST /gntml
+        args:
+          namespaces: set<Namespace>
+            type: string
+            safety: safe
+          namedTimestampIdentifier: NamedMinimumTimestampLeaseIdentifier
+        tags:
+          - server-request-context
+        returns: Long

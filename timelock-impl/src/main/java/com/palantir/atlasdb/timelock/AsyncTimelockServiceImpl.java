@@ -19,6 +19,8 @@ import com.codahale.metrics.Histogram;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import com.palantir.atlasdb.timelock.api.AcquireNamedTimestampMinimumLeaseRequest;
+import com.palantir.atlasdb.timelock.api.AcquireNamedTimestampMinimumLeaseResponse;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
@@ -249,6 +251,17 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public ListenableFuture<TimestampRange> getFreshTimestampsAsync(int timestampsToRequest) {
         return Futures.immediateFuture(getFreshTimestamps(timestampsToRequest));
+    }
+
+    @Override
+    public ListenableFuture<AcquireNamedTimestampMinimumLeaseResponse> acquireNamedTimestampMinimumLease(
+            AcquireNamedTimestampMinimumLeaseRequest request) {
+        return Futures.immediateFuture(acquireNamedTimestampMinimumLeaseSync(request));
+    }
+
+    private AcquireNamedTimestampMinimumLeaseResponse acquireNamedTimestampMinimumLeaseSync(
+            AcquireNamedTimestampMinimumLeaseRequest request) {
+        return null;
     }
 
     @Override

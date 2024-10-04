@@ -16,13 +16,25 @@
 
 package com.palantir.atlasdb.timelock.lock;
 
+import com.palantir.lock.v2.LockToken;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 
-public interface MinimumTimestampLessor {
-    void hold(long timestamp, UUID requestId);
+public class MinimumTimestampLeaseManagerImpl<T> implements MinimumTimestampLeaseManager<LockToken> {
+    MinimumTimestampLeaseManager(BiFunction<>)
 
-    void release(long timestamp, UUID requestId);
+    @Override
+    public LeaseAndMinimumLeased acquireLease(LockToken value) {
+        return null;
+    }
 
-    Optional<Long> getMinimumLeased();
+    @Override
+    public Optional<Long> getMinimumLeased() {
+        return Optional.empty();
+    }
+
+    public interface Locker {
+        LockToken lock(long timestamp, UUID requestId);
+    }
 }

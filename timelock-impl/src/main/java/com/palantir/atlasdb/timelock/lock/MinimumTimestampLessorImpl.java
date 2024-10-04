@@ -24,7 +24,7 @@ import java.util.TreeMap;
 import java.util.UUID;
 import javax.annotation.concurrent.GuardedBy;
 
-final class MinimumTimestampLessorImpl implements MinimumTimestampLessor {
+public final class MinimumTimestampLessorImpl implements MinimumTimestampLessor {
     @GuardedBy("this")
     private final SortedMap<Long, UUID> holdersByTimestamp = new TreeMap<>();
 
