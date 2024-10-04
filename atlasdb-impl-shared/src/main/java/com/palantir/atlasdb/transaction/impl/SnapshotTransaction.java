@@ -147,6 +147,7 @@ import com.palantir.common.streams.MoreStreams;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -163,12 +164,14 @@ import com.palantir.logsafe.exceptions.SafeNullPointerException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.timestamp.TimestampRange;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.RateLimitedLogger;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import com.palantir.util.result.Result;
 import java.nio.ByteBuffer;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -275,6 +278,12 @@ public class SnapshotTransaction extends AbstractTransaction
     private final AtlasDbConstraintCheckingMode constraintCheckingMode;
 
     private final ConcurrentMap<TableReference, ConstraintCheckable> constraintsByTableName = new ConcurrentHashMap<>();
+    private final ConcurrentMap<LockDescriptor, PreCommitActions> preCommitActions = new ConcurrentHashMap<>();
+
+    private static class PreCommitActions {
+        int lockedTimestampCount = 0;
+        List<Consumer<LockedTimestampSupplier>> actions = new ArrayList<>();
+    }
 
     private final AtomicReference<State> state = new AtomicReference<>(State.UNCOMMITTED);
     private final AtomicLong numWriters = new AtomicLong();
@@ -1868,16 +1877,18 @@ public class SnapshotTransaction extends AbstractTransaction
     ///////////////////////////////////////////////////////////////////////////
     @Override
     public void preCommit(Runnable preCommitAction) {
-        preCommit("", 0, _unused -> preCommitAction.run());
+        preCommit(StringLockDescriptor.of(""), 0, _unused -> preCommitAction.run());
     }
 
     @Override
     public void preCommit(
-            String timestampLockDescriptor, int timestampCount, Consumer<TimestampSupplier> preCommitAction) {}
-
-    @Override
-    public long getLockedTimestamp(String timestampLockDescriptor) {
-        return 0;
+            LockDescriptor timestampLockDescriptor,
+            int numLockedTimestamps,
+            Consumer<LockedTimestampSupplier> preCommitAction) {
+        PreCommitActions actions =
+                preCommitActions.computeIfAbsent(timestampLockDescriptor, _unused -> new PreCommitActions());
+        actions.lockedTimestampCount += numLockedTimestamps;
+        actions.actions.add(preCommitAction);
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -1891,9 +1902,31 @@ public class SnapshotTransaction extends AbstractTransaction
 
     @Override
     public void commit(TransactionService transactionService) {
+        runPreCommitCallbacks();
         commitWithoutCallbacks(transactionService);
         runSuccessCallbacksIfDefinitivelyCommitted();
         close();
+    }
+
+    private void runPreCommitCallbacks() {
+        preCommitActions.forEach((lockDescriptor, actions) -> {
+            TimestampRange freshTimestamps;
+            if (actions.lockedTimestampCount > 0) {
+                //            timelockService.getLockedTimestamp(lockDescriptor);
+                 freshTimestamps = timelockService.getFreshTimestamps(actions.lockedTimestampCount);
+            } else {
+                // TODO: clean this up for empty case
+                freshTimestamps = TimestampRange.createInclusiveRange(0L, 0L);
+            }
+
+            long[] lockTimestamp = new long[] {freshTimestamps.getLowerBound()};
+            actions.actions.forEach(action -> action.accept(() -> {
+                if (lockTimestamp[0] > freshTimestamps.getUpperBound()) {
+                    throw new RuntimeException();
+                }
+                return lockTimestamp[0]++;
+            }));
+        });
     }
 
     @Override

@@ -16,8 +16,11 @@
 
 package com.palantir.atlasdb.transaction.api;
 
+import com.google.common.annotations.Beta;
+import com.palantir.lock.LockDescriptor;
 import java.util.function.Consumer;
 
+@Beta
 public interface TimestampLockAwareTransaction {
     /**
      * Similar to {@link Transaction#preCommit(Runnable)} with the option of fetching timestamps.
@@ -25,31 +28,21 @@ public interface TimestampLockAwareTransaction {
      * A lock will be taken on a timestamp before all timestamps provided in {@code preCommitAction}.
      * This lock will be checked at commit time, and if expired, will fail the transaction.
      * <p>
-     * Clients can use {@link #getLockedTimestamp(String)} to fetch the earliest locked
-     * timestamp for a given {@param timestampLockDescriptor} of an open transaction.
+     * Clients can use {@link TransactionManager#getLockedTimestamp(String)} to fetch the earliest locked
+     * timestamp for a given {@code timestampLockDescriptor} of an open transaction.
      * Note these semantics are the quite similar to {@link TransactionManager#getImmutableTimestamp()}, but instead
-     * of tracking open start transaction timestamps, we track open {@code preCommitAction} timestamps.
+     * of tracking open start transaction timestamps, we track {@code preCommitAction} timestamps in open transactions.
      *
      * @param timestampLockDescriptor the string representing the timestampLockDescriptor workflow
-     * @param timestampCount the number of timestamps that will be fetched in the pre-commit hook.
+     * @param numLockedTimestamps the number of timestamps that will be fetched in the pre-commit hook.
      * @param preCommitAction the lambda executed just before commit
-     *
      * @throws RuntimeException If requesting more timestamps in {@code preCommitAction} than specified in
      * timestampCount.
      */
-    void preCommit(String timestampLockDescriptor, int timestampCount, Consumer<TimestampSupplier> preCommitAction);
+    void preCommit(
+            LockDescriptor timestampLockDescriptor, int numLockedTimestamps, Consumer<LockedTimestampSupplier> preCommitAction);
 
-    interface TimestampSupplier {
+    interface LockedTimestampSupplier {
         long getTimestamp();
     }
-
-    /**
-     * See {@link #preCommit(String, int, Consumer)} for more details.
-     * If no transactions with a {@code timestampLockDescriptor} lock are open, then we'd return a new fresh timestamp
-     * - equivalent to {@link Transaction#getTimestamp()}.
-     *
-     * @param timestampLockDescriptor the string representing the timestampLockDescriptor workflow
-     * @return the latest timestamp for which there are no open preCommitAction timestamps.
-     */
-    long getLockedTimestamp(String timestampLockDescriptor);
 }
