@@ -17,37 +17,53 @@
 package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
+import com.palantir.atlasdb.sweep.asts.Bucket;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.ObjectPersister.LogSafety;
+import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
+import com.palantir.common.streams.KeyedStream;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
-final class DefaultSweepAssignedBucketStore implements SweepBucketAssignerStateMachineTable {
+final class DefaultSweepAssignedBucketStore implements SweepBucketAssignerStateMachineTable, SweepBucketPointerTable {
+    private static final SafeLogger log = SafeLoggerFactory.get(DefaultSweepAssignedBucketStore.class);
+    private static final int CAS_ATTEMPT_LIMIT = 5;
+
     @VisibleForTesting
     static final TableReference TABLE_REF =
             TargetedSweepTableFactory.of().getSweepAssignedBucketsTable(null).getTableRef();
 
     private final KeyValueService keyValueService;
     private final ObjectPersister<BucketStateAndIdentifier> bucketStateAndIdentifierPersister;
+    private final ObjectPersister<Long> bucketIdentifierPersister;
 
     private DefaultSweepAssignedBucketStore(
             KeyValueService keyValueService,
-            ObjectPersister<BucketStateAndIdentifier> bucketStateAndIdentifierPersister) {
+            ObjectPersister<BucketStateAndIdentifier> bucketStateAndIdentifierPersister,
+            ObjectPersister<Long> bucketIdentifierPersister) {
         this.keyValueService = keyValueService;
         this.bucketStateAndIdentifierPersister = bucketStateAndIdentifierPersister;
+        this.bucketIdentifierPersister = bucketIdentifierPersister;
     }
 
     static DefaultSweepAssignedBucketStore create(KeyValueService keyValueService) {
         return new DefaultSweepAssignedBucketStore(
-                keyValueService, ObjectPersister.of(BucketStateAndIdentifier.class, LogSafety.SAFE));
+                keyValueService,
+                ObjectPersister.of(BucketStateAndIdentifier.class, LogSafety.SAFE),
+                ObjectPersister.of(Long.class, LogSafety.SAFE));
     }
 
     @Override
@@ -77,6 +93,84 @@ final class DefaultSweepAssignedBucketStore implements SweepBucketAssignerStateM
                         + " initialisation, and as such, is an invalid state."));
     }
 
+    @Override
+    public Set<Bucket> getStartingBucketsForShards(Set<ShardAndStrategy> shardAndStrategies) {
+        Map<ShardAndStrategy, Cell> shardAndStrategyToCell = shardAndStrategies.stream()
+                .collect(Collectors.toMap(
+                        Function.identity(), SweepAssignedBucketStoreKeyPersister.INSTANCE::sweepBucketPointerCell));
+        Map<Cell, Long> results = readCells(shardAndStrategyToCell.values(), bucketIdentifierPersister::tryDeserialize);
+        return KeyedStream.stream(shardAndStrategyToCell)
+                .map(cell -> Optional.ofNullable(results.get(cell)))
+                .map((shardAndStrategy, bucketIdentifier) -> bucketIdentifier
+                        .map(id -> Bucket.of(shardAndStrategy, id))
+                        .orElseGet(() -> {
+                            log.warn(
+                                    "No starting bucket found for shard and strategy {}. Starting from bucket"
+                                            + " 0 for this shard. This is expected the first time the service starts up"
+                                            + " using this version of sweep, or if the number of shards has changed.",
+                                    SafeArg.of("shardAndStrategy", shardAndStrategy));
+                            return Bucket.of(shardAndStrategy, 0);
+                        }))
+                .values()
+                .collect(Collectors.toSet());
+    }
+
+    @Override
+    public void updateStartingBucketForShardAndStrategy(Bucket newStartingBucket) {
+        Cell cell = SweepAssignedBucketStoreKeyPersister.INSTANCE.sweepBucketPointerCell(
+                newStartingBucket.shardAndStrategy());
+
+        byte[] serializedBucketProgress = bucketIdentifierPersister.trySerialize(newStartingBucket.bucketIdentifier());
+        for (int attempt = 1; attempt <= CAS_ATTEMPT_LIMIT; attempt++) {
+            try {
+                Optional<Long> currentStartingBucket = readCell(cell, bucketIdentifierPersister::tryDeserialize);
+                if (currentStartingBucket.isEmpty()) {
+                    keyValueService.checkAndSet(CheckAndSetRequest.newCell(TABLE_REF, cell, serializedBucketProgress));
+                    if (log.isDebugEnabled()) {
+                        log.debug("Persisted new starting bucket", SafeArg.of("newStartingBucket", newStartingBucket));
+                    }
+                } else {
+                    if (newStartingBucket.bucketIdentifier() > currentStartingBucket.get()) {
+                        keyValueService.checkAndSet(CheckAndSetRequest.singleCell(
+                                TABLE_REF,
+                                cell,
+                                bucketIdentifierPersister.trySerialize(currentStartingBucket.get()),
+                                bucketIdentifierPersister.trySerialize(newStartingBucket.bucketIdentifier())));
+                        if (log.isDebugEnabled()) {
+                            log.debug(
+                                    "Updated sweep bucket progress",
+                                    SafeArg.of("previousStartingBucket", currentStartingBucket),
+                                    SafeArg.of("newStartingBucket", newStartingBucket));
+                        }
+                    } else {
+                        log.info(
+                                "Attempted to update starting bucket, but the existing starting bucket in the database"
+                                        + " was already ahead of us (possible timelock lost lock?)",
+                                SafeArg.of("previousStartingBucket", currentStartingBucket),
+                                SafeArg.of("newStartingBucket", newStartingBucket));
+                    }
+                }
+                return;
+            } catch (RuntimeException e) {
+                if (attempt == CAS_ATTEMPT_LIMIT) {
+                    log.warn(
+                            "Repeatedly failed to update starting bucket as part of sweep; throwing, some work may"
+                                    + " need to be re-done.",
+                            SafeArg.of("attemptedNewStartingBucket", newStartingBucket),
+                            SafeArg.of("numAttempts", CAS_ATTEMPT_LIMIT),
+                            e);
+                    throw e;
+                } else {
+                    log.info(
+                            "Failed to read or update starting bucket as part of sweep. Retrying",
+                            SafeArg.of("newStartingBucket", newStartingBucket),
+                            SafeArg.of("attemptNumber", attempt),
+                            e);
+                }
+            }
+        }
+    }
+
     private void casCell(Cell cell, Optional<byte[]> existingValue, byte[] newValue) {
         CheckAndSetRequest request = existingValue
                 .map(value -> CheckAndSetRequest.singleCell(TABLE_REF, cell, value, newValue))
@@ -85,8 +179,16 @@ final class DefaultSweepAssignedBucketStore implements SweepBucketAssignerStateM
     }
 
     private <T> Optional<T> readCell(Cell cell, Function<byte[], T> deserializer) {
-        Map<Cell, Value> values = keyValueService.get(TABLE_REF, ImmutableMap.of(cell, Long.MAX_VALUE));
-        Optional<byte[]> value = Optional.ofNullable(values.get(cell)).map(Value::getContents);
-        return value.map(deserializer);
+        Map<Cell, T> cells = readCells(Set.of(cell), deserializer);
+        return Optional.ofNullable(cells.get(cell));
+    }
+
+    private <T> Map<Cell, T> readCells(Collection<Cell> cells, Function<byte[], T> deserializer) {
+        Map<Cell, Value> values = keyValueService.get(
+                TABLE_REF, cells.stream().collect(Collectors.toMap(Function.identity(), cell -> Long.MAX_VALUE)));
+        return values.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> deserializer.apply(entry.getValue().getContents())));
     }
 }

@@ -19,13 +19,22 @@ package com.palantir.atlasdb.sweep.asts.bucketingthings;
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.spy;
 
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
+import com.palantir.atlasdb.sweep.asts.Bucket;
+import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.table.description.Schemas;
+import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -91,5 +100,66 @@ public final class DefaultSweepAssignedBucketStoreTest {
         BucketStateAndIdentifier newState = BucketStateAndIdentifier.of(123, BucketAssignerState.start(101112));
         store.updateStateMachineForBucketAssigner(initialState, newState);
         assertThat(store.getBucketStateAndIdentifier()).isEqualTo(newState);
+    }
+
+    @Test
+    public void getStartingBucketsForShardReturnsStartingBucketWhenSet() {
+        List<Bucket> buckets = List.of(
+                Bucket.of(ShardAndStrategy.of(12, SweeperStrategy.THOROUGH), 512),
+                Bucket.of(ShardAndStrategy.of(54, SweeperStrategy.CONSERVATIVE), 154389),
+                Bucket.of(ShardAndStrategy.of(25, SweeperStrategy.NON_SWEEPABLE), 97312907));
+
+        buckets.forEach(store::updateStartingBucketForShardAndStrategy);
+
+        assertThat(store.getStartingBucketsForShards(
+                        buckets.stream().map(Bucket::shardAndStrategy).collect(Collectors.toSet())))
+                .containsExactlyInAnyOrderElementsOf(buckets);
+    }
+
+    @Test
+    public void getStartingBucketsForShardReturnsZeroBucketIdentifierForUnsetShards() {
+        Bucket bucket = Bucket.of(ShardAndStrategy.of(12, SweeperStrategy.THOROUGH), 512);
+        Bucket unsetBucket = Bucket.of(ShardAndStrategy.of(54, SweeperStrategy.CONSERVATIVE), 0);
+
+        store.updateStartingBucketForShardAndStrategy(bucket);
+
+        assertThat(store.getStartingBucketsForShards(Set.of(bucket.shardAndStrategy(), unsetBucket.shardAndStrategy())))
+                .containsExactlyInAnyOrder(bucket, unsetBucket);
+    }
+
+    @Test
+    public void updateStartingBucketForShardDoesNotDecreaseExistingValue() {
+        Bucket existingBucket = Bucket.of(ShardAndStrategy.of(12, SweeperStrategy.THOROUGH), 512);
+        Bucket newBucket = Bucket.of(ShardAndStrategy.of(12, SweeperStrategy.THOROUGH), 256);
+
+        store.updateStartingBucketForShardAndStrategy(existingBucket);
+        store.updateStartingBucketForShardAndStrategy(newBucket);
+
+        assertThat(store.getStartingBucketsForShards(Set.of(existingBucket.shardAndStrategy())))
+                .containsExactly(existingBucket);
+    }
+
+    @Test
+    public void updateStartingBucketForShardSetsToNewValueIfGreaterThanExisting() {
+        Bucket existingBucket = Bucket.of(ShardAndStrategy.of(12, SweeperStrategy.THOROUGH), 512);
+        Bucket newBucket = Bucket.of(ShardAndStrategy.of(12, SweeperStrategy.THOROUGH), 1024);
+
+        store.updateStartingBucketForShardAndStrategy(existingBucket);
+        store.updateStartingBucketForShardAndStrategy(newBucket);
+
+        assertThat(store.getStartingBucketsForShards(Set.of(existingBucket.shardAndStrategy())))
+                .containsExactly(newBucket);
+    }
+
+    @Test
+    public void updateStartingBucketForShardFailsAfterTooManyAttempts() {
+        KeyValueService spy = spy(keyValueService);
+        DefaultSweepAssignedBucketStore store = DefaultSweepAssignedBucketStore.create(spy);
+        doThrow(new CheckAndSetException("Failed")).when(spy).checkAndSet(any());
+
+        Bucket bucket = Bucket.of(ShardAndStrategy.of(12, SweeperStrategy.THOROUGH), 512);
+
+        assertThatThrownBy(() -> store.updateStartingBucketForShardAndStrategy(bucket))
+                .isInstanceOf(CheckAndSetException.class);
     }
 }
