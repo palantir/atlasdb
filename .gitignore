@@ -46,3 +46,6 @@ nohup.err
 
 # Benchmark hosts
 scripts/benchmarks/servers.txt
+
+# Gradle JDKs setup
+!gradle/*
