@@ -105,7 +105,7 @@ org.postgresql:postgresql = 42.7.3
 org.apache.thrift:libthrift = 0.17.0
 
 # Large internal product uses 2.x
-org.codehaus.groovy:* = 2.5.14
+org.codehaus.groovy:* = 3.0.9
 
 # Subsequent versions use Java 17, which we don't use right now.
 com.palantir.goethe:* = 0.12.0
