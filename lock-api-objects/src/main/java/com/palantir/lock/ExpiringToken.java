@@ -15,7 +15,6 @@
  */
 package com.palantir.lock;
 
-import com.google.common.primitives.Longs;
 import java.util.Comparator;
 import javax.annotation.Nullable;
 
@@ -66,5 +65,5 @@ public interface ExpiringToken {
 
     /** A comparator which uses an {@code ExpiringToken}'s expiration date. */
     Comparator<ExpiringToken> COMPARATOR =
-            (o1, o2) -> Longs.compare(o1.getExpirationDateMs(), o2.getExpirationDateMs());
+            (o1, o2) -> Long.compare(o1.getExpirationDateMs(), o2.getExpirationDateMs());
 }
