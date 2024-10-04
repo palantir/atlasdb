@@ -364,6 +364,11 @@ public final class DefaultBucketAssignerTest {
         }
 
         @Override
+        public void setInitialStateForBucketAssigner(long bucketIdentifier, long startTimestamp) {
+            throw new UnsupportedOperationException("This should not be called");
+        }
+
+        @Override
         public void updateStateMachineForBucketAssigner(
                 BucketStateAndIdentifier original, BucketStateAndIdentifier updated) {
             assertThat(stateTransitions).last().isEqualTo(original);
