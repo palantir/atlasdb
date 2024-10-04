@@ -17,7 +17,6 @@ package com.palantir.lock;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.primitives.Longs;
 import com.palantir.logsafe.Preconditions;
 import java.io.InvalidObjectException;
 import java.io.ObjectInputStream;
@@ -123,7 +122,7 @@ public final class SimpleTimeDuration implements TimeDuration, Serializable {
 
     @Override
     public int compareTo(TimeDuration other) {
-        return Longs.compare(toNanos(), other.toNanos());
+        return Long.compare(toNanos(), other.toNanos());
     }
 
     @Override

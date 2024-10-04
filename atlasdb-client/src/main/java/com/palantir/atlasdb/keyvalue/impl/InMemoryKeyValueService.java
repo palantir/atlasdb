@@ -24,7 +24,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.io.BaseEncoding;
-import com.google.common.primitives.Longs;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -810,7 +809,7 @@ public class InMemoryKeyValueService extends AbstractKeyValueService {
             if (comparison != 0) {
                 return comparison;
             }
-            return Longs.compare(ts, other.ts);
+            return Long.compare(ts, other.ts);
         }
 
         @Override

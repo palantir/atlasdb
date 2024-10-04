@@ -96,7 +96,7 @@ public final class AutoDelegateProcessor extends AbstractProcessor {
 
     @Override
     public SourceVersion getSupportedSourceVersion() {
-        return SourceVersion.RELEASE_11;
+        return SourceVersion.RELEASE_17;
     }
 
     @Override
