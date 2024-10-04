@@ -19,11 +19,15 @@ package com.palantir.atlasdb.sweep.asts.bucketingthings;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
+import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.schema.generated.SweepAssignedBucketsTable.SweepAssignedBucketsRow;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.asts.Bucket;
+import com.palantir.atlasdb.sweep.asts.SweepableBucket;
+import com.palantir.atlasdb.sweep.asts.TimestampRange;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.ObjectPersister.LogSafety;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.common.streams.KeyedStream;
@@ -32,13 +36,16 @@ import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-final class DefaultSweepAssignedBucketStore implements SweepBucketAssignerStateMachineTable, SweepBucketPointerTable {
+final class DefaultSweepAssignedBucketStore
+        implements SweepBucketAssignerStateMachineTable, SweepBucketPointerTable, SweepBucketsTable {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultSweepAssignedBucketStore.class);
     private static final int CAS_ATTEMPT_LIMIT = 5;
 
@@ -47,14 +54,17 @@ final class DefaultSweepAssignedBucketStore implements SweepBucketAssignerStateM
             TargetedSweepTableFactory.of().getSweepAssignedBucketsTable(null).getTableRef();
 
     private final KeyValueService keyValueService;
+    private final ObjectPersister<TimestampRange> timestampRangePersister;
     private final ObjectPersister<BucketStateAndIdentifier> bucketStateAndIdentifierPersister;
     private final ObjectPersister<Long> bucketIdentifierPersister;
 
     private DefaultSweepAssignedBucketStore(
             KeyValueService keyValueService,
+            ObjectPersister<TimestampRange> timestampRangePersister,
             ObjectPersister<BucketStateAndIdentifier> bucketStateAndIdentifierPersister,
             ObjectPersister<Long> bucketIdentifierPersister) {
         this.keyValueService = keyValueService;
+        this.timestampRangePersister = timestampRangePersister;
         this.bucketStateAndIdentifierPersister = bucketStateAndIdentifierPersister;
         this.bucketIdentifierPersister = bucketIdentifierPersister;
     }
@@ -62,6 +72,7 @@ final class DefaultSweepAssignedBucketStore implements SweepBucketAssignerStateM
     static DefaultSweepAssignedBucketStore create(KeyValueService keyValueService) {
         return new DefaultSweepAssignedBucketStore(
                 keyValueService,
+                ObjectPersister.of(TimestampRange.class, LogSafety.SAFE),
                 ObjectPersister.of(BucketStateAndIdentifier.class, LogSafety.SAFE),
                 ObjectPersister.of(Long.class, LogSafety.SAFE));
     }
@@ -171,6 +182,46 @@ final class DefaultSweepAssignedBucketStore implements SweepBucketAssignerStateM
         }
     }
 
+    @Override
+    // This implementation assumes that the background task will eventually (but relatively quickly) keep the starting
+    // buckets up to date, such that we won't end up loading no buckets for an extended period of time.
+    // If we assume that the starting bucket is relatively up to date, then by loading the row containing said starting
+    // bucket + the next one, we should get some buckets to work on at all times (if buckets are present).
+    // This does suffer from head of line blocking, in that we could end up just loading the starting bucket and no
+    // other bucket (say, they've already been swept), and, if the starting bucket cannot be swept right now (e.g.,
+    // not enough DB nodes online to perform the deletion), then we won't handle any other work.
+    // It'd likely need to be an extended period of time in which we cannot sweep the starting bucket because
+    // we'd need to saturate and then sweep the entirety of the next row of buckets. In the implementation at the
+    // time of writing, that's 100 * 10 minutes = 1000 minute = 17 hours.
+
+    // An alternative, but far more complex implementation, is to repeatedly load rows until you've found N _live_
+    // buckets (or know that there are no more buckets, using the state machine information). We opted not to implement
+    // this because it's more complex and unnecessary without evidence of the simple implementation being a problem
+    public Set<SweepableBucket> getSweepableBuckets(Set<Bucket> startBuckets) {
+        List<SweepAssignedBucketsRow> rows = startBuckets.stream()
+                .flatMap(bucket -> Stream.of(
+                        SweepAssignedBucketStoreKeyPersister.INSTANCE.sweepBucketsRow(bucket),
+                        SweepAssignedBucketStoreKeyPersister.INSTANCE.nextSweepBucketsRow(bucket)))
+                .collect(Collectors.toList());
+
+        return readSweepableBucketRows(rows);
+    }
+
+    @Override
+    public void putTimestampRangeForBucket(
+            Bucket bucket, Optional<TimestampRange> oldTimestampRange, TimestampRange newTimestampRange) {
+        Cell cell = SweepAssignedBucketStoreKeyPersister.INSTANCE.sweepBucketsCell(bucket);
+        casCell(
+                cell,
+                oldTimestampRange.map(timestampRangePersister::trySerialize),
+                timestampRangePersister.trySerialize(newTimestampRange));
+    }
+
+    @Override
+    public void deleteBucketEntry(Bucket bucket) {
+        throw new UnsupportedOperationException("deleteBucketEntry is not implemented yet.");
+    }
+
     private void casCell(Cell cell, Optional<byte[]> existingValue, byte[] newValue) {
         CheckAndSetRequest request = existingValue
                 .map(value -> CheckAndSetRequest.singleCell(TABLE_REF, cell, value, newValue))
@@ -190,5 +241,17 @@ final class DefaultSweepAssignedBucketStore implements SweepBucketAssignerStateM
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         entry -> deserializer.apply(entry.getValue().getContents())));
+    }
+
+    private Set<SweepableBucket> readSweepableBucketRows(List<SweepAssignedBucketsRow> rows) {
+        Map<Cell, Value> reads = keyValueService.getRows(
+                TABLE_REF,
+                rows.stream().map(SweepAssignedBucketsRow::persistToBytes).collect(Collectors.toList()),
+                ColumnSelection.all(),
+                Long.MAX_VALUE);
+        return reads.entrySet().stream()
+                .map(entry -> SweepAssignedBucketStoreKeyPersister.INSTANCE.fromSweepBucketCellAndValue(
+                        entry.getKey(), entry.getValue(), timestampRangePersister))
+                .collect(Collectors.toSet());
     }
 }
