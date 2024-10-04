@@ -34,6 +34,7 @@ import com.palantir.atlasdb.sweep.asts.TimestampRange;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.HashSet;
 import java.util.List;
@@ -275,5 +276,48 @@ public final class DefaultSweepAssignedBucketStoreTest {
         store.putTimestampRangeForBucket(bucket, Optional.empty(), timestampRange);
         store.deleteBucketEntry(bucket);
         assertThat(store.getSweepableBuckets(Set.of(bucket))).isEmpty();
+    }
+
+    @Test
+    public void getTimestampRangeRecordThrowsIfRecordNotPresent() {
+        assertThatLoggableExceptionThrownBy(() -> store.getTimestampRangeRecord(1))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasLogMessage("No timestamp range record found for bucket identifier")
+                .hasExactlyArgs(SafeArg.of("bucketIdentifier", 1L));
+    }
+
+    @Test
+    public void putTimestampRangeRecordPutsRecord() {
+        TimestampRange timestampRange = TimestampRange.of(1, 2);
+        store.putTimestampRangeRecord(1, timestampRange);
+        assertThat(store.getTimestampRangeRecord(1)).isEqualTo(timestampRange);
+    }
+
+    @Test
+    public void putTimestampRangeRecordFailsIfRecordAlreadyExists() {
+        TimestampRange timestampRange = TimestampRange.of(1, 2);
+        store.putTimestampRangeRecord(1, timestampRange);
+        assertThatThrownBy(() -> store.putTimestampRangeRecord(1, timestampRange))
+                .isInstanceOf(CheckAndSetException.class);
+    }
+
+    @Test
+    @Disabled // TODO(mdaudali): Deletion is not implemented yet
+    public void deleteTimestampRangeRecordDoesNotThrowIfRecordNotPresent() {
+        assertThatCode(() -> store.deleteTimestampRangeRecord(1)).doesNotThrowAnyException();
+    }
+
+    @Test
+    @Disabled // TODO(mdaudali): Deletion is not implemented yet
+    public void deleteTimestampRangeRecordDeletesRecord() {
+        TimestampRange timestampRange = TimestampRange.of(1, 2);
+        store.putTimestampRangeRecord(1, timestampRange);
+        assertThat(store.getTimestampRangeRecord(1)).isEqualTo(timestampRange);
+
+        store.deleteTimestampRangeRecord(1);
+        assertThatLoggableExceptionThrownBy(() -> store.getTimestampRangeRecord(1))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasLogMessage("No timestamp range record found for bucket identifier")
+                .hasExactlyArgs(SafeArg.of("bucketIdentifier", 1L));
     }
 }
