@@ -217,6 +217,40 @@ types:
       LeaderTimes:
         fields:
           leaderTimes: map<Namespace, LeaderTime>
+      NamedMinimumTimestampLessor:
+        alias: string
+        safety: safe
+      AcquireNamedMinimumTimestampLeaseRequest:
+        fields:
+          requestId:
+            type: uuid
+            safety: safe
+          numFreshTimestamps:
+            type: integer
+            safety: safe
+      AcquireNamedMinimumTimestampLeaseResponse:
+        fields:
+          minimumLeasedTimestamp: Long
+          leaseToken: LockToken
+          freshTimestamps: ConjureTimestampRange
+      AcquireNamedMinimumTimestampLeaseRequests:
+        alias: map<NamedMinimumTimestampLessor, AcquireNamedMinimumTimestampLeaseRequest>
+      MultiClientAcquireNamedTimestampLeaseRequest:
+        alias: map<Namespace, AcquireNamedMinimumTimestampLeaseRequests>
+      AcquireNamedMinimumTimestampLeaseResponses:
+        alias: map<NamedMinimumTimestampLessor, AcquireNamedMinimumTimestampLeaseResponse>
+      MultiClientAcquireNamedTimestampLeaseResponse:
+        alias: map<Namespace, AcquireNamedMinimumTimestampLeaseResponses>
+      GetSmallestLeasedNamedTimestampRequests:
+        alias: set<NamedMinimumTimestampLessor>
+      MultiClientGetSmallestLeasedNamedTimestampRequest:
+        alias: map<Namespace, GetSmallestLeasedNamedTimestampRequests>
+      GetSmallestLeasedNamedTimestampResponses:
+        alias: map<NamedMinimumTimestampLessor, Long>
+      MultiClientGetSmallestLeasedNamedTimestampResponse:
+        alias: map<Namespace, GetSmallestLeasedNamedTimestampResponses>
+
+
 
 services:
   ConjureTimelockService:
@@ -356,6 +390,23 @@ services:
         tags:
           - server-request-context
         returns: GetCommitTimestampResponse
+      acquireNamedMinimumTimestampLease:
+        http: POST /anmtl/{namespace}/{lessor}
+        args:
+          namespace: Namespace
+          lessor: NamedMinimumTimestampLessor
+          request: AcquireNamedMinimumTimestampLeaseRequest
+        tags:
+          - server-request-context
+        returns: AcquireNamedMinimumTimestampLeaseResponse
+      getSmallestLeasedNamedTimestamp:
+        http: POST /gslnt/{namespace}/{lessor}
+        args:
+          namespace: Namespace
+          lessor: NamedMinimumTimestampLessor
+        tags:
+          - server-request-context
+        returns: Long
   ConjureLockWatchingService:
     name: Lock Watching service
     default-auth: header
@@ -449,3 +500,17 @@ services:
         returns: map<Namespace, ConjureUnlockResponseV2>
         docs: |
           Version of unlockV2 to unlock locks across multiple namespaces.
+      acquireNamedMinimumTimestampLease:
+        http: POST /anmtl
+        args:
+          requests: MultiClientAcquireNamedTimestampLeaseRequest
+        tags:
+          - server-request-context
+        returns: MultiClientAcquireNamedTimestampLeaseResponse
+      getSmallestLeasedNamedTimestamp:
+        http: POST /gslnt
+        args:
+          requests: MultiClientGetSmallestLeasedNamedTimestampRequest
+        tags:
+          - server-request-context
+        returns: MultiClientGetSmallestLeasedNamedTimestampResponse

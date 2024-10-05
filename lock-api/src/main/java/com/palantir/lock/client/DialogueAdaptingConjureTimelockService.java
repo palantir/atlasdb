@@ -18,6 +18,8 @@ package com.palantir.lock.client;
 
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
+import com.palantir.atlasdb.timelock.api.AcquireNamedMinimumTimestampLeaseRequest;
+import com.palantir.atlasdb.timelock.api.AcquireNamedMinimumTimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
@@ -42,6 +44,8 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.NamedMinimumTimestampLessor;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.function.Supplier;
@@ -134,6 +138,21 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     public GetCommitTimestampResponse getCommitTimestamp(
             AuthHeader authHeader, String namespace, GetCommitTimestampRequest request) {
         return dialogueDelegate.getCommitTimestamp(authHeader, namespace, request);
+    }
+
+    @Override
+    public AcquireNamedMinimumTimestampLeaseResponse acquireNamedMinimumTimestampLease(
+            AuthHeader authHeader,
+            Namespace namespace,
+            NamedMinimumTimestampLessor lessor,
+            AcquireNamedMinimumTimestampLeaseRequest request) {
+        return dialogueDelegate.acquireNamedMinimumTimestampLease(authHeader, namespace, lessor, request);
+    }
+
+    @Override
+    public long getSmallestLeasedNamedTimestamp(
+            AuthHeader authHeader, Namespace namespace, NamedMinimumTimestampLessor lessor) {
+        return dialogueDelegate.getSmallestLeasedNamedTimestamp(authHeader, namespace, lessor);
     }
 
     private <T> T executeInstrumented(
