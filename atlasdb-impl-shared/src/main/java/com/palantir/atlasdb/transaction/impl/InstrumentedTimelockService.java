@@ -18,6 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 import com.codahale.metrics.Meter;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.util.MetricsManager;
+import com.palantir.lock.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.lock.v2.AcquireNamedMinTimestampLeaseResult;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -132,6 +133,7 @@ public final class InstrumentedTimelockService implements TimelockService {
         return executeWithRecord(timelockService::currentTimeMillis);
     }
 
+    @ReviewedRestrictedApiUsage
     @Override
     public AcquireNamedMinTimestampLeaseResult acquireNamedMinTimestampLease(
             String timestampName, int numFreshTimestamps) {
@@ -139,6 +141,7 @@ public final class InstrumentedTimelockService implements TimelockService {
                 () -> timelockService.acquireNamedMinTimestampLease(timestampName, numFreshTimestamps));
     }
 
+    @ReviewedRestrictedApiUsage
     @Override
     public long getMinLeasedNamedTimestamp(String timestampName) {
         return executeWithRecord(() -> timelockService.getMinLeasedNamedTimestamp(timestampName));

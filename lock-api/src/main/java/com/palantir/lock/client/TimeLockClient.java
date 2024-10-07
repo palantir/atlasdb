@@ -21,6 +21,7 @@ import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.NotCurrentLeaderException;
+import com.palantir.lock.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.lock.v2.AcquireNamedMinTimestampLeaseResult;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -181,12 +182,14 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
         return executeOnTimeLock(delegate::currentTimeMillis);
     }
 
+    @ReviewedRestrictedApiUsage
     @Override
     public AcquireNamedMinTimestampLeaseResult acquireNamedMinTimestampLease(
             String timestampName, int numFreshTimestamps) {
         return delegate.acquireNamedMinTimestampLease(timestampName, numFreshTimestamps);
     }
 
+    @ReviewedRestrictedApiUsage
     @Override
     public long getMinLeasedNamedTimestamp(String timestampName) {
         return delegate.getMinLeasedNamedTimestamp(timestampName);

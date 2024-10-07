@@ -20,6 +20,7 @@ import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureTimestampRange;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.lock.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.lock.v2.AcquireNamedMinTimestampLeaseResult;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -169,6 +170,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
         return rpcClient.currentTimeMillis();
     }
 
+    @ReviewedRestrictedApiUsage
     @Override
     public AcquireNamedMinTimestampLeaseResult acquireNamedMinTimestampLease(
             String timestampName, int numFreshTimestamps) {
@@ -176,6 +178,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
         throw new UnsupportedOperationException("Not implemented yet!");
     }
 
+    @ReviewedRestrictedApiUsage
     @Override
     public long getMinLeasedNamedTimestamp(String timestampName) {
         // TODO(aalouane): implement!

@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.buggify.api.BuggifyFactory;
 import com.palantir.atlasdb.buggify.impl.DefaultBuggifyFactory;
+import com.palantir.lock.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.lock.v2.AcquireNamedMinTimestampLeaseResult;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
@@ -156,12 +157,14 @@ public final class UnreliableTimeLockService implements TimelockService {
         return delegate.currentTimeMillis();
     }
 
+    @ReviewedRestrictedApiUsage
     @Override
     public AcquireNamedMinTimestampLeaseResult acquireNamedMinTimestampLease(
             String timestampName, int numFreshTimestamps) {
         return delegate.acquireNamedMinTimestampLease(timestampName, numFreshTimestamps);
     }
 
+    @ReviewedRestrictedApiUsage
     @Override
     public long getMinLeasedNamedTimestamp(String timestampName) {
         return delegate.getMinLeasedNamedTimestamp(timestampName);
