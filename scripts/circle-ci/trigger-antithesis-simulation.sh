@@ -16,6 +16,6 @@ curl -v -u "palantir:${ANTITHESIS_WEBHOOK_PASSWORD}" -X POST https://palantir.an
 '{ "params": {
     "antithesis.images":"palantirtechnologies/cassandra:latest;palantirtechnologies/timelock-server-distribution:latest;palantirtechnologies/atlasdb-workload-server-distribution:latest",
     "antithesis.config_image":"palantirtechnologies/atlasdb-workload-server-antithesis:latest",
-    "custom.duration":"3",
+    "custom.duration":"12",
     "antithesis.report.recipients":"'${ANTITHESIS_REPORT_RECIPIENT}'"
 } }'
