@@ -1,5 +1,3 @@
-version: '2'
-
 services:
   timelock:
     image: palantirtechnologies/timelock-server-distribution

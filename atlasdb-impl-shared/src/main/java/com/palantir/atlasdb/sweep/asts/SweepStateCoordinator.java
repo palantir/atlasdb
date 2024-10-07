@@ -16,10 +16,7 @@
 
 package com.palantir.atlasdb.sweep.asts;
 
-import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
-import com.palantir.logsafe.Safe;
 import java.util.function.Consumer;
-import org.immutables.value.Value;
 
 public interface SweepStateCoordinator {
     SweepOutcome tryRunTaskWithBucket(Consumer<SweepableBucket> task);
@@ -28,36 +25,5 @@ public interface SweepStateCoordinator {
         NOTHING_AVAILABLE,
         NOTHING_TO_SWEEP,
         SWEPT;
-    }
-
-    @Value.Immutable
-    @Safe
-    abstract class SweepableBucket implements Comparable<SweepableBucket> {
-        @Value.Parameter
-        abstract ShardAndStrategy shardAndStrategy();
-
-        // It's really just the fine partition, but we make it opaque so we can change it in the future
-        @Value.Parameter
-        abstract long bucketIdentifier();
-
-        @Safe
-        @Override
-        public String toString() {
-            return shardAndStrategy().toText() + " and partition " + bucketIdentifier();
-        }
-
-        @Override
-        public int compareTo(SweepableBucket other) {
-            int shardComparison = Integer.compare(
-                    shardAndStrategy().shard(), other.shardAndStrategy().shard());
-            if (shardComparison != 0) {
-                return shardComparison;
-            }
-            return Long.compare(bucketIdentifier(), other.bucketIdentifier());
-        }
-
-        static SweepableBucket of(ShardAndStrategy shardAndStrategy, long bucketIdentifier) {
-            return ImmutableSweepableBucket.of(shardAndStrategy, bucketIdentifier);
-        }
     }
 }

@@ -44,6 +44,13 @@ public interface LockWatchValueScopingCache extends LockWatchValueCache {
     void updateCacheWithCommitTimestampsInformation(Set<Long> startTimestamps);
 
     /**
+     * Guarantees that all relevant state for the given transaction will eventually be removed.
+     * See also {@link #ensureStateRemoved(long)}, though this does not have the eagerness guarantee of that method.
+     */
+    @Override
+    void requestStateRemoved(long startTs);
+
+    /**
      * Guarantees that all relevant state for the given transaction has been removed. If the state is already gone (by
      * calling {@link LockWatchValueScopingCache#onSuccessfulCommit(long)}, this will be a no-op. Failure to call this
      * method may result in memory leaks (particularly for aborting transactions).

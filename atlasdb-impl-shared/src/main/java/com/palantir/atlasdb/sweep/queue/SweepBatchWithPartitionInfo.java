@@ -19,6 +19,7 @@ package com.palantir.atlasdb.sweep.queue;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import java.util.Set;
+import java.util.function.LongPredicate;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -28,13 +29,17 @@ public interface SweepBatchWithPartitionInfo {
     Set<Long> finePartitions();
 
     default Set<Long> partitionsForPreviousLastSweptTs(long previousLastSweptTs) {
-        Set<Long> encounteredPartitions = SweepQueueUtils.firstSweep(previousLastSweptTs)
-                ? finePartitions()
-                : Sets.union(finePartitions(), ImmutableSet.of(SweepQueueUtils.tsPartitionFine(previousLastSweptTs)));
+        return partitionsForPreviousLastSweptTsInternal(previousLastSweptTs, SweepQueueUtils::firstSweep);
+    }
 
-        return Sets.difference(
-                encounteredPartitions,
-                ImmutableSet.of(SweepQueueUtils.tsPartitionFine(sweepBatch().lastSweptTimestamp() + 1)));
+    /**
+     * Determines the partitions that were completed from a previously swept timestamp until the end of this batch.
+     * Differently from {@link #partitionsForPreviousLastSweptTs(long)}, this method applies a minimum bound to
+     * the partition range, which may be useful if we want to consider a sub-range of the sweep queue (which,
+     * in particular, may itself not contain previousLastSweptTs).
+     */
+    default Set<Long> partitionsForPreviousLastSweptTsWithMinimumBound(long previousLastSweptTs, long minimumBound) {
+        return partitionsForPreviousLastSweptTsInternal(previousLastSweptTs, value -> value < minimumBound);
     }
 
     static SweepBatchWithPartitionInfo of(SweepBatch sweepBatch, Set<Long> finePartitions) {
@@ -42,5 +47,16 @@ public interface SweepBatchWithPartitionInfo {
                 .sweepBatch(sweepBatch)
                 .finePartitions(finePartitions)
                 .build();
+    }
+
+    private Set<Long> partitionsForPreviousLastSweptTsInternal(
+            long previousLastSweptTs, LongPredicate criteriaForExcludingPreviousTimestamp) {
+        Set<Long> encounteredPartitions = criteriaForExcludingPreviousTimestamp.test(previousLastSweptTs)
+                ? finePartitions()
+                : Sets.union(finePartitions(), ImmutableSet.of(SweepQueueUtils.tsPartitionFine(previousLastSweptTs)));
+
+        return Sets.difference(
+                encounteredPartitions,
+                ImmutableSet.of(SweepQueueUtils.tsPartitionFine(sweepBatch().lastSweptTimestamp() + 1)));
     }
 }

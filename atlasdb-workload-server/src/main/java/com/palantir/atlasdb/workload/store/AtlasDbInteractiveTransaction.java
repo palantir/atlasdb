@@ -145,6 +145,14 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
                 tableReference -> {
                     // Having a non-configurable batch hint is a bit iffy, but suffices as this won't be used in
                     // production.
+                    log.info(
+                            "Starting read row column range for transaction {} for row {} for column range "
+                                    + "selection {} on table {}",
+                            SafeArg.of("startTimestamp", transaction.getTimestamp()),
+                            SafeArg.of("row", row),
+                            SafeArg.of("columnRangeSelection", columnRangeSelection),
+                            SafeArg.of("table", tableReference));
+
                     Map<byte[], Iterator<Entry<Cell, byte[]>>> iterators = transaction.getRowsColumnRangeIterator(
                             tableReference,
                             List.of(AtlasDbUtils.toAtlasKey(row)),
@@ -166,6 +174,15 @@ final class AtlasDbInteractiveTransaction implements InteractiveTransaction {
                             .columnRangeSelection(columnRangeSelection)
                             .build()
                             .witness(columnsAndValues));
+
+                    log.info(
+                            "Have completed read row column range for transaction {} for row {} for column "
+                                    + "range selection {} on table {} with returned columns and values {}",
+                            SafeArg.of("startTimestamp", transaction.getTimestamp()),
+                            SafeArg.of("row", row),
+                            SafeArg.of("cell", columnRangeSelection),
+                            SafeArg.of("table", tableReference),
+                            SafeArg.of("columnsAndValues", columnsAndValues));
                     return columnsAndValues;
                 },
                 table);

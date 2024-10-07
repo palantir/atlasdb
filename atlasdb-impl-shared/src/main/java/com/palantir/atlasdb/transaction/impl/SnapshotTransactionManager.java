@@ -24,8 +24,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.cache.TimestampCache;
+import com.palantir.atlasdb.cell.api.DataKeyValueServiceManager;
 import com.palantir.atlasdb.cell.api.DdlManager;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
@@ -89,7 +89,7 @@ import java.util.stream.Collectors;
     private static final int NUM_RETRIES = 10;
 
     final MetricsManager metricsManager;
-    final TransactionKeyValueServiceManager transactionKeyValueServiceManager;
+    final DataKeyValueServiceManager dataKeyValueServiceManager;
     final TransactionService transactionService;
     final TimelockService timelockService;
     final LockWatchManagerInternal lockWatchManager;
@@ -120,7 +120,7 @@ import java.util.stream.Collectors;
 
     protected SnapshotTransactionManager(
             MetricsManager metricsManager,
-            TransactionKeyValueServiceManager transactionKeyValueServiceManager,
+            DataKeyValueServiceManager dataKeyValueServiceManager,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TimestampManagementService timestampManagementService,
@@ -147,7 +147,7 @@ import java.util.stream.Collectors;
         this.lockWatchManager = lockWatchManager;
         TimestampTracker.instrumentTimestamps(metricsManager, timelockService, cleaner);
         this.metricsManager = metricsManager;
-        this.transactionKeyValueServiceManager = transactionKeyValueServiceManager;
+        this.dataKeyValueServiceManager = dataKeyValueServiceManager;
         this.timelockService = timelockService;
         this.timestampManagementService = timestampManagementService;
         this.lockService = lockService;
@@ -236,7 +236,7 @@ import java.util.stream.Collectors;
             openTransactionCounter.inc(transactions.size());
             return transactions;
         } catch (Throwable t) {
-            responses.forEach(response -> lockWatchManager.removeTransactionStateFromCache(
+            responses.forEach(response -> lockWatchManager.requestTransactionStateRemovalFromCache(
                     response.startTimestampAndPartition().timestamp()));
             timelockService.tryUnlock(responses.stream()
                     .map(response -> response.immutableTimestamp().getLock())
@@ -279,7 +279,7 @@ import java.util.stream.Collectors;
             try {
                 result = runTaskThrowOnConflictWithCallback(wrappedTask, tx, callback);
             } finally {
-                lockWatchManager.removeTransactionStateFromCache(getTimestamp());
+                lockWatchManager.requestTransactionStateRemovalFromCache(getTimestamp());
                 postTaskContext = postTaskTimer.time();
                 timelockService.tryUnlock(ImmutableSet.of(immutableTsLock));
                 openTransactionCounter.dec();
@@ -317,7 +317,7 @@ import java.util.stream.Collectors;
         Optional<LockToken> immutableTimestampLock = Optional.of(immutableTsLock);
         return new SnapshotTransaction(
                 metricsManager,
-                transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
+                dataKeyValueServiceManager.getDataKeyValueService(startTimestampSupplier),
                 timelockService,
                 lockWatchManager,
                 transactionService,
@@ -365,7 +365,7 @@ import java.util.stream.Collectors;
         Optional<LockToken> immutableTimestampLock = Optional.empty();
         SnapshotTransaction transaction = new SnapshotTransaction(
                 metricsManager,
-                transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
+                dataKeyValueServiceManager.getDataKeyValueService(startTimestampSupplier),
                 timelockService,
                 NoOpLockWatchManager.create(),
                 transactionService,
@@ -426,7 +426,7 @@ import java.util.stream.Collectors;
                 SafeShutdownRunner.createWithCachedThreadpool(Duration.ofSeconds(20))) {
             shutdownRunner.shutdownSafely(super::close);
             shutdownRunner.shutdownSafely(cleaner::close);
-            shutdownRunner.shutdownSafely(transactionKeyValueServiceManager::close);
+            shutdownRunner.shutdownSafely(dataKeyValueServiceManager::close);
             shutdownRunner.shutdownSafely(deleteExecutor::close);
             shutdownRunner.shutdownSafely(() -> shutdownExecutor(getRangesExecutor));
             shutdownRunner.shutdownSafely(this::closeLockServiceIfPossible);
@@ -528,14 +528,14 @@ import java.util.stream.Collectors;
 
     @Override
     public KeyValueService getKeyValueService() {
-        return transactionKeyValueServiceManager
+        return dataKeyValueServiceManager
                 .getKeyValueService()
                 .orElseThrow(() -> new SafeIllegalStateException("KeyValueService is not supported"));
     }
 
     @Override
     public DdlManager getDdlManager() {
-        return transactionKeyValueServiceManager.getDdlManager();
+        return dataKeyValueServiceManager.getDdlManager();
     }
 
     @Override

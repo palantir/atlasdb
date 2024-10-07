@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.transaction.api.snapshot;
 
-import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
+import com.palantir.atlasdb.cell.api.DataKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter;
 import com.palantir.atlasdb.transaction.service.TransactionService;
@@ -26,7 +26,7 @@ public interface KeyValueSnapshotReaderManagerFactory {
     String getType();
 
     KeyValueSnapshotReaderManager createKeyValueSnapshotReaderManager(
-            TransactionKeyValueServiceManager transactionKeyValueServiceManager,
+            DataKeyValueServiceManager dataKeyValueServiceManager,
             TransactionService transactionService,
             boolean allowHiddenTableAccess,
             OrphanedSentinelDeleter orphanedSentinelDeleter,

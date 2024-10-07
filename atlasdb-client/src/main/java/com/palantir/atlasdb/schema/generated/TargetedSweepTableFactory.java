@@ -42,6 +42,16 @@ public final class TargetedSweepTableFactory {
         return defaultTableFactory;
     }
 
+    public SweepAssignedBucketsTable getSweepAssignedBucketsTable(
+            Transaction t, SweepAssignedBucketsTable.SweepAssignedBucketsTrigger... triggers) {
+        return SweepAssignedBucketsTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
+    public SweepBucketProgressTable getSweepBucketProgressTable(
+            Transaction t, SweepBucketProgressTable.SweepBucketProgressTrigger... triggers) {
+        return SweepBucketProgressTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
+    }
+
     public SweepIdToNameTable getSweepIdToNameTable(
             Transaction t, SweepIdToNameTable.SweepIdToNameTrigger... triggers) {
         return SweepIdToNameTable.of(t, namespace, Triggers.getAllTriggers(t, sharedTriggers, triggers));
@@ -72,7 +82,9 @@ public final class TargetedSweepTableFactory {
     }
 
     public interface SharedTriggers
-            extends SweepIdToNameTable.SweepIdToNameTrigger,
+            extends SweepAssignedBucketsTable.SweepAssignedBucketsTrigger,
+                    SweepBucketProgressTable.SweepBucketProgressTrigger,
+                    SweepIdToNameTable.SweepIdToNameTrigger,
                     SweepNameToIdTable.SweepNameToIdTrigger,
                     SweepShardProgressTable.SweepShardProgressTrigger,
                     SweepableCellsTable.SweepableCellsTrigger,
@@ -80,6 +92,24 @@ public final class TargetedSweepTableFactory {
                     TableClearsTable.TableClearsTrigger {}
 
     public abstract static class NullSharedTriggers implements SharedTriggers {
+        @Override
+        public void putSweepAssignedBuckets(
+                Multimap<
+                                SweepAssignedBucketsTable.SweepAssignedBucketsRow,
+                                ? extends SweepAssignedBucketsTable.SweepAssignedBucketsColumnValue>
+                        newRows) {
+            // do nothing
+        }
+
+        @Override
+        public void putSweepBucketProgress(
+                Multimap<
+                                SweepBucketProgressTable.SweepBucketProgressRow,
+                                ? extends SweepBucketProgressTable.SweepBucketProgressNamedColumnValue<?>>
+                        newRows) {
+            // do nothing
+        }
+
         @Override
         public void putSweepIdToName(
                 Multimap<SweepIdToNameTable.SweepIdToNameRow, ? extends SweepIdToNameTable.SweepIdToNameColumnValue>

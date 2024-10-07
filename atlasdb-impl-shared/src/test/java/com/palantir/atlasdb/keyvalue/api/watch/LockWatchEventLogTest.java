@@ -160,7 +160,7 @@ public final class LockWatchEventLogTest {
         assertThat(cacheUpdate.shouldClearCache()).isTrue();
         assertThat(cacheUpdate.getVersion()).hasValue(initialLeaderAtSequenceOne);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(initialLeaderAtSequenceOne);
-        assertThat(eventLog.getStateForTesting())
+        assertThat(eventLog.getStateForDiagnostics())
                 .isEqualTo(ImmutableLockWatchEventLogState.builder()
                         .latestVersion(initialLeaderAtSequenceOne)
                         .snapshotState(SNAPSHOT_STATE_VERSION_1)
@@ -180,7 +180,7 @@ public final class LockWatchEventLogTest {
         assertThat(cacheUpdate.shouldClearCache()).isFalse();
         assertThat(cacheUpdate.getVersion()).hasValue(initialLeaderAtSequenceTwo);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(initialLeaderAtSequenceTwo);
-        assertThat(eventLog.getStateForTesting())
+        assertThat(eventLog.getStateForDiagnostics())
                 .isEqualTo(ImmutableLockWatchEventLogState.builder()
                         .latestVersion(initialLeaderAtSequenceTwo)
                         .snapshotState(SNAPSHOT_STATE_VERSION_1)
@@ -199,7 +199,7 @@ public final class LockWatchEventLogTest {
         assertThat(cacheUpdate.shouldClearCache()).isFalse();
         assertThat(cacheUpdate.getVersion()).hasValue(initialLeaderAtSequenceSix);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(initialLeaderAtSequenceSix);
-        assertThat(eventLog.getStateForTesting())
+        assertThat(eventLog.getStateForDiagnostics())
                 .isEqualTo(ImmutableLockWatchEventLogState.builder()
                         .latestVersion(initialLeaderAtSequenceSix)
                         .snapshotState(SNAPSHOT_STATE_VERSION_5)
@@ -219,7 +219,7 @@ public final class LockWatchEventLogTest {
         assertThat(secondSnapshotUpdateResult.shouldClearCache()).isTrue();
         assertThat(secondSnapshotUpdateResult.getVersion()).hasValue(differentLeaderAtSequenceOne);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(differentLeaderAtSequenceOne);
-        assertThat(eventLog.getStateForTesting())
+        assertThat(eventLog.getStateForDiagnostics())
                 .isEqualTo(ImmutableLockWatchEventLogState.builder()
                         .latestVersion(differentLeaderAtSequenceOne)
                         .snapshotState(ImmutableClientLockWatchSnapshotState.builder()
@@ -245,7 +245,7 @@ public final class LockWatchEventLogTest {
         assertThat(spanningUpdate.shouldClearCache()).isFalse();
         assertThat(spanningUpdate.getVersion()).hasValue(initialLeaderAtSequenceFour);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(initialLeaderAtSequenceFour);
-        assertThat(eventLog.getStateForTesting())
+        assertThat(eventLog.getStateForDiagnostics())
                 .isEqualTo(ImmutableLockWatchEventLogState.builder()
                         .latestVersion(initialLeaderAtSequenceFour)
                         .snapshotState(SNAPSHOT_STATE_VERSION_1)
@@ -277,7 +277,7 @@ public final class LockWatchEventLogTest {
         assertThat(oldUpdate.shouldClearCache()).isFalse();
         assertThat(oldUpdate.getVersion()).hasValue(initialLeaderAtSequenceTwo);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(initialLeaderAtSequenceThree);
-        assertThat(eventLog.getStateForTesting())
+        assertThat(eventLog.getStateForDiagnostics())
                 .isEqualTo(ImmutableLockWatchEventLogState.builder()
                         .latestVersion(initialLeaderAtSequenceThree)
                         .snapshotState(SNAPSHOT_STATE_VERSION_1)
@@ -344,7 +344,7 @@ public final class LockWatchEventLogTest {
         assertThat(cacheUpdate.shouldClearCache()).isTrue();
         assertThat(cacheUpdate.getVersion()).hasValue(initialLeaderAtSequenceSix);
         assertThat(eventLog.getLatestKnownVersion()).hasValue(initialLeaderAtSequenceSix);
-        assertThat(eventLog.getStateForTesting())
+        assertThat(eventLog.getStateForDiagnostics())
                 .isEqualTo(ImmutableLockWatchEventLogState.builder()
                         .latestVersion(initialLeaderAtSequenceSix)
                         .snapshotState(ImmutableClientLockWatchSnapshotState.builder()
@@ -365,7 +365,7 @@ public final class LockWatchEventLogTest {
         LockWatchVersion initialLeaderAtSequenceFour = LockWatchVersion.of(INITIAL_LEADER, SEQUENCE_4);
 
         assertThat(eventLog.getLatestKnownVersion()).hasValue(initialLeaderAtSequenceFour);
-        assertThat(eventLog.getStateForTesting())
+        assertThat(eventLog.getStateForDiagnostics())
                 .isEqualTo(ImmutableLockWatchEventLogState.builder()
                         .latestVersion(initialLeaderAtSequenceFour)
                         .snapshotState(ImmutableClientLockWatchSnapshotState.builder()

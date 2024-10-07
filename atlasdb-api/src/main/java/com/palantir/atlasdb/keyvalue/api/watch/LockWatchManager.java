@@ -32,6 +32,8 @@ public abstract class LockWatchManager {
     @Idempotent
     public abstract void registerPreciselyWatches(Set<LockWatchReferences.LockWatchReference> lockWatchReferences);
 
+    public abstract void logState();
+
     // These methods are hidden on purpose as they should not be generally available, only for brave souls!
 
     abstract boolean isEnabled();

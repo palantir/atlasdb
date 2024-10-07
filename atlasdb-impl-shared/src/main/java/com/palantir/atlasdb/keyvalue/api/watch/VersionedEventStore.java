@@ -16,12 +16,13 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSortedMap;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.lock.watch.LockWatchEvent;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.Unsafe;
 import com.palantir.logsafe.UnsafeArg;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -114,9 +115,11 @@ final class VersionedEventStore {
         eventMap.clear();
     }
 
-    @VisibleForTesting
-    VersionedEventStoreState getStateForTesting() {
-        return ImmutableVersionedEventStoreState.builder().eventMap(eventMap).build();
+    @Unsafe
+    VersionedEventStoreState getStateForDiagnostics() {
+        return ImmutableVersionedEventStoreState.builder()
+                .eventMap(ImmutableSortedMap.copyOf(eventMap))
+                .build();
     }
 
     private Collection<LockWatchEvent> getValuesBetweenInclusive(long endVersion, long startVersion) {

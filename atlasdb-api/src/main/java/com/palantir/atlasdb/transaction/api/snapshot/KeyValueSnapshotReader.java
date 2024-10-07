@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.transaction.api.snapshot;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -51,5 +50,5 @@ public interface KeyValueSnapshotReader {
             TableReference tableReference,
             Iterable<byte[]> rows,
             ColumnSelection columnSelection,
-            ImmutableMap.Builder<Cell, byte[]> resultCollector);
+            Map<Cell, byte[]> localWrites);
 }

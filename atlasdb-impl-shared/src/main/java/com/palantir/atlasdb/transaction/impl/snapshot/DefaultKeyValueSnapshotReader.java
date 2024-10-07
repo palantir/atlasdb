@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.transaction.impl.snapshot;
 
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -26,7 +25,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
+import com.palantir.atlasdb.cell.api.DataKeyValueService;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -53,6 +52,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -76,7 +76,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
     // TODO (jkong): Move canonical value of constant here, once post-filtering is removed from SnapshotTransaction
     private static final int MAX_POST_FILTERING_ITERATIONS = SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS;
 
-    private final TransactionKeyValueService transactionKeyValueService;
+    private final DataKeyValueService dataKeyValueService;
     private final TransactionService transactionService;
     private final CommitTimestampLoader commitTimestampLoader;
     private final boolean allowHiddenTableAccess;
@@ -87,7 +87,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
     private final KeyValueSnapshotMetricRecorder metricRecorder;
 
     public DefaultKeyValueSnapshotReader(
-            TransactionKeyValueService transactionKeyValueService,
+            DataKeyValueService dataKeyValueService,
             TransactionService transactionService,
             CommitTimestampLoader commitTimestampLoader,
             boolean allowHiddenTableAccess,
@@ -96,7 +96,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             ReadSnapshotValidator readSnapshotValidator,
             DeleteExecutor deleteExecutor,
             KeyValueSnapshotMetricRecorder metricRecorder) {
-        this.transactionKeyValueService = transactionKeyValueService;
+        this.dataKeyValueService = dataKeyValueService;
         this.transactionService = transactionService;
         this.commitTimestampLoader = commitTimestampLoader;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
@@ -117,18 +117,28 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             TableReference tableReference,
             Iterable<byte[]> rows,
             ColumnSelection columnSelection,
-            ImmutableMap.Builder<Cell, byte[]> resultCollector) {
-        Map<Cell, Value> rawResults = new HashMap<>(transactionKeyValueService.getRows(
-                tableReference, rows, columnSelection, startTimestampSupplier.getAsLong()));
+            Map<Cell, byte[]> localWrites) {
+        Map<Cell, Value> rawResults = new HashMap<>(
+                dataKeyValueService.getRows(tableReference, rows, columnSelection, startTimestampSupplier.getAsLong()));
+
         // We don't need to do work postFiltering if we have a write locally.
-        rawResults.keySet().removeAll(resultCollector.buildOrThrow().keySet());
-        return filterRowResults(tableReference, rawResults, resultCollector);
+        rawResults.keySet().removeAll(localWrites.keySet());
+
+        Map<Cell, byte[]> results = Maps.newHashMapWithExpectedSize(rawResults.size());
+        getWithPostFilteringSync(tableReference, rawResults, Value.GET_VALUE).forEach(e -> {
+            results.put(e.getKey(), e.getValue());
+        });
+        results.putAll(localWrites);
+
+        removeEmptyColumns(tableReference, results);
+
+        return RowResults.viewOfSortedMap(Cells.breakCellsUpByRow(results));
     }
 
     private ListenableFuture<Map<Cell, byte[]>> getInternal(TableReference tableReference, Set<Cell> cells) {
         Map<Cell, Long> timestampsByCell = Cells.constantValueMap(cells, startTimestampSupplier.getAsLong());
         ListenableFuture<Collection<Map.Entry<Cell, byte[]>>> postFilteredResults = Futures.transformAsync(
-                transactionKeyValueService.getAsync(tableReference, timestampsByCell),
+                dataKeyValueService.getAsync(tableReference, timestampsByCell),
                 rawResults -> getWithPostFilteringAsync(tableReference, rawResults, Value.GET_VALUE),
                 MoreExecutors.directExecutor());
 
@@ -192,8 +202,10 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
                     while (!remainingResultsToPostFilter.isEmpty()) {
                         remainingResultsToPostFilter = AtlasFutures.getUnchecked(getWithPostFilteringInternal(
                                 tableReference, remainingResultsToPostFilter, resultsAccumulator, transformer));
-                        Preconditions.checkState(
-                                ++iterations < MAX_POST_FILTERING_ITERATIONS,
+                        if (++iterations < MAX_POST_FILTERING_ITERATIONS) {
+                            continue;
+                        }
+                        throw new SafeIllegalStateException(
                                 "Unable to filter cells to find correct result after "
                                         + "reaching max iterations. This is likely due to aborted cells lying around,"
                                         + " or in the very rare case, could be due to transactions which constantly "
@@ -281,7 +293,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
         if (!keysToReload.isEmpty()) {
             // TODO (jkong): Consider removing when a decision on validating pre-commit requirements mid-read is made
             return Futures.transform(
-                    transactionKeyValueService.getAsync(tableRef, keysToReload),
+                    dataKeyValueService.getAsync(tableRef, keysToReload),
                     nextRawResults -> {
                         boolean allPossibleCellsReadAndPresent = nextRawResults.size() == keysToReload.size();
                         readSnapshotValidator.throwIfPreCommitRequirementsNotMetOnRead(
@@ -353,28 +365,19 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
         }
     }
 
-    private NavigableMap<byte[], RowResult<byte[]>> filterRowResults(
-            TableReference tableRef, Map<Cell, Value> rawResults, ImmutableMap.Builder<Cell, byte[]> resultCollector) {
-        ImmutableMap<Cell, byte[]> collected = resultCollector
-                .putAll(getWithPostFilteringSync(tableRef, rawResults, Value.GET_VALUE))
-                .buildOrThrow();
-        Map<Cell, byte[]> filterDeletedValues = removeEmptyColumns(collected, tableRef);
-        return RowResults.viewOfSortedMap(Cells.breakCellsUpByRow(filterDeletedValues));
-    }
-
     private <T> Collection<Map.Entry<Cell, T>> getWithPostFilteringSync(
             TableReference tableRef, Map<Cell, Value> rawResults, Function<Value, T> transformer) {
         return AtlasFutures.getUnchecked(getWithPostFilteringAsync(tableRef, rawResults, transformer));
     }
 
-    private Map<Cell, byte[]> removeEmptyColumns(Map<Cell, byte[]> unfiltered, TableReference tableReference) {
-        Map<Cell, byte[]> filtered = Maps.filterValues(unfiltered, Predicates.not(Value::isTombstone));
+    private void removeEmptyColumns(TableReference tableReference, Map<Cell, byte[]> results) {
+        int unfilteredSize = results.size();
 
-        int emptyValues = unfiltered.size() - filtered.size();
+        results.values().removeIf(Value::isTombstone);
+
+        int emptyValues = unfilteredSize - results.size();
         metricRecorder.recordFilteredEmptyValues(tableReference, emptyValues);
         TraceStatistics.incEmptyValues(emptyValues);
-
-        return filtered;
     }
 
     private static boolean isSweepSentinel(Value value) {

@@ -124,6 +124,11 @@ public class LockWatchingServiceImpl implements LockWatchingService {
         runIfDescriptorsMatchLockWatches(unlocked, lockEventLog::logUnlock);
     }
 
+    @Override
+    public void logState() {
+        lockEventLog.logState();
+    }
+
     private synchronized Optional<LockWatches> addToWatches(LockWatchRequest request) {
         LockWatches oldWatches = watches.get();
         Optional<LockWatches> newWatches = filterNewWatches(request, oldWatches);

@@ -65,6 +65,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -588,7 +589,7 @@ public final class CassandraClientPoolTest {
         Map<CassandraServer, CassandraClientPoolingContainer> allHosts =
                 ImmutableMap.<CassandraServer, CassandraClientPoolingContainer>builder()
                         .putAll(containers)
-                        .put(CASS_SERVER_3, newContainers.get(CASS_SERVER_3))
+                        .put(CASS_SERVER_3, Objects.requireNonNull(newContainers.get(CASS_SERVER_3)))
                         .buildOrThrow();
         verify(cassandraTopologyValidator)
                 .getNewHostsWithInconsistentTopologiesAndRetry(eq(expectedNewHost), eq(allHosts), any(), any());
@@ -682,9 +683,8 @@ public final class CassandraClientPoolTest {
     }
 
     static class HostBuilder {
-        private CassandraServer server;
-        private List<Exception> exceptions = new ArrayList<>();
-        private boolean returnsValue = true;
+        private final CassandraServer server;
+        private final List<Exception> exceptions = new ArrayList<>();
 
         HostBuilder(CassandraServer server) {
             this.server = server;
@@ -704,9 +704,7 @@ public final class CassandraClientPoolTest {
                 for (Exception ex : exceptions) {
                     stubbing = stubbing.thenThrow(ex);
                 }
-                if (returnsValue) {
-                    stubbing.thenReturn("Response");
-                }
+                stubbing.thenReturn("Response");
             } catch (Exception ex) {
                 throw new RuntimeException(ex);
             }
@@ -806,7 +804,7 @@ public final class CassandraClientPoolTest {
     }
 
     private FunctionCheckedException<CassandraClient, Void, RuntimeException> noOp() {
-        return new FunctionCheckedException<CassandraClient, Void, RuntimeException>() {
+        return new FunctionCheckedException<>() {
             @Override
             public Void apply(CassandraClient input) throws RuntimeException {
                 return null;

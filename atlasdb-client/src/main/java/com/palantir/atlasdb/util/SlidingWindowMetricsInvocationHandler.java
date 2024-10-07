@@ -20,6 +20,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SlidingTimeWindowArrayReservoir;
 import com.codahale.metrics.Timer;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tritium.event.AbstractInvocationEventHandler;
@@ -69,27 +70,27 @@ public final class SlidingWindowMetricsInvocationHandler extends AbstractInvocat
 
     @Override
     public void onFailure(@Nullable InvocationContext context, @Nonnull Throwable cause) {
-        markGlobalFailure();
         if (context == null) {
-            log.debug("Encountered null metric context likely due to exception in preInvocation", cause);
+            if (log.isDebugEnabled()) {
+                log.debug("Encountered null metric context likely due to exception in preInvocation", cause);
+            }
             return;
         }
 
         String failuresMetricName = InstrumentationUtils.getFailuresMetricName(context, serviceName);
         metricRegistry.meter(failuresMetricName).mark();
-        metricRegistry
-                .meter(MetricRegistry.name(failuresMetricName, cause.getClass().getName()))
-                .mark();
+
+        if (log.isDebugEnabled()) {
+            log.debug(
+                    "Instrumented service method failed with exception",
+                    SafeArg.of("service", serviceName),
+                    SafeArg.of("method", context.getMethod()),
+                    cause);
+        }
     }
 
     private Timer getTimer(Method method) {
         return metricRegistry.timer(
                 InstrumentationUtils.getBaseMetricName(method, serviceName), InstrumentationUtils::createNewTimer);
-    }
-
-    private void markGlobalFailure() {
-        metricRegistry
-                .meter(InstrumentationUtils.TAGGED_FAILURES_METRIC_NAME.safeName())
-                .mark();
     }
 }

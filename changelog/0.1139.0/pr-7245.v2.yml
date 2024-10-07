@@ -1,0 +1,8 @@
+type: improvement
+improvement:
+  description: |-
+    `TableReference#createFromFullyQualifiedName` now uses `Namespace.createUnchecked` to more efficiently validate and create namespaces. The new package-private `Namespace.createUnchecked` uses CPU and memory efficient `CharMatcher` instead of more expensive regex `Pattern` to validate namespace name without allocating.
+
+    Expanded unit tests in NamespaceTest
+  links:
+  - https://github.com/palantir/atlasdb/pull/7245

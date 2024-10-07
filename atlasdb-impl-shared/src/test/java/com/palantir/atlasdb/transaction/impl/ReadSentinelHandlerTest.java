@@ -28,7 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
-import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueService;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingDataKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -66,7 +66,7 @@ public final class ReadSentinelHandlerTest {
     @BeforeEach
     public void setUp() {
         readSentinelHandler = new ReadSentinelHandler(
-                new DelegatingTransactionKeyValueService(keyValueService),
+                new DelegatingDataKeyValueService(keyValueService),
                 transactionService,
                 TransactionReadSentinelBehavior.THROW_EXCEPTION,
                 orphanedSentinelDeleter);
@@ -138,7 +138,7 @@ public final class ReadSentinelHandlerTest {
     @Test
     public void handleReadSentinelDoesNothingIfConfigured() {
         ReadSentinelHandler ignoringReadSentinelHandler = new ReadSentinelHandler(
-                new DelegatingTransactionKeyValueService(keyValueService),
+                new DelegatingDataKeyValueService(keyValueService),
                 transactionService,
                 TransactionReadSentinelBehavior.IGNORE,
                 orphanedSentinelDeleter);

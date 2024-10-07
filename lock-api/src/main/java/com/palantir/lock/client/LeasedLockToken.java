@@ -16,16 +16,19 @@
 
 package com.palantir.lock.client;
 
+import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.tritium.ids.UniqueIds;
 import java.util.UUID;
 import javax.annotation.concurrent.GuardedBy;
 
+@Safe
 public final class LeasedLockToken implements LockToken {
     private final ConjureLockToken serverToken;
     private final UUID requestId;
@@ -82,5 +85,15 @@ public final class LeasedLockToken implements LockToken {
     @Override
     public SafeArg<?> toSafeArg(String name) {
         return SafeArg.of(name, serverToken);
+    }
+
+    @Safe
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper("LeasedLockToken")
+                .omitNullValues()
+                .add("serverToken", serverToken)
+                .add("requestId", requestId)
+                .toString();
     }
 }

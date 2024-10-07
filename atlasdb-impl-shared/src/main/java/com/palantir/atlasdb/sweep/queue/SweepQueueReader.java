@@ -24,7 +24,7 @@ public class SweepQueueReader {
     private final SweepableCells sweepableCells;
     private final ReadBatchingRuntimeContext runtime;
 
-    SweepQueueReader(
+    public SweepQueueReader(
             SweepableTimestamps sweepableTimestamps,
             SweepableCells sweepableCells,
             ReadBatchingRuntimeContext runtime) {
@@ -33,7 +33,8 @@ public class SweepQueueReader {
         this.runtime = runtime;
     }
 
-    SweepBatchWithPartitionInfo getNextBatchToSweep(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
+    public SweepBatchWithPartitionInfo getNextBatchToSweep(
+            ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
         SweepBatchAccumulator accumulator =
                 new SweepBatchAccumulator(sweepTs, runtime.cellsThreshold().getAsInt(), lastSweptTs);
         long previousProgress = lastSweptTs;

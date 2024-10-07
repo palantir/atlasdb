@@ -18,12 +18,20 @@ package com.palantir.lock.watch;
 
 import java.util.Set;
 
-public interface LockWatchValueCache {
+public interface LockWatchValueCache extends AutoCloseable {
     void processStartTransactions(Set<Long> startTimestamps);
 
     void updateCacheWithCommitTimestampsInformation(Set<Long> startTimestamps);
 
+    void requestStateRemoved(long startTimestamp);
+
     void ensureStateRemoved(long startTimestamp);
 
     void onSuccessfulCommit(long startTimestamp);
+
+    void logState();
+
+    // Checked exceptions not allowed.
+    @Override
+    void close();
 }

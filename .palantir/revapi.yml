@@ -157,6 +157,256 @@ acceptedBreaks:
       new: "method void com.palantir.atlasdb.keyvalue.api.KeyValueService::deleteFromAtomicTable(com.palantir.atlasdb.keyvalue.api.TableReference,\
         \ java.util.Set<com.palantir.atlasdb.keyvalue.api.Cell>)"
       justification: "internal KVS API"
+  "0.1127.0":
+    com.palantir.atlasdb:atlasdb-config:
+    - code: "java.method.numberOfParametersChanged"
+      old: "method com.palantir.atlasdb.factory.TimeLockHelperServices com.palantir.atlasdb.factory.TimeLockHelperServices::create(java.lang.String,\
+        \ com.palantir.atlasdb.util.MetricsManager, java.util.Set<com.palantir.atlasdb.table.description.Schema>,\
+        \ com.palantir.lock.client.LockWatchStarter, com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig,\
+        \ java.util.function.Supplier<java.util.Optional<com.palantir.lock.client.RequestBatchersFactory.MultiClientRequestBatchers>>)"
+      new: "method com.palantir.atlasdb.factory.TimeLockHelperServices com.palantir.atlasdb.factory.TimeLockHelperServices::create(java.lang.String,\
+        \ com.palantir.atlasdb.util.MetricsManager, java.util.Set<com.palantir.atlasdb.table.description.Schema>,\
+        \ com.palantir.lock.client.LockWatchStarter, com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig,\
+        \ java.util.function.Supplier<java.util.Optional<com.palantir.lock.client.RequestBatchersFactory.MultiClientRequestBatchers>>,\
+        \ com.palantir.lock.client.LockWatchTimeLockDiagnosticsLogger)"
+      justification: "used in atlas only"
+  "0.1133.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.addedToInterface"
+      new: "method <T> T com.palantir.atlasdb.transaction.service.TransactionStatus::accept(com.palantir.atlasdb.transaction.service.TransactionStatus.Visitor<T>)"
+      justification: "purely addition - adding a visitor to transaction status"
+  "0.1134.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.abstractMethodAdded"
+      new: "method void com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal::requestTransactionStateRemovalFromCache(long)"
+      justification: "Internal API"
+    - code: "java.method.addedToInterface"
+      new: "method void com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache::requestStateRemoved(long)"
+      justification: "Internal API"
+    - code: "java.method.removed"
+      old: "method void com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal::removeTransactionStateFromCache(long)"
+      justification: "Internal API"
+    - code: "java.method.removed"
+      old: "method void com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager::removeTransactionStateFromCache(long)"
+      justification: "Internal API"
+  "0.1150.0":
+    com.palantir.atlasdb:atlasdb-cassandra:
+    - code: "java.class.nowFinal"
+      old: "class com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService"
+      new: "class com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService"
+      justification: "Unused outside atlas"
+    - code: "java.method.numberOfParametersChanged"
+      old: "method void com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory::<init>(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer, com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig)"
+      new: "method void com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory::<init>(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer, com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraClientInstrumentation)"
+      justification: "Unused outside atlas"
+    - code: "java.method.numberOfParametersChanged"
+      old: "method void com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory::<init>(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer, com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig)"
+      new: "method void com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory::<init>(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer, com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraClientMetrics)"
+      justification: "Unused outside atlas"
+    - code: "java.method.numberOfParametersChanged"
+      old: "method void com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer::<init>(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer, com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig,\
+        \ int, com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics)"
+      new: "method void com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer::<init>(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer, com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig,\
+        \ int, com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraClientInstrumentation)"
+      justification: "Unused outside atlas"
+    - code: "java.method.numberOfParametersChanged"
+      old: "method void com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer::<init>(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer, com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig,\
+        \ int, com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics)"
+      new: "method void com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer::<init>(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer, com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig,\
+        \ int, com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraClientMetrics)"
+      justification: "Unused outside atlas"
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter void com.palantir.atlasdb.keyvalue.cassandra.InstrumentedCassandraClient::<init>(com.palantir.atlasdb.keyvalue.cassandra.CassandraClient,\
+        \ ===com.palantir.tritium.metrics.registry.TaggedMetricRegistry===)"
+      new: "parameter void com.palantir.atlasdb.keyvalue.cassandra.InstrumentedCassandraClient::<init>(com.palantir.atlasdb.keyvalue.cassandra.CassandraClient,\
+        \ ===com.palantir.atlasdb.keyvalue.cassandra.CassandraClientInstrumentation===)"
+      justification: "Unused outside atlas"
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter void com.palantir.atlasdb.keyvalue.cassandra.InstrumentedCassandraClient::<init>(com.palantir.atlasdb.keyvalue.cassandra.CassandraClient,\
+        \ ===com.palantir.tritium.metrics.registry.TaggedMetricRegistry===)"
+      new: "parameter void com.palantir.atlasdb.keyvalue.cassandra.InstrumentedCassandraClient::<init>(com.palantir.atlasdb.keyvalue.cassandra.CassandraClient,\
+        \ ===com.palantir.atlasdb.keyvalue.cassandra.CassandraClientMetrics===)"
+      justification: "Unused outside atlas"
+    - code: "java.method.visibilityReduced"
+      old: "method void com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService::<init>(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig, com.palantir.refreshable.Refreshable<com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig>,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.Blacklist, com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics)"
+      new: "method void com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService::<init>(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig, com.palantir.refreshable.Refreshable<com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig>,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.Blacklist, com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraClientInstrumentation)"
+      justification: "Unused outside atlas"
+    - code: "java.method.visibilityReduced"
+      old: "method void com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService::<init>(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig, com.palantir.refreshable.Refreshable<com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig>,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.Blacklist, com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics)"
+      new: "method void com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService::<init>(com.palantir.atlasdb.util.MetricsManager,\
+        \ com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig, com.palantir.refreshable.Refreshable<com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig>,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.Blacklist, com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics,\
+        \ com.palantir.atlasdb.keyvalue.cassandra.CassandraClientMetrics)"
+      justification: "Unused outside atlas"
+  "0.1152.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter java.util.NavigableMap<byte[], com.palantir.atlasdb.keyvalue.api.RowResult<byte[]>>\
+        \ com.palantir.atlasdb.transaction.api.snapshot.AutoDelegate_KeyValueSnapshotReader::getRows(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.lang.Iterable<byte[]>, com.palantir.atlasdb.keyvalue.api.ColumnSelection,\
+        \ ===com.google.common.collect.ImmutableMap.Builder<com.palantir.atlasdb.keyvalue.api.Cell,\
+        \ byte[]>===)"
+      new: "parameter java.util.NavigableMap<byte[], com.palantir.atlasdb.keyvalue.api.RowResult<byte[]>>\
+        \ com.palantir.atlasdb.transaction.api.snapshot.AutoDelegate_KeyValueSnapshotReader::getRows(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.lang.Iterable<byte[]>, com.palantir.atlasdb.keyvalue.api.ColumnSelection,\
+        \ ===java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, byte[]>===)"
+      justification: "KeyValueSnapshotReader is a relatively new API and is not widely\
+        \ used"
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter java.util.NavigableMap<byte[], com.palantir.atlasdb.keyvalue.api.RowResult<byte[]>>\
+        \ com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReader::getRows(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.lang.Iterable<byte[]>, com.palantir.atlasdb.keyvalue.api.ColumnSelection,\
+        \ ===com.google.common.collect.ImmutableMap.Builder<com.palantir.atlasdb.keyvalue.api.Cell,\
+        \ byte[]>===)"
+      new: "parameter java.util.NavigableMap<byte[], com.palantir.atlasdb.keyvalue.api.RowResult<byte[]>>\
+        \ com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReader::getRows(com.palantir.atlasdb.keyvalue.api.TableReference,\
+        \ java.lang.Iterable<byte[]>, com.palantir.atlasdb.keyvalue.api.ColumnSelection,\
+        \ ===java.util.Map<com.palantir.atlasdb.keyvalue.api.Cell, byte[]>===)"
+      justification: "KeyValueSnapshotReader is a relatively new API and is not widely\
+        \ used"
+  "0.1157.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.class.removed"
+      old: "interface com.palantir.atlasdb.cell.api.AutoDelegate_TransactionKeyValueService"
+      justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
+        \ acceptable as it is marked @Beta and unused in production."
+    - code: "java.class.removed"
+      old: "interface com.palantir.atlasdb.cell.api.AutoDelegate_TransactionKeyValueServiceManager"
+      justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
+        \ acceptable as it is marked @Beta and unused in production."
+    - code: "java.class.removed"
+      old: "interface com.palantir.atlasdb.cell.api.TransactionKeyValueService"
+      justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
+        \ acceptable as it is marked @Beta and unused in production."
+    - code: "java.class.removed"
+      old: "interface com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager"
+      justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
+        \ acceptable as it is marked @Beta and unused in production."
+    - code: "java.class.removed"
+      old: "interface com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig"
+      justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
+        \ acceptable as it is marked @Beta and unused in production."
+    - code: "java.class.removed"
+      old: "interface com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory<T\
+        \ extends java.lang.Object>"
+      justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
+        \ acceptable as it is marked @Beta and unused in production."
+    - code: "java.class.removed"
+      old: "interface com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig"
+      justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
+        \ acceptable as it is marked @Beta and unused in production."
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager\
+        \ com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManagerFactory::createKeyValueSnapshotReaderManager(===com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager===,\
+        \ com.palantir.atlasdb.transaction.service.TransactionService, boolean, com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter,\
+        \ com.palantir.atlasdb.transaction.api.DeleteExecutor, com.palantir.atlasdb.util.MetricsManager)"
+      new: "parameter com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager\
+        \ com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManagerFactory::createKeyValueSnapshotReaderManager(===com.palantir.atlasdb.cell.api.DataKeyValueServiceManager===,\
+        \ com.palantir.atlasdb.transaction.service.TransactionService, boolean, com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter,\
+        \ com.palantir.atlasdb.transaction.api.DeleteExecutor, com.palantir.atlasdb.util.MetricsManager)"
+      justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
+        \ acceptable as it is marked @Beta and unused in production."
+    com.palantir.atlasdb:atlasdb-config:
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter com.palantir.atlasdb.factory.TransactionManagersInitializer\
+        \ com.palantir.atlasdb.factory.TransactionManagersInitializer::createInitialTables(com.palantir.atlasdb.keyvalue.api.KeyValueService,\
+        \ ===com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager===, java.util.Set<com.palantir.atlasdb.table.description.Schema>,\
+        \ boolean, boolean)"
+      new: "parameter com.palantir.atlasdb.factory.TransactionManagersInitializer\
+        \ com.palantir.atlasdb.factory.TransactionManagersInitializer::createInitialTables(com.palantir.atlasdb.keyvalue.api.KeyValueService,\
+        \ ===com.palantir.atlasdb.cell.api.DataKeyValueServiceManager===, java.util.Set<com.palantir.atlasdb.table.description.Schema>,\
+        \ boolean, boolean)"
+      justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
+        \ acceptable as it is marked @Beta and unused in production."
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManagerFactory\
+        \ com.palantir.atlasdb.factory.AtlasDbServiceDiscovery::createKeyValueSnapshotReaderManagerFactoryOfCorrectType(===com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig===)"
+      new: "parameter com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManagerFactory\
+        \ com.palantir.atlasdb.factory.AtlasDbServiceDiscovery::createKeyValueSnapshotReaderManagerFactoryOfCorrectType(===com.palantir.atlasdb.spi.DataKeyValueServiceConfig===)"
+      justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
+        \ acceptable as it is marked @Beta and unused in production."
+    - code: "java.method.removed"
+      old: "method com.palantir.atlasdb.config.ImmutableAtlasDbConfig com.palantir.atlasdb.config.ImmutableAtlasDbConfig::withTransactionKeyValueService(com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig)"
+      justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
+        \ acceptable as it is marked @Beta and unused in production."
+    - code: "java.method.removed"
+      old: "method com.palantir.atlasdb.config.ImmutableAtlasDbConfig com.palantir.atlasdb.config.ImmutableAtlasDbConfig::withTransactionKeyValueService(java.util.Optional<?\
+        \ extends com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig>)"
+      justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
+        \ acceptable as it is marked @Beta and unused in production."
+    - code: "java.method.removed"
+      old: "method com.palantir.atlasdb.config.ImmutableAtlasDbConfig.Builder com.palantir.atlasdb.config.ImmutableAtlasDbConfig.Builder::transactionKeyValueService(com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig)"
+      justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
+        \ acceptable as it is marked @Beta and unused in production."
+    - code: "java.method.removed"
+      old: "method com.palantir.atlasdb.config.ImmutableAtlasDbConfig.Builder com.palantir.atlasdb.config.ImmutableAtlasDbConfig.Builder::transactionKeyValueService(java.util.Optional<?\
+        \ extends com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig>)"
+      justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
+        \ acceptable as it is marked @Beta and unused in production."
+    - code: "java.method.removed"
+      old: "method com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig::withTransactionKeyValueService(com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig)"
+      justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
+        \ acceptable as it is marked @Beta and unused in production."
+    - code: "java.method.removed"
+      old: "method com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig::withTransactionKeyValueService(java.util.Optional<?\
+        \ extends com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig>)"
+      justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
+        \ acceptable as it is marked @Beta and unused in production."
+    - code: "java.method.removed"
+      old: "method com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig.Builder\
+        \ com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig.Builder::transactionKeyValueService(com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig)"
+      justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
+        \ acceptable as it is marked @Beta and unused in production."
+    - code: "java.method.removed"
+      old: "method com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig.Builder\
+        \ com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig.Builder::transactionKeyValueService(java.util.Optional<?\
+        \ extends com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig>)"
+      justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
+        \ acceptable as it is marked @Beta and unused in production."
+    - code: "java.method.removed"
+      old: "method com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory<?>\
+        \ com.palantir.atlasdb.factory.AtlasDbServiceDiscovery::createTransactionKeyValueServiceManagerFactoryOfCorrectType(com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig)"
+      justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
+        \ acceptable as it is marked @Beta and unused in production."
+    - code: "java.method.removed"
+      old: "method java.util.Optional<com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig>\
+        \ com.palantir.atlasdb.config.AtlasDbConfig::transactionKeyValueService()"
+      justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
+        \ acceptable as it is marked @Beta and unused in production."
+    - code: "java.method.removed"
+      old: "method java.util.Optional<com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig>\
+        \ com.palantir.atlasdb.config.ImmutableAtlasDbConfig::transactionKeyValueService()"
+      justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
+        \ acceptable as it is marked @Beta and unused in production."
+    - code: "java.method.removed"
+      old: "method java.util.Optional<com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig>\
+        \ com.palantir.atlasdb.config.AtlasDbRuntimeConfig::transactionKeyValueService()"
+      justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
+        \ acceptable as it is marked @Beta and unused in production."
+    - code: "java.method.removed"
+      old: "method java.util.Optional<com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig>\
+        \ com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig::transactionKeyValueService()"
+      justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
+        \ acceptable as it is marked @Beta and unused in production."
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"

@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.collect.Maps;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
+import com.palantir.atlasdb.cell.api.DataKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -41,17 +41,17 @@ import java.util.stream.Collectors;
  * exist situations where the read sentinel is a result of other operations running on the underlying key-value-service.
  */
 public final class ReadSentinelHandler {
-    private final TransactionKeyValueService transactionKeyValueService;
+    private final DataKeyValueService dataKeyValueService;
     private final TransactionService transactionService;
     private final TransactionReadSentinelBehavior readSentinelBehavior;
     private final OrphanedSentinelDeleter orphanedSentinelDeleter;
 
     public ReadSentinelHandler(
-            TransactionKeyValueService transactionKeyValueService,
+            DataKeyValueService dataKeyValueService,
             TransactionService transactionService,
             TransactionReadSentinelBehavior readSentinelBehavior,
             OrphanedSentinelDeleter orphanedSentinelDeleter) {
-        this.transactionKeyValueService = transactionKeyValueService;
+        this.dataKeyValueService = dataKeyValueService;
         this.transactionService = transactionService;
         this.readSentinelBehavior = readSentinelBehavior;
         this.orphanedSentinelDeleter = orphanedSentinelDeleter;
@@ -72,7 +72,7 @@ public final class ReadSentinelHandler {
         // if committed value seen, stop: the sentinel is not orphaned
         // if we get back -1, the sentinel is orphaned
         Map<Cell, Long> timestampCandidates = new HashMap<>(
-                transactionKeyValueService.getLatestTimestamps(table, Maps.asMap(sweepSentinels, x -> Long.MAX_VALUE)));
+                dataKeyValueService.getLatestTimestamps(table, Maps.asMap(sweepSentinels, x -> Long.MAX_VALUE)));
         Set<Cell> actualOrphanedSentinels = new HashSet<>();
 
         while (!timestampCandidates.isEmpty()) {
@@ -100,7 +100,7 @@ public final class ReadSentinelHandler {
             Map<Cell, Long> nextTimestampCandidates = KeyedStream.stream(cellsToQuery)
                     .filter(cellStartTimestamp -> !committedStartTimestamps.contains(cellStartTimestamp))
                     .collectToMap();
-            timestampCandidates = transactionKeyValueService.getLatestTimestamps(table, nextTimestampCandidates);
+            timestampCandidates = dataKeyValueService.getLatestTimestamps(table, nextTimestampCandidates);
         }
 
         orphanedSentinelDeleter.scheduleSentinelsForDeletion(table, actualOrphanedSentinels);

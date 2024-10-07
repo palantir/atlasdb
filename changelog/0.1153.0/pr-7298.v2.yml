@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: Run all tests rather than stopping on first failure locally
+  links:
+  - https://github.com/palantir/atlasdb/pull/7298

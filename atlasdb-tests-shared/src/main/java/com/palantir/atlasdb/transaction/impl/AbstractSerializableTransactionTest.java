@@ -54,7 +54,7 @@ import com.palantir.atlasdb.keyvalue.api.RangeRequests;
 import com.palantir.atlasdb.keyvalue.api.RowResult;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
-import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingDataKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
@@ -121,7 +121,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         MultiTableSweepQueueWriter sweepQueue = getSweepQueueWriterUninitialized();
         SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
                 MetricsManagers.createForTests(),
-                new DelegatingTransactionKeyValueServiceManager(keyValueService),
+                new DelegatingDataKeyValueServiceManager(keyValueService),
                 timelockService,
                 timestampManagementService,
                 lockService,
@@ -153,7 +153,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
         LongSupplier startTimestampSupplier = Suppliers.ofInstance(timestampService.getFreshTimestamp())::get;
         return new SerializableTransaction(
                 MetricsManagers.createForTests(),
-                transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
+                dataKeyValueServiceManager.getDataKeyValueService(startTimestampSupplier),
                 timelockService,
                 NoOpLockWatchManager.create(),
                 transactionService,
@@ -173,7 +173,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 getSweepQueueWriterInitialized(),
                 new DefaultDeleteExecutor(
-                        transactionKeyValueServiceManager.getKeyValueService().orElseThrow(),
+                        dataKeyValueServiceManager.getKeyValueService().orElseThrow(),
                         MoreExecutors.newDirectExecutorService()),
                 true,
                 transactionConfigSupplier,

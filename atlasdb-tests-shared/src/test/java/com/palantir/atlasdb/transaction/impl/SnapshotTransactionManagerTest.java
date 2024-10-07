@@ -31,12 +31,12 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
+import com.palantir.atlasdb.cell.api.DataKeyValueServiceManager;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
-import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingDataKeyValueServiceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -80,8 +80,8 @@ public class SnapshotTransactionManagerTest {
     private final Cleaner cleaner = mock(Cleaner.class);
     private final KeyValueService keyValueService = mock(KeyValueService.class);
 
-    private final TransactionKeyValueServiceManager transactionKeyValueServiceManager =
-            new DelegatingTransactionKeyValueServiceManager(keyValueService);
+    private final DataKeyValueServiceManager dataKeyValueServiceManager =
+            new DelegatingDataKeyValueServiceManager(keyValueService);
 
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
@@ -102,7 +102,7 @@ public class SnapshotTransactionManagerTest {
         timestampService = inMemoryTimelockClassExtension.getManagedTimestampService();
         snapshotTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
-                transactionKeyValueServiceManager,
+                dataKeyValueServiceManager,
                 inMemoryTimelockClassExtension.getLegacyTimelockService(),
                 NoOpLockWatchManager.create(),
                 timestampService,
@@ -160,7 +160,7 @@ public class SnapshotTransactionManagerTest {
     public void canCloseTransactionManagerWithNonCloseableLockService() {
         SnapshotTransactionManager newTransactionManager = new SnapshotTransactionManager(
                 metricsManager,
-                transactionKeyValueServiceManager,
+                dataKeyValueServiceManager,
                 inMemoryTimelockClassExtension.getLegacyTimelockService(),
                 NoOpLockWatchManager.create(),
                 inMemoryTimelockClassExtension.getManagedTimestampService(),
@@ -250,12 +250,7 @@ public class SnapshotTransactionManagerTest {
         TaggedMetricRegistry registry = snapshotTransactionManager.metricsManager.getTaggedRegistry();
         assertThat(registry.getMetrics().keySet().stream().map(MetricName::safeName))
                 .contains(SETUP_TASK_METRIC_NAME)
-                .contains(FINISH_TASK_METRIC_NAME)
-                .contains("expectations.bytesRead")
-                .contains("expectations.kvsReads")
-                .contains("expectations.ageMillis")
-                .contains("expectations.cellCommitLocksRequested")
-                .contains("expectations.rowCommitLocksRequested");
+                .contains(FINISH_TASK_METRIC_NAME);
         assertThat(registry.timer(MetricName.builder()
                                 .safeName(SETUP_TASK_METRIC_NAME)
                                 .build())
@@ -305,7 +300,7 @@ public class SnapshotTransactionManagerTest {
             TimelockService timelockService, boolean grabImmutableTsLockOnReads) {
         return new SnapshotTransactionManager(
                 metricsManager,
-                transactionKeyValueServiceManager,
+                dataKeyValueServiceManager,
                 timelockService,
                 NoOpLockWatchManager.create(),
                 timestampService,
@@ -334,9 +329,6 @@ public class SnapshotTransactionManagerTest {
 
     private KeyValueSnapshotReaderManager getKeyValueSnapshotReaderManager(SweepStrategyManager sweepStrategyManager) {
         return TestKeyValueSnapshotReaderManagers.createForTests(
-                transactionKeyValueServiceManager,
-                mock(TransactionService.class),
-                sweepStrategyManager,
-                deleteExecutor);
+                dataKeyValueServiceManager, mock(TransactionService.class), sweepStrategyManager, deleteExecutor);
     }
 }

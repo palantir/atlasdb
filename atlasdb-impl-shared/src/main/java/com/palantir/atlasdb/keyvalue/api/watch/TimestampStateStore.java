@@ -19,7 +19,9 @@ package com.palantir.atlasdb.keyvalue.api.watch;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.Multimaps;
 import com.google.common.collect.SortedSetMultimap;
 import com.google.common.collect.TreeMultimap;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
@@ -28,6 +30,7 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.Unsafe;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -67,8 +70,12 @@ import org.immutables.value.Value;
 final class TimestampStateStore {
     private static final SafeLogger log = SafeLoggerFactory.get(TimestampStateStore.class);
 
+    // The purpose of this relates to a concern about the timestamp state store using excessive memory.
+    // Each mapping is associated with a long (start timestamp), three UUIDs and two longs maximum (timestamp map)
+    // and a reverse mapping of two longs in livingVersions. So even in the largest case, we have ~100 bytes per
+    // mapping, meaning that the timestamp cache size should not exceed ~10 MiB.
     @VisibleForTesting
-    static final int MAXIMUM_SIZE = 20_000;
+    static final int MAXIMUM_SIZE = 100_000;
 
     private final NavigableMap<StartTimestamp, TimestampVersionInfo> timestampMap = new ConcurrentSkipListMap<>();
     private final ConcurrentMap<Sequence, NavigableSet<StartTimestamp>> livingVersions = new ConcurrentHashMap<>();
@@ -143,14 +150,16 @@ final class TimestampStateStore {
         return getTimestampInfo(startTimestamp).flatMap(TimestampVersionInfo::commitInfo);
     }
 
-    @VisibleForTesting
-    TimestampStateStoreState getStateForTesting() {
+    @Unsafe
+    TimestampStateStoreState getStateForDiagnostics() {
         // This method doesn't need to read a thread-safe snapshot of timestampMap and livingVersions
         SortedSetMultimap<Sequence, StartTimestamp> living = TreeMultimap.create();
-        livingVersions.forEach(living::putAll);
+        livingVersions.forEach(
+                (sequence, startTimestamps) -> living.putAll(sequence, ImmutableSortedSet.copyOf(startTimestamps)));
+
         return ImmutableTimestampStateStoreState.builder()
-                .timestampMap(timestampMap)
-                .livingVersions(living)
+                .timestampMap(ImmutableSortedMap.copyOf(timestampMap))
+                .livingVersions(Multimaps.unmodifiableSortedSetMultimap(living))
                 .build();
     }
 

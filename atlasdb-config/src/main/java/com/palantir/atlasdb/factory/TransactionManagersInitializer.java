@@ -17,7 +17,7 @@ package com.palantir.atlasdb.factory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.async.initializer.AsyncInitializer;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
+import com.palantir.atlasdb.cell.api.DataKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.Schema;
@@ -30,18 +30,18 @@ public final class TransactionManagersInitializer extends AsyncInitializer {
 
     private KeyValueService internalKeyValueService;
 
-    private TransactionKeyValueServiceManager transactionKeyValueServiceManager;
+    private DataKeyValueServiceManager dataKeyValueServiceManager;
     private Set<Schema> schemas;
     private final boolean allSafeForLogging;
 
     public static TransactionManagersInitializer createInitialTables(
             KeyValueService internalKeyValueService,
-            TransactionKeyValueServiceManager transactionKeyValueServiceManager,
+            DataKeyValueServiceManager dataKeyValueServiceManager,
             Set<Schema> schemas,
             boolean initializeAsync,
             boolean allSafeForLogging) {
         TransactionManagersInitializer initializer = new TransactionManagersInitializer(
-                internalKeyValueService, transactionKeyValueServiceManager, schemas, allSafeForLogging);
+                internalKeyValueService, dataKeyValueServiceManager, schemas, allSafeForLogging);
         initializer.initialize(initializeAsync);
         return initializer;
     }
@@ -49,11 +49,11 @@ public final class TransactionManagersInitializer extends AsyncInitializer {
     @VisibleForTesting
     TransactionManagersInitializer(
             KeyValueService internalKeyValueService,
-            TransactionKeyValueServiceManager transactionKeyValueServiceManager,
+            DataKeyValueServiceManager dataKeyValueServiceManager,
             Set<Schema> schemas,
             boolean allSafeForLogging) {
         this.internalKeyValueService = internalKeyValueService;
-        this.transactionKeyValueServiceManager = transactionKeyValueServiceManager;
+        this.dataKeyValueServiceManager = dataKeyValueServiceManager;
         this.schemas = schemas;
         this.allSafeForLogging = allSafeForLogging;
     }
@@ -69,7 +69,7 @@ public final class TransactionManagersInitializer extends AsyncInitializer {
 
     private void createTablesAndIndexes() {
         for (Schema schema : schemas) {
-            Schemas.createUserTablesAndIndexes(schema, transactionKeyValueServiceManager.getDdlManager());
+            Schemas.createUserTablesAndIndexes(schema, dataKeyValueServiceManager.getDdlManager());
         }
     }
 

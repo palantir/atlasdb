@@ -119,6 +119,44 @@ public enum TargetedSweepSchema implements AtlasSchema {
                 conflictHandler(ConflictHandler.IGNORE_ALL);
             }
         });
+
+        schema.addTableDefinition("sweepProgressPerBucket", new TableDefinition() {
+            {
+                javaTableName("SweepBucketProgress");
+                allSafeForLoggingByDefault();
+                rowName();
+                hashFirstNRowComponents(3);
+                rowComponent("shard", ValueType.VAR_LONG);
+                rowComponent("bucket_identifier", ValueType.VAR_LONG);
+                rowComponent("strategy", ValueType.BLOB);
+                columns();
+                column("bucket_progress", "p", ValueType.BLOB);
+
+                // we do our own cleanup
+                sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+                conflictHandler(ConflictHandler.IGNORE_ALL);
+            }
+        });
+
+        schema.addTableDefinition("sweepAssignedBuckets", new TableDefinition() {
+            {
+                javaTableName("SweepAssignedBuckets");
+                allSafeForLoggingByDefault();
+                rowName();
+                hashFirstNRowComponents(3);
+                // All are signed to reserve the negative values for special cells.
+                rowComponent("shard", ValueType.VAR_SIGNED_LONG);
+                rowComponent("major_bucket_identifier", ValueType.VAR_SIGNED_LONG);
+                rowComponent("strategy", ValueType.BLOB);
+                dynamicColumns();
+                columnComponent("minor_bucket_identifier", ValueType.VAR_SIGNED_LONG);
+                value(ValueType.BLOB);
+
+                // we do our own cleanup
+                sweepStrategy(TableMetadataPersistence.SweepStrategy.NOTHING);
+                conflictHandler(ConflictHandler.IGNORE_ALL);
+            }
+        });
     }
 
     private static void addTableIdentifierTables(Schema schema) {

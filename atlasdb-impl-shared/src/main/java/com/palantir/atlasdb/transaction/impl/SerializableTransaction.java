@@ -37,7 +37,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.TimestampCache;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
+import com.palantir.atlasdb.cell.api.DataKeyValueService;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
@@ -146,7 +146,7 @@ public class SerializableTransaction extends SnapshotTransaction {
 
     public SerializableTransaction(
             MetricsManager metricsManager,
-            TransactionKeyValueService keyValueService,
+            DataKeyValueService keyValueService,
             TimelockService timelockService,
             LockWatchManagerInternal lockWatchManager,
             TransactionService transactionService,
@@ -915,7 +915,7 @@ public class SerializableTransaction extends SnapshotTransaction {
     private Transaction getReadOnlyTransaction(final long commitTs) {
         return new SnapshotTransaction(
                 metricsManager,
-                transactionKeyValueService,
+                dataKeyValueService,
                 timelockService,
                 lockWatchManager,
                 defaultTransactionService,

@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.keyvalue.api.watch;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import com.palantir.lock.LockDescriptor;
@@ -29,6 +28,7 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.Unsafe;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
@@ -98,12 +98,12 @@ final class ClientLockWatchSnapshot {
         return snapshotVersion;
     }
 
-    @VisibleForTesting
-    ClientLockWatchSnapshotState getStateForTesting() {
+    @Unsafe
+    ClientLockWatchSnapshotState getStateForDiagnostics() {
         return ImmutableClientLockWatchSnapshotState.builder()
                 .snapshotVersion(snapshotVersion)
-                .locked(locked)
-                .watches(watches)
+                .locked(ImmutableSet.copyOf(locked))
+                .watches(ImmutableSet.copyOf(watches))
                 .build();
     }
 
