@@ -20,7 +20,6 @@ import static com.palantir.logsafe.testing.Assertions.assertThat;
 
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.ObjectPersister.LogSafety;
-import com.palantir.conjure.java.serialization.ObjectMappers;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -28,7 +27,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 public final class BucketStateAndIdentifierPersisterTest {
     private static final ObjectPersister<BucketStateAndIdentifier> PERSISTER =
-            ObjectPersister.of(ObjectMappers.newServerSmileMapper(), BucketStateAndIdentifier.class, LogSafety.SAFE);
+            ObjectPersister.of(BucketStateAndIdentifier.class, LogSafety.SAFE);
 
     // We're not enumerating all states here as we test serde in BucketAssignerStateTest
     private static final BucketStateAndIdentifier BUCKET_STATE_AND_IDENTIFIER_ONE =
@@ -49,7 +48,7 @@ public final class BucketStateAndIdentifierPersisterTest {
 
     private static final byte[] SERIALIZED_BUCKET_STATE_AND_IDENTIFIER_TWO = BaseEncoding.base64()
             .decode(
-                    "OikKBfqPYnVja2V0SWRlbnRpZmllciQOkIRzdGF0ZfqDdHlwZVFpbW1lZGlhdGVseUNsb3NpbmeWc3RhcnRUaW1lc3RhbXBJbmNsdXNpdmUkA7aUZW5kVGltZXN0YW1wRXhjbHVzaXZlJBC6+/s=");
+                    "OikKBfqPYnVja2V0SWRlbnRpZmllciQOkIRzdGF0ZfqDdHlwZVFpbW1lZGlhdGVseUNsb3NpbmeUZW5kVGltZXN0YW1wRXhjbHVzaXZlJBC6lnN0YXJ0VGltZXN0YW1wSW5jbHVzaXZlJAO2+/s=");
 
     @ParameterizedTest
     @MethodSource("bucketStateAndIdentifiers")
@@ -64,6 +63,13 @@ public final class BucketStateAndIdentifierPersisterTest {
     public void canDeserializeExistingVersionOfBucketStateAndIdentifier(
             BucketStateAndIdentifier bucketStateAndIdentifier, byte[] serialized) {
         assertThat(PERSISTER.tryDeserialize(serialized)).isEqualTo(bucketStateAndIdentifier);
+    }
+
+    @ParameterizedTest
+    @MethodSource("bucketStateAndIdentifiers")
+    public void serializedBucketMatchesExistingVersion(
+            BucketStateAndIdentifier bucketStateAndIdentifier, byte[] serialized) {
+        assertThat(serialized).isEqualTo(PERSISTER.trySerialize(bucketStateAndIdentifier));
     }
 
     private static Stream<Arguments> bucketStateAndIdentifiers() {
