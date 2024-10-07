@@ -53,6 +53,8 @@ jobs:
           key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
       - run: mkdir -p $CIRCLE_ARTIFACTS
       - run:
+          command: ./scripts/circle-ci/trigger-antithesis-simulation.sh
+      - run:
           command: ./scripts/circle-ci/pull-all-images.sh
           background: true
       - run:
