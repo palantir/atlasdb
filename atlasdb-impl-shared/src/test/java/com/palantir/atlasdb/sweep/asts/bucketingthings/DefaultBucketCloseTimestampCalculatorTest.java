@@ -17,12 +17,15 @@
 package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
 import static com.palantir.atlasdb.sweep.asts.bucketingthings.DefaultBucketCloseTimestampCalculator.MAX_BUCKET_SIZE_FOR_NON_PUNCHER_CLOSE;
-import static com.palantir.atlasdb.sweep.asts.bucketingthings.DefaultBucketCloseTimestampCalculator.MIN_BUCKET_SIZE_FOR_NON_PUNCHER_CLOSE;
+import static com.palantir.atlasdb.sweep.asts.bucketingthings.DefaultBucketCloseTimestampCalculator.MIN_BUCKET_SIZE;
 import static com.palantir.atlasdb.sweep.asts.bucketingthings.DefaultBucketCloseTimestampCalculator.TIME_GAP_BETWEEN_BUCKET_START_AND_END;
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.Mockito.when;
 
 import com.palantir.atlasdb.cleaner.PuncherStore;
+import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
+import com.palantir.logsafe.SafeArg;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -55,8 +58,17 @@ public final class DefaultBucketCloseTimestampCalculatorTest {
     }
 
     @Test
+    public void throwsIfStartTimestampNotOnCoarsePartitionBoundary() {
+        long startTimestamp = 18; // Arbitrarily chosen.
+        assertThatLoggableExceptionThrownBy(
+                        () -> bucketCloseTimestampCalculator.getBucketCloseTimestamp(startTimestamp))
+                .hasLogMessage("startTimestamp must be on a coarse partition boundary")
+                .hasExactlyArgs(SafeArg.of("startTimestamp", startTimestamp));
+    }
+
+    @Test
     public void returnsEmptyIfSufficientTimeHasNotPassedSinceStartTimestamp() {
-        int startTimestamp = 18; // Arbitrarily chosen.
+        long startTimestamp = 18 * SweepQueueUtils.TS_COARSE_GRANULARITY; // Arbitrarily chosen.
         when(puncherStore.getMillisForTimestamp(startTimestamp)).thenReturn(clock.millis());
         OptionalLong maybeEndTimestamp = bucketCloseTimestampCalculator.getBucketCloseTimestamp(startTimestamp);
         assertThat(maybeEndTimestamp).isEmpty();
@@ -65,63 +77,67 @@ public final class DefaultBucketCloseTimestampCalculatorTest {
     @Test
     public void
             returnsLogicalTimestampSufficientTimeAfterStartTimestampIfTenMinutesHasPassedAndLogicalTimestampAheadOfStart() {
-        int startTimestamp = 123;
+        long startTimestamp = 123 * SweepQueueUtils.TS_COARSE_GRANULARITY;
         when(puncherStore.getMillisForTimestamp(startTimestamp)).thenReturn(clock.millis());
         clock.advance(TIME_GAP_BETWEEN_BUCKET_START_AND_END);
-        when(puncherStore.get(clock.millis())).thenReturn(153L);
+
+        long punchStoreTimestamp = 2 * SweepQueueUtils.TS_COARSE_GRANULARITY + startTimestamp;
+        when(puncherStore.get(clock.millis())).thenReturn(punchStoreTimestamp);
 
         OptionalLong maybeEndTimestamp = bucketCloseTimestampCalculator.getBucketCloseTimestamp(startTimestamp);
-        assertThat(maybeEndTimestamp).hasValue(153L);
+        assertThat(maybeEndTimestamp).hasValue(punchStoreTimestamp);
     }
 
     @ParameterizedTest
-    @ValueSource(longs = {2300, 2315}) // less than, and equal to.
+    @ValueSource(
+            longs = {2300 * SweepQueueUtils.TS_COARSE_GRANULARITY, 2315 * SweepQueueUtils.TS_COARSE_GRANULARITY
+            }) // less than, and equal to.
     // This is to test what happens when the puncher store returns a timestamp less than (or equal to) the start
     // timestamp
     // In both of these cases, we should not use the punch table result, but instead fallback to the relevant algorithm.
     public void
             returnsEmptyIfSufficientTimeHasPassedPuncherTimestampBeforeStartAndLatestFreshTimestampNotFarEnoughAhead(
                     long puncherTimestamp) {
-        int startTimestamp = 2315;
+        long startTimestamp = 2315 * SweepQueueUtils.TS_COARSE_GRANULARITY;
         when(puncherStore.getMillisForTimestamp(startTimestamp)).thenReturn(clock.millis());
         clock.advance(TIME_GAP_BETWEEN_BUCKET_START_AND_END);
         when(puncherStore.get(clock.millis())).thenReturn(puncherTimestamp);
 
-        freshTimestamp.set(MIN_BUCKET_SIZE_FOR_NON_PUNCHER_CLOSE - 1 + startTimestamp);
+        freshTimestamp.set(MIN_BUCKET_SIZE - 1 + startTimestamp);
 
         OptionalLong maybeEndTimestamp = bucketCloseTimestampCalculator.getBucketCloseTimestamp(startTimestamp);
         assertThat(maybeEndTimestamp).isEmpty();
     }
 
     @ParameterizedTest
-    @ValueSource(longs = {123, 35124})
+    @ValueSource(longs = {123 * SweepQueueUtils.TS_COARSE_GRANULARITY, 312 * SweepQueueUtils.TS_COARSE_GRANULARITY})
     public void
-            returnsLatestFreshTimestampIfSufficientTimeHasPassedPuncherTimestampBeforeStartAndCalculatedTimestampFarEnoughAhead(
+            returnsLatestClampedFreshTimestampIfSufficientTimeHasPassedPuncherTimestampBeforeStartAndCalculatedTimestampFarEnoughAhead(
                     long puncherTimestamp) {
-        int startTimestamp = 35124;
+        long startTimestamp = 312 * SweepQueueUtils.TS_COARSE_GRANULARITY;
         when(puncherStore.getMillisForTimestamp(startTimestamp)).thenReturn(clock.millis());
         clock.advance(TIME_GAP_BETWEEN_BUCKET_START_AND_END);
         when(puncherStore.get(clock.millis())).thenReturn(puncherTimestamp);
 
-        freshTimestamp.set(MIN_BUCKET_SIZE_FOR_NON_PUNCHER_CLOSE + 1 + startTimestamp);
+        freshTimestamp.set(11 * SweepQueueUtils.TS_COARSE_GRANULARITY + startTimestamp);
 
         OptionalLong maybeEndTimestamp = bucketCloseTimestampCalculator.getBucketCloseTimestamp(startTimestamp);
         assertThat(maybeEndTimestamp).hasValue(freshTimestamp.get());
     }
 
     @ParameterizedTest
-    @ValueSource(longs = {98, 100})
-    public void returnsCappedTimestampIfPuncherTimestampBeforeStartAndLatestFreshTimestampIsTooFarAhead(
+    @ValueSource(longs = {98 * SweepQueueUtils.TS_COARSE_GRANULARITY, 100 * SweepQueueUtils.TS_COARSE_GRANULARITY})
+    public void returnsClampedAndCappedTimestampIfPuncherTimestampBeforeStartAndLatestFreshTimestampIsTooFarAhead(
             long puncherTimestamp) {
-        int startTimestamp = 100;
+        long startTimestamp = 100 * SweepQueueUtils.TS_COARSE_GRANULARITY;
         when(puncherStore.getMillisForTimestamp(startTimestamp)).thenReturn(clock.millis());
         clock.advance(TIME_GAP_BETWEEN_BUCKET_START_AND_END);
         when(puncherStore.get(clock.millis())).thenReturn(puncherTimestamp);
 
-        freshTimestamp.set(2 * MAX_BUCKET_SIZE_FOR_NON_PUNCHER_CLOSE);
+        freshTimestamp.set(2 * MAX_BUCKET_SIZE_FOR_NON_PUNCHER_CLOSE + startTimestamp);
 
         OptionalLong maybeEndTimestamp = bucketCloseTimestampCalculator.getBucketCloseTimestamp(startTimestamp);
-        assertThat(maybeEndTimestamp).hasValue(startTimestamp + MAX_BUCKET_SIZE_FOR_NON_PUNCHER_CLOSE);
+        assertThat(maybeEndTimestamp).hasValue(MAX_BUCKET_SIZE_FOR_NON_PUNCHER_CLOSE + startTimestamp);
     }
 
     // TODO(mdaudali): Extract this into its own class if we end up needing this elsewhere.
