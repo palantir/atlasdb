@@ -17,18 +17,16 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
-import com.palantir.atlasdb.transaction.api.TransactionFailedException;
-import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.transaction.api.Transaction;
 
 /**
- * Implementors of this interface provide more granular control over when the {@link #onSuccess(Runnable)} callbacks
- * are run. This can be used to e.g run {@link PreCommitCondition#cleanup()} <i>before</i> the onSuccess callbacks
- * are run.
+ * Allow consumers to register callbacks to be run on {@link Transaction#commit()} or {@link Transaction#abort()},
+ * after a transaction has committed or aborted.
+ * Callbacks are guaranteed to run even if a prior callback threw.
+ * Callbacks are usually cleanup tasks, e.g. {@link PreCommitCondition#cleanup()} tasks.
+ * Note this is different from {@link #onSuccess(Runnable)} as these tasks are run regardless of whether they succeeded
+ * or failed.
  */
 public interface CallbackAwareTransaction extends ExpectationsAwareTransaction {
-    void commitWithoutCallbacks() throws TransactionFailedException;
-
-    void commitWithoutCallbacks(TransactionService transactionService) throws TransactionFailedException;
-
-    void runSuccessCallbacksIfDefinitivelyCommitted();
+    void onCommitOrAbort(Runnable runnable);
 }
