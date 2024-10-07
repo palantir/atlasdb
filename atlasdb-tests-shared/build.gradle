@@ -30,6 +30,8 @@ dependencies {
   implementation 'org.assertj:assertj-guava'
   implementation 'org.jboss.xnio:xnio-api'
   implementation 'org.rocksdb:rocksdbjni'
+  implementation 'com.palantir.safe-logging:preconditions-assertj'
+
 
   implementation project(':atlasdb-api')
   implementation project(':atlasdb-client')
@@ -89,4 +91,3 @@ schemas = [
     'com.palantir.atlasdb.schema.indexing.IndexTestSchema',
     'com.palantir.atlasdb.schema.stream.StreamTestSchema'
 ]
-
