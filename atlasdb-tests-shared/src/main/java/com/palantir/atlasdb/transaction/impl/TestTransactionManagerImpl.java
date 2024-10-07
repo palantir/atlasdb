@@ -19,13 +19,13 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.cache.TimestampCache;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
+import com.palantir.atlasdb.cell.api.DataKeyValueServiceManager;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AssertLockedKeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingDataKeyValueServiceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -117,7 +117,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
 
     private TestTransactionManagerImpl(
             MetricsManager metricsManager,
-            TransactionKeyValueServiceManager keyValueService,
+            DataKeyValueServiceManager keyValueService,
             AbstractInMemoryTimelockExtension services,
             LockService lockService,
             TransactionService transactionService,
@@ -162,8 +162,8 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
         return false;
     }
 
-    private static TransactionKeyValueServiceManager createAssertKeyValue(KeyValueService kv, LockService lock) {
-        return new DelegatingTransactionKeyValueServiceManager(new AssertLockedKeyValueService(kv, lock));
+    private static DataKeyValueServiceManager createAssertKeyValue(KeyValueService kv, LockService lock) {
+        return new DelegatingDataKeyValueServiceManager(new AssertLockedKeyValueService(kv, lock));
     }
 
     @Override
@@ -187,7 +187,7 @@ public class TestTransactionManagerImpl extends SerializableTransactionManager i
         return transactionWrapper.apply(
                 new SerializableTransaction(
                         metricsManager,
-                        transactionKeyValueServiceManager.getTransactionKeyValueService(startTimestampSupplier),
+                        dataKeyValueServiceManager.getDataKeyValueService(startTimestampSupplier),
                         timelockService,
                         lockWatchManager,
                         transactionService,

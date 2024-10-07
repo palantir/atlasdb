@@ -16,28 +16,28 @@
 
 package com.palantir.atlasdb.keyvalue.impl;
 
+import com.palantir.atlasdb.cell.api.DataKeyValueService;
+import com.palantir.atlasdb.cell.api.DataKeyValueServiceManager;
 import com.palantir.atlasdb.cell.api.DdlManager;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import java.util.Optional;
 import java.util.function.LongSupplier;
 
-public final class DelegatingTransactionKeyValueServiceManager implements TransactionKeyValueServiceManager {
+public final class DelegatingDataKeyValueServiceManager implements DataKeyValueServiceManager {
 
     private final Optional<KeyValueService> delegate;
-    private final TransactionKeyValueService transactionKeyValueService;
+    private final DataKeyValueService dataKeyValueService;
     private final DdlManager ddlManager;
 
-    public DelegatingTransactionKeyValueServiceManager(KeyValueService delegate) {
+    public DelegatingDataKeyValueServiceManager(KeyValueService delegate) {
         this.delegate = Optional.of(delegate);
-        this.transactionKeyValueService = new DelegatingTransactionKeyValueService(delegate);
+        this.dataKeyValueService = new DelegatingDataKeyValueService(delegate);
         this.ddlManager = new DelegatingDdlManager(delegate);
     }
 
     @Override
-    public TransactionKeyValueService getTransactionKeyValueService(LongSupplier _timestampSupplier) {
-        return transactionKeyValueService;
+    public DataKeyValueService getDataKeyValueService(LongSupplier _timestampSupplier) {
+        return dataKeyValueService;
     }
 
     @Override

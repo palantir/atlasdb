@@ -16,23 +16,23 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
+import com.palantir.atlasdb.cell.api.DataKeyValueService;
+import com.palantir.atlasdb.cell.api.DataKeyValueServiceManager;
 import com.palantir.atlasdb.cell.api.DdlManager;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
 import java.util.function.LongSupplier;
 
-public final class FakeTransactionKeyValueServiceManager implements TransactionKeyValueServiceManager {
-    private final TransactionKeyValueService delegate;
+public final class FakeDataKeyValueServiceManager implements DataKeyValueServiceManager {
+    private final DataKeyValueService delegate;
 
-    public FakeTransactionKeyValueServiceManager(TransactionKeyValueService delegate) {
+    public FakeDataKeyValueServiceManager(DataKeyValueService delegate) {
         this.delegate = delegate;
     }
 
     @Override
-    public TransactionKeyValueService getTransactionKeyValueService(LongSupplier timestampSupplier) {
+    public DataKeyValueService getDataKeyValueService(LongSupplier timestampSupplier) {
         return delegate;
     }
 

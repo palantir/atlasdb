@@ -18,9 +18,9 @@ package com.palantir.atlasdb.factory;
 
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleterFactory;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
+import com.palantir.atlasdb.spi.DataKeyValueServiceConfig;
+import com.palantir.atlasdb.spi.DataKeyValueServiceManagerFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
-import com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig;
-import com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory;
 import com.palantir.atlasdb.timestamp.DbTimeLockFactory;
 import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManagerFactory;
 import com.palantir.logsafe.SafeArg;
@@ -37,17 +37,15 @@ public final class AtlasDbServiceDiscovery {
         return createAtlasDbServiceOfCorrectType(config, AtlasDbFactory::getType, AtlasDbFactory.class);
     }
 
-    public static TransactionKeyValueServiceManagerFactory<?>
-            createTransactionKeyValueServiceManagerFactoryOfCorrectType(TransactionKeyValueServiceConfig config) {
+    public static DataKeyValueServiceManagerFactory<?> createDataKeyValueServiceManagerFactoryOfCorrectType(
+            DataKeyValueServiceConfig config) {
         return createAtlasDbServiceOfCorrectType(
-                config.type(),
-                TransactionKeyValueServiceManagerFactory::getType,
-                TransactionKeyValueServiceManagerFactory.class);
+                config.type(), DataKeyValueServiceManagerFactory::getType, DataKeyValueServiceManagerFactory.class);
     }
 
-    // TODO (jkong): A little cheaty, currently coupling usage of TKVSMF and KVSRF to be special or non-special...
+    // TODO (jkong): A little cheaty, currently coupling usage of DKVSMF and KVSRF to be special or non-special...
     public static KeyValueSnapshotReaderManagerFactory createKeyValueSnapshotReaderManagerFactoryOfCorrectType(
-            TransactionKeyValueServiceConfig config) {
+            DataKeyValueServiceConfig config) {
         return createAtlasDbServiceOfCorrectType(
                 config.type(),
                 KeyValueSnapshotReaderManagerFactory::getType,

@@ -16,14 +16,14 @@
 
 package com.palantir.atlasdb.spi;
 
-import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
+import com.palantir.atlasdb.cell.api.DataKeyValueServiceManager;
 import com.palantir.atlasdb.coordination.CoordinationService;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.refreshable.Refreshable;
 
 /**
- * Factory for creating {@link TransactionKeyValueServiceManager} instances.
+ * Factory for creating {@link DataKeyValueServiceManager} instances.
  *
  * Implementations have access to the coordination service to be able query their internal state at a particular
  * timestamp, as well as schedule changes to it at a future timestamp.
@@ -33,19 +33,19 @@ import com.palantir.refreshable.Refreshable;
  *
  * @param <T> type used for the coordination state. Should be a jackson-compatible POJO.
  */
-public interface TransactionKeyValueServiceManagerFactory<T> {
+public interface DataKeyValueServiceManagerFactory<T> {
 
     String getType();
 
     Class<T> coordinationValueClass();
 
-    TransactionKeyValueServiceManager create(
+    DataKeyValueServiceManager create(
             String namespace,
             DialogueClients.ReloadingFactory reloadingFactory,
             MetricsManager metricsManager,
             CoordinationService<T> coordinationService,
             KeyValueServiceManager keyValueServiceManager,
-            TransactionKeyValueServiceConfig install,
-            Refreshable<TransactionKeyValueServiceRuntimeConfig> runtime,
+            DataKeyValueServiceConfig install,
+            Refreshable<DataKeyValueServiceRuntimeConfig> runtime,
             boolean initializeAsync);
 }

@@ -16,21 +16,21 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
-import com.palantir.atlasdb.cell.api.AutoDelegate_TransactionKeyValueService;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
+import com.palantir.atlasdb.cell.api.AutoDelegate_DataKeyValueService;
+import com.palantir.atlasdb.cell.api.DataKeyValueService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public final class InvalidatableTransactionKeyValueService implements AutoDelegate_TransactionKeyValueService {
-    private final TransactionKeyValueService delegate;
+public final class InvalidatableDataKeyValueService implements AutoDelegate_DataKeyValueService {
+    private final DataKeyValueService delegate;
     private final AtomicBoolean isStillValid;
 
-    public InvalidatableTransactionKeyValueService(TransactionKeyValueService delegate) {
+    public InvalidatableDataKeyValueService(DataKeyValueService delegate) {
         this.delegate = delegate;
         this.isStillValid = new AtomicBoolean(true);
     }
 
     @Override
-    public TransactionKeyValueService delegate() {
+    public DataKeyValueService delegate() {
         return delegate;
     }
 

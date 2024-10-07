@@ -18,7 +18,7 @@ package com.palantir.atlasdb.keyvalue.impl;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.errorprone.annotations.MustBeClosed;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
+import com.palantir.atlasdb.cell.api.DataKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -34,11 +34,11 @@ import com.palantir.common.base.ClosableIterator;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import java.util.Map;
 
-public final class DelegatingTransactionKeyValueService implements TransactionKeyValueService {
+public final class DelegatingDataKeyValueService implements DataKeyValueService {
 
     private final KeyValueService delegate;
 
-    public DelegatingTransactionKeyValueService(KeyValueService delegate) {
+    public DelegatingDataKeyValueService(KeyValueService delegate) {
         this.delegate = delegate;
     }
 

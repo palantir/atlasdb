@@ -14,23 +14,12 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.cell.api;
+package com.palantir.atlasdb.spi;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.processors.AutoDelegate;
-import java.util.Optional;
-import java.util.function.LongSupplier;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 
-@AutoDelegate
-public interface TransactionKeyValueServiceManager extends AutoCloseable {
-    TransactionKeyValueService getTransactionKeyValueService(LongSupplier timestampSupplier);
-
-    Optional<KeyValueService> getKeyValueService();
-
-    DdlManager getDdlManager();
-
-    boolean isInitialized();
-
-    @Override
-    void close();
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = As.PROPERTY, property = "type", visible = false)
+public interface DataKeyValueServiceConfig {
+    String type();
 }

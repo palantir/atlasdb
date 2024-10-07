@@ -37,7 +37,7 @@ import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingDataKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator;
@@ -362,7 +362,7 @@ public class KeyValueServiceMigratorsTest {
         TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(kvs, () -> 1);
         SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
                 metricsManager,
-                new DelegatingTransactionKeyValueServiceManager(kvs),
+                new DelegatingDataKeyValueServiceManager(kvs),
                 timeLock.getLegacyTimelockService(),
                 timestampService,
                 timeLock.getLockService(),

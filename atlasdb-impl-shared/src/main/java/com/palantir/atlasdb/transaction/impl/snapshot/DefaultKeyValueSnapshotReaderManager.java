@@ -16,8 +16,8 @@
 
 package com.palantir.atlasdb.transaction.impl.snapshot;
 
-import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
+import com.palantir.atlasdb.cell.api.DataKeyValueService;
+import com.palantir.atlasdb.cell.api.DataKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.OrphanedSentinelDeleter;
 import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReader;
@@ -26,19 +26,19 @@ import com.palantir.atlasdb.transaction.impl.ReadSentinelHandler;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 
 public final class DefaultKeyValueSnapshotReaderManager implements KeyValueSnapshotReaderManager {
-    private final TransactionKeyValueServiceManager transactionKeyValueServiceManager;
+    private final DataKeyValueServiceManager dataKeyValueServiceManager;
     private final TransactionService transactionService;
     private final boolean allowHiddenTableAccess;
     private final OrphanedSentinelDeleter orphanedSentinelDeleter;
     private final DeleteExecutor deleteExecutor;
 
     public DefaultKeyValueSnapshotReaderManager(
-            TransactionKeyValueServiceManager transactionKeyValueServiceManager,
+            DataKeyValueServiceManager dataKeyValueServiceManager,
             TransactionService transactionService,
             boolean allowHiddenTableAccess,
             OrphanedSentinelDeleter orphanedSentinelDeleter,
             DeleteExecutor deleteExecutor) {
-        this.transactionKeyValueServiceManager = transactionKeyValueServiceManager;
+        this.dataKeyValueServiceManager = dataKeyValueServiceManager;
         this.transactionService = transactionService;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
         this.orphanedSentinelDeleter = orphanedSentinelDeleter;
@@ -47,17 +47,16 @@ public final class DefaultKeyValueSnapshotReaderManager implements KeyValueSnaps
 
     @Override
     public KeyValueSnapshotReader createKeyValueSnapshotReader(TransactionContext transactionContext) {
-        TransactionKeyValueService transactionKeyValueService =
-                transactionKeyValueServiceManager.getTransactionKeyValueService(
-                        transactionContext.startTimestampSupplier());
+        DataKeyValueService dataKeyValueService =
+                dataKeyValueServiceManager.getDataKeyValueService(transactionContext.startTimestampSupplier());
         return new DefaultKeyValueSnapshotReader(
-                transactionKeyValueService,
+                dataKeyValueService,
                 transactionService,
                 transactionContext.commitTimestampLoader(),
                 allowHiddenTableAccess,
                 // TODO (jkong): The allocations here feel wasteful. Should we have a cache of some kind?
                 new ReadSentinelHandler(
-                        transactionKeyValueService,
+                        dataKeyValueService,
                         transactionService,
                         transactionContext.transactionReadSentinelBehavior(),
                         orphanedSentinelDeleter),

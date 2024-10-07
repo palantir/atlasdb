@@ -27,7 +27,7 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
+import com.palantir.atlasdb.cell.api.DataKeyValueServiceManager;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
@@ -58,7 +58,7 @@ import com.palantir.atlasdb.internalschema.persistence.CoordinationServices;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetCompatibility;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingDataKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.impl.ProfilingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
@@ -68,13 +68,13 @@ import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.schema.generated.SweepTableFactory;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
+import com.palantir.atlasdb.spi.DataKeyValueServiceConfig;
+import com.palantir.atlasdb.spi.DataKeyValueServiceManagerFactory;
+import com.palantir.atlasdb.spi.DataKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceManager;
 import com.palantir.atlasdb.spi.SharedResourcesConfig;
-import com.palantir.atlasdb.spi.TransactionKeyValueServiceConfig;
-import com.palantir.atlasdb.spi.TransactionKeyValueServiceManagerFactory;
-import com.palantir.atlasdb.spi.TransactionKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.sweep.AdjustableSweepBatchConfigSource;
 import com.palantir.atlasdb.sweep.BackgroundSweeperImpl;
 import com.palantir.atlasdb.sweep.BackgroundSweeperPerformanceLogger;
@@ -452,26 +452,26 @@ public abstract class TransactionManagers {
                 },
                 closeables);
 
-        TransactionKeyValueServiceManager transactionKeyValueServiceManager = initializeCloseable(
-                () -> config().transactionKeyValueService()
-                        .map(transactionKeyValueServiceConfig -> createTransactionKeyValueServiceManager(
-                                AtlasDbServiceDiscovery.createTransactionKeyValueServiceManagerFactoryOfCorrectType(
-                                        transactionKeyValueServiceConfig),
+        DataKeyValueServiceManager dataKeyValueServiceManager = initializeCloseable(
+                () -> config().dataKeyValueService()
+                        .map(dataKeyValueServiceConfig -> createDataKeyValueServiceManager(
+                                AtlasDbServiceDiscovery.createDataKeyValueServiceManagerFactoryOfCorrectType(
+                                        dataKeyValueServiceConfig),
                                 metricsManager,
                                 lockAndTimestampServices,
                                 internalKeyValueService,
                                 new DefaultKeyValueServiceManager(metricsManager, adapter),
-                                transactionKeyValueServiceConfig,
-                                runtime.map(config -> config.transactionKeyValueService()
+                                dataKeyValueServiceConfig,
+                                runtime.map(config -> config.dataKeyValueService()
                                         .orElseThrow(() -> new SafeIllegalArgumentException(
-                                                "TransactionKeyValueServiceRuntimeConfig must be provided"))),
+                                                "DataKeyValueServiceRuntimeConfig must be provided"))),
                                 config().initializeAsync()))
-                        .orElseGet(() -> new DelegatingTransactionKeyValueServiceManager(internalKeyValueService)),
+                        .orElseGet(() -> new DelegatingDataKeyValueServiceManager(internalKeyValueService)),
                 closeables);
 
         TransactionManagersInitializer initializer = TransactionManagersInitializer.createInitialTables(
                 internalKeyValueService,
-                transactionKeyValueServiceManager,
+                dataKeyValueServiceManager,
                 schemas(),
                 config().initializeAsync(),
                 allSafeForLogging());
@@ -542,12 +542,12 @@ public abstract class TransactionManagers {
                 createClearsTable(internalKeyValueService)));
 
         KeyValueSnapshotReaderManager keyValueSnapshotReaderManager = createKeyValueSnapshotReaderManager(
-                transactionKeyValueServiceManager, transactionService, sweepStrategyManager, metricsManager);
+                dataKeyValueServiceManager, transactionService, sweepStrategyManager, metricsManager);
 
         TransactionManager transactionManager = initializeCloseable(
                 () -> SerializableTransactionManager.createInstrumented(
                         metricsManager,
-                        transactionKeyValueServiceManager,
+                        dataKeyValueServiceManager,
                         lockAndTimestampServices.timelock(),
                         lockAndTimestampServices.lockWatcher(),
                         lockAndTimestampServices.managedTimestampService(),
@@ -611,52 +611,51 @@ public abstract class TransactionManagers {
     }
 
     private KeyValueSnapshotReaderManager createKeyValueSnapshotReaderManager(
-            TransactionKeyValueServiceManager transactionKeyValueServiceManager,
+            DataKeyValueServiceManager dataKeyValueServiceManager,
             TransactionService transactionService,
             SweepStrategyManager sweepStrategyManager,
             MetricsManager metricsManager) {
-        Optional<KeyValueSnapshotReaderManagerFactory> serviceDiscoveredFactory = config().transactionKeyValueService()
+        Optional<KeyValueSnapshotReaderManagerFactory> serviceDiscoveredFactory = config().dataKeyValueService()
                 .map(AtlasDbServiceDiscovery::createKeyValueSnapshotReaderManagerFactoryOfCorrectType);
         DeleteExecutor deleteExecutor = DefaultDeleteExecutor.createDefault(
-                transactionKeyValueServiceManager.getKeyValueService().orElseThrow());
+                dataKeyValueServiceManager.getKeyValueService().orElseThrow());
         OrphanedSentinelDeleter orphanedSentinelDeleter =
                 new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor);
         return serviceDiscoveredFactory
                 .map(factory -> factory.createKeyValueSnapshotReaderManager(
-                        transactionKeyValueServiceManager,
+                        dataKeyValueServiceManager,
                         transactionService,
                         allowHiddenTableAccess(),
                         orphanedSentinelDeleter,
                         deleteExecutor,
                         metricsManager))
                 .orElseGet(() -> new DefaultKeyValueSnapshotReaderManager(
-                        transactionKeyValueServiceManager,
+                        dataKeyValueServiceManager,
                         transactionService,
                         allowHiddenTableAccess(),
                         orphanedSentinelDeleter,
                         deleteExecutor));
     }
 
-    private <T> TransactionKeyValueServiceManager createTransactionKeyValueServiceManager(
-            TransactionKeyValueServiceManagerFactory<T> factory,
+    private <T> DataKeyValueServiceManager createDataKeyValueServiceManager(
+            DataKeyValueServiceManagerFactory<T> factory,
             MetricsManager metricsManager,
             LockAndTimestampServices lockAndTimestampServices,
             KeyValueService internalTablesKeyValueService,
             KeyValueServiceManager keyValueServiceManager,
-            TransactionKeyValueServiceConfig config,
-            Refreshable<TransactionKeyValueServiceRuntimeConfig> runtimeConfigRefreshable,
+            DataKeyValueServiceConfig config,
+            Refreshable<DataKeyValueServiceRuntimeConfig> runtimeConfigRefreshable,
             boolean initializeAsync) {
-        CoordinationService<T> coordinationService =
-                CoordinationServices.createTransactionKeyValueServiceManagerCoordinator(
-                        factory.coordinationValueClass(),
-                        internalTablesKeyValueService,
-                        lockAndTimestampServices.managedTimestampService(),
-                        metricsManager,
-                        config().initializeAsync());
+        CoordinationService<T> coordinationService = CoordinationServices.createDataKeyValueServiceManagerCoordinator(
+                factory.coordinationValueClass(),
+                internalTablesKeyValueService,
+                lockAndTimestampServices.managedTimestampService(),
+                metricsManager,
+                config().initializeAsync());
         return factory.create(
                 config().namespace()
                         .orElseThrow(() -> new SafeIllegalArgumentException(
-                                "Namespace must be set when using transactionKeyValueService")),
+                                "Namespace must be set when using dataKeyValueService")),
                 reloadingFactory()
                         .withUserAgent(userAgent().addAgent(AtlasDbRemotingConstants.ATLASDB_HTTP_CLIENT_AGENT)),
                 metricsManager,

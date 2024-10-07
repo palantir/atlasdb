@@ -25,7 +25,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.AtlasDbConstants;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
+import com.palantir.atlasdb.cell.api.DataKeyValueService;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -76,7 +76,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
     // TODO (jkong): Move canonical value of constant here, once post-filtering is removed from SnapshotTransaction
     private static final int MAX_POST_FILTERING_ITERATIONS = SnapshotTransaction.MAX_POST_FILTERING_ITERATIONS;
 
-    private final TransactionKeyValueService transactionKeyValueService;
+    private final DataKeyValueService dataKeyValueService;
     private final TransactionService transactionService;
     private final CommitTimestampLoader commitTimestampLoader;
     private final boolean allowHiddenTableAccess;
@@ -87,7 +87,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
     private final KeyValueSnapshotMetricRecorder metricRecorder;
 
     public DefaultKeyValueSnapshotReader(
-            TransactionKeyValueService transactionKeyValueService,
+            DataKeyValueService dataKeyValueService,
             TransactionService transactionService,
             CommitTimestampLoader commitTimestampLoader,
             boolean allowHiddenTableAccess,
@@ -96,7 +96,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             ReadSnapshotValidator readSnapshotValidator,
             DeleteExecutor deleteExecutor,
             KeyValueSnapshotMetricRecorder metricRecorder) {
-        this.transactionKeyValueService = transactionKeyValueService;
+        this.dataKeyValueService = dataKeyValueService;
         this.transactionService = transactionService;
         this.commitTimestampLoader = commitTimestampLoader;
         this.allowHiddenTableAccess = allowHiddenTableAccess;
@@ -118,8 +118,8 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
             Iterable<byte[]> rows,
             ColumnSelection columnSelection,
             Map<Cell, byte[]> localWrites) {
-        Map<Cell, Value> rawResults = new HashMap<>(transactionKeyValueService.getRows(
-                tableReference, rows, columnSelection, startTimestampSupplier.getAsLong()));
+        Map<Cell, Value> rawResults = new HashMap<>(
+                dataKeyValueService.getRows(tableReference, rows, columnSelection, startTimestampSupplier.getAsLong()));
 
         // We don't need to do work postFiltering if we have a write locally.
         rawResults.keySet().removeAll(localWrites.keySet());
@@ -138,7 +138,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
     private ListenableFuture<Map<Cell, byte[]>> getInternal(TableReference tableReference, Set<Cell> cells) {
         Map<Cell, Long> timestampsByCell = Cells.constantValueMap(cells, startTimestampSupplier.getAsLong());
         ListenableFuture<Collection<Map.Entry<Cell, byte[]>>> postFilteredResults = Futures.transformAsync(
-                transactionKeyValueService.getAsync(tableReference, timestampsByCell),
+                dataKeyValueService.getAsync(tableReference, timestampsByCell),
                 rawResults -> getWithPostFilteringAsync(tableReference, rawResults, Value.GET_VALUE),
                 MoreExecutors.directExecutor());
 
@@ -293,7 +293,7 @@ public final class DefaultKeyValueSnapshotReader implements KeyValueSnapshotRead
         if (!keysToReload.isEmpty()) {
             // TODO (jkong): Consider removing when a decision on validating pre-commit requirements mid-read is made
             return Futures.transform(
-                    transactionKeyValueService.getAsync(tableRef, keysToReload),
+                    dataKeyValueService.getAsync(tableRef, keysToReload),
                     nextRawResults -> {
                         boolean allPossibleCellsReadAndPresent = nextRawResults.size() == keysToReload.size();
                         readSnapshotValidator.throwIfPreCommitRequirementsNotMetOnRead(

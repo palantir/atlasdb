@@ -19,10 +19,10 @@ import static org.mockito.Mockito.spy;
 
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
+import com.palantir.atlasdb.cell.api.DataKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
-import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingDataKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.StatsTrackingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
@@ -67,7 +67,7 @@ public class AtlasDbTestCase {
     protected LockClient lockClient;
     protected LockService lockService;
     protected TrackingKeyValueService keyValueService;
-    protected TransactionKeyValueServiceManager txnKeyValueServiceManager;
+    protected DataKeyValueServiceManager txnKeyValueServiceManager;
     protected TimelockService timelockService;
     protected TimestampService timestampService;
     protected ConflictDetectionManager conflictDetectionManager;
@@ -95,7 +95,7 @@ public class AtlasDbTestCase {
         timelockService = inMemoryTimelockExtension.getLegacyTimelockService();
         timestampService = inMemoryTimelockExtension.getTimestampService();
         keyValueService = trackingKeyValueService(getBaseKeyValueService());
-        txnKeyValueServiceManager = new DelegatingTransactionKeyValueServiceManager(keyValueService);
+        txnKeyValueServiceManager = new DelegatingDataKeyValueServiceManager(keyValueService);
         TransactionTables.createTables(keyValueService);
         transactionService = spy(TransactionServices.createRaw(keyValueService, timestampService, false));
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
