@@ -17,6 +17,8 @@
 package com.palantir.atlasdb.debug;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.api.AcquireNamedMinimumTimestampLeaseRequest;
+import com.palantir.atlasdb.timelock.api.AcquireNamedMinimumTimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponse;
@@ -41,6 +43,8 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.NamedMinimumTimestampLessor;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Optional;
@@ -159,6 +163,21 @@ public class LockDiagnosticConjureTimelockService implements ConjureTimelockServ
     public GetCommitTimestampResponse getCommitTimestamp(
             AuthHeader authHeader, String namespace, GetCommitTimestampRequest request) {
         return conjureDelegate.getCommitTimestamp(authHeader, namespace, request);
+    }
+
+    @Override
+    public AcquireNamedMinimumTimestampLeaseResponse acquireNamedMinimumTimestampLease(
+            AuthHeader authHeader,
+            Namespace namespace,
+            NamedMinimumTimestampLessor lessor,
+            AcquireNamedMinimumTimestampLeaseRequest request) {
+        return conjureDelegate.acquireNamedMinimumTimestampLease(authHeader, namespace, lessor, request);
+    }
+
+    @Override
+    public long getSmallestLeasedNamedTimestamp(
+            AuthHeader authHeader, Namespace namespace, NamedMinimumTimestampLessor lessor) {
+        return conjureDelegate.getSmallestLeasedNamedTimestamp(authHeader, namespace, lessor);
     }
 
     private static Optional<Long> tryParseStartTimestamp(String description) {

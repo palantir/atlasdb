@@ -22,6 +22,7 @@ import com.palantir.atlasdb.timelock.api.ConjureTimestampRange;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.LockNamedTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -166,6 +167,18 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     @Override
     public long currentTimeMillis() {
         return rpcClient.currentTimeMillis();
+    }
+
+    @Override
+    public LockNamedTimestampResponse lockNamedTimestamp(String timestampName, int numFreshTimestamps) {
+        // should be batched and have its disruptor autobatcher
+        return lockLeaseService.lockNamedTimestamp(timestampName, numFreshTimestamps);
+    }
+
+    @Override
+    public long getSmallestLockedNamedTimestamp(String timestampName) {
+        // should be batched and have its disruptor autobatcher
+        return lockLeaseService.getSmallestLockedNamedTimestamp(timestampName);
     }
 
     @Override

@@ -16,6 +16,8 @@
 
 package com.palantir.lock.client;
 
+import com.palantir.atlasdb.timelock.api.AcquireNamedMinimumTimestampLeaseRequest;
+import com.palantir.atlasdb.timelock.api.AcquireNamedMinimumTimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
@@ -58,4 +60,10 @@ public interface NamespacedConjureTimelockService {
     ConjureSingleTimestamp getFreshTimestamp();
 
     ConjureStartTransactionsResponse startTransactions(ConjureStartTransactionsRequest request);
+
+    AcquireNamedMinimumTimestampLeaseResponse acquireNamedMinimumTimestampLease(
+            String lessor,
+            AcquireNamedMinimumTimestampLeaseRequest request);
+
+    long getSmallestLeasedNamedTimestamp(String lessor);
 }

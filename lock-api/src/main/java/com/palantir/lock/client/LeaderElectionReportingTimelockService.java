@@ -19,6 +19,8 @@ package com.palantir.lock.client;
 import com.codahale.metrics.Snapshot;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
+import com.palantir.atlasdb.timelock.api.AcquireNamedMinimumTimestampLeaseRequest;
+import com.palantir.atlasdb.timelock.api.AcquireNamedMinimumTimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
@@ -148,6 +150,17 @@ public class LeaderElectionReportingTimelockService implements NamespacedConjure
     public ConjureStartTransactionsResponse startTransactions(ConjureStartTransactionsRequest request) {
         return runTimed(() -> delegate.startTransactions(request), response -> response.getLockWatchUpdate()
                 .logId());
+    }
+
+    @Override
+    public AcquireNamedMinimumTimestampLeaseResponse acquireNamedMinimumTimestampLease(
+            String lessor, AcquireNamedMinimumTimestampLeaseRequest request) {
+        return delegate.acquireNamedMinimumTimestampLease(lessor, request);
+    }
+
+    @Override
+    public long getSmallestLeasedNamedTimestamp(String lessor) {
+        return delegate.getSmallestLeasedNamedTimestamp(lessor);
     }
 
     public LeaderElectionStatistics getStatistics() {

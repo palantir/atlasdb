@@ -20,6 +20,7 @@ import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.LockNamedTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -129,6 +130,16 @@ public final class InstrumentedTimelockService implements TimelockService {
     @Override
     public long currentTimeMillis() {
         return executeWithRecord(timelockService::currentTimeMillis);
+    }
+
+    @Override
+    public LockNamedTimestampResponse lockNamedTimestamp(String timestampName, int numFreshTimestamps) {
+        return executeWithRecord(() -> timelockService.lockNamedTimestamp(timestampName, numFreshTimestamps));
+    }
+
+    @Override
+    public long getSmallestLockedNamedTimestamp(String timestampName) {
+        return executeWithRecord(() -> timelockService.getSmallestLockedNamedTimestamp(timestampName));
     }
 
     private <T> T executeWithRecord(Supplier<T> method) {

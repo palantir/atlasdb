@@ -15,8 +15,11 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.api.NamedMinimumTimestampLessor;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
 import com.palantir.atlasdb.timelock.lockwatches.BufferMetrics;
@@ -47,6 +50,9 @@ public class AsyncLockService implements Closeable {
     private final LeaderClock leaderClock;
     private final LockLog lockLog;
     private final LockWatchingService lockWatchingService;
+
+    private final LoadingCache<NamedMinimumTimestampLessor, NamedMinimumTimestampTracker> namedMinimumTimstampTrackers =
+            Caffeine.newBuilder().build(lessor -> new NamedMinimumTimestampTracker(lessor.get()));
 
     /**
      * Creates a new asynchronous lock service, using a standard {@link LeaderClock}.
@@ -142,12 +148,22 @@ public class AsyncLockService implements Closeable {
         return immutableTimestampLockResult;
     }
 
+    public AsyncResult<Leased<LockToken>> lockNamedMinimumTimestamp(
+            NamedMinimumTimestampLessor lessor, UUID requestId, long timestamp) {
+        return heldLocks.getExistingOrAcquire(
+                requestId, () -> acquireNamedMinimumTimestamp(lessor, requestId, timestamp));
+    }
+
     public AsyncResult<Void> waitForLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
         return awaitedLocks.getExistingOrAwait(requestId, () -> awaitLocks(requestId, lockDescriptors, timeout));
     }
 
     public Optional<Long> getImmutableTimestamp() {
         return immutableTsTracker.getImmutableTimestamp();
+    }
+
+    public Optional<Long> getNamedMinimumTimestamp(NamedMinimumTimestampLessor lessor) {
+        return getNamedMinimumTimestampTracker(lessor).getMinimum();
     }
 
     private AsyncResult<HeldLocks> acquireLocks(
@@ -167,6 +183,16 @@ public class AsyncLockService implements Closeable {
     private AsyncResult<HeldLocks> acquireImmutableTimestampLock(UUID requestId, long timestamp) {
         AsyncLock immutableTsLock = immutableTsTracker.getLockFor(timestamp);
         return lockAcquirer.acquireLocks(requestId, OrderedLocks.fromSingleLock(immutableTsLock), TimeLimit.zero());
+    }
+
+    private AsyncResult<HeldLocks> acquireNamedMinimumTimestamp(
+            NamedMinimumTimestampLessor lessor, UUID requestId, long timestamp) {
+        AsyncLock lock = getNamedMinimumTimestampTracker(lessor).getLockFor(timestamp);
+        return lockAcquirer.acquireLocks(requestId, OrderedLocks.fromSingleLock(lock), TimeLimit.zero());
+    }
+
+    private NamedMinimumTimestampTracker getNamedMinimumTimestampTracker(NamedMinimumTimestampLessor lessor) {
+        return namedMinimumTimstampTrackers.get(lessor);
     }
 
     public boolean unlock(LockToken token) {

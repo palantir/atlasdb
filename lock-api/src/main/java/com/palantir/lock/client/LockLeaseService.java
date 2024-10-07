@@ -18,6 +18,8 @@ package com.palantir.lock.client;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.timelock.api.AcquireNamedMinimumTimestampLeaseRequest;
+import com.palantir.atlasdb.timelock.api.AcquireNamedMinimumTimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequestV2;
@@ -29,6 +31,7 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.Lease;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.LockNamedTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -37,6 +40,7 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.timestamp.TimestampRange;
 import com.palantir.tritium.ids.UniqueIds;
 import java.util.Optional;
 import java.util.Set;
@@ -166,6 +170,35 @@ public class LockLeaseService implements AutoCloseable {
                 .filter(leasedLockToken ->
                         unlocked.contains(LockLeaseService.convertV1Token(leasedLockToken.serverToken())))
                 .collect(Collectors.toSet());
+    }
+
+    public LockNamedTimestampResponse lockNamedTimestamp(String timestampName, int numFreshTimestamps) {
+        AcquireNamedMinimumTimestampLeaseResponse response = delegate.acquireNamedMinimumTimestampLease(
+                timestampName,
+                AcquireNamedMinimumTimestampLeaseRequest.of(UniqueIds.pseudoRandomUuidV4(), numFreshTimestamps));
+        // do I need to make it so a lease is returned?
+        return new LockNamedTimestampResponse() {
+            @Override
+            public long getMinimumLockedTimestamp() {
+                return response.getMinimumLeasedTimestamp();
+            }
+
+            @Override
+            public LockToken getLock() {
+                return response.getLeaseToken();
+            }
+
+            @Override
+            public TimestampRange getFreshTimestamps() {
+                return TimestampRange.createRangeFromDeltaEncoding(
+                        response.getFreshTimestamps().getStart(),
+                        response.getFreshTimestamps().getCount());
+            }
+        };
+    }
+
+    public long getSmallestLockedNamedTimestamp(String timestampName) {
+        return delegate.getSmallestLeasedNamedTimestamp(timestampName);
     }
 
     private Set<LeasedLockToken> refreshTokens(Set<LeasedLockToken> leasedTokens) {

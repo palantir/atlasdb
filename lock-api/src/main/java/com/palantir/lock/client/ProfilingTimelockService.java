@@ -22,6 +22,7 @@ import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.LockNamedTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -167,6 +168,17 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
     @Override
     public long currentTimeMillis() {
         return runTaskTimed("currentTimeMillis", delegate::currentTimeMillis);
+    }
+
+    @Override
+    public LockNamedTimestampResponse lockNamedTimestamp(String timestampName, int numFreshTimestamps) {
+        return runTaskTimed("lockNamedTimestamp", () -> delegate.lockNamedTimestamp(timestampName, numFreshTimestamps));
+    }
+
+    @Override
+    public long getSmallestLockedNamedTimestamp(String timestampName) {
+        return runTaskTimed(
+                "getSmallestLockedNamedTimestamp", () -> delegate.getSmallestLockedNamedTimestamp(timestampName));
     }
 
     private <T> T runTaskTimed(String actionName, Supplier<T> action) {

@@ -21,6 +21,7 @@ import com.palantir.atlasdb.buggify.api.BuggifyFactory;
 import com.palantir.atlasdb.buggify.impl.DefaultBuggifyFactory;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.LockNamedTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -153,6 +154,16 @@ public final class UnreliableTimeLockService implements TimelockService {
     @Override
     public long currentTimeMillis() {
         return delegate.currentTimeMillis();
+    }
+
+    @Override
+    public LockNamedTimestampResponse lockNamedTimestamp(String timestampName, int numFreshTimestamps) {
+        return delegate.lockNamedTimestamp(timestampName, numFreshTimestamps);
+    }
+
+    @Override
+    public long getSmallestLockedNamedTimestamp(String timestampName) {
+        return delegate.getSmallestLockedNamedTimestamp(timestampName);
     }
 
     private void maybeRandomlyIncreaseTimestamp() {

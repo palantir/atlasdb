@@ -29,6 +29,8 @@ import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
+import com.palantir.atlasdb.timelock.api.AcquireNamedMinimumTimestampLeaseRequests;
+import com.palantir.atlasdb.timelock.api.AcquireNamedMinimumTimestampLeaseResponses;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
@@ -37,23 +39,33 @@ import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.GetSmallestLeasedNamedTimestampRequests;
+import com.palantir.atlasdb.timelock.api.GetSmallestLeasedNamedTimestampResponses;
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
+import com.palantir.atlasdb.timelock.api.MultiClientAcquireNamedTimestampLeaseRequest;
+import com.palantir.atlasdb.timelock.api.MultiClientAcquireNamedTimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockServiceEndpoints;
+import com.palantir.atlasdb.timelock.api.MultiClientGetSmallestLeasedNamedTimestampRequest;
+import com.palantir.atlasdb.timelock.api.MultiClientGetSmallestLeasedNamedTimestampResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.UndertowMultiClientConjureTimelockService;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.undertow.lib.RequestContext;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 /**
@@ -146,6 +158,53 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
                 MoreExecutors.directExecutor()));
     }
 
+    @Override
+    public ListenableFuture<MultiClientAcquireNamedTimestampLeaseResponse> acquireNamedMinimumTimestampLease(
+            AuthHeader authHeader,
+            MultiClientAcquireNamedTimestampLeaseRequest requests,
+            @Nullable RequestContext context) {
+        return handleExceptions(() -> transformMapAsync(
+                requests.get(),
+                (namespace, namespaceRequests) ->
+                        acquireNamedMinimumTimestampLeaseForSingleNamespace(namespace, namespaceRequests, context),
+                MultiClientAcquireNamedTimestampLeaseResponse::of));
+    }
+
+    @Override
+    public ListenableFuture<MultiClientGetSmallestLeasedNamedTimestampResponse> getSmallestLeasedNamedTimestamp(
+            AuthHeader authHeader,
+            MultiClientGetSmallestLeasedNamedTimestampRequest requests,
+            @Nullable RequestContext context) {
+        return handleExceptions(() -> transformMapAsync(
+                requests.get(),
+                (namespace, namespaceRequests) ->
+                        getSmallestLeasedNamedTimestampForSingleNamespace(namespace, namespaceRequests, context),
+                MultiClientGetSmallestLeasedNamedTimestampResponse::of));
+    }
+
+    private ListenableFuture<AcquireNamedMinimumTimestampLeaseResponses>
+            acquireNamedMinimumTimestampLeaseForSingleNamespace(
+                    Namespace namespace,
+                    AcquireNamedMinimumTimestampLeaseRequests requests,
+                    @Nullable RequestContext context) {
+        AsyncTimelockService service = getServiceForNamespace(namespace, context);
+        return transformMapAsync(
+                requests.get(),
+                (lessor, request) -> service.acquireNamedMinimumTimestampLease(
+                        lessor, request.getRequestId(), request.getNumFreshTimestamps()),
+                AcquireNamedMinimumTimestampLeaseResponses::of);
+    }
+
+    private ListenableFuture<GetSmallestLeasedNamedTimestampResponses>
+            getSmallestLeasedNamedTimestampForSingleNamespace(
+                    Namespace namespace,
+                    GetSmallestLeasedNamedTimestampRequests requests,
+                    @Nullable RequestContext context) {
+        AsyncTimelockService service = getServiceForNamespace(namespace, context);
+        return transformSetAsync(
+                requests.get(), service::getSmallestLeasedNamedTimestamp, GetSmallestLeasedNamedTimestampResponses::of);
+    }
+
     private ListenableFuture<Entry<Namespace, ConjureUnlockResponseV2>> unlockForSingleNamespace(
             Namespace namespace, ConjureUnlockRequestV2 request, @Nullable RequestContext context) {
         ListenableFuture<ConjureUnlockResponseV2> unlockResponseFuture = Futures.transform(
@@ -220,6 +279,37 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
         return exceptionHandler.handleExceptions(supplier);
     }
 
+    // it's possible to re-use the map variant, would require creating an extra map
+    private <K, T, R> ListenableFuture<R> transformSetAsync(
+            Set<K> input, Function<K, ListenableFuture<T>> function, Function<Map<K, T>, R> mapFunction) {
+        List<ListenableFuture<Entry<K, T>>> entryFutures = input.stream()
+                .map(element -> Futures.transform(
+                        function.apply(element),
+                        result -> Maps.immutableEntry(element, result),
+                        MoreExecutors.directExecutor()))
+                .collect(Collectors.toList());
+
+        return Futures.transform(
+                Futures.allAsList(entryFutures),
+                entries -> mapFunction.apply(ImmutableMap.copyOf(entries)),
+                MoreExecutors.directExecutor());
+    }
+
+    private <K, V, T, R> ListenableFuture<R> transformMapAsync(
+            Map<K, V> input, BiFunction<K, V, ListenableFuture<T>> function, Function<Map<K, T>, R> mapFunction) {
+        List<ListenableFuture<Entry<K, T>>> entryFutures = KeyedStream.stream(input)
+                .map(function)
+                .map((key, result) -> Futures.transform(
+                        result, value -> Maps.immutableEntry(key, value), MoreExecutors.directExecutor()))
+                .values()
+                .collect(Collectors.toList());
+
+        return Futures.transform(
+                Futures.allAsList(entryFutures),
+                entries -> mapFunction.apply(ImmutableMap.copyOf(entries)),
+                MoreExecutors.directExecutor());
+    }
+
     public static final class JerseyAdapter implements MultiClientConjureTimelockService {
         private final MultiClientConjureTimelockResource resource;
 
@@ -262,6 +352,18 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
         public Map<Namespace, ConjureUnlockResponseV2> unlock(
                 AuthHeader authHeader, Map<Namespace, ConjureUnlockRequestV2> requests) {
             return unwrap(resource.unlock(authHeader, requests, null));
+        }
+
+        @Override
+        public MultiClientAcquireNamedTimestampLeaseResponse acquireNamedMinimumTimestampLease(
+                AuthHeader authHeader, MultiClientAcquireNamedTimestampLeaseRequest requests) {
+            return unwrap(resource.acquireNamedMinimumTimestampLease(authHeader, requests, null));
+        }
+
+        @Override
+        public MultiClientGetSmallestLeasedNamedTimestampResponse getSmallestLeasedNamedTimestamp(
+                AuthHeader authHeader, MultiClientGetSmallestLeasedNamedTimestampRequest requests) {
+            return unwrap(resource.getSmallestLeasedNamedTimestamp(authHeader, requests, null));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {

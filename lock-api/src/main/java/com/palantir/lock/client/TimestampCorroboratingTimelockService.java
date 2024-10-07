@@ -18,6 +18,8 @@ package com.palantir.lock.client;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.correctness.TimestampCorrectnessMetrics;
+import com.palantir.atlasdb.timelock.api.AcquireNamedMinimumTimestampLeaseRequest;
+import com.palantir.atlasdb.timelock.api.AcquireNamedMinimumTimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
@@ -151,6 +153,18 @@ public final class TimestampCorroboratingTimelockService implements NamespacedCo
                 r -> r.getTimestamps().start()
                         + ((r.getTimestamps().count() - 1L) * r.getTimestamps().interval()),
                 OperationType.TRANSACTION);
+    }
+
+    @Override
+    public AcquireNamedMinimumTimestampLeaseResponse acquireNamedMinimumTimestampLease(
+            String lessor, AcquireNamedMinimumTimestampLeaseRequest request) {
+        // should probably make this method also check the bounds
+        return delegate.acquireNamedMinimumTimestampLease(lessor, request);
+    }
+
+    @Override
+    public long getSmallestLeasedNamedTimestamp(String lessor) {
+        return delegate.getSmallestLeasedNamedTimestamp(lessor);
     }
 
     private <T> T checkAndUpdateLowerBound(
