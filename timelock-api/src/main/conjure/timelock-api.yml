@@ -217,6 +217,36 @@ types:
       LeaderTimes:
         fields:
           leaderTimes: map<Namespace, LeaderTime>
+      TimestampName:
+        alias: string
+        safety: safe
+      NamedMinTimestampLeaseRequest:
+         fields:
+           requestId:
+             type: uuid
+             safety: safe
+           numFreshTimestamps: Long
+      NamedMinTimestampLeaseRequests:
+         alias: map<TimestampName, NamedMinTimestampLeaseRequest>
+      MultiClientNamedMinTimestampLeaseRequest:
+         alias: map<Namespace, NamedMinTimestampLeaseRequests>
+      NamedMinTimestampLeaseResponse:
+         fields:
+           minLeased: Long
+           lock: LockToken
+           freshTimestamps: ConjureTimestampRange
+      NamedMinTimestampLeaseResponses:
+         alias: map<TimestampName, NamedMinTimestampLeaseResponse>
+      MultiClientNamedMinTimestampLeaseResponse:
+         alias: map<Namespace, NamedMinTimestampLeaseResponses>
+      GetMinLeasedNamedTimestampRequests:
+         alias: set<TimestampName>
+      MultiClientGetMinLeasedNamedTimestampRequest:
+         alias: map<Namespace, GetMinLeasedNamedTimestampRequests>
+      GetMinLeasedNamedTimestampResponses:
+         alias: map<TimestampName, Long>
+      MultiClientGetMinLeasedNamedTimestampResponse:
+         alias: map<Namespace, GetMinLeasedNamedTimestampResponses>
 
 services:
   ConjureTimelockService:
@@ -356,6 +386,35 @@ services:
         tags:
           - server-request-context
         returns: GetCommitTimestampResponse
+      acquireNamedMinTimestampLease:
+        http: POST /anmtl/{namespace}/{timestampName}
+        args:
+          namespace: Namespace
+          timestampName: TimestampName
+          request: NamedMinTimestampLeaseRequest
+        tags:
+          - server-request-context
+        returns: NamedMinTimestampLeaseResponse
+        docs: |
+          Acquires a lease on the named minimum timestamp defined by the relevant parameter. The lease is
+          acquired with a fresh timestamp obtained from the timestamp service. In addition to the lock token,
+          a number of fresh timestamps (obtained after the lease timestamp is obtained) are provided. The
+          range returned contains at most the number of timestamps requested. While the lease is active,
+          queries for the min leased named timestamp will return a value less than or equal to the timestamp
+          used to acquire the lease. A lease can become inactive for a number of causes: a client unlock, a
+          server unlock (e.g. expiration), lock service reset (e.g. due to restarts or leader elections where
+          applicable).
+      getMinLeasedNamedTimestamp:
+        http: POST /gmlnt/{namespace}/{timestampName}
+        args:
+          namespace: Namespace
+          timestampName: TimestampName
+        tags:
+          - server-request-context
+        returns: Long
+        docs: |
+          Returns the smallest timestamp associated with an active lease for the named minimum timestamp
+          defined by the relevant parameter.
   ConjureLockWatchingService:
     name: Lock Watching service
     default-auth: header
@@ -449,3 +508,17 @@ services:
         returns: map<Namespace, ConjureUnlockResponseV2>
         docs: |
           Version of unlockV2 to unlock locks across multiple namespaces.
+      acquireNamedMinTimestampLease:
+        http: POST /anmtl
+        args:
+          requests: MultiClientNamedMinTimestampLeaseRequest
+        tags:
+          - server-request-context
+        returns: MultiClientNamedMinTimestampLeaseResponse
+      getMinLeasedNamedTimestamp:
+        http: POST /gmlnt
+        args:
+          requests: MultiClientGetMinLeasedNamedTimestampRequest
+        tags:
+          - server-request-context
+        returns: MultiClientGetMinLeasedNamedTimestampResponse
