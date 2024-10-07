@@ -336,6 +336,7 @@ public abstract class TransactionManagers {
                 .globalMetricsRegistry(new MetricRegistry())
                 .globalTaggedMetricRegistry(DefaultTaggedMetricRegistry.getDefault())
                 .lockAndTimestampServiceFactory(maybeFactory)
+                .defaultTimelockClientFactory((service, _management) -> TimeLockClient.withSynchronousUnlocker(service))
                 .addAllSchemas(schemas)
                 .build()
                 .serializable();
