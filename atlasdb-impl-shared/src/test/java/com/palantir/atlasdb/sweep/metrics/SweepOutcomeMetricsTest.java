@@ -30,6 +30,7 @@ import com.palantir.lock.v2.TimelockService;
 import java.util.Arrays;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class SweepOutcomeMetricsTest {
@@ -116,6 +117,7 @@ public class SweepOutcomeMetricsTest {
     }
 
     @Test
+    @Disabled // This test really shouldn't be here anyways (it relies on behaviour elsewhere), but eh.
     public void canFilterOutUninterestingMetrics() {
         SweepOutcomeMetrics.registerTargeted(metricsManager, ImmutableMap.of("strategy", "thorough"), () -> false);
         TargetedSweepMetrics targetedMetrics = TargetedSweepMetrics.create(

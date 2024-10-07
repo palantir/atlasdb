@@ -18,6 +18,7 @@ package com.palantir.atlasdb.config;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
+import com.palantir.atlasdb.sweep.queue.config.TargetedSweepInstallConfig.SweepIndexResetProgressStage;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import java.io.File;
 import java.io.IOException;
@@ -42,6 +43,9 @@ public class AtlasDbConfigDeserializationTest {
         assertTimeLockConfigDeserializedCorrectly(config.timelock().get());
 
         assertThat(config.leader()).isNotPresent();
+
+        assertThat(config.targetedSweep().sweepIndexResetProgressStage())
+                .isEqualTo(SweepIndexResetProgressStage.WRITE_IMMEDIATE_FORMAT_AND_SKIP_UNKNOWNS);
     }
 
     @Test

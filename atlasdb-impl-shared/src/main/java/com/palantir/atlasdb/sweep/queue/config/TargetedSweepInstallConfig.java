@@ -115,7 +115,49 @@ public class TargetedSweepInstallConfig {
         return false;
     }
 
+    /**
+     * This functionality exists to handle situations where the sweep index tables may have gotten out of sync with
+     * the sweep queue (e.g., database issues). The intended usage is to set to
+     * WRITE_IMMEDIATE_FORMAT_AND_SKIP_UNKNOWNS, ensure that all references to previous sweep IDs have been cleared
+     * from the sweep queue, and then set the config to INVALIDATE_OLD_MAPPINGS. To avoid race conditions between
+     * such invalidation, it is strongly advised to switch to WRITE_IMMEDIATE_FORMAT_AND_SKIP_UNKNOWNS post invalidation
+     * before switching back to NO_ACTIVE_RESET.
+     */
+    @Value.Default
+    public SweepIndexResetProgressStage sweepIndexResetProgressStage() {
+        return SweepIndexResetProgressStage.NO_ACTIVE_RESET;
+    }
+
     public static TargetedSweepInstallConfig defaultTargetedSweepConfig() {
         return ImmutableTargetedSweepInstallConfig.builder().build();
+    }
+
+    public enum SweepIndexResetProgressStage {
+        NO_ACTIVE_RESET(false, false, false),
+        WRITE_IMMEDIATE_FORMAT_AND_SKIP_UNKNOWNS(true, true, false),
+        INVALIDATE_OLD_MAPPINGS(true, true, true);
+
+        private final boolean shouldWriteImmediateFormat;
+        private final boolean shouldSkipUnknowns;
+        private final boolean shouldInvalidateOldMappings;
+
+        SweepIndexResetProgressStage(
+                boolean shouldWriteImmediateFormat, boolean shouldSkipUnknowns, boolean shouldInvalidateOldMappings) {
+            this.shouldWriteImmediateFormat = shouldWriteImmediateFormat;
+            this.shouldSkipUnknowns = shouldSkipUnknowns;
+            this.shouldInvalidateOldMappings = shouldInvalidateOldMappings;
+        }
+
+        public boolean shouldWriteImmediateFormat() {
+            return shouldWriteImmediateFormat;
+        }
+
+        public boolean shouldSkipUnknowns() {
+            return shouldSkipUnknowns;
+        }
+
+        public boolean shouldInvalidateOldMappings() {
+            return shouldInvalidateOldMappings;
+        }
     }
 }

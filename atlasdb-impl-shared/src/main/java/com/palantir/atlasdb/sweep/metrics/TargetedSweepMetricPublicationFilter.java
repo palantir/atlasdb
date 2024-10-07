@@ -33,10 +33,10 @@ import org.immutables.value.Value;
  */
 public class TargetedSweepMetricPublicationFilter implements MetricPublicationFilter {
     @VisibleForTesting
-    static final long MINIMUM_READS_WRITES_TO_BE_CONSIDERED_ACTIVE = 1_000;
+    static final long MINIMUM_READS_WRITES_TO_BE_CONSIDERED_ACTIVE = 0;
 
     @VisibleForTesting
-    static final Duration MINIMUM_STALE_DURATION = Duration.ofHours(4);
+    static final Duration MINIMUM_STALE_DURATION = Duration.ofMillis(1);
 
     private final AtomicBoolean publicationLatch;
 
