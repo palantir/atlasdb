@@ -24,7 +24,6 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.ObjectPersister.LogSafety;
-import com.palantir.conjure.java.serialization.ObjectMappers;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -40,8 +39,8 @@ public final class ObjectPersisterTest {
     @ParameterizedTest
     @MethodSource("safety")
     public void failedSerializationWithLogSafetyThrowsExceptionWithCorrectArgSafety(SafetyAndFactory safetyAndFactory) {
-        ObjectPersister<ImpossibleToSerialize> persister = ObjectPersister.of(
-                ObjectMappers.newServerSmileMapper(), ImpossibleToSerialize.class, safetyAndFactory.safety());
+        ObjectPersister<ImpossibleToSerialize> persister =
+                ObjectPersister.of(ImpossibleToSerialize.class, safetyAndFactory.safety());
         ImpossibleToSerialize object = ImpossibleToSerialize.of();
         assertThatLoggableExceptionThrownBy(() -> persister.trySerialize(object))
                 .hasLogMessage("Failed to serialise {} from {}")
@@ -54,8 +53,8 @@ public final class ObjectPersisterTest {
     @MethodSource("safety")
     public void failedDeserializationWithLogSafetyThrowsExceptionWithCorrectArgSafety(
             SafetyAndFactory safetyAndFactory) {
-        ObjectPersister<ImpossibleToSerialize> persister = ObjectPersister.of(
-                ObjectMappers.newServerSmileMapper(), ImpossibleToSerialize.class, safetyAndFactory.safety());
+        ObjectPersister<ImpossibleToSerialize> persister =
+                ObjectPersister.of(ImpossibleToSerialize.class, safetyAndFactory.safety());
         byte[] bytes = new byte[] {1, 2, 3};
         assertThatLoggableExceptionThrownBy(() -> persister.tryDeserialize(bytes))
                 .hasLogMessage("Failed to deserialise {} into {}")
@@ -67,8 +66,7 @@ public final class ObjectPersisterTest {
     @ParameterizedTest
     @ValueSource(longs = {0, 1, Long.MAX_VALUE, Long.MIN_VALUE}) // arbitrary
     public void deserialisationIsInverseOfSerialisation(long value) {
-        ObjectPersister<Long> persister =
-                ObjectPersister.of(ObjectMappers.newServerSmileMapper(), Long.class, LogSafety.SAFE);
+        ObjectPersister<Long> persister = ObjectPersister.of(Long.class, LogSafety.SAFE);
         assertThat(persister.tryDeserialize(persister.trySerialize(value))).isEqualTo(value);
     }
 

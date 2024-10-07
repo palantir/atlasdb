@@ -21,7 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.sweep.asts.TimestampRange;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.ObjectPersister.LogSafety;
-import com.palantir.conjure.java.serialization.ObjectMappers;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -29,16 +28,16 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 public final class TimestampRangePersisterTest {
     private static final ObjectPersister<TimestampRange> PERSISTER =
-            ObjectPersister.of(ObjectMappers.newServerSmileMapper(), TimestampRange.class, LogSafety.SAFE);
+            ObjectPersister.of(TimestampRange.class, LogSafety.SAFE);
 
     private static final TimestampRange OPEN_RANGE = TimestampRange.openBucket(123L);
     private static final TimestampRange CLOSED_RANGE = TimestampRange.of(123L, 456L);
 
     // Be very careful about changing these without a migration.
     private static final byte[] SERIALIZED_OPEN_RANGE =
-            BaseEncoding.base64().decode("OikKBfqNc3RhcnRJbmNsdXNpdmUkA7aLZW5kRXhjbHVzaXZlwfs");
+            BaseEncoding.base64().decode("OikKBfqLZW5kRXhjbHVzaXZlwY1zdGFydEluY2x1c2l2ZSQDtvs=");
     private static final byte[] SERIALIZED_CLOSED_RANGE =
-            BaseEncoding.base64().decode("OikKBfqNc3RhcnRJbmNsdXNpdmUkA7aLZW5kRXhjbHVzaXZlJA6Q+w==");
+            BaseEncoding.base64().decode("OikKBfqLZW5kRXhjbHVzaXZlJA6QjXN0YXJ0SW5jbHVzaXZlJAO2+w==");
 
     @ParameterizedTest
     @MethodSource("timestampRanges")
@@ -51,6 +50,12 @@ public final class TimestampRangePersisterTest {
     @MethodSource("timestampRanges")
     public void canDeserializeExistingVersionOfTimestampRange(TimestampRange range, byte[] serialized) {
         assertThat(PERSISTER.tryDeserialize(serialized)).isEqualTo(range);
+    }
+
+    @ParameterizedTest
+    @MethodSource("timestampRanges")
+    public void serializedTimestampRangeMatchesExistingVersion(TimestampRange timestampRange, byte[] serialized) {
+        assertThat(serialized).isEqualTo(PERSISTER.trySerialize(timestampRange));
     }
 
     private static Stream<Arguments> timestampRanges() {

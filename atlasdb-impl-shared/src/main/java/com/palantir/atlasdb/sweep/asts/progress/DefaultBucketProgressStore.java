@@ -25,7 +25,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.asts.Bucket;
-import com.palantir.conjure.java.serialization.ObjectMappers;
+import com.palantir.atlasdb.sweep.asts.bucketingthings.ConsistentOrderingObjectMapper;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -51,7 +51,7 @@ final class DefaultBucketProgressStore implements BucketProgressStore {
 
     public static BucketProgressStore create(KeyValueService keyValueService) {
         return new DefaultBucketProgressStore(
-                keyValueService, BucketProgressPersister.create(ObjectMappers.newServerSmileMapper()));
+                keyValueService, BucketProgressPersister.create(ConsistentOrderingObjectMapper.OBJECT_MAPPER));
     }
 
     @Override

@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.google.errorprone.annotations.CompileTimeConstant;
@@ -45,9 +44,14 @@ final class ObjectPersister<T> {
         this.logSafety = logSafety;
     }
 
-    static <T> ObjectPersister<T> of(ObjectMapper objectMapper, Class<T> clazz, LogSafety logSafetyOfValues) {
+    static <T> ObjectPersister<T> of(Class<T> clazz, LogSafety logSafetyOfValues) {
+        // Not taking an object mapper as a parameter to prevent bugs caused by passing in a non-order preserving one
+        // when using this for CAS workflows.
         return new ObjectPersister<>(
-                objectMapper.readerFor(clazz), objectMapper.writerFor(clazz), clazz, logSafetyOfValues);
+                ConsistentOrderingObjectMapper.OBJECT_MAPPER.readerFor(clazz),
+                ConsistentOrderingObjectMapper.OBJECT_MAPPER.writerFor(clazz),
+                clazz,
+                logSafetyOfValues);
     }
 
     public T tryDeserialize(byte[] bytes) {
