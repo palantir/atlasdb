@@ -153,6 +153,9 @@ acceptedBreaks:
       justification: "LockRpcClient#getLockState is broken"
   "0.1121.0":
     com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.abstractMethodAdded"
+      new: "method void com.palantir.atlasdb.keyvalue.api.watch.LockWatchManager::logState()"
+      justification: "internal only"
     - code: "java.method.addedToInterface"
       new: "method void com.palantir.atlasdb.keyvalue.api.KeyValueService::deleteFromAtomicTable(com.palantir.atlasdb.keyvalue.api.TableReference,\
         \ java.util.Set<com.palantir.atlasdb.keyvalue.api.Cell>)"
