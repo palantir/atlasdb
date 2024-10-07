@@ -29,6 +29,9 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.Observability;
+import com.palantir.tracing.Tracer;
+import com.palantir.tracing.Tracers;
+import com.palantir.tracing.api.SpanType;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -97,7 +100,25 @@ public final class Autobatchers {
      */
     public static <I, O> AutobatcherBuilder<I, O> independent(Consumer<List<BatchElement<I, O>>> batchFunction) {
         return new AutobatcherBuilder<>(parameters -> new IndependentBatchingEventHandler<>(
-                maybeWrapWithTimeout(batchFunction, parameters), parameters.batchSize()));
+                maybeWrapWithTimeout(
+                        input -> {
+                            long start = System.nanoTime();
+                            try {
+                                Tracer.initTraceWithSpan(
+                                        Observability.SAMPLE,
+                                        Tracers.randomId(),
+                                        parameters.safeLoggablePurpose(),
+                                        SpanType.LOCAL);
+                                batchFunction.accept(input);
+                            } finally {
+                                log.info(
+                                        "Finished batch",
+                                        SafeArg.of("duration", Duration.ofNanos(System.nanoTime() - start)));
+                                Tracer.fastCompleteSpan();
+                            }
+                        },
+                        parameters),
+                parameters.batchSize()));
     }
 
     private static <I, O> Consumer<List<BatchElement<I, O>>> maybeWrapWithTimeout(

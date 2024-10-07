@@ -57,6 +57,8 @@ public interface AsyncTimelockService
 
     long getImmutableTimestamp();
 
+    long getCommitImmutableTimestamp();
+
     StartAtlasDbTransactionResponse deprecatedStartTransaction(IdentifiedTimeLockRequest request);
 
     StartAtlasDbTransactionResponseV3 startTransaction(StartIdentifiedAtlasDbTransactionRequest request);

@@ -34,6 +34,7 @@ import com.palantir.logsafe.Unsafe;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.tracing.CloseableTracer;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
@@ -88,25 +89,28 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
 
     @Override
     public CommitUpdate getCommitUpdate(long startTs) {
-        Optional<TimestampStateStore.TimestampVersionInfo> timestampInfo =
-                timestampStateStore.getTimestampInfo(startTs);
-        Optional<LockWatchVersion> startVersion = timestampInfo.map(TimestampStateStore.TimestampVersionInfo::version);
-        Optional<CommitInfo> maybeCommitInfo =
-                timestampInfo.flatMap(TimestampStateStore.TimestampVersionInfo::commitInfo);
+        try (CloseableTracer tracer = CloseableTracer.startSpan("LockWatchEventCacheImpl#getCommitUpdate")) {
+            Optional<TimestampStateStore.TimestampVersionInfo> timestampInfo =
+                    timestampStateStore.getTimestampInfo(startTs);
+            Optional<LockWatchVersion> startVersion =
+                    timestampInfo.map(TimestampStateStore.TimestampVersionInfo::version);
+            Optional<CommitInfo> maybeCommitInfo =
+                    timestampInfo.flatMap(TimestampStateStore.TimestampVersionInfo::commitInfo);
 
-        assertTrue(
-                maybeCommitInfo.isPresent() && startVersion.isPresent(),
-                "start or commit info not processed for start timestamp");
+            assertTrue(
+                    maybeCommitInfo.isPresent() && startVersion.isPresent(),
+                    "start or commit info not processed for start timestamp");
 
-        CommitInfo commitInfo = maybeCommitInfo.get();
+            CommitInfo commitInfo = maybeCommitInfo.get();
 
-        VersionBounds versionBounds = VersionBounds.builder()
-                .startVersion(startVersion)
-                .endVersion(commitInfo.commitVersion())
-                .build();
+            VersionBounds versionBounds = VersionBounds.builder()
+                    .startVersion(startVersion)
+                    .endVersion(commitInfo.commitVersion())
+                    .build();
 
-        return eventLog.getEventsBetweenVersions(versionBounds)
-                .toCommitUpdate(startVersion.get(), commitInfo.commitVersion(), maybeCommitInfo);
+            return eventLog.getEventsBetweenVersions(versionBounds)
+                    .toCommitUpdate(startVersion.get(), commitInfo.commitVersion(), maybeCommitInfo);
+        }
     }
 
     @Override
@@ -129,17 +133,19 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     @Override
     public synchronized TransactionsLockWatchUpdate getUpdateForTransactions(
             Set<Long> startTimestamps, Optional<LockWatchVersion> lastKnownVersion) {
-        Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get update for empty set of transactions");
-        TimestampMapping timestampMapping = getTimestampMappings(startTimestamps);
+        try (CloseableTracer tracer = CloseableTracer.startSpan("LockWatchEventCacheImpl#getUpdateForTransactions")) {
+            Preconditions.checkArgument(!startTimestamps.isEmpty(), "Cannot get update for empty set of transactions");
+            TimestampMapping timestampMapping = getTimestampMappings(startTimestamps);
 
-        VersionBounds versionBounds = VersionBounds.builder()
-                .startVersion(lastKnownVersion)
-                .endVersion(timestampMapping.lastVersion())
-                .earliestSnapshotVersion(timestampMapping.versionRange().lowerEndpoint())
-                .build();
+            VersionBounds versionBounds = VersionBounds.builder()
+                    .startVersion(lastKnownVersion)
+                    .endVersion(timestampMapping.lastVersion())
+                    .earliestSnapshotVersion(timestampMapping.versionRange().lowerEndpoint())
+                    .build();
 
-        return eventLog.getEventsBetweenVersions(versionBounds)
-                .toTransactionsLockWatchUpdate(timestampMapping, lastKnownVersion);
+            return eventLog.getEventsBetweenVersions(versionBounds)
+                    .toTransactionsLockWatchUpdate(timestampMapping, lastKnownVersion);
+        }
     }
 
     @Override
@@ -165,13 +171,15 @@ public final class LockWatchEventCacheImpl implements LockWatchEventCache {
     }
 
     private synchronized TimestampMapping getTimestampMappings(Set<Long> startTimestamps) {
-        ImmutableTimestampMapping.Builder mappingBuilder = TimestampMapping.builder();
-        startTimestamps.forEach(timestamp -> {
-            Optional<LockWatchVersion> entry = timestampStateStore.getStartVersion(timestamp);
-            assertTrue(entry.isPresent(), "start timestamp missing from map");
-            mappingBuilder.putTimestampMapping(timestamp, entry.get());
-        });
-        return mappingBuilder.build();
+        try (CloseableTracer trace = CloseableTracer.startSpan("LockWatchEventCacheImpl#getTimestampMappings")) {
+            ImmutableTimestampMapping.Builder mappingBuilder = TimestampMapping.builder();
+            startTimestamps.forEach(timestamp -> {
+                Optional<LockWatchVersion> entry = timestampStateStore.getStartVersion(timestamp);
+                assertTrue(entry.isPresent(), "start timestamp missing from map");
+                mappingBuilder.putTimestampMapping(timestamp, entry.get());
+            });
+            return mappingBuilder.build();
+        }
     }
 
     private synchronized Optional<LockWatchVersion> processEventLogUpdate(LockWatchStateUpdate update) {

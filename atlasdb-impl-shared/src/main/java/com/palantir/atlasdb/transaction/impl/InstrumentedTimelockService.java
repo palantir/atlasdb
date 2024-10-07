@@ -19,6 +19,7 @@ import com.codahale.metrics.Meter;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.v2.ClientLockingOptions;
+import com.palantir.lock.v2.GetCommitTimestampResponse;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -69,7 +70,7 @@ public final class InstrumentedTimelockService implements TimelockService {
     }
 
     @Override
-    public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
+    public GetCommitTimestampResponse getCommitTimestamp(long startTs, LockToken commitLocksToken) {
         return executeWithRecord(() -> timelockService.getCommitTimestamp(startTs, commitLocksToken));
     }
 
@@ -91,6 +92,11 @@ public final class InstrumentedTimelockService implements TimelockService {
     @Override
     public long getImmutableTimestamp() {
         return executeWithRecord(timelockService::getImmutableTimestamp);
+    }
+
+    @Override
+    public long getCommitImmutableTimestamp() {
+        return executeWithRecord(timelockService::getCommitImmutableTimestamp);
     }
 
     @Override

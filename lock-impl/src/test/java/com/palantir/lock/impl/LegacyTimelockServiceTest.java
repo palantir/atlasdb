@@ -54,6 +54,7 @@ import org.mockito.Mockito;
 public class LegacyTimelockServiceTest {
 
     private static final LockClient LOCK_CLIENT = LockClient.of("foo");
+    private static final LockClient COMMIT_LOCK_CLIENT = LockClient.of("foo1");
 
     private static final long FRESH_TIMESTAMP = 5L;
 
@@ -69,7 +70,7 @@ public class LegacyTimelockServiceTest {
     private static final long TIMEOUT = 10_000;
 
     private final LegacyTimelockService timelock =
-            new LegacyTimelockService(timestampService, lockService, LOCK_CLIENT);
+            new LegacyTimelockService(timestampService, lockService, LOCK_CLIENT, COMMIT_LOCK_CLIENT);
 
     @BeforeEach
     public void before() {

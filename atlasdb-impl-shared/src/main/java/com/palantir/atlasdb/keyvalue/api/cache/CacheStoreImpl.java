@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.api.cache;
 
+import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.watch.StartTimestamp;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.logsafe.Preconditions;
@@ -23,10 +24,12 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.tracing.CloseableTracer;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import javax.annotation.concurrent.ThreadSafe;
 import org.immutables.value.Value;
 
@@ -85,15 +88,19 @@ final class CacheStoreImpl implements CacheStore {
     }
 
     @Override
-    public void createReadOnlyCache(StartTimestamp timestamp, CommitUpdate commitUpdate) {
-        cacheMap.computeIfPresent(timestamp, (_startTs, cache) -> cache.withReadOnlyCache(commitUpdate));
+    public void createReadOnlyCache(StartTimestamp timestamp, Supplier<CommitUpdate> commitUpdate) {
+        try (CloseableTracer tracer = CloseableTracer.startSpan("CacheStoreImpl#createReadOnlyCache")) {
+            cacheMap.computeIfPresent(timestamp, (_startTs, cache) -> cache.withComputeCache(commitUpdate));
+        }
     }
 
     @Override
     public TransactionScopedCache getReadOnlyCache(StartTimestamp timestamp) {
         return getCacheInternal(timestamp)
                 .flatMap(Caches::readOnlyCache)
-                .orElseGet(() -> NoOpTransactionScopedCache.create().createReadOnlyCache(CommitUpdate.invalidateAll()));
+                .orElseGet(() ->
+                        (() -> NoOpTransactionScopedCache.create().createReadOnlyCache(CommitUpdate.invalidateAll())))
+                .get();
     }
 
     private void validateStateSize() {
@@ -117,17 +124,17 @@ final class CacheStoreImpl implements CacheStore {
     interface Caches {
         TransactionScopedCache mainCache();
 
-        Optional<TransactionScopedCache> readOnlyCache();
+        Optional<Supplier<TransactionScopedCache>> readOnlyCache();
 
         static Caches create(TransactionScopedCache mainCache) {
             return ImmutableCaches.builder().mainCache(mainCache).build();
         }
 
-        default Caches withReadOnlyCache(CommitUpdate commitUpdate) {
+        default Caches withComputeCache(Supplier<CommitUpdate> commitUpdate) {
             Preconditions.checkState(!readOnlyCache().isPresent(), "Read-only cache is already present");
             return ImmutableCaches.builder()
                     .from(this)
-                    .readOnlyCache(mainCache().createReadOnlyCache(commitUpdate))
+                    .readOnlyCache(Suppliers.memoize(() -> mainCache().createReadOnlyCache(commitUpdate.get())))
                     .build();
         }
     }

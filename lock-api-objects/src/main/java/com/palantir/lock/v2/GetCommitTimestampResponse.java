@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2021 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2024 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,17 @@
 
 package com.palantir.lock.v2;
 
-/**
- * Adapter that mirrors {@code TimelockRpcClient}, but for convenience automatically provides the namespace as a
- * parameter.
- */
-public interface NamespacedTimelockRpcClient {
-    long getImmutableTimestamp();
+import org.immutables.value.Value;
 
-    long getCommitImmutableTimestamp();
+@Value.Immutable
+public interface GetCommitTimestampResponse {
+    @Value.Parameter
+    LockImmutableTimestampResponse immutableTimestamp();
 
-    long currentTimeMillis();
+    @Value.Parameter
+    long timestamp();
+
+    static GetCommitTimestampResponse of(LockImmutableTimestampResponse immutableTimestamp, long timestamp) {
+        return ImmutableGetCommitTimestampResponse.of(immutableTimestamp, timestamp);
+    }
 }

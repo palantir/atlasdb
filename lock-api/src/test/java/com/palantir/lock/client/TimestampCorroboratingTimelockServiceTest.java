@@ -168,7 +168,13 @@ public final class TimestampCorroboratingTimelockServiceTest {
     @Test
     public void getCommitTimestampsShouldFail() {
         when(rawTimelockService.getCommitTimestamps(any()))
-                .thenReturn(GetCommitTimestampsResponse.of(1L, 3L, LOCK_WATCH_UPDATE));
+                .thenReturn(GetCommitTimestampsResponse.builder()
+                        .inclusiveLower(1L)
+                        .inclusiveUpper(3L)
+                        .lockWatchUpdate(LOCK_WATCH_UPDATE)
+                        .commitImmutableTimestamp(LOCK_IMMUTABLE_TIMESTAMP_RESPONSE)
+                        .lease(Lease.of(LeaderTime.of(LeadershipId.random(), NanoTime.now()), Duration.ZERO))
+                        .build());
         assertThrowsOnSecondCall(() -> timelockService.getCommitTimestamps(
                 GetCommitTimestampsRequest.of(3, ConjureIdentifiedVersion.of(UUID.randomUUID(), 3L))));
         assertThat(timelockService

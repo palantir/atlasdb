@@ -58,10 +58,12 @@ public class AsyncLockServiceTest {
     private final HeldLocksCollection heldLocks = spy(HeldLocksCollection.create(leaderClock));
     private final AwaitedLocksCollection awaitedLocks = spy(new AwaitedLocksCollection());
     private final ImmutableTimestampTracker immutableTimestampTracker = mock(ImmutableTimestampTracker.class);
+    private final ImmutableTimestampTracker commitImmutableTimestampTracker = mock(ImmutableTimestampTracker.class);
     private final DeterministicScheduler reaperExecutor = new DeterministicScheduler();
     private final AsyncLockService lockService = new AsyncLockService(
             locks,
             immutableTimestampTracker,
+            commitImmutableTimestampTracker,
             acquirer,
             heldLocks,
             awaitedLocks,

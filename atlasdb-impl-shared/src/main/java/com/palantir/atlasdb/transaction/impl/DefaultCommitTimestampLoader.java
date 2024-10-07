@@ -44,6 +44,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.tracing.CloseableTracer;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -197,20 +198,22 @@ public final class DefaultCommitTimestampLoader implements CommitTimestampLoader
     }
 
     private void waitFor(Set<LockDescriptor> lockDescriptors) {
-        TransactionConfig currentTransactionConfig = transactionConfig.get();
+        try (CloseableTracer tracer = CloseableTracer.startSpan("waitFor")) {
+            TransactionConfig currentTransactionConfig = transactionConfig.get();
 
-        // TODO(fdesouza): Revert this once PDS-95791 is resolved.
-        long lockAcquireTimeoutMillis = currentTransactionConfig.getLockAcquireTimeoutMillis();
-        WaitForLocksRequest request = WaitForLocksRequest.of(lockDescriptors, lockAcquireTimeoutMillis);
-        WaitForLocksResponse response = timelockService.waitForLocks(request);
-        if (!response.wasSuccessful()) {
-            log.error(
-                    "Timed out waiting for commits to complete. Timeout was {} ms. First ten locks were {}.",
-                    SafeArg.of("requestId", request.getRequestId()),
-                    SafeArg.of("acquireTimeoutMs", lockAcquireTimeoutMillis),
-                    SafeArg.of("numberOfDescriptors", lockDescriptors.size()),
-                    UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
-            throw new TransactionLockAcquisitionTimeoutException("Timed out waiting for commits to complete.");
+            // TODO(fdesouza): Revert this once PDS-95791 is resolved.
+            long lockAcquireTimeoutMillis = currentTransactionConfig.getLockAcquireTimeoutMillis();
+            WaitForLocksRequest request = WaitForLocksRequest.of(lockDescriptors, lockAcquireTimeoutMillis);
+            WaitForLocksResponse response = timelockService.waitForLocks(request);
+            if (!response.wasSuccessful()) {
+                log.error(
+                        "Timed out waiting for commits to complete. Timeout was {} ms. First ten locks were {}.",
+                        SafeArg.of("requestId", request.getRequestId()),
+                        SafeArg.of("acquireTimeoutMs", lockAcquireTimeoutMillis),
+                        SafeArg.of("numberOfDescriptors", lockDescriptors.size()),
+                        UnsafeArg.of("firstTenLockDescriptors", Iterables.limit(lockDescriptors, 10)));
+                throw new TransactionLockAcquisitionTimeoutException("Timed out waiting for commits to complete.");
+            }
         }
     }
 
@@ -236,14 +239,16 @@ public final class DefaultCommitTimestampLoader implements CommitTimestampLoader
 
     private ListenableFuture<Map<Long, TransactionStatus>> loadCommitTimestamps(LongSet startTimestamps) {
         // distinguish between a single timestamp and a batch, for more granular metrics
-        if (startTimestamps.size() == 1) {
-            long singleTs = startTimestamps.longIterator().next();
-            return Futures.transform(
-                    transactionService.getAsyncV2(singleTs),
-                    commitState -> ImmutableMap.of(singleTs, commitState),
-                    MoreExecutors.directExecutor());
-        } else {
-            return transactionService.getAsyncV2(startTimestamps.collect(Long::valueOf));
+        try (CloseableTracer tracer = CloseableTracer.startSpan("loadCommitTimestamps")) {
+            if (startTimestamps.size() == 1) {
+                long singleTs = startTimestamps.longIterator().next();
+                return Futures.transform(
+                        transactionService.getAsyncV2(singleTs),
+                        commitState -> ImmutableMap.of(singleTs, commitState),
+                        MoreExecutors.directExecutor());
+            } else {
+                return transactionService.getAsyncV2(startTimestamps.collect(Long::valueOf));
+            }
         }
     }
 

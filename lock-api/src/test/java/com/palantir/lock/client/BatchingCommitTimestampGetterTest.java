@@ -31,7 +31,13 @@ import com.palantir.atlasdb.autobatch.AutobatcherTelemetryComponents;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.common.time.NanoTime;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.v2.GetCommitTimestampResponse;
+import com.palantir.lock.v2.LeaderTime;
+import com.palantir.lock.v2.LeadershipId;
+import com.palantir.lock.v2.Lease;
+import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockEvent;
 import com.palantir.lock.watch.LockWatchCache;
@@ -42,11 +48,13 @@ import com.palantir.lock.watch.LockWatchValueCache;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
@@ -68,13 +76,19 @@ public final class BatchingCommitTimestampGetterTest {
     private static final Optional<LockWatchVersion> IDENTIFIED_VERSION_1 = Optional.empty();
     private static final Optional<LockWatchVersion> IDENTIFIED_VERSION_2 =
             Optional.of(LockWatchVersion.of(UUID.randomUUID(), -1));
+    private static final LeadershipId LEADERSHIP_ID = LeadershipId.random();
+    private static final LeaderTime LEADER_TIME = LeaderTime.of(LEADERSHIP_ID, NanoTime.createForTests(1L));
+    private static final Lease LEASE = Lease.of(LEADER_TIME, Duration.ofSeconds(977));
+    private static final LockToken COMMIT_TS_LOCK_TOKEN = mock(LockToken.class);
+    private static final LockImmutableTimestampResponse COMMIT_TS_RESPONSE =
+            LockImmutableTimestampResponse.of(1L, COMMIT_TS_LOCK_TOKEN);
 
     private final LockLeaseService lockLeaseService = mock(LockLeaseService.class);
     private final LockWatchEventCache eventCache = mock(LockWatchEventCache.class);
     private final LockWatchValueCache valueCache = mock(LockWatchValueCache.class);
     private final LockWatchCache cache = spy(new LockWatchCacheImpl(eventCache, valueCache));
-    private final Consumer<List<BatchElement<BatchingCommitTimestampGetter.Request, Long>>> batchProcessor =
-            BatchingCommitTimestampGetter.consumer(lockLeaseService, cache);
+    private final Consumer<List<BatchElement<BatchingCommitTimestampGetter.Request, GetCommitTimestampResponse>>>
+            batchProcessor = BatchingCommitTimestampGetter.consumer(lockLeaseService, cache);
 
     @Test
     public void consumerFillsTheWholeBatch() {
@@ -87,7 +101,10 @@ public final class BatchingCommitTimestampGetterTest {
         whenGetCommitTimestamps(IDENTIFIED_VERSION_1, 4, 5, 6, UPDATE_1);
         whenGetCommitTimestamps(IDENTIFIED_VERSION_2, 2, 7, 8, UPDATE_2);
 
-        assertThat(processBatch(request1, request2, request3, request4)).containsExactly(5L, 6L, 7L, 8L);
+        assertThat(processBatch(request1, request2, request3, request4).stream()
+                        .map(GetCommitTimestampResponse::timestamp)
+                        .collect(Collectors.toList()))
+                .containsExactly(5L, 6L, 7L, 8L);
 
         InOrder inOrder = Mockito.inOrder(lockLeaseService, cache);
         inOrder.verify(lockLeaseService).getCommitTimestamps(IDENTIFIED_VERSION_1, 4);
@@ -109,16 +126,22 @@ public final class BatchingCommitTimestampGetterTest {
                         .inclusiveLower(start)
                         .inclusiveUpper(end)
                         .lockWatchUpdate(update)
+                        .commitImmutableTimestamp(COMMIT_TS_RESPONSE)
+                        .lease(LEASE)
                         .build());
     }
 
-    private List<Long> processBatch(BatchingCommitTimestampGetter.Request... requests) {
-        List<BatchElement<BatchingCommitTimestampGetter.Request, Long>> elements = Arrays.stream(requests)
-                .map(request -> ImmutableTestBatchElement.<BatchingCommitTimestampGetter.Request, Long>builder()
-                        .argument(request)
-                        .result(new DisruptorAutobatcher.DisruptorFuture<>(
-                                AutobatcherTelemetryComponents.create("test", new DefaultTaggedMetricRegistry())))
-                        .build())
+    private List<GetCommitTimestampResponse> processBatch(BatchingCommitTimestampGetter.Request... requests) {
+        List<BatchElement<BatchingCommitTimestampGetter.Request, GetCommitTimestampResponse>> elements = Arrays.stream(
+                        requests)
+                .map(request ->
+                        ImmutableTestBatchElement
+                                .<BatchingCommitTimestampGetter.Request, GetCommitTimestampResponse>builder()
+                                .argument(request)
+                                .result(new DisruptorAutobatcher.DisruptorFuture<>(
+                                        AutobatcherTelemetryComponents.create(
+                                                "test", new DefaultTaggedMetricRegistry())))
+                                .build())
                 .collect(toList());
         batchProcessor.accept(elements);
         return Futures.getUnchecked(Futures.allAsList(Lists.transform(elements, BatchElement::result)));

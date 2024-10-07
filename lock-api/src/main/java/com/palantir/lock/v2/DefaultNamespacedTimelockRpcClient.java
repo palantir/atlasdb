@@ -31,6 +31,11 @@ public class DefaultNamespacedTimelockRpcClient implements NamespacedTimelockRpc
     }
 
     @Override
+    public long getCommitImmutableTimestamp() {
+        return timelockRpcClient.getCommitImmutableTimestamp(namespace);
+    }
+
+    @Override
     public long currentTimeMillis() {
         return timelockRpcClient.currentTimeMillis(namespace);
     }

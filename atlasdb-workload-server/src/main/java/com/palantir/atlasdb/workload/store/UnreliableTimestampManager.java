@@ -19,6 +19,7 @@ package com.palantir.atlasdb.workload.store;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.buggify.impl.DefaultNativeSamplingSecureRandomFactory;
 import com.palantir.lock.client.RandomizedTimestampManager;
+import com.palantir.lock.v2.GetCommitTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
@@ -96,7 +97,7 @@ public final class UnreliableTimestampManager implements RandomizedTimestampMana
     }
 
     @Override
-    public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
+    public GetCommitTimestampResponse getCommitTimestamp(long startTs, LockToken commitLocksToken) {
         return runWithReadLock(() -> delegate.getCommitTimestamp(startTs, commitLocksToken));
     }
 

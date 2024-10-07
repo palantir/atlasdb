@@ -18,11 +18,15 @@ package com.palantir.lock.client;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Streams;
+import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.autobatch.Autobatchers;
 import com.palantir.atlasdb.autobatch.BatchElement;
 import com.palantir.atlasdb.autobatch.DisruptorAutobatcher;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.common.base.Throwables;
+import com.palantir.lock.v2.GetCommitTimestampResponse;
+import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchCache;
 import com.palantir.lock.watch.LockWatchVersion;
@@ -34,20 +38,22 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
+import java.util.stream.Stream;
 import org.immutables.value.Value;
 
 /**
  * This class batches getCommitTimestamps requests to TimeLock server for a single client/namespace.
- * */
+ */
 final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
-    private final DisruptorAutobatcher<Request, Long> autobatcher;
+    private final DisruptorAutobatcher<Request, GetCommitTimestampResponse> autobatcher;
 
-    private BatchingCommitTimestampGetter(DisruptorAutobatcher<Request, Long> autobatcher) {
+    private BatchingCommitTimestampGetter(DisruptorAutobatcher<Request, GetCommitTimestampResponse> autobatcher) {
         this.autobatcher = autobatcher;
     }
 
     public static BatchingCommitTimestampGetter create(LockLeaseService leaseService, LockWatchCache cache) {
-        DisruptorAutobatcher<Request, Long> autobatcher = Autobatchers.independent(consumer(leaseService, cache))
+        DisruptorAutobatcher<Request, GetCommitTimestampResponse> autobatcher = Autobatchers.independent(
+                        consumer(leaseService, cache))
                 .safeLoggablePurpose("get-commit-timestamp")
                 .batchFunctionTimeout(Duration.ofSeconds(30))
                 .build();
@@ -55,7 +61,7 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
     }
 
     @Override
-    public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
+    public GetCommitTimestampResponse getCommitTimestamp(long startTs, LockToken commitLocksToken) {
         return AtlasFutures.getUnchecked(autobatcher.apply(ImmutableRequest.builder()
                 .startTs(startTs)
                 .commitLocksToken(commitLocksToken)
@@ -63,10 +69,24 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
     }
 
     @VisibleForTesting
-    static Consumer<List<BatchElement<Request, Long>>> consumer(LockLeaseService leaseService, LockWatchCache cache) {
+    static Consumer<List<BatchElement<Request, GetCommitTimestampResponse>>> consumer(
+            LockLeaseService leaseService, LockWatchCache cache) {
         return batch -> {
             int count = batch.size();
-            List<Long> commitTimestamps = new ArrayList<>();
+            List<GetCommitTimestampResponse> commitTimestamps = getResponses(leaseService, cache, batch, count);
+            for (int i = 0; i < count; i++) {
+                batch.get(i).result().set(commitTimestamps.get(i));
+            }
+        };
+    }
+
+    private static List<GetCommitTimestampResponse> getResponses(
+            LockLeaseService leaseService,
+            LockWatchCache cache,
+            List<BatchElement<Request, GetCommitTimestampResponse>> batch,
+            int count) {
+        List<GetCommitTimestampResponse> commitTimestamps = new ArrayList<>();
+        try {
             while (commitTimestamps.size() < count) {
                 Optional<LockWatchVersion> requestedVersion =
                         cache.getEventCache().lastKnownVersion();
@@ -74,15 +94,31 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
                         leaseService.getCommitTimestamps(requestedVersion, count - commitTimestamps.size());
                 commitTimestamps.addAll(process(batch.subList(commitTimestamps.size(), count), response, cache));
             }
-
-            for (int i = 0; i < count; i++) {
-                batch.get(i).result().set(commitTimestamps.get(i));
-            }
-        };
+            return commitTimestamps;
+        } catch (Throwable t) {
+            // Something else should cleanup the caches, that's fine. The joys of underhanded design.
+            // But we need to unlock the commit immutable timestamp locks.
+            // This method call is weird, but this is what BatchingIdentifiedAtlasDbTransactionStarter does,
+            // so I'll allow it.
+            TransactionStarterHelper.unlock(
+                    commitTimestamps.stream()
+                            .map(response -> response.immutableTimestamp().getLock())
+                            .collect(Collectors.toSet()),
+                    leaseService);
+            throw Throwables.throwUncheckedException(t);
+        }
     }
 
-    private static List<Long> process(
-            List<BatchElement<Request, Long>> requests, GetCommitTimestampsResponse response, LockWatchCache cache) {
+    private static List<GetCommitTimestampResponse> process(
+            List<BatchElement<Request, GetCommitTimestampResponse>> requests,
+            GetCommitTimestampsResponse response,
+            LockWatchCache cache) {
+        LockToken immutableTsLock = response.getCommitImmutableTimestamp().getLock();
+        long commitImmutableTs = response.getCommitImmutableTimestamp().getImmutableTimestamp();
+        Stream<LockImmutableTimestampResponse> immutableTsAndLocks = LockTokenShare.share(
+                        immutableTsLock,
+                        Ints.checkedCast(response.getInclusiveUpper() - response.getInclusiveLower() + 1))
+                .map(tokenShare -> LockImmutableTimestampResponse.of(commitImmutableTs, tokenShare));
         List<Long> timestamps = LongStream.rangeClosed(response.getInclusiveLower(), response.getInclusiveUpper())
                 .boxed()
                 .collect(Collectors.toList());
@@ -94,7 +130,8 @@ final class BatchingCommitTimestampGetter implements CommitTimestampGetter {
                                 .build())
                 .collect(Collectors.toList());
         cache.processCommitTimestampsUpdate(transactionUpdates, response.getLockWatchUpdate());
-        return timestamps;
+        return Streams.zip(immutableTsAndLocks, timestamps.stream(), GetCommitTimestampResponse::of)
+                .collect(Collectors.toList());
     }
 
     @Override

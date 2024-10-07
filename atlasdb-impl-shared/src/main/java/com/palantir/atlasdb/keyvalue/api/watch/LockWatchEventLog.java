@@ -25,6 +25,7 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.Unsafe;
+import com.palantir.tracing.CloseableTracer;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -80,7 +81,14 @@ final class LockWatchEventLog {
      *         condensed.
      */
     ClientLogEvents getEventsBetweenVersions(VersionBounds versionBounds) {
-        return runWithReadLock(() -> getEventsBetweenVersionsInternal(versionBounds));
+        try (CloseableTracer tracer = CloseableTracer.startSpan("LockWatchEventLog#getEventsBetweenVersions")) {
+            return runWithReadLock(() -> {
+                try (CloseableTracer tracer1 =
+                        CloseableTracer.startSpan("LockWatchEventLog#getEventsBetweenVersionsInternal")) {
+                    return getEventsBetweenVersionsInternal(versionBounds);
+                }
+            });
+        }
     }
 
     /**

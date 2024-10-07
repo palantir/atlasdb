@@ -31,6 +31,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public final class DefaultPreCommitRequirementValidator implements PreCommitRequirementValidator {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultPreCommitRequirementValidator.class);
@@ -70,15 +71,15 @@ public final class DefaultPreCommitRequirementValidator implements PreCommitRequ
     }
 
     @Override
-    public void throwIfPreCommitRequirementsNotMet(LockToken commitLocksToken, long timestamp) {
+    public void throwIfPreCommitRequirementsNotMet(Set<LockToken> commitLocksToken, long timestamp) {
         throwIfImmutableTsOrCommitLocksExpired(commitLocksToken);
         throwIfPreCommitConditionInvalid(timestamp);
     }
 
     @Override
-    public void throwIfImmutableTsOrCommitLocksExpired(LockToken commitLocksToken) {
-        Optional<ExpiredLocks> expiredLocks = immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(
-                Optional.ofNullable(commitLocksToken));
+    public void throwIfImmutableTsOrCommitLocksExpired(Set<LockToken> commitLocksToken) {
+        Optional<ExpiredLocks> expiredLocks =
+                immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(commitLocksToken);
         if (expiredLocks.isPresent()) {
             throw createDefaultTransactionLockTimeoutException(expiredLocks.get());
         }

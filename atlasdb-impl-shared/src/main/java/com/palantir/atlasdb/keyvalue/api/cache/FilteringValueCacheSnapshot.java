@@ -20,11 +20,14 @@ import com.google.common.base.MoreObjects;
 import com.palantir.atlasdb.keyvalue.api.AtlasLockDescriptorUtils;
 import com.palantir.atlasdb.keyvalue.api.CellReference;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.conjure.java.client.config.ImmutablesStyle;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.watch.CommitUpdate;
 import com.palantir.lock.watch.CommitUpdate.Visitor;
 import com.palantir.logsafe.Unsafe;
+import com.palantir.tracing.CloseableTracer;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -41,7 +44,9 @@ final class FilteringValueCacheSnapshot implements ValueCacheSnapshot {
     }
 
     static ValueCacheSnapshot create(ValueCacheSnapshot delegate, CommitUpdate commitUpdate) {
-        return new FilteringValueCacheSnapshot(delegate, toLockedCells(commitUpdate));
+        try (CloseableTracer tracer = CloseableTracer.startSpan("FilteringValueCacheSnapshot#create")) {
+            return new FilteringValueCacheSnapshot(delegate, toLockedCells(commitUpdate));
+        }
     }
 
     @Override
@@ -79,20 +84,23 @@ final class FilteringValueCacheSnapshot implements ValueCacheSnapshot {
     }
 
     private static LockedCells toLockedCells(CommitUpdate commitUpdate) {
-        return commitUpdate.accept(new Visitor<LockedCells>() {
-            @Override
-            public LockedCells invalidateAll() {
-                return LockedCells.invalidateAll();
-            }
+        try (CloseableTracer tracer = CloseableTracer.startSpan("FilteringValueCacheSnapshot#toLockedCells")) {
+            return commitUpdate.accept(new Visitor<LockedCells>() {
+                @Override
+                public LockedCells invalidateAll() {
+                    return LockedCells.invalidateAll();
+                }
 
-            @Override
-            public LockedCells invalidateSome(Set<LockDescriptor> invalidatedLocks) {
-                return LockedCells.invalidateSome(invalidatedLocks);
-            }
-        });
+                @Override
+                public LockedCells invalidateSome(Set<LockDescriptor> invalidatedLocks) {
+                    return LockedCells.invalidateSome(invalidatedLocks);
+                }
+            });
+        }
     }
 
     @Value.Immutable
+    @ImmutablesStyle
     interface LockedCells {
         boolean allLocked();
 
@@ -103,13 +111,17 @@ final class FilteringValueCacheSnapshot implements ValueCacheSnapshot {
         }
 
         static LockedCells invalidateSome(Set<LockDescriptor> descriptors) {
-            return ImmutableLockedCells.builder()
-                    .allLocked(false)
-                    .lockedCells(descriptors.stream()
-                            .map(AtlasLockDescriptorUtils::candidateCells)
-                            .flatMap(List::stream)
-                            .collect(Collectors.toSet()))
-                    .build();
+            try (CloseableTracer tracer = CloseableTracer.startSpan(
+                    "FilteringValueCacheSnapshot#invalidateSome",
+                    Map.of("size", Integer.toString(descriptors.size())))) {
+                return ImmutableLockedCells.builder()
+                        .allLocked(false)
+                        .lockedCells(descriptors.stream()
+                                .map(AtlasLockDescriptorUtils::candidateCells)
+                                .flatMap(List::stream)
+                                .collect(Collectors.toSet()))
+                        .build();
+            }
         }
 
         default boolean isUnlocked(CellReference cellReference) {

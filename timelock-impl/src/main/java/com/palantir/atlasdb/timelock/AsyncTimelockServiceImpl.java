@@ -55,6 +55,7 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
+import com.palantir.tritium.ids.UniqueIds;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -104,6 +105,12 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     public long getImmutableTimestamp() {
         long timestamp = timestampService.getFreshTimestamp();
         return lockService.getImmutableTimestamp().orElse(timestamp);
+    }
+
+    @Override
+    public long getCommitImmutableTimestamp() {
+        long timestamp = timestampService.getFreshTimestamp();
+        return lockService.getCommitImmutableTimestamp().orElse(timestamp);
     }
 
     @Override
@@ -206,6 +213,18 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         return Leased.of(lockImmutableTimestampResponse, leasedLock.lease());
     }
 
+    private Leased<LockImmutableTimestampResponse> lockCommitImmutableTimestampWithLease(long timestamp) {
+        Leased<LockToken> leasedLock = lockService
+                .lockCommitImmutableTimestamp(UniqueIds.pseudoRandomUuidV4(), timestamp)
+                .get();
+        long immutableTs = lockService.getCommitImmutableTimestamp().orElse(timestamp);
+
+        LockImmutableTimestampResponse lockImmutableTimestampResponse =
+                LockImmutableTimestampResponse.of(immutableTs, leasedLock.value());
+
+        return Leased.of(lockImmutableTimestampResponse, leasedLock.lease());
+    }
+
     @Override
     public ListenableFuture<ConjureStartTransactionsResponse> startTransactionsWithWatches(
             ConjureStartTransactionsRequest request) {
@@ -234,11 +253,19 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public ListenableFuture<GetCommitTimestampsResponse> getCommitTimestamps(
             int numTimestamps, Optional<LockWatchVersion> lastKnownVersion) {
+        // TODO(jakubk): This is a pretty obvious race between grabbing the timestamps
+        // and locking the immutable timestamp, but this exists in the case of the normal immutable timestamp,
+        // so let's not worry about it for now.
         TimestampRange freshTimestamps = getFreshTimestamps(numTimestamps);
-        return Futures.immediateFuture(GetCommitTimestampsResponse.of(
-                freshTimestamps.getLowerBound(),
-                freshTimestamps.getUpperBound(),
-                getWatchStateUpdate(lastKnownVersion)));
+        Leased<LockImmutableTimestampResponse> leasedLockImmutableCommitTimestampResponse =
+                lockCommitImmutableTimestampWithLease(freshTimestamps.getLowerBound());
+        return Futures.immediateFuture(GetCommitTimestampsResponse.builder()
+                .inclusiveLower(freshTimestamps.getLowerBound())
+                .inclusiveUpper(freshTimestamps.getUpperBound())
+                .lockWatchUpdate(getWatchStateUpdate(lastKnownVersion))
+                .commitImmutableTimestamp(leasedLockImmutableCommitTimestampResponse.value())
+                .lease(leasedLockImmutableCommitTimestampResponse.lease())
+                .build());
     }
 
     @Override

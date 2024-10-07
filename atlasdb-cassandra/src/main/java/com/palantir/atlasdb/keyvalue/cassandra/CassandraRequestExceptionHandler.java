@@ -18,11 +18,13 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
+import com.palantir.atlasdb.tracing.Tracing;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.tracing.CloseableTracer;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.NoSuchElementException;
@@ -72,27 +74,30 @@ class CassandraRequestExceptionHandler {
     @SuppressWarnings("unchecked")
     <K extends Exception> void handleExceptionFromRequest(
             RetryableCassandraRequest<?, K> req, CassandraServer serverTried, Exception ex) throws K {
-        if (!isRetryable(ex)) {
-            throw (K) ex;
+        try (CloseableTracer trace = Tracing.startLocalTrace(
+                "CassandraRequestExceptionHandler.handleExceptionFromRequest", tagConsumer -> {})) {
+            if (!isRetryable(ex)) {
+                throw (K) ex;
+            }
+
+            RequestExceptionHandlerStrategy strategy = getStrategy();
+            req.triedOnHost(serverTried);
+            req.registerException(ex);
+            int numberOfAttempts = req.getNumberOfAttempts();
+            int numberOfAttemptsOnHost = req.getNumberOfAttemptsOnHost(serverTried);
+
+            if (numberOfAttempts >= maxTriesTotal.get()) {
+                throw logAndThrowException(numberOfAttempts, numberOfAttemptsOnHost, ex, serverTried, req);
+            }
+
+            if (shouldBlacklist(ex, numberOfAttemptsOnHost)) {
+                blacklist.add(serverTried);
+            }
+
+            logNumberOfAttempts(ex, numberOfAttempts);
+            handleBackoff(req, serverTried, ex, strategy);
+            handleRetryOnDifferentHosts(req, serverTried, ex, strategy);
         }
-
-        RequestExceptionHandlerStrategy strategy = getStrategy();
-        req.triedOnHost(serverTried);
-        req.registerException(ex);
-        int numberOfAttempts = req.getNumberOfAttempts();
-        int numberOfAttemptsOnHost = req.getNumberOfAttemptsOnHost(serverTried);
-
-        if (numberOfAttempts >= maxTriesTotal.get()) {
-            throw logAndThrowException(numberOfAttempts, numberOfAttemptsOnHost, ex, serverTried, req);
-        }
-
-        if (shouldBlacklist(ex, numberOfAttemptsOnHost)) {
-            blacklist.add(serverTried);
-        }
-
-        logNumberOfAttempts(ex, numberOfAttempts);
-        handleBackoff(req, serverTried, ex, strategy);
-        handleRetryOnDifferentHosts(req, serverTried, ex, strategy);
     }
 
     @VisibleForTesting

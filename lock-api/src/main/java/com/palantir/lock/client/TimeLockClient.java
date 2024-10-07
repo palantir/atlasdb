@@ -22,6 +22,7 @@ import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.v2.ClientLockingOptions;
+import com.palantir.lock.v2.GetCommitTimestampResponse;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockLeaseRefresher;
 import com.palantir.lock.v2.LockRequest;
@@ -102,7 +103,7 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     }
 
     @Override
-    public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
+    public GetCommitTimestampResponse getCommitTimestamp(long startTs, LockToken commitLocksToken) {
         return delegate.getCommitTimestamp(startTs, commitLocksToken);
     }
 
@@ -137,6 +138,11 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     @Override
     public long getImmutableTimestamp() {
         return executeOnTimeLock(delegate::getImmutableTimestamp);
+    }
+
+    @Override
+    public long getCommitImmutableTimestamp() {
+        return executeOnTimeLock(delegate::getCommitImmutableTimestamp);
     }
 
     @Override

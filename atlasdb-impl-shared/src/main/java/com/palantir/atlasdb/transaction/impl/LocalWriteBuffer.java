@@ -23,14 +23,17 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.Cells;
 import com.palantir.atlasdb.logging.LoggingArgs;
+import com.palantir.atlasdb.transaction.api.DelayedWrite;
 import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,6 +47,7 @@ class LocalWriteBuffer {
 
     private final ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> writesByTable =
             new ConcurrentHashMap<>();
+    private final List<DelayedWrite> delayedWritesByTable = Collections.synchronizedList(new ArrayList<>());
     private final ConcurrentMap<TableReference, Map<Cell, ChangeMetadata>> metadataByTable = new ConcurrentHashMap<>();
     private final ConcurrentMap<TableReference, Object> locksByTable = new ConcurrentHashMap<>();
     private final AtomicLong valuesByteCount = new AtomicLong();
@@ -92,11 +96,19 @@ class LocalWriteBuffer {
         }
     }
 
+    public void putDelayed(List<DelayedWrite> values) {
+        delayedWritesByTable.addAll(values);
+    }
+
     /**
      * Returns all local writes that have been buffered.
      */
     public ConcurrentMap<TableReference, ConcurrentNavigableMap<Cell, byte[]>> getLocalWrites() {
         return writesByTable;
+    }
+
+    public List<DelayedWrite> getDelayedWrites() {
+        return delayedWritesByTable;
     }
 
     /**

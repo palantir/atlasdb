@@ -21,6 +21,7 @@ import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureTimestampRange;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.v2.ClientLockingOptions;
+import com.palantir.lock.v2.GetCommitTimestampResponse;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -102,7 +103,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     }
 
     @Override
-    public long getCommitTimestamp(long startTs, LockToken commitLocksToken) {
+    public GetCommitTimestampResponse getCommitTimestamp(long startTs, LockToken commitLocksToken) {
         return commitTimestampGetter.getCommitTimestamp(startTs, commitLocksToken);
     }
 
@@ -117,6 +118,11 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     @Override
     public long getImmutableTimestamp() {
         return rpcClient.getImmutableTimestamp();
+    }
+
+    @Override
+    public long getCommitImmutableTimestamp() {
+        return rpcClient.getCommitImmutableTimestamp();
     }
 
     @Override

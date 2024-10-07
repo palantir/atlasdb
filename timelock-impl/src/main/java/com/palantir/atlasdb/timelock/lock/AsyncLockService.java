@@ -44,6 +44,7 @@ public class AsyncLockService implements Closeable {
     private final HeldLocksCollection heldLocks;
     private final AwaitedLocksCollection awaitedLocks;
     private final ImmutableTimestampTracker immutableTsTracker;
+    private final ImmutableTimestampTracker immutableCommitTsTracker;
     private final LeaderClock leaderClock;
     private final LockLog lockLog;
     private final LockWatchingService lockWatchingService;
@@ -73,6 +74,7 @@ public class AsyncLockService implements Closeable {
         return new AsyncLockService(
                 new LockCollection(),
                 new ImmutableTimestampTracker(),
+                new ImmutableTimestampTracker(),
                 lockAcquirer,
                 heldLocks,
                 new AwaitedLocksCollection(),
@@ -86,6 +88,7 @@ public class AsyncLockService implements Closeable {
     AsyncLockService(
             LockCollection locks,
             ImmutableTimestampTracker immutableTimestampTracker,
+            ImmutableTimestampTracker immutableCommitTimestampTracker,
             LockAcquirer acquirer,
             HeldLocksCollection heldLocks,
             AwaitedLocksCollection awaitedLocks,
@@ -96,6 +99,7 @@ public class AsyncLockService implements Closeable {
             LockLog lockLog) {
         this.locks = locks;
         this.immutableTsTracker = immutableTimestampTracker;
+        this.immutableCommitTsTracker = immutableCommitTimestampTracker;
         this.heldLocks = heldLocks;
         this.awaitedLocks = awaitedLocks;
         this.reaperExecutor = reaperExecutor;
@@ -142,12 +146,24 @@ public class AsyncLockService implements Closeable {
         return immutableTimestampLockResult;
     }
 
+    public AsyncResult<Leased<LockToken>> lockCommitImmutableTimestamp(UUID requestId, long timestamp) {
+        AsyncResult<Leased<LockToken>> immutableTimestampLockResult = heldLocks.getExistingOrAcquire(
+                requestId, () -> acquireCommitImmutableTimestampLock(requestId, timestamp));
+        // TODO(fdesouza): Remove this once PDS-95791 is resolved.
+        //        lockLog.registerLockImmutableTimestampRequest(requestId, timestamp, immutableTimestampLockResult);
+        return immutableTimestampLockResult;
+    }
+
     public AsyncResult<Void> waitForLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
         return awaitedLocks.getExistingOrAwait(requestId, () -> awaitLocks(requestId, lockDescriptors, timeout));
     }
 
     public Optional<Long> getImmutableTimestamp() {
         return immutableTsTracker.getImmutableTimestamp();
+    }
+
+    public Optional<Long> getCommitImmutableTimestamp() {
+        return immutableCommitTsTracker.getImmutableTimestamp();
     }
 
     private AsyncResult<HeldLocks> acquireLocks(
@@ -166,6 +182,11 @@ public class AsyncLockService implements Closeable {
 
     private AsyncResult<HeldLocks> acquireImmutableTimestampLock(UUID requestId, long timestamp) {
         AsyncLock immutableTsLock = immutableTsTracker.getLockFor(timestamp);
+        return lockAcquirer.acquireLocks(requestId, OrderedLocks.fromSingleLock(immutableTsLock), TimeLimit.zero());
+    }
+
+    private AsyncResult<HeldLocks> acquireCommitImmutableTimestampLock(UUID requestId, long timestamp) {
+        AsyncLock immutableTsLock = immutableCommitTsTracker.getLockFor(timestamp);
         return lockAcquirer.acquireLocks(requestId, OrderedLocks.fromSingleLock(immutableTsLock), TimeLimit.zero());
     }
 

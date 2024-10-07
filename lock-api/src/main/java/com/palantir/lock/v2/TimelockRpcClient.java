@@ -41,6 +41,10 @@ public interface TimelockRpcClient {
     long getImmutableTimestamp(@PathParam("namespace") String namespace);
 
     @POST
+    @Path("commit-immutable-timestamp")
+    long getCommitImmutableTimestamp(@PathParam("namespace") String namespace);
+
+    @POST
     @Path("current-time-millis")
     long currentTimeMillis(@PathParam("namespace") String namespace);
 }

@@ -30,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifi
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
+import com.palantir.atlasdb.tracing.Tracing;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.concurrent.InitializeableScheduledExecutorServiceSupplier;
@@ -42,6 +43,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.refreshable.Refreshable;
+import com.palantir.tracing.CloseableTracer;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
@@ -638,36 +640,45 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
         RetryableCassandraRequest<V, K> req = new RetryableCassandraRequest<>(specifiedServer, fn);
 
         while (true) {
-            if (log.isTraceEnabled()) {
-                log.trace("Running function on host {}.", SafeArg.of("server", req.getCassandraServer()));
-            }
-            CassandraClientPoolingContainer hostPool = getPreferredHostOrFallBack(req);
+            try (CloseableTracer trace =
+                    Tracing.startLocalTrace("CassandraClientPoolImpl.runWithRetryOnServer", tagConsumer -> {
+                        tagConsumer.integer("try", req.getNumberOfAttempts());
+                    })) {
+                if (log.isTraceEnabled()) {
+                    log.trace("Running function on host {}.", SafeArg.of("server", req.getCassandraServer()));
+                }
+                CassandraClientPoolingContainer hostPool = getPreferredHostOrFallBack(req);
 
-            try {
-                V response = runWithPooledResourceRecordingMetrics(hostPool, req.getFunction());
-                removeFromBlacklistAfterResponse(hostPool.getCassandraServer());
-                return response;
-            } catch (Exception ex) {
-                exceptionHandler.handleExceptionFromRequest(req, hostPool.getCassandraServer(), ex);
+                try {
+                    V response = runWithPooledResourceRecordingMetrics(hostPool, req.getFunction());
+                    removeFromBlacklistAfterResponse(hostPool.getCassandraServer());
+                    return response;
+                } catch (Exception ex) {
+                    exceptionHandler.handleExceptionFromRequest(req, hostPool.getCassandraServer(), ex);
+                }
             }
         }
     }
 
     private <V, K extends Exception> CassandraClientPoolingContainer getPreferredHostOrFallBack(
             RetryableCassandraRequest<V, K> req) {
-        CassandraClientPoolingContainer hostPool = cassandra.getPools().get(req.getCassandraServer());
+        try (CloseableTracer trace =
+                Tracing.startLocalTrace("CassandraClientPoolImpl.getPreferredHostOfFallBack", tagConsumer -> {})) {
+            CassandraClientPoolingContainer hostPool = cassandra.getPools().get(req.getCassandraServer());
 
-        if (blacklist.contains(req.getCassandraServer()) || hostPool == null || req.shouldGiveUpOnPreferredHost()) {
-            CassandraServer previousHost = hostPool == null ? req.getCassandraServer() : hostPool.getCassandraServer();
-            Optional<CassandraClientPoolingContainer> hostPoolCandidate = cassandra.getRandomGoodHostForPredicate(
-                    address -> !req.alreadyTriedOnHost(address), req.getTriedHosts());
-            hostPool = hostPoolCandidate.orElseGet(cassandra::getRandomGoodHost);
-            log.warn(
-                    "Randomly redirected a query intended for host {} to {}.",
-                    SafeArg.of("previousHost", previousHost),
-                    SafeArg.of("randomHost", hostPool.getCassandraServer()));
+            if (blacklist.contains(req.getCassandraServer()) || hostPool == null || req.shouldGiveUpOnPreferredHost()) {
+                CassandraServer previousHost =
+                        hostPool == null ? req.getCassandraServer() : hostPool.getCassandraServer();
+                Optional<CassandraClientPoolingContainer> hostPoolCandidate = cassandra.getRandomGoodHostForPredicate(
+                        address -> !req.alreadyTriedOnHost(address), req.getTriedHosts());
+                hostPool = hostPoolCandidate.orElseGet(cassandra::getRandomGoodHost);
+                log.warn(
+                        "Randomly redirected a query intended for host {} to {}.",
+                        SafeArg.of("previousHost", previousHost),
+                        SafeArg.of("randomHost", hostPool.getCassandraServer()));
+            }
+            return hostPool;
         }
-        return hostPool;
     }
 
     @Override
@@ -696,15 +707,20 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
     private <V, K extends Exception> V runWithPooledResourceRecordingMetrics(
             CassandraClientPoolingContainer hostPool, FunctionCheckedException<CassandraClient, V, K> fn) throws K {
 
-        metrics.recordRequestOnHost(hostPool);
-        try {
-            return hostPool.runWithPooledResource(fn);
-        } catch (Exception e) {
-            metrics.recordExceptionOnHost(hostPool);
-            if (CassandraRequestExceptionHandler.isConnectionException(e)) {
-                metrics.recordConnectionExceptionOnHost(hostPool);
+        try (CloseableTracer trace = Tracing.startLocalTrace(
+                "CassandraClientPoolImpl.runWithPooledResourceRecordingMetrics", tagConsumer -> {
+                    tagConsumer.accept("host", hostPool.getCassandraServer().cassandraHostName());
+                })) {
+            metrics.recordRequestOnHost(hostPool);
+            try {
+                return hostPool.runWithPooledResource(fn);
+            } catch (Exception e) {
+                metrics.recordExceptionOnHost(hostPool);
+                if (CassandraRequestExceptionHandler.isConnectionException(e)) {
+                    metrics.recordConnectionExceptionOnHost(hostPool);
+                }
+                throw e;
             }
-            throw e;
         }
     }
 

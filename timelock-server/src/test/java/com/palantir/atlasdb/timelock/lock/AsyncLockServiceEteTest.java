@@ -69,6 +69,7 @@ public class AsyncLockServiceEteTest {
     private final AsyncLockService service = new AsyncLockService(
             new LockCollection(),
             new ImmutableTimestampTracker(),
+            new ImmutableTimestampTracker(),
             new LockAcquirer(
                     new LockLog(new MetricRegistry(), () -> 2L),
                     Executors.newSingleThreadScheduledExecutor(),

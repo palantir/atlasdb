@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -37,6 +38,7 @@ import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.lock.v2.LockToken;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,7 +59,7 @@ public final class DefaultPreCommitRequirementValidatorTest {
                     PtBytes.toBytes("two"),
                     Cell.create(PtBytes.toBytes("suggestion"), PtBytes.toBytes("moot")),
                     PtBytes.toBytes("three")));
-    private static final LockToken LOCK_TOKEN = LockToken.of(UUID.randomUUID());
+    private static final Set<LockToken> LOCK_TOKEN = Set.of(LockToken.of(UUID.randomUUID()));
 
     @Mock
     private PreCommitCondition userPreCommitCondition;
@@ -105,10 +107,10 @@ public final class DefaultPreCommitRequirementValidatorTest {
 
     @Test
     public void throwIfImmutableTsOrCommitLocksExpiredDelegatesEmptyRequestToLockManager() {
-        when(immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(any()))
+        when(immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(nullable(Set.class)))
                 .thenReturn(Optional.empty());
         validator.throwIfImmutableTsOrCommitLocksExpired(null);
-        verify(immutableTimestampLockManager).getExpiredImmutableTimestampAndCommitLocks(Optional.empty());
+        verify(immutableTimestampLockManager).getExpiredImmutableTimestampAndCommitLocks(null);
     }
 
     @Test
@@ -116,7 +118,7 @@ public final class DefaultPreCommitRequirementValidatorTest {
         when(immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(any()))
                 .thenReturn(Optional.empty());
         validator.throwIfImmutableTsOrCommitLocksExpired(LOCK_TOKEN);
-        verify(immutableTimestampLockManager).getExpiredImmutableTimestampAndCommitLocks(Optional.of(LOCK_TOKEN));
+        verify(immutableTimestampLockManager).getExpiredImmutableTimestampAndCommitLocks(LOCK_TOKEN);
     }
 
     @Test
@@ -150,6 +152,6 @@ public final class DefaultPreCommitRequirementValidatorTest {
         assertThatCode(() -> validator.throwIfPreCommitRequirementsNotMet(LOCK_TOKEN, TIMESTAMP))
                 .doesNotThrowAnyException();
         verify(userPreCommitCondition).throwIfConditionInvalid(TIMESTAMP);
-        verify(immutableTimestampLockManager).getExpiredImmutableTimestampAndCommitLocks(Optional.of(LOCK_TOKEN));
+        verify(immutableTimestampLockManager).getExpiredImmutableTimestampAndCommitLocks(LOCK_TOKEN);
     }
 }
