@@ -21,6 +21,8 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.NamedMinTimestampLeaseResponse;
+import com.palantir.atlasdb.timelock.api.TimestampName;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
@@ -44,6 +46,7 @@ import com.palantir.tritium.annotations.Instrument;
 import java.io.Closeable;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 @Instrument
 public interface AsyncTimelockService
@@ -72,6 +75,11 @@ public interface AsyncTimelockService
     ListenableFuture<LeaderTime> leaderTime();
 
     ListenableFuture<TimestampRange> getFreshTimestampsAsync(int timestampsToRequest);
+
+    ListenableFuture<NamedMinTimestampLeaseResponse> acquireNamedMinTimestampLease(
+            TimestampName timestampName, UUID requestId, long numFreshTimestamps);
+
+    ListenableFuture<Long> getMinLeasedNamedTimestamp(TimestampName timestampName);
 
     default ListenableFuture<Long> getFreshTimestampAsync() {
         return Futures.transform(
