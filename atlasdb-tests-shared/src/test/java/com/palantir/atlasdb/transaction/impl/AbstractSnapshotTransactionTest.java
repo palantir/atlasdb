@@ -236,10 +236,10 @@ public abstract class AbstractSnapshotTransactionTest extends AtlasDbTestCase {
     }
 
     private Expectations asyncGetExpectation(
-            DataKeyValueService tkvMock, Cell cell, long transactionTs, LockService lockMock) {
+            DataKeyValueService dkvMock, Cell cell, long transactionTs, LockService lockMock) {
         return new Expectations() {
             {
-                oneOf(tkvMock).getAsync(TABLE, ImmutableMap.of(cell, transactionTs));
+                oneOf(dkvMock).getAsync(TABLE, ImmutableMap.of(cell, transactionTs));
                 will(returnValue(Futures.immediateFailedFuture(new RuntimeException())));
             }
         };

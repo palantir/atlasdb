@@ -59,9 +59,9 @@ public class GetRowsColumnRangeIteratorTest {
     public static final BatchColumnRangeSelection COLUMN_RANGE_SELECTION =
             BatchColumnRangeSelection.create(null, null, BATCH_SIZE);
 
-    private final DataKeyValueService tkvs = new DelegatingDataKeyValueService(new InMemoryKeyValueService(true));
+    private final DataKeyValueService dkvs = new DelegatingDataKeyValueService(new InMemoryKeyValueService(true));
     private final ColumnRangeBatchProvider batchProvider =
-            new ColumnRangeBatchProvider(tkvs, TABLE_REFERENCE, ROW, COLUMN_RANGE_SELECTION, Long.MAX_VALUE);
+            new ColumnRangeBatchProvider(dkvs, TABLE_REFERENCE, ROW, COLUMN_RANGE_SELECTION, Long.MAX_VALUE);
 
     @Test
     public void ifBatchIsEmptyNoValidateCallsAreMade() {
@@ -132,13 +132,13 @@ public class GetRowsColumnRangeIteratorTest {
                 .mapToObj(i -> String.format("cell%02d", i).getBytes(StandardCharsets.UTF_8))
                 .map(column -> Cell.create(ROW, column))
                 .collect(ImmutableMap.toImmutableMap(Function.identity(), _unused -> value));
-        tkvs.multiPut(Map.of(TABLE_REFERENCE, puts), 1L);
+        dkvs.multiPut(Map.of(TABLE_REFERENCE, puts), 1L);
 
         return puts.keySet();
     }
 
     private RowColumnRangeIterator getInitialIterator() {
-        return tkvs.getRowsColumnRange(TABLE_REFERENCE, ImmutableList.of(ROW), COLUMN_RANGE_SELECTION, Long.MAX_VALUE)
+        return dkvs.getRowsColumnRange(TABLE_REFERENCE, ImmutableList.of(ROW), COLUMN_RANGE_SELECTION, Long.MAX_VALUE)
                 .get(ROW);
     }
 
