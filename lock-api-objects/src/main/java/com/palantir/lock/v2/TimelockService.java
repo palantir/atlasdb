@@ -110,4 +110,9 @@ public interface TimelockService {
     void tryUnlock(Set<LockToken> tokens);
 
     long currentTimeMillis();
+
+    // scary java docs!
+    AcquireNamedMinTimestampLeaseResult acquireNamedMinTimestampLease(String timestampName, int numFreshTimestamps);
+
+    long getMinLeasedNamedTimestamp(String timestampName);
 }
