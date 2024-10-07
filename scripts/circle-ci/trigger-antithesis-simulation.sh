@@ -11,7 +11,7 @@ if [[ -z "${ANTITHESIS_REPORT_RECIPIENT}" ]]; then
 fi
 
 WEBHOOK_LOCATOR="atlasdb"
-DURATION=$([ "${CIRCLE_TAG}" ] && echo "12" || echo "3")
+DURATION=$([ -n "${CIRCLE_TAG}" ] && echo "12" || echo "3")
 echo "Triggering simulation on Antithesis via the ${WEBHOOK_LOCATOR} webhook."
 curl -v -u "palantir:${ANTITHESIS_WEBHOOK_PASSWORD}" -X POST https://palantir.antithesis.com/api/v1/launch_experiment/${WEBHOOK_LOCATOR} -d \
 '{ "params": {
