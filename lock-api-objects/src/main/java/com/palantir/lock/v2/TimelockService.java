@@ -15,6 +15,8 @@
  */
 package com.palantir.lock.v2;
 
+import com.google.errorprone.annotations.RestrictedApi;
+import com.palantir.lock.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.logsafe.Safe;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.processors.DoNotDelegate;
@@ -111,8 +113,27 @@ public interface TimelockService {
 
     long currentTimeMillis();
 
-    // scary java docs!
+    /**
+     * Acquires a lease on a named timestamp. The lease is taken out with a new fresh timestamp.
+     * The returned timestamps are fresh timestamps obtained strictly after the lease is taken out.
+     */
+    @RestrictedApi(
+            explanation =
+                    "This method is for internal Atlas and internal library use only. Clients MUST NOT use it unless"
+                        + " given explicit approval. Mis-use can result in SEVERE DATA CORRUPTION and the API contract"
+                        + " is subject to change at any time.",
+            allowlistAnnotations = ReviewedRestrictedApiUsage.class)
     AcquireNamedMinTimestampLeaseResult acquireNamedMinTimestampLease(String timestampName, int numFreshTimestamps);
 
+    /**
+     * Returns the smallest named timestamp for which there was an active lease at the time of the call.
+     * If there are no active leases, a fresh timestamp is obtained and returned.
+     */
+    @RestrictedApi(
+            explanation =
+                    "This method is for internal Atlas and internal library use only. Clients MUST NOT use it unless"
+                        + " given explicit approval. Mis-use can result in SEVERE DATA CORRUPTION and the API contract"
+                        + " is subject to change at any time.",
+            allowlistAnnotations = ReviewedRestrictedApiUsage.class)
     long getMinLeasedNamedTimestamp(String timestampName);
 }
