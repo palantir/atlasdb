@@ -57,11 +57,9 @@ public class AsyncLockServiceTest {
     private final LockCollection locks = mock(LockCollection.class);
     private final HeldLocksCollection heldLocks = spy(HeldLocksCollection.create(leaderClock));
     private final AwaitedLocksCollection awaitedLocks = spy(new AwaitedLocksCollection());
-    private final ImmutableTimestampTracker immutableTimestampTracker = mock(ImmutableTimestampTracker.class);
     private final DeterministicScheduler reaperExecutor = new DeterministicScheduler();
     private final AsyncLockService lockService = new AsyncLockService(
             locks,
-            immutableTimestampTracker,
             acquirer,
             heldLocks,
             awaitedLocks,
@@ -76,8 +74,8 @@ public class AsyncLockServiceTest {
         when(acquirer.acquireLocks(any(), any(), any(), any())).thenReturn(new AsyncResult<>());
         when(acquirer.waitForLocks(any(), any(), any())).thenReturn(new AsyncResult<>());
         when(locks.getAllExclusiveLocks(any())).thenReturn(OrderedLocks.fromSingleLock(newLock()));
-        when(immutableTimestampTracker.getImmutableTimestamp()).thenReturn(Optional.empty());
-        when(immutableTimestampTracker.getLockFor(anyLong())).thenReturn(newLock());
+        when(locks.getImmutableTimestamp()).thenReturn(Optional.empty());
+        when(locks.getImmutableTimestampLock(anyLong())).thenReturn(newLock());
     }
 
     @Test
@@ -127,7 +125,7 @@ public class AsyncLockServiceTest {
         UUID requestId = UUID.randomUUID();
         long timestamp = 123L;
         AsyncLock immutableTsLock = spy(newLock());
-        when(immutableTimestampTracker.getLockFor(timestamp)).thenReturn(immutableTsLock);
+        when(locks.getImmutableTimestampLock(timestamp)).thenReturn(immutableTsLock);
 
         lockService.lockImmutableTimestamp(requestId, timestamp);
 

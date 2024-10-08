@@ -68,7 +68,6 @@ public class AsyncLockServiceEteTest {
             BufferMetrics.of(MetricsManagers.createForTests().getTaggedRegistry()));
     private final AsyncLockService service = new AsyncLockService(
             new LockCollection(),
-            new ImmutableTimestampTracker(),
             new LockAcquirer(
                     new LockLog(new MetricRegistry(), () -> 2L),
                     Executors.newSingleThreadScheduledExecutor(),
