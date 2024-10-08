@@ -267,14 +267,12 @@ public abstract class AbstractDefaultSweepAssignedBucketStoreTest {
     }
 
     @Test
-    @Disabled // TODO(mdaudali): Deletion is not implemented yet
     public void deleteBucketEntryDoesNotThrowIfBucketNotPresent() {
         Bucket bucket = Bucket.of(ShardAndStrategy.of(12, SweeperStrategy.THOROUGH), 512);
         assertThatCode(() -> store.deleteBucketEntry(bucket)).doesNotThrowAnyException();
     }
 
     @Test
-    @Disabled // TODO(mdaudali): Deletion is not implemented yet
     public void deleteBucketEntryDeletesBucket() {
         Bucket bucket = Bucket.of(ShardAndStrategy.of(12, SweeperStrategy.THOROUGH), 512);
         TimestampRange timestampRange = TimestampRange.of(1, 2);
@@ -307,13 +305,11 @@ public abstract class AbstractDefaultSweepAssignedBucketStoreTest {
     }
 
     @Test
-    @Disabled // TODO(mdaudali): Deletion is not implemented yet
     public void deleteTimestampRangeRecordDoesNotThrowIfRecordNotPresent() {
         assertThatCode(() -> store.deleteTimestampRangeRecord(1)).doesNotThrowAnyException();
     }
 
     @Test
-    @Disabled // TODO(mdaudali): Deletion is not implemented yet
     public void deleteTimestampRangeRecordDeletesRecord() {
         TimestampRange timestampRange = TimestampRange.of(1, 2);
         store.putTimestampRangeRecord(1, timestampRange);
