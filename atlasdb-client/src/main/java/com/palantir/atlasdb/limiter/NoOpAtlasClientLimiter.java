@@ -17,8 +17,14 @@
 package com.palantir.atlasdb.limiter;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.io.Closeable;
 
 public class NoOpAtlasClientLimiter implements AtlasClientLimiter {
     @Override
-    public void limitRangeScan(TableReference tableRef) {}
+    public void limitRowsRead(TableReference _tableRef, int _rows) {}
+
+    @Override
+    public Closeable limitRangeScan(TableReference _tableRef) {
+        return () -> {};
+    }
 }

@@ -23,4 +23,14 @@ import org.immutables.value.Value;
 @JsonDeserialize(as = ImmutableClientLimiterConfig.class)
 @JsonSerialize(as = ImmutableClientLimiterConfig.class)
 @Value.Immutable
-public abstract class ClientLimiterConfig {}
+public abstract class ClientLimiterConfig {
+    @Value.Default
+    public int concurrentRangeScans() {
+        return 10;
+    }
+
+    @Value.Default
+    public float rowsPerSecondLimit() {
+        return 10_000;
+    }
+}

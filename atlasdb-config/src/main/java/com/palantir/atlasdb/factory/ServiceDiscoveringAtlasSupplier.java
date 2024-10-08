@@ -17,11 +17,12 @@ package com.palantir.atlasdb.factory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
+import com.palantir.atlasdb.config.ClientLimiterConfig;
+import com.palantir.atlasdb.config.ImmutableClientLimiterConfig;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.limiter.AtlasClientLimiter;
 import com.palantir.atlasdb.limiter.ConfiguredClientLimiter;
-import com.palantir.atlasdb.limiter.ConfiguredClientLimiter.Config;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -79,7 +80,7 @@ public class ServiceDiscoveringAtlasSupplier {
                 collectThreadDumpOnInit,
                 timestampSupplier,
                 // TODO: from config properly
-                new ConfiguredClientLimiter(runtimeConfig.map(_rt -> new Config() {})));
+                new ConfiguredClientLimiter(runtimeConfig.map(ServiceDiscoveringAtlasSupplier::toClientLimiterConfig)));
     }
 
     public ServiceDiscoveringAtlasSupplier(
@@ -182,5 +183,15 @@ public class ServiceDiscoveringAtlasSupplier {
                         + " the timestamp service have been outputted to {}. If you encounter a"
                         + " MultipleRunningTimestampServices error, please send this file to support.",
                 UnsafeArg.of("path", path));
+    }
+
+    private static ConfiguredClientLimiter.Config toClientLimiterConfig(
+            Optional<KeyValueServiceRuntimeConfig> _runtimeConfig) {
+        // TODO: actually use the config
+        ClientLimiterConfig config = ImmutableClientLimiterConfig.builder().build();
+        return ConfiguredClientLimiter.Config.builder()
+                .concurrentRangeScans(config.concurrentRangeScans())
+                .rowsReadPerSecondLimit(config.rowsPerSecondLimit())
+                .build();
     }
 }

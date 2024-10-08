@@ -17,7 +17,10 @@
 package com.palantir.atlasdb.limiter;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import java.io.Closeable;
 
 public interface AtlasClientLimiter {
-    void limitRangeScan(TableReference tableRef);
+    void limitRowsRead(TableReference _tableRef, int rows);
+
+    Closeable limitRangeScan(TableReference tableRef);
 }

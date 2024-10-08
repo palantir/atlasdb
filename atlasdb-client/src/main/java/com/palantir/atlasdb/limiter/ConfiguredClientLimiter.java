@@ -16,21 +16,58 @@
 
 package com.palantir.atlasdb.limiter;
 
+import com.google.common.util.concurrent.RateLimiter;
+import com.google.errorprone.annotations.MustBeClosed;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.refreshable.Refreshable;
+import java.io.Closeable;
+import javax.ws.rs.ServiceUnavailableException;
+import org.immutables.value.Value;
 
 public class ConfiguredClientLimiter implements AtlasClientLimiter {
 
     private final Refreshable<Config> config;
+    private final ResizableSemaphore rangeScanConcurrency;
+    private final RateLimiter rowReadRateLimiter;
 
     public ConfiguredClientLimiter(Refreshable<Config> config) {
         this.config = config;
+
+        this.rangeScanConcurrency = new ResizableSemaphore(0);
+        this.rowReadRateLimiter = RateLimiter.create(config.get().rowsReadPerSecondLimit());
     }
 
     @Override
-    public void limitRangeScan(TableReference tableRef) {
-        config.get();
+    @MustBeClosed
+    public Closeable limitRangeScan(TableReference _tableRef) {
+        rangeScanConcurrency.resize(config.get().concurrentRangeScans());
+
+        if (rangeScanConcurrency.tryAcquire()) {
+            return rangeScanConcurrency::release;
+        }
+
+        throw new ServiceUnavailableException();
     }
 
-    public interface Config {}
+    @Override
+    public void limitRowsRead(TableReference _tableRef, int rows) {
+        if (rowReadRateLimiter.tryAcquire(rows)) {
+            return;
+        }
+
+        throw new ServiceUnavailableException();
+    }
+
+    @Value.Immutable
+    public interface Config {
+        int concurrentRangeScans();
+
+        double rowsReadPerSecondLimit();
+
+        class Builder extends ImmutableConfig.Builder {}
+
+        static ImmutableConfig.Builder builder() {
+            return new Builder();
+        }
+    }
 }

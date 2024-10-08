@@ -25,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.atlasdb.limiter.AtlasClientLimiter;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import java.io.Closeable;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.ConsistencyLevel;
@@ -58,9 +59,7 @@ public class RowGetter {
         return clientPool.runWithRetryOnServer(host, new FunctionCheckedException<>() {
             @Override
             public List<KeySlice> apply(CassandraClient client) {
-                try {
-                    clientLimiter.limitRangeScan(tableRef);
-
+                try (Closeable concurrencyLimit = clientLimiter.limitRangeScan(tableRef)) {
                     return queryRunner.run(
                             client,
                             tableRef,

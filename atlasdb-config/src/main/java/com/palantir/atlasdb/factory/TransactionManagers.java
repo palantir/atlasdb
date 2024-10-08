@@ -387,7 +387,11 @@ public abstract class TransactionManagers {
         Optional<TimeLockFeedbackBackgroundTask> timeLockFeedbackBackgroundTask =
                 getTimeLockFeedbackBackgroundTask(metricsManager, closeables, config(), runtime);
 
-        AtlasClientLimiter clientLimiter = new ConfiguredClientLimiter(runtime.map(rt -> new Config() {}));
+        AtlasClientLimiter clientLimiter = new ConfiguredClientLimiter(
+                runtime.map(AtlasDbRuntimeConfig::clientLimiter).map(cl -> Config.builder()
+                        .concurrentRangeScans(cl.concurrentRangeScans())
+                        .rowsReadPerSecondLimit(cl.rowsPerSecondLimit())
+                        .build()));
 
         FreshTimestampSupplierAdapter adapter = new FreshTimestampSupplierAdapter();
         KeyValueServiceConfig installConfig = config().keyValueService();
