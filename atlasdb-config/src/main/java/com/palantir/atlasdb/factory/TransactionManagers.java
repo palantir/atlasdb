@@ -64,7 +64,8 @@ import com.palantir.atlasdb.keyvalue.impl.SweepStatsKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.ValidatingQueryRewritingKeyValueService;
 import com.palantir.atlasdb.limiter.AtlasClientLimiter;
-import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
+import com.palantir.atlasdb.limiter.ConfiguredClientLimiter;
+import com.palantir.atlasdb.limiter.ConfiguredClientLimiter.Config;
 import com.palantir.atlasdb.logging.KvsProfilingLogger;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
@@ -222,11 +223,6 @@ public abstract class TransactionManagers {
     @Value.Default
     boolean allSafeForLogging() {
         return false;
-    }
-
-    @Value.Default
-    AtlasClientLimiter clientLimiter() {
-        return new NoOpAtlasClientLimiter();
     }
 
     @Value.Default
@@ -391,6 +387,8 @@ public abstract class TransactionManagers {
         Optional<TimeLockFeedbackBackgroundTask> timeLockFeedbackBackgroundTask =
                 getTimeLockFeedbackBackgroundTask(metricsManager, closeables, config(), runtime);
 
+        AtlasClientLimiter clientLimiter = new ConfiguredClientLimiter(runtime.map(rt -> new Config() {}));
+
         FreshTimestampSupplierAdapter adapter = new FreshTimestampSupplierAdapter();
         KeyValueServiceConfig installConfig = config().keyValueService();
         ServiceDiscoveringAtlasSupplier atlasFactory = new ServiceDiscoveringAtlasSupplier(
@@ -402,7 +400,7 @@ public abstract class TransactionManagers {
                 config().initializeAsync(),
                 config().collectThreadDumpOnTimestampServiceInit(),
                 adapter,
-                clientLimiter());
+                clientLimiter);
         DerivedSnapshotConfig derivedSnapshotConfig = atlasFactory.getDerivedSnapshotConfig();
 
         LockRequest.setDefaultLockTimeout(

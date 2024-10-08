@@ -125,6 +125,11 @@ public abstract class AtlasDbRuntimeConfig {
         return true;
     }
 
+    @Value.Default
+    public ClientLimiterConfig clientLimiter() {
+        return ImmutableClientLimiterConfig.builder().build();
+    }
+
     public static ImmutableAtlasDbRuntimeConfig defaultRuntimeConfig() {
         return ImmutableAtlasDbRuntimeConfig.builder().build();
     }

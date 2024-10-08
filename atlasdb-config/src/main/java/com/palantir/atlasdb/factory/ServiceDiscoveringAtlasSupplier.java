@@ -20,7 +20,8 @@ import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.limiter.AtlasClientLimiter;
-import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
+import com.palantir.atlasdb.limiter.ConfiguredClientLimiter;
+import com.palantir.atlasdb.limiter.ConfiguredClientLimiter.Config;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -77,8 +78,8 @@ public class ServiceDiscoveringAtlasSupplier {
                 initializeAsync,
                 collectThreadDumpOnInit,
                 timestampSupplier,
-                // TODO: from config!!
-                new NoOpAtlasClientLimiter());
+                // TODO: from config properly
+                new ConfiguredClientLimiter(runtimeConfig.map(_rt -> new Config() {})));
     }
 
     public ServiceDiscoveringAtlasSupplier(
