@@ -155,12 +155,12 @@ public class AsyncLockService implements Closeable {
             Set<LockDescriptor> lockDescriptors,
             TimeLimit timeout,
             Optional<LockRequestMetadata> metadata) {
-        OrderedLocks orderedLocks = locks.getAll(lockDescriptors);
+        OrderedLocks orderedLocks = locks.getAllExclusiveLocks(lockDescriptors);
         return lockAcquirer.acquireLocks(requestId, orderedLocks, timeout, metadata);
     }
 
     private AsyncResult<Void> awaitLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
-        OrderedLocks orderedLocks = locks.getAll(lockDescriptors);
+        OrderedLocks orderedLocks = locks.getAllExclusiveLocks(lockDescriptors);
         return lockAcquirer.waitForLocks(requestId, orderedLocks, timeout);
     }
 
