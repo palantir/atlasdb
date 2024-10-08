@@ -57,11 +57,9 @@ public class AsyncLockServiceTest {
     private final LockCollection locks = mock(LockCollection.class);
     private final HeldLocksCollection heldLocks = spy(HeldLocksCollection.create(leaderClock));
     private final AwaitedLocksCollection awaitedLocks = spy(new AwaitedLocksCollection());
-    private final ImmutableTimestampTracker immutableTimestampTracker = mock(ImmutableTimestampTracker.class);
     private final DeterministicScheduler reaperExecutor = new DeterministicScheduler();
     private final AsyncLockService lockService = new AsyncLockService(
             locks,
-            immutableTimestampTracker,
             acquirer,
             heldLocks,
             awaitedLocks,
@@ -75,16 +73,16 @@ public class AsyncLockServiceTest {
         when(acquirer.acquireLocks(any(), any(), any())).thenReturn(new AsyncResult<>());
         when(acquirer.acquireLocks(any(), any(), any(), any())).thenReturn(new AsyncResult<>());
         when(acquirer.waitForLocks(any(), any(), any())).thenReturn(new AsyncResult<>());
-        when(locks.getAll(any())).thenReturn(OrderedLocks.fromSingleLock(newLock()));
-        when(immutableTimestampTracker.getImmutableTimestamp()).thenReturn(Optional.empty());
-        when(immutableTimestampTracker.getLockFor(anyLong())).thenReturn(newLock());
+        when(locks.getAllExclusive(any())).thenReturn(OrderedLocks.fromSingleLock(newLock()));
+        when(locks.getImmutableTimestamp()).thenReturn(Optional.empty());
+        when(locks.getImmutableTimestampLock(anyLong())).thenReturn(OrderedLocks.fromSingleLock(newLock()));
     }
 
     @Test
     public void passesOrderedLocksToAcquirer() {
         OrderedLocks expected = orderedLocks(newLock(), newLock());
         Set<LockDescriptor> descriptors = descriptors(LOCK_A, LOCK_B);
-        when(locks.getAll(descriptors)).thenReturn(expected);
+        when(locks.getAllExclusive(descriptors)).thenReturn(expected);
 
         lockService.lock(REQUEST_ID, descriptors, DEADLINE);
 
@@ -95,7 +93,7 @@ public class AsyncLockServiceTest {
     public void passesOrderedLocksToAcquirerWhenWaitingForLocks() {
         OrderedLocks expected = orderedLocks(newLock(), newLock());
         Set<LockDescriptor> descriptors = descriptors(LOCK_A, LOCK_B);
-        when(locks.getAll(descriptors)).thenReturn(expected);
+        when(locks.getAllExclusive(descriptors)).thenReturn(expected);
 
         lockService.waitForLocks(REQUEST_ID, descriptors, DEADLINE);
 
@@ -127,7 +125,7 @@ public class AsyncLockServiceTest {
         UUID requestId = UUID.randomUUID();
         long timestamp = 123L;
         AsyncLock immutableTsLock = spy(newLock());
-        when(immutableTimestampTracker.getLockFor(timestamp)).thenReturn(immutableTsLock);
+        when(locks.getImmutableTimestampLock(timestamp)).thenReturn(OrderedLocks.fromSingleLock(immutableTsLock));
 
         lockService.lockImmutableTimestamp(requestId, timestamp);
 
