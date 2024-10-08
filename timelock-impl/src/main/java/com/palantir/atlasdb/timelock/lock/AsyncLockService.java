@@ -43,7 +43,6 @@ public class AsyncLockService implements Closeable {
     private final ScheduledExecutorService reaperExecutor;
     private final HeldLocksCollection heldLocks;
     private final AwaitedLocksCollection awaitedLocks;
-    private final ImmutableTimestampTracker immutableTsTracker;
     private final LeaderClock leaderClock;
     private final LockLog lockLog;
     private final LockWatchingService lockWatchingService;
@@ -72,7 +71,6 @@ public class AsyncLockService implements Closeable {
 
         return new AsyncLockService(
                 new LockCollection(),
-                new ImmutableTimestampTracker(),
                 lockAcquirer,
                 heldLocks,
                 new AwaitedLocksCollection(),
@@ -85,7 +83,6 @@ public class AsyncLockService implements Closeable {
     @VisibleForTesting
     AsyncLockService(
             LockCollection locks,
-            ImmutableTimestampTracker immutableTimestampTracker,
             LockAcquirer acquirer,
             HeldLocksCollection heldLocks,
             AwaitedLocksCollection awaitedLocks,
@@ -95,7 +92,6 @@ public class AsyncLockService implements Closeable {
             // TODO(fdesouza): Remove this once PDS-95791 is resolved.
             LockLog lockLog) {
         this.locks = locks;
-        this.immutableTsTracker = immutableTimestampTracker;
         this.heldLocks = heldLocks;
         this.awaitedLocks = awaitedLocks;
         this.reaperExecutor = reaperExecutor;
@@ -147,7 +143,7 @@ public class AsyncLockService implements Closeable {
     }
 
     public Optional<Long> getImmutableTimestamp() {
-        return immutableTsTracker.getImmutableTimestamp();
+        return locks.getImmutableTimestamp();
     }
 
     private AsyncResult<HeldLocks> acquireLocks(
@@ -165,7 +161,7 @@ public class AsyncLockService implements Closeable {
     }
 
     private AsyncResult<HeldLocks> acquireImmutableTimestampLock(UUID requestId, long timestamp) {
-        AsyncLock immutableTsLock = immutableTsTracker.getLockFor(timestamp);
+        AsyncLock immutableTsLock = locks.getImmutableTimestampLock(timestamp);
         return lockAcquirer.acquireLocks(requestId, OrderedLocks.fromSingleLock(immutableTsLock), TimeLimit.zero());
     }
 

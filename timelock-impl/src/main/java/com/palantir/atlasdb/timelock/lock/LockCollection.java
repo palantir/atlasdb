@@ -16,12 +16,22 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import com.palantir.lock.LockDescriptor;
+import java.util.Optional;
 import java.util.Set;
 
 final class LockCollection {
     private final ExclusiveLockCollection exclusiveLocks = new ExclusiveLockCollection();
+    private final ImmutableTimestampTracker immutableTimestampTracker = new ImmutableTimestampTracker();
 
     OrderedLocks getAllExclusiveLocks(Set<LockDescriptor> descriptors) {
         return exclusiveLocks.getAll(descriptors);
+    }
+
+    Optional<Long> getImmutableTimestamp() {
+        return immutableTimestampTracker.getImmutableTimestamp();
+    }
+
+    AsyncLock getImmutableTimestampLock(long timestamp) {
+        return immutableTimestampTracker.getLockFor(timestamp);
     }
 }
