@@ -46,8 +46,10 @@ public class LockCollectionTest {
     public void returnsSameLockForMultipleRequests() {
         Set<LockDescriptor> descriptors = descriptors("foo", "bar");
 
-        List<AsyncLock> locks1 = lockCollection.getAllExclusiveLocks(descriptors).get();
-        List<AsyncLock> locks2 = lockCollection.getAllExclusiveLocks(descriptors).get();
+        List<AsyncLock> locks1 =
+                lockCollection.getAllExclusiveLocks(descriptors).get();
+        List<AsyncLock> locks2 =
+                lockCollection.getAllExclusiveLocks(descriptors).get();
 
         assertThat(locks1).containsExactlyElementsOf(locks2);
     }
