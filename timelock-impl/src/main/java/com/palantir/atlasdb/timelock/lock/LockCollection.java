@@ -21,17 +21,18 @@ import java.util.Set;
 
 final class LockCollection {
     private final ExclusiveLockCollection exclusiveLocks = new ExclusiveLockCollection();
-    private final ImmutableTimestampTracker immutableTimestampTracker = new ImmutableTimestampTracker();
+    private final NamedMinTimestampLockCollection namedMinTimestampLockCollection =
+            new NamedMinTimestampLockCollection();
 
     OrderedLocks getAllExclusiveLocks(Set<LockDescriptor> descriptors) {
         return exclusiveLocks.getAll(descriptors);
     }
 
     Optional<Long> getImmutableTimestamp() {
-        return immutableTimestampTracker.getImmutableTimestamp();
+        return namedMinTimestampLockCollection.getImmutableTimestamp();
     }
 
     AsyncLock getImmutableTimestampLock(long timestamp) {
-        return immutableTimestampTracker.getLockFor(timestamp);
+        return namedMinTimestampLockCollection.getImmutableTimestampLock(timestamp);
     }
 }

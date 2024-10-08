@@ -16,9 +16,9 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.palantir.atlasdb.timelock.util.LoggableIllegalStateException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.UUID;
@@ -114,7 +114,7 @@ public class ExclusiveLock implements AsyncLock {
             LockRequest existingRequest = queue.put(request.requestId, request);
             if (existingRequest != null) {
                 queue.put(request.requestId, existingRequest);
-                throw new LoggableIllegalStateException(
+                throw new SafeIllegalStateException(
                         "Cannot enqueue the same request id twice.", SafeArg.of("requestId", request.requestId));
             }
         }
