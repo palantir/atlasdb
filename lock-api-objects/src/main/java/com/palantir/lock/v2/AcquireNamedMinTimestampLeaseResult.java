@@ -22,11 +22,11 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface AcquireNamedMinTimestampLeaseResult {
     @Value.Parameter
-    long getMinLeased();
+    long minLeasedTimestamp();
 
     @Value.Parameter
-    LockToken getLock();
+    LockToken lock();
 
     @Value.Parameter
-    List<Long> getFreshTimestamps();
+    List<Long> freshTimestamps();
 }

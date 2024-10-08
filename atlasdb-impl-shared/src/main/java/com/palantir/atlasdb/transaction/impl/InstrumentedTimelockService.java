@@ -143,8 +143,8 @@ public final class InstrumentedTimelockService implements TimelockService {
 
     @ReviewedRestrictedApiUsage
     @Override
-    public long getMinLeasedNamedTimestamp(String timestampName) {
-        return executeWithRecord(() -> timelockService.getMinLeasedNamedTimestamp(timestampName));
+    public long getMinLeasedTimestampForName(String timestampName) {
+        return executeWithRecord(() -> timelockService.getMinLeasedTimestampForName(timestampName));
     }
 
     private <T> T executeWithRecord(Supplier<T> method) {

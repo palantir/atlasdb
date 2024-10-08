@@ -182,8 +182,8 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
 
     @ReviewedRestrictedApiUsage
     @Override
-    public long getMinLeasedNamedTimestamp(String timestampName) {
-        return runTaskTimed("getMinLeasedNamedTimestamp", () -> delegate.getMinLeasedNamedTimestamp(timestampName));
+    public long getMinLeasedTimestampForName(String timestampName) {
+        return runTaskTimed("getMinLeasedNamedTimestamp", () -> delegate.getMinLeasedTimestampForName(timestampName));
     }
 
     private <T> T runTaskTimed(String actionName, Supplier<T> action) {

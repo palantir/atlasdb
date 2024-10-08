@@ -180,7 +180,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
 
     @ReviewedRestrictedApiUsage
     @Override
-    public long getMinLeasedNamedTimestamp(String timestampName) {
+    public long getMinLeasedTimestampForName(String timestampName) {
         // TODO(aalouane): implement!
         throw new UnsupportedOperationException("Not implemented yet!");
     }

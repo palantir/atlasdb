@@ -166,8 +166,8 @@ public final class UnreliableTimeLockService implements TimelockService {
 
     @ReviewedRestrictedApiUsage
     @Override
-    public long getMinLeasedNamedTimestamp(String timestampName) {
-        return delegate.getMinLeasedNamedTimestamp(timestampName);
+    public long getMinLeasedTimestampForName(String timestampName) {
+        return delegate.getMinLeasedTimestampForName(timestampName);
     }
 
     private void maybeRandomlyIncreaseTimestamp() {

@@ -190,7 +190,7 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public long getMinLeasedNamedTimestamp(String timestampName) {
+    public long getMinLeasedTimestampForName(String timestampName) {
         // TODO(aalouane): implement!
         throw new UnsupportedOperationException("Not implemented yet!");
     }

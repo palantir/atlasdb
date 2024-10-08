@@ -191,8 +191,8 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
 
     @ReviewedRestrictedApiUsage
     @Override
-    public long getMinLeasedNamedTimestamp(String timestampName) {
-        return delegate.getMinLeasedNamedTimestamp(timestampName);
+    public long getMinLeasedTimestampForName(String timestampName) {
+        return delegate.getMinLeasedTimestampForName(timestampName);
     }
 
     private static <T> T executeOnTimeLock(Callable<T> callable) {

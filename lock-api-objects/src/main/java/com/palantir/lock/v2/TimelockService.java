@@ -120,20 +120,20 @@ public interface TimelockService {
     @RestrictedApi(
             explanation =
                     "This method is for internal Atlas and internal library use only. Clients MUST NOT use it unless"
-                        + " given explicit approval. Mis-use can result in SEVERE DATA CORRUPTION and the API contract"
-                        + " is subject to change at any time.",
+                            + " given explicit approval. Mis-use can result in SEVERE DATA CORRUPTION and the API contract"
+                            + " is subject to change at any time.",
             allowlistAnnotations = ReviewedRestrictedApiUsage.class)
     AcquireNamedMinTimestampLeaseResult acquireNamedMinTimestampLease(String timestampName, int numFreshTimestamps);
 
     /**
-     * Returns the smallest named timestamp for which there was an active lease at the time of the call.
+     * Returns the smallest leased timestamp in the associated named collection at the time of the call.
      * If there are no active leases, a fresh timestamp is obtained and returned.
      */
     @RestrictedApi(
             explanation =
                     "This method is for internal Atlas and internal library use only. Clients MUST NOT use it unless"
-                        + " given explicit approval. Mis-use can result in SEVERE DATA CORRUPTION and the API contract"
-                        + " is subject to change at any time.",
+                            + " given explicit approval. Mis-use can result in SEVERE DATA CORRUPTION and the API contract"
+                            + " is subject to change at any time.",
             allowlistAnnotations = ReviewedRestrictedApiUsage.class)
-    long getMinLeasedNamedTimestamp(String timestampName);
+    long getMinLeasedTimestampForName(String timestampName);
 }
