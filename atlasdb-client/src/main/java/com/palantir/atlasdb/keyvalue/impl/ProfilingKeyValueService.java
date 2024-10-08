@@ -378,6 +378,13 @@ public final class ProfilingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void deleteFromAtomicTable(TableReference tableRef, Set<Cell> cells) {
+        maybeLog(
+                () -> delegate.deleteFromAtomicTable(tableRef, cells),
+                logCellsAndSize("deleteFromAtomicTable", tableRef, cells.size(), byteSize(cells)));
+    }
+
+    @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
         return delegate.getCheckAndSetCompatibility();
     }
@@ -525,6 +532,14 @@ public final class ProfilingKeyValueService implements KeyValueService {
         long sizeInBytes = 0;
         for (Cell cell : values.keySet()) {
             sizeInBytes += Cells.getApproxSizeOfCell(cell) + values.get(cell).size();
+        }
+        return sizeInBytes;
+    }
+
+    private static long byteSize(Set<Cell> cells) {
+        long sizeInBytes = 0;
+        for (Cell cell : cells) {
+            sizeInBytes += Cells.getApproxSizeOfCell(cell);
         }
         return sizeInBytes;
     }

@@ -463,6 +463,17 @@ public final class TracingKeyValueService extends ForwardingObject implements Ke
     }
 
     @Override
+    public void deleteFromAtomicTable(TableReference tableRef, Set<Cell> cells) {
+        //noinspection unused - try-with-resources closes trace
+        try (CloseableTracer trace = startLocalTrace("atlasdb-kvs.deleteFromAtomicTable", sink -> {
+            sink.tableRef(tableRef);
+            sink.size("cells", cells);
+        })) {
+            delegate().deleteFromAtomicTable(tableRef, cells);
+        }
+    }
+
+    @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
         return delegate().getCheckAndSetCompatibility();
     }

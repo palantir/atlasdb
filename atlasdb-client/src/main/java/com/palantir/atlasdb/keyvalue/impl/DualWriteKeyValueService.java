@@ -116,6 +116,11 @@ public class DualWriteKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void deleteFromAtomicTable(TableReference tableRef, Set<Cell> cells) {
+        delegate1.deleteFromAtomicTable(tableRef, cells);
+    }
+
+    @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
         return delegate1.getCheckAndSetCompatibility();
     }

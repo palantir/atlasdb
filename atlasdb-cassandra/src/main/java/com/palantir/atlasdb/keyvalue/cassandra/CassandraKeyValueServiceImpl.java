@@ -79,6 +79,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifi
 import com.palantir.atlasdb.keyvalue.cassandra.RowColumnRangeExtractor.RowColumnRangeResult;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.cas.CheckAndSetRunner;
+import com.palantir.atlasdb.keyvalue.cassandra.cas.SinglePartitionAtomicTableCellDeleter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.sweep.CandidateRowForSweeping;
@@ -240,6 +241,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final CassandraTableDropper cassandraTableDropper;
     private final CassandraTableTruncator cassandraTableTruncator;
     private final CheckAndSetRunner checkAndSetRunner;
+    private final SinglePartitionAtomicTableCellDeleter atomicTableCellDeleter;
 
     private final CassandraTables cassandraTables;
 
@@ -462,6 +464,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 wrappingQueryRunner,
                 mutationTimestampProvider::getSweepSentinelWriteTimestamp);
         this.checkAndSetRunner = new CheckAndSetRunner(queryRunner);
+        this.atomicTableCellDeleter = new SinglePartitionAtomicTableCellDeleter(queryRunner, DELETE_CONSISTENCY);
         this.tableMetadata = new CassandraTableMetadata(rangeLoader, cassandraTables, clientPool, wrappingQueryRunner);
         this.cassandraTableCreator = new CassandraTableCreator(clientPool, config);
         this.cassandraTableTruncator = new CassandraTableTruncator(queryRunner, clientPool);
@@ -1879,6 +1882,20 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
+    }
+
+    @Override
+    public void deleteFromAtomicTable(TableReference tableRef, Set<Cell> cells) {
+        clientPool.runWithRetry(client -> {
+            for (Cell cell : cells) {
+                try {
+                    atomicTableCellDeleter.deleteFromAtomicTable(client, tableRef, cell);
+                } catch (TException e) {
+                    throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+                }
+            }
+            return null;
+        });
     }
 
     public static Map<ByteString, Map<Cell, byte[]>> partitionPerRow(Map<Cell, byte[]> values) {

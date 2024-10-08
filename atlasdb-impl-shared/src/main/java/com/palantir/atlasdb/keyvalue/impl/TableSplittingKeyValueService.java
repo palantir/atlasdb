@@ -338,6 +338,11 @@ public final class TableSplittingKeyValueService implements KeyValueService {
     }
 
     @Override
+    public void deleteFromAtomicTable(TableReference tableRef, Set<Cell> cells) {
+        getDelegate(tableRef).deleteFromAtomicTable(tableRef, cells);
+    }
+
+    @Override
     public CheckAndSetCompatibility getCheckAndSetCompatibility() {
         return CheckAndSetCompatibility.intersect(
                 getDelegates().stream().map(KeyValueService::getCheckAndSetCompatibility));

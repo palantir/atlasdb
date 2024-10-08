@@ -53,6 +53,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -115,6 +117,18 @@ public class TracingKeyValueServiceTest {
 
         checkSpan("atlasdb-kvs.addGarbageCollectionSentinelValues", ImmutableMap.of("table", "{table}", "cells", "1"));
         verify(delegate).addGarbageCollectionSentinelValues(TABLE_REF, cells);
+        verifyNoMoreInteractions(delegate);
+    }
+
+    @Test
+    public void deleteFromAtomicTable() {
+        Set<Cell> cells = LongStream.range(0, 7)
+                .mapToObj(index -> Cell.create(ROW_NAME, PtBytes.toBytes(index)))
+                .collect(Collectors.toSet());
+        kvs.deleteFromAtomicTable(TABLE_REF, cells);
+        checkSpan("atlasdb-kvs.deleteFromAtomicTable", ImmutableMap.of("table", "{table}", "cells", "7"));
+        verify(delegate).deleteFromAtomicTable(TABLE_REF, cells);
+
         verifyNoMoreInteractions(delegate);
     }
 

@@ -39,6 +39,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.concurrent.BlockingWorkerPool;
 import com.palantir.common.concurrent.PTExecutors;
+import com.palantir.common.streams.KeyedStream;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collection;
 import java.util.HashMap;
@@ -241,5 +242,14 @@ public abstract class AbstractKeyValueService implements KeyValueService {
             long timestamp) {
         return KeyValueServices.mergeGetRowsColumnRangeIntoSingleIterator(
                 this, tableRef, rows, columnRangeSelection, cellBatchHint, timestamp);
+    }
+
+    @Override
+    public void deleteFromAtomicTable(TableReference tableRef, Set<Cell> cells) {
+        delete(
+                tableRef,
+                KeyedStream.of(cells)
+                        .map(_unused -> AtlasDbConstants.TRANSACTION_TS)
+                        .collectToSetMultimap());
     }
 }

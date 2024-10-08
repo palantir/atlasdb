@@ -271,6 +271,16 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     void setOnce(TableReference tableRef, Map<Cell, byte[]> values);
 
     /**
+     * Performs a delete from an atomic table - that is, a table written to by
+     * {@link #putUnlessExists(TableReference, Map)} or {@link #checkAndSet(CheckAndSetRequest)}. If applied to a
+     * table that is read to and written from using AtlasDB timestamps, behaviour is undefined.
+     *
+     * @param tableRef table to perform atomic deletes from
+     * @param cells cells to delete
+     */
+    void deleteFromAtomicTable(TableReference tableRef, Set<Cell> cells);
+
+    /**
      * Check whether CAS is supported. This check can go away when JDBC KVS is deleted.
      *
      * @return true iff checkAndSet is supported (for all delegates/tables, if applicable)
