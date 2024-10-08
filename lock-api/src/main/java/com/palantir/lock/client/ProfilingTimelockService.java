@@ -20,6 +20,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.RateLimiter;
 import com.palantir.common.base.Throwables;
+import com.palantir.lock.annotations.ReviewedRestrictedApiUsage;
+import com.palantir.lock.v2.AcquireNamedMinTimestampLeaseResult;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
@@ -167,6 +169,21 @@ public class ProfilingTimelockService implements AutoCloseable, TimelockService 
     @Override
     public long currentTimeMillis() {
         return runTaskTimed("currentTimeMillis", delegate::currentTimeMillis);
+    }
+
+    @ReviewedRestrictedApiUsage
+    @Override
+    public AcquireNamedMinTimestampLeaseResult acquireNamedMinTimestampLease(
+            String timestampName, int numFreshTimestamps) {
+        return runTaskTimed(
+                "acquireNamedMinTimestampLease",
+                () -> delegate.acquireNamedMinTimestampLease(timestampName, numFreshTimestamps));
+    }
+
+    @ReviewedRestrictedApiUsage
+    @Override
+    public long getMinLeasedTimestampForName(String timestampName) {
+        return runTaskTimed("getMinLeasedNamedTimestamp", () -> delegate.getMinLeasedTimestampForName(timestampName));
     }
 
     private <T> T runTaskTimed(String actionName, Supplier<T> action) {
