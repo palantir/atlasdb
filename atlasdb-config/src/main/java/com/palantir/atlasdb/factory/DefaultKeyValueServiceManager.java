@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.factory;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.limiter.AtlasClientLimiter;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceManager;
@@ -41,10 +42,17 @@ public final class DefaultKeyValueServiceManager implements KeyValueServiceManag
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             String namespace,
-            boolean initializeAsync) {
+            boolean initializeAsync,
+            AtlasClientLimiter clientLimiter) {
         // TODO(jakubk): In order to meaningfully memoize things we need to know cluster names.
         AtlasDbFactory atlasFactory = AtlasDbServiceDiscovery.createAtlasFactoryOfCorrectType(config);
         return atlasFactory.createRawKeyValueService(
-                metricsManager, config, runtimeConfig, Optional.of(namespace), timestampSupplier, initializeAsync);
+                metricsManager,
+                config,
+                runtimeConfig,
+                Optional.of(namespace),
+                timestampSupplier,
+                initializeAsync,
+                clientLimiter);
     }
 }

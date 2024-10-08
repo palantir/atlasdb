@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.exception.NotInitializedException;
 import com.palantir.refreshable.Refreshable;
@@ -81,6 +82,7 @@ public class InMemoryAsyncAtlasDbFactoryTest {
                 Refreshable.only(Optional.empty()),
                 Optional.empty(),
                 null,
-                initializeAsync);
+                initializeAsync,
+                new NoOpAtlasClientLimiter());
     }
 }

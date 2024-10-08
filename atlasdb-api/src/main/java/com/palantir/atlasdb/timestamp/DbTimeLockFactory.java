@@ -20,6 +20,7 @@ import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeriesProvider;
+import com.palantir.atlasdb.limiter.AtlasClientLimiter;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -39,7 +40,8 @@ public interface DbTimeLockFactory {
             MetricsManager metricManager,
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            boolean initializeAsync);
+            boolean initializeAsync,
+            AtlasClientLimiter clientLimiter);
 
     ManagedTimestampService createManagedTimestampService(
             KeyValueService rawKvs, DbTimestampCreationSetting dbTimestampCreationSetting, boolean initializeAsync);

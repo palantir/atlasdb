@@ -19,6 +19,7 @@ import com.google.auto.service.AutoService;
 import com.google.common.collect.Lists;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.limiter.AtlasClientLimiter;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -63,7 +64,8 @@ public class AutoServiceAnnotatedAtlasDbFactory implements AtlasDbFactory {
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<String> unused,
             LongSupplier unusedLongSupplier,
-            boolean initializeAsync) {
+            boolean initializeAsync,
+            AtlasClientLimiter _clientLimiter) {
         if (initializeAsync) {
             log.warn("Asynchronous initialization not implemented, will initialize synchronously.");
         }

@@ -17,6 +17,7 @@ package com.palantir.atlasdb.spi;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.limiter.AtlasClientLimiter;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -57,7 +58,8 @@ public interface AtlasDbFactory {
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<String> namespace,
             LongSupplier freshTimestampSource,
-            boolean initializeAsync);
+            boolean initializeAsync,
+            AtlasClientLimiter clientLimiter);
 
     /**
      * Creates a {@link DerivedSnapshotConfig} that is derived from a {@link KeyValueServiceConfig}, and where

@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
+import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.sweep.AbstractSweepTaskRunnerTest;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -53,7 +54,8 @@ public class CassandraKeyValueServiceSweepTaskRunnerIntegrationTest extends Abst
                 MetricsManagers.createForTests(),
                 CASSANDRA.getConfig(),
                 CASSANDRA.getRuntimeConfig(),
-                CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000, inMemoryTimelockClassExtension));
+                CassandraTestTools.getMutationProviderWithStartingTimestamp(1_000_000, inMemoryTimelockClassExtension),
+                new NoOpAtlasClientLimiter());
     }
 
     private void insertMultipleValues(long numInsertions) {

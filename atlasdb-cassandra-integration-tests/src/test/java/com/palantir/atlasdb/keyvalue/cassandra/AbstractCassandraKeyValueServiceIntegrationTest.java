@@ -58,6 +58,7 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueServiceTest;
 import com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService;
+import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableDefinition;
@@ -118,7 +119,8 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
                 getRuntimeConfig(),
                 CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP, services),
                 logger,
-                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
+                new NoOpAtlasClientLimiter());
     });
 
     public AbstractCassandraKeyValueServiceIntegrationTest(
@@ -731,7 +733,8 @@ public abstract class AbstractCassandraKeyValueServiceIntegrationTest extends Ab
                 config,
                 runtimeConfig,
                 CassandraTestTools.getMutationProviderWithStartingTimestamp(STARTING_ATLAS_TIMESTAMP, services),
-                testLogger);
+                testLogger,
+                new NoOpAtlasClientLimiter());
     }
 
     private void putDummyValueAtCellAndTimestamp(

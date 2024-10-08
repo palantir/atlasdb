@@ -23,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeriesProvider;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.limiter.AtlasClientLimiter;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.timestamp.DbTimeLockFactory;
@@ -48,7 +49,8 @@ public class InMemoryDbTimeLockFactory implements DbTimeLockFactory {
             MetricsManager metricManager,
             KeyValueServiceConfig config,
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            boolean _initializeAsync) {
+            boolean _initializeAsync,
+            AtlasClientLimiter _clientLimiter) {
         return new InMemoryKeyValueService(true);
     }
 

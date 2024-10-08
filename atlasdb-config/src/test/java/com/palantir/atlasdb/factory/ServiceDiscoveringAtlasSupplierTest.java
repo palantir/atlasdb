@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.mockito.Mockito.mock;
 
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfigHelper;
@@ -49,7 +50,8 @@ public class ServiceDiscoveringAtlasSupplierTest {
                         Refreshable.only(Optional.empty()),
                         Optional.empty(),
                         AtlasDbFactory.THROWING_FRESH_TIMESTAMP_SOURCE,
-                        AtlasDbFactory.DEFAULT_INITIALIZE_ASYNC));
+                        AtlasDbFactory.DEFAULT_INITIALIZE_ASYNC,
+                        new NoOpAtlasClientLimiter()));
 
         ManagedTimestampService timestampService = mock(ManagedTimestampService.class);
         AutoServiceAnnotatedAtlasDbFactory.nextTimestampServiceToReturn(timestampService);

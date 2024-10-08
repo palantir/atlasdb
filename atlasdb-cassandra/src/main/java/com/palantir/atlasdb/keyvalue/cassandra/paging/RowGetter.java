@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
 import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
+import com.palantir.atlasdb.limiter.AtlasClientLimiter;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import java.util.List;
@@ -33,20 +34,23 @@ import org.apache.cassandra.thrift.SlicePredicate;
 import org.apache.cassandra.thrift.UnavailableException;
 
 public class RowGetter {
-    private CassandraClientPool clientPool;
-    private TracingQueryRunner queryRunner;
-    private ConsistencyLevel consistency;
-    private TableReference tableRef;
+    private final CassandraClientPool clientPool;
+    private final TracingQueryRunner queryRunner;
+    private final ConsistencyLevel consistency;
+    private final TableReference tableRef;
+    private final AtlasClientLimiter clientLimiter;
 
     public RowGetter(
             CassandraClientPool clientPool,
             TracingQueryRunner queryRunner,
             ConsistencyLevel consistency,
-            TableReference tableRef) {
+            TableReference tableRef,
+            AtlasClientLimiter clientLimiter) {
         this.clientPool = clientPool;
         this.queryRunner = queryRunner;
         this.consistency = consistency;
         this.tableRef = tableRef;
+        this.clientLimiter = clientLimiter;
     }
 
     public List<KeySlice> getRows(String kvsMethodName, KeyRange keyRange, SlicePredicate slicePredicate) {
@@ -55,6 +59,8 @@ public class RowGetter {
             @Override
             public List<KeySlice> apply(CassandraClient client) {
                 try {
+                    clientLimiter.limitRangeScan(tableRef);
+
                     return queryRunner.run(
                             client,
                             tableRef,

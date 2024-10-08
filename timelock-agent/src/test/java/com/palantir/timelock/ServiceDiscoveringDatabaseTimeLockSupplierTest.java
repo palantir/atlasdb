@@ -24,6 +24,7 @@ import com.palantir.atlasdb.config.DbTimestampCreationSetting;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeries;
 import com.palantir.atlasdb.keyvalue.api.TimestampSeriesProvider;
+import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
 import com.palantir.atlasdb.memory.InMemoryAtlasDbConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -43,7 +44,11 @@ public class ServiceDiscoveringDatabaseTimeLockSupplierTest {
 
     private final ServiceDiscoveringDatabaseTimeLockSupplier timeLockSupplier =
             new ServiceDiscoveringDatabaseTimeLockSupplier(
-                    metricsManager, keyValueServiceConfig, Refreshable.only(Optional.empty()), false);
+                    metricsManager,
+                    keyValueServiceConfig,
+                    Refreshable.only(Optional.empty()),
+                    false,
+                    new NoOpAtlasClientLimiter());
 
     @Test
     public void canGetTimestampServiceForDifferentSeries() {

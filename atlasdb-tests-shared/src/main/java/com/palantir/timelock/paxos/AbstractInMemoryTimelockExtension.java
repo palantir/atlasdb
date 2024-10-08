@@ -21,6 +21,7 @@ import com.palantir.atlasdb.factory.TimeLockHelperServices;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
+import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureTimelockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
@@ -133,7 +134,8 @@ public abstract class AbstractInMemoryTimelockExtension implements TimeLockServi
                 Optional.empty(),
                 OrderableSlsVersion.valueOf("0.0.0"),
                 ObjectMappers.newServerObjectMapper(),
-                () -> System.exit(0));
+                () -> System.exit(0),
+                new NoOpAtlasClientLimiter());
 
         delegate = timeLockAgent.createInvalidatingTimeLockServices(client);
         createHelperServices(metricsManager);

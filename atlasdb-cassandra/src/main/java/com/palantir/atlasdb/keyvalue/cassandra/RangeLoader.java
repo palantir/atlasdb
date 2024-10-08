@@ -27,6 +27,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.paging.ColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.RowGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.paging.ThriftColumnGetter;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
+import com.palantir.atlasdb.limiter.AtlasClientLimiter;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.base.ClosableIterators;
 import java.util.HashMap;
@@ -40,16 +41,19 @@ public class RangeLoader {
     private final TracingQueryRunner queryRunner;
     private final ReadConsistencyProvider readConsistencyProvider;
     private final Function<Map<Cell, Value>, ResultsExtractor<Value>> extractorFactory;
+    private final AtlasClientLimiter clientLimiter;
 
     public RangeLoader(
             CassandraClientPool clientPool,
             TracingQueryRunner queryRunner,
             ReadConsistencyProvider readConsistencyProvider,
-            Function<Map<Cell, Value>, ResultsExtractor<Value>> extractorFactory) {
+            Function<Map<Cell, Value>, ResultsExtractor<Value>> extractorFactory,
+            AtlasClientLimiter clientLimiter) {
         this.clientPool = clientPool;
         this.queryRunner = queryRunner;
         this.readConsistencyProvider = readConsistencyProvider;
         this.extractorFactory = extractorFactory;
+        this.clientLimiter = clientLimiter;
     }
 
     public ClosableIterator<RowResult<Value>> getRange(TableReference tableRef, RangeRequest rangeRequest, long ts) {
@@ -70,8 +74,8 @@ public class RangeLoader {
             // each column. note that if no columns are specified, it's a special case that means all columns
             predicate = SlicePredicates.create(SlicePredicates.Range.ALL, SlicePredicates.Limit.NO_LIMIT);
         }
-        RowGetter rowGetter =
-                new RowGetter(clientPool, queryRunner, readConsistencyProvider.getConsistency(tableRef), tableRef);
+        RowGetter rowGetter = new RowGetter(
+                clientPool, queryRunner, readConsistencyProvider.getConsistency(tableRef), tableRef, clientLimiter);
         ColumnGetter columnGetter = new ThriftColumnGetter();
 
         return getRangeWithPageCreator(rowGetter, predicate, columnGetter, rangeRequest, resultsExtractor, startTs);

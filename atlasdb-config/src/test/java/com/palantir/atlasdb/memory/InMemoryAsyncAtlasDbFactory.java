@@ -20,6 +20,7 @@ import com.google.auto.service.AutoService;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.impl.AsyncInitializeableInMemoryKvs;
+import com.palantir.atlasdb.limiter.AtlasClientLimiter;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -47,7 +48,8 @@ public class InMemoryAsyncAtlasDbFactory implements AtlasDbFactory {
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> unusedRuntimeConfig,
             Optional<String> unused,
             LongSupplier unusedLongSupplier,
-            boolean initializeAsync) {
+            boolean initializeAsync,
+            AtlasClientLimiter _clientLimiter) {
         AtlasDbVersion.ensureVersionReported();
         InMemoryAsyncAtlasDbConfig asyncConfig = (InMemoryAsyncAtlasDbConfig) config;
         return AsyncInitializeableInMemoryKvs.createAndStartInit(initializeAsync, asyncConfig.eventuallySucceed());

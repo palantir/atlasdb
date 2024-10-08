@@ -27,6 +27,7 @@ import com.palantir.atlasdb.config.ServerListConfig;
 import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
+import com.palantir.atlasdb.limiter.AtlasClientLimiter;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureLockWatchDiagnosticsResource;
@@ -120,6 +121,7 @@ public class TimeLockAgent {
     private final Runnable serviceStopper;
     private LeaderPingHealthCheck healthCheck;
     private TimelockNamespaces namespaces;
+    private final AtlasClientLimiter clientLimiter;
 
     @SuppressWarnings("TooManyArguments") // Legacy
     public static TimeLockAgent create(
@@ -133,7 +135,8 @@ public class TimeLockAgent {
             Consumer<UndertowService> undertowRegistrar,
             OrderableSlsVersion timeLockVersion,
             ObjectMapper objectMapper,
-            Runnable serviceStopper) {
+            Runnable serviceStopper,
+            AtlasClientLimiter clientLimiter) {
         return create(
                 metricsManager,
                 install,
@@ -146,7 +149,8 @@ public class TimeLockAgent {
                 Optional.of(undertowRegistrar),
                 timeLockVersion,
                 objectMapper,
-                serviceStopper);
+                serviceStopper,
+                clientLimiter);
     }
 
     @SuppressWarnings("TooManyArguments") // Legacy
@@ -162,7 +166,8 @@ public class TimeLockAgent {
             Optional<Consumer<UndertowService>> undertowRegistrar,
             OrderableSlsVersion timeLockVersion,
             ObjectMapper objectMapper,
-            Runnable serviceStopper) {
+            Runnable serviceStopper,
+            AtlasClientLimiter clientLimiter) {
 
         verifyConfigurationSanity(install, cluster);
 
@@ -207,7 +212,8 @@ public class TimeLockAgent {
                 userAgent,
                 persistedSchemaVersion,
                 installationContext.sqliteDataSource(),
-                serviceStopper);
+                serviceStopper,
+                clientLimiter);
         agent.createAndRegisterResources();
         return agent;
     }
@@ -252,7 +258,8 @@ public class TimeLockAgent {
             UserAgent userAgent,
             PersistedSchemaVersion persistedSchemaVersion,
             HikariDataSource sqliteDataSource,
-            Runnable serviceStopper) {
+            Runnable serviceStopper,
+            AtlasClientLimiter clientLimiter) {
         this.metricsManager = metricsManager;
         this.install = install;
         this.runtime = runtime;
@@ -262,6 +269,7 @@ public class TimeLockAgent {
         this.paxosResources = paxosResources;
         this.sqliteDataSource = sqliteDataSource;
         this.serviceStopper = serviceStopper;
+        this.clientLimiter = clientLimiter;
         this.lockCreator = new LockCreator(runtime, threadPoolSize, blockingTimeoutMs);
         this.timestampStorage = getTimestampStorage();
         this.persistedSchemaVersion = persistedSchemaVersion;
@@ -309,7 +317,8 @@ public class TimeLockAgent {
                 metricsManager,
                 timestampBoundPersistence.keyValueServiceConfig(),
                 runtime.map(TimeLockAgent::getKeyValueServiceRuntimeConfig),
-                timestampBoundPersistence.initializeAsync());
+                timestampBoundPersistence.initializeAsync(),
+                clientLimiter);
         return ImmutableTimestampStorage.builder()
                 .timestampCreator(new DbBoundTimestampCreator(dbTimeLockSupplier))
                 .persistentNamespaceContext(PersistentNamespaceContexts.dbBound(

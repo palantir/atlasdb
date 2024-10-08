@@ -20,6 +20,7 @@ import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
+import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.Preconditions;
@@ -88,6 +89,7 @@ public class UninitializedCassandraResource implements BeforeAllCallback, AfterA
                 config,
                 containerInstance.getRuntimeConfig(),
                 CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
-                true);
+                true,
+                new NoOpAtlasClientLimiter());
     }
 }

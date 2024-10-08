@@ -94,6 +94,8 @@ import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
 import com.palantir.atlasdb.keyvalue.impl.IterablePartitioner;
 import com.palantir.atlasdb.keyvalue.impl.KeyValueServices;
 import com.palantir.atlasdb.keyvalue.impl.LocalRowColumnRangeIterator;
+import com.palantir.atlasdb.limiter.AtlasClientLimiter;
+import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.util.AnnotatedCallable;
@@ -248,6 +250,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final InitializingWrapper wrapper = new InitializingWrapper();
 
     private final CassandraMutationTimestampProvider mutationTimestampProvider;
+    private final AtlasClientLimiter clientLimiter;
     private final Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig;
     private final CassandraVerifierConfig verifierConfig;
     private final Function<Map<Cell, Value>, ResultsExtractor<Value>> extractorFactory;
@@ -274,20 +277,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 clientPool,
                 CassandraMutationTimestampProviders.legacyModeForTestsOnly(),
                 SafeLoggerFactory.get(CassandraKeyValueService.class),
-                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
-    }
-
-    public static CassandraKeyValueService create(
-            MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
-            Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
-            CassandraMutationTimestampProvider mutationTimestampProvider) {
-        return create(
-                metricsManager,
-                config,
-                runtimeConfig,
-                mutationTimestampProvider,
-                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
+                new NoOpAtlasClientLimiter());
     }
 
     public static CassandraKeyValueService create(
@@ -295,7 +286,23 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfig config,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             CassandraMutationTimestampProvider mutationTimestampProvider,
-            CassandraClientPool clientPool) {
+            AtlasClientLimiter clientLimiter) {
+        return create(
+                metricsManager,
+                config,
+                runtimeConfig,
+                mutationTimestampProvider,
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
+                clientLimiter);
+    }
+
+    public static CassandraKeyValueService create(
+            MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
+            Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
+            CassandraMutationTimestampProvider mutationTimestampProvider,
+            CassandraClientPool clientPool,
+            AtlasClientLimiter clientLimiter) {
         return createOrShutdownClientPool(
                 metricsManager,
                 config,
@@ -303,7 +310,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 clientPool,
                 mutationTimestampProvider,
                 SafeLoggerFactory.get(CassandraKeyValueService.class),
-                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
+                clientLimiter);
     }
 
     public static CassandraKeyValueService create(
@@ -311,30 +319,16 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraKeyValueServiceConfig config,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             CassandraMutationTimestampProvider mutationTimestampProvider,
-            boolean initializeAsync) {
+            boolean initializeAsync,
+            AtlasClientLimiter clientLimiter) {
         return create(
                 metricsManager,
                 config,
                 runtimeConfig,
                 mutationTimestampProvider,
                 SafeLoggerFactory.get(CassandraKeyValueService.class),
-                initializeAsync);
-    }
-
-    @VisibleForTesting
-    static CassandraKeyValueService create(
-            MetricsManager metricsManager,
-            CassandraKeyValueServiceConfig config,
-            Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
-            CassandraMutationTimestampProvider mutationTimestampProvider,
-            SafeLogger log) {
-        return create(
-                metricsManager,
-                config,
-                runtimeConfig,
-                mutationTimestampProvider,
-                log,
-                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
+                initializeAsync,
+                clientLimiter);
     }
 
     @VisibleForTesting
@@ -344,12 +338,38 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             SafeLogger log,
-            boolean initializeAsync) {
+            AtlasClientLimiter clientLimiter) {
+        return create(
+                metricsManager,
+                config,
+                runtimeConfig,
+                mutationTimestampProvider,
+                log,
+                AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC,
+                clientLimiter);
+    }
+
+    @VisibleForTesting
+    static CassandraKeyValueService create(
+            MetricsManager metricsManager,
+            CassandraKeyValueServiceConfig config,
+            Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
+            CassandraMutationTimestampProvider mutationTimestampProvider,
+            SafeLogger log,
+            boolean initializeAsync,
+            AtlasClientLimiter clientLimiter) {
         CassandraClientPool clientPool =
                 CassandraClientPoolImpl.create(metricsManager, config, runtimeConfig, initializeAsync);
 
         return createOrShutdownClientPool(
-                metricsManager, config, runtimeConfig, clientPool, mutationTimestampProvider, log, initializeAsync);
+                metricsManager,
+                config,
+                runtimeConfig,
+                clientPool,
+                mutationTimestampProvider,
+                log,
+                initializeAsync,
+                clientLimiter);
     }
 
     private static CassandraKeyValueService createOrShutdownClientPool(
@@ -359,10 +379,18 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             SafeLogger log,
-            boolean initializeAsync) {
+            boolean initializeAsync,
+            AtlasClientLimiter clientLimiter) {
         try {
             return createWithCqlClient(
-                    metricsManager, config, runtimeConfig, clientPool, mutationTimestampProvider, log, initializeAsync);
+                    metricsManager,
+                    config,
+                    runtimeConfig,
+                    clientPool,
+                    mutationTimestampProvider,
+                    log,
+                    initializeAsync,
+                    clientLimiter);
         } catch (Exception e) {
             log.warn("Error occurred in creating Cassandra KVS. Now attempting to shut down client pool...", e);
             try {
@@ -383,7 +411,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             SafeLogger log,
-            boolean initializeAsync) {
+            boolean initializeAsync,
+            AtlasClientLimiter clientLimiter) {
         try {
             CassandraClusterConfig clusterConfig = CassandraClusterConfig.of(config, runtimeConfig.get());
             AsyncKeyValueService asyncKeyValueService = config.asyncKeyValueServiceFactory()
@@ -402,7 +431,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                     asyncKeyValueService,
                     mutationTimestampProvider,
                     log,
-                    initializeAsync);
+                    initializeAsync,
+                    clientLimiter);
         } catch (Exception e) {
             log.warn("Exception during async KVS creation.", e);
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
@@ -417,7 +447,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             AsyncKeyValueService asyncKeyValueService,
             CassandraMutationTimestampProvider mutationTimestampProvider,
             SafeLogger log,
-            boolean initializeAsync) {
+            boolean initializeAsync,
+            AtlasClientLimiter clientLimiter) {
         Counter notLatestVisibleValueCellFilterCounter = // register counter once and reuse
                 metricsManager.registerOrGetCounter(ValueExtractor.class, CellFilterMetrics.NOT_LATEST_VISIBLE_VALUE);
         Function<Map<Cell, Value>, ResultsExtractor<Value>> extractorFactory = cellValueMap ->
@@ -430,7 +461,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 runtimeConfig,
                 clientPool,
                 mutationTimestampProvider,
-                extractorFactory);
+                extractorFactory,
+                clientLimiter);
         keyValueService.wrapper.initialize(initializeAsync);
         return keyValueService.wrapper.isInitialized() ? keyValueService : keyValueService.wrapper;
     }
@@ -443,7 +475,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             CassandraClientPool clientPool,
             CassandraMutationTimestampProvider mutationTimestampProvider,
-            Function<Map<Cell, Value>, ResultsExtractor<Value>> extractorFactory) {
+            Function<Map<Cell, Value>, ResultsExtractor<Value>> extractorFactory,
+            AtlasClientLimiter clientLimiter) {
         super(createBlockingThreadpool(config, runtimeConfig.get().servers(), metricsManager));
         this.log = log;
         this.metricsManager = metricsManager;
@@ -451,12 +484,14 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         this.clientPool = clientPool;
         this.asyncKeyValueService = asyncKeyValueService;
         this.mutationTimestampProvider = mutationTimestampProvider;
+        this.clientLimiter = clientLimiter;
         this.queryRunner = new TracingQueryRunner(log, () -> runtimeConfig.get().tracing());
         this.wrappingQueryRunner = new WrappingQueryRunner(queryRunner);
         this.cassandraTables = new CassandraTables(clientPool, config);
         this.taskRunner = new TaskRunner(executor);
         this.cellLoader = CellLoader.create(clientPool, wrappingQueryRunner, taskRunner, runtimeConfig);
-        this.rangeLoader = new RangeLoader(clientPool, queryRunner, readConsistencyProvider, extractorFactory);
+        this.rangeLoader =
+                new RangeLoader(clientPool, queryRunner, readConsistencyProvider, extractorFactory, clientLimiter);
         this.cellValuePutter = new CellValuePutter(
                 runtimeConfig,
                 clientPool,
@@ -1375,7 +1410,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
 
     private ClosableIterator<List<CandidateRowForSweeping>> getCandidateRowsForSweeping(
             String kvsMethodName, TableReference tableRef, CandidateCellForSweepingRequest request) {
-        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, ConsistencyLevel.ALL, tableRef);
+        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, ConsistencyLevel.ALL, tableRef, clientLimiter);
         return new CandidateRowsForSweepingIterator(
                 (iteratorTableRef, cells, maxTimestampExclusive) ->
                         get(kvsMethodName, iteratorTableRef, cells, maxTimestampExclusive),
@@ -1396,7 +1431,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
      */
     @Override
     public List<byte[]> getRowKeysInRange(TableReference tableRef, byte[] startRow, byte[] endRow, int maxResults) {
-        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, ConsistencyLevel.QUORUM, tableRef);
+        RowGetter rowGetter = new RowGetter(clientPool, queryRunner, ConsistencyLevel.QUORUM, tableRef, clientLimiter);
         return rowGetter.getRowKeysInRange(startRow, endRow, maxResults);
     }
 

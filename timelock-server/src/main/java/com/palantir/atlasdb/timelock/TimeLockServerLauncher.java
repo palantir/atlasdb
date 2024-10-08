@@ -20,6 +20,7 @@ import com.codahale.metrics.SharedMetricRegistries;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -104,7 +105,8 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
                 Optional.empty(),
                 OrderableSlsVersion.valueOf("0.0.0"),
                 environment.getObjectMapper(),
-                () -> System.exit(0));
+                () -> System.exit(0),
+                new NoOpAtlasClientLimiter());
 
         environment.lifecycle().manage(new Managed() {
             @Override

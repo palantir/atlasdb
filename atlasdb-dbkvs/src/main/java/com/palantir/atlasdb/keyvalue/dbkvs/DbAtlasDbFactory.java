@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.dbkvs.impl.ConnectionManagerAwareDbKvs;
 import com.palantir.atlasdb.keyvalue.dbkvs.timestamp.InDbTimestampBoundStore;
 import com.palantir.atlasdb.keyvalue.dbkvs.util.DbKeyValueServiceConfigs;
+import com.palantir.atlasdb.limiter.AtlasClientLimiter;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -64,7 +65,8 @@ public class DbAtlasDbFactory implements AtlasDbFactory {
             Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
             Optional<String> namespace,
             LongSupplier unusedLongSupplier,
-            boolean initializeAsync) {
+            boolean initializeAsync,
+            AtlasClientLimiter _clientLimiter) {
 
         return ConnectionManagerAwareDbKvs.create(
                 DbKeyValueServiceConfigs.toDbKeyValueServiceConfig(config), runtimeConfig, initializeAsync);

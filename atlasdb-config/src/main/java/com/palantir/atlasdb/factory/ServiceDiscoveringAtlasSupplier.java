@@ -19,6 +19,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.limiter.AtlasClientLimiter;
+import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
@@ -66,11 +68,34 @@ public class ServiceDiscoveringAtlasSupplier {
             boolean initializeAsync,
             boolean collectThreadDumpOnInit,
             LongSupplier timestampSupplier) {
+        this(
+                metricsManager,
+                config,
+                runtimeConfig,
+                namespace,
+                tableReferenceOverride,
+                initializeAsync,
+                collectThreadDumpOnInit,
+                timestampSupplier,
+                // TODO: from config!!
+                new NoOpAtlasClientLimiter());
+    }
+
+    public ServiceDiscoveringAtlasSupplier(
+            MetricsManager metricsManager,
+            KeyValueServiceConfig config,
+            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
+            Optional<String> namespace,
+            Optional<TableReference> tableReferenceOverride,
+            boolean initializeAsync,
+            boolean collectThreadDumpOnInit,
+            LongSupplier timestampSupplier,
+            AtlasClientLimiter clientLimiter) {
         this.collectThreadDumps = collectThreadDumpOnInit;
 
         AtlasDbFactory atlasFactory = AtlasDbServiceDiscovery.createAtlasFactoryOfCorrectType(config);
         keyValueService = Suppliers.memoize(() -> atlasFactory.createRawKeyValueService(
-                metricsManager, config, runtimeConfig, namespace, timestampSupplier, initializeAsync));
+                metricsManager, config, runtimeConfig, namespace, timestampSupplier, initializeAsync, clientLimiter));
         timestampService = () -> atlasFactory.createManagedTimestampService(
                 getKeyValueService(), tableReferenceOverride, initializeAsync);
         timestampStoreInvalidator =
@@ -152,9 +177,9 @@ public class ServiceDiscoveringAtlasSupplier {
     private void reportMultipleTimestampFetch(String path) {
         log.warn(
                 "[timestamp-service-creation] Timestamp service fetched for a second time. This means that you may"
-                    + " soon encounter the MultipleRunningTimestampServices error. Thread dumps from both fetches of"
-                    + " the timestamp service have been outputted to {}. If you encounter a"
-                    + " MultipleRunningTimestampServices error, please send this file to support.",
+                        + " soon encounter the MultipleRunningTimestampServices error. Thread dumps from both fetches of"
+                        + " the timestamp service have been outputted to {}. If you encounter a"
+                        + " MultipleRunningTimestampServices error, please send this file to support.",
                 UnsafeArg.of("path", path));
     }
 }

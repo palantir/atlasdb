@@ -19,6 +19,7 @@ package com.palantir.atlasdb.memory;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
+import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.timestamp.TimestampService;
@@ -59,6 +60,12 @@ public class InMemoryAtlasDbFactoryTest {
 
     private KeyValueService createRawKeyValueService(boolean initializeAsync) {
         return factory.createRawKeyValueService(
-                null, null, Refreshable.only(Optional.empty()), Optional.empty(), null, initializeAsync);
+                null,
+                null,
+                Refreshable.only(Optional.empty()),
+                Optional.empty(),
+                null,
+                initializeAsync,
+                new NoOpAtlasClientLimiter());
     }
 }

@@ -14,18 +14,11 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.spi;
+package com.palantir.atlasdb.limiter;
 
-import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.limiter.AtlasClientLimiter;
-import com.palantir.refreshable.Refreshable;
-import java.util.Optional;
+import com.palantir.atlasdb.keyvalue.api.TableReference;
 
-public interface KeyValueServiceManager {
-    KeyValueService getKeyValueService(
-            KeyValueServiceConfig config,
-            Refreshable<Optional<KeyValueServiceRuntimeConfig>> runtimeConfig,
-            String namespace,
-            boolean initializeAsync,
-            AtlasClientLimiter clientLimiter);
+public class NoOpAtlasClientLimiter implements AtlasClientLimiter {
+    @Override
+    public void limitRangeScan(TableReference tableRef) {}
 }

@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.timelock.benchmarks.server;
 
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
 import com.palantir.atlasdb.timelock.config.CombinedTimeLockServerConfiguration;
 import com.palantir.atlasdb.timelock.logging.NonBlockingFileAppenderFactory;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -62,6 +63,7 @@ public class TimelockBenchmarkServerLauncher extends Application<CombinedTimeLoc
                 Optional.empty(),
                 OrderableSlsVersion.valueOf("0.0.0"),
                 ObjectMappers.newServerObjectMapper(),
-                () -> System.exit(0));
+                () -> System.exit(0),
+                new NoOpAtlasClientLimiter());
     }
 }
