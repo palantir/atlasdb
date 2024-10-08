@@ -19,11 +19,14 @@ import com.codahale.metrics.Histogram;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import com.palantir.atlasdb.timelock.api.AcquireNamedMinimumTimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureTimestampRange;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
+import com.palantir.atlasdb.timelock.api.NamedMinimumTimestampLessor;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
@@ -249,6 +252,38 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public ListenableFuture<TimestampRange> getFreshTimestampsAsync(int timestampsToRequest) {
         return Futures.immediateFuture(getFreshTimestamps(timestampsToRequest));
+    }
+
+    @Override
+    public ListenableFuture<AcquireNamedMinimumTimestampLeaseResponse> acquireNamedMinimumTimestampLease(
+            NamedMinimumTimestampLessor lessor, UUID requestId, int numFreshTimestamps) {
+        long timestamp = timestampService.getFreshTimestamp();
+
+        Leased<LockToken> leasedLock = lockService
+                .lockNamedMinimumTimestamp(lessor, requestId, timestamp)
+                .get();
+        long leastLeased = lockService.getNamedMinimumTimestamp(lessor).orElse(timestamp);
+
+        // does this always return enough timestamps? if not it doesn't really matter
+        // user can just request more -- or maybe we should do it here????
+        // what do we actually want to guarantee
+        TimestampRange timestampRange = timestampService.getFreshTimestamps(numFreshTimestamps);
+
+        ConjureTimestampRange freshTimestamps =
+                ConjureTimestampRange.of(timestampRange.getLowerBound(), timestampRange.size());
+
+        return Futures.immediateFuture(AcquireNamedMinimumTimestampLeaseResponse.builder()
+                .minimumLeasedTimestamp(leastLeased)
+                .leaseToken(leasedLock.value())
+                .freshTimestamps(freshTimestamps)
+                .build());
+    }
+
+    @Override
+    public ListenableFuture<Long> getSmallestLeasedNamedTimestamp(NamedMinimumTimestampLessor lessor) {
+        long timestamp = timestampService.getFreshTimestamp();
+        return Futures.immediateFuture(
+                lockService.getNamedMinimumTimestamp(lessor).orElse(timestamp));
     }
 
     @Override

@@ -110,4 +110,8 @@ public interface TimelockService {
     void tryUnlock(Set<LockToken> tokens);
 
     long currentTimeMillis();
+
+    LockNamedTimestampResponse lockNamedTimestamp(String timestampName, int numFreshTimestamps);
+
+    long getSmallestLockedNamedTimestamp(String timestampName);
 }

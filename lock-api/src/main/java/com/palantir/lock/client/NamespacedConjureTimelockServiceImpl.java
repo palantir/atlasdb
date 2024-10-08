@@ -16,6 +16,8 @@
 
 package com.palantir.lock.client;
 
+import com.palantir.atlasdb.timelock.api.AcquireNamedMinimumTimestampLeaseRequest;
+import com.palantir.atlasdb.timelock.api.AcquireNamedMinimumTimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureLockRequest;
@@ -35,6 +37,8 @@ import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureWaitForLocksResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.NamedMinimumTimestampLessor;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -55,6 +59,19 @@ public class NamespacedConjureTimelockServiceImpl implements NamespacedConjureTi
     @Override
     public ConjureStartTransactionsResponse startTransactions(ConjureStartTransactionsRequest request) {
         return conjureTimelockService.startTransactions(AUTH_HEADER, namespace, request);
+    }
+
+    @Override
+    public AcquireNamedMinimumTimestampLeaseResponse acquireNamedMinimumTimestampLease(
+            String lessor, AcquireNamedMinimumTimestampLeaseRequest request) {
+        return conjureTimelockService.acquireNamedMinimumTimestampLease(
+                AUTH_HEADER, Namespace.of(namespace), NamedMinimumTimestampLessor.of(lessor), request);
+    }
+
+    @Override
+    public long getSmallestLeasedNamedTimestamp(String lessor) {
+        return conjureTimelockService.getSmallestLeasedNamedTimestamp(
+                AUTH_HEADER, Namespace.of(namespace), NamedMinimumTimestampLessor.of(lessor));
     }
 
     @Override

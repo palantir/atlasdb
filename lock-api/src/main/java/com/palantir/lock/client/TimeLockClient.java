@@ -24,6 +24,7 @@ import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockLeaseRefresher;
+import com.palantir.lock.v2.LockNamedTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -178,6 +179,16 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
     @Override
     public long currentTimeMillis() {
         return executeOnTimeLock(delegate::currentTimeMillis);
+    }
+
+    @Override
+    public LockNamedTimestampResponse lockNamedTimestamp(String timestampName, int numFreshTimestamps) {
+        return executeOnTimeLock(() -> delegate.lockNamedTimestamp(timestampName, numFreshTimestamps));
+    }
+
+    @Override
+    public long getSmallestLockedNamedTimestamp(String timestampName) {
+        return executeOnTimeLock(() -> delegate.getSmallestLockedNamedTimestamp(timestampName));
     }
 
     private static <T> T executeOnTimeLock(Callable<T> callable) {

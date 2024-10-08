@@ -26,6 +26,7 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
+import com.palantir.lock.v2.LockNamedTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
@@ -179,6 +180,18 @@ public class LegacyTimelockService implements TimelockService {
     @Override
     public long currentTimeMillis() {
         return lockService.currentTimeMillis();
+    }
+
+    @Override
+    public LockNamedTimestampResponse lockNamedTimestamp(String timestampName, int numFreshTimestamps) {
+        // TODO(aalouane): implement somehow
+        return null;
+    }
+
+    @Override
+    public long getSmallestLockedNamedTimestamp(String timestampName) {
+        // TODO(aalouane): implement somehow
+        return 0;
     }
 
     private long getImmutableTimestampInternal(long ts) {
