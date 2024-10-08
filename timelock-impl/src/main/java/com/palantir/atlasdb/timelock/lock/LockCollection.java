@@ -21,7 +21,7 @@ import java.util.Set;
 final class LockCollection {
     private final ExclusiveLockCollection exclusiveLocks = new ExclusiveLockCollection();
 
-    OrderedLocks getAllExclusive(Set<LockDescriptor> descriptors) {
+    OrderedLocks getAllExclusiveLocks(Set<LockDescriptor> descriptors) {
         return exclusiveLocks.getAll(descriptors);
     }
 }
