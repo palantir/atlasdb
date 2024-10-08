@@ -37,6 +37,8 @@ import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.GetMinLeasedNamedTimestampRequests;
+import com.palantir.atlasdb.timelock.api.GetMinLeasedNamedTimestampResponses;
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockServiceEndpoints;
@@ -44,20 +46,26 @@ import com.palantir.atlasdb.timelock.api.MultiClientGetMinLeasedNamedTimestampRe
 import com.palantir.atlasdb.timelock.api.MultiClientGetMinLeasedNamedTimestampResponse;
 import com.palantir.atlasdb.timelock.api.MultiClientNamedMinTimestampLeaseRequest;
 import com.palantir.atlasdb.timelock.api.MultiClientNamedMinTimestampLeaseResponse;
+import com.palantir.atlasdb.timelock.api.NamedMinTimestampLeaseRequests;
+import com.palantir.atlasdb.timelock.api.NamedMinTimestampLeaseResponses;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.UndertowMultiClientConjureTimelockService;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.undertow.lib.RequestContext;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.tokens.auth.AuthHeader;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 /**
@@ -155,8 +163,11 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
             AuthHeader authHeader,
             MultiClientNamedMinTimestampLeaseRequest requests,
             @Nullable RequestContext context) {
-        // TODO(aalouane): implement this
-        throw new UnsupportedOperationException("Not implemented yet");
+        return handleExceptions(() -> transformMapAsync(
+                requests.get(),
+                (namespace, namespacedRequests) -> acquireNamedMinTimestampLeaseForSingleNamespaceTimestampNamePair(
+                        namespace, namespacedRequests, context),
+                MultiClientNamedMinTimestampLeaseResponse::of));
     }
 
     @Override
@@ -164,8 +175,29 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
             AuthHeader authHeader,
             MultiClientGetMinLeasedNamedTimestampRequest requests,
             @Nullable RequestContext context) {
-        // TODO(aalouane): implement this
-        throw new UnsupportedOperationException("Not implemented yet");
+        return handleExceptions(() -> transformMapAsync(
+                requests.get(),
+                (namespace, namespaceRequests) ->
+                        getMinLeasedTimestampForSingleNamespace(namespace, namespaceRequests, context),
+                MultiClientGetMinLeasedNamedTimestampResponse::of));
+    }
+
+    private ListenableFuture<NamedMinTimestampLeaseResponses>
+            acquireNamedMinTimestampLeaseForSingleNamespaceTimestampNamePair(
+                    Namespace namespace, NamedMinTimestampLeaseRequests requests, @Nullable RequestContext context) {
+        AsyncTimelockService service = getServiceForNamespace(namespace, context);
+        return transformMapAsync(
+                requests.get(),
+                (timestampName, request) -> service.acquireNamedMinTimestampLease(
+                        timestampName, request.getRequestId(), request.getNumFreshTimestamps()),
+                NamedMinTimestampLeaseResponses::of);
+    }
+
+    private ListenableFuture<GetMinLeasedNamedTimestampResponses> getMinLeasedTimestampForSingleNamespace(
+            Namespace namespace, GetMinLeasedNamedTimestampRequests requests, @Nullable RequestContext context) {
+        AsyncTimelockService service = getServiceForNamespace(namespace, context);
+        return transformSetAsync(
+                requests.get(), service::getMinLeasedNamedTimestamp, GetMinLeasedNamedTimestampResponses::of);
     }
 
     private ListenableFuture<Entry<Namespace, ConjureUnlockResponseV2>> unlockForSingleNamespace(
@@ -231,6 +263,34 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
         return Futures.transform(
                 leaderTimeListenableFuture,
                 leaderTime -> Maps.immutableEntry(namespace, leaderTime),
+                MoreExecutors.directExecutor());
+    }
+
+    private <K, T, R> ListenableFuture<R> transformSetAsync(
+            Set<K> input, Function<K, ListenableFuture<T>> function, Function<Map<K, T>, R> mapFunction) {
+        List<ListenableFuture<Entry<K, T>>> entryFutures = input.stream()
+                .map(element -> Futures.transform(
+                        function.apply(element),
+                        result -> Maps.immutableEntry(element, result),
+                        MoreExecutors.directExecutor()))
+                .collect(Collectors.toList());
+        return Futures.transform(
+                Futures.allAsList(entryFutures),
+                entries -> mapFunction.apply(ImmutableMap.copyOf(entries)),
+                MoreExecutors.directExecutor());
+    }
+
+    private <K, V, T, R> ListenableFuture<R> transformMapAsync(
+            Map<K, V> input, BiFunction<K, V, ListenableFuture<T>> function, Function<Map<K, T>, R> mapFunction) {
+        List<ListenableFuture<Entry<K, T>>> entryFutures = KeyedStream.stream(input)
+                .map(function)
+                .map((key, result) -> Futures.transform(
+                        result, value -> Maps.immutableEntry(key, value), MoreExecutors.directExecutor()))
+                .values()
+                .collect(Collectors.toList());
+        return Futures.transform(
+                Futures.allAsList(entryFutures),
+                entries -> mapFunction.apply(ImmutableMap.copyOf(entries)),
                 MoreExecutors.directExecutor());
     }
 
