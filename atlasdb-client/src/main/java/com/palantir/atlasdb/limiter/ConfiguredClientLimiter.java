@@ -51,6 +51,7 @@ public class ConfiguredClientLimiter implements AtlasClientLimiter {
 
     @Override
     public void limitRowsRead(TableReference _tableRef, int rows) {
+        rowReadRateLimiter.setRate(config.get().rowsReadPerSecondLimit());
         if (rowReadRateLimiter.tryAcquire(rows)) {
             return;
         }
