@@ -15,41 +15,13 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.google.common.collect.Lists;
 import com.palantir.lock.LockDescriptor;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
 import java.util.Set;
 
-public class LockCollection {
+final class LockCollection {
+    private final ExclusiveLockCollection exclusiveLocks = new ExclusiveLockCollection();
 
-    private final LoadingCache<LockDescriptor, AsyncLock> locksById;
-
-    public LockCollection() {
-        locksById = Caffeine.newBuilder().weakValues().build(ExclusiveLock::new);
-    }
-
-    public OrderedLocks getAll(Set<LockDescriptor> descriptors) {
-        List<LockDescriptor> orderedDescriptors = sort(descriptors);
-
-        List<AsyncLock> locks = Lists.newArrayListWithExpectedSize(descriptors.size());
-        for (LockDescriptor descriptor : orderedDescriptors) {
-            locks.add(getLock(descriptor));
-        }
-
-        return OrderedLocks.fromOrderedList(locks);
-    }
-
-    private static List<LockDescriptor> sort(Set<LockDescriptor> descriptors) {
-        List<LockDescriptor> orderedDescriptors = new ArrayList<>(descriptors);
-        orderedDescriptors.sort(Comparator.naturalOrder());
-        return orderedDescriptors;
-    }
-
-    private AsyncLock getLock(LockDescriptor descriptor) {
-        return locksById.get(descriptor);
+    OrderedLocks getAllExclusive(Set<LockDescriptor> descriptors) {
+        return exclusiveLocks.getAll(descriptors);
     }
 }

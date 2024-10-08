@@ -75,7 +75,7 @@ public class AsyncLockServiceTest {
         when(acquirer.acquireLocks(any(), any(), any())).thenReturn(new AsyncResult<>());
         when(acquirer.acquireLocks(any(), any(), any(), any())).thenReturn(new AsyncResult<>());
         when(acquirer.waitForLocks(any(), any(), any())).thenReturn(new AsyncResult<>());
-        when(locks.getAll(any())).thenReturn(OrderedLocks.fromSingleLock(newLock()));
+        when(locks.getAllExclusive(any())).thenReturn(OrderedLocks.fromSingleLock(newLock()));
         when(immutableTimestampTracker.getImmutableTimestamp()).thenReturn(Optional.empty());
         when(immutableTimestampTracker.getLockFor(anyLong())).thenReturn(newLock());
     }
@@ -84,7 +84,7 @@ public class AsyncLockServiceTest {
     public void passesOrderedLocksToAcquirer() {
         OrderedLocks expected = orderedLocks(newLock(), newLock());
         Set<LockDescriptor> descriptors = descriptors(LOCK_A, LOCK_B);
-        when(locks.getAll(descriptors)).thenReturn(expected);
+        when(locks.getAllExclusive(descriptors)).thenReturn(expected);
 
         lockService.lock(REQUEST_ID, descriptors, DEADLINE);
 
@@ -95,7 +95,7 @@ public class AsyncLockServiceTest {
     public void passesOrderedLocksToAcquirerWhenWaitingForLocks() {
         OrderedLocks expected = orderedLocks(newLock(), newLock());
         Set<LockDescriptor> descriptors = descriptors(LOCK_A, LOCK_B);
-        when(locks.getAll(descriptors)).thenReturn(expected);
+        when(locks.getAllExclusive(descriptors)).thenReturn(expected);
 
         lockService.waitForLocks(REQUEST_ID, descriptors, DEADLINE);
 

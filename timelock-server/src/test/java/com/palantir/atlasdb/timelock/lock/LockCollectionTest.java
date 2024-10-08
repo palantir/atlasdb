@@ -36,7 +36,7 @@ public class LockCollectionTest {
     public void createsLocksOnDemand() {
         Set<LockDescriptor> descriptors = descriptors("foo", "bar");
 
-        List<AsyncLock> locks = lockCollection.getAll(descriptors).get();
+        List<AsyncLock> locks = lockCollection.getAllExclusive(descriptors).get();
 
         assertThat(locks).hasSize(2);
         assertThat(ImmutableSet.copyOf(locks)).hasSize(2);
@@ -46,8 +46,8 @@ public class LockCollectionTest {
     public void returnsSameLockForMultipleRequests() {
         Set<LockDescriptor> descriptors = descriptors("foo", "bar");
 
-        List<AsyncLock> locks1 = lockCollection.getAll(descriptors).get();
-        List<AsyncLock> locks2 = lockCollection.getAll(descriptors).get();
+        List<AsyncLock> locks1 = lockCollection.getAllExclusive(descriptors).get();
+        List<AsyncLock> locks2 = lockCollection.getAllExclusive(descriptors).get();
 
         assertThat(locks1).containsExactlyElementsOf(locks2);
     }
@@ -60,12 +60,13 @@ public class LockCollectionTest {
                 .sorted()
                 .collect(Collectors.toList());
         List<AsyncLock> expectedOrder = orderedDescriptors.stream()
-                .map(descriptor -> lockCollection.getAll(ImmutableSet.of(descriptor)))
+                .map(descriptor -> lockCollection.getAllExclusive(ImmutableSet.of(descriptor)))
                 .map(orderedLocks -> orderedLocks.get().get(0))
                 .collect(Collectors.toList());
 
-        List<AsyncLock> actualOrder =
-                lockCollection.getAll(ImmutableSet.copyOf(orderedDescriptors)).get();
+        List<AsyncLock> actualOrder = lockCollection
+                .getAllExclusive(ImmutableSet.copyOf(orderedDescriptors))
+                .get();
 
         assertThat(actualOrder).containsExactlyElementsOf(expectedOrder);
     }
