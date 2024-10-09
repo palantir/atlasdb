@@ -22,7 +22,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.refreshable.Refreshable;
 import java.io.Closeable;
 import java.time.Duration;
-import javax.ws.rs.ServiceUnavailableException;
 import org.immutables.value.Value;
 
 public class ConfiguredClientLimiter implements AtlasClientLimiter {
@@ -49,7 +48,7 @@ public class ConfiguredClientLimiter implements AtlasClientLimiter {
             return rangeScanConcurrency::release;
         }
 
-        throw new ServiceUnavailableException();
+        throw new ClientLimiterException();
     }
 
     @Override
@@ -60,7 +59,7 @@ public class ConfiguredClientLimiter implements AtlasClientLimiter {
             return;
         }
 
-        throw new ServiceUnavailableException();
+        throw new ClientLimiterException();
     }
 
     @Value.Immutable

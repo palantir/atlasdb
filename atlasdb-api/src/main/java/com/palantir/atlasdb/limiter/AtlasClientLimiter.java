@@ -23,4 +23,6 @@ public interface AtlasClientLimiter {
     void limitRowsRead(TableReference _tableRef, int rows);
 
     Closeable limitRangeScan(TableReference tableRef);
+
+    class ClientLimiterException extends RuntimeException {}
 }

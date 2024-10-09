@@ -18,6 +18,7 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
+import com.palantir.atlasdb.limiter.AtlasClientLimiter.ClientLimiterException;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -205,7 +206,8 @@ class CassandraRequestExceptionHandler {
         return isConnectionException(ex)
                 || isTransientException(ex)
                 || isIndicativeOfCassandraLoad(ex)
-                || isFastFailoverException(ex);
+                || isFastFailoverException(ex)
+                || isClientLimiterException(ex);
     }
 
     // Group exceptions by type.
@@ -242,6 +244,10 @@ class CassandraRequestExceptionHandler {
         return ex != null
                 // underlying cassandra table does not exist. The table might exist on other cassandra nodes.
                 && (ex instanceof InvalidRequestException || isFastFailoverException(ex.getCause()));
+    }
+
+    static boolean isClientLimiterException(Throwable ex) {
+        return ex != null && (ex instanceof ClientLimiterException || isClientLimiterException(ex.getCause()));
     }
 
     static boolean isExceptionNotImplicatingThisParticularNode(Throwable ex) {
