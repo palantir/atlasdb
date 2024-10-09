@@ -24,6 +24,7 @@ import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.ImmutableCassandraClientConfig.SocketTimeoutMillisBuildStage;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
+import com.palantir.atlasdb.limiter.AtlasClientLimiter;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.annotations.ImmutablesStyles.StagedBuilderStyle;
@@ -79,12 +80,14 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     private final TimedRunner timedRunner;
     private final TSocketFactory tSocketFactory;
     private final CassandraClientMetrics cassandraClientMetrics;
+    private final AtlasClientLimiter clientLimiter;
 
     public CassandraClientFactory(
             MetricsManager metricsManager,
             CassandraServer cassandraServer,
             CassandraClientConfig clientConfig,
-            CassandraClientMetrics cassandraClientMetrics) {
+            CassandraClientMetrics cassandraClientMetrics,
+            AtlasClientLimiter clientLimiter) {
         this.metricsManager = metricsManager;
         this.cassandraServer = cassandraServer;
         this.clientConfig = clientConfig;
@@ -92,12 +95,14 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         this.timedRunner = TimedRunner.create(clientConfig.timeoutOnConnectionClose());
         this.tSocketFactory = new InstrumentedTSocket.Factory(metricsManager);
         this.cassandraClientMetrics = cassandraClientMetrics;
+        this.clientLimiter = clientLimiter;
     }
 
     @Override
     public CassandraClient create() {
         try {
-            return instrumentClient(getRawClientWithKeyspaceSet());
+            CassandraClient client = instrumentClient(getRawClientWithKeyspaceSet());
+            return new RateLimitingCassandraClient(client, clientLimiter);
         } catch (Exception e) {
             String message = String.format(
                     "Failed to construct client for %s/%s", cassandraServer.proxy(), clientConfig.keyspace());

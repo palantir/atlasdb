@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraC
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolHostLevelMetric;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
+import com.palantir.atlasdb.limiter.AtlasClientLimiter;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.pooling.PoolingContainer;
@@ -72,6 +73,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
     private final int poolNumber;
     private final CassandraClientPoolMetrics poolMetrics;
     private final TimedRunner timedRunner;
+    private final AtlasClientLimiter clientLimiter;
 
     public CassandraClientPoolingContainer(
             MetricsManager metricsManager,
@@ -79,7 +81,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
             CassandraKeyValueServiceConfig config,
             int poolNumber,
             CassandraClientPoolMetrics poolMetrics,
-            CassandraClientMetrics cassandraClientMetrics) {
+            CassandraClientMetrics cassandraClientMetrics,
+            AtlasClientLimiter clientLimiter) {
         this.metricsManager = metricsManager;
         this.cassandraServer = cassandraServer;
         this.proxy = cassandraServer.proxy();
@@ -88,6 +91,7 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
         this.poolMetrics = poolMetrics;
         this.clientPool = createClientPool(cassandraClientMetrics);
         this.timedRunner = TimedRunner.create(config.timeoutOnConnectionBorrow().toJavaDuration());
+        this.clientLimiter = clientLimiter;
     }
 
     public CassandraServer getCassandraServer() {
@@ -293,8 +297,8 @@ public class CassandraClientPoolingContainer implements PoolingContainer<Cassand
      */
     private GenericObjectPool<CassandraClient> createClientPool(CassandraClientMetrics cassandraClientMetrics) {
         CassandraClientConfig clientConfig = CassandraClientConfig.of(config);
-        CassandraClientFactory cassandraClientFactory =
-                new CassandraClientFactory(metricsManager, cassandraServer, clientConfig, cassandraClientMetrics);
+        CassandraClientFactory cassandraClientFactory = new CassandraClientFactory(
+                metricsManager, cassandraServer, clientConfig, cassandraClientMetrics, clientLimiter);
         GenericObjectPoolConfig<CassandraClient> poolConfig = new GenericObjectPoolConfig<>();
 
         poolConfig.setMinIdle(config.poolSize());

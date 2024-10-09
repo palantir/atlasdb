@@ -359,7 +359,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             boolean initializeAsync,
             AtlasClientLimiter clientLimiter) {
         CassandraClientPool clientPool =
-                CassandraClientPoolImpl.create(metricsManager, config, runtimeConfig, initializeAsync);
+                CassandraClientPoolImpl.create(metricsManager, config, runtimeConfig, initializeAsync, clientLimiter);
 
         return createOrShutdownClientPool(
                 metricsManager,

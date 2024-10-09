@@ -41,6 +41,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraUtils;
 import com.palantir.atlasdb.keyvalue.cassandra.FilteredCassandraClientMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.LightweightOppToken;
 import com.palantir.atlasdb.keyvalue.cassandra.UnfilteredCassandraClientMetrics;
+import com.palantir.atlasdb.limiter.AtlasClientLimiter;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
@@ -92,6 +93,7 @@ public final class CassandraService implements AutoCloseable {
     private final CassandraKeyValueServiceConfig config;
     private final Blacklist blacklist;
     private final CassandraClientPoolMetrics poolMetrics;
+    private final AtlasClientLimiter clientLimiter;
     private final Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig;
 
     private volatile ImmutableRangeMap<LightweightOppToken, ImmutableSet<CassandraServer>> tokenMap =
@@ -114,7 +116,8 @@ public final class CassandraService implements AutoCloseable {
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             Blacklist blacklist,
             CassandraClientPoolMetrics poolMetrics,
-            CassandraClientMetrics cassandraClientMetrics) {
+            CassandraClientMetrics cassandraClientMetrics,
+            AtlasClientLimiter clientLimiter) {
         this.metricsManager = metricsManager;
         this.config = config;
         this.runtimeConfig = runtimeConfig;
@@ -122,6 +125,7 @@ public final class CassandraService implements AutoCloseable {
                 AsyncSupplier.create(HostLocationSupplier.create(this::getSnitch, config.overrideHostLocation()));
         this.blacklist = blacklist;
         this.poolMetrics = poolMetrics;
+        this.clientLimiter = clientLimiter;
 
         Supplier<Map<String, String>> hostnamesByIpSupplier =
                 new HostnamesByIpSupplier(this::getAllNonBlacklistedHosts);
@@ -134,7 +138,8 @@ public final class CassandraService implements AutoCloseable {
             CassandraKeyValueServiceConfig config,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             Blacklist blacklist,
-            CassandraClientPoolMetrics poolMetrics) {
+            CassandraClientPoolMetrics poolMetrics,
+            AtlasClientLimiter clientLimiter) {
         return new CassandraService(
                 metricsManager,
                 config,
@@ -142,7 +147,8 @@ public final class CassandraService implements AutoCloseable {
                 blacklist,
                 poolMetrics,
                 FilteredCassandraClientMetrics.create(
-                        metricsManager.getTaggedRegistry(), PTExecutors.newSingleThreadScheduledExecutor()));
+                        metricsManager.getTaggedRegistry(), PTExecutors.newSingleThreadScheduledExecutor()),
+                clientLimiter);
     }
 
     public static CassandraService createForTests(
@@ -150,14 +156,16 @@ public final class CassandraService implements AutoCloseable {
             CassandraKeyValueServiceConfig config,
             Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
             Blacklist blacklist,
-            CassandraClientPoolMetrics poolMetrics) {
+            CassandraClientPoolMetrics poolMetrics,
+            AtlasClientLimiter clientLimiter) {
         return new CassandraService(
                 metricsManager,
                 config,
                 runtimeConfig,
                 blacklist,
                 poolMetrics,
-                new UnfilteredCassandraClientMetrics(metricsManager.getTaggedRegistry()));
+                new UnfilteredCassandraClientMetrics(metricsManager.getTaggedRegistry()),
+                clientLimiter);
     }
 
     @Override
@@ -528,7 +536,7 @@ public final class CassandraService implements AutoCloseable {
     public CassandraClientPoolingContainer createPool(CassandraServer server) {
         int currentPoolNumber = cassandraHosts.indexOf(server) + 1;
         return new CassandraClientPoolingContainer(
-                metricsManager, server, config, currentPoolNumber, poolMetrics, cassandraClientMetrics);
+                metricsManager, server, config, currentPoolNumber, poolMetrics, cassandraClientMetrics, clientLimiter);
     }
 
     public void addPool(CassandraServer server) {
