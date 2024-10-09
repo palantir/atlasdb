@@ -138,12 +138,20 @@ public class AsyncLockService implements Closeable {
         return immutableTimestampLockResult;
     }
 
+    public AsyncResult<Leased<LockToken>> lockNamedMinTimestamp(String timestampName, UUID requestId, long timestamp) {
+        return heldLocks.getExistingOrAcquire(requestId, () -> acquireNamedMinTimestampLock(timestampName, requestId, timestamp));
+    }
+
     public AsyncResult<Void> waitForLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
         return awaitedLocks.getExistingOrAwait(requestId, () -> awaitLocks(requestId, lockDescriptors, timeout));
     }
 
     public Optional<Long> getImmutableTimestamp() {
         return locks.getImmutableTimestamp();
+    }
+
+    public Optional<Long> getNamedMinTimestamp(String timestampName) {
+        return locks.getNamedMinTimestamp(timestampName);
     }
 
     private AsyncResult<HeldLocks> acquireLocks(
@@ -163,6 +171,11 @@ public class AsyncLockService implements Closeable {
     private AsyncResult<HeldLocks> acquireImmutableTimestampLock(UUID requestId, long timestamp) {
         AsyncLock immutableTsLock = locks.getImmutableTimestampLock(timestamp);
         return lockAcquirer.acquireLocks(requestId, OrderedLocks.fromSingleLock(immutableTsLock), TimeLimit.zero());
+    }
+
+    private AsyncResult<HeldLocks> acquireNamedMinTimestampLock(String timestampName, UUID requestId, long timestamp) {
+        AsyncLock lock = locks.getNamedMinTimestampLock(timestampName, timestamp);
+        return lockAcquirer.acquireLocks(requestId, OrderedLocks.fromSingleLock(lock), TimeLimit.zero());
     }
 
     public boolean unlock(LockToken token) {
