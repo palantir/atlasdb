@@ -22,6 +22,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureTimestampRange;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.timelock.api.NamedMinTimestampLeaseResponse;
@@ -256,14 +257,30 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public ListenableFuture<NamedMinTimestampLeaseResponse> acquireNamedMinTimestampLease(
             TimestampName timestampName, UUID requestId, int numFreshTimestamps) {
-        // TODO(aalouane): implement this method
-        throw new UnsupportedOperationException("Not implemented yet");
+        long timestamp = timestampService.getFreshTimestamp();
+
+        Leased<LockToken> leasedLock = lockService
+                .lockNamedMinTimestamp(timestampName.get(), requestId, timestamp)
+                .get();
+        long minLeased = lockService.getNamedMinTimestamp(timestampName.get()).orElse(timestamp);
+
+        TimestampRange timestampRange = timestampService.getFreshTimestamps(numFreshTimestamps);
+
+        ConjureTimestampRange freshTimestamps =
+                ConjureTimestampRange.of(timestampRange.getLowerBound(), timestampRange.size());
+
+        return Futures.immediateFuture(NamedMinTimestampLeaseResponse.builder()
+                .minLeased(minLeased)
+                .lock(leasedLock.value())
+                .freshTimestamps(freshTimestamps)
+                .build());
     }
 
     @Override
     public ListenableFuture<Long> getMinLeasedNamedTimestamp(TimestampName timestampName) {
-        // TODO(aalouane): implement this method
-        throw new UnsupportedOperationException("Not implemented yet");
+        long timestamp = timestampService.getFreshTimestamp();
+        return Futures.immediateFuture(
+                lockService.getNamedMinTimestamp(timestampName.get()).orElse(timestamp));
     }
 
     @Override
