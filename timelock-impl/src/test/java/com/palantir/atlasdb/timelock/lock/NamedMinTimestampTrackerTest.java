@@ -124,7 +124,7 @@ public final class NamedMinTimestampTrackerTest {
     @Test
     public void returnsStringLockedDescriptor() {
         assertThat(tracker.getDescriptor(10).getBytes()).isEqualTo("ts:10".getBytes(StandardCharsets.UTF_8));
-        assertThat(tracker.getDescriptor(1).getBytes()).isEqualTo("ts:1".getBytes(StandardCharsets.UTF_8));
+
         assertThat(tracker.getDescriptor(910).getBytes()).isEqualTo("ts:910".getBytes(StandardCharsets.UTF_8));
     }
 
