@@ -53,7 +53,11 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.NamedMinTimestampLeaseRequest;
+import com.palantir.atlasdb.timelock.api.NamedMinTimestampLeaseResponse;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
+import com.palantir.atlasdb.timelock.api.TimestampName;
 import com.palantir.atlasdb.timelock.api.UndertowConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
 import com.palantir.conjure.java.undertow.lib.RequestContext;
@@ -365,6 +369,24 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         });
     }
 
+    @Override
+    public ListenableFuture<NamedMinTimestampLeaseResponse> acquireNamedMinTimestampLease(
+            AuthHeader authHeader,
+            Namespace namespace,
+            TimestampName timestampName,
+            NamedMinTimestampLeaseRequest request,
+            RequestContext context) {
+        return handleExceptions(() -> forNamespace(namespace.get(), TimelockNamespaces.toUserAgent(context))
+                .acquireNamedMinTimestampLease(timestampName, request.getRequestId(), request.getNumFreshTimestamps()));
+    }
+
+    @Override
+    public ListenableFuture<Long> getMinLeasedNamedTimestamp(
+            AuthHeader authHeader, Namespace namespace, TimestampName timestampName, RequestContext context) {
+        return handleExceptions(() -> forNamespace(namespace.get(), TimelockNamespaces.toUserAgent(context))
+                .getMinLeasedNamedTimestamp(timestampName));
+    }
+
     private ListenableFuture<GetCommitTimestampsResponse> getCommitTimestampsInternal(
             String namespace,
             @Nullable RequestContext context,
@@ -461,6 +483,21 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         public GetCommitTimestampResponse getCommitTimestamp(
                 AuthHeader authHeader, String namespace, GetCommitTimestampRequest request) {
             return unwrap(resource.getCommitTimestamp(authHeader, namespace, request, null));
+        }
+
+        @Override
+        public NamedMinTimestampLeaseResponse acquireNamedMinTimestampLease(
+                AuthHeader authHeader,
+                Namespace namespace,
+                TimestampName timestampName,
+                NamedMinTimestampLeaseRequest request) {
+            return unwrap(resource.acquireNamedMinTimestampLease(authHeader, namespace, timestampName, request, null));
+        }
+
+        @Override
+        public long getMinLeasedNamedTimestamp(
+                AuthHeader authHeader, Namespace namespace, TimestampName timestampName) {
+            return unwrap(resource.getMinLeasedNamedTimestamp(authHeader, namespace, timestampName, null));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {

@@ -39,6 +39,10 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.NamedMinTimestampLeaseRequest;
+import com.palantir.atlasdb.timelock.api.NamedMinTimestampLeaseResponse;
+import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.timelock.api.TimestampName;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
 
@@ -127,5 +131,19 @@ public final class TimeoutSensitiveConjureTimelockService implements ConjureTime
     public GetCommitTimestampResponse getCommitTimestamp(
             AuthHeader authHeader, String namespace, GetCommitTimestampRequest request) {
         return shortTimeoutProxy.getCommitTimestamp(authHeader, namespace, request);
+    }
+
+    @Override
+    public NamedMinTimestampLeaseResponse acquireNamedMinTimestampLease(
+            AuthHeader authHeader,
+            Namespace namespace,
+            TimestampName timestampName,
+            NamedMinTimestampLeaseRequest request) {
+        return shortTimeoutProxy.acquireNamedMinTimestampLease(authHeader, namespace, timestampName, request);
+    }
+
+    @Override
+    public long getMinLeasedNamedTimestamp(AuthHeader authHeader, Namespace namespace, TimestampName timestampName) {
+        return shortTimeoutProxy.getMinLeasedNamedTimestamp(authHeader, namespace, timestampName);
     }
 }
