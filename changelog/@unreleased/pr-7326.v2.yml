@@ -1,0 +1,9 @@
+type: fix
+fix:
+  description: |-
+    - Bump for gradle-baseline-java
+    - Fixed the ClassInitializationDeadlock error caused by the gradle-baseline-java version bump. The fix uses an anonymous class interface, which will delay the instantiation until required, and therefore reducing the risk of a jvm loop leading to ClassInitializationDeadlock.
+
+    Excavator:  Upgrades Baseline to the latest version
+  links:
+  - https://github.com/palantir/atlasdb/pull/7326
