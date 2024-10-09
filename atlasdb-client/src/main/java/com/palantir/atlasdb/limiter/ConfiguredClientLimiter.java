@@ -27,7 +27,7 @@ import org.immutables.value.Value;
 
 public class ConfiguredClientLimiter implements AtlasClientLimiter {
 
-    private static final Duration rowsReadWaitDuration = Duration.ofSeconds(5);
+    private static final Duration rowsReadWaitDuration = Duration.ofSeconds(10);
 
     private final Refreshable<Config> config;
     private final ResizableSemaphore rangeScanConcurrency;
