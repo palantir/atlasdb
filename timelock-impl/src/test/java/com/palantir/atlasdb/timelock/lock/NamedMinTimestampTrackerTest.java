@@ -76,8 +76,8 @@ public final class NamedMinTimestampTrackerTest {
     public void unlockingATimestampThatIsNotLockedThrows() {
         assertThatLoggableExceptionThrownBy(() -> unlock(TIMESTAMP_1, REQUEST_1))
                 .isInstanceOf(SafeIllegalStateException.class)
-                .hasLogMessage(
-                        "A request attempted to unlock a timestamp that was not locked or was locked by another request")
+                .hasLogMessage("A request attempted to unlock a timestamp that was not locked or was locked by another"
+                        + " request")
                 .hasExactlyArgs(
                         SafeArg.of("timestamp", TIMESTAMP_1),
                         SafeArg.of("requestId", REQUEST_1),
