@@ -22,7 +22,7 @@ libsDirName = file('build/artifacts')
 
 task clientTestJar(type: Jar) {
     from sourceSets.test.output
-    classifier = 'tests'
+    archiveClassifier = 'tests'
 }
 
 configurations {
