@@ -139,7 +139,8 @@ public class AsyncLockService implements Closeable {
     }
 
     public AsyncResult<Leased<LockToken>> lockNamedMinTimestamp(String timestampName, UUID requestId, long timestamp) {
-        return heldLocks.getExistingOrAcquire(requestId, () -> acquireNamedMinTimestampLock(timestampName, requestId, timestamp));
+        return heldLocks.getExistingOrAcquire(
+                requestId, () -> acquireNamedMinTimestampLock(timestampName, requestId, timestamp));
     }
 
     public AsyncResult<Void> waitForLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
