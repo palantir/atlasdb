@@ -28,6 +28,14 @@ final class LockCollection {
         return exclusiveLocks.getAll(descriptors);
     }
 
+    Optional<Long> getNamedMinTimestamp(String timestampName) {
+        return namedMinTimestampLockCollection.getNamedMinTimestamp(timestampName);
+    }
+
+    AsyncLock getNamedMinTimestampLock(String timestampName, long timestamp) {
+        return namedMinTimestampLockCollection.getNamedMinTimestampLock(timestampName, timestamp);
+    }
+
     Optional<Long> getImmutableTimestamp() {
         return namedMinTimestampLockCollection.getImmutableTimestamp();
     }
