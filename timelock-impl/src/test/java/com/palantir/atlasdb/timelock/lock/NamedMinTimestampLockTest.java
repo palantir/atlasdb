@@ -18,6 +18,7 @@ package com.palantir.atlasdb.timelock.lock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -66,9 +67,9 @@ public final class NamedMinTimestampLockTest {
 
     @Test
     public void lockDescriptorMatchesFormat() {
-        assertThat(createLock(5).getDescriptor().getBytes()).isEqualTo("ts:5".getBytes());
+        assertThat(createLock(5).getDescriptor().getBytes()).isEqualTo("ts:5".getBytes(StandardCharsets.UTF_8));
 
-        assertThat(createLock(10).getDescriptor().getBytes()).isEqualTo("ts:10".getBytes());
+        assertThat(createLock(10).getDescriptor().getBytes()).isEqualTo("ts:10".getBytes(StandardCharsets.UTF_8));
     }
 
     private AsyncLock createLock(long timestamp) {
