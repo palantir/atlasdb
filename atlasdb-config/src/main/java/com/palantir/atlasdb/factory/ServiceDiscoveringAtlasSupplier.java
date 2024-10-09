@@ -179,9 +179,9 @@ public class ServiceDiscoveringAtlasSupplier {
     private void reportMultipleTimestampFetch(String path) {
         log.warn(
                 "[timestamp-service-creation] Timestamp service fetched for a second time. This means that you may"
-                        + " soon encounter the MultipleRunningTimestampServices error. Thread dumps from both fetches of"
-                        + " the timestamp service have been outputted to {}. If you encounter a"
-                        + " MultipleRunningTimestampServices error, please send this file to support.",
+                    + " soon encounter the MultipleRunningTimestampServices error. Thread dumps from both fetches of"
+                    + " the timestamp service have been outputted to {}. If you encounter a"
+                    + " MultipleRunningTimestampServices error, please send this file to support.",
                 UnsafeArg.of("path", path));
     }
 
