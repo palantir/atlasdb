@@ -31,9 +31,7 @@ public final class NamedMinTimestampTrackerTest {
 
     private static final long TIMESTAMP_1 = 5L;
 
-    private static final String NAME = "ts";
-
-    private final NamedMinTimestampTracker tracker = new NamedMinTimestampTracker(NAME);
+    private final NamedMinTimestampTracker tracker = new NamedMinTimestampTracker("ts");
 
     @Test
     public void registersTimestampWhenLocked() {
@@ -52,19 +50,6 @@ public final class NamedMinTimestampTrackerTest {
         tracker.unlock(TIMESTAMP_1, REQUEST_1);
         assertThat(tracker.getMinimumTimestamp()).isEmpty();
     }
-
-    // @Test
-    // public void tracksTimestampsInOrder() {
-    //    AsyncLock lock2 = tracker.getLockFor(TIMESTAMP_2);
-    //    lock2.lock(REQUEST_1);
-    //    AsyncLock lock1 = tracker.getLockFor(TIMESTAMP_1);
-    //    lock1.lock(REQUEST_2);
-
-    //    assertThat(tracker.getImmutableTimestamp().get()).isEqualTo(TIMESTAMP_1);
-
-    //    lock1.unlock(REQUEST_2);
-    //    assertThat(tracker.getImmutableTimestamp().get()).isEqualTo(TIMESTAMP_2);
-    // }
 
     @Test
     public void lockingSameTimestampTwiceThrows() {
@@ -122,7 +107,7 @@ public final class NamedMinTimestampTrackerTest {
     }
 
     @Test
-    public void returnsStringLockedDescriptor() {
+    public void lockDescriptorMatchesFormat() {
         assertThat(tracker.getDescriptor(10).getBytes()).isEqualTo("ts:10".getBytes(StandardCharsets.UTF_8));
 
         assertThat(tracker.getDescriptor(910).getBytes()).isEqualTo("ts:910".getBytes(StandardCharsets.UTF_8));
