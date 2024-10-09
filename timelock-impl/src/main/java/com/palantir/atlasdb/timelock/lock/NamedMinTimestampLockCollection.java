@@ -18,10 +18,18 @@ package com.palantir.atlasdb.timelock.lock;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.util.Optional;
+import java.util.Set;
 
 final class NamedMinTimestampLockCollection {
     private static final String IMMUTABLE_TIMESTAMP_NAME = "ImmutableTimestamp";
+
+    // Interactions with the immutable timestamp collection is separated from interactions
+    // with any other named timestamp. As such, "ImmutableTimestamp" should never be added
+    // to the allowed timestamp names.
+    private static final Set<String> ALLOWED_TIMESTAMP_NAMES = Set.of("CommitImmutableTimestamp");
 
     private final LoadingCache<String, NamedMinTimestampTracker> namedMinTimestampTrackers =
             Caffeine.newBuilder().build(NamedMinTimestampTracker::new);
@@ -34,6 +42,16 @@ final class NamedMinTimestampLockCollection {
         return getNamedMinTimestampInternal(IMMUTABLE_TIMESTAMP_NAME);
     }
 
+    AsyncLock getNamedMinTimestampLock(String timestampName, long timestamp) {
+        validateTimestampName(timestampName);
+        return getNamedMinTimestampLockInternal(timestampName, timestamp);
+    }
+
+    Optional<Long> getNamedMinTimestamp(String timestampName) {
+        validateTimestampName(timestampName);
+        return getNamedMinTimestampInternal(timestampName);
+    }
+
     private AsyncLock getNamedMinTimestampLockInternal(String name, long timestamp) {
         return NamedMinTimestampLock.create(getNamedMinTimestampTracker(name), timestamp);
     }
@@ -44,5 +62,10 @@ final class NamedMinTimestampLockCollection {
 
     private NamedMinTimestampTracker getNamedMinTimestampTracker(String name) {
         return namedMinTimestampTrackers.get(name);
+    }
+
+    private static void validateTimestampName(String name) {
+        Preconditions.checkArgument(
+                ALLOWED_TIMESTAMP_NAMES.contains(name), "Unknown named timestamp", SafeArg.of("name", name));
     }
 }
