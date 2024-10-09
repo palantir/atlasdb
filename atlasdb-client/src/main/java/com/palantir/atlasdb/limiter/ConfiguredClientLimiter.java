@@ -21,10 +21,13 @@ import com.google.errorprone.annotations.MustBeClosed;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.refreshable.Refreshable;
 import java.io.Closeable;
+import java.time.Duration;
 import javax.ws.rs.ServiceUnavailableException;
 import org.immutables.value.Value;
 
 public class ConfiguredClientLimiter implements AtlasClientLimiter {
+
+    private static final Duration rowsReadWaitDuration = Duration.ofSeconds(5);
 
     private final Refreshable<Config> config;
     private final ResizableSemaphore rangeScanConcurrency;
@@ -52,7 +55,8 @@ public class ConfiguredClientLimiter implements AtlasClientLimiter {
     @Override
     public void limitRowsRead(TableReference _tableRef, int rows) {
         rowReadRateLimiter.setRate(config.get().rowsReadPerSecondLimit());
-        if (rowReadRateLimiter.tryAcquire(rows)) {
+
+        if (rowReadRateLimiter.tryAcquire(rowsReadWaitDuration)) {
             return;
         }
 
