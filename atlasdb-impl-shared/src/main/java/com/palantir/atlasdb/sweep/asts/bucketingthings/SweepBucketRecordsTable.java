@@ -19,6 +19,9 @@ package com.palantir.atlasdb.sweep.asts.bucketingthings;
 import com.palantir.atlasdb.sweep.asts.TimestampRange;
 
 public interface SweepBucketRecordsTable {
+    /**
+     * Returns the {@link TimestampRange} for the given bucket identifier, throwing if one is not present.
+     */
     TimestampRange getTimestampRangeRecord(long bucketIdentifier);
 
     void putTimestampRangeRecord(long bucketIdentifier, TimestampRange timestampRange);
