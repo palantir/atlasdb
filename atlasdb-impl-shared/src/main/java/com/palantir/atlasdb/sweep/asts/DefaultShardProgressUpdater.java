@@ -19,7 +19,6 @@ package com.palantir.atlasdb.sweep.asts;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.sweep.asts.bucketingthings.CompletelyClosedSweepBucketBoundRetriever;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketPointerTable;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketRecordsTable;
 import com.palantir.atlasdb.sweep.asts.progress.BucketProgress;
@@ -38,19 +37,16 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
     private final BucketProgressStore bucketProgressStore;
     private final SweepQueueProgressUpdater sweepQueueProgressUpdater;
     private final SweepBucketRecordsTable recordsTable;
-    private final CompletelyClosedSweepBucketBoundRetriever boundRetriever;
     private final SweepBucketPointerTable sweepBucketPointerTable;
 
     public DefaultShardProgressUpdater(
             BucketProgressStore bucketProgressStore,
             SweepQueueProgressUpdater sweepQueueProgressUpdater,
             SweepBucketRecordsTable recordsTable,
-            CompletelyClosedSweepBucketBoundRetriever boundRetriever,
             SweepBucketPointerTable sweepBucketPointerTable) {
         this.bucketProgressStore = bucketProgressStore;
         this.sweepQueueProgressUpdater = sweepQueueProgressUpdater;
         this.recordsTable = recordsTable;
-        this.boundRetriever = boundRetriever;
         this.sweepBucketPointerTable = sweepBucketPointerTable;
     }
 
@@ -122,12 +118,7 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
     private long getStrictUpperBoundForSweptBuckets(ShardAndStrategy shardAndStrategy) {
         Set<Bucket> startingBuckets =
                 sweepBucketPointerTable.getStartingBucketsForShards(ImmutableSet.of(shardAndStrategy));
-        if (startingBuckets.isEmpty()) {
-            // Every bucket up to the last bucket guaranteed to be closed must have been fully swept.
-            return boundRetriever.getStrictUpperBoundForCompletelyClosedBuckets();
-        } else {
-            return Iterables.getOnlyElement(startingBuckets).bucketIdentifier();
-        }
+        return Iterables.getOnlyElement(startingBuckets).bucketIdentifier();
     }
 
     @Value.Immutable

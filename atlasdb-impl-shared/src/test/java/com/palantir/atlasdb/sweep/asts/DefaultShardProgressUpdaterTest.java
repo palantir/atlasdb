@@ -23,7 +23,6 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
-import com.palantir.atlasdb.sweep.asts.bucketingthings.CompletelyClosedSweepBucketBoundRetriever;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketPointerTable;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketRecordsTable;
 import com.palantir.atlasdb.sweep.asts.progress.BucketProgress;
@@ -57,9 +56,6 @@ public class DefaultShardProgressUpdaterTest {
     private SweepBucketRecordsTable recordsTable;
 
     @Mock
-    private CompletelyClosedSweepBucketBoundRetriever boundRetriever;
-
-    @Mock
     private SweepBucketPointerTable sweepBucketPointerTable;
 
     private DefaultShardProgressUpdater shardProgressUpdater;
@@ -67,7 +63,7 @@ public class DefaultShardProgressUpdaterTest {
     @BeforeEach
     public void setUp() {
         shardProgressUpdater = new DefaultShardProgressUpdater(
-                bucketProgressStore, sweepQueueProgressUpdater, recordsTable, boundRetriever, sweepBucketPointerTable);
+                bucketProgressStore, sweepQueueProgressUpdater, recordsTable, sweepBucketPointerTable);
     }
 
     @ParameterizedTest
