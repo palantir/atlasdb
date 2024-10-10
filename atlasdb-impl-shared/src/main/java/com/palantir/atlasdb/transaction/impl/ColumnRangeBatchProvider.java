@@ -17,7 +17,7 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueService;
+import com.palantir.atlasdb.cell.api.DataKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequests;
@@ -33,19 +33,19 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 public class ColumnRangeBatchProvider implements BatchProvider<Map.Entry<Cell, Value>> {
-    private final TransactionKeyValueService transactionKeyValueService;
+    private final DataKeyValueService dataKeyValueService;
     private final TableReference tableRef;
     private final byte[] row;
     private final BatchColumnRangeSelection columnRangeSelection;
     private final long timestamp;
 
     public ColumnRangeBatchProvider(
-            TransactionKeyValueService transactionKeyValueService,
+            DataKeyValueService dataKeyValueService,
             TableReference tableRef,
             byte[] row,
             BatchColumnRangeSelection columnRangeSelection,
             long timestamp) {
-        this.transactionKeyValueService = transactionKeyValueService;
+        this.dataKeyValueService = dataKeyValueService;
         this.tableRef = tableRef;
         this.row = row;
         this.columnRangeSelection = columnRangeSelection;
@@ -61,7 +61,7 @@ public class ColumnRangeBatchProvider implements BatchProvider<Map.Entry<Cell, V
         BatchColumnRangeSelection newRange =
                 BatchColumnRangeSelection.create(startCol, columnRangeSelection.getEndCol(), batchSize);
         Map<byte[], RowColumnRangeIterator> range =
-                transactionKeyValueService.getRowsColumnRange(tableRef, ImmutableList.of(row), newRange, timestamp);
+                dataKeyValueService.getRowsColumnRange(tableRef, ImmutableList.of(row), newRange, timestamp);
         if (range.isEmpty()) {
             return ClosableIterators.wrapWithEmptyClose(
                     ImmutableList.<Map.Entry<Cell, Value>>of().iterator());

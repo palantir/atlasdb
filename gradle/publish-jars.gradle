@@ -16,6 +16,10 @@ publishing {
     }
 }
 
+jdks {
+    daemonTarget = 17
+}
+
 private void replaceShadedDependencies(MavenPublication mavenPublication) {
     mavenPublication.pom.withXml {
         def shadowDependencies = getShadowDependencies(project)

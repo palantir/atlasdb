@@ -19,6 +19,7 @@ package com.palantir.atlasdb.sweep.asts.bucketingthings;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -26,6 +27,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.sweep.asts.TimestampRange;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.BucketWriter.WriteState;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.DefaultBucketAssigner.BucketAssignerMetrics;
@@ -54,6 +56,9 @@ public final class DefaultBucketAssignerTest {
     private BucketWriter bucketWriter;
 
     @Mock
+    private SweepBucketRecordsTable sweepBucketRecordsTable;
+
+    @Mock
     private BucketAssignerMetrics metrics;
 
     @Mock
@@ -65,7 +70,8 @@ public final class DefaultBucketAssignerTest {
     @BeforeEach
     public void before() {
         stateTable = new TestSweepBucketAssignerStateMachineTable(metrics);
-        bucketAssigner = new DefaultBucketAssigner(stateTable, bucketWriter, metrics, closeTimestampCalculator);
+        bucketAssigner = new DefaultBucketAssigner(
+                stateTable, bucketWriter, sweepBucketRecordsTable, metrics, closeTimestampCalculator);
     }
 
     @Test // A single call to run - i.e., we don't do one step per call where possible
@@ -76,6 +82,7 @@ public final class DefaultBucketAssignerTest {
 
         assertOperationResult(OperationResult.INCOMPLETE);
         verify(bucketWriter).writeToAllBuckets(1, Optional.empty(), TimestampRange.openBucket(1));
+        verifyNoInteractions(sweepBucketRecordsTable);
         verify(metrics).progressedToBucketIdentifier(1);
         stateTable.assertThatStateMachineTransitionedThroughTo(
                 BucketStateAndIdentifier.of(1, BucketAssignerState.opening(1)),
@@ -89,6 +96,7 @@ public final class DefaultBucketAssignerTest {
 
         assertOperationResult(OperationResult.INCOMPLETE);
         verify(bucketWriter).writeToAllBuckets(1, Optional.empty(), TimestampRange.openBucket(1));
+        verifyNoInteractions(sweepBucketRecordsTable);
         stateTable.assertThatStateMachineTransitionedThroughTo(
                 BucketStateAndIdentifier.of(1, BucketAssignerState.waitingUntilCloseable(1)));
     }
@@ -101,11 +109,12 @@ public final class DefaultBucketAssignerTest {
 
         assertOperationResult(OperationResult.INCOMPLETE);
         verifyNoInteractions(bucketWriter);
+        verifyNoInteractions(sweepBucketRecordsTable);
         stateTable.assertThatStateMachineTransitionedThroughTo(); // No transition
     }
 
     @Test
-    public void waitingForCloseTransitionsThroughClosingFromOpenToStartIfBucketCanBeClosed() {
+    public void waitingForCloseTransitionsThroughClosingFromOpenToStartIfBucketCanBeClosedAndWritesRecord() {
         stateTable.setInitialState(1, BucketAssignerState.waitingUntilCloseable(1));
         when(closeTimestampCalculator.apply(1L)).thenReturn(OptionalLong.of(10));
         when(closeTimestampCalculator.apply(10L)).thenReturn(OptionalLong.empty());
@@ -113,6 +122,7 @@ public final class DefaultBucketAssignerTest {
 
         assertOperationResult(OperationResult.CLOSED, OperationResult.INCOMPLETE);
         verify(bucketWriter).writeToAllBuckets(1, Optional.of(TimestampRange.openBucket(1)), TimestampRange.of(1, 10));
+        verify(sweepBucketRecordsTable).putTimestampRangeRecord(1, TimestampRange.of(1, 10));
         stateTable.assertThatStateMachineTransitionedThroughTo(
                 BucketStateAndIdentifier.of(1, BucketAssignerState.closingFromOpen(1, 10)),
                 // 10 was chosen as the end timestamp to show that we correctly use that as the start, and not something
@@ -124,7 +134,8 @@ public final class DefaultBucketAssignerTest {
     }
 
     @Test
-    public void closingFromOpenStateUsesOriginalStartAndEndTimestampsInsteadOfRecalculatingAndClosesBucket() {
+    public void
+            closingFromOpenStateUsesOriginalStartAndEndTimestampsInsteadOfRecalculatingAndClosesBucketAndWritesRecord() {
         stateTable.setInitialState(1, BucketAssignerState.closingFromOpen(1, 2));
         // This mock is for the _next_ bucket.
         when(closeTimestampCalculator.apply(2L)).thenReturn(OptionalLong.empty());
@@ -132,6 +143,7 @@ public final class DefaultBucketAssignerTest {
 
         assertOperationResult(OperationResult.CLOSED, OperationResult.INCOMPLETE);
         verify(bucketWriter).writeToAllBuckets(1, Optional.of(TimestampRange.openBucket(1)), TimestampRange.of(1, 2));
+        verify(sweepBucketRecordsTable).putTimestampRangeRecord(1, TimestampRange.of(1, 2));
         // We'll start the next iteration of buckets, but stop because we can't close it.
         stateTable.assertThatStateMachineTransitionedThroughTo(
                 BucketStateAndIdentifier.of(2, BucketAssignerState.start(2)),
@@ -141,7 +153,7 @@ public final class DefaultBucketAssignerTest {
     }
 
     @Test
-    public void startTransitionsThroughImmediatelyClosingToStartIfBucketCanBeImmediatelyClosed() {
+    public void startTransitionsThroughImmediatelyClosingToStartIfBucketCanBeImmediatelyClosedAndWritesRecord() {
         stateTable.setInitialState(1, BucketAssignerState.start(1));
         when(closeTimestampCalculator.apply(1L)).thenReturn(OptionalLong.of(15));
         when(closeTimestampCalculator.apply(15L)).thenReturn(OptionalLong.empty());
@@ -149,6 +161,7 @@ public final class DefaultBucketAssignerTest {
 
         assertOperationResult(OperationResult.CLOSED, OperationResult.INCOMPLETE);
         verify(bucketWriter).writeToAllBuckets(1, Optional.empty(), TimestampRange.of(1, 15));
+        verify(sweepBucketRecordsTable).putTimestampRangeRecord(1, TimestampRange.of(1, 15));
         stateTable.assertThatStateMachineTransitionedThroughTo(
                 BucketStateAndIdentifier.of(1, BucketAssignerState.immediatelyClosing(1, 15)),
                 BucketStateAndIdentifier.of(2, BucketAssignerState.start(15)),
@@ -157,7 +170,7 @@ public final class DefaultBucketAssignerTest {
     }
 
     @Test
-    public void immediatelyClosingUsesOriginalTimestampsInsteadOfRecalculatingAndClosesBucket() {
+    public void immediatelyClosingUsesOriginalTimestampsInsteadOfRecalculatingAndClosesBucketAndWritesRecord() {
         stateTable.setInitialState(1, BucketAssignerState.immediatelyClosing(1, 15));
         // This mock is for the _next_ bucket.
         when(closeTimestampCalculator.apply(15L)).thenReturn(OptionalLong.empty());
@@ -165,6 +178,7 @@ public final class DefaultBucketAssignerTest {
 
         assertOperationResult(OperationResult.CLOSED, OperationResult.INCOMPLETE);
         verify(bucketWriter).writeToAllBuckets(1, Optional.empty(), TimestampRange.of(1, 15));
+        verify(sweepBucketRecordsTable).putTimestampRangeRecord(1, TimestampRange.of(1, 15));
         stateTable.assertThatStateMachineTransitionedThroughTo(
                 BucketStateAndIdentifier.of(2, BucketAssignerState.start(15)),
                 BucketStateAndIdentifier.of(2, BucketAssignerState.opening(15)),
@@ -218,6 +232,7 @@ public final class DefaultBucketAssignerTest {
         bucketAssigner.run();
         assertOperationResult(OperationResult.CONTENTION_ON_WRITES);
         stateTable.assertThatStateMachineTransitionedThroughTo(); // No transition
+        verifyNoInteractions(sweepBucketRecordsTable);
     }
 
     @ParameterizedTest(name = "State: {0}")
@@ -230,6 +245,7 @@ public final class DefaultBucketAssignerTest {
 
         assertThatThrownBy(bucketAssigner::run).isEqualTo(RUNTIME_EXCEPTION);
         stateTable.assertThatStateMachineTransitionedThroughTo(); // No transition
+        verifyNoInteractions(sweepBucketRecordsTable);
     }
 
     @ParameterizedTest(name = "State: {0}")
@@ -248,6 +264,7 @@ public final class DefaultBucketAssignerTest {
         bucketAssigner.run();
         assertOperationResult(OperationResult.CONTENTION_ON_WRITES);
         stateTable.assertThatStateMachineTransitionedThroughTo(BucketStateAndIdentifier.of(1, expectedNewState));
+        verifyNoInteractions(sweepBucketRecordsTable);
     }
 
     @ParameterizedTest(name = "State: {0}")
@@ -265,23 +282,26 @@ public final class DefaultBucketAssignerTest {
 
         assertThatThrownBy(bucketAssigner::run).isEqualTo(RUNTIME_EXCEPTION);
         stateTable.assertThatStateMachineTransitionedThroughTo(BucketStateAndIdentifier.of(1, expectedNewState));
+        verifyNoInteractions(sweepBucketRecordsTable);
     }
 
     @ParameterizedTest(name = "State: {0}")
-    @MethodSource("transitionToWritingStates")
-    public void transitionsToWriteStateStayInNewStateIfBucketWriteThrowsException(
-            BucketAssignerState state,
-            Optional<TimestampRange> expectedOldRange,
-            TimestampRange expectedNewRange,
-            OptionalLong closeTimestamp,
-            BucketAssignerState expectedNewState) {
+    @MethodSource("closingStates")
+    public void stateMachineStillProgressesToStartStateIfWritingRecordThrowsCheckAndSetException(
+            BucketAssignerState state, TimestampRange timestampRange) {
         stateTable.setInitialState(1, state);
-        when(closeTimestampCalculator.apply(1L)).thenReturn(closeTimestamp);
-        when(bucketWriter.writeToAllBuckets(1, expectedOldRange, expectedNewRange))
-                .thenThrow(RUNTIME_EXCEPTION);
+        doThrow(new CheckAndSetException("foo"))
+                .when(sweepBucketRecordsTable)
+                .putTimestampRangeRecord(1, timestampRange);
 
-        assertThatThrownBy(bucketAssigner::run).isEqualTo(RUNTIME_EXCEPTION);
-        stateTable.assertThatStateMachineTransitionedThroughTo(BucketStateAndIdentifier.of(1, expectedNewState));
+        long nextStartTimestamp = timestampRange.endExclusive();
+        when(closeTimestampCalculator.apply(nextStartTimestamp)).thenReturn(OptionalLong.empty());
+        bucketAssigner.run();
+
+        stateTable.assertThatStateMachineTransitionedThroughTo(
+                BucketStateAndIdentifier.of(2, BucketAssignerState.start(nextStartTimestamp)),
+                BucketStateAndIdentifier.of(2, BucketAssignerState.opening(nextStartTimestamp)),
+                BucketStateAndIdentifier.of(2, BucketAssignerState.waitingUntilCloseable(nextStartTimestamp)));
     }
 
     private static Stream<Arguments> writingStates() {
@@ -315,6 +335,12 @@ public final class DefaultBucketAssignerTest {
                         TimestampRange.of(1, 3),
                         OptionalLong.of(3),
                         BucketAssignerState.closingFromOpen(1, 3)));
+    }
+
+    private static Stream<Arguments> closingStates() {
+        return Stream.of(
+                Arguments.of(BucketAssignerState.closingFromOpen(1, 2), TimestampRange.of(1, 2)),
+                Arguments.of(BucketAssignerState.immediatelyClosing(32, 150), TimestampRange.of(32, 150)));
     }
 
     private void assertOperationResult(OperationResult... results) {

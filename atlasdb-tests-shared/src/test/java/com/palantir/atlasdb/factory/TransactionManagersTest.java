@@ -60,6 +60,9 @@ import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
 import com.palantir.atlasdb.table.description.GenericTestSchema;
+import com.palantir.atlasdb.table.description.generated.GenericTestSchemaTableFactory;
+import com.palantir.atlasdb.table.description.generated.RangeScanTestTable;
+import com.palantir.atlasdb.table.description.generated.RangeScanTestTable.RangeScanTestRow;
 import com.palantir.atlasdb.timelock.adjudicate.feedback.TimeLockClientFeedbackService;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.TransactionConfig;
@@ -682,6 +685,22 @@ public class TransactionManagersTest {
     public void sanityCheckFeedbackReportingPipeline() {
         setUpTimeLockConfig();
         verifyFeedbackIsReportedToService();
+    }
+
+    @Test
+    public void inMemoryUsesSynchronousUnlocker() {
+        TransactionManager transactionManager = TransactionManagers.createInMemory(GenericTestSchema.getSchema());
+        for (int i = 0; i < 100; i++) {
+            long immutableTimestamp = transactionManager.getImmutableTimestamp();
+            long txnTimestamp = transactionManager.runTaskWithRetry(txn -> {
+                assertThat(txn.getTimestamp()).isGreaterThan(immutableTimestamp);
+                assertThat(transactionManager.getImmutableTimestamp()).isGreaterThanOrEqualTo(immutableTimestamp);
+                RangeScanTestTable table = GenericTestSchemaTableFactory.of().getRangeScanTestTable(txn);
+                table.putColumn1(RangeScanTestRow.of("hello"), 1L);
+                return txn.getTimestamp();
+            });
+            assertThat(transactionManager.getImmutableTimestamp()).isGreaterThan(txnTimestamp);
+        }
     }
 
     private void setUpTimeLockConfig() {

@@ -18,7 +18,7 @@ package com.palantir.atlasdb.services.test;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
-import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
+import com.palantir.atlasdb.cell.api.DataKeyValueServiceManager;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
@@ -29,7 +29,7 @@ import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.factory.AtlasDbServiceDiscovery;
 import com.palantir.atlasdb.factory.LockAndTimestampServices;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingDataKeyValueServiceManager;
 import com.palantir.atlasdb.services.ServicesConfig;
 import com.palantir.atlasdb.spi.AtlasDbFactory;
 import com.palantir.atlasdb.spi.DerivedSnapshotConfig;
@@ -123,13 +123,12 @@ public class TestTransactionManagerModule {
             Cleaner cleaner,
             @Internal DerivedSnapshotConfig derivedSnapshotConfig,
             TransactionKnowledgeComponents knowledge) {
-        TransactionKeyValueServiceManager transactionKeyValueServiceManager =
-                new DelegatingTransactionKeyValueServiceManager(kvs);
+        DataKeyValueServiceManager dataKeyValueServiceManager = new DelegatingDataKeyValueServiceManager(kvs);
         DefaultDeleteExecutor deleteExecutor =
                 new DefaultDeleteExecutor(kvs, PTExecutors.newSingleThreadExecutor(true));
         return new SerializableTransactionManager(
                 metricsManager,
-                new DelegatingTransactionKeyValueServiceManager(kvs),
+                new DelegatingDataKeyValueServiceManager(kvs),
                 lts.timelock(),
                 lts.lockWatcher(),
                 lts.managedTimestampService(),
@@ -153,7 +152,7 @@ public class TestTransactionManagerModule {
                 Optional.empty(),
                 knowledge,
                 new DefaultKeyValueSnapshotReaderManager(
-                        transactionKeyValueServiceManager,
+                        dataKeyValueServiceManager,
                         transactionService,
                         config.allowAccessToHiddenTables(),
                         new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),

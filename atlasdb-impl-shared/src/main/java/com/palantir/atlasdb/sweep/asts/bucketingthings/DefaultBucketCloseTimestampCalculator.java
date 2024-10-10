@@ -20,8 +20,10 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.atlasdb.cleaner.PuncherStore;
+import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import com.palantir.lock.client.TimeLockClient;
 import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -40,10 +42,10 @@ final class DefaultBucketCloseTimestampCalculator {
     static final Duration TIME_GAP_BETWEEN_BUCKET_START_AND_END = Duration.ofMinutes(10);
 
     @VisibleForTesting
-    static final long MAX_BUCKET_SIZE_FOR_NON_PUNCHER_CLOSE = 5_000_000_000L;
+    static final long MIN_BUCKET_SIZE = SweepQueueUtils.TS_COARSE_GRANULARITY;
 
     @VisibleForTesting
-    static final long MIN_BUCKET_SIZE_FOR_NON_PUNCHER_CLOSE = 50_000L;
+    static final long MAX_BUCKET_SIZE_FOR_NON_PUNCHER_CLOSE = 500 * MIN_BUCKET_SIZE; // 5 billion
 
     private final PuncherStore puncherStore;
     private final Supplier<Long> freshTimestampSupplier;
@@ -77,6 +79,10 @@ final class DefaultBucketCloseTimestampCalculator {
     // We’re explicitly not doing this algorithm now given the added complexity, but this may be implemented if the
     // fixed parameters are too coarse.
     public OptionalLong getBucketCloseTimestamp(long startTimestamp) {
+        Preconditions.checkArgument(
+                startTimestamp == clampTimestampToCoarsePartitionBoundary(startTimestamp),
+                "startTimestamp must be on a coarse partition boundary",
+                SafeArg.of("startTimestamp", startTimestamp));
         long openWallClockTimeMillis = puncherStore.getMillisForTimestamp(startTimestamp);
         long closeWallClockTimeMillis = openWallClockTimeMillis + TIME_GAP_BETWEEN_BUCKET_START_AND_END.toMillis();
 
@@ -88,25 +94,28 @@ final class DefaultBucketCloseTimestampCalculator {
 
         // if this case happens, it's possibly clockdrift or a delayed write.
         if (finalLogicalTimestamp <= startTimestamp) {
-            long freshTimestamp = freshTimestampSupplier.get();
-            if (freshTimestamp - startTimestamp < MIN_BUCKET_SIZE_FOR_NON_PUNCHER_CLOSE) {
+            long freshClampedTimestamp = clampTimestampToCoarsePartitionBoundary(freshTimestampSupplier.get());
+            if (freshClampedTimestamp - startTimestamp < MIN_BUCKET_SIZE) {
                 logNonPuncherClose(
                         "but this is not sufficiently far from the start timestamp to close the bucket.",
                         finalLogicalTimestamp,
                         startTimestamp,
                         openWallClockTimeMillis,
-                        freshTimestamp);
+                        freshClampedTimestamp);
                 return OptionalLong.empty();
             }
-
-            long cappedTimestamp = Math.min(startTimestamp + MAX_BUCKET_SIZE_FOR_NON_PUNCHER_CLOSE, freshTimestamp);
-            if (cappedTimestamp != freshTimestamp) {
+            // start timestamp is aligned on a coarse partition
+            // MAX_BUCKET_SIZE is also a multiple of a coarse partition
+            // so excluding overflow, start + MAX will also be aligned with a coarse partition.
+            long cappedTimestamp =
+                    Math.min(startTimestamp + MAX_BUCKET_SIZE_FOR_NON_PUNCHER_CLOSE, freshClampedTimestamp);
+            if (cappedTimestamp != freshClampedTimestamp) {
                 logNonPuncherClose(
                         "but this is too far from the start timestamp. Proposing a capped timestamp {} instead.",
                         finalLogicalTimestamp,
                         startTimestamp,
                         openWallClockTimeMillis,
-                        freshTimestamp,
+                        freshClampedTimestamp,
                         SafeArg.of("cappedTimestamp", cappedTimestamp));
             } else {
                 logNonPuncherClose(
@@ -114,12 +123,26 @@ final class DefaultBucketCloseTimestampCalculator {
                         finalLogicalTimestamp,
                         startTimestamp,
                         openWallClockTimeMillis,
-                        freshTimestamp);
+                        freshClampedTimestamp);
             }
             return OptionalLong.of(cappedTimestamp);
         } else {
-            return OptionalLong.of(finalLogicalTimestamp);
+            long clampedTimestamp = clampTimestampToCoarsePartitionBoundary(finalLogicalTimestamp);
+            if (clampedTimestamp - startTimestamp < MIN_BUCKET_SIZE) {
+                log.info(
+                        "The proposed final timestamp {} is not sufficiently far from start timestamp {} (minimum"
+                                + " size: {}) to close the bucket",
+                        SafeArg.of("proposedClampedTimestamp", clampedTimestamp),
+                        SafeArg.of("startTimestamp", startTimestamp),
+                        SafeArg.of("minimumSize", MIN_BUCKET_SIZE));
+                return OptionalLong.empty();
+            }
+            return OptionalLong.of(clampedTimestamp);
         }
+    }
+
+    private long clampTimestampToCoarsePartitionBoundary(long timestamp) {
+        return SweepQueueUtils.minTsForCoarsePartition(SweepQueueUtils.tsPartitionCoarse(timestamp));
     }
 
     private void logNonPuncherClose(
@@ -127,7 +150,7 @@ final class DefaultBucketCloseTimestampCalculator {
             long finalTimestampFromPunchTable,
             long startTimestamp,
             long openWallClockTimeMillis,
-            long freshTimestamp,
+            long freshClampedTimestamp,
             Arg<?>... additionalArgs) {
         List<Arg<?>> args = ImmutableList.<Arg<?>>builder()
                 .add(
@@ -135,14 +158,15 @@ final class DefaultBucketCloseTimestampCalculator {
                         SafeArg.of("startTimestamp", startTimestamp),
                         SafeArg.of("timeGap", TIME_GAP_BETWEEN_BUCKET_START_AND_END),
                         SafeArg.of("openWallClockTimeMillis", openWallClockTimeMillis),
-                        SafeArg.of("freshTimestamp", freshTimestamp))
+                        SafeArg.of("freshClampedTimestamp", freshClampedTimestamp))
                 .addAll(Arrays.asList(additionalArgs))
                 .build();
         log.info(
                 "Read a logical timestamp {} from the puncher store that's less than or equal to the start timestamp"
                         + " {}, despite requesting a time {} after the start timestamp's associated wall clock time {}."
                         + " This is likely due to some form of clock drift, but should not be happening repeatedly.  We"
-                        + " read a fresh timestamp {}, " + logMessageSuffix,
+                        + " read a fresh timestamp that has been clamped down to the nearest coarse"
+                        + " partition boundary {}, " + logMessageSuffix,
                 args);
     }
 }

@@ -16,9 +16,9 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
-import com.palantir.atlasdb.cell.api.TransactionKeyValueServiceManager;
+import com.palantir.atlasdb.cell.api.DataKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingDataKeyValueServiceManager;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.impl.snapshot.DefaultKeyValueSnapshotReaderManager;
@@ -32,7 +32,7 @@ public interface TestKeyValueSnapshotReaderManagers {
             SweepStrategyManager sweepStrategyManager,
             DeleteExecutor deleteExecutor) {
         return new DefaultKeyValueSnapshotReaderManager(
-                new DelegatingTransactionKeyValueServiceManager(keyValueService),
+                new DelegatingDataKeyValueServiceManager(keyValueService),
                 transactionService,
                 false,
                 new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),
@@ -40,12 +40,12 @@ public interface TestKeyValueSnapshotReaderManagers {
     }
 
     static KeyValueSnapshotReaderManager createForTests(
-            TransactionKeyValueServiceManager transactionKeyValueServiceManager,
+            DataKeyValueServiceManager dataKeyValueServiceManager,
             TransactionService transactionService,
             SweepStrategyManager sweepStrategyManager,
             DeleteExecutor deleteExecutor) {
         return new DefaultKeyValueSnapshotReaderManager(
-                transactionKeyValueServiceManager,
+                dataKeyValueServiceManager,
                 transactionService,
                 false,
                 new DefaultOrphanedSentinelDeleter(sweepStrategyManager::get, deleteExecutor),

@@ -34,7 +34,7 @@ import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
-import com.palantir.atlasdb.keyvalue.impl.DelegatingTransactionKeyValueServiceManager;
+import com.palantir.atlasdb.keyvalue.impl.DelegatingDataKeyValueServiceManager;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.transaction.ImmutableTransactionConfig;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
@@ -277,7 +277,7 @@ public class SerializableTransactionManagerTest {
             boolean initializeAsync, Callback<TransactionManager> callBack, ScheduledExecutorService executor) {
         return SerializableTransactionManager.create(
                 metricsManager,
-                new DelegatingTransactionKeyValueServiceManager(mockKvs),
+                new DelegatingDataKeyValueServiceManager(mockKvs),
                 mockTimelockService,
                 NoOpLockWatchManager.create(),
                 mockTimestampManagementService,
@@ -303,7 +303,7 @@ public class SerializableTransactionManagerTest {
                 Optional.empty(),
                 knowledge,
                 new DefaultKeyValueSnapshotReaderManager(
-                        new DelegatingTransactionKeyValueServiceManager(mockKvs),
+                        new DelegatingDataKeyValueServiceManager(mockKvs),
                         mock(TransactionService.class),
                         false,
                         mock(DefaultOrphanedSentinelDeleter.class),
