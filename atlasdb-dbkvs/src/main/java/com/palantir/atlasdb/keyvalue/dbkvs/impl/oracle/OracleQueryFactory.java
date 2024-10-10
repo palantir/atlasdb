@@ -46,7 +46,6 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
     @Override
     public FullQuery getLatestRowQuery(byte[] row, long ts, ColumnSelection columns, boolean includeValue) {
         String query = "SELECT"
-                + "   /*+ USE_NL(t m) LEADING(t m) */ "
                 + "   m.row_name, m.col_name, max(m.ts) as ts "
                 + " FROM " + tableName + " m "
                 + " WHERE m.row_name = ? "
