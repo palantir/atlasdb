@@ -86,7 +86,7 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
                     bucketProgressStore.getBucketProgress(Bucket.of(shardAndStrategy, currentBucket));
             if (bucketProgress.isPresent()) {
                 BucketProgress presentBucketProgress = bucketProgress.get();
-                TimestampRange requiredRange = recordsTable.get(shardAndStrategy, currentBucket);
+                TimestampRange requiredRange = recordsTable.getTimestampRangeRecord(currentBucket);
                 if (presentBucketProgress.timestampProgress()
                         != requiredRange.endExclusive() - requiredRange.startInclusive() - 1) {
                     // Bucket still has progress to go, so we can stop here.
@@ -110,7 +110,7 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
                 return BucketProbeResult.builder()
                         .endExclusive(currentBucket)
                         .knownSweepProgress(recordsTable
-                                        .get(shardAndStrategy, currentBucket)
+                                .getTimestampRangeRecord(currentBucket)
                                         .startInclusive()
                                 - 1L)
                         .build();

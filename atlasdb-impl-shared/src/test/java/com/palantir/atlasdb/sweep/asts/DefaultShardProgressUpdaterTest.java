@@ -76,7 +76,7 @@ public class DefaultShardProgressUpdaterTest {
         when(sweepBucketPointerTable.getStartingBucketsForShards(ImmutableSet.of(bucket.shardAndStrategy())))
                 .thenReturn(ImmutableSet.of(bucket));
         when(bucketProgressStore.getBucketProgress(bucket)).thenReturn(Optional.empty());
-        when(recordsTable.get(bucket.shardAndStrategy(), bucket.bucketIdentifier()))
+        when(recordsTable.getTimestampRangeRecord(bucket.bucketIdentifier()))
                 .thenReturn(TimestampRange.of(0L, SweepQueueUtils.minTsForCoarsePartition(8)));
 
         shardProgressUpdater.updateProgress(bucket.shardAndStrategy());
@@ -94,7 +94,7 @@ public class DefaultShardProgressUpdaterTest {
                 .thenReturn(ImmutableSet.of(bucket));
         when(bucketProgressStore.getBucketProgress(bucket))
                 .thenReturn(Optional.of(BucketProgress.createForTimestampProgress(1_234_567L)));
-        when(recordsTable.get(bucket.shardAndStrategy(), bucket.bucketIdentifier()))
+        when(recordsTable.getTimestampRangeRecord(bucket.bucketIdentifier()))
                 .thenReturn(sweepableBucket.timestampRange());
 
         shardProgressUpdater.updateProgress(bucket.shardAndStrategy());
@@ -129,7 +129,7 @@ public class DefaultShardProgressUpdaterTest {
         TimestampRange finalBucketTimestampRange = TimestampRange.of(
                 lastCompleteBucketTimestampRange.endExclusive(),
                 lastCompleteBucketTimestampRange.endExclusive() + SweepQueueUtils.TS_COARSE_GRANULARITY);
-        when(recordsTable.get(firstRawBucket.shardAndStrategy(), finalBucketIdentifier))
+        when(recordsTable.getTimestampRangeRecord(finalBucketIdentifier))
                 .thenReturn(finalBucketTimestampRange);
 
         shardProgressUpdater.updateProgress(firstRawBucket.shardAndStrategy());
@@ -179,8 +179,7 @@ public class DefaultShardProgressUpdaterTest {
     }
 
     private void setupBucketRecord(SweepableBucket sweepableBucket) {
-        when(recordsTable.get(
-                        sweepableBucket.bucket().shardAndStrategy(),
+        when(recordsTable.getTimestampRangeRecord(
                         sweepableBucket.bucket().bucketIdentifier()))
                 .thenReturn(sweepableBucket.timestampRange());
     }
