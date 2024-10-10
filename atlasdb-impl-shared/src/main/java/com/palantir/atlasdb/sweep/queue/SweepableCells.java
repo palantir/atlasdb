@@ -169,7 +169,7 @@ public class SweepableCells extends SweepQueueTable {
     /**
      * Variant of {@link #getBatchForPartition(ShardAndStrategy, long, long, long)}, that considers both a maximum
      * start timestamp that we want to read from the table as well as the sweep timestamp separately. This is
-     * important for the sake of cells which started before maxStartTs but committed after that.
+     * important for the sake of cells which started before maxStartTsExclusive but committed after that.
      */
     SweepBatch getBatchForPartition(
             ShardAndStrategy shardStrategy,

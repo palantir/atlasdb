@@ -96,7 +96,7 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
         SweepBatchWithPartitionInfo sweepBatchWithPartitionInfo = sweepQueueReader.getNextBatchToSweep(
                 sweepableBucket.bucket().shardAndStrategy(),
                 lastSweptTimestampInBucket,
-                getLastProcessableCellStartTimestamp(sweepableBucket, sweepTimestampForIteration),
+                getMaxExclusiveProcessableStartTimestamp(sweepableBucket, sweepTimestampForIteration),
                 sweepTimestampForIteration);
         SweepBatch sweepBatch = sweepBatchWithPartitionInfo.sweepBatch();
 
@@ -146,7 +146,7 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
         }
     }
 
-    private static long getLastProcessableCellStartTimestamp(SweepableBucket sweepableBucket, long sweepTimestamp) {
+    private static long getMaxExclusiveProcessableStartTimestamp(SweepableBucket sweepableBucket, long sweepTimestamp) {
         if (sweepableBucket.timestampRange().endExclusive() == -1) {
             return sweepTimestamp;
         }
