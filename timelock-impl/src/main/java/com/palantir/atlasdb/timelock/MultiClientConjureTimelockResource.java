@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2024 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.batch;
+package com.palantir.atlasdb.timelock;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Collections2;
@@ -26,9 +26,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
-import com.palantir.atlasdb.timelock.AsyncTimelockService;
-import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
-import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
@@ -40,6 +37,10 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockServiceEndpoints;
+import com.palantir.atlasdb.timelock.api.MultiClientGetMinLeasedNamedTimestampRequest;
+import com.palantir.atlasdb.timelock.api.MultiClientGetMinLeasedNamedTimestampResponse;
+import com.palantir.atlasdb.timelock.api.MultiClientNamedMinTimestampLeaseRequest;
+import com.palantir.atlasdb.timelock.api.MultiClientNamedMinTimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.UndertowMultiClientConjureTimelockService;
 import com.palantir.conjure.java.undertow.lib.RequestContext;
@@ -62,13 +63,22 @@ import javax.annotation.Nullable;
 public final class MultiClientConjureTimelockResource implements UndertowMultiClientConjureTimelockService {
     private final ConjureResourceExceptionHandler exceptionHandler;
     private final BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices;
+    private final MultiClientMinTimestampLeaseServiceAdapter minTimestampLeaseService;
+
+    private MultiClientConjureTimelockResource(
+            RedirectRetryTargeter redirectRetryTargeter,
+            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices,
+            MultiClientMinTimestampLeaseServiceAdapter minTimestampLeaseService) {
+        this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
+        this.timelockServices = timelockServices;
+        this.minTimestampLeaseService = minTimestampLeaseService;
+    }
 
     @VisibleForTesting
     MultiClientConjureTimelockResource(
             RedirectRetryTargeter redirectRetryTargeter,
             BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
-        this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
-        this.timelockServices = timelockServices;
+        this(redirectRetryTargeter, timelockServices, new MultiClientMinTimestampLeaseServiceAdapter(timelockServices));
     }
 
     public static UndertowService undertow(
@@ -144,6 +154,22 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
                         requests.entrySet(), e -> unlockForSingleNamespace(e.getKey(), e.getValue(), context))),
                 ImmutableMap::copyOf,
                 MoreExecutors.directExecutor()));
+    }
+
+    @Override
+    public ListenableFuture<MultiClientNamedMinTimestampLeaseResponse> acquireNamedMinTimestampLease(
+            AuthHeader authHeader,
+            MultiClientNamedMinTimestampLeaseRequest requests,
+            @Nullable RequestContext context) {
+        return handleExceptions(() -> minTimestampLeaseService.acquireNamedMinTimestampLease(requests, context));
+    }
+
+    @Override
+    public ListenableFuture<MultiClientGetMinLeasedNamedTimestampResponse> getMinLeasedNamedTimestamp(
+            AuthHeader authHeader,
+            MultiClientGetMinLeasedNamedTimestampRequest requests,
+            @Nullable RequestContext context) {
+        return handleExceptions(() -> minTimestampLeaseService.getMinLeasedNamedTimestamp(requests, context));
     }
 
     private ListenableFuture<Entry<Namespace, ConjureUnlockResponseV2>> unlockForSingleNamespace(
@@ -262,6 +288,18 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
         public Map<Namespace, ConjureUnlockResponseV2> unlock(
                 AuthHeader authHeader, Map<Namespace, ConjureUnlockRequestV2> requests) {
             return unwrap(resource.unlock(authHeader, requests, null));
+        }
+
+        @Override
+        public MultiClientNamedMinTimestampLeaseResponse acquireNamedMinTimestampLease(
+                AuthHeader authHeader, MultiClientNamedMinTimestampLeaseRequest requests) {
+            return unwrap(resource.acquireNamedMinTimestampLease(authHeader, requests, null));
+        }
+
+        @Override
+        public MultiClientGetMinLeasedNamedTimestampResponse getMinLeasedNamedTimestamp(
+                AuthHeader authHeader, MultiClientGetMinLeasedNamedTimestampRequest requests) {
+            return unwrap(resource.getMinLeasedNamedTimestamp(authHeader, requests, null));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {

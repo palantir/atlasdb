@@ -42,6 +42,11 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.GetMinLeasedNamedTimestampRequests;
+import com.palantir.atlasdb.timelock.api.GetMinLeasedNamedTimestampResponses;
+import com.palantir.atlasdb.timelock.api.NamedMinTimestampLeaseRequests;
+import com.palantir.atlasdb.timelock.api.NamedMinTimestampLeaseResponses;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.function.Supplier;
@@ -134,6 +139,18 @@ public class DialogueAdaptingConjureTimelockService implements ConjureTimelockSe
     public GetCommitTimestampResponse getCommitTimestamp(
             AuthHeader authHeader, String namespace, GetCommitTimestampRequest request) {
         return dialogueDelegate.getCommitTimestamp(authHeader, namespace, request);
+    }
+
+    @Override
+    public NamedMinTimestampLeaseResponses acquireNamedMinTimestampLeases(
+            AuthHeader authHeader, Namespace namespace, NamedMinTimestampLeaseRequests request) {
+        return dialogueDelegate.acquireNamedMinTimestampLeases(authHeader, namespace, request);
+    }
+
+    @Override
+    public GetMinLeasedNamedTimestampResponses getMinLeasedNamedTimestamps(
+            AuthHeader authHeader, Namespace namespace, GetMinLeasedNamedTimestampRequests request) {
+        return dialogueDelegate.getMinLeasedNamedTimestamps(authHeader, namespace, request);
     }
 
     private <T> T executeInstrumented(

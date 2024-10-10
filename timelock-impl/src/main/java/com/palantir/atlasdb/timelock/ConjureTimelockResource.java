@@ -53,6 +53,11 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.GetMinLeasedNamedTimestampRequests;
+import com.palantir.atlasdb.timelock.api.GetMinLeasedNamedTimestampResponses;
+import com.palantir.atlasdb.timelock.api.NamedMinTimestampLeaseRequests;
+import com.palantir.atlasdb.timelock.api.NamedMinTimestampLeaseResponses;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.SuccessfulLockResponse;
 import com.palantir.atlasdb.timelock.api.UndertowConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.UnsuccessfulLockResponse;
@@ -87,13 +92,22 @@ import javax.annotation.Nullable;
 public final class ConjureTimelockResource implements UndertowConjureTimelockService {
     private final ConjureResourceExceptionHandler exceptionHandler;
     private final BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices;
+    private final NamedMinTimestampLeaseServiceAdapter namedMinTimestampLeaseService;
+
+    private ConjureTimelockResource(
+            RedirectRetryTargeter redirectRetryTargeter,
+            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices,
+            NamedMinTimestampLeaseServiceAdapter namedMinTimestampLeaseService) {
+        this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
+        this.timelockServices = timelockServices;
+        this.namedMinTimestampLeaseService = namedMinTimestampLeaseService;
+    }
 
     @VisibleForTesting
     ConjureTimelockResource(
             RedirectRetryTargeter redirectRetryTargeter,
             BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
-        this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
-        this.timelockServices = timelockServices;
+        this(redirectRetryTargeter, timelockServices, new NamedMinTimestampLeaseServiceAdapter(timelockServices));
     }
 
     public static UndertowService undertow(
@@ -365,6 +379,26 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         });
     }
 
+    @Override
+    public ListenableFuture<NamedMinTimestampLeaseResponses> acquireNamedMinTimestampLeases(
+            AuthHeader authHeader,
+            Namespace namespace,
+            NamedMinTimestampLeaseRequests requests,
+            @Nullable RequestContext context) {
+        return handleExceptions(
+                () -> namedMinTimestampLeaseService.acquireNamedMinTimestampLeases(namespace, requests, context));
+    }
+
+    @Override
+    public ListenableFuture<GetMinLeasedNamedTimestampResponses> getMinLeasedNamedTimestamps(
+            AuthHeader authHeader,
+            Namespace namespace,
+            GetMinLeasedNamedTimestampRequests request,
+            @Nullable RequestContext context) {
+        return handleExceptions(
+                () -> namedMinTimestampLeaseService.getMinLeasedNamedTimestamps(namespace, request, context));
+    }
+
     private ListenableFuture<GetCommitTimestampsResponse> getCommitTimestampsInternal(
             String namespace,
             @Nullable RequestContext context,
@@ -461,6 +495,18 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
         public GetCommitTimestampResponse getCommitTimestamp(
                 AuthHeader authHeader, String namespace, GetCommitTimestampRequest request) {
             return unwrap(resource.getCommitTimestamp(authHeader, namespace, request, null));
+        }
+
+        @Override
+        public NamedMinTimestampLeaseResponses acquireNamedMinTimestampLeases(
+                AuthHeader authHeader, Namespace namespace, NamedMinTimestampLeaseRequests request) {
+            return unwrap(resource.acquireNamedMinTimestampLeases(authHeader, namespace, request, null));
+        }
+
+        @Override
+        public GetMinLeasedNamedTimestampResponses getMinLeasedNamedTimestamps(
+                AuthHeader authHeader, Namespace namespace, GetMinLeasedNamedTimestampRequests request) {
+            return unwrap(resource.getMinLeasedNamedTimestamps(authHeader, namespace, request, null));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {

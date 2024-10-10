@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2020 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2024 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.batch;
+package com.palantir.atlasdb.timelock;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -27,16 +27,27 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.Futures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
-import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureTimestampRange;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.GetMinLeasedNamedTimestampRequests;
+import com.palantir.atlasdb.timelock.api.GetMinLeasedNamedTimestampResponses;
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
+import com.palantir.atlasdb.timelock.api.MultiClientGetMinLeasedNamedTimestampRequest;
+import com.palantir.atlasdb.timelock.api.MultiClientGetMinLeasedNamedTimestampResponse;
+import com.palantir.atlasdb.timelock.api.MultiClientNamedMinTimestampLeaseRequest;
+import com.palantir.atlasdb.timelock.api.MultiClientNamedMinTimestampLeaseResponse;
+import com.palantir.atlasdb.timelock.api.NamedMinTimestampLeaseRequest;
+import com.palantir.atlasdb.timelock.api.NamedMinTimestampLeaseRequests;
+import com.palantir.atlasdb.timelock.api.NamedMinTimestampLeaseResponse;
+import com.palantir.atlasdb.timelock.api.NamedMinTimestampLeaseResponses;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.timelock.api.TimestampName;
 import com.palantir.atlasdb.util.TimelockTestUtils;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.common.time.NanoTime;
@@ -60,11 +71,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-public class MultiClientConjureTimelockResourceTest {
+@ExtendWith(MockitoExtension.class)
+public final class MultiClientConjureTimelockResourceTest {
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer test");
     private static final int REMOTE_PORT = 4321;
     private static final URL LOCAL = TimelockTestUtils.url("https://localhost:1234");
@@ -91,6 +107,69 @@ public class MultiClientConjureTimelockResourceTest {
     public void before() {
         resource = new MultiClientConjureTimelockResource(
                 TARGETER, (namespace, _context) -> getServiceForClient(namespace));
+    }
+
+    @Test
+    public void canAcquireNamedMinTimestampLease() {
+        Namespace client1 = Namespace.of("client1");
+        Namespace client2 = Namespace.of("client2");
+
+        NamedMinTimestampLeaseRequest request1 = createNamedMinTimestampLeaseRequest();
+        NamedMinTimestampLeaseRequest request2 = createNamedMinTimestampLeaseRequest();
+        NamedMinTimestampLeaseRequest request3 = createNamedMinTimestampLeaseRequest();
+
+        NamedMinTimestampLeaseResponse response1 = createNamedMinTimestampLeaseResponse(request1);
+        NamedMinTimestampLeaseResponse response2 = createNamedMinTimestampLeaseResponse(request2);
+        NamedMinTimestampLeaseResponse response3 = createNamedMinTimestampLeaseResponse(request3);
+
+        AsyncTimelockService serviceForClient1 = getServiceForClient(client1.get());
+        stubAcquireNamedMinTimestampLeaseInResource(serviceForClient1, request1, response1);
+        stubAcquireNamedMinTimestampLeaseInResource(serviceForClient1, request2, response2);
+
+        AsyncTimelockService serviceForClient2 = getServiceForClient(client2.get());
+        stubAcquireNamedMinTimestampLeaseInResource(serviceForClient2, request3, response3);
+
+        MultiClientNamedMinTimestampLeaseRequest request = MultiClientNamedMinTimestampLeaseRequest.of(Map.of(
+                client1, NamedMinTimestampLeaseRequests.of(List.of(request1, request2)),
+                client2, NamedMinTimestampLeaseRequests.of(List.of(request3))));
+        MultiClientNamedMinTimestampLeaseResponse response = MultiClientNamedMinTimestampLeaseResponse.of(Map.of(
+                client1, NamedMinTimestampLeaseResponses.of(List.of(response1, response2)),
+                client2, NamedMinTimestampLeaseResponses.of(List.of(response3))));
+        assertThat(Futures.getUnchecked(resource.acquireNamedMinTimestampLease(AUTH_HEADER, request, REQUEST_CONTEXT)))
+                .isEqualTo(response);
+    }
+
+    @Test
+    public void canGetNamedMinTimestamp() {
+        Namespace client1 = Namespace.of("client1");
+        Namespace client2 = Namespace.of("client2");
+
+        TimestampName timestampName1 = TimestampName.of("t1");
+        TimestampName timestampName2 = TimestampName.of("t2");
+
+        long timestamp1 = 1L;
+        long timestamp2 = 2L;
+        long timestamp3 = 3L;
+
+        AsyncTimelockService serviceForClient1 = getServiceForClient(client1.get());
+        stubGetMinLeasedNamedTimestampInResource(serviceForClient1, timestampName1, timestamp1);
+        stubGetMinLeasedNamedTimestampInResource(serviceForClient1, timestampName2, timestamp2);
+
+        AsyncTimelockService serviceForClient2 = getServiceForClient(client2.get());
+        stubGetMinLeasedNamedTimestampInResource(serviceForClient2, timestampName2, timestamp3);
+
+        MultiClientGetMinLeasedNamedTimestampRequest request = MultiClientGetMinLeasedNamedTimestampRequest.of(Map.of(
+                client1, GetMinLeasedNamedTimestampRequests.of(ImmutableSet.of(timestampName1, timestampName2)),
+                client2, GetMinLeasedNamedTimestampRequests.of(ImmutableSet.of(timestampName2))));
+        MultiClientGetMinLeasedNamedTimestampResponse response =
+                MultiClientGetMinLeasedNamedTimestampResponse.of(Map.of(
+                        client1,
+                                GetMinLeasedNamedTimestampResponses.of(Map.of(
+                                        timestampName1, timestamp1,
+                                        timestampName2, timestamp2)),
+                        client2, GetMinLeasedNamedTimestampResponses.of(Map.of(timestampName2, timestamp3))));
+        assertThat(Futures.getUnchecked(resource.getMinLeasedNamedTimestamp(AUTH_HEADER, request, REQUEST_CONTEXT)))
+                .isEqualTo(response);
     }
 
     @Test
@@ -240,5 +319,42 @@ public class MultiClientConjureTimelockResourceTest {
 
     private Integer getInclusiveLowerCommitTs(String namespace) {
         return namespaceToCommitTsLowerBound.computeIfAbsent(namespace, _u -> commitTsLowerInclusive++);
+    }
+
+    private static void stubAcquireNamedMinTimestampLeaseInResource(
+            AsyncTimelockService service,
+            NamedMinTimestampLeaseRequest request,
+            NamedMinTimestampLeaseResponse response) {
+        when(service.acquireNamedMinTimestampLease(
+                        request.getTimestampName(), request.getRequestId(), request.getNumFreshTimestamps()))
+                .thenReturn(Futures.immediateFuture(response));
+    }
+
+    private static void stubGetMinLeasedNamedTimestampInResource(
+            AsyncTimelockService service, TimestampName timestampName, long timestamp) {
+        when(service.getMinLeasedNamedTimestamp(timestampName)).thenReturn(Futures.immediateFuture(timestamp));
+    }
+
+    private static NamedMinTimestampLeaseRequest createNamedMinTimestampLeaseRequest() {
+        return NamedMinTimestampLeaseRequest.builder()
+                .timestampName(TimestampName.of(RandomStringUtils.random(32)))
+                .requestId(UUID.randomUUID())
+                .numFreshTimestamps(createRandomPositiveInteger())
+                .build();
+    }
+
+    private static NamedMinTimestampLeaseResponse createNamedMinTimestampLeaseResponse(
+            NamedMinTimestampLeaseRequest request) {
+        return NamedMinTimestampLeaseResponse.builder()
+                .minLeased(createRandomPositiveInteger())
+                .lock(LockToken.of(request.getRequestId()))
+                .lease(Lease.of(
+                        LeaderTime.of(LeadershipId.random(), NanoTime.createForTests(1234L)), Duration.ofDays(2000)))
+                .freshTimestamps(ConjureTimestampRange.of(createRandomPositiveInteger(), createRandomPositiveInteger()))
+                .build();
+    }
+
+    private static int createRandomPositiveInteger() {
+        return ThreadLocalRandom.current().nextInt(0, 2500);
     }
 }

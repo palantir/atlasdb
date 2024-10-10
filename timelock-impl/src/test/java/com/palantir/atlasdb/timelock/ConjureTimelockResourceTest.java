@@ -40,10 +40,19 @@ import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponse;
 import com.palantir.atlasdb.timelock.api.ConjureRefreshLocksResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.ConjureTimestampRange;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequest;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponse;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
+import com.palantir.atlasdb.timelock.api.GetMinLeasedNamedTimestampRequests;
+import com.palantir.atlasdb.timelock.api.GetMinLeasedNamedTimestampResponses;
+import com.palantir.atlasdb.timelock.api.NamedMinTimestampLeaseRequest;
+import com.palantir.atlasdb.timelock.api.NamedMinTimestampLeaseRequests;
+import com.palantir.atlasdb.timelock.api.NamedMinTimestampLeaseResponse;
+import com.palantir.atlasdb.timelock.api.NamedMinTimestampLeaseResponses;
+import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.timelock.api.TimestampName;
 import com.palantir.atlasdb.util.TimelockTestUtils;
 import com.palantir.common.time.NanoTime;
 import com.palantir.conjure.java.api.errors.QosException;
@@ -60,9 +69,13 @@ import com.palantir.timestamp.TimestampRange;
 import com.palantir.tokens.auth.AuthHeader;
 import java.net.URL;
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ThreadLocalRandom;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -70,7 +83,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-public class ConjureTimelockResourceTest {
+public final class ConjureTimelockResourceTest {
     private static final AuthHeader AUTH_HEADER = AuthHeader.valueOf("Bearer test");
     private static final int REMOTE_PORT = 4321;
     private static final URL LOCAL = TimelockTestUtils.url("https://localhost:1234");
@@ -94,6 +107,42 @@ public class ConjureTimelockResourceTest {
     public void before() {
         resource = new ConjureTimelockResource(TARGETER, (_namespace, _userAgent) -> timelockService);
         service = ConjureTimelockResource.jersey(TARGETER, (_namespace, _userAgent) -> timelockService);
+    }
+
+    @Test
+    public void canAcquireNamedMinTimestampLease() {
+        NamedMinTimestampLeaseRequest request1 = createNamedMinTimestampLeaseRequest();
+        NamedMinTimestampLeaseResponse response1 = createNamedMinTimestampLeaseResponse(request1);
+        stubAcquireNamedMinTimestampLeaseInResource(timelockService, request1, response1);
+
+        NamedMinTimestampLeaseRequest request2 = createNamedMinTimestampLeaseRequest();
+        NamedMinTimestampLeaseResponse response2 = createNamedMinTimestampLeaseResponse(request2);
+        stubAcquireNamedMinTimestampLeaseInResource(timelockService, request2, response2);
+
+        NamedMinTimestampLeaseRequests requests = NamedMinTimestampLeaseRequests.of(List.of(request1, request2));
+        NamedMinTimestampLeaseResponses responses = NamedMinTimestampLeaseResponses.of(List.of(response1, response2));
+        assertThat(Futures.getUnchecked(resource.acquireNamedMinTimestampLeases(
+                        AUTH_HEADER, Namespace.of(NAMESPACE), requests, REQUEST_CONTEXT)))
+                .isEqualTo(responses);
+    }
+
+    @Test
+    public void canGetNamedMinTimestamp() {
+        long timestamp1 = 1L;
+        TimestampName timestampName1 = TimestampName.of("t1");
+        stubGetMinLeasedNamedTimestampInResource(timelockService, timestampName1, timestamp1);
+
+        long timestamp2 = 2L;
+        TimestampName timestampName2 = TimestampName.of("t2");
+        stubGetMinLeasedNamedTimestampInResource(timelockService, timestampName2, timestamp2);
+
+        GetMinLeasedNamedTimestampRequests requests =
+                GetMinLeasedNamedTimestampRequests.of(Set.of(timestampName1, timestampName2));
+        GetMinLeasedNamedTimestampResponses responses =
+                GetMinLeasedNamedTimestampResponses.of(Map.of(timestampName1, timestamp1, timestampName2, timestamp2));
+        assertThat(Futures.getUnchecked(resource.getMinLeasedNamedTimestamps(
+                        AUTH_HEADER, Namespace.of(NAMESPACE), requests, REQUEST_CONTEXT)))
+                .isEqualTo(responses);
     }
 
     @Test
@@ -261,6 +310,43 @@ public class ConjureTimelockResourceTest {
             assertThat(cause).isInstanceOf(QosException.class);
             ((QosException) cause).accept(visitor);
         }
+    }
+
+    private static void stubAcquireNamedMinTimestampLeaseInResource(
+            AsyncTimelockService service,
+            NamedMinTimestampLeaseRequest request,
+            NamedMinTimestampLeaseResponse response) {
+        when(service.acquireNamedMinTimestampLease(
+                        request.getTimestampName(), request.getRequestId(), request.getNumFreshTimestamps()))
+                .thenReturn(Futures.immediateFuture(response));
+    }
+
+    private static void stubGetMinLeasedNamedTimestampInResource(
+            AsyncTimelockService service, TimestampName timestampName, long timestamp) {
+        when(service.getMinLeasedNamedTimestamp(timestampName)).thenReturn(Futures.immediateFuture(timestamp));
+    }
+
+    private static NamedMinTimestampLeaseRequest createNamedMinTimestampLeaseRequest() {
+        return NamedMinTimestampLeaseRequest.builder()
+                .timestampName(TimestampName.of(RandomStringUtils.random(32)))
+                .requestId(UUID.randomUUID())
+                .numFreshTimestamps(createRandomPositiveInteger())
+                .build();
+    }
+
+    private static NamedMinTimestampLeaseResponse createNamedMinTimestampLeaseResponse(
+            NamedMinTimestampLeaseRequest request) {
+        return NamedMinTimestampLeaseResponse.builder()
+                .minLeased(createRandomPositiveInteger())
+                .lock(LockToken.of(request.getRequestId()))
+                .lease(Lease.of(
+                        LeaderTime.of(LeadershipId.random(), NanoTime.createForTests(1234L)), Duration.ofDays(2000)))
+                .freshTimestamps(ConjureTimestampRange.of(createRandomPositiveInteger(), createRandomPositiveInteger()))
+                .build();
+    }
+
+    private static int createRandomPositiveInteger() {
+        return ThreadLocalRandom.current().nextInt(0, 2500);
     }
 
     private abstract static class AssertVisitor implements QosException.Visitor<Void> {
