@@ -26,11 +26,11 @@ import org.immutables.value.Value;
 public abstract class ClientLimiterConfig {
     @Value.Default
     public int concurrentRangeScans() {
-        return 10;
+        return 1_000;
     }
 
     @Value.Default
     public float rowsPerSecondLimit() {
-        return 10_000;
+        return 100_000;
     }
 }
