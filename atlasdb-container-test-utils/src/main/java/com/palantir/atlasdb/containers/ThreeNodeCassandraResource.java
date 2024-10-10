@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
+import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import java.io.IOException;
 import java.util.Optional;
@@ -37,7 +38,9 @@ public class ThreeNodeCassandraResource
 
     public ThreeNodeCassandraResource() {
         this.supplier = () -> CassandraKeyValueServiceImpl.createForTesting(
-                ThreeNodeCassandraCluster.KVS_CONFIG, ThreeNodeCassandraCluster.KVS_RUNTIME_CONFIG);
+                ThreeNodeCassandraCluster.KVS_CONFIG,
+                ThreeNodeCassandraCluster.KVS_RUNTIME_CONFIG,
+                new NoOpAtlasClientLimiter());
     }
 
     @Override

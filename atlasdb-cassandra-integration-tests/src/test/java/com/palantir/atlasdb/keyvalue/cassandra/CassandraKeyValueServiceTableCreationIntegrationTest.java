@@ -28,6 +28,7 @@ import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.AbstractKeyValueService;
+import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.ValueType;
@@ -197,6 +198,7 @@ public class CassandraKeyValueServiceTableCreationIntegrationTest {
         ImmutableCassandraKeyValueServiceConfig config = ImmutableCassandraKeyValueServiceConfig.copyOf(
                         CASSANDRA.getConfig())
                 .withSchemaMutationTimeoutMillis(millis);
-        return CassandraKeyValueServiceImpl.createForTesting(config, CASSANDRA.getRuntimeConfig());
+        return CassandraKeyValueServiceImpl.createForTesting(
+                config, CASSANDRA.getRuntimeConfig(), new NoOpAtlasClientLimiter());
     }
 }

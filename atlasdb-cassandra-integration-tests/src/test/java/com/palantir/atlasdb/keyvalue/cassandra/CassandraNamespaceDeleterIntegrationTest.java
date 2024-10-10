@@ -30,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifierConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
+import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleter;
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleterFactory;
 import com.palantir.refreshable.Refreshable;
@@ -67,7 +68,7 @@ public final class CassandraNamespaceDeleterIntegrationTest {
     // We don't need a kvs for namespaceTwo, because we manually create the keyspace and don't care about the
     // existence of the atlas tables for the new namespace
     private final KeyValueService kvs = CassandraKeyValueServiceImpl.createForTesting(
-            keyValueServiceConfigForNamespaceOne, keyValueServiceRuntimeConfig);
+            keyValueServiceConfigForNamespaceOne, keyValueServiceRuntimeConfig, new NoOpAtlasClientLimiter());
     private final NamespaceDeleterFactory factory = new CassandraNamespaceDeleterFactory();
     private final NamespaceDeleter namespaceDeleterForNamespaceOne = factory.createNamespaceDeleter(
             keyValueServiceConfigForNamespaceOne, keyValueServiceRuntimeConfig.map(Optional::of));

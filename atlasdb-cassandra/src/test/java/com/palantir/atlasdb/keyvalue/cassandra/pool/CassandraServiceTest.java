@@ -28,6 +28,7 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceRuntimeCo
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.Blacklist;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPoolingContainer;
+import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.refreshable.Refreshable;
@@ -336,7 +337,12 @@ public class CassandraServiceTest {
 
         MetricsManager metricsManager = MetricsManagers.createForTests();
         CassandraService service = CassandraService.createForTests(
-                metricsManager, config, runtimeConfig, blacklist, new CassandraClientPoolMetrics(metricsManager));
+                metricsManager,
+                config,
+                runtimeConfig,
+                blacklist,
+                new CassandraClientPoolMetrics(metricsManager),
+                new NoOpAtlasClientLimiter());
 
         service.cacheInitialHostsForCalculatingPoolNumber(servers);
         servers.forEach(service::addPool);

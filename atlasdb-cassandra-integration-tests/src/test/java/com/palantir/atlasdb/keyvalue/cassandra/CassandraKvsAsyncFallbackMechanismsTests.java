@@ -53,6 +53,8 @@ import com.palantir.atlasdb.keyvalue.cassandra.async.CqlClientImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.async.DefaultCassandraAsyncKeyValueServiceFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory;
 import com.palantir.atlasdb.keyvalue.cassandra.async.client.creation.ClusterFactory.CassandraClusterConfig;
+import com.palantir.atlasdb.limiter.AtlasClientLimiter;
+import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.Map;
@@ -69,6 +71,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
     private static final TableReference TEST_TABLE = TableReference.createFromFullyQualifiedName("ns.pt_kvs_test");
     private static final Cell CELL = Cell.create(PtBytes.toBytes("row"), PtBytes.toBytes("column"));
     private static final Map<Cell, Long> TIMESTAMP_BY_CELL = ImmutableMap.of(CELL, 3L);
+    private static final AtlasClientLimiter CLIENT_LIMITER = new NoOpAtlasClientLimiter();
 
     @RegisterExtension
     public static final CassandraResource CASSANDRA_RESOURCE = new CassandraResource();
@@ -109,7 +112,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
                 .asyncKeyValueServiceFactory(factory)
                 .build();
 
-        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config, RUNTIME_CONFIG));
+        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config, RUNTIME_CONFIG, CLIENT_LIMITER));
         keyValueService.getAsync(TEST_TABLE, TIMESTAMP_BY_CELL);
 
         verify(asyncKeyValueService, times(1)).getAsync(any(), any());
@@ -129,7 +132,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
                 .asyncKeyValueServiceFactory(factory)
                 .build();
 
-        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config, RUNTIME_CONFIG));
+        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config, RUNTIME_CONFIG, CLIENT_LIMITER));
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         keyValueService.getAsync(TEST_TABLE, TIMESTAMP_BY_CELL);
@@ -148,7 +151,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
                 .asyncKeyValueServiceFactory(factory)
                 .build();
 
-        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config, RUNTIME_CONFIG));
+        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config, RUNTIME_CONFIG, CLIENT_LIMITER));
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         keyValueService.getAsync(TEST_TABLE, TIMESTAMP_BY_CELL);
@@ -161,7 +164,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
             throws ExecutionException, InterruptedException {
         CassandraKeyValueServiceConfig config = getConfigWithAsyncFactoryUsingClosedSession(true);
 
-        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config, RUNTIME_CONFIG));
+        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config, RUNTIME_CONFIG, CLIENT_LIMITER));
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         keyValueService.getAsync(TEST_TABLE, TIMESTAMP_BY_CELL).get();
@@ -172,7 +175,7 @@ public class CassandraKvsAsyncFallbackMechanismsTests {
     @Test
     public void testGetAsyncFallingBackToSynchronousOnSessionClosedBeforeStatementPreparation() {
         CassandraKeyValueServiceConfig config = getConfigWithAsyncFactoryUsingClosedSession(false);
-        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config, RUNTIME_CONFIG));
+        keyValueService = spy(CassandraKeyValueServiceImpl.createForTesting(config, RUNTIME_CONFIG, CLIENT_LIMITER));
         keyValueService.createTable(TEST_TABLE, AtlasDbConstants.GENERIC_TABLE_METADATA);
 
         keyValueService.getAsync(TEST_TABLE, TIMESTAMP_BY_CELL);

@@ -44,6 +44,7 @@ import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraService;
+import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.concurrent.InitializeableScheduledExecutorServiceSupplier;
@@ -298,7 +299,8 @@ public final class CassandraClientPoolTest {
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
                 blacklist,
                 cassandraTopologyValidator,
-                absentHostTracker);
+                absentHostTracker,
+                new NoOpAtlasClientLimiter());
 
         host(CASS_SERVER_1)
                 .throwsException(new SocketTimeoutException())
@@ -751,7 +753,8 @@ public final class CassandraClientPoolTest {
                 CassandraClientPoolImpl.StartupChecks.DO_NOT_RUN,
                 blacklist,
                 cassandraTopologyValidator,
-                new CassandraAbsentHostTracker(1));
+                new CassandraAbsentHostTracker(1),
+                new NoOpAtlasClientLimiter());
 
         serversInPool.forEach(address -> cassandraClientPool
                 .getCurrentPools()

@@ -25,6 +25,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
+import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.refreshable.Refreshable;
 import java.net.Proxy;
@@ -42,7 +43,8 @@ public class CassandraResource implements BeforeAllCallback, AfterAllCallback, K
     private Proxy socksProxy;
 
     public CassandraResource() {
-        this.supplier = () -> CassandraKeyValueServiceImpl.createForTesting(getConfig(), getRuntimeConfig());
+        this.supplier = () -> CassandraKeyValueServiceImpl.createForTesting(
+                getConfig(), getRuntimeConfig(), new NoOpAtlasClientLimiter());
     }
 
     public CassandraResource(Supplier<KeyValueService> supplier) {

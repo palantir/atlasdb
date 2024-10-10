@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
+import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.exception.SafeSSLPeerUnverifiedException;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
@@ -72,7 +73,8 @@ public class CassandraClientFactoryTest {
                     .keyspace("ks")
                     .timeoutOnConnectionClose(Duration.ZERO)
                     .build(),
-            new UnfilteredCassandraClientMetrics(new DefaultTaggedMetricRegistry()));
+            new UnfilteredCassandraClientMetrics(new DefaultTaggedMetricRegistry()),
+            new NoOpAtlasClientLimiter());
 
     private static final InetAddress DEFAULT_ADDRESS = mockInetAddress("1.2.3.4");
 

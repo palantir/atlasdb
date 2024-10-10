@@ -22,6 +22,7 @@ import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
+import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.logsafe.DoNotLog;
@@ -66,7 +67,8 @@ public class CassandraKeyValueServiceInstrumentation extends KeyValueServiceInst
         return CassandraKeyValueServiceImpl.createForTesting(
                         (CassandraKeyValueServiceConfig) getKeyValueServiceConfig(addr),
                         Refreshable.only((CassandraKeyValueServiceRuntimeConfig)
-                                getKeyValueServiceRuntimeConfig(addr).orElseThrow()))
+                                getKeyValueServiceRuntimeConfig(addr).orElseThrow()),
+                        new NoOpAtlasClientLimiter())
                 .isInitialized();
     }
 

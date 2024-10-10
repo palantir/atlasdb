@@ -30,6 +30,7 @@ import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraVerifier.CassandraVerifierConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.HostLocation;
+import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.FunctionCheckedException;
@@ -72,7 +73,8 @@ public class CassandraClientPoolIntegrationTest {
                 CassandraTopologyValidator.create(
                         CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry()),
                         CASSANDRA.getRuntimeConfig()),
-                new CassandraAbsentHostTracker(CASSANDRA.getConfig().consecutiveAbsencesBeforePoolRemoval()));
+                new CassandraAbsentHostTracker(CASSANDRA.getConfig().consecutiveAbsencesBeforePoolRemoval()),
+                new NoOpAtlasClientLimiter());
     }
 
     @Test
@@ -119,7 +121,8 @@ public class CassandraClientPoolIntegrationTest {
                 CassandraTopologyValidator.create(
                         CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry()),
                         CASSANDRA.getRuntimeConfig()),
-                new CassandraAbsentHostTracker(CASSANDRA.getConfig().consecutiveAbsencesBeforePoolRemoval()));
+                new CassandraAbsentHostTracker(CASSANDRA.getConfig().consecutiveAbsencesBeforePoolRemoval()),
+                new NoOpAtlasClientLimiter());
 
         return clientPoolWithLocation.getLocalHosts();
     }

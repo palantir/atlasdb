@@ -256,7 +256,9 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     private final Function<Map<Cell, Value>, ResultsExtractor<Value>> extractorFactory;
 
     public static CassandraKeyValueService createForTesting(
-            CassandraKeyValueServiceConfig config, Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig) {
+            CassandraKeyValueServiceConfig config,
+            Refreshable<CassandraKeyValueServiceRuntimeConfig> runtimeConfig,
+            AtlasClientLimiter clientLimiter) {
         MetricsManager metricsManager = MetricsManagers.createForTests();
         CassandraClientPool clientPool = CassandraClientPoolImpl.createImplForTest(
                 metricsManager,
@@ -268,7 +270,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         runtimeConfig.map(CassandraKeyValueServiceRuntimeConfig::unresponsiveHostBackoffTimeSeconds)),
                 CassandraTopologyValidator.create(
                         CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry()), runtimeConfig),
-                new CassandraAbsentHostTracker(config.consecutiveAbsencesBeforePoolRemoval()));
+                new CassandraAbsentHostTracker(config.consecutiveAbsencesBeforePoolRemoval()),
+                clientLimiter);
 
         return createOrShutdownClientPool(
                 metricsManager,

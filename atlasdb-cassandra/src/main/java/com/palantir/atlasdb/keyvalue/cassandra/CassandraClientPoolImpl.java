@@ -131,7 +131,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
             StartupChecks startupChecks,
             Blacklist blacklist,
             CassandraTopologyValidator cassandraTopologyValidator,
-            CassandraAbsentHostTracker absentHostTracker) {
+            CassandraAbsentHostTracker absentHostTracker,
+            AtlasClientLimiter clientLimiter) {
         CassandraRequestExceptionHandler exceptionHandler = testExceptionHandler(blacklist);
         CassandraClientPoolMetrics cassandraClientPoolMetrics = new CassandraClientPoolMetrics(metricsManager);
         CassandraClientPoolImpl cassandraClientPool = new CassandraClientPoolImpl(
@@ -144,7 +145,7 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 cassandraTopologyValidator,
                 absentHostTracker,
                 CassandraService.createForTests(
-                        metricsManager, config, runtimeConfig, blacklist, cassandraClientPoolMetrics));
+                        metricsManager, config, runtimeConfig, blacklist, cassandraClientPoolMetrics, clientLimiter));
         cassandraClientPool.wrapper.initialize(AtlasDbConstants.DEFAULT_INITIALIZE_ASYNC);
         return cassandraClientPool;
     }
@@ -200,7 +201,8 @@ public class CassandraClientPoolImpl implements CassandraClientPool {
                 CassandraTopologyValidator.create(
                         CassandraTopologyValidationMetrics.of(metricsManager.getTaggedRegistry()), runtimeConfig),
                 new CassandraAbsentHostTracker(config.consecutiveAbsencesBeforePoolRemoval()),
-                CassandraService.create(metricsManager, config, runtimeConfig, blacklist, cassandraClientPoolMetrics));
+                CassandraService.create(
+                        metricsManager, config, runtimeConfig, blacklist, cassandraClientPoolMetrics, clientLimiter));
         cassandraClientPool.wrapper.initialize(initializeAsync);
         return cassandraClientPool.wrapper.isInitialized() ? cassandraClientPool : cassandraClientPool.wrapper;
     }

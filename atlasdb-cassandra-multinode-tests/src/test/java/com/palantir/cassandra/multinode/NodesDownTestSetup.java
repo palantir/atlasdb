@@ -25,6 +25,7 @@ import com.palantir.atlasdb.containers.Containers;
 import com.palantir.atlasdb.containers.ThreeNodeCassandraCluster;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServiceImpl;
+import com.palantir.atlasdb.limiter.NoOpAtlasClientLimiter;
 import com.palantir.docker.compose.connection.DockerPort;
 import com.palantir.refreshable.Refreshable;
 import java.io.IOException;
@@ -72,7 +73,8 @@ public class NodesDownTestSetup implements BeforeAllCallback, ExtensionContext.S
     }
 
     private static CassandraKeyValueService createKvs(Class<?> testClass) {
-        return CassandraKeyValueServiceImpl.createForTesting(getConfig(testClass), RUNTIME_CONFIG);
+        return CassandraKeyValueServiceImpl.createForTesting(
+                getConfig(testClass), RUNTIME_CONFIG, new NoOpAtlasClientLimiter());
     }
 
     static CassandraKeyValueServiceConfig getConfig(Class<?> testClass) {
