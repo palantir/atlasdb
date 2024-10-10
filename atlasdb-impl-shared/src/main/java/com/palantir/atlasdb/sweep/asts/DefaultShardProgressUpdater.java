@@ -110,7 +110,7 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
                 return BucketProbeResult.builder()
                         .endExclusive(currentBucket)
                         .knownSweepProgress(recordsTable
-                                .getTimestampRangeRecord(currentBucket)
+                                        .getTimestampRangeRecord(currentBucket)
                                         .startInclusive()
                                 - 1L)
                         .build();

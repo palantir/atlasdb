@@ -129,8 +129,7 @@ public class DefaultShardProgressUpdaterTest {
         TimestampRange finalBucketTimestampRange = TimestampRange.of(
                 lastCompleteBucketTimestampRange.endExclusive(),
                 lastCompleteBucketTimestampRange.endExclusive() + SweepQueueUtils.TS_COARSE_GRANULARITY);
-        when(recordsTable.getTimestampRangeRecord(finalBucketIdentifier))
-                .thenReturn(finalBucketTimestampRange);
+        when(recordsTable.getTimestampRangeRecord(finalBucketIdentifier)).thenReturn(finalBucketTimestampRange);
 
         shardProgressUpdater.updateProgress(firstRawBucket.shardAndStrategy());
 
@@ -179,8 +178,7 @@ public class DefaultShardProgressUpdaterTest {
     }
 
     private void setupBucketRecord(SweepableBucket sweepableBucket) {
-        when(recordsTable.getTimestampRangeRecord(
-                        sweepableBucket.bucket().bucketIdentifier()))
+        when(recordsTable.getTimestampRangeRecord(sweepableBucket.bucket().bucketIdentifier()))
                 .thenReturn(sweepableBucket.timestampRange());
     }
 
