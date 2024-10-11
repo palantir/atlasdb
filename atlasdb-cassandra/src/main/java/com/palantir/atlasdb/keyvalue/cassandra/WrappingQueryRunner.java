@@ -18,9 +18,11 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
+import com.palantir.logsafe.SafeArg;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.apache.cassandra.thrift.ColumnOrSuperColumn;
 import org.apache.cassandra.thrift.ConsistencyLevel;
@@ -53,9 +55,7 @@ class WrappingQueryRunner {
                 return null;
             });
         } catch (UnavailableException e) {
-            throw new InsufficientConsistencyException(
-                    "This batch mutate operation requires " + consistency + " Cassandra nodes to be up and available.",
-                    e);
+            throw CassandraTExceptions.mapToUncheckedException(Optional.of("This batch mutate operation requires {} Cassandra nodes to be up and available."), e, SafeArg.of("consistency", consistency));
         }
     }
 
@@ -73,8 +73,7 @@ class WrappingQueryRunner {
                     tableRef,
                     () -> client.multiget_slice(kvsMethodName, tableRef, rowNames, pred, consistency));
         } catch (UnavailableException e) {
-            throw new InsufficientConsistencyException(
-                    "This get operation requires " + consistency + " Cassandra nodes to be up and available.", e);
+            throw CassandraTExceptions.mapToUncheckedException(Optional.of("This get operation requires {} Cassandra nodes to be up and available."), e, SafeArg.of("consistency", consistency));
         }
     }
 
@@ -89,8 +88,7 @@ class WrappingQueryRunner {
             return queryRunner.run(
                     client, tableRef, () -> client.multiget_multislice(kvsMethodName, tableRef, request, consistency));
         } catch (UnavailableException e) {
-            throw new InsufficientConsistencyException(
-                    "This get operation requires " + consistency + " Cassandra nodes to be up and available.", e);
+            throw CassandraTExceptions.mapToUncheckedException(Optional.of("This get operation requires {} Cassandra nodes to be up and available."), e, SafeArg.of("consistency", consistency));
         }
     }
 }

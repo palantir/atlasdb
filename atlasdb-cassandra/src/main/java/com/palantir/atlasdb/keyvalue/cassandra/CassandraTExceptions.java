@@ -23,13 +23,13 @@ import java.util.Optional;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 
-final class CassandraTExceptions {
+public final class CassandraTExceptions {
     private static final String UNAVAILABLE_EXCEPTION_LOG_MESSAGE=
                 "Cassandra key value service threw a InsufficientConsistencyException." +
                 "Thrown when an operation could not be performed because the required consistency could not be met."
     private CassandraTExceptions() {}
 
-    static RuntimeException mapToUncheckedException(Optional<String> maybeLogMessage, Throwable throwable, Arg<?>... args) {
+    public static RuntimeException mapToUncheckedException(Optional<String> maybeLogMessage, Throwable throwable, Arg<?>... args) {
         if (throwable instanceof TimedOutException) {
             return new CassandraTimedOutException(throwable, args);
         }
