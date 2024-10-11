@@ -24,6 +24,7 @@ import com.palantir.atlasdb.RateLimitingCassandraClient;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.ImmutableCassandraClientConfig.SocketTimeoutMillisBuildStage;
+import com.palantir.atlasdb.keyvalue.cassandra.limiter.NoOpClientLimiter;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -110,7 +111,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     }
 
     private CassandraClient rateLimitClient(CassandraClient client) {
-        return new RateLimitingCassandraClient(client);
+        return new RateLimitingCassandraClient(client, new NoOpClientLimiter());
     }
 
     private CassandraClient instrumentClient(Client rawClient) {
