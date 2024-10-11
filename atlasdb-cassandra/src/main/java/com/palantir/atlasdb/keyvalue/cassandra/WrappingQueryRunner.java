@@ -55,7 +55,10 @@ class WrappingQueryRunner {
                 return null;
             });
         } catch (UnavailableException e) {
-            throw CassandraTExceptions.mapToUncheckedException(Optional.of("This batch mutate operation requires {} Cassandra nodes to be up and available."), e, SafeArg.of("consistency", consistency));
+            throw CassandraTExceptions.mapToUncheckedException(
+                    Optional.of("This batch mutate operation requires {} Cassandra nodes to be up and available."),
+                    e,
+                    SafeArg.of("consistency", consistency));
         }
     }
 
@@ -73,7 +76,10 @@ class WrappingQueryRunner {
                     tableRef,
                     () -> client.multiget_slice(kvsMethodName, tableRef, rowNames, pred, consistency));
         } catch (UnavailableException e) {
-            throw CassandraTExceptions.mapToUncheckedException(Optional.of("This get operation requires {} Cassandra nodes to be up and available."), e, SafeArg.of("consistency", consistency));
+            throw CassandraTExceptions.mapToUncheckedException(
+                    Optional.of("This get operation requires {} Cassandra nodes to be up and available."),
+                    e,
+                    SafeArg.of("consistency", consistency));
         }
     }
 
@@ -88,7 +94,10 @@ class WrappingQueryRunner {
             return queryRunner.run(
                     client, tableRef, () -> client.multiget_multislice(kvsMethodName, tableRef, request, consistency));
         } catch (UnavailableException e) {
-            throw CassandraTExceptions.mapToUncheckedException(Optional.of("This get operation requires {} Cassandra nodes to be up and available."), e, SafeArg.of("consistency", consistency));
+            throw CassandraTExceptions.mapToUncheckedException(
+                    Optional.of("This get operation requires {} Cassandra nodes to be up and available."),
+                    e,
+                    SafeArg.of("consistency", consistency));
         }
     }
 }

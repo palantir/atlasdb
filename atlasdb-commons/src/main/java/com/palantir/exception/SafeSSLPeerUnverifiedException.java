@@ -31,7 +31,7 @@ public final class SafeSSLPeerUnverifiedException extends SSLPeerUnverifiedExcep
     private final String logMessage;
     private final List<Arg<?>> arguments;
 
-    public SafeSSLPeerUnverifiedException(@CompileTimeConstant String message, Arg<?>... arguments) {
+    public SafeSSLPeerUnverifiedException(@Safe @CompileTimeConstant String message, Arg<?>... arguments) {
         super(SafeExceptions.renderMessage(message, arguments));
         this.logMessage = message;
         this.arguments = Collections.unmodifiableList(Arrays.asList(arguments));

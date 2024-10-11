@@ -24,11 +24,13 @@ import javax.annotation.Nullable;
 
 public class AtlasDbDependencyException extends RuntimeException implements SafeLoggable {
     private static final String LOG_MESSAGE = "AtlasDB dependency threw an exception.";
-    private List<Arg<?>> args = List.of();
-    private String logMessage = "";
+    private final List<Arg<?>> args;
+    private final String logMessage;
 
     public AtlasDbDependencyException(String logMessage) {
         super(logMessage);
+        this.args = List.of();
+        this.logMessage = logMessage;
     }
 
     public AtlasDbDependencyException(String logMessage, Arg<?>... args) {
@@ -38,10 +40,13 @@ public class AtlasDbDependencyException extends RuntimeException implements Safe
     public AtlasDbDependencyException(String logMessage, Throwable cause) {
         super(SafeExceptions.renderMessage(logMessage), cause);
         this.logMessage = logMessage;
+        this.args = List.of();
     }
 
     public AtlasDbDependencyException(Throwable throwable) {
         super(LOG_MESSAGE, throwable);
+        this.args = List.of();
+        this.logMessage = LOG_MESSAGE;
     }
 
     public AtlasDbDependencyException(Throwable throwable, Arg<?>... args) {
@@ -54,7 +59,7 @@ public class AtlasDbDependencyException extends RuntimeException implements Safe
         this.logMessage = LOG_MESSAGE;
     }
 
-    private AtlasDbDependencyException(String logMessage, List<Arg<?>> args) {
+    private AtlasDbDependencyException(@Safe String logMessage, List<Arg<?>> args) {
         super(SafeExceptions.renderMessage(logMessage, args.toArray(new Arg[0])));
         this.args = args;
         this.logMessage = logMessage;
