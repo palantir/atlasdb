@@ -20,6 +20,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.RateLimitingCassandraClient;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.ImmutableCassandraClientConfig.SocketTimeoutMillisBuildStage;
@@ -97,7 +98,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     @Override
     public CassandraClient create() {
         try {
-            return instrumentClient(getRawClientWithKeyspaceSet());
+            return rateLimitClient(instrumentClient(getRawClientWithKeyspaceSet()));
         } catch (Exception e) {
             String message = String.format(
                     "Failed to construct client for %s/%s", cassandraServer.proxy(), clientConfig.keyspace());
@@ -106,6 +107,10 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
             }
             throw new ClientCreationFailedException(message, e);
         }
+    }
+
+    private CassandraClient rateLimitClient(CassandraClient client) {
+        return new RateLimitingCassandraClient(client);
     }
 
     private CassandraClient instrumentClient(Client rawClient) {
