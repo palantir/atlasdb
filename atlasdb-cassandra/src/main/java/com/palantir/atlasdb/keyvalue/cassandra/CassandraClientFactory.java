@@ -26,7 +26,7 @@ import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.ImmutableCassandraClientConfig.SocketTimeoutMillisBuildStage;
 import com.palantir.atlasdb.keyvalue.cassandra.limiter.ClientLimiter;
-import com.palantir.atlasdb.keyvalue.cassandra.limiter.NoOpClientLimiter;
+import com.palantir.atlasdb.keyvalue.cassandra.limiter.ClientLimiterImpl;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -234,13 +234,13 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         client.login(new AuthenticationRequest(credsMap));
     }
 
-    private static ClientLimiter createLimiter(CassandraClientRateLimitingConfig _rateLimitingConfig) {
-        return new NoOpClientLimiter();
+    private static ClientLimiter createLimiter(CassandraClientRateLimitingConfig rateLimitingConfig) {
+        return new ClientLimiterImpl(rateLimitingConfig.maxConcurrentRangeScans());
     }
 
     /**
      * Verifies that the current SSL connection hostname/ip address matches what the certificate has served.
-     * This will check both ip address/hostname, and uses the IP address associated with the socket, rather
+     * This will check both ip address/hostnamue, and uses the IP address associated with the socket, rather
      * that what has been provided. Hostname/ip address are both need to be checked, as historically we've
      * connected to Cassandra directly using IP addresses, and therefore need to support such cases.
      *

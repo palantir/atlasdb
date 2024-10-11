@@ -25,7 +25,7 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface CassandraClientRateLimitingConfig {
     @Value.Default
-    default int concurrentRangeScans() {
+    default int maxConcurrentRangeScans() {
         return 100;
     }
 }
