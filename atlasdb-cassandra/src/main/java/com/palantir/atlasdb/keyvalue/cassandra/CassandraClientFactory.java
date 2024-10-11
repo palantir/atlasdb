@@ -114,8 +114,14 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         return client;
     }
 
-    private Cassandra.Client getRawClientWithKeyspaceSet() throws TException {
-        Client ret = getRawClientWithTimedCreation();
+    private Cassandra.Client getRawClientWithKeyspaceSet() {
+        Client ret;
+        try {
+            ret = getRawClientWithTimedCreation();
+        } catch (TException e) {
+            throw CassandraTExceptions.mapToUncheckedException(Optional.empty(), e);
+        }
+
         try {
             ret.set_keyspace(clientConfig.keyspace());
             if (log.isDebugEnabled()) {
@@ -131,7 +137,10 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
             return ret;
         } catch (TException e) {
             ret.getOutputProtocol().getTransport().close();
-            throw e;
+            throw CassandraTExceptions.mapToUncheckedException(
+                    Optional.of("Failed to create new client for {}"),
+                    e,
+                    SafeArg.of("address", CassandraLogHelper.host(cassandraServer.proxy())));
         }
     }
 
@@ -205,8 +214,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                     addr);
         } catch (TException e) {
             client.getOutputProtocol().getTransport().close();
-            log.error("Exception thrown attempting to authenticate with config provided credentials", e);
-            throw e;
+            throw CassandraTExceptions.mapToUncheckedException(
+                    Optional.of("Exception thrown attempting to authenticate with config provided credentials"), e);
         }
 
         return client;

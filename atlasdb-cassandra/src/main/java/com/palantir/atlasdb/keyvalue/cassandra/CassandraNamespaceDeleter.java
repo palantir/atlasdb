@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.Namespace;
 import com.palantir.atlasdb.namespacedeleter.NamespaceDeleter;
 import com.palantir.common.base.Throwables;
 import java.io.IOException;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.NotFoundException;
@@ -59,7 +60,7 @@ public final class CassandraNamespaceDeleter implements NamespaceDeleter {
         } catch (NotFoundException e) {
             return true;
         } catch (TException e) {
-            throw CassandraTExceptions.mapToUncheckedException(e);
+            throw CassandraTExceptions.mapToUncheckedException(Optional.empty(), e);
         }
     }
 

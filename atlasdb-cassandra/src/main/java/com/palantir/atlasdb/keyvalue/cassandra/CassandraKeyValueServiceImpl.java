@@ -150,6 +150,7 @@ import org.apache.cassandra.thrift.KeyPredicate;
 import org.apache.cassandra.thrift.KsDef;
 import org.apache.cassandra.thrift.Mutation;
 import org.apache.cassandra.thrift.SlicePredicate;
+import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.thrift.TException;
 
 /**
@@ -977,7 +978,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                         pred,
                                         readConsistencyProvider.getConsistency(tableRef));
                             } catch (TException e) {
-                                throw CassandraTExceptions.mapToUncheckedException(e, SafeArg.of("tableRef", tableRef));
+                                throw new TimedOutException();
                             }
 
                             return RowColumnRangeExtractor.extract(rows, results, startTs, metricsManager);
@@ -990,6 +991,8 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                                     + " max columns)";
                         }
                     });
+        } catch (TimedOutException e) {
+            throw CassandraTExceptions.mapToUncheckedException(Optional.empty(), e, SafeArg.of("tableRef", tableRef));
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
@@ -1724,7 +1727,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             } catch (RetryLimitReachedException e) {
                 throw CassandraUtils.wrapInIceForDeleteOrRethrow(e);
             } catch (TException e) {
-                throw CassandraTExceptions.mapToUncheckedException(e);
+                throw CassandraTExceptions.mapToUncheckedException(Optional.empty(), e);
             }
         } else {
             super.deleteRange(tableRef, range);

@@ -40,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -270,7 +271,7 @@ public class CqlExecutorImpl implements CqlExecutor {
                 hostsPerPreparedQuery.put(preparedResult.getItemId(), hostForRow);
                 return preparedResult;
             } catch (TException e) {
-                throw CassandraTExceptions.mapToUncheckedException(e);
+                throw CassandraTExceptions.mapToUncheckedException(Optional.empty(), e);
             }
         }
 

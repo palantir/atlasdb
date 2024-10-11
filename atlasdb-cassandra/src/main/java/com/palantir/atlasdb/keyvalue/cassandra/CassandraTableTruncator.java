@@ -18,8 +18,8 @@ package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.common.base.FunctionCheckedException;
-import com.palantir.common.base.Throwables;
 import java.util.Collection;
+import java.util.Optional;
 import org.apache.thrift.TException;
 
 class CassandraTableTruncator {
@@ -36,7 +36,7 @@ class CassandraTableTruncator {
             try {
                 runTruncateInternal(tablesToTruncate);
             } catch (TException e) {
-                throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+                throw CassandraTExceptions.mapToUncheckedException(Optional.empty(), e);
             }
         }
     }

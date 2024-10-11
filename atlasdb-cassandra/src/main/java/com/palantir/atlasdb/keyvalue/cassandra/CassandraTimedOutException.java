@@ -16,43 +16,30 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.Arg;
-import com.palantir.logsafe.Safe;
-import com.palantir.logsafe.SafeLoggable;
 import com.palantir.logsafe.exceptions.SafeExceptions;
 import java.util.List;
 import javax.annotation.Nullable;
 
-public class CassandraTimedOutException extends RuntimeException implements SafeLoggable {
+public class CassandraTimedOutException extends AtlasDbDependencyException {
     private static final long serialVersionUID = 1L;
     private static final String LOG_MESSAGE =
             "Cassandra query threw a TimedOut exception. Possible reasons and actions to resolve include:\n"
-                + "1. Reason: AtlasDB clients are requesting too much data from Cassandra.\n"
-                + "   Resolution: Change the query to request less data.\n"
-                + "2. Reason: Data that has been deleted is being read in the query (e.g. A large amount of"
-                + " tombstones).\n"
-                + "   Resolution: Run a compaction on your Cassandra server.\n"
-                + "3. Reason: Cassandra is struggling, possibly due to another large query, server health issues, or a"
-                + " network outage.\n"
-                + "   Resolution: Ask your CassandraOps to check the state of the Cassandra server.";
-    private final List<Arg<?>> args;
+                    + "1. Reason: AtlasDB clients are requesting too much data from Cassandra.\n"
+                    + "   Resolution: Change the query to request less data.\n"
+                    + "2. Reason: Data that has been deleted is being read in the query (e.g. A large amount of"
+                    + " tombstones).\n"
+                    + "   Resolution: Run a compaction on your Cassandra server.\n"
+                    + "3. Reason: Cassandra is struggling, possibly due to another large query, server health issues, or a"
+                    + " network outage.\n"
+                    + "   Resolution: Ask your CassandraOps to check the state of the Cassandra server.";
 
     public CassandraTimedOutException(Throwable throwable, Arg<?>... args) {
-        this(throwable, List.of(args));
+        super(throwable, args);
     }
 
     private CassandraTimedOutException(@Nullable Throwable cause, List<Arg<?>> args) {
         super(SafeExceptions.renderMessage(LOG_MESSAGE, args.toArray(new Arg[0])), cause);
-        this.args = args;
-    }
-
-    @Override
-    public @Safe String getLogMessage() {
-        return LOG_MESSAGE;
-    }
-
-    @Override
-    public List<Arg<?>> getArgs() {
-        return args;
     }
 }

@@ -24,6 +24,7 @@ import com.palantir.atlasdb.logging.LoggingArgs.SafeAndUnsafeTableReferences;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import java.nio.ByteBuffer;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -53,7 +54,7 @@ public class TracingQueryRunner {
                 return action.run();
             } catch (TException e) {
                 logFailedCall(tableRefs);
-                throw e;
+                throw CassandraTExceptions.mapToUncheckedException(Optional.empty(), e);
             }
         }
     }
@@ -71,7 +72,7 @@ public class TracingQueryRunner {
         } catch (TException e) {
             failed = true;
             logFailedCall(tableRefs);
-            throw e;
+            throw CassandraTExceptions.mapToUncheckedException(Optional.empty(), e);
         } finally {
             long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
             logTraceResults(duration, tableRefs, traceId, failed);

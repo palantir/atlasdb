@@ -15,18 +15,58 @@
  */
 package com.palantir.common.exception;
 
-public class AtlasDbDependencyException extends RuntimeException {
-    private static final String EXCEPTION_MESSAGE = "AtlasDB dependency threw an exception.";
+import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.Safe;
+import com.palantir.logsafe.SafeLoggable;
+import com.palantir.logsafe.exceptions.SafeExceptions;
+import java.util.List;
+import javax.annotation.Nullable;
 
-    public AtlasDbDependencyException(String msg) {
-        super(msg);
+public class AtlasDbDependencyException extends RuntimeException implements SafeLoggable {
+    private static final String LOG_MESSAGE = "AtlasDB dependency threw an exception.";
+    private List<Arg<?>> args = List.of();
+    private String logMessage = "";
+
+    public AtlasDbDependencyException(String logMessage) {
+        super(logMessage);
     }
 
-    public AtlasDbDependencyException(String msg, Throwable throwable) {
-        super(msg, throwable);
+    public AtlasDbDependencyException(String logMessage, Arg<?>... args) {
+        this(logMessage, List.of(args));
+    }
+
+    public AtlasDbDependencyException(String logMessage, Throwable cause) {
+        super(SafeExceptions.renderMessage(logMessage), cause);
+        this.logMessage = logMessage;
     }
 
     public AtlasDbDependencyException(Throwable throwable) {
-        super(EXCEPTION_MESSAGE, throwable);
+        super(LOG_MESSAGE, throwable);
+    }
+
+    public AtlasDbDependencyException(Throwable throwable, Arg<?>... args) {
+        this(throwable, List.of(args));
+    }
+
+    private AtlasDbDependencyException(@Nullable Throwable cause, List<Arg<?>> args) {
+        super(SafeExceptions.renderMessage(LOG_MESSAGE, args.toArray(new Arg[0])), cause);
+        this.args = args;
+        this.logMessage = LOG_MESSAGE;
+    }
+
+    private AtlasDbDependencyException(String logMessage, List<Arg<?>> args) {
+        super(SafeExceptions.renderMessage(logMessage, args.toArray(new Arg[0])));
+        this.args = args;
+        this.logMessage = logMessage;
+    }
+
+    @Override
+    public @Safe String getLogMessage() {
+        return logMessage;
+    }
+
+    @Override
+    public List<Arg<?>> getArgs() {
+        return args;
     }
 }

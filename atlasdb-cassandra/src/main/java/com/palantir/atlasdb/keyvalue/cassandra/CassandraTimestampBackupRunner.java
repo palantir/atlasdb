@@ -26,6 +26,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.Pair;
 import java.util.Map;
+import java.util.Optional;
 import javax.annotation.Nullable;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
@@ -184,7 +185,7 @@ public class CassandraTimestampBackupRunner {
                             AtlasDbConstants.TIMESTAMP_TABLE,
                             () -> client.execute_cql3_query(query, Compression.NONE, ConsistencyLevel.QUORUM));
         } catch (TException e) {
-            throw CassandraTExceptions.mapToUncheckedException(e);
+            throw CassandraTExceptions.mapToUncheckedException(Optional.empty(), e);
         }
     }
 

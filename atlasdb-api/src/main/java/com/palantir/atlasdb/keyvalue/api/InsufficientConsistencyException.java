@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.keyvalue.api;
 
 import com.palantir.common.exception.AtlasDbDependencyException;
+import com.palantir.logsafe.Arg;
 
 /**
  * Thrown by a key value service when an operation could not be performed
@@ -24,11 +25,15 @@ import com.palantir.common.exception.AtlasDbDependencyException;
 public class InsufficientConsistencyException extends AtlasDbDependencyException {
     private static final long serialVersionUID = 1L;
 
-    public InsufficientConsistencyException(String msg) {
-        super(msg);
+    public InsufficientConsistencyException(String logMessage) {
+        super(logMessage);
     }
 
-    public InsufficientConsistencyException(String msg, Throwable ex) {
-        super(msg, ex);
+    public InsufficientConsistencyException(String logMessage, Arg<?>... args) {
+        super(logMessage, args);
+    }
+
+    public InsufficientConsistencyException(String logMessage, Throwable cause) {
+        super(logMessage, cause);
     }
 }

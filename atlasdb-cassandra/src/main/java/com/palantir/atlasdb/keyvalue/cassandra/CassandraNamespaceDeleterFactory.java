@@ -65,7 +65,7 @@ public final class CassandraNamespaceDeleterFactory implements NamespaceDeleterF
                     .orElseThrow();
             return CassandraClientFactory.getClientInternal(CassandraServer.of(host), CassandraClientConfig.of(config));
         } catch (TException e) {
-            throw CassandraTExceptions.mapToUncheckedException(e);
+            throw CassandraTExceptions.mapToUncheckedException(Optional.empty(), e);
         }
     }
 }
