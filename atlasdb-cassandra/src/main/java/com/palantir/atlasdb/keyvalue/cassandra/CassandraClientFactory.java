@@ -21,9 +21,11 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.RateLimitingCassandraClient;
+import com.palantir.atlasdb.cassandra.CassandraClientRateLimitingConfig;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.ImmutableCassandraClientConfig.SocketTimeoutMillisBuildStage;
+import com.palantir.atlasdb.keyvalue.cassandra.limiter.ClientLimiter;
 import com.palantir.atlasdb.keyvalue.cassandra.limiter.NoOpClientLimiter;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.util.AtlasDbMetrics;
@@ -81,6 +83,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     private final TimedRunner timedRunner;
     private final TSocketFactory tSocketFactory;
     private final CassandraClientMetrics cassandraClientMetrics;
+    private final ClientLimiter clientLimiter;
 
     public CassandraClientFactory(
             MetricsManager metricsManager,
@@ -94,6 +97,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         this.timedRunner = TimedRunner.create(clientConfig.timeoutOnConnectionClose());
         this.tSocketFactory = new InstrumentedTSocket.Factory(metricsManager);
         this.cassandraClientMetrics = cassandraClientMetrics;
+        this.clientLimiter = createLimiter(clientConfig.rateLimiting());
     }
 
     @Override
@@ -111,7 +115,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     }
 
     private CassandraClient rateLimitClient(CassandraClient client) {
-        return new RateLimitingCassandraClient(client, new NoOpClientLimiter());
+        return new RateLimitingCassandraClient(client, clientLimiter);
     }
 
     private CassandraClient instrumentClient(Client rawClient) {
@@ -228,6 +232,10 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         credsMap.put("username", config.username());
         credsMap.put("password", config.password());
         client.login(new AuthenticationRequest(credsMap));
+    }
+
+    private static ClientLimiter createLimiter(CassandraClientRateLimitingConfig _rateLimitingConfig) {
+        return new NoOpClientLimiter();
     }
 
     /**
@@ -359,6 +367,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
         Duration timeoutOnConnectionClose();
 
+        CassandraClientRateLimitingConfig rateLimiting();
+
         static CassandraClientConfig of(CassandraKeyValueServiceConfig config) {
             return builder()
                     .socketTimeoutMillis(config.socketTimeoutMillis())
@@ -369,6 +379,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                     .enableEndpointVerification(config.enableEndpointVerification())
                     .keyspace(config.getKeyspaceOrThrow())
                     .timeoutOnConnectionClose(config.timeoutOnConnectionClose())
+                    .rateLimiting(config.rateLimiting())
                     .sslConfiguration(config.sslConfiguration())
                     .build();
         }
