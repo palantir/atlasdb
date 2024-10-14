@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
+import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
 import com.palantir.lock.LockDescriptor;
 import java.util.Optional;
 import java.util.Set;
@@ -26,6 +27,14 @@ final class LockManager {
 
     OrderedLocks getAllExclusiveLocks(Set<LockDescriptor> descriptors) {
         return exclusiveLocks.getAll(descriptors);
+    }
+
+    Optional<Long> getNamedMinTimestamp(TimestampLeaseName timestampName) {
+        return namedMinTimestampLockCollection.getNamedMinTimestamp(timestampName);
+    }
+
+    AsyncLock getNamedTimestampLock(TimestampLeaseName timestampName, long timestamp) {
+        return namedMinTimestampLockCollection.getNamedTimestampLock(timestampName, timestamp);
     }
 
     Optional<Long> getImmutableTimestamp() {

@@ -26,14 +26,22 @@ final class NamedMinTimestampLockCollection {
             Caffeine.newBuilder().build(NamedMinTimestampTrackerImpl::new);
 
     AsyncLock getImmutableTimestampLock(long timestamp) {
-        return getNamedMinTimestampLockInternal(TimestampLeaseName.RESERVED_NAME_FOR_IMMUTABLE_TIMESTAMP, timestamp);
+        return getNamedTimestampLockInternal(TimestampLeaseName.RESERVED_NAME_FOR_IMMUTABLE_TIMESTAMP, timestamp);
     }
 
     Optional<Long> getImmutableTimestamp() {
         return getNamedMinTimestampInternal(TimestampLeaseName.RESERVED_NAME_FOR_IMMUTABLE_TIMESTAMP);
     }
 
-    private AsyncLock getNamedMinTimestampLockInternal(String name, long timestamp) {
+    AsyncLock getNamedTimestampLock(TimestampLeaseName timestampName, long timestamp) {
+        return getNamedTimestampLockInternal(timestampName.name(), timestamp);
+    }
+
+    Optional<Long> getNamedMinTimestamp(TimestampLeaseName timestampName) {
+        return getNamedMinTimestampInternal(timestampName.name());
+    }
+
+    private AsyncLock getNamedTimestampLockInternal(String name, long timestamp) {
         return NamedMinTimestampLock.create(getNamedMinTimestampTracker(name), timestamp);
     }
 
