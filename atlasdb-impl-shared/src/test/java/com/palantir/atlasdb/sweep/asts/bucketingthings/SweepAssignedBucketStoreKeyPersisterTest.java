@@ -28,7 +28,6 @@ import com.palantir.atlasdb.sweep.asts.TimestampRange;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.ObjectPersister.LogSafety;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
-import com.palantir.conjure.java.serialization.ObjectMappers;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,7 +41,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 public final class SweepAssignedBucketStoreKeyPersisterTest {
     private static final ObjectPersister<TimestampRange> TIMESTAMP_RANGE_PERSISTER =
-            ObjectPersister.of(ObjectMappers.newServerSmileMapper(), TimestampRange.class, LogSafety.SAFE);
+            ObjectPersister.of(TimestampRange.class, LogSafety.SAFE);
 
     private static final Map<Bucket, Cell> GOLDEN_BUCKETS = Map.of(
             Bucket.of(ShardAndStrategy.conservative(0), 0),
@@ -64,10 +63,10 @@ public final class SweepAssignedBucketStoreKeyPersisterTest {
             TimestampRange.of(912301923, Long.MAX_VALUE),
             Value.create(
                     BaseEncoding.base64()
-                            .decode("OikKBfqNc3RhcnRJbmNsdXNpdmUkDUwJe4aLZW5kRXhjbHVzaXZlJQN/f39/f39/f777"),
+                            .decode("OikKBfqLZW5kRXhjbHVzaXZlJQN/f39/f39/f76Nc3RhcnRJbmNsdXNpdmUkDUwJe4b7"),
                     -1),
             TimestampRange.openBucket(13123),
-            Value.create(BaseEncoding.base64().decode("OikKBfqNc3RhcnRJbmNsdXNpdmUkAxqGi2VuZEV4Y2x1c2l2ZcH7"), -1));
+            Value.create(BaseEncoding.base64().decode("OikKBfqLZW5kRXhjbHVzaXZlwY1zdGFydEluY2x1c2l2ZSQDGob7"), -1));
 
     private static final Cell GOLDEN_SWEEP_BUCKET_ASSIGNER_STATE_MACHINE_CELL = Cell.create(
             BaseEncoding.base64().decode("GTH5RX8BW6N/f/8="),
