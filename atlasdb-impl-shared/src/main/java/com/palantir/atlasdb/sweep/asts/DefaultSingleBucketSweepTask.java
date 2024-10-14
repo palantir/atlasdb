@@ -96,7 +96,8 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
         SweepBatchWithPartitionInfo sweepBatchWithPartitionInfo = sweepQueueReader.getNextBatchToSweep(
                 sweepableBucket.bucket().shardAndStrategy(),
                 lastSweptTimestampInBucket,
-                getEndOfSweepRange(sweepableBucket, sweepTimestampForIteration));
+                getMaxExclusiveProcessableStartTimestamp(sweepableBucket, sweepTimestampForIteration),
+                sweepTimestampForIteration);
         SweepBatch sweepBatch = sweepBatchWithPartitionInfo.sweepBatch();
 
         ShardAndStrategy shardAndStrategy = sweepableBucket.bucket().shardAndStrategy();
@@ -145,12 +146,11 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
         }
     }
 
-    private static long getEndOfSweepRange(SweepableBucket sweepableBucket, long sweepTimestampForIteration) {
+    private static long getMaxExclusiveProcessableStartTimestamp(SweepableBucket sweepableBucket, long sweepTimestamp) {
         if (sweepableBucket.timestampRange().endExclusive() == -1) {
-            return sweepTimestampForIteration;
+            return sweepTimestamp;
         }
-        return Math.min(
-                sweepTimestampForIteration, sweepableBucket.timestampRange().endExclusive());
+        return Math.min(sweepTimestamp, sweepableBucket.timestampRange().endExclusive());
     }
 
     private static boolean isCompletelySwept(long rangeEndExclusive, long lastSweptTimestampInBucket) {
