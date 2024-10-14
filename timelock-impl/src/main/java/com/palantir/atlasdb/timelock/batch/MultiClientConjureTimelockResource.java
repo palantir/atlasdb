@@ -66,13 +66,22 @@ import javax.annotation.Nullable;
 public final class MultiClientConjureTimelockResource implements UndertowMultiClientConjureTimelockService {
     private final ConjureResourceExceptionHandler exceptionHandler;
     private final BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices;
+    private final MultiClientMinTimestampLeaseServiceAdapter namedMinTimestampLeaseService;
+
+    private MultiClientConjureTimelockResource(
+            RedirectRetryTargeter redirectRetryTargeter,
+            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices,
+            MultiClientMinTimestampLeaseServiceAdapter namedMinTimestampLeaseService) {
+        this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
+        this.timelockServices = timelockServices;
+        this.namedMinTimestampLeaseService = namedMinTimestampLeaseService;
+    }
 
     @VisibleForTesting
     MultiClientConjureTimelockResource(
             RedirectRetryTargeter redirectRetryTargeter,
             BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
-        this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
-        this.timelockServices = timelockServices;
+        this(redirectRetryTargeter, timelockServices, new MultiClientMinTimestampLeaseServiceAdapter(timelockServices));
     }
 
     public static UndertowService undertow(
@@ -155,8 +164,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
             AuthHeader authHeader,
             MultiClientNamedMinTimestampLeaseRequest requests,
             @Nullable RequestContext context) {
-        // TODO(aalouane): implement
-        throw new UnsupportedOperationException("Not implemented yet");
+        return handleExceptions(() -> namedMinTimestampLeaseService.acquireNamedMinTimestampLease(requests, context));
     }
 
     @Override
@@ -164,8 +172,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
             AuthHeader authHeader,
             MultiClientGetMinLeasedNamedTimestampRequest requests,
             @Nullable RequestContext context) {
-        // TODO(aalouane): implement
-        throw new UnsupportedOperationException("Not implemented yet");
+        return handleExceptions(() -> namedMinTimestampLeaseService.getMinLeasedNamedTimestamp(requests, context));
     }
 
     private ListenableFuture<Entry<Namespace, ConjureUnlockResponseV2>> unlockForSingleNamespace(

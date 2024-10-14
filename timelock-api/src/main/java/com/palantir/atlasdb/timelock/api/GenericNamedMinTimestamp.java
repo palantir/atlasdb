@@ -39,4 +39,8 @@ public interface GenericNamedMinTimestamp {
                 "Name must not be a reserved name",
                 SafeArg.of("name", name()));
     }
+
+    static GenericNamedMinTimestamp of(String name) {
+        return ImmutableGenericNamedMinTimestamp.builder().name(name).build();
+    }
 }
