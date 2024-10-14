@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.transaction.impl;
 
-import static com.palantir.logsafe.Preconditions.checkState;
 import static java.util.stream.Collectors.toList;
 
 import com.codahale.metrics.Timer;
@@ -1550,7 +1549,7 @@ public class SnapshotTransaction extends AbstractTransaction
         snapshotEventRecorder.recordCellsRead(tableRef, rawResults.size());
 
         if (AtlasDbConstants.HIDDEN_TABLES.contains(tableRef)) {
-            checkState(allowHiddenTableAccess, "hidden tables cannot be read in this transaction");
+            Preconditions.checkState(allowHiddenTableAccess, "hidden tables cannot be read in this transaction");
             // hidden tables are used outside of the transaction protocol, and in general have invalid timestamps,
             // so do not apply post-filtering as post-filtering would rollback (actually delete) the data incorrectly
             // this case is hit when reading a hidden table from console
@@ -1591,7 +1590,7 @@ public class SnapshotTransaction extends AbstractTransaction
                                 transformer,
                                 asyncKeyValueService,
                                 asyncTransactionService));
-                        checkState(
+                        Preconditions.checkState(
                                 ++iterations < MAX_POST_FILTERING_ITERATIONS,
                                 "Unable to filter cells to find correct result after "
                                         + "reaching max iterations. This is likely due to aborted cells lying around,"
@@ -2764,7 +2763,7 @@ public class SnapshotTransaction extends AbstractTransaction
         }
 
         public void runCallbacks() {
-            checkState(
+            Preconditions.checkState(
                     isDefinitivelyCommitted(),
                     "Callbacks must not be run if it is not known that the transaction has definitively committed! "
                             + "This is likely a bug in AtlasDB transaction code.");
