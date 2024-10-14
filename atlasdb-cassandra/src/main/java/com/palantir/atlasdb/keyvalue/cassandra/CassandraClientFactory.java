@@ -101,6 +101,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         } catch (Exception e) {
             if (clientConfig.usingSsl()) {
                 throw new ClientCreationFailedException(
+                        "Failed to construct client for {} {} over SSL",
                         e,
                         UnsafeArg.of("cassandraServer.proxy", cassandraServer.proxy()),
                         SafeArg.of("keyspace", clientConfig.keyspace()));
@@ -325,11 +326,6 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
     static final class ClientCreationFailedException extends AtlasDbDependencyException {
         private static final long serialVersionUID = 1L;
-        private static final String SSL_LOG_MESSAGE = "Failed to construct client for {} {} over SSL";
-
-        ClientCreationFailedException(Exception cause, Arg<?>... args) {
-            super(SafeExceptions.renderMessage(SSL_LOG_MESSAGE, List.of(args).toArray(new Arg[0])), cause);
-        }
 
         ClientCreationFailedException(@CompileTimeConstant final String logMessage, Exception cause, Arg<?>... args) {
             super(SafeExceptions.renderMessage(logMessage, List.of(args).toArray(new Arg[0])), cause);
