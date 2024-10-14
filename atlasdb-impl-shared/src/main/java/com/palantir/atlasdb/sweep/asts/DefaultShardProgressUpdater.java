@@ -58,10 +58,11 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
         // This order of clearing the metadata is intentional:
         // (1) if bucket progress is deleted but the pointer is not updated, we might sweep the relevant buckets
         //     again, but that is acceptable because sweepable cells and timestamps were already cleared, and
-        //     these tables are not range scanned, so we will not read a lot of tombstones.
+        //     these tables are not accessed via row range scans, so the number of tombstones we read will be
+        //     reasonably bounded.
         // (2) if the pointer is updated but progress is not, we will update progress to the right value on the
         //     next iteration (notice that we only use the pointer, and not the existing progress, to track where
-        //     we are in the timeline.
+        //     we are in the timeline).
         for (long bucket = bucketPointer; bucket < bucketProbeResult.endExclusive(); bucket++) {
             bucketProgressStore.deleteBucketProgress(Bucket.of(shardAndStrategy, bucket));
         }
@@ -92,9 +93,9 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
                                     requiredRange.startInclusive() + presentBucketProgress.timestampProgress())
                             .build();
                 } else {
-                    // Bucket fully processed, keep going!
+                    // Bucket fully processed, keep going.
                     if (offset == MAX_BUCKETS_TO_CHECK_PER_ITERATION - 1) {
-                        // We actually finished a full set of buckets and all were completed.
+                        // We finished the maximum number of buckets to check, and all were completed.
                         return BucketProbeResult.builder()
                                 .endExclusive(currentBucket + 1)
                                 .knownSweepProgress(requiredRange.endExclusive() + 1)
