@@ -24,30 +24,30 @@ import java.util.List;
 import javax.annotation.Nullable;
 
 public class AtlasDbDependencyException extends RuntimeException implements SafeLoggable {
-    private static final String LOG_MESSAGE = "AtlasDB dependency threw an exception.";
+    private static final String ATLASDB_DEPENDENCY_LOG_MESSAGE = "AtlasDB dependency threw an exception.";
     private final List<Arg<?>> args;
     private final String logMessage;
 
-    public AtlasDbDependencyException(@CompileTimeConstant String logMessage) {
+    public AtlasDbDependencyException(@CompileTimeConstant final String logMessage) {
         super(logMessage);
         this.args = List.of();
         this.logMessage = logMessage;
     }
 
-    public AtlasDbDependencyException(@CompileTimeConstant String logMessage, Arg<?>... args) {
+    public AtlasDbDependencyException(@CompileTimeConstant final String logMessage, Arg<?>... args) {
         this(logMessage, List.of(args));
     }
 
-    public AtlasDbDependencyException(@CompileTimeConstant String logMessage, Throwable cause) {
+    public AtlasDbDependencyException(@CompileTimeConstant final String logMessage, Throwable cause) {
         super(SafeExceptions.renderMessage(logMessage), cause);
         this.logMessage = logMessage;
         this.args = List.of();
     }
 
     public AtlasDbDependencyException(Throwable throwable) {
-        super(LOG_MESSAGE, throwable);
+        super(AtlasDbDependencyException.ATLASDB_DEPENDENCY_LOG_MESSAGE, throwable);
         this.args = List.of();
-        this.logMessage = LOG_MESSAGE;
+        this.logMessage = AtlasDbDependencyException.ATLASDB_DEPENDENCY_LOG_MESSAGE;
     }
 
     public AtlasDbDependencyException(Throwable throwable, Arg<?>... args) {
@@ -55,12 +55,15 @@ public class AtlasDbDependencyException extends RuntimeException implements Safe
     }
 
     private AtlasDbDependencyException(@Nullable Throwable cause, List<Arg<?>> args) {
-        super(SafeExceptions.renderMessage(LOG_MESSAGE, args.toArray(new Arg[0])), cause);
+        super(
+                SafeExceptions.renderMessage(
+                        AtlasDbDependencyException.ATLASDB_DEPENDENCY_LOG_MESSAGE, args.toArray(new Arg[0])),
+                cause);
         this.args = args;
-        this.logMessage = LOG_MESSAGE;
+        this.logMessage = AtlasDbDependencyException.ATLASDB_DEPENDENCY_LOG_MESSAGE;
     }
 
-    private AtlasDbDependencyException(@Safe @CompileTimeConstant String logMessage, List<Arg<?>> args) {
+    private AtlasDbDependencyException(@Safe @CompileTimeConstant final String logMessage, List<Arg<?>> args) {
         super(SafeExceptions.renderMessage(logMessage, args.toArray(new Arg[0])));
         this.args = args;
         this.logMessage = logMessage;

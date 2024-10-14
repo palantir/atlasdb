@@ -32,9 +32,11 @@ import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.exception.SafeSSLPeerUnverifiedException;
+import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.DoNotLog;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
+import com.palantir.logsafe.exceptions.SafeExceptions;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -45,6 +47,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -92,15 +95,14 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
     @Override
     public CassandraClient create() {
+        String message;
         try {
             return instrumentClient(getRawClientWithKeyspaceSet());
         } catch (Exception e) {
-            String message = String.format(
-                    "Failed to construct client for %s/%s", cassandraServer.proxy(), clientConfig.keyspace());
             if (clientConfig.usingSsl()) {
-                message += " over SSL";
+                throw new ClientCreationFailedException(e, SafeArg.of("cassandraServer.proxy", cassandraServer.proxy()), SafeArg.of("keyspace", clientConfig.keyspace()));
             }
-            throw new ClientCreationFailedException(message, e);
+            throw new ClientCreationFailedException("Failed to construct client for {} {}", e, SafeArg.of("cassandraServer.proxy", cassandraServer.proxy()), SafeArg.of("keyspace", clientConfig.keyspace()));
         }
     }
 
@@ -316,9 +318,14 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
     static final class ClientCreationFailedException extends AtlasDbDependencyException {
         private static final long serialVersionUID = 1L;
+        private static final String SSL_LOG_MESSAGE = "Failed to construct client for {} {} over SSL";
 
-        ClientCreationFailedException(@CompileTimeConstant final String message, Exception cause) {
-            super(message, cause);
+        ClientCreationFailedException(Exception cause, Arg<?>... args) {
+            super(SafeExceptions.renderMessage(SSL_LOG_MESSAGE, List.of(args).toArray(new Arg[0])), cause);
+        }
+
+        ClientCreationFailedException(@CompileTimeConstant final String logMessage, Exception cause, Arg<?>... args) {
+            super(SafeExceptions.renderMessage(logMessage, List.of(args).toArray(new Arg[0])), cause);
         }
     }
 
