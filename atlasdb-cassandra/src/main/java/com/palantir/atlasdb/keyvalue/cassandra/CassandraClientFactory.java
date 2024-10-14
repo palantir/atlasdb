@@ -138,7 +138,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         } catch (TException e) {
             ret.getOutputProtocol().getTransport().close();
             throw CassandraTExceptions.mapToUncheckedException(
-                    Optional.of("Failed to create new client for {}"),
+                    "Failed to create new client for: ",
                     e,
                     SafeArg.of("address", CassandraLogHelper.host(cassandraServer.proxy())));
         }

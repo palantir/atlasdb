@@ -26,7 +26,6 @@ import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.SafeArg;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.KeyRange;
@@ -63,7 +62,7 @@ public class RowGetter {
                             () -> client.get_range_slices(
                                     kvsMethodName, tableRef, slicePredicate, keyRange, consistency));
                 } catch (UnavailableException e) {
-                    throw CassandraTExceptions.mapToUncheckedException("get_range_slices requires {} Cassandra nodes to be up and available.", e, SafeArg.of("consistency", consistency));
+                    throw CassandraTExceptions.mapToUncheckedException("get_range_slices requires Cassandra nodes to be up and available. Check Cassandra nodes: ", e, SafeArg.of("consistency", consistency));
                 } catch (Exception e) {
                     throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
                 }
