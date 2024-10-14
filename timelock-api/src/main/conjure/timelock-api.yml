@@ -8,6 +8,10 @@ types:
       base-type: string
       external:
         java: com.palantir.atlasdb.timelock.api.Namespace
+    GenericNamedMinTimestamp:
+      base-type: string
+      external:
+        java: com.palantir.atlasdb.timelock.api.GenericNamedMinTimestamp
     NanoTime:
       base-type: safelong
       external:
@@ -155,6 +159,10 @@ types:
       ConjureLockTokenV2:
         alias: uuid
         safety: safe
+      ConjureLeasedLockToken:
+        fields:
+          lockToken: LockToken
+          lease: Lease
       SuccessfulLockResponse:
         fields:
           lockToken: ConjureLockToken
@@ -217,6 +225,35 @@ types:
       LeaderTimes:
         fields:
           leaderTimes: map<Namespace, LeaderTime>
+      NamedMinTimestampLeaseRequest:
+         fields:
+           requestId:
+             type: uuid
+             safety: safe
+           numFreshTimestamps:
+             type: integer
+             safety: safe
+      NamedMinTimestampLeaseRequests:
+         alias: map<GenericNamedMinTimestamp, NamedMinTimestampLeaseRequest>
+      MultiClientNamedMinTimestampLeaseRequest:
+         alias: map<Namespace, NamedMinTimestampLeaseRequests>
+      NamedMinTimestampLeaseResponse:
+         fields:
+           minLeased: Long
+           leasedLock: ConjureLeasedLockToken
+           freshTimestamps: ConjureTimestampRange
+      NamedMinTimestampLeaseResponses:
+         alias: map<GenericNamedMinTimestamp, NamedMinTimestampLeaseResponse>
+      MultiClientNamedMinTimestampLeaseResponse:
+         alias: map<Namespace, NamedMinTimestampLeaseResponses>
+      GetMinLeasedNamedTimestampRequests:
+         alias: list<GenericNamedMinTimestamp>
+      MultiClientGetMinLeasedNamedTimestampRequest:
+         alias: map<Namespace, GetMinLeasedNamedTimestampRequests>
+      GetMinLeasedNamedTimestampResponses:
+         alias: map<GenericNamedMinTimestamp, Long>
+      MultiClientGetMinLeasedNamedTimestampResponse:
+         alias: map<Namespace, GetMinLeasedNamedTimestampResponses>
 
 services:
   ConjureTimelockService:
@@ -449,3 +486,31 @@ services:
         returns: map<Namespace, ConjureUnlockResponseV2>
         docs: |
           Version of unlockV2 to unlock locks across multiple namespaces.
+      acquireNamedTimestampLease:
+        http: POST /anmtl
+        args:
+          requests: MultiClientNamedMinTimestampLeaseRequest
+        tags:
+          - server-request-context
+        returns: MultiClientNamedMinTimestampLeaseResponse
+        docs: |
+          For each request, acquires a lease on the specified named timestamp for the relevant namespace.
+          The lease is taken out with a new fresh timestamp. The returned timestamps are fresh timestamps
+          obtained strictly after the lease is taken out.
+
+          It is possible for the endpoint not to return a response for certain pairs of namespace and
+          timestamp. It is also possible to return a smaller range than the was provided in the request.
+          In these cases, clients may retry.
+      getMinLeasedNamedTimestamp:
+        http: POST /gmlnt
+        args:
+          requests: MultiClientGetMinLeasedNamedTimestampRequest
+        tags:
+          - server-request-context
+        returns: MultiClientGetMinLeasedNamedTimestampResponse
+        docs: |
+          For each request, returns the smallest leased timestamp in the associated named collection
+          for the relevant namespace at the time of the call. If there are no active leases, a fresh
+          timestamp is obtained and returned.
+
+          The endpoint must return a response for each namespace and timestamp pair requested.

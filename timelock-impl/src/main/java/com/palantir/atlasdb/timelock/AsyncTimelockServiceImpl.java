@@ -22,8 +22,10 @@ import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
+import com.palantir.atlasdb.timelock.api.GenericNamedMinTimestamp;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
+import com.palantir.atlasdb.timelock.api.NamedMinTimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
@@ -249,6 +251,19 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public ListenableFuture<TimestampRange> getFreshTimestampsAsync(int timestampsToRequest) {
         return Futures.immediateFuture(getFreshTimestamps(timestampsToRequest));
+    }
+
+    @Override
+    public ListenableFuture<NamedMinTimestampLeaseResponse> acquireNamedMinTimestampLease(
+            GenericNamedMinTimestamp timestampName, UUID requestId, int numFreshTimestamps) {
+        // TODO(aalouane): implement this method
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+
+    @Override
+    public ListenableFuture<Long> getMinLeasedNamedTimestamp(GenericNamedMinTimestamp timestampName) {
+        // TODO(aalouane): implement this method
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     @Override
