@@ -97,7 +97,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         this.timedRunner = TimedRunner.create(clientConfig.timeoutOnConnectionClose());
         this.tSocketFactory = new InstrumentedTSocket.Factory(metricsManager);
         this.cassandraClientMetrics = cassandraClientMetrics;
-        this.clientLimiter = createLimiter(clientConfig.rateLimiting());
+        this.clientLimiter = createLimiter(clientConfig.rateLimiting(), metricsManager);
     }
 
     @Override
@@ -234,8 +234,9 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         client.login(new AuthenticationRequest(credsMap));
     }
 
-    private static ClientLimiter createLimiter(CassandraClientRateLimitingConfig rateLimitingConfig) {
-        return new ClientLimiterImpl(rateLimitingConfig.maxConcurrentRangeScans());
+    private static ClientLimiter createLimiter(
+            CassandraClientRateLimitingConfig rateLimitingConfig, MetricsManager metricsManager) {
+        return new ClientLimiterImpl(rateLimitingConfig.maxConcurrentRangeScans(), metricsManager);
     }
 
     /**

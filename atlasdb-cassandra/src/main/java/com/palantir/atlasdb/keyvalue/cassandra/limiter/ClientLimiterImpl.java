@@ -17,7 +17,9 @@
 package com.palantir.atlasdb.keyvalue.cassandra.limiter;
 
 import com.palantir.atlasdb.keyvalue.cassandra.limiter.SafeSemaphore.CloseablePermit;
+import com.palantir.atlasdb.util.MetricsManager;
 import java.io.IOException;
+import java.util.Map;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.thrift.TException;
 
@@ -25,8 +27,14 @@ public class ClientLimiterImpl implements ClientLimiter {
 
     private final SafeSemaphore concurrentRangeScans;
 
-    public ClientLimiterImpl(int maxConcurrentRangeScans) {
+    public ClientLimiterImpl(int maxConcurrentRangeScans, MetricsManager metricsManager) {
         concurrentRangeScans = SafeSemaphore.of(maxConcurrentRangeScans);
+
+        metricsManager.registerOrGet(
+                ClientLimiter.class,
+                "concurrent-range-scans",
+                () -> maxConcurrentRangeScans - concurrentRangeScans.availablePermits(),
+                Map.of());
     }
 
     @Override
