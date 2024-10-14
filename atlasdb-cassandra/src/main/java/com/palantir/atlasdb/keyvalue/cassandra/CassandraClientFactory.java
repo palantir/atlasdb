@@ -100,9 +100,16 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
             return instrumentClient(getRawClientWithKeyspaceSet());
         } catch (Exception e) {
             if (clientConfig.usingSsl()) {
-                throw new ClientCreationFailedException(e, SafeArg.of("cassandraServer.proxy", cassandraServer.proxy()), SafeArg.of("keyspace", clientConfig.keyspace()));
+                throw new ClientCreationFailedException(
+                        e,
+                        UnsafeArg.of("cassandraServer.proxy", cassandraServer.proxy()),
+                        SafeArg.of("keyspace", clientConfig.keyspace()));
             }
-            throw new ClientCreationFailedException("Failed to construct client for {} {}", e, SafeArg.of("cassandraServer.proxy", cassandraServer.proxy()), SafeArg.of("keyspace", clientConfig.keyspace()));
+            throw new ClientCreationFailedException(
+                    "Failed to construct client for {} {}",
+                    e,
+                    UnsafeArg.of("cassandraServer.proxy", cassandraServer.proxy()),
+                    SafeArg.of("keyspace", clientConfig.keyspace()));
         }
     }
 
