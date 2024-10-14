@@ -17,31 +17,32 @@
 package com.palantir.atlasdb.keyvalue.cassandra.limiter;
 
 import java.io.Closeable;
+import java.util.Optional;
 import java.util.concurrent.Semaphore;
-import java.util.function.Supplier;
+import javax.annotation.CheckReturnValue;
 
-public final class SafeSemaphore<E extends Exception> {
+public final class SafeSemaphore {
     private final Semaphore delegate;
-    private final Supplier<E> exception;
 
-    private SafeSemaphore(Semaphore delegate, Supplier<E> exception) {
+    private SafeSemaphore(Semaphore delegate) {
         this.delegate = delegate;
-        this.exception = exception;
     }
 
-    public CloseablePermit acquireOrThrow() throws E {
+    @CheckReturnValue
+    public Optional<CloseablePermit> tryAcquire() {
         if (!delegate.tryAcquire()) {
-            throw exception.get();
+            return Optional.empty();
         }
-        return delegate::release;
+
+        return Optional.of(delegate::release);
     }
 
     public int availablePermits() {
         return delegate.availablePermits();
     }
 
-    public static <E extends Exception> SafeSemaphore<E> of(int permits, Supplier<E> exception) {
-        return new SafeSemaphore<>(new Semaphore(permits), exception);
+    public static SafeSemaphore of(int permits) {
+        return new SafeSemaphore(new Semaphore(permits));
     }
 
     public interface CloseablePermit extends Closeable {}

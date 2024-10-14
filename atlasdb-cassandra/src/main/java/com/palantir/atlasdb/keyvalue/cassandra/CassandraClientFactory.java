@@ -240,7 +240,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
 
     /**
      * Verifies that the current SSL connection hostname/ip address matches what the certificate has served.
-     * This will check both ip address/hostnamue, and uses the IP address associated with the socket, rather
+     * This will check both ip address/hostname, and uses the IP address associated with the socket, rather
      * that what has been provided. Hostname/ip address are both need to be checked, as historically we've
      * connected to Cassandra directly using IP addresses, and therefore need to support such cases.
      *

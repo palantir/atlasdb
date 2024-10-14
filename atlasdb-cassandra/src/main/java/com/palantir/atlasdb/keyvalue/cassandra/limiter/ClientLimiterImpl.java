@@ -23,15 +23,15 @@ import org.apache.thrift.TException;
 
 public class ClientLimiterImpl implements ClientLimiter {
 
-    private final SafeSemaphore<TException> concurrentRangeScans;
+    private final SafeSemaphore concurrentRangeScans;
 
     public ClientLimiterImpl(int maxConcurrentRangeScans) {
-        concurrentRangeScans = SafeSemaphore.of(maxConcurrentRangeScans, TimedOutException::new);
+        concurrentRangeScans = SafeSemaphore.of(maxConcurrentRangeScans);
     }
 
     @Override
     public <T> T limitGetRangeSlices(ThriftExceptionThrowingSupplier<T> closure) throws TException {
-        try (CloseablePermit permit = concurrentRangeScans.acquireOrThrow()) {
+        try (CloseablePermit permit = concurrentRangeScans.tryAcquire().orElseThrow(TimedOutException::new)) {
             return closure.get();
         } catch (IOException e) {
             throw new TException(e);
