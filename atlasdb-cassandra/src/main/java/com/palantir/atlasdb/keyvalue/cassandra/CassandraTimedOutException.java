@@ -20,7 +20,6 @@ import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.exceptions.SafeExceptions;
-import java.util.List;
 
 public class CassandraTimedOutException extends AtlasDbDependencyException {
     private static final long serialVersionUID = 1L;
@@ -38,6 +37,6 @@ public class CassandraTimedOutException extends AtlasDbDependencyException {
                     + "   Resolution: Ask your CassandraOps to check the state of the Cassandra server.";
 
     public CassandraTimedOutException(Throwable throwable, Arg<?>... args) {
-        super(SafeExceptions.renderMessage(LOG_MESSAGE, List.of(args).toArray(new Arg[0])), throwable);
+        super(SafeExceptions.renderMessage(LOG_MESSAGE, args), throwable);
     }
 }

@@ -20,7 +20,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
-import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.ImmutableCassandraClientConfig.SocketTimeoutMillisBuildStage;
@@ -47,7 +46,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.time.Duration;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -101,13 +99,13 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         } catch (Exception e) {
             if (clientConfig.usingSsl()) {
                 throw new ClientCreationFailedException(
-                        "Failed to construct client for {} {} over SSL",
+                        "Failed to construct client over SSL for: ",
                         e,
                         UnsafeArg.of("cassandraServer.proxy", cassandraServer.proxy()),
                         SafeArg.of("keyspace", clientConfig.keyspace()));
             }
             throw new ClientCreationFailedException(
-                    "Failed to construct client for {} {}",
+                    "Failed to construct client for: ",
                     e,
                     UnsafeArg.of("cassandraServer.proxy", cassandraServer.proxy()),
                     SafeArg.of("keyspace", clientConfig.keyspace()));
@@ -327,8 +325,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     static final class ClientCreationFailedException extends AtlasDbDependencyException {
         private static final long serialVersionUID = 1L;
 
-        ClientCreationFailedException(@CompileTimeConstant final String logMessage, Exception cause, Arg<?>... args) {
-            super(SafeExceptions.renderMessage(logMessage, List.of(args).toArray(new Arg[0])), cause);
+        ClientCreationFailedException(String logMessage, Exception cause, Arg<?>... args) {
+            super(SafeExceptions.renderMessage(logMessage, args), cause);
         }
     }
 
