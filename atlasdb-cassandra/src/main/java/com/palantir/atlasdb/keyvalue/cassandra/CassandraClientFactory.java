@@ -20,6 +20,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.ImmutableCassandraClientConfig.SocketTimeoutMillisBuildStage;
@@ -316,7 +317,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     static final class ClientCreationFailedException extends AtlasDbDependencyException {
         private static final long serialVersionUID = 1L;
 
-        ClientCreationFailedException(String message, Exception cause) {
+        ClientCreationFailedException(@CompileTimeConstant final String message, Exception cause) {
             super(message, cause);
         }
     }

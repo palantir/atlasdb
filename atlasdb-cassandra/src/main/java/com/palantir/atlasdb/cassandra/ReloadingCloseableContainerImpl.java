@@ -107,7 +107,7 @@ public final class ReloadingCloseableContainerImpl<T extends AutoCloseable> impl
         return isClosed;
     }
 
-    private <K> K runIfNotClosed(Supplier<K> supplier, @CompileTimeConstant String ifClosedExceptionMessage) {
+    private <K> K runIfNotClosed(Supplier<K> supplier, @CompileTimeConstant final String ifClosedExceptionMessage) {
         if (!isClosed) {
             return runWithIsClosedReadLock(() -> {
                 if (isClosed) {

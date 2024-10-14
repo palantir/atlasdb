@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
+import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.Arg;
@@ -25,7 +26,8 @@ import org.apache.cassandra.thrift.UnavailableException;
 public final class CassandraTExceptions {
     private CassandraTExceptions() {}
 
-    public static AtlasDbDependencyException mapToUncheckedException(String logMessage, Throwable throwable, Arg<?>... args) {
+    public static AtlasDbDependencyException mapToUncheckedException(
+            @CompileTimeConstant final String logMessage, Throwable throwable, Arg<?>... args) {
         if (throwable instanceof TimedOutException) {
             return new CassandraTimedOutException(throwable, args);
         }

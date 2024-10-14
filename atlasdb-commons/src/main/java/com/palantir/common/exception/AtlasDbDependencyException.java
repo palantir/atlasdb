@@ -15,6 +15,7 @@
  */
 package com.palantir.common.exception;
 
+import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeLoggable;
@@ -27,17 +28,17 @@ public class AtlasDbDependencyException extends RuntimeException implements Safe
     private final List<Arg<?>> args;
     private final String logMessage;
 
-    public AtlasDbDependencyException(String logMessage) {
+    public AtlasDbDependencyException(@CompileTimeConstant String logMessage) {
         super(logMessage);
         this.args = List.of();
         this.logMessage = logMessage;
     }
 
-    public AtlasDbDependencyException(String logMessage, Arg<?>... args) {
+    public AtlasDbDependencyException(@CompileTimeConstant String logMessage, Arg<?>... args) {
         this(logMessage, List.of(args));
     }
 
-    public AtlasDbDependencyException(String logMessage, Throwable cause) {
+    public AtlasDbDependencyException(@CompileTimeConstant String logMessage, Throwable cause) {
         super(SafeExceptions.renderMessage(logMessage), cause);
         this.logMessage = logMessage;
         this.args = List.of();
@@ -59,7 +60,7 @@ public class AtlasDbDependencyException extends RuntimeException implements Safe
         this.logMessage = LOG_MESSAGE;
     }
 
-    private AtlasDbDependencyException(@Safe String logMessage, List<Arg<?>> args) {
+    private AtlasDbDependencyException(@Safe @CompileTimeConstant String logMessage, List<Arg<?>> args) {
         super(SafeExceptions.renderMessage(logMessage, args.toArray(new Arg[0])));
         this.args = args;
         this.logMessage = logMessage;
