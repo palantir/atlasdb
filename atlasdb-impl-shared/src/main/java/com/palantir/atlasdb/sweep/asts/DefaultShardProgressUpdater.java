@@ -25,12 +25,18 @@ import com.palantir.atlasdb.sweep.asts.progress.BucketProgress;
 import com.palantir.atlasdb.sweep.asts.progress.BucketProgressStore;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SweepQueueProgressUpdater;
+import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import org.immutables.value.Value;
 
 public class DefaultShardProgressUpdater implements ShardProgressUpdater {
+    private static final SafeLogger log = SafeLoggerFactory.get(DefaultShardProgressUpdater.class);
+
     @VisibleForTesting
     static final long MAX_BUCKETS_TO_CHECK_PER_ITERATION = 100L;
 
@@ -83,7 +89,7 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
                     bucketProgressStore.getBucketProgress(Bucket.of(shardAndStrategy, currentBucket));
             if (bucketProgress.isPresent()) {
                 BucketProgress presentBucketProgress = bucketProgress.get();
-                TimestampRange requiredRange = recordsTable.getTimestampRangeRecord(currentBucket);
+                TimestampRange requiredRange = getTimestampRangeRecord(currentBucket);
                 if (presentBucketProgress.timestampProgress()
                         != requiredRange.endExclusive() - requiredRange.startInclusive() - 1) {
                     // Bucket still has progress to go, so we can stop here.
@@ -106,14 +112,25 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
                 // No progress; we're ahead of the read pointer, so interpret as unstarted.
                 return BucketProbeResult.builder()
                         .endExclusive(currentBucket)
-                        .knownSweepProgress(recordsTable
-                                        .getTimestampRangeRecord(currentBucket)
-                                        .startInclusive()
-                                - 1L)
+                        .knownSweepProgress(
+                                getTimestampRangeRecord(currentBucket).startInclusive() - 1L)
                         .build();
             }
         }
         throw new SafeIllegalStateException("Didn't expect to get here");
+    }
+
+    private TimestampRange getTimestampRangeRecord(long queriedBucket) {
+        try {
+            return recordsTable.getTimestampRangeRecord(queriedBucket);
+        } catch (NoSuchElementException exception) {
+            throw new SafeIllegalStateException(
+                    "Timestamp range record not found. If this has happened for bucket 0, this is possible when"
+                        + " autoscaling sweep is initializing itself. Otherwise, this is potentially indicative of a"
+                        + " bug in auto-scaling sweep. In either case, we will retry.",
+                    exception,
+                    SafeArg.of("queriedBucket", queriedBucket));
+        }
     }
 
     private long getStrictUpperBoundForSweptBuckets(ShardAndStrategy shardAndStrategy) {

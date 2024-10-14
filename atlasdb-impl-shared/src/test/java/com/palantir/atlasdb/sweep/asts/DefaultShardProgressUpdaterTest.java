@@ -16,7 +16,10 @@
 
 package com.palantir.atlasdb.sweep.asts;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -30,7 +33,10 @@ import com.palantir.atlasdb.sweep.asts.progress.BucketProgressStore;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SweepQueueProgressUpdater;
 import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -64,6 +70,27 @@ public class DefaultShardProgressUpdaterTest {
     public void setUp() {
         shardProgressUpdater = new DefaultShardProgressUpdater(
                 bucketProgressStore, sweepQueueProgressUpdater, recordsTable, sweepBucketPointerTable);
+    }
+
+    @ParameterizedTest
+    @MethodSource("buckets")
+    public void wrapsAndRethrowsExceptionOnAbsenceOfTimestampRangeRecords(Bucket bucket) {
+        when(sweepBucketPointerTable.getStartingBucketsForShards(ImmutableSet.of(bucket.shardAndStrategy())))
+                .thenReturn(ImmutableSet.of(bucket));
+        NoSuchElementException underlyingException = new NoSuchElementException();
+        when(recordsTable.getTimestampRangeRecord(bucket.bucketIdentifier())).thenThrow(underlyingException);
+
+        assertThatLoggableExceptionThrownBy(() -> shardProgressUpdater.updateProgress(bucket.shardAndStrategy()))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasLogMessage("Timestamp range record not found. If this has happened for bucket 0, this is possible"
+                        + " when autoscaling sweep is initializing itself. Otherwise, this is potentially indicative of"
+                        + " a bug in auto-scaling sweep. In either case, we will retry.")
+                .hasExactlyArgs(SafeArg.of("queriedBucket", bucket.bucketIdentifier()))
+                .hasCause(underlyingException);
+
+        verify(sweepBucketPointerTable, never()).updateStartingBucketForShardAndStrategy(bucket);
+        verify(sweepQueueProgressUpdater, never()).progressTo(eq(bucket.shardAndStrategy()), anyLong());
+        verify(bucketProgressStore, never()).deleteBucketProgress(any());
     }
 
     @ParameterizedTest
