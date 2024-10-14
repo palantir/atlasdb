@@ -36,4 +36,8 @@ public class InsufficientConsistencyException extends AtlasDbDependencyException
     public InsufficientConsistencyException(String logMessage, Throwable cause) {
         super(logMessage, cause);
     }
+
+    public InsufficientConsistencyException(Throwable cause) {
+        super(cause);
+    }
 }

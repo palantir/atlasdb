@@ -992,7 +992,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                         }
                     });
         } catch (TimedOutException e) {
-            throw CassandraTExceptions.mapToUncheckedException(Optional.empty(), e, SafeArg.of("tableRef", tableRef));
+            throw CassandraTExceptions.mapToUncheckedException(e, SafeArg.of("tableRef", tableRef));
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }
@@ -1727,7 +1727,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
             } catch (RetryLimitReachedException e) {
                 throw CassandraUtils.wrapInIceForDeleteOrRethrow(e);
             } catch (TException e) {
-                throw CassandraTExceptions.mapToUncheckedException(Optional.empty(), e);
+                throw CassandraTExceptions.mapToUncheckedException(e);
             }
         } else {
             super.deleteRange(tableRef, range);

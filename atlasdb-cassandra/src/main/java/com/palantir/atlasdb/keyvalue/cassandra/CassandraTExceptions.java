@@ -17,26 +17,31 @@
 package com.palantir.atlasdb.keyvalue.cassandra;
 
 import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
-import com.palantir.common.base.Throwables;
+import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.Arg;
-import java.util.Optional;
 import org.apache.cassandra.thrift.TimedOutException;
 import org.apache.cassandra.thrift.UnavailableException;
 
 public final class CassandraTExceptions {
-    private static final String UNAVAILABLE_EXCEPTION_LOG_MESSAGE=
-                "Cassandra key value service threw a InsufficientConsistencyException." +
-                "Thrown when an operation could not be performed because the required consistency could not be met."
     private CassandraTExceptions() {}
 
-    public static RuntimeException mapToUncheckedException(Optional<String> maybeLogMessage, Throwable throwable, Arg<?>... args) {
+    public static AtlasDbDependencyException mapToUncheckedException(String logMessage, Throwable throwable, Arg<?>... args) {
         if (throwable instanceof TimedOutException) {
             return new CassandraTimedOutException(throwable, args);
         }
         if (throwable instanceof UnavailableException) {
-            String logMessage = maybeLogMessage.orElse(UNAVAILABLE_EXCEPTION_LOG_MESSAGE);
             return new InsufficientConsistencyException(logMessage, throwable);
         }
-        return Throwables.throwUncheckedException(throwable);
+        return new AtlasDbDependencyException(throwable);
+    }
+
+    public static AtlasDbDependencyException mapToUncheckedException(Throwable throwable, Arg<?>... args) {
+        if (throwable instanceof TimedOutException) {
+            return new CassandraTimedOutException(throwable, args);
+        }
+        if (throwable instanceof UnavailableException) {
+            return new InsufficientConsistencyException(throwable);
+        }
+        return new AtlasDbDependencyException(throwable);
     }
 }

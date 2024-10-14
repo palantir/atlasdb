@@ -60,7 +60,7 @@ public final class CassandraNamespaceDeleter implements NamespaceDeleter {
         } catch (NotFoundException e) {
             return true;
         } catch (TException e) {
-            throw CassandraTExceptions.mapToUncheckedException(Optional.empty(), e);
+            throw CassandraTExceptions.mapToUncheckedException(e);
         }
     }
 

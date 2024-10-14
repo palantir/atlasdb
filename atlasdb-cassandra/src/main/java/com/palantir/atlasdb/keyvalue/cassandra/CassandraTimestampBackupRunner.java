@@ -185,7 +185,7 @@ public class CassandraTimestampBackupRunner {
                             AtlasDbConstants.TIMESTAMP_TABLE,
                             () -> client.execute_cql3_query(query, Compression.NONE, ConsistencyLevel.QUORUM));
         } catch (TException e) {
-            throw CassandraTExceptions.mapToUncheckedException(Optional.empty(), e);
+            throw CassandraTExceptions.mapToUncheckedException(e);
         }
     }
 

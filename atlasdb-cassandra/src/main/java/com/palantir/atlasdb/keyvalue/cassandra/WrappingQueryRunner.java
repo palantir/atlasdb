@@ -56,7 +56,7 @@ class WrappingQueryRunner {
             });
         } catch (UnavailableException e) {
             throw CassandraTExceptions.mapToUncheckedException(
-                    Optional.of("This batch mutate operation requires {} Cassandra nodes to be up and available."),
+                    "Batch mutate operation requires Cassandra nodes to be up and available. Check these nodes: ",
                     e,
                     SafeArg.of("consistency", consistency));
         }
@@ -77,7 +77,7 @@ class WrappingQueryRunner {
                     () -> client.multiget_slice(kvsMethodName, tableRef, rowNames, pred, consistency));
         } catch (UnavailableException e) {
             throw CassandraTExceptions.mapToUncheckedException(
-                    Optional.of("This get operation requires {} Cassandra nodes to be up and available."),
+                    "This get operation requires Cassandra nodes to be up and available. Check these nodes: ",
                     e,
                     SafeArg.of("consistency", consistency));
         }
@@ -95,7 +95,7 @@ class WrappingQueryRunner {
                     client, tableRef, () -> client.multiget_multislice(kvsMethodName, tableRef, request, consistency));
         } catch (UnavailableException e) {
             throw CassandraTExceptions.mapToUncheckedException(
-                    Optional.of("This get operation requires {} Cassandra nodes to be up and available."),
+                    "This get operation requires Cassandra nodes to be up and available. Check these nodes: ",
                     e,
                     SafeArg.of("consistency", consistency));
         }

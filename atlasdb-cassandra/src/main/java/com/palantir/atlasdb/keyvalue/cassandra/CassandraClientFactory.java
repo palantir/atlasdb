@@ -119,7 +119,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         try {
             ret = getRawClientWithTimedCreation();
         } catch (TException e) {
-            throw CassandraTExceptions.mapToUncheckedException(Optional.empty(), e);
+            throw CassandraTExceptions.mapToUncheckedException(e);
         }
 
         try {
@@ -215,7 +215,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         } catch (TException e) {
             client.getOutputProtocol().getTransport().close();
             throw CassandraTExceptions.mapToUncheckedException(
-                    Optional.of("Exception thrown attempting to authenticate with config provided credentials"), e);
+                    "Exception thrown attempting to authenticate with config provided credentials", e);
         }
 
         return client;
