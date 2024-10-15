@@ -59,7 +59,6 @@
 
 **Please tag any other people who should be aware of this PR**:
 @jeremyk-91
-@sverma30
 @raiju
 
 <!---
