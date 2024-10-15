@@ -19,13 +19,12 @@ import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.MutationMap;
 import com.palantir.logsafe.SafeArg;
-import org.apache.cassandra.thrift.*;
-import org.apache.thrift.TException;
-
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.apache.cassandra.thrift.*;
+import org.apache.thrift.TException;
 
 /**
  * Executes Thrift queries using the supplied {@link TracingQueryRunner}, wrapping {@link UnavailableException} with
@@ -53,7 +52,8 @@ class WrappingQueryRunner {
         } catch (UnavailableException e) {
             throw new InsufficientConsistencyException(
                     "This batch mutate operation requires {} Cassandra nodes to be up and available.",
-                    e, SafeArg.of("consistency", consistency));
+                    e,
+                    SafeArg.of("consistency", consistency));
         }
     }
 
@@ -72,7 +72,9 @@ class WrappingQueryRunner {
                     () -> client.multiget_slice(kvsMethodName, tableRef, rowNames, pred, consistency));
         } catch (UnavailableException e) {
             throw new InsufficientConsistencyException(
-                    "This get operation requires {} Cassandra nodes to be up and available.", e, SafeArg.of("consistency", consistency));
+                    "This get operation requires {} Cassandra nodes to be up and available.",
+                    e,
+                    SafeArg.of("consistency", consistency));
         }
     }
 
@@ -88,7 +90,9 @@ class WrappingQueryRunner {
                     client, tableRef, () -> client.multiget_multislice(kvsMethodName, tableRef, request, consistency));
         } catch (UnavailableException e) {
             throw new InsufficientConsistencyException(
-                    "This get operation requires {} Cassandra nodes to be up and available.", e, SafeArg.of("consistency", consistency));
+                    "This get operation requires {} Cassandra nodes to be up and available.",
+                    e,
+                    SafeArg.of("consistency", consistency));
         }
     }
 }

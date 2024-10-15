@@ -20,9 +20,8 @@ import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeLoggable;
 import com.palantir.logsafe.exceptions.SafeExceptions;
-
-import javax.annotation.Nullable;
 import java.util.List;
+import javax.annotation.Nullable;
 
 public class AtlasDbDependencyException extends RuntimeException implements SafeLoggable {
     private static final String ATLASDB_DEPENDENCY_LOG_MESSAGE = "AtlasDB dependency threw an exception.";
