@@ -38,7 +38,6 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
-import com.google.common.io.Closer;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -167,7 +166,6 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.RateLimitedLogger;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import com.palantir.util.result.Result;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -311,8 +309,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private final ImmutableTimestampLockManager immutableTimestampLockManager;
     private final PreCommitRequirementValidator preCommitRequirementValidator;
     private final ReadSnapshotValidator readSnapshotValidator;
-
-    protected final Closer closer = Closer.create();
+    private final ThreadSafeCloser closer = new ThreadSafeCloser();
 
     private final SnapshotTransactionMetricFactory snapshotTransactionMetricFactory;
 
@@ -2365,12 +2362,6 @@ public class SnapshotTransaction extends AbstractTransaction
             // Run close() to release locks before running success callbacks, since success callbacks might
             // start a new transaction and attempt to grab the same locks as the current transaction.
             closer.close();
-        } catch (IOException e) {
-            log.warn("Error while closing transaction resources", e);
-            throw new RuntimeException(e);
-        } catch (RuntimeException | Error e) {
-            log.warn("Error while closing transaction resources", e);
-            throw e;
         } finally {
             if (isDefinitivelyCommitted()) {
                 successCallbackManager.runCallbacks();

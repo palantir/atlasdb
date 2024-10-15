@@ -19,14 +19,20 @@ package com.palantir.atlasdb.transaction.impl;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.Transaction;
 
-/**
- * Allow consumers to register callbacks to be run on {@link Transaction#commit()} or {@link Transaction#abort()},
- * after a transaction has committed or aborted.
- * Callbacks are guaranteed to run even if a prior callback threw.
- * Callbacks are usually cleanup tasks, e.g. {@link PreCommitCondition#cleanup()} tasks.
- * Note this is different from {@link #onSuccess(Runnable)} as these tasks are run regardless of whether they succeeded
- * or failed.
- */
 public interface CallbackAwareTransaction extends ExpectationsAwareTransaction {
+    /**
+     * Allow consumers to register callbacks to be run on {@link Transaction#commit()} or {@link Transaction#abort()},
+     * after a transaction has committed or aborted.
+     * Callbacks are usually cleanup tasks, e.g. {@link PreCommitCondition#cleanup()} tasks.
+     * Since they are run after the transaction has committed or aborted, a callback exception does not affect
+     * the status of the transaction.
+     * In other words, it's possible for a transaction that committed successfully to have a callback that throws -
+     * in this case {@link Transaction#commit()} would throw the callback's exception, but the transaction would still
+     * commit successfully.
+     * Callbacks are guaranteed to run even if a prior callback threw.
+     * Callbacks are run in the reverse order they were added - i.e. the last added callback will be run first.
+     * Note this is different from {@link #onSuccess(Runnable)} as {@link #onCommitOrAbort(Runnable)} tasks are run
+     * if the transaction succeeded or failed.
+     */
     void onCommitOrAbort(Runnable runnable);
 }
