@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.SafeArg;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.ConsistencyLevel;

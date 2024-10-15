@@ -42,7 +42,7 @@ public final class CassandraUtils {
 
     public static AtlasDbDependencyException wrapInIceForDeleteOrRethrow(RetryLimitReachedException ex) {
         if (ex.suppressed(UnavailableException.class) || ex.suppressed(InsufficientConsistencyException.class)) {
-            throw new InsufficientConsistencyException("Deleting requires all Cassandra nodes to be available.", ex);
+            throw CassandraTExceptions.mapToUncheckedException("Deleting requires all Cassandra nodes to be available.", ex);
         }
         throw ex;
     }
