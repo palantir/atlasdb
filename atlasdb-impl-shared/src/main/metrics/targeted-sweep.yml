@@ -5,6 +5,37 @@ namespaces:
   targetedSweepProgress:
     docs: Metrics for tracking the progress of Targeted Sweep.
     metrics:
+      closedBucketIdentifier:
+        type: gauge
+        docs: The bucket identifier that was associated with the last closed bucket.
+      bucketAssignerStatus:
+        type: gauge
+        docs: | 
+          The result of the bucket assigner's last run as an integer.
+          0. INCOMPLETE
+          1. CLOSED
+          2. CONTENTION_ON_WRITES
+          
+          INCOMPLETE represents the fact that the bucket assigner ran but
+          could not close the bucket. CLOSED represents the fact that the bucket assigner closed the bucket.
+          CONTENTION_ON_WRITES is when the bucket assigner may be racing against another bucket assigner on a different
+          node and failed to complete.
+          A healthy state is when the bucket assigner is running regularly (emitting an INCOMPLETE status), and periodically emitting a CLOSED status.
+      completedMaxBucketsForSingleBucketAssignerIteration:
+        type: meter
+        docs: |
+          Incremented when a bucket assigner creates the max allowed buckets in a single run. This implies that the 
+          bucket assigner is quite far behind. If this metric is incremented too frequently, this may imply a bug in the
+          state machine preventing the bucket assigner from making forward progress.
+      bucketAssignerState:
+        type: gauge
+        docs: |
+            The state of the bucket assigner, represented as an integer:
+            0. START
+            1. OPENING
+            2. WAITING_UNTIL_CLOSEABLE
+            3. CLOSING_FROM_OPEN
+            4. IMMEDIATELY_CLOSING
       enqueuedWrites:
         type: gauge
         tags:
