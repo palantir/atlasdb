@@ -24,34 +24,42 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.transaction.impl.precommit.LockUnlocker;
 import com.palantir.atlasdb.transaction.impl.precommit.LockValidityChecker;
 import com.palantir.lock.v2.LockToken;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.Mock;
 
 // TODO (jkong): Reduce duplication of test setup after https://github.com/junit-team/junit5/issues/944 is resolved
-public final class ImmutableTimestampLockManagerTest {
+public final class TransactionLocksManagerTest {
     private static final LockToken DEFAULT_IMMUTABLE_TIMESTAMP_LOCK_TOKEN = LockToken.of(UUID.randomUUID());
     private static final LockToken DEFAULT_COMMIT_LOCK_TOKEN = LockToken.of(UUID.randomUUID());
+
+    @Mock
+    private LockUnlocker unlocker;
 
     @ParameterizedTest(name = "{2}")
     @MethodSource("lockManagerConfigurations")
     public void returnsNothingExpiredWhenAllLocksStillValid(
             Optional<LockToken> immutableTimestampLock, Optional<LockToken> userCommitLock, String testDescription) {
         LockValidityChecker validityChecker = mock(LockValidityChecker.class);
-        ImmutableTimestampLockManager immutableTimestampLockManager =
-                new ImmutableTimestampLockManager(immutableTimestampLock, validityChecker);
+        TransactionLocksManager transactionLocksManager =
+                new TransactionLocksManager(immutableTimestampLock, validityChecker, unlocker);
 
         when(validityChecker.getStillValidLockTokens(anySet()))
                 .thenAnswer(invocation -> invocation.getArguments()[0]);
+        userCommitLock.ifPresent(transactionLocksManager::registerLock);
 
-        assertThat(immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(userCommitLock))
+        assertThat(transactionLocksManager.getExpiredImmutableTimestampAndCommitLocks())
                 .isEmpty();
     }
 
@@ -60,19 +68,22 @@ public final class ImmutableTimestampLockManagerTest {
     public void returnsLocksThatWereCheckedWhenGettingFullSummaryAndStillValid(
             Optional<LockToken> immutableTimestampLock, String testDescription) {
         LockValidityChecker validityChecker = mock(LockValidityChecker.class);
-        ImmutableTimestampLockManager immutableTimestampLockManager =
-                new ImmutableTimestampLockManager(immutableTimestampLock, validityChecker);
+        TransactionLocksManager transactionLocksManager =
+                new TransactionLocksManager(immutableTimestampLock, validityChecker, unlocker);
 
         when(validityChecker.getStillValidLockTokens(anySet()))
                 .thenAnswer(invocation -> invocation.getArguments()[0]);
 
-        assertThat(immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocksWithFullSummary(
-                        DEFAULT_COMMIT_LOCK_TOKEN))
+        Set.of(DEFAULT_COMMIT_LOCK_TOKEN).forEach(transactionLocksManager::registerLock);
+
+        assertThat(transactionLocksManager.getExpiredImmutableTimestampAndCommitLocksWithFullSummary())
                 .satisfies(summarizedLockCheckResult -> {
                     assertThat(summarizedLockCheckResult.expiredLocks()).isEmpty();
                     assertThat(summarizedLockCheckResult.immutableTimestampLock())
                             .isEqualTo(immutableTimestampLock);
-                    assertThat(summarizedLockCheckResult.userProvidedLock()).isEqualTo(DEFAULT_COMMIT_LOCK_TOKEN);
+                    assertThat(summarizedLockCheckResult.allLockTokens()).containsExactlyInAnyOrderElementsOf(
+                            Stream.concat(immutableTimestampLock.stream(), Stream.of(DEFAULT_COMMIT_LOCK_TOKEN))
+                                    .collect(Collectors.toSet()));
                 });
     }
 
@@ -85,15 +96,17 @@ public final class ImmutableTimestampLockManagerTest {
                 "Test not significant if both locks are not present");
 
         LockValidityChecker validityChecker = mock(LockValidityChecker.class);
-        ImmutableTimestampLockManager immutableTimestampLockManager =
-                new ImmutableTimestampLockManager(immutableTimestampLock, validityChecker);
+        TransactionLocksManager transactionLocksManager =
+                new TransactionLocksManager(immutableTimestampLock, validityChecker, unlocker);
 
         when(validityChecker.getStillValidLockTokens(anySet())).thenReturn(ImmutableSet.of());
 
-        assertThat(immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(userCommitLock))
+        userCommitLock.ifPresent(transactionLocksManager::registerLock);
+        assertThat(transactionLocksManager.getExpiredImmutableTimestampAndCommitLocks())
                 .hasValueSatisfying(expiredLocks -> {
                     assertThat(expiredLocks.errorDescription()).contains(immutableTimestampLock.toString());
-                    assertThat(expiredLocks.errorDescription()).contains(userCommitLock.toString());
+                    userCommitLock.ifPresent(lockToken ->
+                            assertThat(expiredLocks.errorDescription()).contains(lockToken.toString()));
                 });
     }
 
@@ -102,32 +115,35 @@ public final class ImmutableTimestampLockManagerTest {
     public void returnsLocksThatWereCheckedWhenGettingFullSummaryAndExpired(
             Optional<LockToken> immutableTimestampLock, String testDescription) {
         LockValidityChecker validityChecker = mock(LockValidityChecker.class);
-        ImmutableTimestampLockManager immutableTimestampLockManager =
-                new ImmutableTimestampLockManager(immutableTimestampLock, validityChecker);
+        TransactionLocksManager transactionLocksManager =
+                new TransactionLocksManager(immutableTimestampLock, validityChecker, unlocker);
 
         when(validityChecker.getStillValidLockTokens(anySet())).thenReturn(ImmutableSet.of());
 
-        assertThat(immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocksWithFullSummary(
-                        DEFAULT_COMMIT_LOCK_TOKEN))
+        Set.of(DEFAULT_COMMIT_LOCK_TOKEN).forEach(transactionLocksManager::registerLock);
+        assertThat(transactionLocksManager.getExpiredImmutableTimestampAndCommitLocksWithFullSummary())
                 .satisfies(summarizedLockCheckResult -> {
                     assertThat(summarizedLockCheckResult.expiredLocks()).isPresent();
                     assertThat(summarizedLockCheckResult.immutableTimestampLock())
                             .isEqualTo(immutableTimestampLock);
-                    assertThat(summarizedLockCheckResult.userProvidedLock()).isEqualTo(DEFAULT_COMMIT_LOCK_TOKEN);
+                    assertThat(summarizedLockCheckResult.allLockTokens())
+                            .containsExactlyInAnyOrderElementsOf(
+                                    Stream.concat(immutableTimestampLock.stream(), Stream.of(DEFAULT_COMMIT_LOCK_TOKEN))
+                                            .collect(Collectors.toSet()));
                 });
     }
 
     @Test
     public void throwsIfOnlyCommitLockExpiredWhenCheckingBoth() {
         LockValidityChecker validityChecker = mock(LockValidityChecker.class);
-        ImmutableTimestampLockManager immutableTimestampLockManager =
-                new ImmutableTimestampLockManager(Optional.of(DEFAULT_IMMUTABLE_TIMESTAMP_LOCK_TOKEN), validityChecker);
+        TransactionLocksManager transactionLocksManager = new TransactionLocksManager(
+                Optional.of(DEFAULT_IMMUTABLE_TIMESTAMP_LOCK_TOKEN), validityChecker, unlocker);
 
         when(validityChecker.getStillValidLockTokens(anySet()))
                 .thenReturn(ImmutableSet.of(DEFAULT_IMMUTABLE_TIMESTAMP_LOCK_TOKEN));
 
-        assertThat(immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(
-                        Optional.of(DEFAULT_COMMIT_LOCK_TOKEN)))
+        Set.of(DEFAULT_COMMIT_LOCK_TOKEN).forEach(transactionLocksManager::registerLock);
+        assertThat(transactionLocksManager.getExpiredImmutableTimestampAndCommitLocks())
                 .hasValueSatisfying(expiredLocks -> {
                     // This is a bit fragile, but emphasising readability here
                     assertThat(expiredLocks.errorDescription())
@@ -138,13 +154,13 @@ public final class ImmutableTimestampLockManagerTest {
     @Test
     public void throwsIfOnlyImmutableTimestampLockExpiredWhenCheckingBoth() {
         LockValidityChecker validityChecker = mock(LockValidityChecker.class);
-        ImmutableTimestampLockManager immutableTimestampLockManager =
-                new ImmutableTimestampLockManager(Optional.of(DEFAULT_IMMUTABLE_TIMESTAMP_LOCK_TOKEN), validityChecker);
+        TransactionLocksManager transactionLocksManager = new TransactionLocksManager(
+                Optional.of(DEFAULT_IMMUTABLE_TIMESTAMP_LOCK_TOKEN), validityChecker, unlocker);
 
         when(validityChecker.getStillValidLockTokens(anySet())).thenReturn(ImmutableSet.of(DEFAULT_COMMIT_LOCK_TOKEN));
 
-        assertThat(immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(
-                        Optional.of(DEFAULT_COMMIT_LOCK_TOKEN)))
+        Set.of(DEFAULT_COMMIT_LOCK_TOKEN).forEach(transactionLocksManager::registerLock);
+        assertThat(transactionLocksManager.getExpiredImmutableTimestampAndCommitLocks())
                 .hasValueSatisfying(expiredLocks -> {
                     // This is a bit fragile, but emphasising readability here
                     assertThat(expiredLocks.errorDescription())
@@ -156,10 +172,10 @@ public final class ImmutableTimestampLockManagerTest {
     @Test
     public void doesNotCallLockRefresherIfNothingToCheck() {
         LockValidityChecker validityChecker = mock(LockValidityChecker.class);
-        ImmutableTimestampLockManager immutableTimestampLockManager =
-                new ImmutableTimestampLockManager(Optional.empty(), validityChecker);
+        TransactionLocksManager transactionLocksManager =
+                new TransactionLocksManager(Optional.empty(), validityChecker, unlocker);
 
-        assertThat(immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(Optional.empty()))
+        assertThat(transactionLocksManager.getExpiredImmutableTimestampAndCommitLocks())
                 .isEmpty();
         verify(validityChecker, never()).getStillValidLockTokens(anySet());
     }
