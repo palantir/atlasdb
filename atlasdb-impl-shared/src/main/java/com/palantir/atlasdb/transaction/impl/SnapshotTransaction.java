@@ -167,6 +167,7 @@ import com.palantir.util.AssertUtils;
 import com.palantir.util.RateLimitedLogger;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import com.palantir.util.result.Result;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -2364,8 +2365,12 @@ public class SnapshotTransaction extends AbstractTransaction
             // Run close() to release locks before running success callbacks, since success callbacks might
             // start a new transaction and attempt to grab the same locks as the current transaction.
             closer.close();
-        } catch (Exception | Error e) {
+        } catch (IOException e) {
             log.warn("Error while closing transaction resources", e);
+            throw new RuntimeException(e);
+        } catch (RuntimeException | Error e) {
+            log.warn("Error while closing transaction resources", e);
+            throw e;
         } finally {
             if (isDefinitivelyCommitted()) {
                 successCallbackManager.runCallbacks();
