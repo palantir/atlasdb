@@ -15,18 +15,62 @@
  */
 package com.palantir.common.exception;
 
-public class AtlasDbDependencyException extends RuntimeException {
-    private static final String EXCEPTION_MESSAGE = "AtlasDB dependency threw an exception.";
+import com.google.errorprone.annotations.CompileTimeConstant;
+import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.Safe;
+import com.palantir.logsafe.SafeLoggable;
+import com.palantir.logsafe.exceptions.SafeExceptions;
 
-    public AtlasDbDependencyException(String msg) {
-        super(msg);
+import javax.annotation.Nullable;
+import java.util.List;
+
+public class AtlasDbDependencyException extends RuntimeException implements SafeLoggable {
+    private static final String ATLASDB_DEPENDENCY_LOG_MESSAGE = "AtlasDB dependency threw an exception.";
+    private final List<Arg<?>> args;
+    private final String logMessage;
+
+    public AtlasDbDependencyException(@CompileTimeConstant final String logMessage) {
+        super(logMessage);
+        this.args = List.of();
+        this.logMessage = logMessage;
     }
 
-    public AtlasDbDependencyException(String msg, Throwable throwable) {
-        super(msg, throwable);
+    public AtlasDbDependencyException(@CompileTimeConstant final String logMessage, Arg<?>... args) {
+        this(logMessage, List.of(args));
     }
 
-    public AtlasDbDependencyException(Throwable throwable) {
-        super(EXCEPTION_MESSAGE, throwable);
+    public AtlasDbDependencyException(@CompileTimeConstant final String logMessage, Throwable cause, Arg<?>... args) {
+        super(SafeExceptions.renderMessage(logMessage), cause);
+        this.logMessage = logMessage;
+        this.args = List.of();
+    }
+
+    public AtlasDbDependencyException(Throwable throwable, Arg<?>... args) {
+        this(throwable, List.of(args));
+    }
+
+    private AtlasDbDependencyException(@Nullable Throwable cause, List<Arg<?>> args) {
+        super(
+                SafeExceptions.renderMessage(
+                        AtlasDbDependencyException.ATLASDB_DEPENDENCY_LOG_MESSAGE, args.toArray(new Arg[0])),
+                cause);
+        this.args = args;
+        this.logMessage = AtlasDbDependencyException.ATLASDB_DEPENDENCY_LOG_MESSAGE;
+    }
+
+    private AtlasDbDependencyException(@Safe @CompileTimeConstant String logMessage, List<Arg<?>> args) {
+        super(SafeExceptions.renderMessage(logMessage, args.toArray(new Arg[0])));
+        this.args = args;
+        this.logMessage = logMessage;
+    }
+
+    @Override
+    public @Safe String getLogMessage() {
+        return logMessage;
+    }
+
+    @Override
+    public List<Arg<?>> getArgs() {
+        return args;
     }
 }

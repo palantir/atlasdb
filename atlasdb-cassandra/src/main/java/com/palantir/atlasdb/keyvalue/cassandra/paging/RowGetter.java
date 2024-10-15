@@ -24,6 +24,7 @@ import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.SafeArg;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.ConsistencyLevel;
@@ -62,7 +63,9 @@ public class RowGetter {
                                     kvsMethodName, tableRef, slicePredicate, keyRange, consistency));
                 } catch (UnavailableException e) {
                     throw new InsufficientConsistencyException(
-                            "get_range_slices requires " + consistency + " Cassandra nodes to be up and available.", e);
+                            "get_range_slices requires {} Cassandra nodes to be up and available.",
+                            e,
+                            SafeArg.of("consistency", consistency));
                 } catch (Exception e) {
                     throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
                 }

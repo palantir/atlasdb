@@ -20,6 +20,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.ImmutableCassandraClientConfig.SocketTimeoutMillisBuildStage;
@@ -31,6 +32,7 @@ import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.exception.SafeSSLPeerUnverifiedException;
+import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.DoNotLog;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -39,16 +41,6 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.util.TimedRunner;
 import com.palantir.util.TimedRunner.TaskContext;
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.SocketException;
-import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
 import org.apache.cassandra.thrift.AuthenticationRequest;
 import org.apache.cassandra.thrift.Cassandra;
 import org.apache.cassandra.thrift.Cassandra.Client;
@@ -64,6 +56,17 @@ import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.layered.TFramedTransport;
 import org.immutables.value.Value;
+
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.SocketException;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 public class CassandraClientFactory extends BasePooledObjectFactory<CassandraClient> {
     private static final SafeLogger log = SafeLoggerFactory.get(CassandraClientFactory.class);
@@ -99,12 +102,18 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         try {
             return instrumentClient(getRawClientWithKeyspaceSet());
         } catch (Exception e) {
-            String message = String.format(
-                    "Failed to construct client for %s/%s", cassandraServer.proxy(), clientConfig.keyspace());
             if (clientConfig.usingSsl()) {
-                message += " over SSL";
+                throw new ClientCreationFailedException(
+                        "Failed to construct client for {}/{} over SSL",
+                        e,
+                        UnsafeArg.of("cassandraServer.proxy", cassandraServer.proxy()),
+                        SafeArg.of("clientConfig.keyspace", clientConfig.keyspace()));
             }
-            throw new ClientCreationFailedException(message, e);
+            throw new ClientCreationFailedException(
+                    "Failed to construct client for {}/{}",
+                    e,
+                    UnsafeArg.of("cassandraServer.proxy", cassandraServer.proxy()),
+                    SafeArg.of("clientConfig.keyspace", clientConfig.keyspace()));
         }
     }
 
@@ -312,8 +321,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     static final class ClientCreationFailedException extends AtlasDbDependencyException {
         private static final long serialVersionUID = 1L;
 
-        ClientCreationFailedException(String message, Exception cause) {
-            super(message, cause);
+        ClientCreationFailedException(@CompileTimeConstant String message, Exception cause, Arg<?>... args) {
+            super(message, cause, args);
         }
     }
 
