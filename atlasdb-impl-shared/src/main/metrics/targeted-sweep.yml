@@ -20,7 +20,7 @@ namespaces:
           could not close the bucket. CLOSED represents the fact that the bucket assigner closed the bucket.
           CONTENTION_ON_WRITES is when the bucket assigner may be racing against another bucket assigner on a different
           node and failed to complete.
-          A healthy state is when the bucket assigner is running regularly, and periodically emitting a CLOSED status.
+          A healthy state is when the bucket assigner is running regularly (emitting an INCOMPLETE status), and periodically emitting a CLOSED status.
       completedMaxBucketsForSingleBucketAssignerIteration:
         type: meter
         docs: |
