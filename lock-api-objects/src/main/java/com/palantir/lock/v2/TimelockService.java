@@ -16,6 +16,7 @@
 package com.palantir.lock.v2;
 
 import com.google.errorprone.annotations.RestrictedApi;
+import com.palantir.atlasdb.timelock.api.GenericNamedMinTimestamp;
 import com.palantir.lock.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.logsafe.Safe;
 import com.palantir.processors.AutoDelegate;
@@ -23,6 +24,7 @@ import com.palantir.processors.DoNotDelegate;
 import com.palantir.timestamp.TimestampRange;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -120,10 +122,11 @@ public interface TimelockService {
     @RestrictedApi(
             explanation =
                     "This method is for internal Atlas and internal library use only. Clients MUST NOT use it unless"
-                        + " given explicit approval. Mis-use can result in SEVERE DATA CORRUPTION and the API contract"
-                        + " is subject to change at any time.",
+                            + " given explicit approval. Mis-use can result in SEVERE DATA CORRUPTION and the API contract"
+                            + " is subject to change at any time.",
             allowlistAnnotations = ReviewedRestrictedApiUsage.class)
-    AcquireNamedMinTimestampLeaseResult acquireNamedMinTimestampLease(String timestampName, int numFreshTimestamps);
+    Map<GenericNamedMinTimestamp, NamedTimestampLeaseResult> acquireNamedTimestampLeases(
+            Map<GenericNamedMinTimestamp, Integer> requested);
 
     /**
      * Returns the smallest leased timestamp in the associated named collection at the time of the call.
@@ -132,8 +135,8 @@ public interface TimelockService {
     @RestrictedApi(
             explanation =
                     "This method is for internal Atlas and internal library use only. Clients MUST NOT use it unless"
-                        + " given explicit approval. Mis-use can result in SEVERE DATA CORRUPTION and the API contract"
-                        + " is subject to change at any time.",
+                            + " given explicit approval. Mis-use can result in SEVERE DATA CORRUPTION and the API contract"
+                            + " is subject to change at any time.",
             allowlistAnnotations = ReviewedRestrictedApiUsage.class)
-    long getMinLeasedTimestampForName(String timestampName);
+    Map<GenericNamedMinTimestamp, Long> getMinLeasedTimestamps(Set<GenericNamedMinTimestamp> timestampNames);
 }

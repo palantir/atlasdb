@@ -17,18 +17,19 @@ package com.palantir.lock.client;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.api.GenericNamedMinTimestamp;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.annotations.ReviewedRestrictedApiUsage;
-import com.palantir.lock.v2.AcquireNamedMinTimestampLeaseResult;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockLeaseRefresher;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.NamedTimestampLeaseResult;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.lock.v2.WaitForLocksRequest;
@@ -39,6 +40,7 @@ import com.palantir.timestamp.TimestampRange;
 import java.net.ConnectException;
 import java.net.UnknownHostException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
@@ -184,15 +186,15 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
 
     @ReviewedRestrictedApiUsage
     @Override
-    public AcquireNamedMinTimestampLeaseResult acquireNamedMinTimestampLease(
-            String timestampName, int numFreshTimestamps) {
-        return delegate.acquireNamedMinTimestampLease(timestampName, numFreshTimestamps);
+    public Map<GenericNamedMinTimestamp, NamedTimestampLeaseResult> acquireNamedTimestampLeases(
+            Map<GenericNamedMinTimestamp, Integer> requested) {
+        return delegate.acquireNamedTimestampLeases(requested);
     }
 
     @ReviewedRestrictedApiUsage
     @Override
-    public long getMinLeasedTimestampForName(String timestampName) {
-        return delegate.getMinLeasedTimestampForName(timestampName);
+    public Map<GenericNamedMinTimestamp, Long> getMinLeasedTimestamps(Set<GenericNamedMinTimestamp> timestampNames) {
+        return delegate.getMinLeasedTimestamps(timestampNames);
     }
 
     private static <T> T executeOnTimeLock(Callable<T> callable) {

@@ -22,8 +22,14 @@ import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.GetMinLeasedNamedTimestampRequests;
+import com.palantir.atlasdb.timelock.api.GetMinLeasedNamedTimestampResponses;
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockServiceBlocking;
+import com.palantir.atlasdb.timelock.api.MultiClientGetMinLeasedNamedTimestampRequest;
+import com.palantir.atlasdb.timelock.api.MultiClientNamedMinTimestampLeaseRequest;
+import com.palantir.atlasdb.timelock.api.NamedMinTimestampLeaseRequests;
+import com.palantir.atlasdb.timelock.api.NamedMinTimestampLeaseResponses;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Map;
@@ -59,5 +65,20 @@ public class AuthenticatedInternalMultiClientConjureTimelockService
     @Override
     public Map<Namespace, ConjureUnlockResponseV2> unlock(Map<Namespace, ConjureUnlockRequestV2> requests) {
         return delegate.unlock(AUTH_HEADER, requests);
+    }
+
+    @Override
+    public Map<Namespace, NamedMinTimestampLeaseResponses> acquireNamedTimestampLeases(
+            Map<Namespace, NamedMinTimestampLeaseRequests> requests) {
+        return delegate.acquireNamedTimestampLease(AUTH_HEADER, MultiClientNamedMinTimestampLeaseRequest.of(requests))
+                .get();
+    }
+
+    @Override
+    public Map<Namespace, GetMinLeasedNamedTimestampResponses> getMinLeasedNamedTimestamps(
+            Map<Namespace, GetMinLeasedNamedTimestampRequests> requests) {
+        return delegate.getMinLeasedNamedTimestamp(
+                        AUTH_HEADER, MultiClientGetMinLeasedNamedTimestampRequest.of(requests))
+                .get();
     }
 }

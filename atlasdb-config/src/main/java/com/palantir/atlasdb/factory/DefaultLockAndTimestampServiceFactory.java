@@ -46,7 +46,10 @@ import com.palantir.lock.client.LeaderTimeGetter;
 import com.palantir.lock.client.LegacyLeaderTimeGetter;
 import com.palantir.lock.client.LegacyLockTokenUnlocker;
 import com.palantir.lock.client.LockTokenUnlocker;
+import com.palantir.lock.client.MultiClientNamedTimestampLeaseAcquirer;
 import com.palantir.lock.client.MultiClientTimeLockUnlocker;
+import com.palantir.lock.client.NamedTimestampLeaseAcquirer;
+import com.palantir.lock.client.NamedTimestampLeaseAcquirerImpl;
 import com.palantir.lock.client.NamespacedCoalescingLeaderTimeGetter;
 import com.palantir.lock.client.NamespacedConjureLockWatchTimeLockDiagnosticsService;
 import com.palantir.lock.client.NamespacedConjureLockWatchingService;
@@ -368,7 +371,8 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                         timelockNamespace,
                         timelockRequestBatcherProviders,
                         namespacedConjureTimelockService,
-                        multiClientTimelockServiceSupplier));
+                        multiClientTimelockServiceSupplier),
+                getNamedTimestampLeaseAcquirer(timelockNamespace, timelockRequestBatcherProviders, namespacedConjureTimelockService, multiClientTimelockServiceSupplier));
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
                 serviceProvider.getTimestampManagementRpcClient(), timelockNamespace);
 
@@ -397,6 +401,21 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 timelockRequestBatcherProviders.get().unlock().getBatcher(multiClientTimelockServiceSupplier);
         batcher.recordReference();
         return new NamespacedLockTokenUnlocker(timelockNamespace, batcher);
+    }
+
+    private static NamedTimestampLeaseAcquirer getNamedTimestampLeaseAcquirer(
+            String timelockNamespace,
+            Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
+            NamespacedConjureTimelockService namespacedConjureTimelockService,
+            Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
+        if (timelockRequestBatcherProviders.isEmpty()) {
+            return NamedTimestampLeaseAcquirerImpl.create(timelockNamespace, multiClientTimelockServiceSupplier, namespacedConjureTimelockService);
+        }
+
+        ReferenceTrackingWrapper<MultiClientNamedTimestampLeaseAcquirer> batcher =
+                timelockRequestBatcherProviders.get().namedTimestampLeases().getBatcher(multiClientTimelockServiceSupplier);
+        batcher.recordReference();
+        return NamedTimestampLeaseAcquirerImpl.create(timelockNamespace, batcher, namespacedConjureTimelockService);
     }
 
     private static LeaderTimeGetter getLeaderTimeGetter(

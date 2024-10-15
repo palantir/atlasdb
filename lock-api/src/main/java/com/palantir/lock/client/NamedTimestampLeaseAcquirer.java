@@ -14,19 +14,18 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.v2;
+package com.palantir.lock.client;
 
-import java.util.List;
-import org.immutables.value.Value;
+import com.palantir.atlasdb.timelock.api.GenericNamedMinTimestamp;
+import com.palantir.lock.v2.NamedTimestampLeaseResult;
+import java.util.Map;
 
-@Value.Immutable
-public interface AcquireNamedMinTimestampLeaseResult {
-    @Value.Parameter
-    long minLeasedTimestamp();
+public interface NamedTimestampLeaseAcquirer extends AutoCloseable {
+    Map<GenericNamedMinTimestamp, NamedTimestampLeaseResult> acquireNamedTimestampLease(
+            Map<GenericNamedMinTimestamp, Integer> requests);
 
-    @Value.Parameter
-    LockToken lock();
+    @Override
+    default void close() {
 
-    @Value.Parameter
-    List<Long> freshTimestamps();
+    }
 }
