@@ -270,7 +270,7 @@ public class CqlExecutorImpl implements CqlExecutor {
                 hostsPerPreparedQuery.put(preparedResult.getItemId(), hostForRow);
                 return preparedResult;
             } catch (TException e) {
-                throw Throwables.throwUncheckedException(e);
+                throw CassandraTExceptions.mapToUncheckedException(e);
             }
         }
 
@@ -304,7 +304,7 @@ public class CqlExecutorImpl implements CqlExecutor {
                 }
                 throw e;
             } catch (TException e) {
-                throw Throwables.throwUncheckedException(e);
+                throw CassandraTExceptions.mapToUncheckedException(e, SafeArg.of("server", cassandraServer));
             }
         }
 
