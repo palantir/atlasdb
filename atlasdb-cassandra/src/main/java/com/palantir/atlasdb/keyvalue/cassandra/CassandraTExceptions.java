@@ -42,8 +42,8 @@ public final class CassandraTExceptions {
             return new CassandraTimedOutException(throwable, args);
         }
         if (throwable instanceof UnavailableException) {
-            return new InsufficientConsistencyException(throwable);
+            return new InsufficientConsistencyException(throwable, args);
         }
-        return new AtlasDbDependencyException(throwable);
+        return new AtlasDbDependencyException(throwable, args);
     }
 }
