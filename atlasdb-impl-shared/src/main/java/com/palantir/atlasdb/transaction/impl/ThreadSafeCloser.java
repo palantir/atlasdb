@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.io.Closer;
-import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.Closeable;
@@ -25,21 +25,26 @@ import java.io.IOException;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
-class ThreadSafeCloser {
+final class ThreadSafeCloser {
     private static final SafeLogger log = SafeLoggerFactory.get(ThreadSafeCloser.class);
 
     private final Closer closer = Closer.create();
     private volatile boolean isClosed = false;
 
     public synchronized <C extends Closeable> C register(C closeable) {
-        Preconditions.checkState(!isClosed, "cannot register new closeable if already closed");
+        if (isClosed) {
+            try {
+                closeable.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            throw new SafeIllegalStateException("cannot register new closeable if already closed");
+        }
         return closer.register(closeable);
     }
 
     public synchronized void close() {
         try {
-            // Run close() to release locks before running success callbacks, since success callbacks might
-            // start a new transaction and attempt to grab the same locks as the current transaction.
             closer.close();
             isClosed = true;
         } catch (IOException e) {
