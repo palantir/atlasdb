@@ -390,8 +390,8 @@ public final class CassandraVerifier {
             if (isValidMigrationReplicationFactorState(replicationFactorVerifierConfig, strategyOptions)) {
                 log.info(
                         "Your current Cassandra keyspace had two datacenters with different replication factors, where"
-                            + " the higher replication factor matched expected. This is a valid migration state, hence"
-                            + " allowing it.",
+                                + " the higher replication factor matched expected. This is a valid migration state, hence"
+                                + " allowing it.",
                         SafeArg.of("keyspace", ks.getName()));
             } else {
                 logErrorOrThrow(

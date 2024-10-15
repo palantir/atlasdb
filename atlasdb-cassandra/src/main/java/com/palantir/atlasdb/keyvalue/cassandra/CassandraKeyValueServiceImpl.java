@@ -1768,7 +1768,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
         } catch (RetryLimitReachedException e) {
             throw CassandraUtils.wrapInIceForDeleteOrRethrow(e);
         } catch (TException e) {
-            throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+            throw CassandraTExceptions.mapToUncheckedException(e);
         }
     }
 
@@ -1906,7 +1906,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
                 try {
                     atomicTableCellDeleter.deleteFromAtomicTable(client, tableRef, cell);
                 } catch (TException e) {
-                    throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
+                    throw CassandraTExceptions.mapToUncheckedException(e);
                 }
             }
             return null;
