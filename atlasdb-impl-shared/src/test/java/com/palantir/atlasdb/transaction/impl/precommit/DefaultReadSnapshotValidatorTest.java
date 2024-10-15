@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.transaction.impl.precommit;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -129,7 +128,7 @@ public final class DefaultReadSnapshotValidatorTest {
 
         assertThat(readSnapshotValidator.throwIfPreCommitRequirementsNotMetOnRead(testTable, TIMESTAMP, false))
                 .isEqualTo(ValidationState.NOT_COMPLETELY_VALIDATED);
-        verify(preCommitRequirementValidator, never()).throwIfPreCommitRequirementsNotMet(any(), anyLong());
+        verify(preCommitRequirementValidator, never()).throwIfPreCommitRequirementsNotMet(anyLong());
     }
 
     @MethodSource("testTables")
@@ -146,21 +145,21 @@ public final class DefaultReadSnapshotValidatorTest {
 
         assertThat(readSnapshotValidator.throwIfPreCommitRequirementsNotMetOnRead(testTable, TIMESTAMP, true))
                 .isEqualTo(ValidationState.COMPLETELY_VALIDATED);
-        verify(preCommitRequirementValidator, never()).throwIfPreCommitRequirementsNotMet(any(), anyLong());
+        verify(preCommitRequirementValidator, never()).throwIfPreCommitRequirementsNotMet(anyLong());
     }
 
     @Test
     public void incompleteReadsOnConservativeTablesDoNotRequireValidationOnReadByDefault() {
         assertThat(readSnapshotValidator.throwIfPreCommitRequirementsNotMetOnRead(CONSERVATIVE_TABLE, TIMESTAMP, false))
                 .isEqualTo(ValidationState.NOT_COMPLETELY_VALIDATED);
-        verify(preCommitRequirementValidator, never()).throwIfPreCommitRequirementsNotMet(any(), anyLong());
+        verify(preCommitRequirementValidator, never()).throwIfPreCommitRequirementsNotMet(anyLong());
     }
 
     @Test
     public void incompleteReadsOnThoroughTablesRequireValidationOnReadByDefault() {
         assertThat(readSnapshotValidator.throwIfPreCommitRequirementsNotMetOnRead(THOROUGH_TABLE, TIMESTAMP, false))
                 .isEqualTo(ValidationState.COMPLETELY_VALIDATED);
-        verify(preCommitRequirementValidator).throwIfPreCommitRequirementsNotMet(any(), anyLong());
+        verify(preCommitRequirementValidator).throwIfPreCommitRequirementsNotMet(anyLong());
     }
 
     @MethodSource("testTables")
@@ -168,7 +167,7 @@ public final class DefaultReadSnapshotValidatorTest {
     public void completeReadsAreCompletelyValidatedAndDoNotRequireValidationOnReadByDefault(TableReference testTable) {
         assertThat(readSnapshotValidator.throwIfPreCommitRequirementsNotMetOnRead(testTable, TIMESTAMP, true))
                 .isEqualTo(ValidationState.COMPLETELY_VALIDATED);
-        verify(preCommitRequirementValidator, never()).throwIfPreCommitRequirementsNotMet(any(), anyLong());
+        verify(preCommitRequirementValidator, never()).throwIfPreCommitRequirementsNotMet(anyLong());
     }
 
     private static Stream<TableReference> testTables() {
