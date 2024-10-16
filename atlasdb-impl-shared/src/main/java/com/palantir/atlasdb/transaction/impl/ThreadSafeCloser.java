@@ -44,6 +44,10 @@ final class ThreadSafeCloser {
     }
 
     public synchronized void close() {
+        if (isClosed) {
+            // it's fine to call close() more than once, since it's fine to call Transaction#commit more than once.
+            return;
+        }
         try {
             closer.close();
             isClosed = true;
