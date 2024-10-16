@@ -31,19 +31,12 @@ import com.palantir.atlasdb.timelock.lockwatches.RequestMetrics;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
-import com.palantir.timestamp.TimestampService;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.Supplier;
 import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
 public final class AsyncTimelockServiceImplTest {
     private static final TimestampLeaseName TIMESTAMP_NAME = TimestampLeaseName.of("ToyTimestamp");
@@ -64,8 +57,6 @@ public final class AsyncTimelockServiceImplTest {
         assertThat(timelockService.isInitialized()).isTrue();
     }
 
-    // TODO(aalouane): enable when AsyncLockService implementation is merged
-    @Disabled
     @Test
     public void acquireTimestampLeaseReturnsLeaseGuaranteeIdentifierWithGivenRequestId() {
         UUID requestId = UUID.randomUUID();
@@ -73,97 +64,74 @@ public final class AsyncTimelockServiceImplTest {
         assertThat(acquireResponse.getLeaseGuarantee().getIdentifier().get()).isEqualTo(requestId);
     }
 
-    // TODO(aalouane): enable when AsyncLockService implementation is merged
-    @Disabled
     @Test
     public void acquireTimestampLeaseReturnsMinLeasedAllThroughout() {
-        // The assumption is that the timestamp service used gives incremental timestamps starting
-        // with 0 and with no gaps. Thus, a call to acquire is expected to fetch the number of
-        // timestamps requested plus one.
+        TimestampedInvocation<TimestampLeaseResponse> response1 = acquireTimestampLeaseTimestamped(10);
+        assertThatTimestampIsStrictlyWithinInvocationInterval(response1.result.getMinLeased(), response1);
 
-        // Expected to lock with 1
-        TimestampLeaseResponse response1 = acquireTimestampLease(10);
-        assertThat(response1.getMinLeased()).isEqualTo(1);
+        TimestampedInvocation<TimestampLeaseResponse> response2 = acquireTimestampLeaseTimestamped(5);
+        assertThatTimestampIsStrictlyWithinInvocationInterval(response2.result.getMinLeased(), response1);
 
-        // Expected to lock with 12
-        TimestampLeaseResponse response2 = acquireTimestampLease(5);
-        assertThat(response2.getMinLeased()).isEqualTo(1);
+        unlockForResponse(response1.result);
+        TimestampedInvocation<TimestampLeaseResponse> response3 = acquireTimestampLeaseTimestamped(7);
+        assertThatTimestampIsStrictlyWithinInvocationInterval(response3.result.getMinLeased(), response2);
 
-        assertThat(lockService.unlock(createLockTokenFromResponse(response1))).isTrue();
-        // Expected to lock with 18
-        TimestampLeaseResponse response3 = acquireTimestampLease(7);
-        assertThat(response3.getMinLeased()).isEqualTo(12);
-
-        assertThat(lockService.unlock(createLockTokenFromResponse(response2))).isTrue();
-        // Expected to lock with 26
-        TimestampLeaseResponse response4 = acquireTimestampLease(8);
-        assertThat(response4.getMinLeased()).isEqualTo(18);
+        unlockForResponse(response2.result);
+        TimestampedInvocation<TimestampLeaseResponse> response4 = acquireTimestampLeaseTimestamped(19);
+        assertThatTimestampIsStrictlyWithinInvocationInterval(response4.result.getMinLeased(), response3);
     }
 
-    // TODO(aalouane): enable when AsyncLockService implementation is merged
-    @Disabled
     @Test
     public void acquireTimestampLeaseReturnsFreshTimestampsGreaterThanReturnedMinLeased() {
         TimestampLeaseResponse response = acquireTimestampLease(10);
         assertThat(response.getFreshTimestamps().getStart()).isGreaterThan(response.getMinLeased());
     }
 
-    // TODO(aalouane): enable when AsyncLockService implementation is merged
-    @Disabled
-    @ValueSource(ints = {1, 5, 10})
-    @ParameterizedTest
-    public void acquireTimestampLeaseReturnsExactlyTheNumberOfFreshTimestampsRequested(int count) {
-        TimestampLeaseResponse response = acquireTimestampLease(count);
-        // This is a stronger guarantee than what we provide, but assuming the timestamp
-        // service used returns increments of 1, the tests allows us to verify we pass
-        // the right input to the timestamp service
-        assertThat(response.getFreshTimestamps().getCount()).isEqualTo(count);
+    @Test
+    public void acquireTimestampLeaseReturnedFreshTimestampsAreFreshTimestamps() {
+        TimestampedInvocation<TimestampLeaseResponse> response = acquireTimestampLeaseTimestamped(10);
+        long firstTimestamp = response.result.getFreshTimestamps().getStart();
+        long lastTimestamp = firstTimestamp + response.result.getFreshTimestamps().getCount() - 1;
+        assertThatTimestampIsStrictlyWithinInvocationInterval(firstTimestamp, response);
+        assertThatTimestampIsStrictlyWithinInvocationInterval(lastTimestamp, response);
     }
 
-    // TODO(aalouane): enable when AsyncLockService implementation is merged
-    @Disabled
     @Test
     public void acquireTimestampLeaseLocksWithAFreshTimestamp() {
-        timestampService.fastForwardTimestamp(10000L);
-        TimestampLeaseResponse response = acquireTimestampLease(10);
-        assertThat(response.getMinLeased()).isEqualTo(10001L);
+        TimestampedInvocation<TimestampLeaseResponse> response = acquireTimestampLeaseTimestamped(10);
+        assertThatTimestampIsStrictlyWithinInvocationInterval(response.result.getMinLeased(), response);
     }
 
-    // TODO(aalouane): enable when AsyncLockService implementation is merged
-    @Disabled
     @Test
     public void getMinLeasedTimestampReturnsFreshTimestampWhenNoLeaseIsHeld() {
-        withTimestampAssertScope(scope -> {
-            long minLeasedTimestamp = getMinLeasedTimestamp();
-            scope.assertWasFreshTimestamp(minLeasedTimestamp);
-        });
+        TimestampedInvocation<Long> response = getMinLeasedTimestampTimestamped();
+        assertThatTimestampIsStrictlyWithinInvocationInterval(response.result, response);
     }
 
-    // TODO(aalouane): enable when AsyncLockService implementation is merged
-    @Disabled
     @Test
     public void getMinLeasedTimestampReturnsMinLeasedWhenLeaseIsHeld() {
-        TimestampLeaseResponse response1 = withTimestampAssertScope(scope -> {
-            TimestampLeaseResponse response = acquireTimestampLease(10);
-            long minLeased = getMinLeasedTimestamp();
-            scope.assertWasFreshTimestampLessThan(
-                    minLeased, response.getFreshTimestamps().getStart());
-            return response;
-        });
+        TimestampedInvocation<TimestampLeaseResponse> response1 = acquireTimestampLeaseTimestamped(10);
+        assertThatTimestampIsStrictlyWithinInvocationInterval(getMinLeasedTimestamp(), response1);
 
-        TimestampLeaseResponse response2 = acquireTimestampLease(5);
-        assertThat(getMinLeasedTimestamp()).isEqualTo(getMinLeasedForResponses(response1, response2));
+        TimestampedInvocation<TimestampLeaseResponse> response2 = acquireTimestampLeaseTimestamped(5);
+        assertThatTimestampIsStrictlyWithinInvocationInterval(getMinLeasedTimestamp(), response1);
 
-        assertThat(lockService.unlock(createLockTokenFromResponse(response1))).isTrue();
-        acquireTimestampLease(7);
-        assertThat(getMinLeasedTimestamp()).isEqualTo(getMinLeasedForResponses(response2));
+        assertThat(unlockForResponse(response1.result)).isTrue();
+        TimestampedInvocation<TimestampLeaseResponse> response3 = acquireTimestampLeaseTimestamped(7);
+        assertThatTimestampIsStrictlyWithinInvocationInterval(getMinLeasedTimestamp(), response2);
 
-        withTimestampAssertScope(scope -> {
-            TimestampLeaseResponse response = acquireTimestampLease(8);
-            long minLeased = getMinLeasedTimestamp();
-            scope.assertWasFreshTimestampLessThan(
-                    minLeased, response.getFreshTimestamps().getStart());
-        });
+        TimestampedInvocation<TimestampLeaseResponse> response4 = acquireTimestampLeaseTimestamped(12);
+        assertThatTimestampIsStrictlyWithinInvocationInterval(getMinLeasedTimestamp(), response2);
+
+        assertThat(unlockForResponse(response2.result)).isTrue();
+        assertThatTimestampIsStrictlyWithinInvocationInterval(getMinLeasedTimestamp(), response3);
+
+        assertThat(unlockForResponse(response3.result)).isTrue();
+        assertThatTimestampIsStrictlyWithinInvocationInterval(getMinLeasedTimestamp(), response4);
+    }
+
+    private TimestampedInvocation<TimestampLeaseResponse> acquireTimestampLeaseTimestamped(int requested) {
+        return new TimestampedInvocation<>(() -> acquireTimestampLease(requested));
     }
 
     private TimestampLeaseResponse acquireTimestampLease(int numFreshTimestamps) {
@@ -174,8 +142,16 @@ public final class AsyncTimelockServiceImplTest {
         return unwrap(service.acquireTimestampLease(TIMESTAMP_NAME, requestId, numFreshTimestamps));
     }
 
+    private TimestampedInvocation<Long> getMinLeasedTimestampTimestamped() {
+        return new TimestampedInvocation<>(this::getMinLeasedTimestamp);
+    }
+
     private long getMinLeasedTimestamp() {
         return unwrap(service.getMinLeasedTimestamp(TIMESTAMP_NAME));
+    }
+
+    private boolean unlockForResponse(TimestampLeaseResponse response) {
+        return lockService.unlock(createLockTokenFromResponse(response));
     }
 
     private <T> T unwrap(ListenableFuture<T> future) {
@@ -183,11 +159,8 @@ public final class AsyncTimelockServiceImplTest {
         return AtlasFutures.getUnchecked(future);
     }
 
-    private static long getMinLeasedForResponses(TimestampLeaseResponse... responses) {
-        return Arrays.stream(responses)
-                .map(TimestampLeaseResponse::getMinLeased)
-                .min(Comparator.naturalOrder())
-                .orElseThrow();
+    private static void assertThatTimestampIsStrictlyWithinInvocationInterval(long timestamp, TimestampedInvocation<?> invocation) {
+        assertThat(timestamp).isStrictlyBetween(invocation.timestampBefore, invocation.timestampAfter);
     }
 
     private static LockToken createLockTokenFromResponse(TimestampLeaseResponse response) {
@@ -211,31 +184,15 @@ public final class AsyncTimelockServiceImplTest {
                 RequestMetrics.of(new DefaultTaggedMetricRegistry()));
     }
 
-    private <T> T withTimestampAssertScope(Function<TimelockTimestampAssertScope, T> consumer) {
-        return consumer.apply(new TimelockTimestampAssertScope(timestampService));
-    }
+    private final class TimestampedInvocation<T> {
+        private final long timestampBefore;
+        private final long timestampAfter;
+        private final T result;
 
-    private void withTimestampAssertScope(Consumer<TimelockTimestampAssertScope> consumer) {
-        consumer.accept(new TimelockTimestampAssertScope(timestampService));
-    }
-
-    private static final class TimelockTimestampAssertScope {
-        private final TimestampService timestampService;
-        private final long startTimestamp;
-
-        private TimelockTimestampAssertScope(TimestampService timestampService) {
-            this.timestampService = timestampService;
-            this.startTimestamp = timestampService.getFreshTimestamp();
-        }
-
-        private void assertWasFreshTimestamp(long timestamp) {
-            long laterTimestamp = timestampService.getFreshTimestamp();
-            assertThat(timestamp).isStrictlyBetween(startTimestamp, laterTimestamp);
-        }
-
-        private void assertWasFreshTimestampLessThan(long timestamp, long upperBound) {
-            assertWasFreshTimestamp(timestamp);
-            assertThat(timestamp).isLessThan(upperBound);
+        private TimestampedInvocation(Supplier<T> invocation) {
+            this.timestampBefore = timestampService.getFreshTimestamp();
+            this.result = invocation.get();
+            this.timestampAfter = timestampService.getFreshTimestamp();
         }
     }
 }

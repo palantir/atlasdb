@@ -262,9 +262,9 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
         long timestamp = timestampService.getFreshTimestamp();
 
         Leased<LockToken> leasedLock = lockService
-                .acquireTimestampLease(timestampName, requestId, timestamp)
+                .acquireNamedTimestampLock(timestampName, requestId, timestamp)
                 .get();
-        long minLeased = lockService.getMinLeasedTimestamp(timestampName).orElse(timestamp);
+        long minLeased = lockService.getNamedMinTimestamp(timestampName).orElse(timestamp);
 
         TimestampRange timestampRange = timestampService.getFreshTimestamps(numFreshTimestamps);
 
@@ -282,7 +282,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     public ListenableFuture<Long> getMinLeasedTimestamp(TimestampLeaseName timestampName) {
         long timestamp = timestampService.getFreshTimestamp();
         return Futures.immediateFuture(
-                lockService.getMinLeasedTimestamp(timestampName).orElse(timestamp));
+                lockService.getNamedMinTimestamp(timestampName).orElse(timestamp));
     }
 
     @Override

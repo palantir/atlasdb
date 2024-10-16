@@ -39,6 +39,7 @@ final class NamedMinTimestampTrackerImpl implements NamedMinTimestampTracker {
     @Override
     public synchronized void lock(long timestamp, UUID requestId) {
         boolean wasAdded = holdersByTimestamp.putIfAbsent(timestamp, requestId) == null;
+        System.out.println(String.format("Lock for request=%s at timestamp=%s success=%s", requestId, timestamp, wasAdded));
         if (!wasAdded) {
             throw new SafeIllegalStateException(
                     "A request attempted to lock a timestamp that was already locked",
@@ -51,6 +52,7 @@ final class NamedMinTimestampTrackerImpl implements NamedMinTimestampTracker {
     @Override
     public synchronized void unlock(long timestamp, UUID requestId) {
         boolean wasRemoved = holdersByTimestamp.remove(timestamp, requestId);
+        System.out.println(String.format("Unlock for request=%s at timestamp=%s success=%s", requestId, timestamp, wasRemoved));
         if (!wasRemoved) {
             throw new SafeIllegalStateException(
                     "A request attempted to unlock a timestamp that was not locked or was locked by another request",
@@ -63,9 +65,12 @@ final class NamedMinTimestampTrackerImpl implements NamedMinTimestampTracker {
     @Override
     public synchronized Optional<Long> getMinimumTimestamp() {
         if (holdersByTimestamp.isEmpty()) {
+            System.out.println(String.format("Get minimum timestamp: returned=EMPTY"));
             return Optional.empty();
         }
-        return Optional.of(holdersByTimestamp.firstKey());
+        Optional<Long> result = Optional.of(holdersByTimestamp.firstKey());
+        System.out.println(String.format("Get minimum timestamp: returned=%s", result.get()));
+        return result;
     }
 
     @Override
