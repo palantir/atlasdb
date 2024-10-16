@@ -16,9 +16,6 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
-import com.palantir.atlasdb.transaction.api.TransactionFailedException;
-import com.palantir.atlasdb.transaction.service.TransactionService;
-
 public abstract class ForwardingCallbackAwareTransaction extends ForwardingExpectationsAwareTransaction
         implements CallbackAwareTransaction {
 
@@ -26,17 +23,7 @@ public abstract class ForwardingCallbackAwareTransaction extends ForwardingExpec
     public abstract CallbackAwareTransaction delegate();
 
     @Override
-    public void commitWithoutCallbacks() throws TransactionFailedException {
-        delegate().commitWithoutCallbacks();
-    }
-
-    @Override
-    public void commitWithoutCallbacks(TransactionService transactionService) throws TransactionFailedException {
-        delegate().commitWithoutCallbacks(transactionService);
-    }
-
-    @Override
-    public void runSuccessCallbacksIfDefinitivelyCommitted() {
-        delegate().runSuccessCallbacksIfDefinitivelyCommitted();
+    public void onCommitOrAbort(Runnable runnable) {
+        delegate().onCommitOrAbort(runnable);
     }
 }
