@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
@@ -26,32 +27,37 @@ import static org.mockito.Mockito.when;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
+import com.palantir.atlasdb.sweep.queue.NumberOfShardsProvider.MismatchBehaviour;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.time.Duration;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class TargetedSweeperNumShardSupplierTest {
-    private KeyValueService kvs;
+public class NumberOfShardsProviderTest {
+    private final Supplier<Integer> runtimeConfigSupplier = mock(Supplier.class);
+
     private ShardProgress progress;
-    private Supplier<Integer> runtimeConfigSupplier = mock(Supplier.class);
     private Supplier<Integer> numShardSupplier;
 
     @BeforeEach
     public void setup() {
-        kvs = new InMemoryKeyValueService(true);
+        KeyValueService kvs = new InMemoryKeyValueService(true);
         progress = spy(new ShardProgress(kvs));
-        numShardSupplier = SweepQueue.createProgressUpdatingSupplier(runtimeConfigSupplier, progress, 1);
+        numShardSupplier = NumberOfShardsProvider.createMemoizingProvider(
+                progress, runtimeConfigSupplier, MismatchBehaviour.UPDATE, Duration.ofMillis(1))::getNumberOfShards;
     }
 
     @Test
     public void testDefaultValue() {
-        assertThat(setRuntimeAndGetNumShards(AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS))
+        assertThat(setRuntimeAndGetNumberOfShards(AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS))
                 .isEqualTo(AtlasDbConstants.LEGACY_DEFAULT_TARGETED_SWEEP_SHARDS);
     }
 
     @Test
     public void testConfigHigherValuePersistedInProgress() {
-        assertThat(setRuntimeAndGetNumShards(50)).isEqualTo(50);
+        assertThat(setRuntimeAndGetNumberOfShards(50)).isEqualTo(50);
         assertThat(progress.getNumberOfShards()).isEqualTo(50);
     }
 
@@ -64,34 +70,34 @@ public class TargetedSweeperNumShardSupplierTest {
 
     @Test
     public void loweringConfigDoesNotReduceNumberOfShards() throws InterruptedException {
-        assertThat(setRuntimeAndGetNumShards(75)).isEqualTo(75);
+        assertThat(setRuntimeAndGetNumberOfShards(75)).isEqualTo(75);
         waitToForceRefresh();
-        assertThat(setRuntimeAndGetNumShards(50)).isEqualTo(75);
+        assertThat(setRuntimeAndGetNumberOfShards(50)).isEqualTo(75);
     }
 
     @Test
     public void changingRuntimeConfigHasNoEffectUntilGetIsCalled() throws InterruptedException {
-        assertThat(setRuntimeAndGetNumShards(50)).isEqualTo(50);
+        assertThat(setRuntimeAndGetNumberOfShards(50)).isEqualTo(50);
         waitToForceRefresh();
 
         when(runtimeConfigSupplier.get()).thenReturn(150);
         when(runtimeConfigSupplier.get()).thenReturn(100);
-        assertThat(setRuntimeAndGetNumShards(125)).isEqualTo(125);
+        assertThat(setRuntimeAndGetNumberOfShards(125)).isEqualTo(125);
     }
 
     @Test
     public void getAfterRefreshTimeChecksConfigAndUpdatesProgress() throws InterruptedException {
-        assertThat(setRuntimeAndGetNumShards(50)).isEqualTo(50);
+        assertThat(setRuntimeAndGetNumberOfShards(50)).isEqualTo(50);
         verify(runtimeConfigSupplier, times(1)).get();
         verify(progress, times(1)).updateNumberOfShards(50);
         waitToForceRefresh();
 
-        assertThat(setRuntimeAndGetNumShards(100)).isEqualTo(100);
+        assertThat(setRuntimeAndGetNumberOfShards(100)).isEqualTo(100);
         verify(runtimeConfigSupplier, times(2)).get();
         verify(progress, times(1)).updateNumberOfShards(100);
         waitToForceRefresh();
 
-        assertThat(setRuntimeAndGetNumShards(75)).isEqualTo(100);
+        assertThat(setRuntimeAndGetNumberOfShards(75)).isEqualTo(100);
         verify(runtimeConfigSupplier, times(3)).get();
         verify(progress, times(1)).updateNumberOfShards(75);
 
@@ -100,10 +106,11 @@ public class TargetedSweeperNumShardSupplierTest {
 
     @Test
     public void getBeforeRefreshTimeDoesNotCheckConfigOrUpdateProgress() throws InterruptedException {
-        numShardSupplier = SweepQueue.createProgressUpdatingSupplier(runtimeConfigSupplier, progress, 100_000);
-        assertThat(setRuntimeAndGetNumShards(50)).isEqualTo(50);
+        numShardSupplier = NumberOfShardsProvider.createMemoizingProvider(
+                progress, runtimeConfigSupplier, MismatchBehaviour.UPDATE, Duration.ofSeconds(100))::getNumberOfShards;
+        assertThat(setRuntimeAndGetNumberOfShards(50)).isEqualTo(50);
 
-        assertThat(setRuntimeAndGetNumShards(100)).isEqualTo(50);
+        assertThat(setRuntimeAndGetNumberOfShards(100)).isEqualTo(50);
         progress.updateNumberOfShards(125);
         assertThat(numShardSupplier.get()).isEqualTo(50);
         verify(runtimeConfigSupplier, times(1)).get();
@@ -112,7 +119,32 @@ public class TargetedSweeperNumShardSupplierTest {
         verify(progress, times(2)).updateNumberOfShards(anyInt());
     }
 
-    private int setRuntimeAndGetNumShards(int runtime) {
+    @Test
+    public void throwsIfMismatchBetweenProgressAndConfigAndThrowBehaviourSet() {
+        numShardSupplier = NumberOfShardsProvider.createMemoizingProvider(
+                progress,
+                runtimeConfigSupplier,
+                MismatchBehaviour.THROW,
+                Duration.ofMillis(SweepQueueUtils.REFRESH_TIME))::getNumberOfShards;
+        progress.updateNumberOfShards(75);
+        assertThatLoggableExceptionThrownBy(() -> setRuntimeAndGetNumberOfShards(50))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasLogMessage("Number of shards from supplier and progress do not match")
+                .hasExactlyArgs(SafeArg.of("shardsFromSupplier", 50), SafeArg.of("shardsFromProgress", 75));
+    }
+
+    @Test
+    public void doesNotThrowIfNoMismatchBetweenProgressAndConfigAndThrowBehaviourSet() {
+        numShardSupplier = NumberOfShardsProvider.createMemoizingProvider(
+                progress,
+                runtimeConfigSupplier,
+                MismatchBehaviour.THROW,
+                Duration.ofMillis(SweepQueueUtils.REFRESH_TIME))::getNumberOfShards;
+        progress.updateNumberOfShards(50);
+        assertThat(setRuntimeAndGetNumberOfShards(50)).isEqualTo(50);
+    }
+
+    private int setRuntimeAndGetNumberOfShards(int runtime) {
         when(runtimeConfigSupplier.get()).thenReturn(runtime);
         return numShardSupplier.get();
     }

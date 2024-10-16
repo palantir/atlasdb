@@ -185,11 +185,15 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 install.thoroughThreads(),
                 timelockService,
                 queue,
+                // We could just get this from the queue inside create, but since I'm in the process of ripping out
+                // the queue, I'm going to pass it in explicitly.
+                queue.getNumberOfShardsProvider(),
                 timestamps,
                 metrics,
                 runtime);
         lastSweptTimestampUpdater = new LastSweptTimestampUpdater(
-                queue,
+                queue.getNumberOfShardsProvider(),
+                queue::getLastSweptTimestamps,
                 metrics,
                 PTExecutors.newSingleThreadScheduledExecutor(
                         new NamedThreadFactory("last-swept-timestamp-metric-update", true)));

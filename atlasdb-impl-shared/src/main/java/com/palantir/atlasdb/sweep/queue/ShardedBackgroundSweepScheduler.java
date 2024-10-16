@@ -39,6 +39,7 @@ final class ShardedBackgroundSweepScheduler implements BackgroundSweeper {
             int numThoroughThreads,
             TimelockService timeLock,
             SweepQueue queue,
+            NumberOfShardsProvider numberOfShardsProvider,
             SpecialTimestampsSupplier timestampsSupplier,
             TargetedSweepMetrics metrics,
             Supplier<TargetedSweepRuntimeConfig> runtime) {
@@ -48,6 +49,7 @@ final class ShardedBackgroundSweepScheduler implements BackgroundSweeper {
                         SweeperStrategy.CONSERVATIVE,
                         timeLock,
                         queue,
+                        numberOfShardsProvider,
                         timestampsSupplier,
                         metrics,
                         runtime);
@@ -57,6 +59,7 @@ final class ShardedBackgroundSweepScheduler implements BackgroundSweeper {
                         SweeperStrategy.THOROUGH,
                         timeLock,
                         queue,
+                        numberOfShardsProvider,
                         timestampsSupplier,
                         metrics,
                         runtime);

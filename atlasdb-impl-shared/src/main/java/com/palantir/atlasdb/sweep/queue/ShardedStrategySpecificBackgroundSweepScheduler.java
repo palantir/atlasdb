@@ -41,6 +41,7 @@ final class ShardedStrategySpecificBackgroundSweepScheduler implements AutoClose
     private final SpecialTimestampsSupplier timestampsSupplier;
     private final TimelockService timelock;
     private final SweepQueue queue;
+    private final NumberOfShardsProvider numberOfShardsProvider;
 
     private final TargetedSweepMetrics metrics;
     private final BooleanSupplier enableAutoTuningSupplier;
@@ -54,6 +55,7 @@ final class ShardedStrategySpecificBackgroundSweepScheduler implements AutoClose
             SweepDelay sweepDelay,
             TimelockService timelock,
             SweepQueue queue,
+            NumberOfShardsProvider numberOfShardsProvider,
             SpecialTimestampsSupplier timestampsSupplier,
             TargetedSweepMetrics metrics,
             BooleanSupplier enableAutoTuningSupplier,
@@ -63,6 +65,7 @@ final class ShardedStrategySpecificBackgroundSweepScheduler implements AutoClose
         this.delay = sweepDelay;
         this.timelock = timelock;
         this.queue = queue;
+        this.numberOfShardsProvider = numberOfShardsProvider;
         this.timestampsSupplier = timestampsSupplier;
         this.metrics = metrics;
         this.enableAutoTuningSupplier = enableAutoTuningSupplier;
@@ -74,6 +77,7 @@ final class ShardedStrategySpecificBackgroundSweepScheduler implements AutoClose
             SweeperStrategy sweepStrategy,
             TimelockService timelock,
             SweepQueue queue,
+            NumberOfShardsProvider numberOfShardsProvider,
             SpecialTimestampsSupplier timestampsSupplier,
             TargetedSweepMetrics metrics,
             Supplier<TargetedSweepRuntimeConfig> runtime) {
@@ -86,6 +90,7 @@ final class ShardedStrategySpecificBackgroundSweepScheduler implements AutoClose
                         () -> runtime.get().batchCellThreshold()),
                 timelock,
                 queue,
+                numberOfShardsProvider,
                 timestampsSupplier,
                 metrics,
                 () -> runtime.get().enableAutoTuning(),
@@ -141,7 +146,7 @@ final class ShardedStrategySpecificBackgroundSweepScheduler implements AutoClose
     }
 
     private Optional<TargetedSweeperLock> tryToAcquireLockForNextShardAndStrategy() {
-        return IntStream.range(0, queue.getNumShards(sweepStrategy))
+        return IntStream.range(0, numberOfShardsProvider.getNumberOfShards(sweepStrategy))
                 .map(ignore -> getShardAndIncrement())
                 .mapToObj(shard -> TargetedSweeperLock.tryAcquire(shard, sweepStrategy, timelock))
                 .filter(Optional::isPresent)
@@ -150,7 +155,7 @@ final class ShardedStrategySpecificBackgroundSweepScheduler implements AutoClose
     }
 
     private int getShardAndIncrement() {
-        return (int) (counter.getAndIncrement() % queue.getNumShards());
+        return (int) (counter.getAndIncrement() % numberOfShardsProvider.getNumberOfShards());
     }
 
     private void logException(Throwable th, Optional<TargetedSweeperLock> maybeLock) {

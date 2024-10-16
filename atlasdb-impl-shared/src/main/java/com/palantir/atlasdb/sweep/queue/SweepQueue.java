@@ -15,8 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import com.google.common.base.Suppliers;
-import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
@@ -24,6 +22,7 @@ import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
+import com.palantir.atlasdb.sweep.queue.NumberOfShardsProvider.MismatchBehaviour;
 import com.palantir.atlasdb.sweep.queue.SweepQueueReader.ReadBatchingRuntimeContext;
 import com.palantir.atlasdb.sweep.queue.clear.DefaultTableClearer;
 import com.palantir.atlasdb.table.description.Schemas;
@@ -33,14 +32,13 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -51,7 +49,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
     private final SweepQueueReader reader;
     private final SweepQueueDeleter deleter;
     private final SweepQueueCleaner cleaner;
-    private final Supplier<Integer> numShards;
+    private final NumberOfShardsProvider numShardsProvider;
     private final AbandonedTransactionConsumer abandonedTransactionConsumer;
     private final TargetedSweepMetrics metrics;
 
@@ -65,7 +63,8 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         this.abandonedTransactionConsumer = abandonedTransactionConsumer;
         this.deleter = factory.createDeleter(follower);
         this.cleaner = factory.createCleaner();
-        this.numShards = factory.numShards;
+        this.numShardsProvider = NumberOfShardsProvider.createMemoizingProvider(
+                progress, factory.numShards, MismatchBehaviour.UPDATE, Duration.ofMillis(SweepQueueUtils.REFRESH_TIME));
         this.metrics = factory.metrics;
     }
 
@@ -95,23 +94,6 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             ReadBatchingRuntimeContext readBatchingRuntimeContext) {
         return SweepQueueFactory.create(metrics, kvs, timelock, shardsConfig, readBatchingRuntimeContext)
                 .createWriter();
-    }
-
-    /**
-     * Creates a supplier such that the first call to {@link Supplier#get()} on it will take the maximum of the runtime
-     * configuration and the persisted number of shards, and persist and memoize the result. Subsequent calls will
-     * return the cached value until refreshTimeMillis has passed, at which point the next call will again perform the
-     * check and set.
-     *
-     * @param runtimeConfig     live reloadable runtime configuration for the number of shards
-     * @param progress          progress table persisting the number of shards
-     * @param refreshTimeMillis timeout for caching the number of shards
-     * @return supplier calculating and persisting the number of shards to use
-     */
-    public static Supplier<Integer> createProgressUpdatingSupplier(
-            Supplier<Integer> runtimeConfig, ShardProgress progress, long refreshTimeMillis) {
-        return Suppliers.memoizeWithExpiration(
-                () -> progress.updateNumberOfShards(runtimeConfig.get()), refreshTimeMillis, TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -187,7 +169,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
     }
 
     public void resetSweepProgress() {
-        int shards = getNumShards();
+        int shards = numShardsProvider.getNumberOfShards();
         log.info("Now attempting to reset sweep progress for both strategies...", SafeArg.of("numShards", shards));
         for (int shard = 0; shard < shards; shard++) {
             progress.resetProgressForShard(ShardAndStrategy.conservative(shard));
@@ -200,26 +182,8 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                 SafeArg.of("numShards", shards));
     }
 
-    /**
-     * Returns the most recently known number of shards.
-     */
-    public int getNumShards() {
-        return numShards.get();
-    }
-
-    /**
-     * Returns the most recently known number of shards for the given strategy.
-     */
-    public int getNumShards(SweeperStrategy strategy) {
-        switch (strategy) {
-            case THOROUGH:
-            case CONSERVATIVE:
-                return getNumShards();
-            case NON_SWEEPABLE:
-                return AtlasDbConstants.TARGETED_SWEEP_NONE_SHARDS;
-            default:
-                throw new SafeIllegalArgumentException("Unknown sweep strategy", SafeArg.of("strategy", strategy));
-        }
+    public NumberOfShardsProvider getNumberOfShardsProvider() {
+        return numShardsProvider;
     }
 
     public Map<ShardAndStrategy, Long> getLastSweptTimestamps(Set<ShardAndStrategy> shardAndStrategies) {
@@ -291,8 +255,11 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
                 Function<TableReference, Optional<LogSafety>> tablesToTrackDeletions) {
             Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
             ShardProgress shardProgress = new ShardProgress(kvs);
-            Supplier<Integer> shards =
-                    createProgressUpdatingSupplier(shardsConfig, shardProgress, SweepQueueUtils.REFRESH_TIME);
+            Supplier<Integer> shards = NumberOfShardsProvider.createMemoizingProvider(
+                    shardProgress,
+                    shardsConfig,
+                    MismatchBehaviour.UPDATE,
+                    Duration.ofMillis(SweepQueueUtils.REFRESH_TIME))::getNumberOfShards;
             WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, shards);
             SweepableCells cells = new SweepableCells(kvs, partitioner, metrics, transaction);
             SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);
