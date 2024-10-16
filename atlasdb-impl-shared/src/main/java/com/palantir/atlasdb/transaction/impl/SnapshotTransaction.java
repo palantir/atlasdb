@@ -86,6 +86,7 @@ import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.TimestampLockAwareTransaction;
 import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict;
@@ -146,6 +147,7 @@ import com.palantir.common.streams.MoreStreams;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.StringLockDescriptor;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
@@ -162,12 +164,14 @@ import com.palantir.logsafe.exceptions.SafeNullPointerException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.timestamp.TimestampRange;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.util.AssertUtils;
 import com.palantir.util.RateLimitedLogger;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import com.palantir.util.result.Result;
 import java.nio.ByteBuffer;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -197,6 +201,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
@@ -224,7 +229,7 @@ import org.eclipse.collections.impl.factory.primitive.LongSets;
  * different rows and using range scans.
  */
 public class SnapshotTransaction extends AbstractTransaction
-        implements ConstraintCheckingTransaction, CallbackAwareTransaction {
+        implements ConstraintCheckingTransaction, CallbackAwareTransaction, TimestampLockAwareTransaction {
     private static final SafeLogger log = SafeLoggerFactory.get(SnapshotTransaction.class);
     private static final SafeLogger perfLogger = SafeLoggerFactory.get("dualschema.perf");
     private static final SafeLogger transactionLengthLogger = SafeLoggerFactory.get("txn.length");
@@ -273,6 +278,12 @@ public class SnapshotTransaction extends AbstractTransaction
     private final AtlasDbConstraintCheckingMode constraintCheckingMode;
 
     private final ConcurrentMap<TableReference, ConstraintCheckable> constraintsByTableName = new ConcurrentHashMap<>();
+    private final ConcurrentMap<LockDescriptor, PreCommitActions> preCommitActions = new ConcurrentHashMap<>();
+
+    private static class PreCommitActions {
+        int lockedTimestampCount = 0;
+        List<Consumer<LockedTimestampSupplier>> actions = new ArrayList<>();
+    }
 
     private final AtomicReference<State> state = new AtomicReference<>(State.UNCOMMITTED);
     private final AtomicLong numWriters = new AtomicLong();
@@ -1859,6 +1870,25 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     ///////////////////////////////////////////////////////////////////////////
+    /// Pre-commit hooks
+    ///////////////////////////////////////////////////////////////////////////
+    @Override
+    public void preCommit(Runnable preCommitAction) {
+        preCommit(StringLockDescriptor.of(""), 0, _unused -> preCommitAction.run());
+    }
+
+    @Override
+    public void preCommit(
+            LockDescriptor timestampLockDescriptor,
+            int numLockedTimestamps,
+            Consumer<LockedTimestampSupplier> preCommitAction) {
+        PreCommitActions actions =
+                preCommitActions.computeIfAbsent(timestampLockDescriptor, _unused -> new PreCommitActions());
+        actions.lockedTimestampCount += numLockedTimestamps;
+        actions.actions.add(preCommitAction);
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
     /// Committing
     ///////////////////////////////////////////////////////////////////////////
 
@@ -1869,9 +1899,31 @@ public class SnapshotTransaction extends AbstractTransaction
 
     @Override
     public void commit(TransactionService transactionService) {
+        runPreCommitCallbacks();
         commitWithoutCallbacks(transactionService);
         runSuccessCallbacksIfDefinitivelyCommitted();
         close();
+    }
+
+    private void runPreCommitCallbacks() {
+        preCommitActions.forEach((lockDescriptor, actions) -> {
+            Supplier<Long> lockedTimestampSupplier;
+            if (actions.lockedTimestampCount == 0) {
+                lockedTimestampSupplier = () -> {
+                    throw new RuntimeException();
+                };
+            } else {
+                TimestampRange timestampRange = timelockService.getFreshTimestamps(actions.lockedTimestampCount);
+                long[] lockedTimestamp = new long[] {timestampRange.getLowerBound()};
+                lockedTimestampSupplier = () -> {
+                    if (lockedTimestamp[0] > timestampRange.getUpperBound()) {
+                        throw new RuntimeException();
+                    }
+                    return lockedTimestamp[0]++;
+                };
+            }
+            actions.actions.forEach(action -> action.accept(lockedTimestampSupplier::get));
+        });
     }
 
     @Override

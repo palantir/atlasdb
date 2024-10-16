@@ -522,6 +522,12 @@ import java.util.stream.Collectors;
     }
 
     @Override
+    public long getLockedTimestamp(String _timestampLockDescriptor) {
+//        return timelockService.getLockedTimestamp(timestampLockDescriptor);
+        return 0L;
+    }
+
+    @Override
     public Cleaner getCleaner() {
         return cleaner;
     }

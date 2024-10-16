@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.transaction.api;
 
+import com.google.common.annotations.Beta;
 import com.palantir.atlasdb.cell.api.DdlManager;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -32,6 +33,7 @@ import com.palantir.processors.DoNotDelegate;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 @AutoDelegate
@@ -414,6 +416,26 @@ public interface TransactionManager extends AutoCloseable {
      */
     @Timed
     long getUnreadableTimestamp();
+
+    /**
+     * Returns the timestamp that is before timestamps returned by the consumer on {@link TimestampLockAwareTransaction#preCommit(com.palantir.lock.LockDescriptor, int, Consumer)}
+     * for a {@code timestampLockDescriptor}. This is different from the immutable timestamp because it takes into
+     * account only timestamps returned in that method for the given {@code timestampLockDescriptor},
+     * rather than all start timestamps for open transactions.
+     * <p>
+     * If no transactions with a {@code timestampLockDescriptor} lock are open, this method is
+     * equivalent to {@link Transaction#getTimestamp()}.
+     * <p>
+     * Do consider to fetch the lock timestamp outside of transactions that potentially use it - if fetching the
+     * locked timestamp inside a transaction, it's possible for the locked timestamp to be greater than the
+     * transaction's start timestamp, meaning the transaction cannot read all data up to locked timestamp.
+     *
+     * @param timestampLockDescriptor the string representing the timestampLockDescriptor locks
+     * @return the timestamp that is before any timestamp returned by the consumer of {@link TimestampLockAwareTransaction#preCommit(com.palantir.lock.LockDescriptor, int, Consumer)}
+     */
+    @Beta
+    long getLockedTimestamp(String timestampLockDescriptor);
+
 
     /**
      * Clear the timestamp cache. This is mostly useful for tests that perform operations that would invalidate
