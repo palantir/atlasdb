@@ -40,6 +40,10 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockServiceEndpoints;
+import com.palantir.atlasdb.timelock.api.MultiClientGetMinLeasedTimestampRequest;
+import com.palantir.atlasdb.timelock.api.MultiClientGetMinLeasedTimestampResponse;
+import com.palantir.atlasdb.timelock.api.MultiClientTimestampLeaseRequest;
+import com.palantir.atlasdb.timelock.api.MultiClientTimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.UndertowMultiClientConjureTimelockService;
 import com.palantir.conjure.java.undertow.lib.RequestContext;
@@ -144,6 +148,20 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
                         requests.entrySet(), e -> unlockForSingleNamespace(e.getKey(), e.getValue(), context))),
                 ImmutableMap::copyOf,
                 MoreExecutors.directExecutor()));
+    }
+
+    @Override
+    public ListenableFuture<MultiClientTimestampLeaseResponse> acquireTimestampLease(
+            AuthHeader authHeader, MultiClientTimestampLeaseRequest requests, @Nullable RequestContext context) {
+        // TODO(aalouane): implement
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+
+    @Override
+    public ListenableFuture<MultiClientGetMinLeasedTimestampResponse> getMinLeasedTimestamp(
+            AuthHeader authHeader, MultiClientGetMinLeasedTimestampRequest requests, @Nullable RequestContext context) {
+        // TODO(aalouane): implement
+        throw new UnsupportedOperationException("Not implemented yet");
     }
 
     private ListenableFuture<Entry<Namespace, ConjureUnlockResponseV2>> unlockForSingleNamespace(
@@ -262,6 +280,18 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
         public Map<Namespace, ConjureUnlockResponseV2> unlock(
                 AuthHeader authHeader, Map<Namespace, ConjureUnlockRequestV2> requests) {
             return unwrap(resource.unlock(authHeader, requests, null));
+        }
+
+        @Override
+        public MultiClientTimestampLeaseResponse acquireTimestampLease(
+                AuthHeader authHeader, MultiClientTimestampLeaseRequest requests) {
+            return unwrap(resource.acquireTimestampLease(authHeader, requests, null));
+        }
+
+        @Override
+        public MultiClientGetMinLeasedTimestampResponse getMinLeasedTimestamp(
+                AuthHeader authHeader, MultiClientGetMinLeasedTimestampRequest requests) {
+            return unwrap(resource.getMinLeasedTimestamp(authHeader, requests, null));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {
