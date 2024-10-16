@@ -28,7 +28,7 @@ import com.palantir.atlasdb.http.BlockingTimeoutExceptionMapper;
 import com.palantir.atlasdb.http.NotCurrentLeaderExceptionMapper;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
-import com.palantir.atlasdb.timelock.AsyncTimelockService;
+import com.palantir.atlasdb.timelock.AsyncTimelockServiceFactory;
 import com.palantir.atlasdb.timelock.ConjureLockWatchDiagnosticsResource;
 import com.palantir.atlasdb.timelock.ConjureLockWatchingResource;
 import com.palantir.atlasdb.timelock.ConjureTimelockResource;
@@ -349,17 +349,17 @@ public class TimeLockAgent {
 
         BiFunction<String, Optional<String>, LockService> lockServiceGetter =
                 (namespace, userAgent) -> namespaces.get(namespace, userAgent).getLockService();
-        BiFunction<String, Optional<String>, AsyncTimelockService> asyncTimelockServiceGetter =
+        AsyncTimelockServiceFactory asyncTimelockServiceFactory =
                 (namespace, userAgent) -> namespaces.get(namespace, userAgent).getTimelockService();
 
         if (undertowRegistrar.isPresent()) {
             Consumer<UndertowService> presentUndertowRegistrar = undertowRegistrar.get();
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
-                    ConjureTimelockResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
+                    ConjureTimelockResource.undertow(redirectRetryTargeter, asyncTimelockServiceFactory));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
-                    ConjureLockWatchingResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
+                    ConjureLockWatchingResource.undertow(redirectRetryTargeter, asyncTimelockServiceFactory));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar, ConjureLockV1Resource.undertow(redirectRetryTargeter, lockServiceGetter));
             registerCorruptionHandlerWrappedService(
@@ -367,22 +367,22 @@ public class TimeLockAgent {
                     TimeLockPaxosHistoryProviderResource.undertow(corruptionComponents.localHistoryLoader()));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
-                    MultiClientConjureTimelockResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
+                    MultiClientConjureTimelockResource.undertow(redirectRetryTargeter, asyncTimelockServiceFactory));
             NonConjureTimelockResources.createUndertowServices(namespaces, redirectRetryTargeter)
                     .forEach(service -> registerCorruptionHandlerWrappedService(presentUndertowRegistrar, service));
             registerCorruptionHandlerWrappedService(
                     presentUndertowRegistrar,
-                    ConjureLockWatchDiagnosticsResource.undertow(redirectRetryTargeter, asyncTimelockServiceGetter));
+                    ConjureLockWatchDiagnosticsResource.undertow(redirectRetryTargeter, asyncTimelockServiceFactory));
         } else {
-            registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
-            registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
+            registrar.accept(ConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceFactory));
+            registrar.accept(ConjureLockWatchingResource.jersey(redirectRetryTargeter, asyncTimelockServiceFactory));
             registrar.accept(ConjureLockV1Resource.jersey(redirectRetryTargeter, lockServiceGetter));
             registrar.accept(TimeLockPaxosHistoryProviderResource.jersey(corruptionComponents.localHistoryLoader()));
             registrar.accept(
-                    MultiClientConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
+                    MultiClientConjureTimelockResource.jersey(redirectRetryTargeter, asyncTimelockServiceFactory));
             NonConjureTimelockResources.createJerseyResources(namespaces).forEach(registrar);
             registrar.accept(
-                    ConjureLockWatchDiagnosticsResource.jersey(redirectRetryTargeter, asyncTimelockServiceGetter));
+                    ConjureLockWatchDiagnosticsResource.jersey(redirectRetryTargeter, asyncTimelockServiceFactory));
         }
     }
 
