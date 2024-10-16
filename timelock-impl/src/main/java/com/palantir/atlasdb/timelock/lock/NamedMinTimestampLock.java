@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2024 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,21 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.timelock.lock;
 
 import com.palantir.lock.LockDescriptor;
-import com.palantir.lock.StringLockDescriptor;
 import java.util.UUID;
 import javax.ws.rs.NotSupportedException;
 
-public class ImmutableTimestampLock implements AsyncLock {
-
+final class NamedMinTimestampLock implements AsyncLock {
+    private final NamedMinTimestampTracker tracker;
     private final long timestamp;
-    private final ImmutableTimestampTracker tracker;
+    private final LockDescriptor descriptor;
 
-    public ImmutableTimestampLock(long timestamp, ImmutableTimestampTracker tracker) {
-        this.timestamp = timestamp;
+    private NamedMinTimestampLock(NamedMinTimestampTracker tracker, long timestamp, LockDescriptor descriptor) {
         this.tracker = tracker;
+        this.timestamp = timestamp;
+        this.descriptor = descriptor;
+    }
+
+    static NamedMinTimestampLock create(NamedMinTimestampTracker tracker, long timestamp) {
+        return new NamedMinTimestampLock(tracker, timestamp, tracker.getDescriptor(timestamp));
     }
 
     @Override
@@ -53,6 +58,6 @@ public class ImmutableTimestampLock implements AsyncLock {
 
     @Override
     public LockDescriptor getDescriptor() {
-        return StringLockDescriptor.of("ImmutableTimestamp:" + timestamp);
+        return descriptor;
     }
 }
