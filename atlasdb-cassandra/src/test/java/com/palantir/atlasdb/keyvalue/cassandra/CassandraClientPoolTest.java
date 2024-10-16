@@ -40,6 +40,7 @@ import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceConfig;
 import com.palantir.atlasdb.cassandra.CassandraKeyValueServiceRuntimeConfig;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraClientRateLimitingConfig;
 import com.palantir.atlasdb.cassandra.ImmutableDefaultConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraClientPoolMetrics;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
@@ -125,6 +126,8 @@ public final class CassandraClientPoolTest {
         when(runtimeConfig.unresponsiveHostBackoffTimeSeconds()).thenReturn(UNRESPONSIVE_HOST_BACKOFF_SECONDS);
         when(config.credentials()).thenReturn(mock(CassandraCredentialsConfig.class));
         when(config.getKeyspaceOrThrow()).thenReturn("ks");
+        when(config.rateLimiting())
+                .thenReturn(ImmutableCassandraClientRateLimitingConfig.builder().build());
         blacklist = new Blacklist(config, Refreshable.only(UNRESPONSIVE_HOST_BACKOFF_SECONDS));
 
         doAnswer(invocation -> poolServers.putIfAbsent(
