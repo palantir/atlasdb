@@ -28,20 +28,12 @@ public class AtlasDbDependencyException extends RuntimeException implements Safe
     private final List<Arg<?>> args;
     private final String logMessage;
 
-    public AtlasDbDependencyException(@CompileTimeConstant final String logMessage) {
-        super(logMessage);
-        this.args = List.of();
-        this.logMessage = logMessage;
-    }
-
-    public AtlasDbDependencyException(@CompileTimeConstant final String logMessage, Arg<?>... args) {
+    public AtlasDbDependencyException(@CompileTimeConstant String logMessage, Arg<?>... args) {
         this(logMessage, List.of(args));
     }
 
-    public AtlasDbDependencyException(@CompileTimeConstant final String logMessage, Throwable cause, Arg<?>... args) {
-        super(SafeExceptions.renderMessage(logMessage), cause);
-        this.logMessage = logMessage;
-        this.args = List.of();
+    public AtlasDbDependencyException(@CompileTimeConstant String logMessage, Throwable cause, Arg<?>... args) {
+        this(logMessage, cause, List.of(args));
     }
 
     public AtlasDbDependencyException(Throwable throwable, Arg<?>... args) {
@@ -55,6 +47,12 @@ public class AtlasDbDependencyException extends RuntimeException implements Safe
                 cause);
         this.args = args;
         this.logMessage = AtlasDbDependencyException.ATLASDB_DEPENDENCY_LOG_MESSAGE;
+    }
+
+    private AtlasDbDependencyException(@Safe @CompileTimeConstant String logMessage, @Nullable Throwable cause, List<Arg<?>> args) {
+        super(SafeExceptions.renderMessage(logMessage, args.toArray(new Arg[0])), cause);
+        this.args = args;
+        this.logMessage = logMessage;
     }
 
     private AtlasDbDependencyException(@Safe @CompileTimeConstant String logMessage, List<Arg<?>> args) {
