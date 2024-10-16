@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Oracle hints/query improved; dead DBKVS code removed
+  links:
+  - https://github.com/palantir/atlasdb/pull/7338
