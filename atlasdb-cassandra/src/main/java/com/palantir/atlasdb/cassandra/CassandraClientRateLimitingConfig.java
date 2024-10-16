@@ -26,6 +26,6 @@ import org.immutables.value.Value;
 public interface CassandraClientRateLimitingConfig {
     @Value.Default
     default int maxConcurrentRangeScans() {
-        return 1_000;
+        return 100_000;
     }
 }
