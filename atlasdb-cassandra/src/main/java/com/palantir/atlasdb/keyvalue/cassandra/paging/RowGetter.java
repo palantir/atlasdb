@@ -15,15 +15,16 @@
  */
 package com.palantir.atlasdb.keyvalue.cassandra.paging;
 
-import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientPool;
+import com.palantir.atlasdb.keyvalue.cassandra.CassandraTExceptions;
 import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.atlasdb.keyvalue.cassandra.thrift.SlicePredicates;
 import com.palantir.common.base.FunctionCheckedException;
 import com.palantir.common.base.Throwables;
+import com.palantir.logsafe.SafeArg;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.cassandra.thrift.ConsistencyLevel;
@@ -61,8 +62,10 @@ public class RowGetter {
                             () -> client.get_range_slices(
                                     kvsMethodName, tableRef, slicePredicate, keyRange, consistency));
                 } catch (UnavailableException e) {
-                    throw new InsufficientConsistencyException(
-                            "get_range_slices requires " + consistency + " Cassandra nodes to be up and available.", e);
+                    throw CassandraTExceptions.mapToUncheckedException(
+                            "get_range_slices requires Cassandra nodes to be up and available. Check Cassandra nodes: ",
+                            e,
+                            SafeArg.of("consistency", consistency));
                 } catch (Exception e) {
                     throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
                 }
