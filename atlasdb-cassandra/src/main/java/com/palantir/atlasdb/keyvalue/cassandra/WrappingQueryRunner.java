@@ -23,7 +23,11 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.cassandra.thrift.*;
+import org.apache.cassandra.thrift.ColumnOrSuperColumn;
+import org.apache.cassandra.thrift.ConsistencyLevel;
+import org.apache.cassandra.thrift.KeyPredicate;
+import org.apache.cassandra.thrift.SlicePredicate;
+import org.apache.cassandra.thrift.UnavailableException;
 import org.apache.thrift.TException;
 
 /**
