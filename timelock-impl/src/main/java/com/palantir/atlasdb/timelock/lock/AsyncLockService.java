@@ -17,6 +17,7 @@ package com.palantir.atlasdb.timelock.lock;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
 import com.palantir.atlasdb.timelock.lockwatches.BufferMetrics;
@@ -138,12 +139,22 @@ public class AsyncLockService implements Closeable {
         return immutableTimestampLockResult;
     }
 
+    public AsyncResult<Leased<LockToken>> acquireNamedTimestampLock(
+            TimestampLeaseName timestampName, UUID requestId, long timestamp) {
+        return heldLocks.getExistingOrAcquire(
+                requestId, () -> acquireNamedTimestampLockInternal(timestampName, requestId, timestamp));
+    }
+
     public AsyncResult<Void> waitForLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
         return awaitedLocks.getExistingOrAwait(requestId, () -> awaitLocks(requestId, lockDescriptors, timeout));
     }
 
     public Optional<Long> getImmutableTimestamp() {
         return lockManager.getImmutableTimestamp();
+    }
+
+    public Optional<Long> getNamedMinTimestamp(TimestampLeaseName timestampName) {
+        return lockManager.getNamedMinTimestamp(timestampName);
     }
 
     private AsyncResult<HeldLocks> acquireLocks(
@@ -163,6 +174,12 @@ public class AsyncLockService implements Closeable {
     private AsyncResult<HeldLocks> acquireImmutableTimestampLock(UUID requestId, long timestamp) {
         AsyncLock immutableTsLock = lockManager.getImmutableTimestampLock(timestamp);
         return lockAcquirer.acquireLocks(requestId, OrderedLocks.fromSingleLock(immutableTsLock), TimeLimit.zero());
+    }
+
+    private AsyncResult<HeldLocks> acquireNamedTimestampLockInternal(
+            TimestampLeaseName timestampName, UUID requestId, long timestamp) {
+        AsyncLock lock = lockManager.getNamedTimestampLock(timestampName, timestamp);
+        return lockAcquirer.acquireLocks(requestId, OrderedLocks.fromSingleLock(lock), TimeLimit.zero());
     }
 
     public boolean unlock(LockToken token) {
