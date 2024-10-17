@@ -36,7 +36,6 @@ import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Supplier;
 import org.jmock.lib.concurrent.DeterministicScheduler;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public final class AsyncTimelockServiceImplTest {
@@ -58,7 +57,6 @@ public final class AsyncTimelockServiceImplTest {
         assertThat(timelockService.isInitialized()).isTrue();
     }
 
-    @Disabled(value = "Enabled when AsyncLockService functionality is implemented")
     @Test
     public void acquireTimestampLeaseReturnsLeaseGuaranteeIdentifierWithGivenRequestId() {
         UUID requestId = UUID.randomUUID();
@@ -66,7 +64,6 @@ public final class AsyncTimelockServiceImplTest {
         assertThat(acquireResponse.getLeaseGuarantee().getIdentifier().get()).isEqualTo(requestId);
     }
 
-    @Disabled(value = "Enabled when AsyncLockService functionality is implemented")
     @Test
     public void acquireTimestampLeaseReturnsMinLeasedAllThroughout() {
         TimestampedInvocation<TimestampLeaseResponse> response1 = acquireTimestampLeaseTimestamped(10);
@@ -84,14 +81,12 @@ public final class AsyncTimelockServiceImplTest {
         assertThatTimestampIsStrictlyWithinInvocationInterval(response4.result.getMinLeased(), response3);
     }
 
-    @Disabled(value = "Enabled when AsyncLockService functionality is implemented")
     @Test
     public void acquireTimestampLeaseReturnsFreshTimestampsGreaterThanReturnedMinLeased() {
         TimestampLeaseResponse response = acquireTimestampLease(10);
         assertThat(response.getFreshTimestamps().getStart()).isGreaterThan(response.getMinLeased());
     }
 
-    @Disabled(value = "Enabled when AsyncLockService functionality is implemented")
     @Test
     public void acquireTimestampLeaseReturnedFreshTimestampsAreFreshTimestamps() {
         TimestampedInvocation<TimestampLeaseResponse> response = acquireTimestampLeaseTimestamped(10);
@@ -102,21 +97,18 @@ public final class AsyncTimelockServiceImplTest {
         assertThatTimestampIsStrictlyWithinInvocationInterval(lastTimestamp, response);
     }
 
-    @Disabled(value = "Enabled when AsyncLockService functionality is implemented")
     @Test
     public void acquireTimestampLeaseLocksWithAFreshTimestamp() {
         TimestampedInvocation<TimestampLeaseResponse> response = acquireTimestampLeaseTimestamped(10);
         assertThatTimestampIsStrictlyWithinInvocationInterval(response.result.getMinLeased(), response);
     }
 
-    @Disabled(value = "Enabled when AsyncLockService functionality is implemented")
     @Test
     public void getMinLeasedTimestampReturnsFreshTimestampWhenNoLeaseIsHeld() {
         TimestampedInvocation<Long> response = getMinLeasedTimestampTimestamped();
         assertThatTimestampIsStrictlyWithinInvocationInterval(response.result, response);
     }
 
-    @Disabled(value = "Enabled when AsyncLockService functionality is implemented")
     @Test
     public void getMinLeasedTimestampReturnsMinLeasedWhenLeaseIsHeld() {
         TimestampedInvocation<TimestampLeaseResponse> response1 = acquireTimestampLeaseTimestamped(10);

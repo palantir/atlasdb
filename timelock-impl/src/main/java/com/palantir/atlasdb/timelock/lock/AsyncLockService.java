@@ -139,7 +139,7 @@ public class AsyncLockService implements Closeable {
         return immutableTimestampLockResult;
     }
 
-    public AsyncResult<Leased<LockToken>> acquireNamedTimestampLock(
+    public AsyncResult<Leased<LockToken>> acquireTimestampLease(
             TimestampLeaseName timestampName, UUID requestId, long timestamp) {
         return heldLocks.getExistingOrAcquire(
                 requestId, () -> acquireNamedTimestampLockInternal(timestampName, requestId, timestamp));
@@ -153,7 +153,7 @@ public class AsyncLockService implements Closeable {
         return lockManager.getImmutableTimestamp();
     }
 
-    public Optional<Long> getNamedMinTimestamp(TimestampLeaseName timestampName) {
+    public Optional<Long> getMinLeasedTimestamp(TimestampLeaseName timestampName) {
         return lockManager.getNamedMinTimestamp(timestampName);
     }
 
