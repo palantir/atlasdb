@@ -16,6 +16,7 @@
 package com.palantir.lock.impl;
 
 import com.google.common.collect.ImmutableSortedMap;
+import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
 import com.palantir.common.base.Throwables;
 import com.palantir.lock.AtlasTimestampLockDescriptor;
 import com.palantir.lock.LockClient;
@@ -24,18 +25,19 @@ import com.palantir.lock.LockMode;
 import com.palantir.lock.LockRefreshToken;
 import com.palantir.lock.LockService;
 import com.palantir.lock.SimpleTimeDuration;
-import com.palantir.lock.v2.AcquireNamedMinTimestampLeaseResult;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.TimestampLeaseResult;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.timestamp.TimestampService;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -183,14 +185,14 @@ public class LegacyTimelockService implements TimelockService {
     }
 
     @Override
-    public AcquireNamedMinTimestampLeaseResult acquireNamedMinTimestampLease(
-            String timestampName, int numFreshTimestamps) {
+    public Map<TimestampLeaseName, TimestampLeaseResult> acquireTimestampLeases(
+            Map<TimestampLeaseName, Integer> requests) {
         // TODO(aalouane): implement!
         throw new UnsupportedOperationException("Not implemented yet!");
     }
 
     @Override
-    public long getMinLeasedTimestampForName(String timestampName) {
+    public Map<TimestampLeaseName, Long> getMinLeasedTimestamps(Set<TimestampLeaseName> timestampNames) {
         // TODO(aalouane): implement!
         throw new UnsupportedOperationException("Not implemented yet!");
     }

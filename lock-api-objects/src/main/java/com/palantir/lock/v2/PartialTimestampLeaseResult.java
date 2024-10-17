@@ -16,11 +16,11 @@
 
 package com.palantir.lock.v2;
 
-import java.util.List;
+import com.palantir.timestamp.TimestampRange;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface AcquireNamedMinTimestampLeaseResult {
+public interface PartialTimestampLeaseResult {
     @Value.Parameter
     long minLeasedTimestamp();
 
@@ -28,5 +28,5 @@ public interface AcquireNamedMinTimestampLeaseResult {
     LockToken lock();
 
     @Value.Parameter
-    List<Long> freshTimestamps();
+    TimestampRange freshTimestamps();
 }

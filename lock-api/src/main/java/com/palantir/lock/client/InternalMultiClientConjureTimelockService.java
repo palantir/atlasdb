@@ -22,8 +22,12 @@ import com.palantir.atlasdb.timelock.api.ConjureUnlockRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureUnlockResponseV2;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsRequest;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.GetMinLeasedTimestampRequests;
+import com.palantir.atlasdb.timelock.api.GetMinLeasedTimestampResponses;
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.timelock.api.TimestampLeaseRequests;
+import com.palantir.atlasdb.timelock.api.TimestampLeaseResponses;
 import java.util.Map;
 import java.util.Set;
 
@@ -37,4 +41,9 @@ public interface InternalMultiClientConjureTimelockService {
             Map<Namespace, ConjureStartTransactionsRequest> requests);
 
     Map<Namespace, ConjureUnlockResponseV2> unlock(Map<Namespace, ConjureUnlockRequestV2> requests);
+
+    Map<Namespace, TimestampLeaseResponses> acquireTimestampLeases(Map<Namespace, TimestampLeaseRequests> requests);
+
+    Map<Namespace, GetMinLeasedTimestampResponses> getMinLeasedTimestamps(
+            Map<Namespace, GetMinLeasedTimestampRequests> requests);
 }
