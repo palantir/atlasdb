@@ -364,7 +364,12 @@ public final class DefaultBucketAssignerTest {
         }
 
         @Override
-        public void setInitialStateForBucketAssigner(long bucketIdentifier, long startTimestamp) {
+        public void setInitialStateForBucketAssigner(BucketAssignerState initialState) {
+            throw new UnsupportedOperationException("This should not be called");
+        }
+
+        @Override
+        public boolean doesStateMachineStateExist() {
             throw new UnsupportedOperationException("This should not be called");
         }
 

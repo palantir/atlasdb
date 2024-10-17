@@ -20,7 +20,9 @@ public interface SweepBucketAssignerStateMachineTable {
     /**
      * This should only be used to bootstrap the initial state. Subsequent calls to this method will throw an exception.
      */
-    void setInitialStateForBucketAssigner(long bucketIdentifier, long startTimestamp);
+    void setInitialStateForBucketAssigner(BucketAssignerState initialState);
+
+    boolean doesStateMachineStateExist();
 
     void updateStateMachineForBucketAssigner(BucketStateAndIdentifier original, BucketStateAndIdentifier updated);
 
