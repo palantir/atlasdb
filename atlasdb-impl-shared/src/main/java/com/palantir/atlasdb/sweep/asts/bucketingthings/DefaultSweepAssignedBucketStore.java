@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -45,7 +44,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-final class DefaultSweepAssignedBucketStore
+public final class DefaultSweepAssignedBucketStore
         implements SweepBucketAssignerStateMachineTable,
                 SweepBucketPointerTable,
                 SweepBucketsTable,
@@ -53,8 +52,7 @@ final class DefaultSweepAssignedBucketStore
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultSweepAssignedBucketStore.class);
     private static final int CAS_ATTEMPT_LIMIT = 5;
 
-    @VisibleForTesting
-    static final TableReference TABLE_REF =
+    public static final TableReference TABLE_REF =
             TargetedSweepTableFactory.of().getSweepAssignedBucketsTable(null).getTableRef();
 
     private final KeyValueService keyValueService;

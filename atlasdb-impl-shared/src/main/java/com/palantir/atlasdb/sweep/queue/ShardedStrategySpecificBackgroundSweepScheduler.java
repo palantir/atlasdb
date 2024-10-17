@@ -40,7 +40,6 @@ final class ShardedStrategySpecificBackgroundSweepScheduler implements AutoClose
     private final SweepDelay delay;
     private final SpecialTimestampsSupplier timestampsSupplier;
     private final TimelockService timelock;
-    private final SweepQueue queue;
     private final NumberOfShardsProvider numberOfShardsProvider;
     private final SingleBatchSweeper sweeper;
 
@@ -55,7 +54,6 @@ final class ShardedStrategySpecificBackgroundSweepScheduler implements AutoClose
             SweeperStrategy sweepStrategy,
             SweepDelay sweepDelay,
             TimelockService timelock,
-            SweepQueue queue,
             NumberOfShardsProvider numberOfShardsProvider,
             SpecialTimestampsSupplier timestampsSupplier,
             SingleBatchSweeper sweeper,
@@ -66,7 +64,6 @@ final class ShardedStrategySpecificBackgroundSweepScheduler implements AutoClose
         this.sweepStrategy = sweepStrategy;
         this.delay = sweepDelay;
         this.timelock = timelock;
-        this.queue = queue;
         this.numberOfShardsProvider = numberOfShardsProvider;
         this.timestampsSupplier = timestampsSupplier;
         this.sweeper = sweeper;
@@ -79,7 +76,6 @@ final class ShardedStrategySpecificBackgroundSweepScheduler implements AutoClose
             int numThreads,
             SweeperStrategy sweepStrategy,
             TimelockService timelock,
-            SweepQueue queue,
             NumberOfShardsProvider numberOfShardsProvider,
             SingleBatchSweeper sweeper,
             SpecialTimestampsSupplier timestampsSupplier,
@@ -93,7 +89,6 @@ final class ShardedStrategySpecificBackgroundSweepScheduler implements AutoClose
                         millis -> metrics.updateSweepDelayMetric(sweepStrategy, millis),
                         () -> runtime.get().batchCellThreshold()),
                 timelock,
-                queue,
                 numberOfShardsProvider,
                 timestampsSupplier,
                 sweeper,

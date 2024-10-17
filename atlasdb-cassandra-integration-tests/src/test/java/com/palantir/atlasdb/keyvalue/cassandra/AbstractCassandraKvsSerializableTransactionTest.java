@@ -22,10 +22,9 @@ import com.palantir.atlasdb.containers.CassandraResource;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.NumberOfShardsProvider.MismatchBehaviour;
-import com.palantir.atlasdb.sweep.queue.SweepQueue;
+import com.palantir.atlasdb.sweep.queue.SweepQueueComponents;
 import com.palantir.atlasdb.sweep.queue.SweepQueueReader;
 import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
-import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.atlasdb.transaction.impl.AbstractSerializableTransactionTest;
@@ -62,21 +61,16 @@ public abstract class AbstractCassandraKvsSerializableTransactionTest extends Ab
     }
 
     @Override
-    protected MultiTableSweepQueueWriter getSweepQueueWriterUninitialized() {
-        return TargetedSweeper.createUninitializedForTest(keyValueService, () -> 128);
-    }
-
-    @Override
     protected MultiTableSweepQueueWriter getSweepQueueWriterInitialized() {
-        return SweepQueue.createWriter(
-                mock(TargetedSweepMetrics.class),
-                keyValueService,
-                timelockService,
-                () -> 128,
-                SweepQueueReader.DEFAULT_READ_BATCHING_RUNTIME_CONTEXT,
-                // TODO(mdaudali): This will almost certainly change once we deprecate sweep queue.
-                new TargetedSweepFollower(List.of(), mock(TransactionManager.class)),
-                MismatchBehaviour.UPDATE);
+        return SweepQueueComponents.create(
+                        mock(TargetedSweepMetrics.class),
+                        keyValueService,
+                        timelockService,
+                        () -> 128,
+                        SweepQueueReader.DEFAULT_READ_BATCHING_RUNTIME_CONTEXT,
+                        new TargetedSweepFollower(List.of(), mock(TransactionManager.class)),
+                        MismatchBehaviour.UPDATE)
+                .writer();
     }
 
     @Override

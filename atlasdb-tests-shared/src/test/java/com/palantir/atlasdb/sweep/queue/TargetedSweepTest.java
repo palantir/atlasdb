@@ -314,7 +314,7 @@ public class TargetedSweepTest extends AtlasDbTestCase {
     }
 
     private void sweepNextBatch(ShardAndStrategy shardStrategy) {
-        sweepQueue.sweepNextBatch(shardStrategy, Sweeper.of(shardStrategy).getSweepTimestamp(sweepTimestampSupplier));
+        sweeper.sweepNextBatch(shardStrategy, Sweeper.of(shardStrategy).getSweepTimestamp(sweepTimestampSupplier));
     }
 
     /**

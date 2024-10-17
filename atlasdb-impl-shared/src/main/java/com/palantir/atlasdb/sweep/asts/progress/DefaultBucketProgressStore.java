@@ -32,12 +32,11 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Map;
 import java.util.Optional;
 
-final class DefaultBucketProgressStore implements BucketProgressStore {
+public final class DefaultBucketProgressStore implements BucketProgressStore {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultBucketProgressStore.class);
     private static final int CAS_ATTEMPT_LIMIT = 10;
 
-    @VisibleForTesting
-    static final TableReference TABLE_REF =
+    public static final TableReference TABLE_REF =
             TargetedSweepTableFactory.of().getSweepBucketProgressTable(null).getTableRef();
 
     private final KeyValueService keyValueService;
