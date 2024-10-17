@@ -19,6 +19,7 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
+import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
@@ -52,6 +53,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
     private final NumberOfShardsProvider numShardsProvider;
     private final AbandonedTransactionConsumer abandonedTransactionConsumer;
     private final TargetedSweepMetrics metrics;
+    private final SweepProgressResetter resetter;
 
     private SweepQueue(
             SweepQueueFactory factory,
@@ -66,6 +68,15 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         this.numShardsProvider = NumberOfShardsProvider.createMemoizingProvider(
                 progress, factory.numShards, MismatchBehaviour.UPDATE, Duration.ofMillis(SweepQueueUtils.REFRESH_TIME));
         this.metrics = factory.metrics;
+        this.resetter = new DefaultSweepProgressResetter(
+                factory.kvs,
+                // TODO(mdaudali): Don't do this hackery - we'll likely move things around when the sweep queue dies
+                TargetedSweepTableFactory.of().getSweepBucketProgressTable(null).getTableRef(),
+                TargetedSweepTableFactory.of()
+                        .getSweepAssignedBucketsTable(null)
+                        .getTableRef(),
+                progress,
+                numShardsProvider::getNumberOfShards);
     }
 
     public static SweepQueue create(
@@ -169,17 +180,7 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
     }
 
     public void resetSweepProgress() {
-        int shards = numShardsProvider.getNumberOfShards();
-        log.info("Now attempting to reset sweep progress for both strategies...", SafeArg.of("numShards", shards));
-        for (int shard = 0; shard < shards; shard++) {
-            progress.resetProgressForShard(ShardAndStrategy.conservative(shard));
-            progress.resetProgressForShard(ShardAndStrategy.thorough(shard));
-        }
-        log.info(
-                "Sweep progress was reset for shards for both strategies. If you are running your service in an HA"
-                        + " configuration, this message by itself does NOT mean that the reset is complete. The reset"
-                        + " is only guaranteed to be complete after this message has been printed by ALL nodes.",
-                SafeArg.of("numShards", shards));
+        resetter.resetProgress(Set.of(SweeperStrategy.CONSERVATIVE, SweeperStrategy.THOROUGH));
     }
 
     public NumberOfShardsProvider getNumberOfShardsProvider() {
