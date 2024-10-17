@@ -23,6 +23,7 @@ import com.palantir.atlasdb.sweep.asts.progress.BucketProgress;
 import com.palantir.atlasdb.sweep.asts.progress.BucketProgressStore;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
+import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.SweepBatch;
 import com.palantir.atlasdb.sweep.queue.SweepBatchWithPartitionInfo;
 import com.palantir.atlasdb.sweep.queue.SweepQueueCleaner;
@@ -31,7 +32,6 @@ import com.palantir.atlasdb.sweep.queue.SweepQueueReader;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.util.function.LongSupplier;
 
 public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultSingleBucketSweepTask.class);
@@ -40,7 +40,7 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
     private final SweepQueueReader sweepQueueReader;
     private final SweepQueueDeleter sweepQueueDeleter;
     private final SweepQueueCleaner sweepQueueCleaner;
-    private final LongSupplier sweepTimestampSupplier;
+    private final SpecialTimestampsSupplier specialTimestampsSupplier;
     private final TargetedSweepMetrics targetedSweepMetrics;
     private final BucketCompletionListener bucketCompletionListener;
     private final CompletelyClosedSweepBucketBoundRetriever completelyClosedSweepBucketBoundRetriever;
@@ -50,7 +50,7 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
             SweepQueueReader sweepQueueReader,
             SweepQueueDeleter sweepQueueDeleter,
             SweepQueueCleaner sweepQueueCleaner,
-            LongSupplier sweepTimestampSupplier,
+            SpecialTimestampsSupplier specialTimestampsSupplier,
             TargetedSweepMetrics targetedSweepMetrics,
             BucketCompletionListener bucketCompletionListener,
             CompletelyClosedSweepBucketBoundRetriever completelyClosedSweepBucketBoundRetriever) {
@@ -58,7 +58,7 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
         this.sweepQueueReader = sweepQueueReader;
         this.sweepQueueDeleter = sweepQueueDeleter;
         this.sweepQueueCleaner = sweepQueueCleaner;
-        this.sweepTimestampSupplier = sweepTimestampSupplier;
+        this.specialTimestampsSupplier = specialTimestampsSupplier;
         this.targetedSweepMetrics = targetedSweepMetrics;
         this.bucketCompletionListener = bucketCompletionListener;
         this.completelyClosedSweepBucketBoundRetriever = completelyClosedSweepBucketBoundRetriever;
@@ -66,7 +66,8 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
 
     @Override
     public long runOneIteration(SweepableBucket sweepableBucket) {
-        long sweepTimestampForIteration = sweepTimestampSupplier.getAsLong();
+        long sweepTimestampForIteration =
+                Sweeper.of(sweepableBucket.bucket().shardAndStrategy()).getSweepTimestamp(specialTimestampsSupplier);
         long bucketStartTimestamp = sweepableBucket.timestampRange().startInclusive();
         if (sweepTimestampForIteration <= bucketStartTimestamp) {
             // This means that the sweep timestamp has not entered this partition yet, so we do not need to process
