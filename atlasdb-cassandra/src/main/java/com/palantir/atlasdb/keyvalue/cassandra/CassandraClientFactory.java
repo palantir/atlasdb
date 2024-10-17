@@ -112,13 +112,13 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                         "Failed to construct client for {}/{} over SSL",
                         e,
                         SafeArg.of("proxy", CassandraLogHelper.host(cassandraServer.proxy())),
-                        UnsafeArg.of("Keyspace", clientConfig.keyspace()));
+                        SafeArg.of("keyspace", clientConfig.keyspace()));
             }
             throw new ClientCreationFailedException(
                     "Failed to construct client for {}/{}",
                     e,
                     SafeArg.of("proxy", CassandraLogHelper.host(cassandraServer.proxy())),
-                    UnsafeArg.of("Keyspace", clientConfig.keyspace()));
+                    SafeArg.of("keyspace", clientConfig.keyspace()));
         }
     }
 
@@ -145,7 +145,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                 log.debug(
                         "Created new client for {}/{}{}{}",
                         SafeArg.of("address", CassandraLogHelper.host(cassandraServer.proxy())),
-                        UnsafeArg.of("keyspace", clientConfig.keyspace()),
+                        SafeArg.of("keyspace", clientConfig.keyspace()),
                         SafeArg.of("usingSsl", clientConfig.usingSsl() ? " over SSL" : ""),
                         UnsafeArg.of(
                                 "usernameConfig",
