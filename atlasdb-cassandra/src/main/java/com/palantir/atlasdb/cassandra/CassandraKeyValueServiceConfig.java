@@ -420,6 +420,11 @@ public interface CassandraKeyValueServiceConfig extends KeyValueServiceConfig {
         return false;
     }
 
+    @Value.Default
+    default CassandraClientRateLimitingConfig rateLimiting() {
+        return ImmutableCassandraClientRateLimitingConfig.builder().build();
+    }
+
     @Value.Check
     default void check() {
         Preconditions.checkArgument(

@@ -1,0 +1,7 @@
+type: improvement
+improvement:
+  description: '`KeyValueService` exposes a new endpoint, `deleteFromAtomicTable`.
+    This performs deletes with a write timestamp chosen by the coordinator, and goes
+    through a Paxos round for serializability.'
+  links:
+  - https://github.com/palantir/atlasdb/pull/7197

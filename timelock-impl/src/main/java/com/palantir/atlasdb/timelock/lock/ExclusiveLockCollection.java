@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2024 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.timelock.lock;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -24,15 +25,14 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
-public class LockCollection {
-
+final class ExclusiveLockCollection {
     private final LoadingCache<LockDescriptor, AsyncLock> locksById;
 
-    public LockCollection() {
+    ExclusiveLockCollection() {
         locksById = Caffeine.newBuilder().weakValues().build(ExclusiveLock::new);
     }
 
-    public OrderedLocks getAll(Set<LockDescriptor> descriptors) {
+    OrderedLocks getAll(Set<LockDescriptor> descriptors) {
         List<LockDescriptor> orderedDescriptors = sort(descriptors);
 
         List<AsyncLock> locks = Lists.newArrayListWithExpectedSize(descriptors.size());

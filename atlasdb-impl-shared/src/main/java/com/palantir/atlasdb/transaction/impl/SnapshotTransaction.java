@@ -38,7 +38,6 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.PeekingIterator;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Streams;
-import com.google.common.io.Closer;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -310,8 +309,7 @@ public class SnapshotTransaction extends AbstractTransaction
     private final ImmutableTimestampLockManager immutableTimestampLockManager;
     private final PreCommitRequirementValidator preCommitRequirementValidator;
     private final ReadSnapshotValidator readSnapshotValidator;
-
-    protected final Closer closer = Closer.create();
+    private final ThreadSafeCloser closer = new ThreadSafeCloser();
 
     private final SnapshotTransactionMetricFactory snapshotTransactionMetricFactory;
 
@@ -1785,39 +1783,33 @@ public class SnapshotTransaction extends AbstractTransaction
 
     @Override
     public void abort() {
-        if (state.get() == State.ABORTED) {
-            close();
-            return;
-        }
-        while (true) {
-            ensureUncommitted();
-            if (state.compareAndSet(State.UNCOMMITTED, State.ABORTED)) {
-                if (hasWrites()) {
-                    preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(null, getStartTimestamp());
-                }
-                transactionOutcomeMetrics.markAbort();
-                if (transactionLengthLogger.isDebugEnabled()) {
-                    long transactionMillis = TimeUnit.NANOSECONDS.toMillis(transactionTimerContext.stop());
-
-                    if (transactionMillis > TXN_LENGTH_THRESHOLD) {
-                        transactionLengthLogger.debug(
-                                "Aborted transaction {} in {} ms",
-                                SafeArg.of("startTimestamp", getStartTimestamp()),
-                                SafeArg.of("transactionLengthMillis", transactionMillis),
-                                SafeArg.of("transactionDuration", Duration.ofMillis(transactionMillis)));
-                    }
-                }
-                close();
+        try {
+            if (state.get() == State.ABORTED) {
                 return;
             }
-        }
-    }
+            while (true) {
+                ensureUncommitted();
+                if (state.compareAndSet(State.UNCOMMITTED, State.ABORTED)) {
+                    if (hasWrites()) {
+                        preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(null, getStartTimestamp());
+                    }
+                    transactionOutcomeMetrics.markAbort();
+                    if (transactionLengthLogger.isDebugEnabled()) {
+                        long transactionMillis = TimeUnit.NANOSECONDS.toMillis(transactionTimerContext.stop());
 
-    private void close() {
-        try {
-            closer.close();
-        } catch (Exception | Error e) {
-            log.warn("Error while closing transaction resources", e);
+                        if (transactionMillis > TXN_LENGTH_THRESHOLD) {
+                            transactionLengthLogger.debug(
+                                    "Aborted transaction {} in {} ms",
+                                    SafeArg.of("startTimestamp", getStartTimestamp()),
+                                    SafeArg.of("transactionLengthMillis", transactionMillis),
+                                    SafeArg.of("transactionDuration", Duration.ofMillis(transactionMillis)));
+                        }
+                    }
+                    return;
+                }
+            }
+        } finally {
+            close();
         }
     }
 
@@ -1869,25 +1861,14 @@ public class SnapshotTransaction extends AbstractTransaction
 
     @Override
     public void commit(TransactionService transactionService) {
-        commitWithoutCallbacks(transactionService);
-        runSuccessCallbacksIfDefinitivelyCommitted();
-        close();
-    }
-
-    @Override
-    public void runSuccessCallbacksIfDefinitivelyCommitted() {
-        if (isDefinitivelyCommitted()) {
-            successCallbackManager.runCallbacks();
+        try {
+            commitWithoutCallbacks(transactionService);
+        } finally {
+            close();
         }
     }
 
-    @Override
-    public void commitWithoutCallbacks() {
-        commitWithoutCallbacks(defaultTransactionService);
-    }
-
-    @Override
-    public void commitWithoutCallbacks(TransactionService transactionService) {
+    private void commitWithoutCallbacks(TransactionService transactionService) {
         if (state.get() == State.COMMITTED) {
             return;
         }
@@ -1989,102 +1970,100 @@ public class SnapshotTransaction extends AbstractTransaction
             // else write underneath us before we proceed (thus missing a write/write conflict).
             // Timing still useful to distinguish bad lock percentiles from user-generated lock requests.
             LockToken commitLocksToken = timedAndTraced("commitAcquireLocks", this::acquireLocksForCommit);
-            try {
-                // Conflict checking. We can actually do this later without compromising correctness, but there is no
-                // reason to postpone this check - we waste resources writing unnecessarily if these are going to fail.
-                timedAndTraced(
-                        "commitCheckingForConflicts",
-                        () -> throwIfConflictOnCommit(commitLocksToken, transactionService));
-
-                // Before doing any remote writes, we mark that the transaction is in progress. Until this point, all
-                // writes are buffered in memory.
-                timedAndTraced(
-                        "markingTransactionInProgress", () -> transactionService.markInProgress(getStartTimestamp()));
-
-                // Freeze the writes that we will commit. It is possible for writes to be added to the write buffer past
-                // this point (if they had passed the #ensureUncommitted check before committing started), but they will
-                // be discarded silently. This sounds scary, but this is not a regression from previous behaviour
-                // TODO(mdaudali): We should explicitly freeze the write buffer to better surface lost writes in this
-                // edge case.
-                Map<TableReference, ? extends Map<Cell, byte[]>> writes = localWriteBuffer.getLocalWrites();
-
-                // Write to the targeted sweep queue. We must do this before writing to the key value service -
-                // otherwise we may have hanging values that targeted sweep won't know about.
-                timedAndTraced("writingToSweepQueue", () -> sweepQueue.enqueue(writes, getStartTimestamp()));
-
-                // Introduced for txn4 - Prevents sweep from making progress beyond immutableTs before entries were
-                // put into the sweep queue. This ensures that sweep must process writes to the sweep queue done by
-                // this transaction before making progress.
-                traced(
-                        "postSweepEnqueueLockCheck",
-                        () -> preCommitRequirementValidator.throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
-
-                // Write to the key value service. We must do this before getting the commit timestamp - otherwise
-                // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
-                timedAndTraced("commitWrite", () -> dataKeyValueService.multiPut(writes, getStartTimestamp()));
-
-                // Now that all writes are done, get the commit timestamp
-                // We must do this before we check that our locks are still valid to ensure that other transactions that
-                // will hold these locks are sure to have start timestamps after our commit timestamp.
-                // Timing is still useful, as this may perform operations pertaining to lock watches.
-                long commitTimestamp = timedAndTraced(
-                        "getCommitTimestamp",
-                        () -> timelockService.getCommitTimestamp(getStartTimestamp(), commitLocksToken));
-                commitTsForScrubbing = commitTimestamp;
-
-                // Punch on commit so that if hard delete is the only thing happening on a system,
-                // we won't block forever waiting for the unreadable timestamp to advance past the
-                // scrub timestamp (same as the hard delete transaction's start timestamp).
-                // May not need to be here specifically, but this is a very cheap operation - scheduling another thread
-                // might well cost more.
-                // Not timed as this is generally an asynchronous operation.
-                traced("microsForPunch", () -> cleaner.punch(commitTimestamp));
-
-                // Check the data key-value-service is still the source of truth at the commit timestamp.
-                // This can take place anytime before the actual commit (the putUnlessExists). However, situations
-                // in which the data key-value-service is invalid may also affect subsequent checks, and we
-                // would prefer for these to be flagged explicitly as such.
-                // Timed; this may in some implementations end up requiring external RPCs or database calls.
-                timedAndTraced("dataKvsValidityCheck", () -> throwIfDataKeyValueServiceNoLongerValid(commitTimestamp));
-
-                // Serializable transactions need to check their reads haven't changed, by reading again at
-                // commitTs + 1. This must happen before the lock check for thorough tables, because the lock check
-                // verifies the immutable timestamp hasn't moved forward - thorough sweep might sweep a conflict out
-                // from underneath us.
-                timedAndTraced(
-                        "readWriteConflictCheck", () -> throwIfReadWriteConflictForSerializable(commitTimestamp));
-
-                // Verify that our locks and pre-commit conditions are still valid before we actually commit;
-                // this throwIfPreCommitRequirementsNotMet is required by the transaction protocol for correctness.
-                // We check the pre-commit conditions first since they may operate similarly to read write conflict
-                // handling - we should check lock validity last to ensure that sweep hasn't affected the checks.
-                timedAndTraced(
-                        "userPreCommitCondition",
-                        () -> preCommitRequirementValidator.throwIfPreCommitConditionInvalidAtCommitOnWriteTransaction(
-                                writes, commitTimestamp));
-
-                // Not timed, because this just calls ConjureTimelockServiceBlocking.refreshLockLeases, and that is
-                // timed.
-                traced(
-                        "preCommitLockCheck",
-                        () -> preCommitRequirementValidator.throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
-
-                // Not timed, because this just calls TransactionService.putUnlessExists, and that is timed.
-                traced(
-                        "commitPutCommitTs",
-                        () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService));
-
-                long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
-                snapshotTransactionMetricFactory
-                        .getTimer("commitTotalTimeSinceTxCreation")
-                        .update(Duration.of(microsSinceCreation, ChronoUnit.MICROS));
-                snapshotTransactionMetricFactory
-                        .getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN)
-                        .update(localWriteBuffer.getValuesByteCount());
-            } finally {
+            closer.register(() -> {
                 // Not timed because tryUnlock() is an asynchronous operation.
                 traced("postCommitUnlock", () -> timelockService.tryUnlock(ImmutableSet.of(commitLocksToken)));
-            }
+            });
+
+            // Conflict checking. We can actually do this later without compromising correctness, but there is no
+            // reason to postpone this check - we waste resources writing unnecessarily if these are going to fail.
+            timedAndTraced(
+                    "commitCheckingForConflicts", () -> throwIfConflictOnCommit(commitLocksToken, transactionService));
+
+            // Before doing any remote writes, we mark that the transaction is in progress. Until this point, all
+            // writes are buffered in memory.
+            timedAndTraced(
+                    "markingTransactionInProgress", () -> transactionService.markInProgress(getStartTimestamp()));
+
+            // Freeze the writes that we will commit. It is possible for writes to be added to the write buffer past
+            // this point (if they had passed the #ensureUncommitted check before committing started), but they will
+            // be discarded silently. This sounds scary, but this is not a regression from previous behaviour
+            // TODO(mdaudali): We should explicitly freeze the write buffer to better surface lost writes in this
+            // edge case.
+            Map<TableReference, ? extends Map<Cell, byte[]>> writes = localWriteBuffer.getLocalWrites();
+
+            // Write to the targeted sweep queue. We must do this before writing to the key value service -
+            // otherwise we may have hanging values that targeted sweep won't know about.
+            timedAndTraced("writingToSweepQueue", () -> sweepQueue.enqueue(writes, getStartTimestamp()));
+
+            // Introduced for txn4 - Prevents sweep from making progress beyond immutableTs before entries were
+            // put into the sweep queue. This ensures that sweep must process writes to the sweep queue done by
+            // this transaction before making progress.
+            traced(
+                    "postSweepEnqueueLockCheck",
+                    () -> preCommitRequirementValidator.throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
+
+            // Write to the key value service. We must do this before getting the commit timestamp - otherwise
+            // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
+            timedAndTraced("commitWrite", () -> dataKeyValueService.multiPut(writes, getStartTimestamp()));
+
+            // Now that all writes are done, get the commit timestamp
+            // We must do this before we check that our locks are still valid to ensure that other transactions that
+            // will hold these locks are sure to have start timestamps after our commit timestamp.
+            // Timing is still useful, as this may perform operations pertaining to lock watches.
+            long commitTimestamp = timedAndTraced(
+                    "getCommitTimestamp",
+                    () -> timelockService.getCommitTimestamp(getStartTimestamp(), commitLocksToken));
+            commitTsForScrubbing = commitTimestamp;
+
+            // Punch on commit so that if hard delete is the only thing happening on a system,
+            // we won't block forever waiting for the unreadable timestamp to advance past the
+            // scrub timestamp (same as the hard delete transaction's start timestamp).
+            // May not need to be here specifically, but this is a very cheap operation - scheduling another thread
+            // might well cost more.
+            // Not timed as this is generally an asynchronous operation.
+            traced("microsForPunch", () -> cleaner.punch(commitTimestamp));
+
+            // Check the data key-value-service is still the source of truth at the commit timestamp.
+            // This can take place anytime before the actual commit (the putUnlessExists). However, situations
+            // in which the data key-value-service is invalid may also affect subsequent checks, and we
+            // would prefer for these to be flagged explicitly as such.
+            // Timed; this may in some implementations end up requiring external RPCs or database calls.
+            timedAndTraced("dataKvsValidityCheck", () -> throwIfDataKeyValueServiceNoLongerValid(commitTimestamp));
+
+            // Serializable transactions need to check their reads haven't changed, by reading again at
+            // commitTs + 1. This must happen before the lock check for thorough tables, because the lock check
+            // verifies the immutable timestamp hasn't moved forward - thorough sweep might sweep a conflict out
+            // from underneath us.
+            timedAndTraced("readWriteConflictCheck", () -> throwIfReadWriteConflictForSerializable(commitTimestamp));
+
+            // Verify that our locks and pre-commit conditions are still valid before we actually commit;
+            // this throwIfPreCommitRequirementsNotMet is required by the transaction protocol for correctness.
+            // We check the pre-commit conditions first since they may operate similarly to read write conflict
+            // handling - we should check lock validity last to ensure that sweep hasn't affected the checks.
+            timedAndTraced(
+                    "userPreCommitCondition",
+                    () -> preCommitRequirementValidator.throwIfPreCommitConditionInvalidAtCommitOnWriteTransaction(
+                            writes, commitTimestamp));
+
+            // Not timed, because this just calls ConjureTimelockServiceBlocking.refreshLockLeases, and that is
+            // timed.
+            traced(
+                    "preCommitLockCheck",
+                    () -> preCommitRequirementValidator.throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
+
+            // Not timed, because this just calls TransactionService.putUnlessExists, and that is timed.
+            traced(
+                    "commitPutCommitTs",
+                    () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService));
+
+            long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
+            snapshotTransactionMetricFactory
+                    .getTimer("commitTotalTimeSinceTxCreation")
+                    .update(Duration.of(microsSinceCreation, ChronoUnit.MICROS));
+            snapshotTransactionMetricFactory
+                    .getHistogram(AtlasDbMetricNames.SNAPSHOT_TRANSACTION_BYTES_WRITTEN)
+                    .update(localWriteBuffer.getValuesByteCount());
         });
     }
 
@@ -2375,6 +2354,22 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     ///////////////////////////////////////////////////////////////////////////
+    /// Close
+    ///////////////////////////////////////////////////////////////////////////
+
+    private void close() {
+        try {
+            // Run close() to release locks before running success callbacks, since success callbacks might
+            // start a new transaction and attempt to grab the same locks as the current transaction.
+            closer.close();
+        } finally {
+            if (isDefinitivelyCommitted()) {
+                successCallbackManager.runCallbacks();
+            }
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
     /// Locking
     ///////////////////////////////////////////////////////////////////////////
 
@@ -2623,6 +2618,11 @@ public class SnapshotTransaction extends AbstractTransaction
     @Override
     public void useTable(TableReference tableRef, ConstraintCheckable table) {
         constraintsByTableName.put(tableRef, table);
+    }
+
+    @Override
+    public void onCommitOrAbort(Runnable runnable) {
+        closer.register(runnable::run);
     }
 
     @Override

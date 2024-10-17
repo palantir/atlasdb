@@ -53,9 +53,6 @@ jobs:
           key: gradle-cache-{{ checksum "versions.props" }}-{{ checksum "build.gradle" }}
       - run: mkdir -p $CIRCLE_ARTIFACTS
       - run:
-          command: ./scripts/circle-ci/pull-all-images.sh
-          background: true
-      - run:
           command: ./scripts/circle-ci/track-memory-usage.sh
           background: true
       - run:
@@ -139,7 +136,7 @@ jobs:
       - run:
           command: |
             # hack - notion of "owners" isn't supported in Circle 2
-            if [ $CIRCLE_PROJECT_USERNAME = 'palantir' ] && [ -z $CIRCLE_PR_NUMBER ] && [ $CIRCLE_TAG ]; then
+            if [ $CIRCLE_PROJECT_USERNAME = 'palantir' ] && [ -z $CIRCLE_PR_NUMBER ]; then
               ./scripts/circle-ci/publish-images-to-antithesis.sh
               ./scripts/circle-ci/trigger-antithesis-simulation.sh
             fi

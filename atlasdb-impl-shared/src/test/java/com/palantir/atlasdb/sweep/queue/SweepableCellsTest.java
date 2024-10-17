@@ -21,6 +21,7 @@ import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.MAX_CELLS_DEDICAT
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.MAX_CELLS_GENERIC;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.SWEEP_BATCH_SIZE;
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
+import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -43,6 +44,8 @@ import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.metrics.SweepMetricsAssert;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -138,12 +141,45 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
     }
 
     @Test
+    public void readDoesNotReturnValueWithStartBeforeMaximumStartAndCommitOnOrAfterSweepTimestamp() {
+        writeToDefaultCellCommitedAt(sweepableCells, TS + 1, SMALL_SWEEP_TS, TABLE_CONS);
+        SweepBatch conservativeBatch =
+                readConservativeWithMaximumStart(shardCons, TS_FINE_PARTITION, TS - 1, SMALL_SWEEP_TS, SMALL_SWEEP_TS);
+        assertThat(conservativeBatch.writes()).containsExactly(WriteInfo.write(TABLE_CONS, DEFAULT_CELL, TS));
+    }
+
+    @Test
+    public void readDoesNotReturnValueWithStartAfterMaximumStart() {
+        writeToDefaultCellCommitedAt(sweepableCells, TS + 1, SMALL_SWEEP_TS, TABLE_CONS);
+        SweepBatch conservativeBatch =
+                readConservativeWithMaximumStart(shardCons, TS_FINE_PARTITION, TS - 1, TS + 2, SMALL_SWEEP_TS);
+        assertThat(conservativeBatch.writes()).containsExactly(WriteInfo.write(TABLE_CONS, DEFAULT_CELL, TS));
+    }
+
+    @Test
+    public void readReturnsValueWithStartBeforeMaximumStartAndCommitBeforeSweepTimestamp() {
+        writeToDefaultCellCommitedAt(sweepableCells, TS + 1, SMALL_SWEEP_TS, TABLE_CONS);
+        SweepBatch conservativeBatch = readConservativeWithMaximumStart(
+                shardCons, TS_FINE_PARTITION, TS - 1, SMALL_SWEEP_TS, SMALL_SWEEP_TS + 1);
+        assertThat(conservativeBatch.writes()).containsExactly(WriteInfo.write(TABLE_CONS, DEFAULT_CELL, TS + 1));
+    }
+
+    @Test
     public void lastSweptTimestampIsMinimumOfSweepTsAndEndOfFinePartitionWhenThereAreMatches() {
         SweepBatch conservativeBatch = readConservative(shardCons, TS_FINE_PARTITION, TS - 1, SMALL_SWEEP_TS);
         assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(SMALL_SWEEP_TS - 1);
 
         conservativeBatch = readConservative(shardCons, TS_FINE_PARTITION, TS - 1, Long.MAX_VALUE);
         assertThat(conservativeBatch.lastSweptTimestamp()).isEqualTo(endOfFinePartitionForTs(TS));
+    }
+
+    @Test
+    public void throwsOnReadIfMaximumStartTimestampIsGreaterThanSweepTimestamp() {
+        assertThatLoggableExceptionThrownBy(() -> readConservativeWithMaximumStart(
+                        shardCons, TS_FINE_PARTITION, TS - 1, SMALL_SWEEP_TS, SMALL_SWEEP_TS - 1))
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasExactlyArgs(
+                        SafeArg.of("maxStartTsExclusive", SMALL_SWEEP_TS), SafeArg.of("sweepTs", SMALL_SWEEP_TS - 1));
     }
 
     @Test
@@ -477,6 +513,12 @@ public class SweepableCellsTest extends AbstractSweepQueueTest {
 
     private SweepBatch readThorough(long partition, long minExclusive, long maxExclusive) {
         return sweepableCells.getBatchForPartition(thorough(shardThor), partition, minExclusive, maxExclusive);
+    }
+
+    private SweepBatch readConservativeWithMaximumStart(
+            int shard, long partition, long minExclusive, long maxStartExclusive, long sweepTs) {
+        return sweepableCells.getBatchForPartition(
+                conservative(shard), partition, minExclusive, maxStartExclusive, sweepTs);
     }
 
     private long endOfFinePartitionForTs(long timestamp) {

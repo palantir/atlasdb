@@ -20,15 +20,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.ObjectPersister.LogSafety;
-import com.palantir.conjure.java.serialization.ObjectMappers;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 public final class BucketIdentifierPersisterTest {
-    private static final ObjectPersister<Long> PERSISTER =
-            ObjectPersister.of(ObjectMappers.newServerSmileMapper(), Long.class, LogSafety.SAFE);
+    private static final ObjectPersister<Long> PERSISTER = ObjectPersister.of(Long.class, LogSafety.SAFE);
 
     private static final long BUCKET_IDENTIFIER_ONE = 12321323918230981L;
     private static final long BUCKET_IDENTIFIER_TWO = 1239019283092131L;
@@ -51,6 +49,12 @@ public final class BucketIdentifierPersisterTest {
     @MethodSource("bucketIdentifiers")
     public void canDeserializeExistingVersionOfBucketIdentifier(long bucketIdentifier, byte[] serialized) {
         assertThat(PERSISTER.tryDeserialize(serialized)).isEqualTo(bucketIdentifier);
+    }
+
+    @ParameterizedTest
+    @MethodSource("bucketIdentifiers")
+    public void serializedBucketIdentifierMatchesExistingVersion(long bucketIdentifier, byte[] serialized) {
+        assertThat(serialized).isEqualTo(PERSISTER.trySerialize(bucketIdentifier));
     }
 
     private static Stream<Arguments> bucketIdentifiers() {

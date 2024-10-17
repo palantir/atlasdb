@@ -15,6 +15,8 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import java.util.Optional;
 import java.util.function.IntSupplier;
 import org.immutables.value.Value.Immutable;
@@ -35,19 +37,33 @@ public class SweepQueueReader {
 
     public SweepBatchWithPartitionInfo getNextBatchToSweep(
             ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
-        SweepBatchAccumulator accumulator =
-                new SweepBatchAccumulator(sweepTs, runtime.cellsThreshold().getAsInt(), lastSweptTs);
+        return getNextBatchToSweep(shardStrategy, lastSweptTs, sweepTs, sweepTs);
+    }
+
+    public SweepBatchWithPartitionInfo getNextBatchToSweep(
+            ShardAndStrategy shardStrategy, long lastSweptTs, long maxProcessableCellStartTsExclusive, long sweepTs) {
+        Preconditions.checkState(
+                maxProcessableCellStartTsExclusive <= sweepTs,
+                "Max processable cell start timestamp should be less than or equal to the sweep timestamp",
+                SafeArg.of("maxProcessableCellStartTs", maxProcessableCellStartTsExclusive),
+                SafeArg.of("sweepTs", sweepTs));
+        SweepBatchAccumulator accumulator = new SweepBatchAccumulator(
+                maxProcessableCellStartTsExclusive, runtime.cellsThreshold().getAsInt(), lastSweptTs);
         long previousProgress = lastSweptTs;
         for (int currentBatch = 0;
                 currentBatch < runtime.maximumPartitions().getAsInt() && accumulator.shouldAcceptAdditionalBatch();
                 currentBatch++) {
-            Optional<Long> nextFinePartition =
-                    sweepableTimestamps.nextTimestampPartition(shardStrategy, previousProgress, sweepTs);
+            Optional<Long> nextFinePartition = sweepableTimestamps.nextTimestampPartition(
+                    shardStrategy, previousProgress, maxProcessableCellStartTsExclusive);
             if (nextFinePartition.isEmpty()) {
                 return accumulator.toSweepBatch();
             }
             SweepBatch batch = sweepableCells.getBatchForPartition(
-                    shardStrategy, nextFinePartition.get(), previousProgress, sweepTs);
+                    shardStrategy,
+                    nextFinePartition.get(),
+                    previousProgress,
+                    maxProcessableCellStartTsExclusive,
+                    sweepTs);
             accumulator.accumulateBatch(batch);
             previousProgress = accumulator.getProgressTimestamp();
         }
