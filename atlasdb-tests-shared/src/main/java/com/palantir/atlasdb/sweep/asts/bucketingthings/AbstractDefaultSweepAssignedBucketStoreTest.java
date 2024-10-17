@@ -26,7 +26,7 @@ import static org.mockito.Mockito.spy;
 
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
-import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
+import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.asts.Bucket;
 import com.palantir.atlasdb.sweep.asts.SweepableBucket;
@@ -49,14 +49,19 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-// TODO(mdaudali): make these tests abstract like the other tests for BucketProgress
-public final class DefaultSweepAssignedBucketStoreTest {
-    private final TestResourceManager testResourceManager = TestResourceManager.inMemory();
-    private final KeyValueService keyValueService = testResourceManager.getDefaultKvs();
-    private final DefaultSweepAssignedBucketStore store = DefaultSweepAssignedBucketStore.create(keyValueService);
+// This exists as an abstract class, because the semantics of the atomic table operations are tricky, and novel as
+// part of the auto-scaling sweep project. We want to test these against the various DB implementations
+public abstract class AbstractDefaultSweepAssignedBucketStoreTest {
+    private final KeyValueService keyValueService;
+    private final DefaultSweepAssignedBucketStore store;
+
+    protected AbstractDefaultSweepAssignedBucketStoreTest(KvsManager kvsManager) {
+        keyValueService = kvsManager.getDefaultKvs();
+        store = DefaultSweepAssignedBucketStore.create(keyValueService);
+    }
 
     @BeforeEach
-    public void before() {
+    public void setUp() {
         Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), keyValueService);
         keyValueService.truncateTable(DefaultSweepAssignedBucketStore.TABLE_REF);
     }
@@ -165,12 +170,12 @@ public final class DefaultSweepAssignedBucketStoreTest {
     @Test
     public void updateStartingBucketForShardFailsAfterTooManyAttempts() {
         KeyValueService spy = spy(keyValueService);
-        DefaultSweepAssignedBucketStore store = DefaultSweepAssignedBucketStore.create(spy);
+        DefaultSweepAssignedBucketStore storeWithSpyKvs = DefaultSweepAssignedBucketStore.create(spy);
         doThrow(new CheckAndSetException("Failed")).when(spy).checkAndSet(any());
 
         Bucket bucket = Bucket.of(ShardAndStrategy.of(12, SweeperStrategy.THOROUGH), 512);
 
-        assertThatThrownBy(() -> store.updateStartingBucketForShardAndStrategy(bucket))
+        assertThatThrownBy(() -> storeWithSpyKvs.updateStartingBucketForShardAndStrategy(bucket))
                 .isInstanceOf(CheckAndSetException.class);
     }
 
