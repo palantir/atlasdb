@@ -20,8 +20,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
-import com.palantir.atlasdb.sweep.Sweeper;
-import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.NumberOfShardsProvider.MismatchBehaviour;
 import com.palantir.atlasdb.sweep.queue.SweepQueueReader.ReadBatchingRuntimeContext;
@@ -32,7 +30,6 @@ import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.time.Duration;
@@ -47,12 +44,8 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
     private static final SafeLogger log = SafeLoggerFactory.get(SweepQueue.class);
     private final ShardProgress progress;
     private final SweepQueueWriter writer;
-    private final SweepQueueReader reader;
-    private final SweepQueueDeleter deleter;
-    private final SweepQueueCleaner cleaner;
+    private final SingleBatchSweeper sweeper;
     private final NumberOfShardsProvider numShardsProvider;
-    private final AbandonedTransactionConsumer abandonedTransactionConsumer;
-    private final TargetedSweepMetrics metrics;
     private final SweepProgressResetter resetter;
 
     private SweepQueue(
@@ -61,13 +54,15 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
             AbandonedTransactionConsumer abandonedTransactionConsumer) {
         this.progress = factory.progress;
         this.writer = factory.createWriter();
-        this.reader = factory.createReader();
-        this.abandonedTransactionConsumer = abandonedTransactionConsumer;
-        this.deleter = factory.createDeleter(follower);
-        this.cleaner = factory.createCleaner();
         this.numShardsProvider = NumberOfShardsProvider.createMemoizingProvider(
                 progress, factory.numShards, MismatchBehaviour.UPDATE, Duration.ofMillis(SweepQueueUtils.REFRESH_TIME));
-        this.metrics = factory.metrics;
+        this.sweeper = new DefaultSingleBatchSweeper(
+                factory.metrics,
+                progress,
+                abandonedTransactionConsumer,
+                factory.createReader(),
+                factory.createDeleter(follower),
+                factory.createCleaner());
         this.resetter = new DefaultSweepProgressResetter(
                 factory.kvs,
                 // TODO(mdaudali): Don't do this hackery - we'll likely move things around when the sweep queue dies
@@ -117,66 +112,8 @@ public final class SweepQueue implements MultiTableSweepQueueWriter {
         return writer.getSweepStrategy(tableReference);
     }
 
-    /**
-     * Sweep the next batch for the shard and strategy specified by shardStrategy, with the sweep timestamp sweepTs.
-     * After successful deletes, the persisted information about the writes is removed, and progress is updated
-     * accordingly.
-     *
-     * @param shardStrategy shard and strategy to use
-     * @param sweepTs       sweep timestamp, the upper limit to the start timestamp of writes to sweep
-     * @return number of cells that were swept
-     */
-    public long sweepNextBatch(ShardAndStrategy shardStrategy, long sweepTs) {
-        metrics.updateSweepTimestamp(shardStrategy, sweepTs);
-        long lastSweptTs = progress.getLastSweptTimestamp(shardStrategy);
-
-        if (lastSweptTs + 1 >= sweepTs) {
-            return 0L;
-        }
-
-        log.debug(
-                "Beginning iteration of targeted sweep for {}, and sweep timestamp {}. Last previously swept "
-                        + "timestamp for this shard and strategy was {}.",
-                SafeArg.of("shardStrategy", shardStrategy.toText()),
-                SafeArg.of("sweepTs", sweepTs),
-                SafeArg.of("lastSweptTs", lastSweptTs));
-
-        SweepBatchWithPartitionInfo batchWithInfo = reader.getNextBatchToSweep(shardStrategy, lastSweptTs, sweepTs);
-        SweepBatch sweepBatch = batchWithInfo.sweepBatch();
-
-        // The order must not be changed without considering correctness of txn4
-        abandonedTransactionConsumer.accept(sweepBatch.abortedTimestamps());
-
-        // Update last seen commit timestamp
-        progress.updateLastSeenCommitTimestamp(shardStrategy, sweepBatch.lastSeenCommitTimestamp());
-        metrics.updateLastSeenCommitTs(sweepBatch.lastSeenCommitTimestamp());
-
-        deleter.sweep(sweepBatch.writes(), Sweeper.of(shardStrategy));
-        metrics.registerEntriesReadInBatch(shardStrategy, sweepBatch.entriesRead());
-
-        if (!sweepBatch.isEmpty()) {
-            log.debug(
-                    "Put {} ranged tombstones and swept up to timestamp {} for {}.",
-                    SafeArg.of("tombstones", sweepBatch.writes().size()),
-                    SafeArg.of("lastSweptTs", sweepBatch.lastSweptTimestamp()),
-                    SafeArg.of("shardStrategy", shardStrategy.toText()));
-        }
-
-        cleaner.cleanAndUpdateProgress(
-                shardStrategy,
-                batchWithInfo.partitionsForPreviousLastSweptTs(lastSweptTs),
-                sweepBatch.lastSweptTimestamp(),
-                sweepBatch.dedicatedRows());
-
-        metrics.updateNumberOfTombstones(shardStrategy, sweepBatch.writes().size());
-
-        if (sweepBatch.isEmpty()) {
-            metrics.registerOccurrenceOf(shardStrategy, SweepOutcome.NOTHING_TO_SWEEP);
-        } else {
-            metrics.registerOccurrenceOf(shardStrategy, SweepOutcome.SUCCESS);
-        }
-
-        return sweepBatch.entriesRead();
+    public SingleBatchSweeper getSweeper() {
+        return sweeper;
     }
 
     public void resetSweepProgress() {
