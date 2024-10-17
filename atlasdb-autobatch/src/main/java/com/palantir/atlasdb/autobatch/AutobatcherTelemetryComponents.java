@@ -17,16 +17,28 @@
 package com.palantir.atlasdb.autobatch;
 
 import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Snapshot;
+import com.google.common.base.Suppliers;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.time.Duration;
+import java.util.function.Supplier;
 
 public final class AutobatcherTelemetryComponents {
     private final String safeLoggablePurpose;
     private final AutobatchOverheadMetrics overheadMetrics;
+    private final Histogram waitTimer;
+    private final Histogram runningTimer;
+    private final Histogram waitTimeHistogram;
+    private final Histogram totalTimer;
 
     private AutobatcherTelemetryComponents(String safeLoggablePurpose, AutobatchOverheadMetrics overheadMetrics) {
         this.safeLoggablePurpose = safeLoggablePurpose;
         this.overheadMetrics = overheadMetrics;
+        this.waitTimer = overheadMetrics.waitTimeNanos();
+        this.runningTimer = overheadMetrics.runningTimeNanos();
+        this.waitTimeHistogram = overheadMetrics.waitTimePercentage();
+        this.totalTimer = overheadMetrics.totalTimeNanos();
     }
 
     String getSafeLoggablePurpose() {
@@ -45,19 +57,19 @@ public final class AutobatcherTelemetryComponents {
     }
 
     void markWaitingTimeMetrics(Duration waitTime) {
-        overheadMetrics.waitTimeNanos().update(waitTime.toNanos());
+        this.waitTimer.update(waitTime.toNanos());
     }
 
     private void markRunningTimeMetrics(Duration runningTime) {
-        overheadMetrics.runningTimeNanos().update(runningTime.toNanos());
+        this.runningTimer.update(runningTime.toNanos());
     }
 
     private void markTotalTimeMetrics(long totalTimeNanos) {
-        overheadMetrics.totalTimeNanos().update(totalTimeNanos);
+        this.totalTimer.update(totalTimeNanos);
     }
 
     private void markWaitingTimePercentage(long waitTimePercentage) {
-        overheadMetrics.waitTimePercentage().update(waitTimePercentage);
+        this.waitTimeHistogram.update(waitTimePercentage);
     }
 
     public static AutobatcherTelemetryComponents create(
@@ -67,26 +79,41 @@ public final class AutobatcherTelemetryComponents {
                 .operationType(safeLoggablePurpose)
                 .build();
 
-        overheadMetrics.waitTimeNanosP1((Gauge<Double>)
-                () -> overheadMetrics.waitTimeNanos().getSnapshot().getValue(0.01));
-        overheadMetrics.waitTimeNanosMedian((Gauge<Double>)
-                () -> overheadMetrics.waitTimeNanos().getSnapshot().getValue(0.5));
+        AutobatcherTelemetryComponents autobatcherTelemetry =
+                new AutobatcherTelemetryComponents(safeLoggablePurpose, overheadMetrics);
+        autobatcherTelemetry.registerGauges();
+        return autobatcherTelemetry;
+    }
 
-        overheadMetrics.waitTimePercentageP1((Gauge<Double>)
-                () -> overheadMetrics.waitTimePercentage().getSnapshot().getValue(0.01));
-        overheadMetrics.waitTimePercentageMedian((Gauge<Double>)
-                () -> overheadMetrics.waitTimePercentage().getSnapshot().getValue(0.5));
+    private void registerGauges() {
+        // capturing a snapshot is expensive, so memoize for 10 milliseconds to reduce overhead during metrics read 50%.
+        Duration memoizeDuration = Duration.ofMillis(10);
+        Supplier<Snapshot> waitTimerSnapshot = Suppliers.memoizeWithExpiration(waitTimer::getSnapshot, memoizeDuration);
+        Supplier<Snapshot> waitTimeHistogramSnapshot =
+                Suppliers.memoizeWithExpiration(waitTimeHistogram::getSnapshot, memoizeDuration);
+        Supplier<Snapshot> runningTimerSnapshot =
+                Suppliers.memoizeWithExpiration(runningTimer::getSnapshot, memoizeDuration);
+        Supplier<Snapshot> totalTimerSnapshot =
+                Suppliers.memoizeWithExpiration(totalTimer::getSnapshot, memoizeDuration);
 
-        overheadMetrics.runningTimeNanosP1((Gauge<Double>)
-                () -> overheadMetrics.runningTimeNanos().getSnapshot().getValue(0.01));
-        overheadMetrics.runningTimeNanosMedian((Gauge<Double>)
-                () -> overheadMetrics.runningTimeNanos().getSnapshot().getValue(0.5));
+        overheadMetrics.waitTimeNanosP1(
+                (Gauge<Double>) () -> waitTimerSnapshot.get().getValue(0.01));
+        overheadMetrics.waitTimeNanosMedian(
+                (Gauge<Double>) () -> waitTimerSnapshot.get().getValue(0.5));
 
-        overheadMetrics.totalTimeNanosP1((Gauge<Double>)
-                () -> overheadMetrics.totalTimeNanos().getSnapshot().getValue(0.01));
-        overheadMetrics.totalTimeNanosMedian((Gauge<Double>)
-                () -> overheadMetrics.totalTimeNanos().getSnapshot().getValue(0.5));
+        overheadMetrics.waitTimePercentageP1(
+                (Gauge<Double>) () -> waitTimeHistogramSnapshot.get().getValue(0.01));
+        overheadMetrics.waitTimePercentageMedian(
+                (Gauge<Double>) () -> waitTimeHistogramSnapshot.get().getValue(0.5));
 
-        return new AutobatcherTelemetryComponents(safeLoggablePurpose, overheadMetrics);
+        overheadMetrics.runningTimeNanosP1(
+                (Gauge<Double>) () -> runningTimerSnapshot.get().getValue(0.01));
+        overheadMetrics.runningTimeNanosMedian(
+                (Gauge<Double>) () -> runningTimerSnapshot.get().getValue(0.5));
+
+        overheadMetrics.totalTimeNanosP1(
+                (Gauge<Double>) () -> totalTimerSnapshot.get().getValue(0.01));
+        overheadMetrics.totalTimeNanosMedian(
+                (Gauge<Double>) () -> totalTimerSnapshot.get().getValue(0.5));
     }
 }
