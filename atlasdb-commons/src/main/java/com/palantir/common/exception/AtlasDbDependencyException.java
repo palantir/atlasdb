@@ -20,44 +20,26 @@ import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.Safe;
 import com.palantir.logsafe.SafeLoggable;
 import com.palantir.logsafe.exceptions.SafeExceptions;
+import java.util.Arrays;
 import java.util.List;
 import javax.annotation.Nullable;
 
 public class AtlasDbDependencyException extends RuntimeException implements SafeLoggable {
-    private static final String ATLASDB_DEPENDENCY_LOG_MESSAGE = "AtlasDB dependency threw an exception.";
     private final List<Arg<?>> args;
     private final String logMessage;
 
     public AtlasDbDependencyException(@CompileTimeConstant String logMessage, Arg<?>... args) {
-        this(logMessage, List.of(args));
-    }
-
-    public AtlasDbDependencyException(@CompileTimeConstant String logMessage, Throwable cause, Arg<?>... args) {
-        this(logMessage, cause, List.of(args));
+        this(logMessage, null, args);
     }
 
     public AtlasDbDependencyException(Throwable throwable, Arg<?>... args) {
-        this(throwable, List.of(args));
+        this("AtlasDB dependency threw an exception.", throwable, args);
     }
 
-    private AtlasDbDependencyException(@Nullable Throwable cause, List<Arg<?>> args) {
-        super(
-                SafeExceptions.renderMessage(
-                        AtlasDbDependencyException.ATLASDB_DEPENDENCY_LOG_MESSAGE, args.toArray(new Arg[0])),
-                cause);
-        this.args = args;
-        this.logMessage = AtlasDbDependencyException.ATLASDB_DEPENDENCY_LOG_MESSAGE;
-    }
-
-    private AtlasDbDependencyException(@Safe @CompileTimeConstant String logMessage, @Nullable Throwable cause, List<Arg<?>> args) {
-        super(SafeExceptions.renderMessage(logMessage, args.toArray(new Arg[0])), cause);
-        this.args = args;
-        this.logMessage = logMessage;
-    }
-
-    private AtlasDbDependencyException(@Safe @CompileTimeConstant String logMessage, List<Arg<?>> args) {
-        super(SafeExceptions.renderMessage(logMessage, args.toArray(new Arg[0])));
-        this.args = args;
+    public AtlasDbDependencyException(
+            @Safe @CompileTimeConstant String logMessage, @Nullable Throwable cause, Arg<?>... args) {
+        super(SafeExceptions.renderMessage(logMessage, args), cause);
+        this.args = Arrays.asList(args);
         this.logMessage = logMessage;
     }
 
