@@ -18,6 +18,7 @@ package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -28,15 +29,24 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
 import com.palantir.atlasdb.sweep.asts.Bucket;
+import com.palantir.atlasdb.sweep.asts.SweepableBucket;
+import com.palantir.atlasdb.sweep.asts.TimestampRange;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 // TODO(mdaudali): make these tests abstract like the other tests for BucketProgress
 public final class DefaultSweepAssignedBucketStoreTest {
@@ -161,5 +171,109 @@ public final class DefaultSweepAssignedBucketStoreTest {
 
         assertThatThrownBy(() -> store.updateStartingBucketForShardAndStrategy(bucket))
                 .isInstanceOf(CheckAndSetException.class);
+    }
+
+    @Test
+    public void getSweepableBucketsReturnsTimestampRangesforPresentBucketsForEachShardUpToTwoHundredBuckets() {
+        ShardAndStrategy shardAndStrategy = ShardAndStrategy.of(12, SweeperStrategy.THOROUGH);
+        List<SweepableBucket> buckets = IntStream.range(0, 400)
+                .mapToObj(i -> SweepableBucket.of(Bucket.of(shardAndStrategy, i), TimestampRange.of(i, i + 1)))
+                .collect(Collectors.toList());
+        buckets.forEach(
+                bucket -> store.putTimestampRangeForBucket(bucket.bucket(), Optional.empty(), bucket.timestampRange()));
+
+        assertThat(store.getSweepableBuckets(Set.of(Bucket.of(shardAndStrategy, 0))))
+                .containsExactlyInAnyOrderElementsOf(buckets.subList(0, 200));
+    }
+
+    @Test
+    public void getSweepableBucketsSkipsBucketsWithMajorIdentifierBeforeStartBucketProvided() {
+        ShardAndStrategy shardAndStrategy = ShardAndStrategy.of(12, SweeperStrategy.THOROUGH);
+        List<SweepableBucket> buckets = IntStream.range(0, 200)
+                .mapToObj(i -> SweepableBucket.of(Bucket.of(shardAndStrategy, i), TimestampRange.of(i, i + 1)))
+                .collect(Collectors.toList());
+
+        buckets.forEach(
+                bucket -> store.putTimestampRangeForBucket(bucket.bucket(), Optional.empty(), bucket.timestampRange()));
+
+        assertThat(store.getSweepableBuckets(Set.of(Bucket.of(shardAndStrategy, 100))))
+                .containsExactlyInAnyOrderElementsOf(buckets.subList(100, 200));
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1, 12, 199})
+    public void getSweepableBucketsReturnsLessThanMaxBucketLimitIfLessThanTwoHundredBucketsPresent(
+            int numberOfBuckets) {
+        ShardAndStrategy shardAndStrategy = ShardAndStrategy.of(12, SweeperStrategy.THOROUGH);
+        List<SweepableBucket> buckets = IntStream.range(0, numberOfBuckets)
+                .mapToObj(i -> SweepableBucket.of(Bucket.of(shardAndStrategy, i), TimestampRange.of(i, i + 1)))
+                .collect(Collectors.toList());
+
+        buckets.forEach(
+                bucket -> store.putTimestampRangeForBucket(bucket.bucket(), Optional.empty(), bucket.timestampRange()));
+
+        assertThat(store.getSweepableBuckets(Set.of(Bucket.of(shardAndStrategy, 0))))
+                .containsExactlyInAnyOrderElementsOf(buckets);
+    }
+
+    @Test
+    public void getSweepableBucketsReturnsBucketsPerShardAndStrategy() {
+        List<Bucket> startBuckets = List.of(
+                Bucket.of(ShardAndStrategy.of(12, SweeperStrategy.THOROUGH), 0),
+                Bucket.of(ShardAndStrategy.of(54, SweeperStrategy.CONSERVATIVE), 1000),
+                Bucket.of(ShardAndStrategy.of(25, SweeperStrategy.NON_SWEEPABLE), 5050));
+
+        List<SweepableBucket> buckets = IntStream.range(0, 112) // 112 chosen arbitrarily below 200
+                .mapToObj(i -> {
+                    TimestampRange range = TimestampRange.of(i, i + 1);
+                    return startBuckets.stream()
+                            .map(bucket -> SweepableBucket.of(
+                                    Bucket.of(bucket.shardAndStrategy(), bucket.bucketIdentifier() + i), range));
+                })
+                .flatMap(Function.identity())
+                .collect(Collectors.toList());
+
+        buckets.forEach(
+                bucket -> store.putTimestampRangeForBucket(bucket.bucket(), Optional.empty(), bucket.timestampRange()));
+
+        assertThat(store.getSweepableBuckets(new HashSet<>(startBuckets))).containsExactlyInAnyOrderElementsOf(buckets);
+    }
+
+    @Test
+    public void putTimestampRangeForBucketFailsIfOldTimestampRangeDoesNotMatchCurrent() {
+        Bucket bucket = Bucket.of(ShardAndStrategy.of(12, SweeperStrategy.THOROUGH), 512);
+        TimestampRange oldTimestampRange = TimestampRange.of(0, 1); // Not actually set
+        TimestampRange newTimestampRange = TimestampRange.of(1, 2);
+
+        assertThatThrownBy(() ->
+                        store.putTimestampRangeForBucket(bucket, Optional.of(oldTimestampRange), newTimestampRange))
+                .isInstanceOf(CheckAndSetException.class);
+    }
+
+    @Test
+    public void putTimestampRangeForBucketSucceedsIfOldTimestampRangeMatchesCurrent() {
+        Bucket bucket = Bucket.of(ShardAndStrategy.of(12, SweeperStrategy.THOROUGH), 512);
+        TimestampRange newTimestampRange = TimestampRange.of(1, 2);
+
+        store.putTimestampRangeForBucket(bucket, Optional.empty(), newTimestampRange);
+        Set<SweepableBucket> sweepableBuckets = store.getSweepableBuckets(Set.of(bucket));
+        assertThat(sweepableBuckets).containsExactly(SweepableBucket.of(bucket, newTimestampRange));
+    }
+
+    @Test
+    @Disabled // TODO(mdaudali): Deletion is not implemented yet
+    public void deleteBucketEntryDoesNotThrowIfBucketNotPresent() {
+        Bucket bucket = Bucket.of(ShardAndStrategy.of(12, SweeperStrategy.THOROUGH), 512);
+        assertThatCode(() -> store.deleteBucketEntry(bucket)).doesNotThrowAnyException();
+    }
+
+    @Test
+    @Disabled // TODO(mdaudali): Deletion is not implemented yet
+    public void deleteBucketEntryDeletesBucket() {
+        Bucket bucket = Bucket.of(ShardAndStrategy.of(12, SweeperStrategy.THOROUGH), 512);
+        TimestampRange timestampRange = TimestampRange.of(1, 2);
+        store.putTimestampRangeForBucket(bucket, Optional.empty(), timestampRange);
+        store.deleteBucketEntry(bucket);
+        assertThat(store.getSweepableBuckets(Set.of(bucket))).isEmpty();
     }
 }
