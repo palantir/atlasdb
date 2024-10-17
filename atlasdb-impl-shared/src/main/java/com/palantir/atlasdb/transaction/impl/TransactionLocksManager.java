@@ -16,31 +16,47 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.transaction.impl.precommit.LockUnlocker;
 import com.palantir.atlasdb.transaction.impl.precommit.LockValidityChecker;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
-import java.util.HashSet;
+import java.io.Closeable;
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
 import org.immutables.value.Value;
 
-public final class ImmutableTimestampLockManager {
+public final class TransactionLocksManager implements Closeable {
+
     private final Optional<LockToken> immutableTimestampLock;
     private final LockValidityChecker lockValidityChecker;
+    private final LockUnlocker unlocker;
+    private final Set<LockToken> lockTokens = Collections.synchronizedSet(new LinkedHashSet<>());
 
-    public ImmutableTimestampLockManager(
-            Optional<LockToken> immutableTimestampLock, LockValidityChecker lockValidityChecker) {
+    public TransactionLocksManager(
+            Optional<LockToken> immutableTimestampLock,
+            LockValidityChecker lockValidityChecker,
+            LockUnlocker unlocker) {
         this.immutableTimestampLock = immutableTimestampLock;
         this.lockValidityChecker = lockValidityChecker;
+        this.unlocker = unlocker;
+        immutableTimestampLock.ifPresent(this::registerLock);
     }
 
-    public Optional<ExpiredLocks> getExpiredImmutableTimestampAndCommitLocks(Optional<LockToken> commitLocksToken) {
-        Set<LockToken> toRefresh = new HashSet<>();
-        commitLocksToken.ifPresent(toRefresh::add);
-        immutableTimestampLock.ifPresent(toRefresh::add);
+    public LockToken registerLock(LockToken lockToken) {
+        lockTokens.add(lockToken);
+        return lockToken;
+    }
 
+    public Optional<ExpiredLocks> getExpiredImmutableTimestampAndCommitLocks() {
+        return getExpiredImmutableTimestampAndCommitLocks(ImmutableSet.copyOf(lockTokens));
+    }
+
+    private Optional<ExpiredLocks> getExpiredImmutableTimestampAndCommitLocks(Set<LockToken> toRefresh) {
         if (toRefresh.isEmpty()) {
             return Optional.empty();
         }
@@ -51,27 +67,32 @@ public final class ImmutableTimestampLockManager {
         if (expiredLocks.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(ImmutableExpiredLocks.of(getExpiredLocksErrorString(commitLocksToken, expiredLocks)));
+        return Optional.of(ImmutableExpiredLocks.of(getExpiredLocksErrorString(toRefresh, expiredLocks)));
     }
 
-    public SummarizedLockCheckResult getExpiredImmutableTimestampAndCommitLocksWithFullSummary(
-            LockToken commitLocksToken) {
-        Preconditions.checkNotNull(
-                commitLocksToken,
-                "commitLocksToken was null, not expected to be in a call to"
+    public SummarizedLockCheckResult getExpiredImmutableTimestampAndCommitLocksWithFullSummary() {
+        Set<LockToken> locksCopy = ImmutableSet.copyOf(lockTokens);
+        Preconditions.checkState(
+                locksCopy.size() >= ((immutableTimestampLock.isPresent() ? 1 : 0) + 1),
+                "Expected at least one other token, other than immutable timestamp lock, not expected to be in a call to"
                         + " getExpiredImmutableTimestampAndCommitLocksWithFullSummary",
                 SafeArg.of("immutableTimestampLock", immutableTimestampLock));
-        Optional<ExpiredLocks> expiredLocks = getExpiredImmutableTimestampAndCommitLocks(Optional.of(commitLocksToken));
+        Optional<ExpiredLocks> expiredLocks = getExpiredImmutableTimestampAndCommitLocks(locksCopy);
         return SummarizedLockCheckResult.builder()
                 .expiredLocks(expiredLocks)
                 .immutableTimestampLock(immutableTimestampLock)
-                .userProvidedLock(commitLocksToken)
+                .allLockTokens(locksCopy)
                 .build();
     }
 
-    private String getExpiredLocksErrorString(Optional<LockToken> commitLocksToken, Set<LockToken> expiredLocks) {
+    @Override
+    public void close() {
+        unlocker.tryUnlock(ImmutableSet.copyOf(lockTokens));
+    }
+
+    private String getExpiredLocksErrorString(Set<LockToken> allLockTokens, Set<LockToken> expiredLocks) {
         return "The following immutable timestamp lock was required: " + immutableTimestampLock
-                + "; the following commit locks were required: " + commitLocksToken
+                + "; the following lock tokens were required: " + allLockTokens
                 + "; the following locks are no longer valid: " + expiredLocks;
     }
 
@@ -95,7 +116,10 @@ public final class ImmutableTimestampLockManager {
 
         Optional<LockToken> immutableTimestampLock();
 
-        LockToken userProvidedLock();
+        /**
+         * Inclusive of {@link #immutableTimestampLock()}.
+         */
+        Set<LockToken> allLockTokens();
 
         static ImmutableSummarizedLockCheckResult.Builder builder() {
             return ImmutableSummarizedLockCheckResult.builder();
