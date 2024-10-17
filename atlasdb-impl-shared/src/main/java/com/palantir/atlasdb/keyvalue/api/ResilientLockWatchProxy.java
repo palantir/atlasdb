@@ -20,6 +20,7 @@ import com.google.common.reflect.AbstractInvocationHandler;
 import com.palantir.atlasdb.keyvalue.api.cache.CacheMetrics;
 import com.palantir.atlasdb.keyvalue.api.cache.LockWatchValueScopingCache;
 import com.palantir.atlasdb.transaction.api.TransactionLockWatchFailedException;
+import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.lock.watch.LockWatchEventCache;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
@@ -28,6 +29,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.concurrent.CancellationException;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
@@ -81,7 +83,7 @@ public final class ResilientLockWatchProxy<T> extends AbstractInvocationHandler 
     private synchronized RuntimeException handleException(InvocationTargetException rethrow) {
         try {
             throw rethrow.getCause();
-        } catch (TransactionLockWatchFailedException e) {
+        } catch (TransactionLockWatchFailedException | QosException | CancellationException | Error e) {
             throw e;
         } catch (Throwable t) {
             if (delegate == fallbackCache) {
