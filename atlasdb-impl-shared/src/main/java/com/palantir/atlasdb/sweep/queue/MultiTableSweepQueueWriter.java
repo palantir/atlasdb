@@ -15,11 +15,9 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import com.palantir.async.initializer.CallbackInitializable;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -27,7 +25,7 @@ import java.util.stream.Collectors;
 /**
  * Adds {@link WriteInfo}s to a global queue to be swept.
  */
-public interface MultiTableSweepQueueWriter extends AutoCloseable, CallbackInitializable<TransactionManager> {
+public interface MultiTableSweepQueueWriter {
     MultiTableSweepQueueWriter NO_OP = ignored -> {};
 
     default void enqueue(Map<TableReference, ? extends Map<Cell, byte[]>> writes, long timestamp) {
@@ -41,28 +39,11 @@ public interface MultiTableSweepQueueWriter extends AutoCloseable, CallbackIniti
      */
     void enqueue(List<WriteInfo> writes);
 
-    /**
-     * This method must be implemented if asynchronous initialization is necessary for the implementation. This is
-     * generally the case if the transaction manager allows asynchronous initialization since there is no guarantee
-     * the underlying kvs is ready at object creation time.
-     *
-     * @param txManager the transaction manager performing the callback
-     */
-    @Override
-    default void initialize(TransactionManager txManager) {
-        // noop
-    }
-
     default List<WriteInfo> toWriteInfos(Map<TableReference, ? extends Map<Cell, byte[]>> writes, long timestamp) {
         return writes.entrySet().stream()
                 .flatMap(entry -> entry.getValue().entrySet().stream()
                         .map(singleWrite -> SweepQueueUtils.toWriteInfo(entry.getKey(), singleWrite, timestamp)))
                 .collect(Collectors.toList());
-    }
-
-    @Override
-    default void close() {
-        // noop
     }
 
     default SweeperStrategy getSweepStrategy(TableReference tableReference) {

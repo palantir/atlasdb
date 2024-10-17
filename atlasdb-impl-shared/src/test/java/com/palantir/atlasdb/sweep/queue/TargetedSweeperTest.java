@@ -27,7 +27,6 @@ import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.minTsForFineParti
 import static com.palantir.atlasdb.sweep.queue.SweepQueueUtils.tsPartitionFine;
 import static com.palantir.atlasdb.table.description.SweeperStrategy.CONSERVATIVE;
 import static com.palantir.atlasdb.table.description.SweeperStrategy.THOROUGH;
-import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -49,6 +48,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.math.IntMath;
+import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
 import com.palantir.atlasdb.cleaner.PuncherStore;
@@ -66,6 +66,7 @@ import com.palantir.atlasdb.schema.generated.TargetedSweepTableFactory;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.metrics.ImmutableMetricsConfiguration;
 import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
+import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetricsConfigurations;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
@@ -76,13 +77,11 @@ import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.base.ClosableIterator;
-import com.palantir.exception.NotInitializedException;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
-import com.palantir.logsafe.SafeArg;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -117,13 +116,15 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private static final long LOW_TS3 = 3 * LOW_TS;
     private static final long SMALL_REFRESH_MILLIS = 10L;
 
-    private TargetedSweeper sweepQueue;
+    private TargetedSweeper targetedSweeper;
+    private MultiTableSweepQueueWriter sweepQueue;
     private ShardProgress progress;
     private SweepableTimestamps sweepableTimestamps;
     private SweepableCells sweepableCells;
     private TargetedSweepFollower mockFollower;
     private TimelockService timelockService;
     private PuncherStore puncherStore;
+    private SingleBatchSweeper sweeper;
     private final AtomicReference<TargetedSweepRuntimeConfig> runtimeSupplier =
             new AtomicReference<>(ImmutableTargetedSweepRuntimeConfig.builder()
                     .enabled(true)
@@ -144,7 +145,9 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @Override
     public void tearDown() {
         // This is required because of JUnit memory issues
-        sweepQueue.close();
+        targetedSweeper.close();
+        targetedSweeper = null;
+        sweeper = null;
         sweepQueue = null;
         progress = null;
         sweepableTimestamps = null;
@@ -158,7 +161,13 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         setup(readBatchSize);
         MetricsManager secondQueueManager = MetricsManagers.createForTests();
         TargetedSweeper secondQueue = TargetedSweeper.createUninitialized(
-                secondQueueManager, runtimeSupplier::get, installConfig, ImmutableList.of(), _unused -> {}, spiedKvs);
+                secondQueueManager,
+                runtimeSupplier::get,
+                installConfig,
+                ImmutableList.of(),
+                _unused -> {},
+                spiedKvs,
+                SettableFuture.create());
         secondQueue.initializeWithoutRunning(
                 timestampsSupplier,
                 timelockService,
@@ -177,7 +186,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @MethodSource("readBatchSizes")
     public void increaseInShardsReflectedOnLastSweptTimestamp(int readBatchSize) {
         setup(readBatchSize);
-        sweepQueue.runInBackground();
+        targetedSweeper.runInBackground();
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
         sweepNextBatchForShards(CONSERVATIVE, DEFAULT_SHARDS);
         await(() -> assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(maxTsForFinePartition(0)));
@@ -189,7 +198,13 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         // Shard count is memoized, creating a second queue bypasses waiting for expiration
         TargetedSweeper secondQueue = TargetedSweeper.createUninitialized(
-                metricsManager, runtimeSupplier::get, installConfig, ImmutableList.of(), _unused -> {}, spiedKvs);
+                metricsManager,
+                runtimeSupplier::get,
+                installConfig,
+                ImmutableList.of(),
+                _unused -> {},
+                spiedKvs,
+                SettableFuture.create());
         secondQueue.initializeWithoutRunning(
                 timestampsSupplier,
                 mock(TimelockService.class),
@@ -202,26 +217,12 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
     @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
     @MethodSource("readBatchSizes")
-    public void callingEnqueueAndSweepOnUninitializedSweeperThrows(int readBatchSize) {
-        setup(readBatchSize);
-        SafeArg<String> objectNameSafeArg = SafeArg.of("objectName", "Targeted Sweeper");
-        TargetedSweeper uninitializedSweeper = TargetedSweeper.createUninitializedForTest(spiedKvs, () -> 1);
-        assertThatLoggableExceptionThrownBy(() -> uninitializedSweeper.enqueue(ImmutableList.of()))
-                .isInstanceOf(NotInitializedException.class)
-                .hasExactlyArgs(objectNameSafeArg);
-        assertThatLoggableExceptionThrownBy(
-                        () -> uninitializedSweeper.sweepNextBatch(ShardAndStrategy.conservative(0), 1L))
-                .isInstanceOf(NotInitializedException.class)
-                .hasExactlyArgs(objectNameSafeArg);
-    }
-
-    @ParameterizedTest(name = PARAMETERIZED_TEST_NAME)
-    @MethodSource("readBatchSizes")
     public void initializingWithUninitializedKvsThrows(int readBatchSize) {
         setup(readBatchSize);
         KeyValueService uninitializedKvs = mock(KeyValueService.class);
         when(uninitializedKvs.isInitialized()).thenReturn(false);
-        TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(spiedKvs, () -> 1);
+        TargetedSweeper sweeper =
+                TargetedSweeper.createUninitializedForTest(spiedKvs, () -> 1, SettableFuture.create());
         assertThatThrownBy(() -> sweeper.initializeWithoutRunning(
                         null,
                         mock(TimelockService.class),
@@ -289,7 +290,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @MethodSource("readBatchSizes")
     public void sweepWithSingleEntryUpdatesMetrics(int readBatchSize) {
         setup(readBatchSize);
-        sweepQueue.runInBackground();
+        targetedSweeper.runInBackground();
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
         sweepNextBatchForShards(CONSERVATIVE, DEFAULT_SHARDS);
 
@@ -490,7 +491,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @MethodSource("readBatchSizes")
     public void sweepHandlesSequencesOfDeletesAndReadditionsInOneShot(int readBatchSize) {
         setup(readBatchSize);
-        sweepQueue.runInBackground();
+        targetedSweeper.runInBackground();
         enqueueWriteCommitted(TABLE_CONS, LOW_TS);
         enqueueTombstone(TABLE_CONS, LOW_TS + 2);
         enqueueWriteCommitted(TABLE_CONS, LOW_TS + 4);
@@ -548,7 +549,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @MethodSource("readBatchSizes")
     public void sweepProgressesAndSkipsEmptyFinePartitions(int readBatchSize) {
         setup(readBatchSize);
-        sweepQueue.runInBackground();
+        targetedSweeper.runInBackground();
         setSweepTimestamp(minTsForFinePartition(2 * (2 * readBatchSize) + 2));
         List<Integer> permittedPartitions = new ArrayList<>();
         for (int index = 0; index <= 2 * readBatchSize; index++) {
@@ -764,7 +765,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @MethodSource("readBatchSizes")
     public void doesNotTransitivelyRetainWritesFromBeforeSweepTimestamp(int readBatchSize) {
         setup(readBatchSize);
-        sweepQueue.runInBackground();
+        targetedSweeper.runInBackground();
         long sweepTimestamp = getSweepTsCons();
         enqueueWriteCommitted(TABLE_CONS, sweepTimestamp - 10);
         enqueueTombstone(TABLE_CONS, sweepTimestamp - 5);
@@ -1080,7 +1081,9 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
             int readBatchSize) {
         setup(readBatchSize);
 
-        TargetedSweeper sweeperConservative = getSingleShardSweeper();
+        SettableFuture<MultiTableSweepQueueWriter> initialisableWriter = SettableFuture.create();
+        SingleBatchSweeper sweeperConservative = getSingleShardSweeper(initialisableWriter);
+        MultiTableSweepQueueWriter writer = new DelegatingMultiTableSweepQueueWriter(initialisableWriter);
 
         int relativePrime = MAX_CELLS_GENERIC - 1;
         // this assertion verifies that the test checks what we want. If it fails, change the value of relativePrime
@@ -1088,7 +1091,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
 
         int minTsToReachBatchSize = (SWEEP_BATCH_SIZE - 1) / relativePrime + 1;
 
-        commitTransactionsWithWritesIntoUniqueCells(minTsToReachBatchSize + 1, relativePrime, sweeperConservative);
+        commitTransactionsWithWritesIntoUniqueCells(minTsToReachBatchSize + 1, relativePrime, writer);
 
         // first iteration of sweep should include all writes corresponding to timestamp 999 + minCellsToReachBatchSize,
         // since deletes are batched, we do not specify the number of calls to delete
@@ -1112,15 +1115,17 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @MethodSource("readBatchSizes")
     public void doNotMissSingleWriteInNextIteration(int readBatchSize) {
         setup(readBatchSize);
-        TargetedSweeper sweeperConservative = getSingleShardSweeper();
+        SettableFuture<MultiTableSweepQueueWriter> initialisableWriter = SettableFuture.create();
+        SingleBatchSweeper sweeperConservative = getSingleShardSweeper(initialisableWriter);
+        MultiTableSweepQueueWriter writer = new DelegatingMultiTableSweepQueueWriter(initialisableWriter);
 
         int minTsToReachBatchSize = (SWEEP_BATCH_SIZE - 1) / MAX_CELLS_GENERIC + 1;
 
-        commitTransactionsWithWritesIntoUniqueCells(minTsToReachBatchSize, MAX_CELLS_GENERIC, sweeperConservative);
+        commitTransactionsWithWritesIntoUniqueCells(minTsToReachBatchSize, MAX_CELLS_GENERIC, writer);
         // put one additional transaction with a single write after
         putTimestampIntoTransactionTable(1000 + minTsToReachBatchSize, 1000 + minTsToReachBatchSize);
         Cell cell = Cell.create(PtBytes.toBytes(1000 + minTsToReachBatchSize), PtBytes.toBytes(0));
-        sweeperConservative.enqueue(ImmutableList.of(WriteInfo.write(TABLE_CONS, cell, 1000 + minTsToReachBatchSize)));
+        writer.enqueue(ImmutableList.of(WriteInfo.write(TABLE_CONS, cell, 1000 + minTsToReachBatchSize)));
 
         // first iteration of sweep should include all but one of the writes, since deletes are batched, we do not
         // specify the number of calls to delete
@@ -1144,11 +1149,12 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @MethodSource("readBatchSizes")
     public void deletesGetBatched(int readBatchSize) {
         setup(readBatchSize);
-        TargetedSweeper sweeperConservative = getSingleShardSweeper();
-
+        SettableFuture<MultiTableSweepQueueWriter> initialisableWriter = SettableFuture.create();
+        SingleBatchSweeper sweeperConservative = getSingleShardSweeper(initialisableWriter);
+        MultiTableSweepQueueWriter writer = new DelegatingMultiTableSweepQueueWriter(initialisableWriter);
         int numberOfTimestamps = 5 * BATCH_SIZE_KVS / MAX_CELLS_GENERIC + 1;
 
-        commitTransactionsWithWritesIntoUniqueCells(numberOfTimestamps, MAX_CELLS_GENERIC, sweeperConservative);
+        commitTransactionsWithWritesIntoUniqueCells(numberOfTimestamps, MAX_CELLS_GENERIC, writer);
         sweepNextBatch(sweeperConservative, ShardAndStrategy.conservative(0));
         ArgumentCaptor<Map<Cell, TimestampRangeDelete>> map = ArgumentCaptor.forClass(Map.class);
         verify(spiedKvs, times(6)).deleteAllTimestamps(eq(TABLE_CONS), map.capture());
@@ -1247,7 +1253,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         // write in the next fine partition
         enqueueWriteCommitted(TABLE_CONS, maxTsForFinePartition(0) + 1);
 
-        sweepQueue.processShard(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
 
         assertTestValueEnqueuedAtGivenTimestampStillPresent(TABLE_CONS, maxTsForFinePartition(0) + 1);
     }
@@ -1270,7 +1276,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         enqueueWriteCommitted(TABLE_CONS, maxTsForFinePartition(0) + 1);
         enqueueTombstone(TABLE_CONS, maxTsForFinePartition(0) + 2);
 
-        sweepQueue.processShard(ShardAndStrategy.conservative(CONS_SHARD));
+        sweepNextBatch(ShardAndStrategy.conservative(CONS_SHARD));
 
         assertReadAtTimestampReturnsSentinel(TABLE_CONS, maxTsForFinePartition(0) + 1);
     }
@@ -1283,13 +1289,30 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .maximumPartitionsToBatchInSingleRead(readBatchSize)
                 .build());
 
-        sweepQueue = TargetedSweeper.createUninitialized(
-                metricsManager, runtimeSupplier::get, installConfig, ImmutableList.of(), _unused -> {}, spiedKvs);
+        SettableFuture<MultiTableSweepQueueWriter> initialisableWriter = SettableFuture.create();
+        targetedSweeper = TargetedSweeper.createUninitialized(
+                metricsManager,
+                runtimeSupplier::get,
+                installConfig,
+                ImmutableList.of(),
+                _unused -> {},
+                spiedKvs,
+                initialisableWriter);
+        sweepQueue = new DelegatingMultiTableSweepQueueWriter(initialisableWriter);
 
         mockFollower = mock(TargetedSweepFollower.class);
         timelockService = mock(TimelockService.class);
 
-        sweepQueue.initializeWithoutRunning(timestampsSupplier, timelockService, spiedKvs, txnService, mockFollower);
+        targetedSweeper.initializeWithoutRunning(
+                timestampsSupplier, timelockService, spiedKvs, txnService, mockFollower);
+        SweepQueueComponents components = targetedSweeper.components();
+        sweeper = new DefaultSingleBatchSweeper(
+                targetedSweeper.metrics(),
+                components.shardProgress(),
+                _unused -> {},
+                components.reader(),
+                components.deleter(),
+                components.cleaner());
 
         progress = new ShardProgress(spiedKvs);
         sweepableTimestamps = new SweepableTimestamps(spiedKvs, partitioner);
@@ -1453,7 +1476,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         puncherStore.put(timestamp, timeMillis);
     }
 
-    private void commitTransactionsWithWritesIntoUniqueCells(int transactions, int writes, TargetedSweeper sweeper) {
+    private void commitTransactionsWithWritesIntoUniqueCells(
+            int transactions, int writes, MultiTableSweepQueueWriter writer) {
         for (int i = 1000; i < 1000 + transactions; i++) {
             putTimestampIntoTransactionTable(i, i);
             List<WriteInfo> writeInfos = new ArrayList<>();
@@ -1461,19 +1485,26 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 Cell cell = Cell.create(PtBytes.toBytes(i), PtBytes.toBytes(j));
                 writeInfos.add(WriteInfo.write(TABLE_CONS, cell, i));
             }
-            sweeper.enqueue(writeInfos);
+            writer.enqueue(writeInfos);
         }
     }
 
-    private TargetedSweeper getSingleShardSweeper() {
-        TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(spiedKvs, () -> 1);
+    private SingleBatchSweeper getSingleShardSweeper(SettableFuture<MultiTableSweepQueueWriter> initialisableWriter) {
+        TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(spiedKvs, () -> 1, initialisableWriter);
         sweeper.initializeWithoutRunning(
                 timestampsSupplier,
                 mock(TimelockService.class),
                 spiedKvs,
                 txnService,
                 mock(TargetedSweepFollower.class));
-        return sweeper;
+        SweepQueueComponents components = sweeper.components();
+        return new DefaultSingleBatchSweeper(
+                mock(TargetedSweepMetrics.class),
+                components.shardProgress(),
+                _unused -> {},
+                components.reader(),
+                components.deleter(),
+                components.cleaner());
     }
 
     /**
@@ -1510,7 +1541,13 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 .build();
         for (int i = 0; i < sweepers; i++) {
             TargetedSweeper sweeperInstance = TargetedSweeper.createUninitialized(
-                    metricsManager, () -> runtime, install, ImmutableList.of(), _unused -> {}, spiedKvs);
+                    metricsManager,
+                    () -> runtime,
+                    install,
+                    ImmutableList.of(),
+                    _unused -> {},
+                    spiedKvs,
+                    SettableFuture.create());
             sweeperInstance.initializeWithoutRunning(
                     timestampsSupplier, stickyLockService, spiedKvs, txnService, mockFollower);
             sweeperInstance.runInBackground();
@@ -1546,10 +1583,10 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     private long sweepNextBatch(ShardAndStrategy shardStrategy) {
-        return sweepNextBatch(sweepQueue, shardStrategy);
+        return sweepNextBatch(sweeper, shardStrategy);
     }
 
-    private long sweepNextBatch(TargetedSweeper sweeper, ShardAndStrategy shardStrategy) {
+    private long sweepNextBatch(SingleBatchSweeper sweeper, ShardAndStrategy shardStrategy) {
         return sweeper.sweepNextBatch(shardStrategy, Sweeper.of(shardStrategy).getSweepTimestamp(timestampsSupplier));
     }
 
