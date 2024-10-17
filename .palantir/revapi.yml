@@ -413,6 +413,10 @@ acceptedBreaks:
   "0.1168.0":
     com.palantir.atlasdb:atlasdb-config:
     - code: "java.method.addedToInterface"
+      new: "method com.palantir.atlasdb.config.TimeLockRequestBatcherProvider<com.palantir.lock.client.timestampleases.MultiClientMinLeasedTimestampGetter>\
+        \ com.palantir.atlasdb.config.TimeLockRequestBatcherProviders::minLeasedTimestamp()"
+      justification: "intentional, usage will be changed"
+    - code: "java.method.addedToInterface"
       new: "method com.palantir.atlasdb.config.TimeLockRequestBatcherProvider<com.palantir.lock.client.timestampleases.MultiClientTimestampLeaseAcquirer>\
         \ com.palantir.atlasdb.config.TimeLockRequestBatcherProviders::acquireTimestampLease()"
       justification: "intentional, usage will be changed"
