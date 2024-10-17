@@ -79,32 +79,27 @@ import com.palantir.tokens.auth.AuthHeader;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
 public final class ConjureTimelockResource implements UndertowConjureTimelockService {
     private final ConjureResourceExceptionHandler exceptionHandler;
-    private final BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices;
+    private final AsyncTimelockServiceFactory timelockServices;
 
     @VisibleForTesting
-    ConjureTimelockResource(
-            RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
+    ConjureTimelockResource(RedirectRetryTargeter redirectRetryTargeter, AsyncTimelockServiceFactory timelockServices) {
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.timelockServices = timelockServices;
     }
 
     public static UndertowService undertow(
-            RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
+            RedirectRetryTargeter redirectRetryTargeter, AsyncTimelockServiceFactory timelockServices) {
         return ConjureTimelockServiceEndpoints.of(new ConjureTimelockResource(redirectRetryTargeter, timelockServices));
     }
 
     public static ConjureTimelockService jersey(
-            RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
+            RedirectRetryTargeter redirectRetryTargeter, AsyncTimelockServiceFactory timelockServices) {
         return new JerseyAdapter(new ConjureTimelockResource(redirectRetryTargeter, timelockServices));
     }
 
@@ -375,7 +370,7 @@ public final class ConjureTimelockResource implements UndertowConjureTimelockSer
     }
 
     private AsyncTimelockService forNamespace(String namespace, Optional<String> userAgent) {
-        return timelockServices.apply(namespace, userAgent);
+        return timelockServices.get(namespace, userAgent);
     }
 
     private <T> ListenableFuture<T> handleExceptions(Supplier<ListenableFuture<T>> supplier) {

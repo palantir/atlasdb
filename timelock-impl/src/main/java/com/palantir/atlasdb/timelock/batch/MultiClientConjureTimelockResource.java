@@ -27,6 +27,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
+import com.palantir.atlasdb.timelock.AsyncTimelockServiceFactory;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
@@ -54,9 +55,7 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
@@ -65,26 +64,35 @@ import javax.annotation.Nullable;
  * */
 public final class MultiClientConjureTimelockResource implements UndertowMultiClientConjureTimelockService {
     private final ConjureResourceExceptionHandler exceptionHandler;
-    private final BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices;
+    private final AsyncTimelockServiceFactory timelockServices;
+    private final RemotingMultiClientTimestampLeaseServiceAdapter timestampLeaseService;
+
+    private MultiClientConjureTimelockResource(
+            RedirectRetryTargeter redirectRetryTargeter,
+            AsyncTimelockServiceFactory timelockServices,
+            RemotingMultiClientTimestampLeaseServiceAdapter timestampLeaseService) {
+        this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
+        this.timelockServices = timelockServices;
+        this.timestampLeaseService = timestampLeaseService;
+    }
 
     @VisibleForTesting
     MultiClientConjureTimelockResource(
-            RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
-        this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
-        this.timelockServices = timelockServices;
+            RedirectRetryTargeter redirectRetryTargeter, AsyncTimelockServiceFactory timelockServices) {
+        this(
+                redirectRetryTargeter,
+                timelockServices,
+                new RemotingMultiClientTimestampLeaseServiceAdapter(timelockServices));
     }
 
     public static UndertowService undertow(
-            RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
+            RedirectRetryTargeter redirectRetryTargeter, AsyncTimelockServiceFactory timelockServices) {
         return MultiClientConjureTimelockServiceEndpoints.of(
                 new MultiClientConjureTimelockResource(redirectRetryTargeter, timelockServices));
     }
 
     public static MultiClientConjureTimelockService jersey(
-            RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
+            RedirectRetryTargeter redirectRetryTargeter, AsyncTimelockServiceFactory timelockServices) {
         return new JerseyAdapter(new MultiClientConjureTimelockResource(redirectRetryTargeter, timelockServices));
     }
 
@@ -153,15 +161,13 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
     @Override
     public ListenableFuture<MultiClientTimestampLeaseResponse> acquireTimestampLease(
             AuthHeader authHeader, MultiClientTimestampLeaseRequest requests, @Nullable RequestContext context) {
-        // TODO(aalouane): implement
-        throw new UnsupportedOperationException("Not implemented yet");
+        return handleExceptions(() -> timestampLeaseService.acquireTimestampLeases(requests, context));
     }
 
     @Override
     public ListenableFuture<MultiClientGetMinLeasedTimestampResponse> getMinLeasedTimestamp(
             AuthHeader authHeader, MultiClientGetMinLeasedTimestampRequest requests, @Nullable RequestContext context) {
-        // TODO(aalouane): implement
-        throw new UnsupportedOperationException("Not implemented yet");
+        return handleExceptions(() -> timestampLeaseService.getMinLeasedTimestamps(requests, context));
     }
 
     private ListenableFuture<Entry<Namespace, ConjureUnlockResponseV2>> unlockForSingleNamespace(
@@ -231,7 +237,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
     }
 
     private AsyncTimelockService getServiceForNamespace(Namespace namespace, @Nullable RequestContext context) {
-        return timelockServices.apply(namespace.get(), TimelockNamespaces.toUserAgent(context));
+        return timelockServices.get(namespace.get(), TimelockNamespaces.toUserAgent(context));
     }
 
     private <T> ListenableFuture<T> handleExceptions(Supplier<ListenableFuture<T>> supplier) {
