@@ -16,7 +16,8 @@
 
 package com.palantir.atlasdb.sweep.asts;
 
-import com.google.errorprone.annotations.CompileTimeConstant;
+import com.palantir.atlasdb.sweep.asts.locks.Lockable;
+import com.palantir.atlasdb.sweep.asts.locks.Lockable.LockedItem;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -41,7 +42,7 @@ public final class DynamicTaskScheduler {
             ScheduledExecutorService scheduledExecutorService,
             Refreshable<Duration> automaticSweepRefreshDelay,
             Runnable task,
-            @CompileTimeConstant String safeLoggableTaskName) {
+            String safeLoggableTaskName) {
         this.scheduledExecutorService = scheduledExecutorService;
         this.automaticSweepRefreshDelay = automaticSweepRefreshDelay;
         this.task = task;
@@ -52,9 +53,28 @@ public final class DynamicTaskScheduler {
             ScheduledExecutorService scheduledExecutorService,
             Refreshable<Duration> automaticSweepRefreshDelay,
             Runnable task,
-            @CompileTimeConstant String safeLoggableTaskName) {
+            String safeLoggableTaskName) {
         return new DynamicTaskScheduler(
                 scheduledExecutorService, automaticSweepRefreshDelay, task, safeLoggableTaskName);
+    }
+
+    public static DynamicTaskScheduler createForExclusiveTask(
+            ScheduledExecutorService scheduledExecutorService,
+            Refreshable<Duration> automaticSweepRefreshDelay,
+            Lockable<ExclusiveTask> exclusiveTask,
+            String safeLoggableTaskName) {
+        Runnable runnable = () -> exclusiveTask
+                .tryLock(_ignored -> {})
+                .ifPresentOrElse(
+                        item -> {
+                            try (LockedItem<ExclusiveTask> task = item) {
+                                task.getItem().task().run();
+                            }
+                        },
+                        () -> log.warn(
+                                "Failed to acquire lock for task: {}", SafeArg.of("task", safeLoggableTaskName)));
+        return new DynamicTaskScheduler(
+                scheduledExecutorService, automaticSweepRefreshDelay, runnable, safeLoggableTaskName);
     }
 
     public void start() {
