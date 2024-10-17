@@ -31,6 +31,7 @@ dependencies {
     implementation 'com.palantir.tritium:tritium-core'
     implementation 'com.palantir.tritium:tritium-ids'
 
+    implementation 'com.github.rholder:guava-retrying'
     implementation 'com.google.guava:guava'
     implementation 'com.palantir.common:streams'
     implementation 'com.palantir.conjure.java:conjure-lib'
