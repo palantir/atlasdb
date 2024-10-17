@@ -118,7 +118,7 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
 
     @Override
     protected TransactionManager createManager() {
-        MultiTableSweepQueueWriter sweepQueue = getSweepQueueWriterUninitialized();
+        MultiTableSweepQueueWriter sweepQueue = getSweepQueueWriterInitialized();
         SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
                 MetricsManagers.createForTests(),
                 new DelegatingDataKeyValueServiceManager(keyValueService),
@@ -135,7 +135,6 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
                 sweepQueue,
                 knowledge);
-        sweepQueue.initialize(txManager);
         return txManager;
     }
 
@@ -204,10 +203,6 @@ public abstract class AbstractSerializableTransactionTest extends AbstractTransa
                     Optional.of(Preconditions.checkNotNull(newImmutableLockToken, "newImmutableLockToken"));
             return this;
         }
-    }
-
-    protected MultiTableSweepQueueWriter getSweepQueueWriterUninitialized() {
-        return MultiTableSweepQueueWriter.NO_OP;
     }
 
     protected MultiTableSweepQueueWriter getSweepQueueWriterInitialized() {

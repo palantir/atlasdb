@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.async.initializer.Callback;
 import com.palantir.async.initializer.LambdaCallback;
@@ -85,6 +86,7 @@ import com.palantir.atlasdb.sweep.SpecificTableSweeper;
 import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
+import com.palantir.atlasdb.sweep.queue.DelegatingMultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.sweep.queue.clear.SafeTableClearerKeyValueService;
@@ -480,13 +482,15 @@ public abstract class TransactionManagers {
         CoordinationService<InternalSchemaMetadata> coordinationService =
                 getSchemaMetadataCoordinationService(metricsManager, lockAndTimestampServices, internalKeyValueService);
 
+        SettableFuture<MultiTableSweepQueueWriter> initialisableWriter = SettableFuture.create();
         TargetedSweeper targetedSweeper = uninitializedTargetedSweeper(
                 internalKeyValueService,
                 metricsManager,
                 config().targetedSweep(),
                 follower,
                 runtime.map(AtlasDbRuntimeConfig::targetedSweep),
-                coordinationService);
+                coordinationService,
+                initialisableWriter);
 
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
 
@@ -520,7 +524,7 @@ public abstract class TransactionManagers {
                         .buildCleaner(),
                 closeables);
 
-        MultiTableSweepQueueWriter targetedSweep = initializeCloseable(() -> targetedSweeper, closeables);
+        TargetedSweeper targetedSweep = initializeCloseable(() -> targetedSweeper, closeables);
 
         Supplier<TransactionConfig> transactionConfigSupplier =
                 runtime.map(AtlasDbRuntimeConfig::transaction).map(this::withConsolidatedGrabImmutableTsLockFlag);
@@ -564,7 +568,7 @@ public abstract class TransactionManagers {
                         derivedSnapshotConfig.defaultGetRangesConcurrency(),
                         config().initializeAsync(),
                         timestampCache,
-                        targetedSweep,
+                        new DelegatingMultiTableSweepQueueWriter(initialisableWriter),
                         callbacks,
                         validateLocksOnReads(),
                         transactionConfigSupplier,
@@ -1058,7 +1062,8 @@ public abstract class TransactionManagers {
             TargetedSweepInstallConfig install,
             Follower follower,
             Supplier<TargetedSweepRuntimeConfig> runtime,
-            CoordinationService<InternalSchemaMetadata> coordinationService) {
+            CoordinationService<InternalSchemaMetadata> coordinationService,
+            SettableFuture<MultiTableSweepQueueWriter> initialisableWriter) {
         CoordinationAwareKnownAbandonedTransactionsStore abandonedTxnStore =
                 new CoordinationAwareKnownAbandonedTransactionsStore(
                         coordinationService, new AbandonedTimestampStoreImpl(kvs));
@@ -1068,7 +1073,8 @@ public abstract class TransactionManagers {
                 install,
                 ImmutableList.of(follower),
                 abandonedTxnStore::addAbandonedTimestamps,
-                kvs);
+                kvs,
+                initialisableWriter);
     }
 
     @Value.Immutable

@@ -36,6 +36,7 @@ import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
+import com.palantir.atlasdb.sweep.queue.SingleBatchSweeper;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schemas;
@@ -71,13 +72,15 @@ public class TodoClient {
     private final Supplier<KeyValueService> kvs;
     private final Supplier<SweepTaskRunner> sweepTaskRunner;
     private final Supplier<TargetedSweeper> targetedSweeper;
+    private final Supplier<SingleBatchSweeper> sweeper;
     private final SpecialTimestampsSupplier sweepTimestampProvider;
     private final Random random = new Random();
 
     public TodoClient(
             TransactionManager transactionManager,
             Supplier<SweepTaskRunner> sweepTaskRunner,
-            Supplier<TargetedSweeper> targetedSweeper) {
+            Supplier<TargetedSweeper> targetedSweeper,
+            Supplier<SingleBatchSweeper> sweeper) {
         this.transactionManager = transactionManager;
         this.kvs = Suppliers.memoize(transactionManager::getKeyValueService);
         this.sweepTaskRunner = sweepTaskRunner;
@@ -85,6 +88,7 @@ public class TodoClient {
         // Intentionally providing the immutable timestamp instead of unreadable to avoid the delay
         this.sweepTimestampProvider = new SpecialTimestampsSupplier(
                 transactionManager::getImmutableTimestamp, transactionManager::getImmutableTimestamp);
+        this.sweeper = sweeper;
     }
 
     public void addTodo(Todo todo) {
@@ -185,8 +189,7 @@ public class TodoClient {
     }
 
     private void runIterationOfTargetedSweepForShard(ShardAndStrategy shardStrategy) {
-        targetedSweeper
-                .get()
+        sweeper.get()
                 .sweepNextBatch(shardStrategy, Sweeper.of(shardStrategy).getSweepTimestamp(sweepTimestampProvider));
     }
 
