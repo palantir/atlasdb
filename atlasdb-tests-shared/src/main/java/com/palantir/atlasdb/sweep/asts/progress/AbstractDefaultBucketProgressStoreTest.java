@@ -17,6 +17,7 @@
 package com.palantir.atlasdb.sweep.asts.progress;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
@@ -27,6 +28,7 @@ import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
@@ -104,6 +106,21 @@ public abstract class AbstractDefaultBucketProgressStoreTest {
         assertThat(store.getBucketProgress(bucket)).contains(PROGRESS_TWO_THOUSAND_ONE_CELL_SWEPT);
         store.updateBucketProgressToAtLeast(bucket, PROGRESS_TWO_THOUSAND_NO_CELLS_SWEPT);
         assertThat(store.getBucketProgress(bucket)).contains(PROGRESS_TWO_THOUSAND_ONE_CELL_SWEPT);
+    }
+
+    @Test
+    public void deleteBucketProgressDoesNotThrowIfBucketProgressNotPresent() {
+        assertThatCode(() -> store.deleteBucketProgress(BUCKET_ONE_CONSERVATIVE_SHARD_ZERO))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    public void deleteBucketProgressDeletesBucketProgress() {
+        store.updateBucketProgressToAtLeast(BUCKET_ONE_CONSERVATIVE_SHARD_ZERO, PROGRESS_ONE_THOUSAND);
+        assertThat(store.getBucketProgress(BUCKET_ONE_CONSERVATIVE_SHARD_ZERO)).contains(PROGRESS_ONE_THOUSAND);
+
+        store.deleteBucketProgress(BUCKET_ONE_CONSERVATIVE_SHARD_ZERO);
+        assertThat(store.getBucketProgress(BUCKET_ONE_CONSERVATIVE_SHARD_ZERO)).isEmpty();
     }
 
     private static Stream<Bucket> testBuckets() {
