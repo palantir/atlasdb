@@ -82,11 +82,17 @@ final class DefaultSweepAssignedBucketStore
     }
 
     @Override
-    public void setInitialStateForBucketAssigner(long bucketIdentifier, long startTimestamp) {
-        BucketStateAndIdentifier initialState =
-                BucketStateAndIdentifier.of(bucketIdentifier, BucketAssignerState.start(startTimestamp));
+    public void setInitialStateForBucketAssigner(BucketAssignerState initialState) {
         Cell cell = SweepAssignedBucketStoreKeyPersister.INSTANCE.sweepBucketAssignerStateMachineCell();
-        casCell(cell, Optional.empty(), bucketStateAndIdentifierPersister.trySerialize(initialState));
+        casCell(
+                cell,
+                Optional.empty(),
+                bucketStateAndIdentifierPersister.trySerialize(BucketStateAndIdentifier.of(0, initialState)));
+    }
+
+    @Override
+    public boolean doesStateMachineStateExist() {
+        return maybeGetBucketStateAndIdentifier().isPresent();
     }
 
     @Override
@@ -101,11 +107,15 @@ final class DefaultSweepAssignedBucketStore
 
     @Override
     public BucketStateAndIdentifier getBucketStateAndIdentifier() {
-        Cell cell = SweepAssignedBucketStoreKeyPersister.INSTANCE.sweepBucketAssignerStateMachineCell();
-        Optional<BucketStateAndIdentifier> value = readCell(cell, bucketStateAndIdentifierPersister::tryDeserialize);
+        Optional<BucketStateAndIdentifier> value = maybeGetBucketStateAndIdentifier();
         return value.orElseThrow(() -> new SafeIllegalStateException(
                 "No bucket state and identifier found. This should have been bootstrapped during"
                         + " initialisation, and as such, is an invalid state."));
+    }
+
+    private Optional<BucketStateAndIdentifier> maybeGetBucketStateAndIdentifier() {
+        Cell cell = SweepAssignedBucketStoreKeyPersister.INSTANCE.sweepBucketAssignerStateMachineCell();
+        return readCell(cell, bucketStateAndIdentifierPersister::tryDeserialize);
     }
 
     @Override
