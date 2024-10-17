@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.factory;
 
-import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import com.palantir.atlasdb.config.ServerListConfig;
@@ -37,7 +36,6 @@ import com.palantir.conjure.java.api.config.service.UserAgent;
 import com.palantir.dialogue.clients.DialogueClients.ReloadingFactory;
 import com.palantir.lock.LockService;
 import com.palantir.lock.NamespaceAgnosticLockRpcClient;
-import com.palantir.lock.client.AuthenticatedInternalMultiClientConjureTimelockService;
 import com.palantir.lock.client.ImmutableMultiClientRequestBatchers;
 import com.palantir.lock.client.InternalMultiClientConjureTimelockService;
 import com.palantir.lock.client.LeaderElectionReportingTimelockService;
@@ -60,6 +58,12 @@ import com.palantir.lock.client.RequestBatchersFactory;
 import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.client.TimestampCorroboratingTimelockService;
 import com.palantir.lock.client.metrics.TimeLockFeedbackBackgroundTask;
+import com.palantir.lock.client.timestampleases.MinLeasedTimestampGetter;
+import com.palantir.lock.client.timestampleases.MinLeasedTimestampGetterImpl;
+import com.palantir.lock.client.timestampleases.MultiClientMinLeasedTimestampGetter;
+import com.palantir.lock.client.timestampleases.MultiClientTimestampLeaseAcquirer;
+import com.palantir.lock.client.timestampleases.TimestampLeaseAcquirer;
+import com.palantir.lock.client.timestampleases.TimestampLeaseAcquirerImpl;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.DefaultNamespacedTimelockRpcClient;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
@@ -338,7 +342,7 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                         serviceProvider.getConjureLockWatchDiagnosticsService(), timelockNamespace);
 
         Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier =
-                getMultiClientTimelockServiceSupplier(serviceProvider);
+                serviceProvider.getMultiClientConjureTimelockServiceSupplier();
 
         Supplier<Optional<RequestBatchersFactory.MultiClientRequestBatchers>> requestBatcherProvider =
                 () -> timelockRequestBatcherProviders.map(batcherProviders -> ImmutableMultiClientRequestBatchers.of(
@@ -368,7 +372,15 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                         timelockNamespace,
                         timelockRequestBatcherProviders,
                         namespacedConjureTimelockService,
-                        multiClientTimelockServiceSupplier));
+                        multiClientTimelockServiceSupplier),
+                getTimestampLeaseAcquirer(
+                        timelockNamespace,
+                        timelockRequestBatcherProviders,
+                        namespacedConjureTimelockService,
+                        multiClientTimelockServiceSupplier),
+                getMinLeasedTimestampGetter(
+                        timelockNamespace, timelockRequestBatcherProviders, multiClientTimelockServiceSupplier));
+
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
                 serviceProvider.getTimestampManagementRpcClient(), timelockNamespace);
 
@@ -381,6 +393,38 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 .addResources(remoteTimelockServiceAdapter::close)
                 .addResources(lockWatchManager::close)
                 .build();
+    }
+
+    private static TimestampLeaseAcquirer getTimestampLeaseAcquirer(
+            String timelockNamespace,
+            Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
+            NamespacedConjureTimelockService namespacedConjureTimelockService,
+            Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
+        if (timelockRequestBatcherProviders.isEmpty()) {
+            return TimestampLeaseAcquirerImpl.create(
+                    timelockNamespace, multiClientTimelockServiceSupplier, namespacedConjureTimelockService);
+        }
+        ReferenceTrackingWrapper<MultiClientTimestampLeaseAcquirer> batcher = timelockRequestBatcherProviders
+                .get()
+                .acquireTimestampLease()
+                .getBatcher(multiClientTimelockServiceSupplier);
+        batcher.recordReference();
+        return TimestampLeaseAcquirerImpl.create(timelockNamespace, batcher, namespacedConjureTimelockService);
+    }
+
+    private static MinLeasedTimestampGetter getMinLeasedTimestampGetter(
+            String timelockNamespace,
+            Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
+            Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier) {
+        if (timelockRequestBatcherProviders.isEmpty()) {
+            return MinLeasedTimestampGetterImpl.create(timelockNamespace, multiClientTimelockServiceSupplier);
+        }
+        ReferenceTrackingWrapper<MultiClientMinLeasedTimestampGetter> batcher = timelockRequestBatcherProviders
+                .get()
+                .minLeasedTimestamp()
+                .getBatcher(multiClientTimelockServiceSupplier);
+        batcher.recordReference();
+        return MinLeasedTimestampGetterImpl.create(timelockNamespace, batcher);
     }
 
     // Note: There is some duplication in the following two methods, but extracting a common method requires a fairly
@@ -413,12 +457,6 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 timelockRequestBatcherProviders.get().leaderTime().getBatcher(multiClientTimelockServiceSupplier);
         referenceTrackingBatcher.recordReference();
         return new NamespacedCoalescingLeaderTimeGetter(timelockNamespace, referenceTrackingBatcher);
-    }
-
-    private static Supplier<InternalMultiClientConjureTimelockService> getMultiClientTimelockServiceSupplier(
-            AtlasDbDialogueServiceProvider serviceProvider) {
-        return Suppliers.memoize(() -> new AuthenticatedInternalMultiClientConjureTimelockService(
-                serviceProvider.getMultiClientConjureTimelockService()));
     }
 
     private static LockAndTimestampServices createRawRemoteServices(
