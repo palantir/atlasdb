@@ -23,6 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.palantir.atlasdb.cassandra.ImmutableCassandraClientRateLimitingConfig;
 import com.palantir.atlasdb.cassandra.ImmutableCassandraCredentialsConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
@@ -71,6 +72,8 @@ public class CassandraClientFactoryTest {
                     .enableEndpointVerification(false)
                     .keyspace("ks")
                     .timeoutOnConnectionClose(Duration.ZERO)
+                    .rateLimiting(
+                            ImmutableCassandraClientRateLimitingConfig.builder().build())
                     .build(),
             new UnfilteredCassandraClientMetrics(new DefaultTaggedMetricRegistry()));
 

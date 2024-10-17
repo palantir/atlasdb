@@ -30,7 +30,7 @@ class SweepBatchAccumulator {
     private final Set<Long> abortedTimestamps = new HashSet<>();
     private final Set<Long> finePartitions = new HashSet<>();
     private final List<SweepableCellsTable.SweepableCellsRow> accumulatedDedicatedRows = new ArrayList<>();
-    private final long sweepTimestamp;
+    private final long maxExclusiveProcessableCellStartTimestamp;
     private final int batchSizeThreshold;
 
     private long progressTimestamp;
@@ -39,22 +39,23 @@ class SweepBatchAccumulator {
     private boolean anyBatchesPresent = false;
     private boolean nextBatchAvailable = true;
 
-    SweepBatchAccumulator(long sweepTimestamp, int batchSizeThreshold, long progressTimestamp) {
-        this.sweepTimestamp = sweepTimestamp;
+    SweepBatchAccumulator(
+            long maxExclusiveProcessableCellStartTimestamp, int batchSizeThreshold, long progressTimestamp) {
+        this.maxExclusiveProcessableCellStartTimestamp = maxExclusiveProcessableCellStartTimestamp;
         this.batchSizeThreshold = batchSizeThreshold;
         this.progressTimestamp = progressTimestamp;
     }
 
     void accumulateBatch(SweepBatch sweepBatch) {
         Preconditions.checkState(
-                sweepBatch.lastSweptTimestamp() < sweepTimestamp,
-                "Tried to accumulate a batch %s at timestamp %s that went beyond the sweep timestamp %s!"
-                        + " This is unexpected, and suggests a bug in the way we read in targeted sweep."
-                        + " This by itself does not mean that AtlasDB service is compromised, but targeted sweep"
-                        + " may not be working.",
+                sweepBatch.lastSweptTimestamp() < maxExclusiveProcessableCellStartTimestamp,
+                "Tried to accumulate a batch %s at timestamp %s that went beyond the max exclusive processable"
+                    + " timestamp %s! This is unexpected, and suggests a bug in the way we read in targeted sweep."
+                    + " This by itself does not mean that AtlasDB service is compromised, but targeted sweep may not"
+                    + " be working.",
                 sweepBatch,
                 sweepBatch.lastSweptTimestamp(),
-                sweepTimestamp);
+                maxExclusiveProcessableCellStartTimestamp);
 
         accumulatedWrites.addAll(sweepBatch.writes());
         abortedTimestamps.addAll(sweepBatch.abortedTimestamps());
@@ -86,7 +87,7 @@ class SweepBatchAccumulator {
     boolean shouldAcceptAdditionalBatch() {
         return accumulatedWrites.size() < batchSizeThreshold
                 && nextBatchAvailable
-                && progressTimestamp < (sweepTimestamp - 1);
+                && progressTimestamp < (maxExclusiveProcessableCellStartTimestamp - 1);
     }
 
     private List<WriteInfo> getLatestWritesByCellReference() {
@@ -101,7 +102,7 @@ class SweepBatchAccumulator {
         if (anyBatchesPresent) {
             return progressTimestamp;
         }
-        return sweepTimestamp - 1;
+        return maxExclusiveProcessableCellStartTimestamp - 1;
     }
 
     private void addRelevantFinePartitions(SweepBatch sweepBatch) {

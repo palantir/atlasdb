@@ -163,8 +163,28 @@ public class SweepableCells extends SweepQueueTable {
 
     SweepBatch getBatchForPartition(
             ShardAndStrategy shardStrategy, long partitionFine, long minTsExclusive, long sweepTs) {
+        return getBatchForPartition(shardStrategy, partitionFine, minTsExclusive, sweepTs, sweepTs);
+    }
+
+    /**
+     * Variant of {@link #getBatchForPartition(ShardAndStrategy, long, long, long)}, that considers both a maximum
+     * start timestamp that we want to read from the table as well as the sweep timestamp separately. This is
+     * important for the sake of cells which started before maxStartTsExclusive but committed after that.
+     */
+    SweepBatch getBatchForPartition(
+            ShardAndStrategy shardStrategy,
+            long partitionFine,
+            long minTsExclusive,
+            long maxStartTsExclusive,
+            long sweepTs) {
+        Preconditions.checkState(
+                maxStartTsExclusive <= sweepTs,
+                "The maximum start timestamp should not be higher than the sweep timestamp!",
+                SafeArg.of("maxStartTsExclusive", maxStartTsExclusive),
+                SafeArg.of("sweepTs", sweepTs));
         SweepableCellsRow row = computeRow(partitionFine, shardStrategy);
-        RowColumnRangeIterator resultIterator = getRowColumnRange(row, partitionFine, minTsExclusive, sweepTs);
+        RowColumnRangeIterator resultIterator =
+                getRowColumnRange(row, partitionFine, minTsExclusive, maxStartTsExclusive);
         PeekingIterator<Map.Entry<Cell, Value>> peekingResultIterator = Iterators.peekingIterator(resultIterator);
         WriteBatch writeBatch = getBatchOfWrites(row, peekingResultIterator, sweepTs);
         Multimap<Long, WriteInfo> writesByStartTs = writeBatch.writesByStartTs;
@@ -175,7 +195,7 @@ public class SweepableCells extends SweepQueueTable {
                 shardStrategy, minTsExclusive, sweepTs, writesByStartTs);
         Collection<WriteInfo> writes = getWritesToSweep(writesByStartTs, tsToSweep.timestampsDescending());
         DedicatedRows filteredDedicatedRows = getDedicatedRowsToClear(writeBatch.dedicatedRows, tsToSweep);
-        long lastSweptTs = getLastSweptTs(tsToSweep, peekingResultIterator, partitionFine, sweepTs);
+        long lastSweptTs = getLastSweptTs(tsToSweep, peekingResultIterator, partitionFine, maxStartTsExclusive);
         return SweepBatch.of(
                 writes,
                 tsToSweep.abortedTimestamps(),

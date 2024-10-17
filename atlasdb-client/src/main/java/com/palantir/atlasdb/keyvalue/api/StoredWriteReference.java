@@ -24,7 +24,12 @@ import org.immutables.value.Value.Parameter;
 
 @Immutable
 public interface StoredWriteReference extends Persistable {
-    Hydrator<StoredWriteReference> BYTES_HYDRATOR = ImmutableStoredWriteReference::of;
+    Hydrator<StoredWriteReference> BYTES_HYDRATOR = new Hydrator<StoredWriteReference>() {
+        @Override
+        public StoredWriteReference hydrateFromBytes(byte[] input) {
+            return ImmutableStoredWriteReference.of(input);
+        }
+    };
 
     default <T> T accept(Visitor<T> visitor) {
         byte[] data = data();

@@ -69,14 +69,18 @@ public abstract class TargetedSweepMetadata implements Persistable {
         }
     }
 
-    public static final Hydrator<TargetedSweepMetadata> BYTES_HYDRATOR =
-            input -> ImmutableTargetedSweepMetadata.builder()
+    public static final Hydrator<TargetedSweepMetadata> BYTES_HYDRATOR = new Hydrator<TargetedSweepMetadata>() {
+        @Override
+        public TargetedSweepMetadata hydrateFromBytes(byte[] input) {
+            return ImmutableTargetedSweepMetadata.builder()
                     .conservative((input[0] & SWEEP_STRATEGY_MASK) != 0)
                     .dedicatedRow((input[0] & USE_DEDICATED_ROWS_MASK) != 0)
                     .shard((input[0] << 2 | (input[1] & BYTE_MASK) >> 6) & BYTE_MASK)
                     .dedicatedRowNumber(input[1] & DEDICATED_ROW_NUMBER_MASK)
                     .nonSweepableTransaction((input[2] & SWEEP_STRATEGY_MASK) != 0)
                     .build();
+        }
+    };
 
     @Override
     public byte[] persistToBytes() {

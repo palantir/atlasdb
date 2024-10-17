@@ -73,13 +73,13 @@ public class SweepableTimestamps extends SweepQueueTable {
      *
      * @param shardStrategy desired shard and strategy
      * @param lastSweptTs exclusive minimum timestamp to check for
-     * @param sweepTs exclusive maximum timestamp to check for
+     * @param maxTsExclusive exclusive maximum timestamp to check for
      * @return Optional containing the fine partition, or Optional.empty() if there are no more candidates before
      * sweepTs
      */
-    Optional<Long> nextTimestampPartition(ShardAndStrategy shardStrategy, long lastSweptTs, long sweepTs) {
+    Optional<Long> nextTimestampPartition(ShardAndStrategy shardStrategy, long lastSweptTs, long maxTsExclusive) {
         long minFineInclusive = SweepQueueUtils.tsPartitionFine(lastSweptTs + 1);
-        long maxFineInclusive = SweepQueueUtils.tsPartitionFine(sweepTs - 1);
+        long maxFineInclusive = SweepQueueUtils.tsPartitionFine(maxTsExclusive - 1);
         return nextSweepablePartition(shardStrategy, minFineInclusive, maxFineInclusive);
     }
 
