@@ -16,8 +16,8 @@
 
 package com.palantir.atlasdb.sweep.metrics;
 
+import com.palantir.atlasdb.sweep.queue.NumberOfShardsProvider;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
-import com.palantir.atlasdb.sweep.queue.SweepQueue;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.logsafe.Preconditions;
@@ -29,31 +29,38 @@ import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public final class LastSweptTimestampUpdater implements AutoCloseable {
     private static final SafeLogger log = SafeLoggerFactory.get(LastSweptTimestampUpdater.class);
-    private final SweepQueue queue;
+    private final NumberOfShardsProvider numberOfShardsProvider;
+    private final Function<Set<ShardAndStrategy>, Map<ShardAndStrategy, Long>> lastSweptTimestampsProvider;
     private final TargetedSweepMetrics metrics;
     private final ScheduledExecutorService executorService;
     private final AtomicBoolean isScheduled = new AtomicBoolean(false);
 
     public LastSweptTimestampUpdater(
-            SweepQueue queue, TargetedSweepMetrics metrics, ScheduledExecutorService executorService) {
-        this.queue = queue;
+            NumberOfShardsProvider numberOfShardsProvider,
+            Function<Set<ShardAndStrategy>, Map<ShardAndStrategy, Long>> lastSweptTimestampsProvider,
+            TargetedSweepMetrics metrics,
+            ScheduledExecutorService executorService) {
+        this.numberOfShardsProvider = numberOfShardsProvider;
+        this.lastSweptTimestampsProvider = lastSweptTimestampsProvider;
         this.metrics = metrics;
         this.executorService = executorService;
     }
 
     private void updateLastSweptTimestampMetric(SweeperStrategy sweeperStrategy) {
-        int shards = queue.getNumShards(sweeperStrategy);
+        int shards = numberOfShardsProvider.getNumberOfShards(sweeperStrategy);
 
         Set<ShardAndStrategy> shardAndStrategySet = IntStream.range(0, shards)
                 .mapToObj(shard -> ShardAndStrategy.of(shard, sweeperStrategy))
                 .collect(Collectors.toSet());
 
-        Map<ShardAndStrategy, Long> shardAndStrategyToTimestamp = queue.getLastSweptTimestamps(shardAndStrategySet);
+        Map<ShardAndStrategy, Long> shardAndStrategyToTimestamp =
+                lastSweptTimestampsProvider.apply(shardAndStrategySet);
 
         KeyedStream.stream(shardAndStrategyToTimestamp).forEach(metrics::updateProgressForShard);
     }
