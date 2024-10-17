@@ -17,9 +17,9 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.codahale.metrics.Meter;
 import com.palantir.atlasdb.AtlasDbMetricNames;
+import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.annotations.ReviewedRestrictedApiUsage;
-import com.palantir.lock.v2.AcquireNamedMinTimestampLeaseResult;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
@@ -27,11 +27,13 @@ import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.TimestampLeaseResult;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tritium.metrics.registry.MetricName;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -135,16 +137,15 @@ public final class InstrumentedTimelockService implements TimelockService {
 
     @ReviewedRestrictedApiUsage
     @Override
-    public AcquireNamedMinTimestampLeaseResult acquireNamedMinTimestampLease(
-            String timestampName, int numFreshTimestamps) {
-        return executeWithRecord(
-                () -> timelockService.acquireNamedMinTimestampLease(timestampName, numFreshTimestamps));
+    public Map<TimestampLeaseName, TimestampLeaseResult> acquireTimestampLeases(
+            Map<TimestampLeaseName, Integer> requests) {
+        return executeWithRecord(() -> timelockService.acquireTimestampLeases(requests));
     }
 
     @ReviewedRestrictedApiUsage
     @Override
-    public long getMinLeasedTimestampForName(String timestampName) {
-        return executeWithRecord(() -> timelockService.getMinLeasedTimestampForName(timestampName));
+    public Map<TimestampLeaseName, Long> getMinLeasedTimestamps(Set<TimestampLeaseName> timestampNames) {
+        return executeWithRecord(() -> timelockService.getMinLeasedTimestamps(timestampNames));
     }
 
     private <T> T executeWithRecord(Supplier<T> method) {

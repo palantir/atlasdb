@@ -16,6 +16,7 @@
 package com.palantir.lock.v2;
 
 import com.google.errorprone.annotations.RestrictedApi;
+import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
 import com.palantir.lock.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.logsafe.Safe;
 import com.palantir.processors.AutoDelegate;
@@ -23,6 +24,7 @@ import com.palantir.processors.DoNotDelegate;
 import com.palantir.timestamp.TimestampRange;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -115,7 +117,9 @@ public interface TimelockService {
 
     /**
      * Acquires a lease on a named timestamp. The lease is taken out with a new fresh timestamp.
-     * The returned timestamps are fresh timestamps obtained strictly after the lease is taken out.
+     * The timestamps supplied are fresh timestamps obtained strictly after the lease is taken out.
+     * The supplier returns exactly the number of timestamps requested and throws on any additional
+     * interactions.
      */
     @RestrictedApi(
             explanation =
@@ -123,7 +127,7 @@ public interface TimelockService {
                         + " given explicit approval. Mis-use can result in SEVERE DATA CORRUPTION and the API contract"
                         + " is subject to change at any time.",
             allowlistAnnotations = ReviewedRestrictedApiUsage.class)
-    AcquireNamedMinTimestampLeaseResult acquireNamedMinTimestampLease(String timestampName, int numFreshTimestamps);
+    Map<TimestampLeaseName, TimestampLeaseResult> acquireTimestampLeases(Map<TimestampLeaseName, Integer> requests);
 
     /**
      * Returns the smallest leased timestamp in the associated named collection at the time of the call.
@@ -135,5 +139,5 @@ public interface TimelockService {
                         + " given explicit approval. Mis-use can result in SEVERE DATA CORRUPTION and the API contract"
                         + " is subject to change at any time.",
             allowlistAnnotations = ReviewedRestrictedApiUsage.class)
-    long getMinLeasedTimestampForName(String timestampName);
+    Map<TimestampLeaseName, Long> getMinLeasedTimestamps(Set<TimestampLeaseName> timestampNames);
 }

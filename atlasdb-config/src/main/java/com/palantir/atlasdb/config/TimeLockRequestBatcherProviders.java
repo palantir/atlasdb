@@ -20,6 +20,7 @@ import com.palantir.lock.client.LeaderTimeCoalescingBatcher;
 import com.palantir.lock.client.MultiClientCommitTimestampGetter;
 import com.palantir.lock.client.MultiClientTimeLockUnlocker;
 import com.palantir.lock.client.MultiClientTransactionStarter;
+import com.palantir.lock.client.timestampleases.MultiClientTimestampLeaseAcquirer;
 import org.immutables.value.Value;
 
 @Value.Immutable
@@ -31,4 +32,6 @@ public interface TimeLockRequestBatcherProviders {
     TimeLockRequestBatcherProvider<MultiClientCommitTimestampGetter> commitTimestamps();
 
     TimeLockRequestBatcherProvider<MultiClientTimeLockUnlocker> unlock();
+
+    TimeLockRequestBatcherProvider<MultiClientTimestampLeaseAcquirer> acquireTimestampLease();
 }

@@ -4,6 +4,7 @@ apply from: "../gradle/shared.gradle"
 libsDirName = file('build/artifacts')
 
 dependencies {
+    api project(":timelock-api")
     api project(":timestamp-api")
     api project(":timestamp-client")
     implementation project(":atlasdb-commons")

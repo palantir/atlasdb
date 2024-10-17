@@ -19,6 +19,7 @@ dependencies {
   implementation project(":atlasdb-commons")
   implementation project(':commons-executors')
   implementation project(':lock-api-objects')
+  implementation project(':timelock-api')
   implementation project(':timestamp-api')
 
   testImplementation 'com.fasterxml.jackson.core:jackson-databind'

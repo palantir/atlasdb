@@ -17,12 +17,12 @@ package com.palantir.lock.client;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
 import com.palantir.common.base.Throwables;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.leader.NotCurrentLeaderException;
 import com.palantir.lock.annotations.ReviewedRestrictedApiUsage;
-import com.palantir.lock.v2.AcquireNamedMinTimestampLeaseResult;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockLeaseRefresher;
@@ -31,6 +31,7 @@ import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.TimestampLeaseResult;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.timestamp.CloseableTimestampService;
@@ -39,6 +40,7 @@ import com.palantir.timestamp.TimestampRange;
 import java.net.ConnectException;
 import java.net.UnknownHostException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ScheduledExecutorService;
@@ -184,15 +186,15 @@ public class TimeLockClient implements AutoCloseable, TimelockService {
 
     @ReviewedRestrictedApiUsage
     @Override
-    public AcquireNamedMinTimestampLeaseResult acquireNamedMinTimestampLease(
-            String timestampName, int numFreshTimestamps) {
-        return delegate.acquireNamedMinTimestampLease(timestampName, numFreshTimestamps);
+    public Map<TimestampLeaseName, TimestampLeaseResult> acquireTimestampLeases(
+            Map<TimestampLeaseName, Integer> requests) {
+        return delegate.acquireTimestampLeases(requests);
     }
 
     @ReviewedRestrictedApiUsage
     @Override
-    public long getMinLeasedTimestampForName(String timestampName) {
-        return delegate.getMinLeasedTimestampForName(timestampName);
+    public Map<TimestampLeaseName, Long> getMinLeasedTimestamps(Set<TimestampLeaseName> timestampNames) {
+        return delegate.getMinLeasedTimestamps(timestampNames);
     }
 
     private static <T> T executeOnTimeLock(Callable<T> callable) {
