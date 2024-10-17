@@ -20,6 +20,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
+import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.atlasdb.RateLimitingCassandraClient;
 import com.palantir.atlasdb.cassandra.CassandraClientRateLimitingConfig;
 import com.palantir.atlasdb.cassandra.CassandraCredentialsConfig;
@@ -35,6 +36,7 @@ import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.conjure.java.api.config.ssl.SslConfiguration;
 import com.palantir.conjure.java.config.ssl.SslSocketFactories;
 import com.palantir.exception.SafeSSLPeerUnverifiedException;
+import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.DoNotLog;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
@@ -105,12 +107,18 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
         try {
             return rateLimitClient(instrumentClient(getRawClientWithKeyspaceSet()));
         } catch (Exception e) {
-            String message = String.format(
-                    "Failed to construct client for %s/%s", cassandraServer.proxy(), clientConfig.keyspace());
             if (clientConfig.usingSsl()) {
-                message += " over SSL";
+                throw new ClientCreationFailedException(
+                        "Failed to construct client for {}/{} over SSL",
+                        e,
+                        SafeArg.of("proxy", CassandraLogHelper.host(cassandraServer.proxy())),
+                        SafeArg.of("keyspace", clientConfig.keyspace()));
             }
-            throw new ClientCreationFailedException(message, e);
+            throw new ClientCreationFailedException(
+                    "Failed to construct client for {}/{}",
+                    e,
+                    SafeArg.of("proxy", CassandraLogHelper.host(cassandraServer.proxy())),
+                    SafeArg.of("keyspace", clientConfig.keyspace()));
         }
     }
 
@@ -137,7 +145,7 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
                 log.debug(
                         "Created new client for {}/{}{}{}",
                         SafeArg.of("address", CassandraLogHelper.host(cassandraServer.proxy())),
-                        UnsafeArg.of("keyspace", clientConfig.keyspace()),
+                        SafeArg.of("keyspace", clientConfig.keyspace()),
                         SafeArg.of("usingSsl", clientConfig.usingSsl() ? " over SSL" : ""),
                         UnsafeArg.of(
                                 "usernameConfig",
@@ -327,8 +335,8 @@ public class CassandraClientFactory extends BasePooledObjectFactory<CassandraCli
     static final class ClientCreationFailedException extends AtlasDbDependencyException {
         private static final long serialVersionUID = 1L;
 
-        ClientCreationFailedException(String message, Exception cause) {
-            super(message, cause);
+        ClientCreationFailedException(@CompileTimeConstant String message, Exception cause, Arg<?>... args) {
+            super(message, cause, args);
         }
     }
 

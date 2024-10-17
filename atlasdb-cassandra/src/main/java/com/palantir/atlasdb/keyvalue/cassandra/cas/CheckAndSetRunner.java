@@ -22,6 +22,7 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
 import com.palantir.atlasdb.keyvalue.cassandra.TracingQueryRunner;
 import com.palantir.atlasdb.keyvalue.impl.CheckAndSetResult;
+import com.palantir.logsafe.SafeArg;
 import org.apache.cassandra.thrift.Compression;
 import org.apache.cassandra.thrift.ConsistencyLevel;
 import org.apache.cassandra.thrift.CqlResult;
@@ -48,7 +49,9 @@ public class CheckAndSetRunner {
             return CheckAndSetResponseDecoder.decodeCqlResult(result);
         } catch (UnavailableException e) {
             throw new InsufficientConsistencyException(
-                    "Check-and-set requires " + writeConsistency + " Cassandra nodes to be up and available.", e);
+                    "Check-and-set requires {} Cassandra nodes to be up and available.",
+                    e,
+                    SafeArg.of("writeConsistency", writeConsistency));
         }
     }
 }
