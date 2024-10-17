@@ -188,6 +188,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
                 // We could just get this from the queue inside create, but since I'm in the process of ripping out
                 // the queue, I'm going to pass it in explicitly.
                 queue.getNumberOfShardsProvider(),
+                queue.getSweeper(),
                 timestamps,
                 metrics,
                 runtime);
@@ -230,7 +231,7 @@ public class TargetedSweeper implements MultiTableSweepQueueWriter, BackgroundSw
     // Visible for testing
     public long sweepNextBatch(ShardAndStrategy shardStrategy, long maxTsExclusive) {
         assertInitialized();
-        return queue.sweepNextBatch(shardStrategy, maxTsExclusive);
+        return queue.getSweeper().sweepNextBatch(shardStrategy, maxTsExclusive);
     }
 
     @VisibleForTesting
