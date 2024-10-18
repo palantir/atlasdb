@@ -35,7 +35,6 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClientFactory.CassandraClientConfig;
 import com.palantir.atlasdb.keyvalue.cassandra.pool.CassandraServer;
 import com.palantir.common.base.FunctionCheckedException;
-import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.DoNotLog;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -90,7 +89,7 @@ public final class CassandraVerifier {
                 return sanityCheckDatacentersInternal(
                         client, verifierConfig.replicationFactor(), verifierConfig.ignoreNodeTopologyChecks());
             } catch (TException e) {
-                throw Throwables.throwUncheckedException(e);
+                throw CassandraTExceptions.mapToUncheckedException(e);
             }
         });
     }
