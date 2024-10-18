@@ -24,10 +24,7 @@ import com.palantir.atlasdb.timelock.AsyncTimelockServiceFactory;
 import com.palantir.atlasdb.timelock.api.GetMinLeasedTimestampResponses;
 import com.palantir.atlasdb.timelock.api.MultiClientGetMinLeasedTimestampRequest;
 import com.palantir.atlasdb.timelock.api.MultiClientGetMinLeasedTimestampResponse;
-import com.palantir.atlasdb.timelock.api.MultiClientTimestampLeaseRequest;
-import com.palantir.atlasdb.timelock.api.MultiClientTimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
-import com.palantir.atlasdb.timelock.api.TimestampLeaseResponses;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.undertow.lib.RequestContext;
 import java.util.Map;
@@ -42,19 +39,6 @@ final class RemotingMultiClientTimestampLeaseServiceAdapter {
 
     RemotingMultiClientTimestampLeaseServiceAdapter(AsyncTimelockServiceFactory timelockServices) {
         this(new RemotingTimestampLeaseServiceAdapter(timelockServices));
-    }
-
-    ListenableFuture<MultiClientTimestampLeaseResponse> acquireTimestampLeases(
-            MultiClientTimestampLeaseRequest requests, @Nullable RequestContext context) {
-        Map<Namespace, ListenableFuture<TimestampLeaseResponses>> futures = KeyedStream.stream(requests.get())
-                .map((namespace, request) -> delegate.acquireTimestampLeases(namespace, request, context))
-                .collectToMap();
-
-        // TODO(aalouane): clean up lease resources in cases of partial failures
-        return Futures.transform(
-                AtlasFutures.allAsMap(futures, MoreExecutors.directExecutor()),
-                MultiClientTimestampLeaseResponse::of,
-                MoreExecutors.directExecutor());
     }
 
     ListenableFuture<MultiClientGetMinLeasedTimestampResponse> getMinLeasedTimestamps(

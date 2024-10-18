@@ -27,10 +27,6 @@ import com.palantir.atlasdb.timelock.api.GetMinLeasedTimestampRequests;
 import com.palantir.atlasdb.timelock.api.GetMinLeasedTimestampResponses;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
-import com.palantir.atlasdb.timelock.api.TimestampLeaseRequest;
-import com.palantir.atlasdb.timelock.api.TimestampLeaseRequests;
-import com.palantir.atlasdb.timelock.api.TimestampLeaseResponse;
-import com.palantir.atlasdb.timelock.api.TimestampLeaseResponses;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.undertow.lib.RequestContext;
 import java.util.Map;
@@ -41,21 +37,6 @@ final class RemotingTimestampLeaseServiceAdapter {
 
     RemotingTimestampLeaseServiceAdapter(AsyncTimelockServiceFactory timelockServices) {
         this.timelockServices = timelockServices;
-    }
-
-    ListenableFuture<TimestampLeaseResponses> acquireTimestampLeases(
-            Namespace namespace, TimestampLeaseRequests requests, @Nullable RequestContext context) {
-        AsyncTimelockService service = getServiceForNamespace(namespace, context);
-
-        Map<TimestampLeaseName, ListenableFuture<TimestampLeaseResponse>> futures = KeyedStream.stream(requests.get())
-                .map((timestampName, request) -> acquireTimestampLease(service, timestampName, request))
-                .collectToMap();
-
-        // TODO(aalouane): clean up lease resources in cases of partial failures
-        return Futures.transform(
-                AtlasFutures.allAsMap(futures, MoreExecutors.directExecutor()),
-                TimestampLeaseResponses::of,
-                MoreExecutors.directExecutor());
     }
 
     ListenableFuture<GetMinLeasedTimestampResponses> getMinLeasedTimestamps(
@@ -74,10 +55,5 @@ final class RemotingTimestampLeaseServiceAdapter {
 
     private AsyncTimelockService getServiceForNamespace(Namespace namespace, @Nullable RequestContext context) {
         return timelockServices.get(namespace.get(), TimelockNamespaces.toUserAgent(context));
-    }
-
-    private static ListenableFuture<TimestampLeaseResponse> acquireTimestampLease(
-            AsyncTimelockService service, TimestampLeaseName timestampName, TimestampLeaseRequest request) {
-        return service.acquireTimestampLease(timestampName, request.getRequestId(), request.getNumFreshTimestamps());
     }
 }

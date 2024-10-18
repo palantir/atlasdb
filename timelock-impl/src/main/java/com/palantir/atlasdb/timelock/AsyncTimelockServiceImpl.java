@@ -22,7 +22,6 @@ import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
-import com.palantir.atlasdb.timelock.api.ConjureTimestampRange;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.LeaseGuarantee;
 import com.palantir.atlasdb.timelock.api.LeaseIdentifier;
@@ -259,23 +258,7 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public ListenableFuture<TimestampLeaseResponse> acquireTimestampLease(
             TimestampLeaseName timestampName, UUID requestId, int numFreshTimestamps) {
-        long timestamp = timestampService.getFreshTimestamp();
-
-        Leased<LockToken> leasedLock = lockService
-                .acquireTimestampLease(timestampName, requestId, timestamp)
-                .get();
-        long minLeased = lockService.getMinLeasedTimestamp(timestampName).orElse(timestamp);
-
-        TimestampRange timestampRange = timestampService.getFreshTimestamps(numFreshTimestamps);
-
-        ConjureTimestampRange freshTimestamps =
-                ConjureTimestampRange.of(timestampRange.getLowerBound(), timestampRange.size());
-
-        return Futures.immediateFuture(TimestampLeaseResponse.builder()
-                .minLeased(minLeased)
-                .leaseGuarantee(toConjure(leasedLock))
-                .freshTimestamps(freshTimestamps)
-                .build());
+        throw new UnsupportedOperationException("Unsupported");
     }
 
     @Override
