@@ -23,7 +23,7 @@ import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.lock.v2.TimelockService;
 import java.util.function.Supplier;
 
-final class ShardedBackgroundSweepScheduler implements BackgroundSweeper {
+public final class ShardedBackgroundSweepScheduler implements BackgroundSweeper {
     private final ShardedStrategySpecificBackgroundSweepScheduler conservativeScheduler;
     private final ShardedStrategySpecificBackgroundSweepScheduler thoroughScheduler;
 

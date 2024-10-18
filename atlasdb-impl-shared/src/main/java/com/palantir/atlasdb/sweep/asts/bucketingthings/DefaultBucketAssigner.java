@@ -229,7 +229,7 @@ public final class DefaultBucketAssigner {
     }
 
     @Value.Immutable
-    interface IterationResult {
+    public interface IterationResult {
         @Value.Parameter
         OperationResult operationResult();
 
