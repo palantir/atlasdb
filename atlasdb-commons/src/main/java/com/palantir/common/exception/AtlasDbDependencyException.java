@@ -15,18 +15,41 @@
  */
 package com.palantir.common.exception;
 
-public class AtlasDbDependencyException extends RuntimeException {
-    private static final String EXCEPTION_MESSAGE = "AtlasDB dependency threw an exception.";
+import com.google.errorprone.annotations.CompileTimeConstant;
+import com.palantir.logsafe.Arg;
+import com.palantir.logsafe.Safe;
+import com.palantir.logsafe.SafeLoggable;
+import com.palantir.logsafe.exceptions.SafeExceptions;
+import java.util.Arrays;
+import java.util.List;
+import javax.annotation.Nullable;
 
-    public AtlasDbDependencyException(String msg) {
-        super(msg);
+public class AtlasDbDependencyException extends RuntimeException implements SafeLoggable {
+    private final List<Arg<?>> args;
+    private final String logMessage;
+
+    public AtlasDbDependencyException(@CompileTimeConstant String logMessage, Arg<?>... args) {
+        this(logMessage, null, args);
     }
 
-    public AtlasDbDependencyException(String msg, Throwable throwable) {
-        super(msg, throwable);
+    public AtlasDbDependencyException(Throwable throwable, Arg<?>... args) {
+        this("AtlasDB dependency threw an exception.", throwable, args);
     }
 
-    public AtlasDbDependencyException(Throwable throwable) {
-        super(EXCEPTION_MESSAGE, throwable);
+    public AtlasDbDependencyException(
+            @Safe @CompileTimeConstant String logMessage, @Nullable Throwable cause, Arg<?>... args) {
+        super(SafeExceptions.renderMessage(logMessage, args), cause);
+        this.args = Arrays.asList(args);
+        this.logMessage = logMessage;
+    }
+
+    @Override
+    public @Safe String getLogMessage() {
+        return logMessage;
+    }
+
+    @Override
+    public List<Arg<?>> getArgs() {
+        return args;
     }
 }
