@@ -100,12 +100,14 @@ public class DefaultShardProgressUpdaterTest {
                 .thenReturn(ImmutableSet.of(bucket));
         when(bucketProgressStore.getBucketProgress(bucket)).thenReturn(Optional.empty());
         when(recordsTable.getTimestampRangeRecord(bucket.bucketIdentifier()))
-                .thenReturn(TimestampRange.of(0L, SweepQueueUtils.minTsForCoarsePartition(8)));
+                .thenReturn(TimestampRange.of(SweepQueueUtils.minTsForCoarsePartition(3),
+                        SweepQueueUtils.minTsForCoarsePartition(8)));
 
         shardProgressUpdater.updateProgress(bucket.shardAndStrategy());
 
         verify(sweepBucketPointerTable).updateStartingBucketForShardAndStrategy(bucket);
-        verify(sweepQueueProgressUpdater).progressTo(bucket.shardAndStrategy(), -1L);
+        verify(sweepQueueProgressUpdater).progressTo(bucket.shardAndStrategy(),
+                SweepQueueUtils.minTsForCoarsePartition(3) - 1L);
         verify(bucketProgressStore, never()).deleteBucketProgress(any());
     }
 
