@@ -59,6 +59,7 @@ import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.atlasdb.transaction.service.TransactionServices;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timelock.paxos.InMemoryTimelockExtension;
 import com.palantir.timestamp.ManagedTimestampService;
 import java.util.Map;
@@ -363,7 +364,8 @@ public class KeyValueServiceMigratorsTest {
         when(mockServices.getTransactionService()).thenReturn(transactionService);
         when(mockServices.getKeyValueService()).thenReturn(kvs);
         SettableFuture<MultiTableSweepQueueWriter> initialisableWriter = SettableFuture.create();
-        TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(kvs, () -> 1, initialisableWriter);
+        TargetedSweeper sweeper =
+                TargetedSweeper.createUninitializedForTest(kvs, Refreshable.only(1), initialisableWriter);
         SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
                 metricsManager,
                 new DelegatingDataKeyValueServiceManager(kvs),

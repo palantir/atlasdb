@@ -23,10 +23,12 @@ import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
 import com.palantir.atlasdb.cleaner.PuncherStore;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.BackgroundSweeper;
+import com.palantir.atlasdb.sweep.asts.BackgroundTargetedSweeperFactory;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.DefaultSweepAssignedBucketStore;
 import com.palantir.atlasdb.sweep.asts.progress.DefaultBucketProgressStore;
 import com.palantir.atlasdb.sweep.metrics.LastSweptTimestampUpdater;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
+import com.palantir.atlasdb.sweep.metrics.TargetedSweepProgressMetrics;
 import com.palantir.atlasdb.sweep.queue.NumberOfShardsProvider.MismatchBehaviour;
 import com.palantir.atlasdb.sweep.queue.SweepQueueReader.ReadBatchingRuntimeContext;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepInstallConfig;
@@ -45,16 +47,17 @@ import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.refreshable.Refreshable;
 import java.util.List;
-import java.util.Set;
-import java.util.function.Supplier;
 
 @SuppressWarnings({"FinalClass", "Not final for mocking in tests"})
 public class TargetedSweeper implements BackgroundSweeper, CallbackInitializable<TransactionManager>, AutoCloseable {
     private static final SafeLogger log = SafeLoggerFactory.get(TargetedSweeper.class);
-
+    // TODO(mdaudali): Consider having this be configurable
+    private static final List<SweeperStrategy> SWEEPABLE_STRATEGIES =
+            List.of(SweeperStrategy.CONSERVATIVE, SweeperStrategy.THOROUGH);
     private final boolean shouldResetAndStopSweep;
-    private final Supplier<TargetedSweepRuntimeConfig> runtime;
+    private final Refreshable<TargetedSweepRuntimeConfig> runtime;
     private final TargetedSweepInstallConfig install;
     private final List<Follower> followers;
     private final MetricsManager metricsManager;
@@ -64,12 +67,13 @@ public class TargetedSweeper implements BackgroundSweeper, CallbackInitializable
 
     private final KeyValueService keyValueService;
 
+    private final SettableFuture<MultiTableSweepQueueWriter> initialisableWriter;
+    private final PuncherStore puncherStore;
+
     private LastSweptTimestampUpdater lastSweptTimestampUpdater;
     private TargetedSweepMetrics metrics;
     private SweepProgressResetter resetter;
-    private ShardedBackgroundSweepScheduler sweeper;
-    private SettableFuture<MultiTableSweepQueueWriter> initialisableWriter;
-    private PuncherStore puncherStore;
+    private BackgroundSweeper sweeper;
 
     private SweepQueueComponents components;
 
@@ -77,7 +81,7 @@ public class TargetedSweeper implements BackgroundSweeper, CallbackInitializable
 
     private TargetedSweeper(
             MetricsManager metricsManager,
-            Supplier<TargetedSweepRuntimeConfig> runtime,
+            Refreshable<TargetedSweepRuntimeConfig> runtime,
             TargetedSweepInstallConfig install,
             List<Follower> followers,
             AbandonedTransactionConsumer abandonedTransactionConsumer,
@@ -113,7 +117,7 @@ public class TargetedSweeper implements BackgroundSweeper, CallbackInitializable
      */
     public static TargetedSweeper createUninitialized(
             MetricsManager metrics,
-            Supplier<TargetedSweepRuntimeConfig> runtime,
+            Refreshable<TargetedSweepRuntimeConfig> runtime,
             TargetedSweepInstallConfig install,
             List<Follower> followers,
             AbandonedTransactionConsumer abandonedTransactionConsumer,
@@ -134,7 +138,7 @@ public class TargetedSweeper implements BackgroundSweeper, CallbackInitializable
     public static TargetedSweeper createUninitializedForTest(
             KeyValueService kvs,
             MetricsManager metricsManager,
-            Supplier<TargetedSweepRuntimeConfig> runtime,
+            Refreshable<TargetedSweepRuntimeConfig> runtime,
             SettableFuture<MultiTableSweepQueueWriter> initialisableWriter) {
         PuncherStore puncherStore = KeyValueServicePuncherStore.create(kvs);
         TargetedSweepInstallConfig install = ImmutableTargetedSweepInstallConfig.builder()
@@ -154,11 +158,12 @@ public class TargetedSweeper implements BackgroundSweeper, CallbackInitializable
 
     public static TargetedSweeper createUninitializedForTest(
             KeyValueService kvs,
-            Supplier<Integer> shards,
+            Refreshable<Integer> shards,
             SettableFuture<MultiTableSweepQueueWriter> initialisableWriter) {
-        Supplier<TargetedSweepRuntimeConfig> runtime = () -> ImmutableTargetedSweepRuntimeConfig.builder()
-                .shards(shards.get())
-                .build();
+        Refreshable<TargetedSweepRuntimeConfig> runtime =
+                shards.map(numberOfShards -> ImmutableTargetedSweepRuntimeConfig.builder()
+                        .shards(numberOfShards)
+                        .build());
         return createUninitializedForTest(kvs, MetricsManagers.createForTests(), runtime, initialisableWriter);
     }
 
@@ -203,6 +208,7 @@ public class TargetedSweeper implements BackgroundSweeper, CallbackInitializable
                 kvs,
                 metricsConfiguration,
                 runtime.get().shards());
+        MismatchBehaviour mismatchBehaviour = BackgroundTargetedSweeperFactory.getMismatchBehaviour(install);
         components = SweepQueueComponents.create(
                 metrics,
                 kvs,
@@ -215,7 +221,8 @@ public class TargetedSweeper implements BackgroundSweeper, CallbackInitializable
                         .build(),
                 table -> runtime.get().tablesToTrackDeletions().apply(table),
                 follower,
-                MismatchBehaviour.UPDATE);
+                mismatchBehaviour);
+
         SingleBatchSweeper singleBatchSweeper = new DefaultSingleBatchSweeper(
                 metrics,
                 components.shardProgress(),
@@ -223,16 +230,19 @@ public class TargetedSweeper implements BackgroundSweeper, CallbackInitializable
                 components.reader(),
                 components.deleter(),
                 components.cleaner());
-        sweeper = ShardedBackgroundSweepScheduler.create(
-                install.conservativeThreads(),
-                install.thoroughThreads(),
+        sweeper = BackgroundTargetedSweeperFactory.create(
+                keyValueService,
                 timelockService,
-                components.numberOfShardsProvider(),
-                singleBatchSweeper,
+                puncherStore,
+                components,
                 timestamps,
+                SWEEPABLE_STRATEGIES,
+                install,
+                runtime,
+                abandonedTransactionConsumer,
                 metrics,
-                runtime);
-        // TODO(mdaudali): Fix the null once we've finished merging everything else in
+                TargetedSweepProgressMetrics.of(metricsManager.getTaggedRegistry()));
+
         resetter = new DefaultSweepProgressResetter(
                 keyValueService,
                 DefaultBucketProgressStore.TABLE_REF,
@@ -257,7 +267,7 @@ public class TargetedSweeper implements BackgroundSweeper, CallbackInitializable
                     + "targeted sweep. While in this mode, your data is not getting swept: please restart your node "
                     + "once it is confirmed that sweep progress has been reset.");
             // TODO(mdaudali): We should centralise what strategies we're actually going to sweep (and thus reset)
-            resetter.resetProgress(Set.of(SweeperStrategy.CONSERVATIVE, SweeperStrategy.THOROUGH));
+            resetter.resetProgress(SWEEPABLE_STRATEGIES);
         } else {
             sweeper.runInBackground();
             lastSweptTimestampUpdater.schedule(metricsConfiguration.lastSweptTimestampUpdaterDelayMillis());

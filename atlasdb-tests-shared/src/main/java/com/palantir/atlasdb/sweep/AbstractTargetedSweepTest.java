@@ -44,6 +44,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.refreshable.Refreshable;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -72,10 +73,10 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
         targetedSweeper = TargetedSweeper.createUninitializedForTest(
                 kvs,
                 metricsManager,
-                () -> ImmutableTargetedSweepRuntimeConfig.builder()
+                Refreshable.create(ImmutableTargetedSweepRuntimeConfig.builder()
                         .shards(1)
                         .maximumPartitionsToBatchInSingleRead(8)
-                        .build(),
+                        .build()),
                 initialisableWriter);
         targetedSweeper.initializeWithoutRunning(
                 timestampsSupplier, mock(TimelockService.class), kvs, txService, mock(TargetedSweepFollower.class));
