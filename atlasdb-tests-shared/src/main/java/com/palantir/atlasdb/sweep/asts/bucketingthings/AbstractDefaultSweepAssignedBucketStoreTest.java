@@ -74,25 +74,29 @@ public abstract class AbstractDefaultSweepAssignedBucketStoreTest {
     }
 
     @Test
+    public void doesStateMachineStateExistReturnsFalseWhenStateMachineStateDoesNotExist() {
+        assertThat(store.doesStateMachineStateExist()).isFalse();
+    }
+
+    @Test
     public void setInitialStateCreatesStartingState() {
-        long bucketIdentifier = 123;
-        long startTimestamp = 456;
-        store.setInitialStateForBucketAssigner(bucketIdentifier, startTimestamp);
-        BucketStateAndIdentifier initialState =
-                BucketStateAndIdentifier.of(bucketIdentifier, BucketAssignerState.start(startTimestamp));
-        assertThat(store.getBucketStateAndIdentifier()).isEqualTo(initialState);
+        BucketAssignerState initialState = BucketAssignerState.closingFromOpen(421, 912);
+        store.setInitialStateForBucketAssigner(initialState);
+        BucketStateAndIdentifier expectedState = BucketStateAndIdentifier.of(0, initialState);
+        assertThat(store.getBucketStateAndIdentifier()).isEqualTo(expectedState);
+        assertThat(store.doesStateMachineStateExist()).isTrue();
     }
 
     @Test
     public void cannotSetInitialStateWhenStateAlreadyExists() {
-        store.setInitialStateForBucketAssigner(123, 456);
-        assertThatThrownBy(() -> store.setInitialStateForBucketAssigner(789, 101112))
+        store.setInitialStateForBucketAssigner(BucketAssignerState.start(0));
+        assertThatThrownBy(() -> store.setInitialStateForBucketAssigner(BucketAssignerState.start(12)))
                 .isInstanceOf(CheckAndSetException.class);
     }
 
     @Test
     public void updateStateMachineForBucketAssignerFailsIfInitialDoesNotMatchExisting() {
-        store.setInitialStateForBucketAssigner(123, 456);
+        store.setInitialStateForBucketAssigner(BucketAssignerState.start(12));
         BucketStateAndIdentifier incorrectInitialState =
                 BucketStateAndIdentifier.of(123, BucketAssignerState.start(789));
         BucketStateAndIdentifier newState = BucketStateAndIdentifier.of(123, BucketAssignerState.start(101112));
@@ -110,8 +114,8 @@ public abstract class AbstractDefaultSweepAssignedBucketStoreTest {
 
     @Test
     public void updateStateMachineForBucketAssignerModifiesStateToNewIfOriginalMatchesExisting() {
-        store.setInitialStateForBucketAssigner(123, 456);
-        BucketStateAndIdentifier initialState = BucketStateAndIdentifier.of(123, BucketAssignerState.start(456));
+        store.setInitialStateForBucketAssigner(BucketAssignerState.start(1341));
+        BucketStateAndIdentifier initialState = BucketStateAndIdentifier.of(0, BucketAssignerState.start(1341));
         BucketStateAndIdentifier newState = BucketStateAndIdentifier.of(123, BucketAssignerState.start(101112));
         store.updateStateMachineForBucketAssigner(initialState, newState);
         assertThat(store.getBucketStateAndIdentifier()).isEqualTo(newState);
