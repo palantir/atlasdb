@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.keyvalue.api.Cell;
@@ -43,6 +44,8 @@ import com.palantir.atlasdb.keyvalue.impl.TableSplittingKeyValueService;
 import com.palantir.atlasdb.schema.KeyValueServiceMigrator;
 import com.palantir.atlasdb.schema.KeyValueServiceMigratorUtils;
 import com.palantir.atlasdb.services.AtlasDbServices;
+import com.palantir.atlasdb.sweep.queue.DelegatingMultiTableSweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
@@ -359,7 +362,8 @@ public class KeyValueServiceMigratorsTest {
         when(mockServices.getManagedTimestampService()).thenReturn(timestampService);
         when(mockServices.getTransactionService()).thenReturn(transactionService);
         when(mockServices.getKeyValueService()).thenReturn(kvs);
-        TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(kvs, () -> 1);
+        SettableFuture<MultiTableSweepQueueWriter> initialisableWriter = SettableFuture.create();
+        TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(kvs, () -> 1, initialisableWriter);
         SerializableTransactionManager txManager = SerializableTransactionManager.createForTest(
                 metricsManager,
                 new DelegatingDataKeyValueServiceManager(kvs),
@@ -374,7 +378,7 @@ public class KeyValueServiceMigratorsTest {
                 new NoOpCleaner(),
                 16,
                 4,
-                sweeper,
+                new DelegatingMultiTableSweepQueueWriter(initialisableWriter),
                 knowledge);
         sweeper.initialize(txManager);
         when(mockServices.getTransactionManager()).thenReturn(txManager);

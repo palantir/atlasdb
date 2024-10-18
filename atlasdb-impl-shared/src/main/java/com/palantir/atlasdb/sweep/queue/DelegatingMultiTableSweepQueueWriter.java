@@ -16,11 +16,9 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
-import com.palantir.async.initializer.Callback;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
-import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.exception.NotInitializedException;
 import java.util.List;
 import java.util.Map;
@@ -47,33 +45,8 @@ public class DelegatingMultiTableSweepQueueWriter implements MultiTableSweepQueu
     }
 
     @Override
-    public void initialize(TransactionManager txManager) {
-        delegate().initialize(txManager);
-    }
-
-    @Override
-    public void onInitializationFailureCleanup(TransactionManager resource, Throwable initFailure) {
-        delegate().onInitializationFailureCleanup(resource, initFailure);
-    }
-
-    @Override
-    public Callback<TransactionManager> singleAttemptCallback() {
-        return delegate().singleAttemptCallback();
-    }
-
-    @Override
-    public Callback<TransactionManager> retryUnlessCleanupThrowsCallback() {
-        return delegate().retryUnlessCleanupThrowsCallback();
-    }
-
-    @Override
     public List<WriteInfo> toWriteInfos(Map<TableReference, ? extends Map<Cell, byte[]>> writes, long timestamp) {
         return delegate().toWriteInfos(writes, timestamp);
-    }
-
-    @Override
-    public void close() {
-        delegate().close();
     }
 
     @Override

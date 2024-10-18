@@ -15,9 +15,11 @@
  */
 package com.palantir.atlasdb;
 
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cell.api.DataKeyValueServiceManager;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -27,7 +29,13 @@ import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.StatsTrackingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TracingKeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.TrackingKeyValueService;
+import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
+import com.palantir.atlasdb.sweep.queue.DefaultSingleBatchSweeper;
+import com.palantir.atlasdb.sweep.queue.DelegatingMultiTableSweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.SingleBatchSweeper;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
+import com.palantir.atlasdb.sweep.queue.SweepQueueComponents;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.transaction.api.ConflictHandler;
 import com.palantir.atlasdb.transaction.api.DeleteExecutor;
@@ -75,8 +83,10 @@ public class AtlasDbTestCase {
     protected TestTransactionManager serializableTxManager;
     protected TestTransactionManager txManager;
     protected TransactionService transactionService;
-    protected TargetedSweeper sweepQueue;
+    protected TargetedSweeper targetedSweep;
+    protected MultiTableSweepQueueWriter sweepQueue;
     protected SpecialTimestampsSupplier sweepTimestampSupplier;
+    protected SingleBatchSweeper sweeper;
     protected int sweepQueueShards = 128;
 
     protected TransactionKnowledgeComponents knowledge;
@@ -100,15 +110,32 @@ public class AtlasDbTestCase {
         transactionService = spy(TransactionServices.createRaw(keyValueService, timestampService, false));
         conflictDetectionManager = ConflictDetectionManagers.createWithoutWarmingCache(keyValueService);
         sweepStrategyManager = SweepStrategyManagers.createDefault(keyValueService);
-        sweepQueue = spy(TargetedSweeper.createUninitializedForTest(keyValueService, () -> sweepQueueShards));
+        SettableFuture<MultiTableSweepQueueWriter> initialisableWriter = SettableFuture.create();
+
+        // Hackery - we don't want to set the initialisableWriter inside targetedSweeper - we want to create a spied
+        // version instead
+        targetedSweep = TargetedSweeper.createUninitializedForTest(
+                keyValueService, () -> sweepQueueShards, SettableFuture.create());
+        sweepQueue = new DelegatingMultiTableSweepQueueWriter(initialisableWriter);
         knowledge = TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry());
         DeleteExecutor typedDeleteExecutor = new DefaultDeleteExecutor(keyValueService, deleteExecutor);
         keyValueSnapshotReaderManager = TestKeyValueSnapshotReaderManagers.createForTests(
                 txnKeyValueServiceManager, transactionService, sweepStrategyManager, typedDeleteExecutor);
         setUpTransactionManagers();
-        sweepQueue.initialize(serializableTxManager);
+        targetedSweep.initialize(serializableTxManager);
+
         sweepTimestampSupplier = new SpecialTimestampsSupplier(
                 () -> txManager.getUnreadableTimestamp(), () -> txManager.getImmutableTimestamp());
+        SweepQueueComponents components = targetedSweep.components();
+        initialisableWriter.set(spy(components.writer()));
+        sweepQueue = initialisableWriter.get();
+        sweeper = new DefaultSingleBatchSweeper(
+                mock(TargetedSweepMetrics.class),
+                components.shardProgress(),
+                _unused -> {},
+                components.reader(),
+                components.deleter(),
+                components.cleaner());
     }
 
     private void setUpTransactionManagers() {
@@ -152,11 +179,13 @@ public class AtlasDbTestCase {
         keyValueService = null;
         transactionService.close();
         transactionService = null;
-        sweepQueue.close();
+        targetedSweep.close();
+        targetedSweep = null;
         sweepQueue = null;
         timestampService = null;
         txManager.close();
         txManager = null;
+        sweeper = null;
     }
 
     protected void overrideConflictHandlerForTable(TableReference table, ConflictHandler conflictHandler) {
