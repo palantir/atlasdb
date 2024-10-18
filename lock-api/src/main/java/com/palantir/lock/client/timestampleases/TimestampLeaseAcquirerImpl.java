@@ -17,17 +17,26 @@
 package com.palantir.lock.client.timestampleases;
 
 import com.google.common.base.Suppliers;
+import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.client.CloseableSupplier;
 import com.palantir.lock.client.InternalMultiClientConjureTimelockService;
 import com.palantir.lock.client.LazyInstanceCloseableSupplier;
 import com.palantir.lock.client.NamespacedConjureTimelockService;
+import com.palantir.lock.v2.PartialTimestampLeaseResult;
 import com.palantir.lock.v2.TimestampLeaseResult;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.timestamp.TimestampRange;
+import java.util.List;
 import java.util.Map;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
+import javax.annotation.Nullable;
 
 public final class TimestampLeaseAcquirerImpl implements TimestampLeaseAcquirer {
     private static final SafeLogger log = SafeLoggerFactory.get(TimestampLeaseAcquirerImpl.class);
@@ -84,8 +93,41 @@ public final class TimestampLeaseAcquirerImpl implements TimestampLeaseAcquirer 
     @Override
     public Map<TimestampLeaseName, TimestampLeaseResult> acquireNamedTimestampLeases(
             Map<TimestampLeaseName, Integer> requests) {
-        // TODO(aalouane): implement
-        throw new UnsupportedOperationException("Not implemented yet");
+        Map<TimestampLeaseName, PartialTimestampLeaseResult> results =
+                acquirerService.getDelegate().acquireTimestampLeases(namespace, requests);
+        return KeyedStream.stream(results)
+                .map((timestampName, partialResult) ->
+                        completeResult(timestampName, partialResult, requests.get(timestampName)))
+                .collectToMap();
+    }
+
+    private TimestampLeaseResult completeResult(
+            TimestampLeaseName timestampName,
+            PartialTimestampLeaseResult partialResult,
+            @Nullable Integer numRequested) {
+        if (numRequested == null) {
+            log.error(
+                    "Expected for there to be a timestamp name but found none",
+                    SafeArg.of("timestampName", timestampName));
+            throw new SafeIllegalStateException(
+                    "Expected for there to be a timestamp name but found none",
+                    SafeArg.of("timestampName", timestampName));
+        }
+
+        LongSupplier timestampSupplier = createExactTimestampSupplier(partialResult, numRequested);
+        return TimestampLeaseResult.fromPartialResult(partialResult, timestampSupplier);
+    }
+
+    private LongSupplier createExactTimestampSupplier(PartialTimestampLeaseResult partialResult, int numRequested) {
+        if (partialResult.freshTimestamps().size() >= numRequested) {
+            return ExactRangeBackedTimestampSuppliers.createFromRange(partialResult.freshTimestamps(), numRequested);
+        }
+
+        int deficit =
+                Ints.checkedCast(numRequested - partialResult.freshTimestamps().size());
+        List<TimestampRange> ranges = ExactTimestampRangeSupplier.getFreshTimestamps(deficit, timelockService);
+        return ExactRangeBackedTimestampSuppliers.createFromRanges(
+                numRequested, partialResult.freshTimestamps(), ranges);
     }
 
     @Override
