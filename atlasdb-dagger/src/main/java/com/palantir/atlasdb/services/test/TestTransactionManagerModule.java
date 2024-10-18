@@ -19,9 +19,12 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cell.api.DataKeyValueServiceManager;
+import com.palantir.atlasdb.cleaner.CachingPuncherStore;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
+import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
+import com.palantir.atlasdb.cleaner.PuncherStore;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.config.AtlasDbConfig;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
@@ -87,8 +90,16 @@ public class TestTransactionManagerModule {
             Follower follower,
             TransactionService transactionService) {
         AtlasDbConfig atlasDbConfig = config.atlasDbConfig();
+        PuncherStore keyValuePuncherStore = KeyValueServicePuncherStore.create(kvs, atlasDbConfig.initializeAsync());
+        PuncherStore cachingPuncherStore =
+                CachingPuncherStore.create(keyValuePuncherStore, atlasDbConfig.getPunchIntervalMillis() * 3);
         return new DefaultCleanerBuilder(
-                        kvs, tl, ImmutableList.of(follower), transactionService, MetricsManagers.createForTests())
+                        kvs,
+                        tl,
+                        ImmutableList.of(follower),
+                        transactionService,
+                        MetricsManagers.createForTests(),
+                        cachingPuncherStore)
                 .setBackgroundScrubAggressively(atlasDbConfig.backgroundScrubAggressively())
                 .setBackgroundScrubBatchSize(atlasDbConfig.getBackgroundScrubBatchSize())
                 .setBackgroundScrubFrequencyMillis(atlasDbConfig.getBackgroundScrubFrequencyMillis())

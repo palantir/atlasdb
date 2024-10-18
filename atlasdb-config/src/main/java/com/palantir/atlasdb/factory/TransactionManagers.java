@@ -29,11 +29,13 @@ import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cell.api.DataKeyValueServiceManager;
+import com.palantir.atlasdb.cleaner.CachingPuncherStore;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.cleaner.GlobalClock;
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
+import com.palantir.atlasdb.cleaner.PuncherStore;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.compact.BackgroundCompactor;
 import com.palantir.atlasdb.compact.CompactorConfig;
@@ -483,6 +485,12 @@ public abstract class TransactionManagers {
                 getSchemaMetadataCoordinationService(metricsManager, lockAndTimestampServices, internalKeyValueService);
 
         SettableFuture<MultiTableSweepQueueWriter> initialisableWriter = SettableFuture.create();
+
+        PuncherStore keyValuePuncherStore =
+                KeyValueServicePuncherStore.create(internalKeyValueService, config().initializeAsync());
+        PuncherStore cachingPuncherStore =
+                CachingPuncherStore.create(keyValuePuncherStore, config().getPunchIntervalMillis() * 3);
+
         TargetedSweeper targetedSweeper = uninitializedTargetedSweeper(
                 internalKeyValueService,
                 metricsManager,
@@ -490,7 +498,8 @@ public abstract class TransactionManagers {
                 follower,
                 runtime.map(AtlasDbRuntimeConfig::targetedSweep),
                 coordinationService,
-                initialisableWriter);
+                initialisableWriter,
+                cachingPuncherStore);
 
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
 
@@ -513,12 +522,12 @@ public abstract class TransactionManagers {
                                 lockAndTimestampServices.timelock(),
                                 ImmutableList.of(follower),
                                 transactionService,
-                                metricsManager)
+                                metricsManager,
+                                cachingPuncherStore)
                         .setBackgroundScrubAggressively(config().backgroundScrubAggressively())
                         .setBackgroundScrubBatchSize(config().getBackgroundScrubBatchSize())
                         .setBackgroundScrubFrequencyMillis(config().getBackgroundScrubFrequencyMillis())
                         .setBackgroundScrubThreads(config().getBackgroundScrubThreads())
-                        .setPunchIntervalMillis(config().getPunchIntervalMillis())
                         .setTransactionReadTimeout(config().getTransactionReadTimeoutMillis())
                         .setInitializeAsync(config().initializeAsync())
                         .buildCleaner(),
@@ -1063,7 +1072,8 @@ public abstract class TransactionManagers {
             Follower follower,
             Supplier<TargetedSweepRuntimeConfig> runtime,
             CoordinationService<InternalSchemaMetadata> coordinationService,
-            SettableFuture<MultiTableSweepQueueWriter> initialisableWriter) {
+            SettableFuture<MultiTableSweepQueueWriter> initialisableWriter,
+            PuncherStore puncherStore) {
         CoordinationAwareKnownAbandonedTransactionsStore abandonedTxnStore =
                 new CoordinationAwareKnownAbandonedTransactionsStore(
                         coordinationService, new AbandonedTimestampStoreImpl(kvs));
@@ -1074,7 +1084,8 @@ public abstract class TransactionManagers {
                 ImmutableList.of(follower),
                 abandonedTxnStore::addAbandonedTimestamps,
                 kvs,
-                initialisableWriter);
+                initialisableWriter,
+                puncherStore);
     }
 
     @Value.Immutable

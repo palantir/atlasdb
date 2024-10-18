@@ -19,6 +19,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.async.initializer.CallbackInitializable;
 import com.palantir.atlasdb.cleaner.Follower;
+import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
+import com.palantir.atlasdb.cleaner.PuncherStore;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.sweep.BackgroundSweeper;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.DefaultSweepAssignedBucketStore;
@@ -67,6 +69,7 @@ public class TargetedSweeper implements BackgroundSweeper, CallbackInitializable
     private SweepProgressResetter resetter;
     private ShardedBackgroundSweepScheduler sweeper;
     private SettableFuture<MultiTableSweepQueueWriter> initialisableWriter;
+    private PuncherStore puncherStore;
 
     private SweepQueueComponents components;
 
@@ -79,7 +82,8 @@ public class TargetedSweeper implements BackgroundSweeper, CallbackInitializable
             List<Follower> followers,
             AbandonedTransactionConsumer abandonedTransactionConsumer,
             KeyValueService keyValueService,
-            SettableFuture<MultiTableSweepQueueWriter> initialisableWriter) {
+            SettableFuture<MultiTableSweepQueueWriter> initialisableWriter,
+            PuncherStore puncherStore) {
         this.metricsManager = metricsManager;
         this.runtime = runtime;
         this.shouldResetAndStopSweep = install.resetTargetedSweepQueueProgressAndStopSweep();
@@ -89,6 +93,7 @@ public class TargetedSweeper implements BackgroundSweeper, CallbackInitializable
         this.keyValueService = keyValueService;
         this.install = install;
         this.initialisableWriter = initialisableWriter;
+        this.puncherStore = puncherStore;
     }
 
     public boolean isInitialized() {
@@ -113,9 +118,17 @@ public class TargetedSweeper implements BackgroundSweeper, CallbackInitializable
             List<Follower> followers,
             AbandonedTransactionConsumer abandonedTransactionConsumer,
             KeyValueService kvs,
-            SettableFuture<MultiTableSweepQueueWriter> initialisableWriter) {
+            SettableFuture<MultiTableSweepQueueWriter> initialisableWriter,
+            PuncherStore puncherStore) {
         return new TargetedSweeper(
-                metrics, runtime, install, followers, abandonedTransactionConsumer, kvs, initialisableWriter);
+                metrics,
+                runtime,
+                install,
+                followers,
+                abandonedTransactionConsumer,
+                kvs,
+                initialisableWriter,
+                puncherStore);
     }
 
     public static TargetedSweeper createUninitializedForTest(
@@ -123,12 +136,20 @@ public class TargetedSweeper implements BackgroundSweeper, CallbackInitializable
             MetricsManager metricsManager,
             Supplier<TargetedSweepRuntimeConfig> runtime,
             SettableFuture<MultiTableSweepQueueWriter> initialisableWriter) {
+        PuncherStore puncherStore = KeyValueServicePuncherStore.create(kvs);
         TargetedSweepInstallConfig install = ImmutableTargetedSweepInstallConfig.builder()
                 .conservativeThreads(0)
                 .thoroughThreads(0)
                 .build();
         return createUninitialized(
-                metricsManager, runtime, install, ImmutableList.of(), _unused -> {}, kvs, initialisableWriter);
+                metricsManager,
+                runtime,
+                install,
+                ImmutableList.of(),
+                _unused -> {},
+                kvs,
+                initialisableWriter,
+                puncherStore);
     }
 
     public static TargetedSweeper createUninitializedForTest(
