@@ -167,7 +167,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 ImmutableList.of(),
                 _unused -> {},
                 spiedKvs,
-                SettableFuture.create());
+                SettableFuture.create(),
+                puncherStore);
         secondQueue.initializeWithoutRunning(
                 timestampsSupplier,
                 timelockService,
@@ -204,7 +205,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 ImmutableList.of(),
                 _unused -> {},
                 spiedKvs,
-                SettableFuture.create());
+                SettableFuture.create(),
+                puncherStore);
         secondQueue.initializeWithoutRunning(
                 timestampsSupplier,
                 mock(TimelockService.class),
@@ -1297,7 +1299,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                 ImmutableList.of(),
                 _unused -> {},
                 spiedKvs,
-                initialisableWriter);
+                initialisableWriter,
+                puncherStore);
         sweepQueue = new DelegatingMultiTableSweepQueueWriter(initialisableWriter);
 
         mockFollower = mock(TargetedSweepFollower.class);
@@ -1547,7 +1550,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
                     ImmutableList.of(),
                     _unused -> {},
                     spiedKvs,
-                    SettableFuture.create());
+                    SettableFuture.create(),
+                    puncherStore);
             sweeperInstance.initializeWithoutRunning(
                     timestampsSupplier, stickyLockService, spiedKvs, txnService, mockFollower);
             sweeperInstance.runInBackground();
