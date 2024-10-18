@@ -223,7 +223,8 @@ final class DefaultSweepAssignedBucketStore
 
     @Override
     public void deleteBucketEntry(Bucket bucket) {
-        throw new UnsupportedOperationException("deleteBucketEntry is not implemented yet.");
+        Cell cell = SweepAssignedBucketStoreKeyPersister.INSTANCE.sweepBucketsCell(bucket);
+        deleteCell(cell);
     }
 
     @Override
@@ -241,7 +242,12 @@ final class DefaultSweepAssignedBucketStore
 
     @Override
     public void deleteTimestampRangeRecord(long bucketIdentifier) {
-        throw new UnsupportedOperationException("deleteTimestampRangeRecord is not implemented yet.");
+        Cell cell = SweepAssignedBucketStoreKeyPersister.INSTANCE.sweepBucketRecordsCell(bucketIdentifier);
+        deleteCell(cell);
+    }
+
+    private void deleteCell(Cell cell) {
+        keyValueService.deleteFromAtomicTable(TABLE_REF, Set.of(cell));
     }
 
     private void casCell(Cell cell, Optional<byte[]> existingValue, byte[] newValue) {
