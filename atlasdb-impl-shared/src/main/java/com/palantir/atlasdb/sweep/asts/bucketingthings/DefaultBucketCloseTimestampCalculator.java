@@ -21,7 +21,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.atlasdb.cleaner.PuncherStore;
 import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
-import com.palantir.lock.client.TimeLockClient;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.OptionalLong;
 import java.util.function.Supplier;
 
-final class DefaultBucketCloseTimestampCalculator {
+public final class DefaultBucketCloseTimestampCalculator {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultBucketCloseTimestampCalculator.class);
 
     @VisibleForTesting
@@ -60,9 +60,9 @@ final class DefaultBucketCloseTimestampCalculator {
     }
 
     public static DefaultBucketCloseTimestampCalculator create(
-            PuncherStore puncherStore, TimeLockClient timeLockClient) {
+            PuncherStore puncherStore, TimelockService timelockService) {
         return new DefaultBucketCloseTimestampCalculator(
-                puncherStore, timeLockClient::getFreshTimestamp, Clock.systemUTC());
+                puncherStore, timelockService::getFreshTimestamp, Clock.systemUTC());
     }
 
     // A second possible algorithm, rather than the fixed bounds above, is to (assuming the start timestamp is X):

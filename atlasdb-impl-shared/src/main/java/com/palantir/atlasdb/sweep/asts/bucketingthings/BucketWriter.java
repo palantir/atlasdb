@@ -19,7 +19,7 @@ package com.palantir.atlasdb.sweep.asts.bucketingthings;
 import com.palantir.atlasdb.sweep.asts.TimestampRange;
 import java.util.Optional;
 
-interface BucketWriter {
+public interface BucketWriter {
     WriteState writeToAllBuckets(
             long bucketIdentifier, Optional<TimestampRange> oldTimestampRange, TimestampRange newTimestampRange);
 

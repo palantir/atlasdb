@@ -36,7 +36,7 @@ public final class DefaultBucketAssigner {
     private final SweepBucketAssignerStateMachineTable sweepBucketAssignerStateMachineTable;
     private final BucketWriter bucketWriter;
     private final SweepBucketRecordsTable sweepBucketRecordsTable;
-    private final BucketAssignerMetrics metrics;
+    private final BucketAssignerEventHandler metrics;
     private final Function<Long, OptionalLong> closeTimestampCalculator;
 
     @VisibleForTesting
@@ -44,7 +44,7 @@ public final class DefaultBucketAssigner {
             SweepBucketAssignerStateMachineTable sweepBucketAssignerStateMachineTable,
             BucketWriter bucketWriter,
             SweepBucketRecordsTable sweepBucketRecordsTable,
-            BucketAssignerMetrics metrics,
+            BucketAssignerEventHandler metrics,
             Function<Long, OptionalLong> closeTimestampCalculator) {
         this.sweepBucketAssignerStateMachineTable = sweepBucketAssignerStateMachineTable;
         this.bucketWriter = bucketWriter;
@@ -57,7 +57,7 @@ public final class DefaultBucketAssigner {
             SweepBucketAssignerStateMachineTable sweepBucketAssignerStateMachineTable,
             BucketWriter bucketWriter,
             SweepBucketRecordsTable sweepBucketRecordsTable,
-            BucketAssignerMetrics metrics,
+            BucketAssignerEventHandler metrics,
             Function<Long, OptionalLong> closeTimestampCalculator) {
         return new DefaultBucketAssigner(
                 sweepBucketAssignerStateMachineTable,
@@ -256,7 +256,7 @@ public final class DefaultBucketAssigner {
     }
 
     // TODO(mdaudali): This is a placeholder. I imagine that we may also use these consumers to inform autoscaling
-    interface BucketAssignerMetrics {
+    public interface BucketAssignerEventHandler {
         void progressedToBucketIdentifier(long bucketIdentifier);
 
         void operationResultForIteration(OperationResult iterationStateOutcome);
