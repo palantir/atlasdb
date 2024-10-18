@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.keyvalue.api;
 
+import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.Arg;
 
@@ -25,12 +26,12 @@ import com.palantir.logsafe.Arg;
 public class InsufficientConsistencyException extends AtlasDbDependencyException {
     private static final long serialVersionUID = 1L;
 
-    public InsufficientConsistencyException(String msg) {
-        super(msg);
+    public InsufficientConsistencyException(@CompileTimeConstant String msg, Arg<?>... args) {
+        super(msg, args);
     }
 
-    public InsufficientConsistencyException(String msg, Throwable ex) {
-        super(msg, ex);
+    public InsufficientConsistencyException(@CompileTimeConstant String msg, Throwable ex, Arg<?>... args) {
+        super(msg, ex, args);
     }
 
     public InsufficientConsistencyException(Throwable ex, Arg<?>... args) {

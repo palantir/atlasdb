@@ -16,15 +16,14 @@
 
 package com.palantir.atlasdb.keyvalue.cassandra;
 
-import com.google.errorprone.annotations.CompileTimeConstant;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.logsafe.Arg;
 import com.palantir.logsafe.exceptions.SafeExceptions;
 
+@SuppressWarnings("CompileTimeConstant")
 public class CassandraTimedOutException extends AtlasDbDependencyException {
     private static final long serialVersionUID = 1L;
 
-    @CompileTimeConstant
     private static final String LOG_MESSAGE =
             "Cassandra query threw a TimedOut exception. Possible reasons and actions to resolve include:\n"
                 + "1. Reason: AtlasDB clients are requesting too much data from Cassandra.\n"
