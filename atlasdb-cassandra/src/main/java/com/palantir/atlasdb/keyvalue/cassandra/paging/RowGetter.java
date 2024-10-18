@@ -63,8 +63,7 @@ public class RowGetter {
                                     kvsMethodName, tableRef, slicePredicate, keyRange, consistency));
                 } catch (UnavailableException e) {
                     throw CassandraTExceptions.mapToUncheckedException(
-                            "get_range_slices requires Cassandra nodes to be up and available. Check Cassandra nodes: ",
-                            e,
+                            "get_range_slices requires Cassandra nodes to be up and available. Check Cassandra nodes: ",           e,
                             SafeArg.of("consistency", consistency));
                 } catch (Exception e) {
                     throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);

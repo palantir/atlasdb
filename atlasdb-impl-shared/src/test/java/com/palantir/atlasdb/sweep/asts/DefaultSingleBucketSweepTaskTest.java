@@ -37,6 +37,7 @@ import com.palantir.atlasdb.sweep.asts.progress.BucketProgressStore;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.DedicatedRows;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
+import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.SweepBatch;
 import com.palantir.atlasdb.sweep.queue.SweepBatchWithPartitionInfo;
 import com.palantir.atlasdb.sweep.queue.SweepQueueCleaner;
@@ -44,7 +45,10 @@ import com.palantir.atlasdb.sweep.queue.SweepQueueDeleter;
 import com.palantir.atlasdb.sweep.queue.SweepQueueReader;
 import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import com.palantir.atlasdb.sweep.queue.WriteInfo;
+import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
@@ -80,7 +84,10 @@ public class DefaultSingleBucketSweepTaskTest {
     private SweepQueueCleaner sweepQueueCleaner;
 
     @Mock
-    private LongSupplier sweepTimestampSupplier;
+    private LongSupplier immutableTimestampSupplier;
+
+    @Mock
+    private LongSupplier unreadableTimestampSupplier;
 
     @Mock
     private TargetedSweepMetrics targetedSweepMetrics;
@@ -100,7 +107,7 @@ public class DefaultSingleBucketSweepTaskTest {
                 sweepQueueReader,
                 sweepQueueDeleter,
                 sweepQueueCleaner,
-                sweepTimestampSupplier,
+                new SpecialTimestampsSupplier(unreadableTimestampSupplier, immutableTimestampSupplier),
                 targetedSweepMetrics,
                 completionListener,
                 boundRetriever);
@@ -109,7 +116,7 @@ public class DefaultSingleBucketSweepTaskTest {
     @ParameterizedTest
     @MethodSource("allSweepBuckets")
     public void returnsEarlyIfSweepTimestampHasNotEnteredTheRelevantBucket(SweepBucketTestContext context) {
-        when(sweepTimestampSupplier.getAsLong()).thenReturn(context.startTimestampInclusive() - 1L);
+        setRelevantTimestampForStrategy(context.shardAndStrategy().strategy(), context.startTimestampInclusive() - 1L);
         assertThat(defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket()))
                 .isEqualTo(0);
 
@@ -121,7 +128,7 @@ public class DefaultSingleBucketSweepTaskTest {
     @MethodSource("closedSweepBuckets")
     public void returnsEarlyAndDeletesDeletableBucketIfEarlierIterationsHaveFullySweptTheBucket(
             SweepBucketTestContext context) {
-        when(sweepTimestampSupplier.getAsLong()).thenReturn(Long.MAX_VALUE);
+        setRelevantTimestampForStrategy(context.shardAndStrategy().strategy(), Long.MAX_VALUE);
         when(bucketProgressStore.getBucketProgress(context.bucket())).thenReturn(context.completeProgressForBucket());
         when(boundRetriever.getStrictUpperBoundForCompletelyClosedBuckets()).thenReturn(Long.MAX_VALUE);
 
@@ -135,7 +142,7 @@ public class DefaultSingleBucketSweepTaskTest {
     @MethodSource("closedSweepBuckets")
     public void returnsEarlyButDoesNotDeleteNonDeletableBucketIfEarlierIterationsHaveFullySweptTheBucket(
             SweepBucketTestContext context) {
-        when(sweepTimestampSupplier.getAsLong()).thenReturn(Long.MAX_VALUE);
+        setRelevantTimestampForStrategy(context.shardAndStrategy().strategy(), Long.MAX_VALUE);
         when(bucketProgressStore.getBucketProgress(context.bucket())).thenReturn(context.completeProgressForBucket());
         when(boundRetriever.getStrictUpperBoundForCompletelyClosedBuckets()).thenReturn(context.bucketIdentifier());
 
@@ -147,7 +154,7 @@ public class DefaultSingleBucketSweepTaskTest {
     @ParameterizedTest
     @MethodSource("allSweepBuckets")
     public void returnsEarlyIfSweepTimestampIsBehindPastBucketProgress(SweepBucketTestContext context) {
-        when(sweepTimestampSupplier.getAsLong()).thenReturn(context.startTimestampInclusive() + 4L);
+        setRelevantTimestampForStrategy(context.shardAndStrategy().strategy(), context.startTimestampInclusive() + 4L);
         when(bucketProgressStore.getBucketProgress(context.bucket()))
                 .thenReturn(Optional.of(BucketProgress.createForTimestampProgress(5L)));
 
@@ -159,7 +166,7 @@ public class DefaultSingleBucketSweepTaskTest {
     @ParameterizedTest
     @MethodSource("allSweepBuckets")
     public void returnsEarlyIfSweepTimestampIsEqualToPastBucketProgress(SweepBucketTestContext context) {
-        when(sweepTimestampSupplier.getAsLong()).thenReturn(context.startTimestampInclusive() + 7L);
+        setRelevantTimestampForStrategy(context.shardAndStrategy().strategy(), context.startTimestampInclusive() + 7L);
         when(bucketProgressStore.getBucketProgress(context.bucket()))
                 .thenReturn(Optional.of(BucketProgress.createForTimestampProgress(7L)));
 
@@ -171,7 +178,7 @@ public class DefaultSingleBucketSweepTaskTest {
     @ParameterizedTest
     @MethodSource("closedSweepBuckets")
     public void sweepsEmptyDeleteableBucketEntirelyAndDeletesBucket(SweepBucketTestContext context) {
-        when(sweepTimestampSupplier.getAsLong()).thenReturn(context.endTimestampExclusive());
+        setRelevantTimestampForStrategy(context.shardAndStrategy().strategy(), context.endTimestampExclusive());
         when(sweepQueueReader.getNextBatchToSweep(
                         context.shardAndStrategy(),
                         context.startTimestampInclusive() - 1,
@@ -202,7 +209,7 @@ public class DefaultSingleBucketSweepTaskTest {
     @ParameterizedTest
     @MethodSource("closedSweepBuckets")
     public void sweepsEmptyNonDeleteableBucketEntirelyAndDoesNotDeleteBucket(SweepBucketTestContext context) {
-        when(sweepTimestampSupplier.getAsLong()).thenReturn(context.endTimestampExclusive());
+        setRelevantTimestampForStrategy(context.shardAndStrategy().strategy(), context.endTimestampExclusive());
         when(sweepQueueReader.getNextBatchToSweep(
                         context.shardAndStrategy(),
                         context.startTimestampInclusive() - 1,
@@ -235,7 +242,7 @@ public class DefaultSingleBucketSweepTaskTest {
     public void sweepsEmptyBucketUpToSweepTimestamp(SweepBucketTestContext context) {
         long sweepTimestamp = context.startTimestampInclusive() + MIN_BUCKET_SIZE - 1;
 
-        when(sweepTimestampSupplier.getAsLong()).thenReturn(sweepTimestamp);
+        setRelevantTimestampForStrategy(context.shardAndStrategy().strategy(), sweepTimestamp);
         when(sweepQueueReader.getNextBatchToSweep(
                         context.shardAndStrategy(),
                         context.startTimestampInclusive() - 1,
@@ -266,7 +273,7 @@ public class DefaultSingleBucketSweepTaskTest {
     public void doesNotRemoveSweepDataOutsideBucket(SweepBucketTestContext context) {
         long sweepTimestamp = context.startTimestampInclusive() + 1_234_567_890L;
 
-        when(sweepTimestampSupplier.getAsLong()).thenReturn(sweepTimestamp);
+        setRelevantTimestampForStrategy(context.shardAndStrategy().strategy(), sweepTimestamp);
         when(sweepQueueReader.getNextBatchToSweep(
                         context.shardAndStrategy(),
                         context.startTimestampInclusive() - 1,
@@ -298,7 +305,7 @@ public class DefaultSingleBucketSweepTaskTest {
     public void passesThroughSweepTimestampAndBucketEndToSweepQueueReaderSeparately(SweepBucketTestContext context) {
         long sweepTimestamp = context.endTimestampExclusive() + 1_000_000L;
 
-        when(sweepTimestampSupplier.getAsLong()).thenReturn(sweepTimestamp);
+        setRelevantTimestampForStrategy(context.shardAndStrategy().strategy(), sweepTimestamp);
         when(sweepQueueReader.getNextBatchToSweep(
                         context.shardAndStrategy(),
                         context.startTimestampInclusive() - 1,
@@ -342,7 +349,7 @@ public class DefaultSingleBucketSweepTaskTest {
     @SuppressWarnings("unchecked") // ArgumentCaptor invocation on known type
     public void passesThroughCellsInSweepBatchToDeleterAndStoresPartialProgress(SweepBucketTestContext context) {
         long sweepTimestamp = Long.MAX_VALUE - 858319L; // arbitrary, but confirming pass through for open buckets
-        when(sweepTimestampSupplier.getAsLong()).thenReturn(sweepTimestamp);
+        setRelevantTimestampForStrategy(context.shardAndStrategy().strategy(), sweepTimestamp);
 
         Set<WriteInfo> writeInfoSet = ImmutableSet.of(
                 WriteInfo.write(
@@ -433,6 +440,25 @@ public class DefaultSingleBucketSweepTaskTest {
                                 .startTimestampInclusive(SweepQueueUtils.minTsForCoarsePartition(1L))
                                 .endTimestampExclusive(-1L)
                                 .build())));
+    }
+
+    private void setRelevantTimestampForStrategy(SweeperStrategy strategy, long value) {
+        switch (strategy) {
+            case CONSERVATIVE:
+            case NON_SWEEPABLE:
+                when(unreadableTimestampSupplier.getAsLong()).thenReturn(value);
+                // The timestamp should be chosen from the min of the unreadable and the immutable. If we set the
+                // immutable to the same value as the unreadable, then we can't verify that we didn't just take the
+                // immutable timestamp. So, we set it to be something ridiculous so it's obvious if the aforementioned
+                // bug is introduced.
+                when(immutableTimestampSupplier.getAsLong()).thenReturn(Long.MAX_VALUE);
+                break;
+            case THOROUGH:
+                when(immutableTimestampSupplier.getAsLong()).thenReturn(value);
+                break;
+            default:
+                throw new SafeIllegalArgumentException("Unknown sweeper strategy", SafeArg.of("strategy", strategy));
+        }
     }
 
     @Value.Immutable

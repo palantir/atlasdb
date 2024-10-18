@@ -17,18 +17,27 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
-import com.palantir.atlasdb.transaction.api.TransactionFailedException;
-import com.palantir.atlasdb.transaction.service.TransactionService;
+import com.palantir.atlasdb.transaction.api.Transaction;
 
-/**
- * Implementors of this interface provide more granular control over when the {@link #onSuccess(Runnable)} callbacks
- * are run. This can be used to e.g run {@link PreCommitCondition#cleanup()} <i>before</i> the onSuccess callbacks
- * are run.
- */
 public interface CallbackAwareTransaction extends ExpectationsAwareTransaction {
-    void commitWithoutCallbacks() throws TransactionFailedException;
-
-    void commitWithoutCallbacks(TransactionService transactionService) throws TransactionFailedException;
-
-    void runSuccessCallbacksIfDefinitivelyCommitted();
+    /**
+     * Allow consumers to register callbacks to be run on {@link Transaction#commit()} or {@link Transaction#abort()},
+     * after a transaction has committed or aborted.
+     * {@link #onCommitOrAbort(Runnable)} callbacks run before {@link #onSuccess(Runnable)} callbacks.
+     * <p>
+     * Callbacks are usually cleanup tasks, e.g. {@link PreCommitCondition#cleanup()}.
+     * Since they are run after the transaction has committed or aborted, a callback exception does not affect
+     * the status of the transaction.
+     * In other words, it's possible for a transaction that committed successfully to have a callback that throws -
+     * in this case {@link Transaction#commit()} would throw the callback's exception, but the transaction would still
+     * commit successfully.
+     * <p>
+     * Callbacks are not atomic nor transactional - it's possible for a transaction to succeed and its callbacks to not
+     * be triggered (e.g. the Java process was interrupted before).
+     * Callbacks run even if a prior callback threw an exception.
+     * Callbacks are run in the reverse order they were added - i.e. the last added callback will be run first.
+     * Different from {@link #onSuccess(Runnable)}, {@link #onCommitOrAbort(Runnable)} callbacks are run if the
+     * transaction succeeded or failed.
+     */
+    void onCommitOrAbort(Runnable runnable);
 }

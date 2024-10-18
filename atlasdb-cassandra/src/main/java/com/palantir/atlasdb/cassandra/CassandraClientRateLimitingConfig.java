@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2024 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,15 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.palantir.atlasdb.timelock.lock;
 
-import com.palantir.lock.LockDescriptor;
-import java.util.Set;
+package com.palantir.atlasdb.cassandra;
 
-final class LockCollection {
-    private final ExclusiveLockCollection exclusiveLocks = new ExclusiveLockCollection();
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.immutables.value.Value;
 
-    OrderedLocks getAllExclusiveLocks(Set<LockDescriptor> descriptors) {
-        return exclusiveLocks.getAll(descriptors);
+@JsonDeserialize(as = ImmutableCassandraClientRateLimitingConfig.class)
+@JsonSerialize(as = ImmutableCassandraClientRateLimitingConfig.class)
+@Value.Immutable
+public interface CassandraClientRateLimitingConfig {
+    @Value.Default
+    default int maxConcurrentRangeScans() {
+        return 100_000;
     }
 }

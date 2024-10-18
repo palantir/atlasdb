@@ -22,8 +22,13 @@ import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
+import com.palantir.atlasdb.timelock.api.ConjureTimestampRange;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
+import com.palantir.atlasdb.timelock.api.LeaseGuarantee;
+import com.palantir.atlasdb.timelock.api.LeaseIdentifier;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
+import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
+import com.palantir.atlasdb.timelock.api.TimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
@@ -252,6 +257,35 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
+    public ListenableFuture<TimestampLeaseResponse> acquireTimestampLease(
+            TimestampLeaseName timestampName, UUID requestId, int numFreshTimestamps) {
+        long timestamp = timestampService.getFreshTimestamp();
+
+        Leased<LockToken> leasedLock = lockService
+                .acquireTimestampLease(timestampName, requestId, timestamp)
+                .get();
+        long minLeased = lockService.getMinLeasedTimestamp(timestampName).orElse(timestamp);
+
+        TimestampRange timestampRange = timestampService.getFreshTimestamps(numFreshTimestamps);
+
+        ConjureTimestampRange freshTimestamps =
+                ConjureTimestampRange.of(timestampRange.getLowerBound(), timestampRange.size());
+
+        return Futures.immediateFuture(TimestampLeaseResponse.builder()
+                .minLeased(minLeased)
+                .leaseGuarantee(toConjure(leasedLock))
+                .freshTimestamps(freshTimestamps)
+                .build());
+    }
+
+    @Override
+    public ListenableFuture<Long> getMinLeasedTimestamp(TimestampLeaseName timestampName) {
+        long timestamp = timestampService.getFreshTimestamp();
+        return Futures.immediateFuture(
+                lockService.getMinLeasedTimestamp(timestampName).orElse(timestamp));
+    }
+
+    @Override
     public long currentTimeMillis() {
         return System.currentTimeMillis();
     }
@@ -305,5 +339,9 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
 
     private static LockWatchVersion fromConjure(ConjureIdentifiedVersion conjure) {
         return LockWatchVersion.of(conjure.getId(), conjure.getVersion());
+    }
+
+    private static LeaseGuarantee toConjure(Leased<LockToken> leasedLock) {
+        return LeaseGuarantee.of(LeaseIdentifier.of(leasedLock.value().getRequestId()), leasedLock.lease());
     }
 }

@@ -1,5 +1,5 @@
 /*
- * (c) Copyright 2018 Palantir Technologies Inc. All rights reserved.
+ * (c) Copyright 2024 Palantir Technologies Inc. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,25 +13,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.palantir.atlasdb.timelock.lock;
 
-import com.palantir.atlasdb.timelock.util.LoggableIllegalStateException;
+import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.StringLockDescriptor;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
 import javax.annotation.concurrent.GuardedBy;
 
-public class ImmutableTimestampTracker {
+final class NamedMinTimestampTrackerImpl implements NamedMinTimestampTracker {
+    private final String timestampName;
 
     @GuardedBy("this")
     private final SortedMap<Long, UUID> holdersByTimestamp = new TreeMap<>();
 
+    NamedMinTimestampTrackerImpl(String timestampName) {
+        this.timestampName = timestampName;
+    }
+
+    @Override
     public synchronized void lock(long timestamp, UUID requestId) {
         boolean wasAdded = holdersByTimestamp.putIfAbsent(timestamp, requestId) == null;
         if (!wasAdded) {
-            throw new LoggableIllegalStateException(
+            throw new SafeIllegalStateException(
                     "A request attempted to lock a timestamp that was already locked",
                     SafeArg.of("timestamp", timestamp),
                     SafeArg.of("requestId", requestId),
@@ -39,10 +48,11 @@ public class ImmutableTimestampTracker {
         }
     }
 
+    @Override
     public synchronized void unlock(long timestamp, UUID requestId) {
         boolean wasRemoved = holdersByTimestamp.remove(timestamp, requestId);
         if (!wasRemoved) {
-            throw new LoggableIllegalStateException(
+            throw new SafeIllegalStateException(
                     "A request attempted to unlock a timestamp that was not locked or was locked by another request",
                     SafeArg.of("timestamp", timestamp),
                     SafeArg.of("requestId", requestId),
@@ -50,15 +60,16 @@ public class ImmutableTimestampTracker {
         }
     }
 
-    public synchronized Optional<Long> getImmutableTimestamp() {
+    @Override
+    public synchronized Optional<Long> getMinimumTimestamp() {
         if (holdersByTimestamp.isEmpty()) {
             return Optional.empty();
         }
         return Optional.of(holdersByTimestamp.firstKey());
     }
 
-    // TODO(nziebart): should these locks should be created by LockCollection for consistency?
-    public AsyncLock getLockFor(long timestamp) {
-        return new ImmutableTimestampLock(timestamp, this);
+    @Override
+    public LockDescriptor getDescriptor(long timestamp) {
+        return StringLockDescriptor.of(timestampName + ":" + timestamp);
     }
 }

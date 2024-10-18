@@ -29,31 +29,26 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tokens.auth.AuthHeader;
-import java.util.Optional;
-import java.util.function.BiFunction;
 
 public final class ConjureLockWatchDiagnosticsResource implements UndertowConjureLockWatchDiagnosticsService {
     private static final SafeLogger log = SafeLoggerFactory.get(ConjureLockWatchDiagnosticsResource.class);
     private final ConjureResourceExceptionHandler exceptionHandler;
-    private final BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices;
+    private final AsyncTimelockServiceFactory timelockServices;
 
     private ConjureLockWatchDiagnosticsResource(
-            RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
+            RedirectRetryTargeter redirectRetryTargeter, AsyncTimelockServiceFactory timelockServices) {
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.timelockServices = timelockServices;
     }
 
     public static UndertowService undertow(
-            RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
+            RedirectRetryTargeter redirectRetryTargeter, AsyncTimelockServiceFactory timelockServices) {
         return ConjureLockWatchDiagnosticsServiceEndpoints.of(
                 new ConjureLockWatchDiagnosticsResource(redirectRetryTargeter, timelockServices));
     }
 
     public static ConjureLockWatchDiagnosticsService jersey(
-            RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
+            RedirectRetryTargeter redirectRetryTargeter, AsyncTimelockServiceFactory timelockServices) {
         return new JerseyAdapter(new ConjureLockWatchDiagnosticsResource(redirectRetryTargeter, timelockServices));
     }
 
@@ -62,7 +57,7 @@ public final class ConjureLockWatchDiagnosticsResource implements UndertowConjur
         return exceptionHandler.handleExceptions(() -> {
             log.info("Logging state for namespace {}", SafeArg.of("namespace", namespace));
             timelockServices
-                    .apply(namespace, TimelockNamespaces.toUserAgent(requestContext))
+                    .get(namespace, TimelockNamespaces.toUserAgent(requestContext))
                     .logState();
             return Futures.immediateFuture(null);
         });

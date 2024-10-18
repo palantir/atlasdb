@@ -27,31 +27,26 @@ import com.palantir.atlasdb.timelock.lock.watch.UndertowConjureLockWatchingServi
 import com.palantir.conjure.java.undertow.lib.RequestContext;
 import com.palantir.conjure.java.undertow.lib.UndertowService;
 import com.palantir.tokens.auth.AuthHeader;
-import java.util.Optional;
-import java.util.function.BiFunction;
 import javax.annotation.Nullable;
 
 public final class ConjureLockWatchingResource implements UndertowConjureLockWatchingService {
     private final ConjureResourceExceptionHandler exceptionHandler;
-    private final BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices;
+    private final AsyncTimelockServiceFactory timelockServices;
 
     private ConjureLockWatchingResource(
-            RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
+            RedirectRetryTargeter redirectRetryTargeter, AsyncTimelockServiceFactory timelockServices) {
         this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
         this.timelockServices = timelockServices;
     }
 
     public static UndertowService undertow(
-            RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
+            RedirectRetryTargeter redirectRetryTargeter, AsyncTimelockServiceFactory timelockServices) {
         return ConjureLockWatchingServiceEndpoints.of(
                 new ConjureLockWatchingResource(redirectRetryTargeter, timelockServices));
     }
 
     public static ConjureLockWatchingService jersey(
-            RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
+            RedirectRetryTargeter redirectRetryTargeter, AsyncTimelockServiceFactory timelockServices) {
         return new JerseyAdapter(new ConjureLockWatchingResource(redirectRetryTargeter, timelockServices));
     }
 
@@ -63,9 +58,7 @@ public final class ConjureLockWatchingResource implements UndertowConjureLockWat
 
     private ListenableFuture<Void> startWatchingSync(
             AuthHeader header, String namespace, LockWatchRequest request, @Nullable RequestContext context) {
-        timelockServices
-                .apply(namespace, TimelockNamespaces.toUserAgent(context))
-                .startWatching(request);
+        timelockServices.get(namespace, TimelockNamespaces.toUserAgent(context)).startWatching(request);
         return Futures.immediateFuture(null);
     }
 

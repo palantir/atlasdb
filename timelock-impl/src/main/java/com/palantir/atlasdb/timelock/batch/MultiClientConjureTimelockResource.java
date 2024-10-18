@@ -27,6 +27,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.http.RedirectRetryTargeter;
 import com.palantir.atlasdb.timelock.AsyncTimelockService;
+import com.palantir.atlasdb.timelock.AsyncTimelockServiceFactory;
 import com.palantir.atlasdb.timelock.ConjureResourceExceptionHandler;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.api.ConjureIdentifiedVersion;
@@ -40,6 +41,10 @@ import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.LeaderTimes;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockServiceEndpoints;
+import com.palantir.atlasdb.timelock.api.MultiClientGetMinLeasedTimestampRequest;
+import com.palantir.atlasdb.timelock.api.MultiClientGetMinLeasedTimestampResponse;
+import com.palantir.atlasdb.timelock.api.MultiClientTimestampLeaseRequest;
+import com.palantir.atlasdb.timelock.api.MultiClientTimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.UndertowMultiClientConjureTimelockService;
 import com.palantir.conjure.java.undertow.lib.RequestContext;
@@ -50,9 +55,7 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.tokens.auth.AuthHeader;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
@@ -61,26 +64,35 @@ import javax.annotation.Nullable;
  * */
 public final class MultiClientConjureTimelockResource implements UndertowMultiClientConjureTimelockService {
     private final ConjureResourceExceptionHandler exceptionHandler;
-    private final BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices;
+    private final AsyncTimelockServiceFactory timelockServices;
+    private final RemotingMultiClientTimestampLeaseServiceAdapter timestampLeaseService;
+
+    private MultiClientConjureTimelockResource(
+            RedirectRetryTargeter redirectRetryTargeter,
+            AsyncTimelockServiceFactory timelockServices,
+            RemotingMultiClientTimestampLeaseServiceAdapter timestampLeaseService) {
+        this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
+        this.timelockServices = timelockServices;
+        this.timestampLeaseService = timestampLeaseService;
+    }
 
     @VisibleForTesting
     MultiClientConjureTimelockResource(
-            RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
-        this.exceptionHandler = new ConjureResourceExceptionHandler(redirectRetryTargeter);
-        this.timelockServices = timelockServices;
+            RedirectRetryTargeter redirectRetryTargeter, AsyncTimelockServiceFactory timelockServices) {
+        this(
+                redirectRetryTargeter,
+                timelockServices,
+                new RemotingMultiClientTimestampLeaseServiceAdapter(timelockServices));
     }
 
     public static UndertowService undertow(
-            RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
+            RedirectRetryTargeter redirectRetryTargeter, AsyncTimelockServiceFactory timelockServices) {
         return MultiClientConjureTimelockServiceEndpoints.of(
                 new MultiClientConjureTimelockResource(redirectRetryTargeter, timelockServices));
     }
 
     public static MultiClientConjureTimelockService jersey(
-            RedirectRetryTargeter redirectRetryTargeter,
-            BiFunction<String, Optional<String>, AsyncTimelockService> timelockServices) {
+            RedirectRetryTargeter redirectRetryTargeter, AsyncTimelockServiceFactory timelockServices) {
         return new JerseyAdapter(new MultiClientConjureTimelockResource(redirectRetryTargeter, timelockServices));
     }
 
@@ -144,6 +156,18 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
                         requests.entrySet(), e -> unlockForSingleNamespace(e.getKey(), e.getValue(), context))),
                 ImmutableMap::copyOf,
                 MoreExecutors.directExecutor()));
+    }
+
+    @Override
+    public ListenableFuture<MultiClientTimestampLeaseResponse> acquireTimestampLease(
+            AuthHeader authHeader, MultiClientTimestampLeaseRequest requests, @Nullable RequestContext context) {
+        return handleExceptions(() -> timestampLeaseService.acquireTimestampLeases(requests, context));
+    }
+
+    @Override
+    public ListenableFuture<MultiClientGetMinLeasedTimestampResponse> getMinLeasedTimestamp(
+            AuthHeader authHeader, MultiClientGetMinLeasedTimestampRequest requests, @Nullable RequestContext context) {
+        return handleExceptions(() -> timestampLeaseService.getMinLeasedTimestamps(requests, context));
     }
 
     private ListenableFuture<Entry<Namespace, ConjureUnlockResponseV2>> unlockForSingleNamespace(
@@ -213,7 +237,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
     }
 
     private AsyncTimelockService getServiceForNamespace(Namespace namespace, @Nullable RequestContext context) {
-        return timelockServices.apply(namespace.get(), TimelockNamespaces.toUserAgent(context));
+        return timelockServices.get(namespace.get(), TimelockNamespaces.toUserAgent(context));
     }
 
     private <T> ListenableFuture<T> handleExceptions(Supplier<ListenableFuture<T>> supplier) {
@@ -262,6 +286,18 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
         public Map<Namespace, ConjureUnlockResponseV2> unlock(
                 AuthHeader authHeader, Map<Namespace, ConjureUnlockRequestV2> requests) {
             return unwrap(resource.unlock(authHeader, requests, null));
+        }
+
+        @Override
+        public MultiClientTimestampLeaseResponse acquireTimestampLease(
+                AuthHeader authHeader, MultiClientTimestampLeaseRequest requests) {
+            return unwrap(resource.acquireTimestampLease(authHeader, requests, null));
+        }
+
+        @Override
+        public MultiClientGetMinLeasedTimestampResponse getMinLeasedTimestamp(
+                AuthHeader authHeader, MultiClientGetMinLeasedTimestampRequest requests) {
+            return unwrap(resource.getMinLeasedTimestamp(authHeader, requests, null));
         }
 
         private static <T> T unwrap(ListenableFuture<T> future) {

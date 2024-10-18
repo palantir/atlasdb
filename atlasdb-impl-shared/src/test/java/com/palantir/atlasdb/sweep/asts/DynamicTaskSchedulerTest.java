@@ -22,10 +22,22 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import com.palantir.atlasdb.sweep.asts.locks.Lockable;
+import com.palantir.atlasdb.sweep.asts.locks.Lockable.LockedItem;
+import com.palantir.atlasdb.sweep.asts.locks.LockableFactory;
+import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.v2.LockRequest;
+import com.palantir.lock.v2.LockResponse;
+import com.palantir.lock.v2.LockToken;
+import com.palantir.lock.v2.TimelockService;
 import com.palantir.refreshable.Refreshable;
 import com.palantir.refreshable.SettableRefreshable;
 import java.time.Duration;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.jmock.lib.concurrent.DeterministicScheduler;
@@ -100,6 +112,49 @@ public final class DynamicTaskSchedulerTest {
         tick(Duration.ofSeconds(1));
         // Task is called again, despite the previous iteration failing.
         verify(runnable, times(3)).run();
+    }
+
+    @Test
+    public void lockableExclusiveTaskDoesNotRunWhenLockCannotBeAcquired() {
+        Lockable<ExclusiveTask> lockableTask = setupExclusiveTask();
+        DynamicTaskScheduler taskRunner =
+                DynamicTaskScheduler.createForExclusiveTask(scheduler, taskDelay, lockableTask, "testTask");
+        Optional<LockedItem<ExclusiveTask>> locked = lockableTask.tryLock(_ignored -> {});
+        assertThat(locked).isPresent();
+
+        taskRunner.start();
+        tick(Duration.ofSeconds(1));
+        assertThat(taskRunCount.get()).isEqualTo(0);
+    }
+
+    @Test
+    public void lockableExclusiveTaskRunsWhenLockIsAcquirableAndReleasesLockAfterwards() {
+        Lockable<ExclusiveTask> lockableTask = setupExclusiveTask();
+        DynamicTaskScheduler taskRunner =
+                DynamicTaskScheduler.createForExclusiveTask(scheduler, taskDelay, lockableTask, "testTask");
+
+        taskRunner.start();
+        tick(Duration.ofSeconds(1));
+        assertThat(taskRunCount.get()).isEqualTo(1);
+
+        // Try acquire the lock afterwards, which would fail if it wasn't released
+        Optional<LockedItem<ExclusiveTask>> locked = lockableTask.tryLock(_ignored -> {});
+        assertThat(locked).isPresent();
+    }
+
+    private Lockable<ExclusiveTask> setupExclusiveTask() {
+        TimelockService timelockService = mock(TimelockService.class);
+        when(timelockService.lock(LockRequest.of(Set.of(StringLockDescriptor.of("test")), 1)))
+                .thenReturn(LockResponse.successful(LockToken.of(UUID.randomUUID())));
+        LockableFactory<ExclusiveTask> factory = LockableFactory.create(
+                timelockService,
+                Refreshable.only(Duration.ofMillis(1)),
+                task -> StringLockDescriptor.of(task.safeLockDescriptor()));
+        ExclusiveTask task = ImmutableExclusiveTask.builder()
+                .safeLockDescriptor("test")
+                .task(taskRunCount::incrementAndGet)
+                .build();
+        return factory.createLockable(task);
     }
 
     private void tick(Duration duration) {

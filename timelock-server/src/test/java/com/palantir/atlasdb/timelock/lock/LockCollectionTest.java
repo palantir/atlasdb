@@ -30,13 +30,13 @@ import org.junit.jupiter.api.Test;
 
 public class LockCollectionTest {
 
-    private final LockCollection lockCollection = new LockCollection();
+    private final LockManager lockManager = new LockManager();
 
     @Test
     public void createsLocksOnDemand() {
         Set<LockDescriptor> descriptors = descriptors("foo", "bar");
 
-        List<AsyncLock> locks = lockCollection.getAllExclusiveLocks(descriptors).get();
+        List<AsyncLock> locks = lockManager.getAllExclusiveLocks(descriptors).get();
 
         assertThat(locks).hasSize(2);
         assertThat(ImmutableSet.copyOf(locks)).hasSize(2);
@@ -46,10 +46,8 @@ public class LockCollectionTest {
     public void returnsSameLockForMultipleRequests() {
         Set<LockDescriptor> descriptors = descriptors("foo", "bar");
 
-        List<AsyncLock> locks1 =
-                lockCollection.getAllExclusiveLocks(descriptors).get();
-        List<AsyncLock> locks2 =
-                lockCollection.getAllExclusiveLocks(descriptors).get();
+        List<AsyncLock> locks1 = lockManager.getAllExclusiveLocks(descriptors).get();
+        List<AsyncLock> locks2 = lockManager.getAllExclusiveLocks(descriptors).get();
 
         assertThat(locks1).containsExactlyElementsOf(locks2);
     }
@@ -62,11 +60,11 @@ public class LockCollectionTest {
                 .sorted()
                 .collect(Collectors.toList());
         List<AsyncLock> expectedOrder = orderedDescriptors.stream()
-                .map(descriptor -> lockCollection.getAllExclusiveLocks(ImmutableSet.of(descriptor)))
+                .map(descriptor -> lockManager.getAllExclusiveLocks(ImmutableSet.of(descriptor)))
                 .map(orderedLocks -> orderedLocks.get().get(0))
                 .collect(Collectors.toList());
 
-        List<AsyncLock> actualOrder = lockCollection
+        List<AsyncLock> actualOrder = lockManager
                 .getAllExclusiveLocks(ImmutableSet.copyOf(orderedDescriptors))
                 .get();
 

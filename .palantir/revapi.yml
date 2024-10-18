@@ -410,6 +410,19 @@ acceptedBreaks:
         \ com.palantir.atlasdb.config.ImmutableAtlasDbRuntimeConfig::transactionKeyValueService()"
       justification: "Renaming TransactionKeyValueService to DataKeyValueService is\
         \ acceptable as it is marked @Beta and unused in production."
+  "0.1162.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.numberOfParametersChanged"
+      old: "method void com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException::<init>(java.lang.String)"
+      new: "method void com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException::<init>(java.lang.String,\
+        \ com.palantir.logsafe.Arg<?>[])"
+      justification: "I have fixed all the implementations and it is not used externally"
+    - code: "java.method.numberOfParametersChanged"
+      old: "method void com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException::<init>(java.lang.String,\
+        \ java.lang.Throwable)"
+      new: "method void com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException::<init>(java.lang.String,\
+        \ java.lang.Throwable, com.palantir.logsafe.Arg<?>[])"
+      justification: "I have fixed all the implementations and it is not used externally"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"
