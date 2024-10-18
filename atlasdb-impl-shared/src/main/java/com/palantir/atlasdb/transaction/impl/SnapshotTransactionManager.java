@@ -19,7 +19,6 @@ import com.codahale.metrics.Counter;
 import com.codahale.metrics.Timer;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
@@ -274,17 +273,18 @@ import java.util.stream.Collectors;
 
             TransactionTask<T, E> wrappedTask = wrapTaskIfNecessary(task, immutableTsLock);
 
-            CallbackAwareTransaction tx = delegate;
+            CallbackAwareTransaction txn = delegate;
             T result;
             try {
-                result = runTaskThrowOnConflictWithCallback(wrappedTask, tx, callback);
+                txn.onCommitOrAbort(txn::reportExpectationsCollectedData);
+                txn.onCommitOrAbort(callback);
+                result = runTaskThrowOnConflict(wrappedTask, txn);
             } finally {
                 lockWatchManager.requestTransactionStateRemovalFromCache(getTimestamp());
                 postTaskContext = postTaskTimer.time();
-                timelockService.tryUnlock(ImmutableSet.of(immutableTsLock));
                 openTransactionCounter.dec();
             }
-            scrubForAggressiveHardDelete(extractSnapshotTransaction(tx));
+            scrubForAggressiveHardDelete(extractSnapshotTransaction(txn));
             postTaskContext.stop();
             return result;
         }
@@ -393,10 +393,9 @@ import java.util.stream.Collectors;
                 commitTimestampLoaderFactory.createCommitTimestampLoader(
                         startTimestampSupplier, immutableTs, immutableTimestampLock),
                 keyValueSnapshotReaderManager);
-        return runTaskThrowOnConflictWithCallback(
-                txn -> task.execute(txn, condition),
-                new ReadTransaction(transaction, sweepStrategyManager),
-                condition::cleanup);
+        transaction.onCommitOrAbort(condition::cleanup);
+        return runTaskThrowOnConflict(
+                txn -> task.execute(txn, condition), new ReadTransaction(transaction, sweepStrategyManager));
     }
 
     @Override

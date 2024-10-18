@@ -61,27 +61,6 @@ public abstract class AbstractTransactionManager implements TransactionManager {
         }
     }
 
-    protected final <T, E extends Exception> T runTaskThrowOnConflictWithCallback(
-            TransactionTask<T, E> task, CallbackAwareTransaction txn, Runnable callback)
-            throws E, TransactionFailedException {
-        checkOpen();
-        try {
-            txn.onCommitOrAbort(txn::reportExpectationsCollectedData);
-            txn.onCommitOrAbort(callback);
-            T ret = task.execute(txn);
-            if (txn.isUncommitted()) {
-                txn.commit();
-            }
-            return ret;
-        } finally {
-            // Make sure that anyone trying to retain a reference to this transaction
-            // will not be able to use it.
-            if (txn.isUncommitted()) {
-                txn.abort();
-            }
-        }
-    }
-
     @Override
     public void close() {
         this.closed = true;
