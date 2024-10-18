@@ -22,6 +22,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.AllowedRangeRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Namespace;
@@ -107,6 +108,7 @@ public class TodoClient {
         return kvs.get().get(tableRef, ImmutableMap.of(cell, ts + 1)).isEmpty();
     }
 
+    @AllowedRangeRequest(justification = "test")
     public List<Todo> getTodoList() {
         ImmutableList<RowResult<byte[]>> results = transactionManager.runTaskWithRetry(transaction -> {
             BatchingVisitable<RowResult<byte[]>> rowResultBatchingVisitable =
@@ -235,6 +237,7 @@ public class TodoClient {
                 .get(entry.getKey());
     }
 
+    @AllowedRangeRequest(justification = "test")
     private Set<Cell> getAllCells(TableReference tableRef) {
         try (ClosableIterator<RowResult<Value>> iterator =
                 kvs.get().getRange(tableRef, RangeRequest.all(), Long.MAX_VALUE)) {

@@ -18,6 +18,7 @@ package com.palantir.atlasdb.restore;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.keyvalue.api.AllowedRangeRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -47,6 +48,7 @@ public class V1TransactionsTableRangeDeleter implements TransactionTableRangeDel
     }
 
     @Override
+    @AllowedRangeRequest(justification = "???")
     public void deleteRange(TimestampRange commitTimestampRange) {
         byte[] startBytes = TransactionConstants.getValueForTimestamp(
                 startTimestamp.orElse(TransactionConstants.LOWEST_POSSIBLE_START_TS));

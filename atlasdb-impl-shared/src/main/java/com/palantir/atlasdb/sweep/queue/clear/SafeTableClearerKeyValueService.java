@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.sweep.queue.clear;
 
+import com.palantir.atlasdb.keyvalue.api.AllowedRangeRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -59,6 +60,7 @@ public class SafeTableClearerKeyValueService extends ForwardingKeyValueService {
 
     // Some people use delete(RangeRequest.all()) instead of truncate because truncates negatively affect Oracle backups
     @Override
+    @AllowedRangeRequest(justification = "Doesn't actually result in a range request - calls deleteAllRowsInTables")
     public void deleteRange(TableReference table, RangeRequest range) {
         if (range.equals(RangeRequest.all())) {
             tableClearer.deleteAllRowsInTables(table);

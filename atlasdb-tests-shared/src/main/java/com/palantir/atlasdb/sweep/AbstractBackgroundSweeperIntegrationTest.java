@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.Ints;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.internalschema.TransactionSchemaManager;
+import com.palantir.atlasdb.keyvalue.api.AllowedRangeRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -168,6 +169,7 @@ public abstract class AbstractBackgroundSweeperIntegrationTest {
 
     protected abstract KeyValueService getKeyValueService();
 
+    @AllowedRangeRequest(justification = "test")
     void verifyTableSwept(TableReference tableRef, int expectedCells, boolean conservative) {
         try (ClosableIterator<RowResult<Set<Long>>> iter =
                 kvs.getRangeOfTimestamps(tableRef, RangeRequest.all(), Long.MAX_VALUE)) {
