@@ -45,7 +45,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-final class DefaultSweepAssignedBucketStore
+public final class DefaultSweepAssignedBucketStore
         implements SweepBucketAssignerStateMachineTable,
                 SweepBucketPointerTable,
                 SweepBucketsTable,
@@ -73,7 +73,7 @@ final class DefaultSweepAssignedBucketStore
         this.bucketIdentifierPersister = bucketIdentifierPersister;
     }
 
-    static DefaultSweepAssignedBucketStore create(KeyValueService keyValueService) {
+    public static DefaultSweepAssignedBucketStore create(KeyValueService keyValueService) {
         return new DefaultSweepAssignedBucketStore(
                 keyValueService,
                 ObjectPersister.of(TimestampRange.class, LogSafety.SAFE),
