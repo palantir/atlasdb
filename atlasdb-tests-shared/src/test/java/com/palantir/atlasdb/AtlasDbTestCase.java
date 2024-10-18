@@ -60,6 +60,8 @@ import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.lock.LockClient;
 import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.refreshable.Refreshable;
+import com.palantir.refreshable.SettableRefreshable;
 import com.palantir.timelock.paxos.InMemoryTimelockExtension;
 import com.palantir.timestamp.TimestampService;
 import java.util.concurrent.ExecutorService;
@@ -87,7 +89,7 @@ public class AtlasDbTestCase {
     protected MultiTableSweepQueueWriter sweepQueue;
     protected SpecialTimestampsSupplier sweepTimestampSupplier;
     protected SingleBatchSweeper sweeper;
-    protected int sweepQueueShards = 128;
+    protected SettableRefreshable<Integer> sweepQueueShards = Refreshable.create(128);
 
     protected TransactionKnowledgeComponents knowledge;
 
@@ -114,8 +116,8 @@ public class AtlasDbTestCase {
 
         // Hackery - we don't want to set the initialisableWriter inside targetedSweeper - we want to create a spied
         // version instead
-        targetedSweep = TargetedSweeper.createUninitializedForTest(
-                keyValueService, () -> sweepQueueShards, SettableFuture.create());
+        targetedSweep =
+                TargetedSweeper.createUninitializedForTest(keyValueService, sweepQueueShards, SettableFuture.create());
         sweepQueue = new DelegatingMultiTableSweepQueueWriter(initialisableWriter);
         knowledge = TransactionKnowledgeComponents.createForTests(keyValueService, metricsManager.getTaggedRegistry());
         DeleteExecutor typedDeleteExecutor = new DefaultDeleteExecutor(keyValueService, deleteExecutor);

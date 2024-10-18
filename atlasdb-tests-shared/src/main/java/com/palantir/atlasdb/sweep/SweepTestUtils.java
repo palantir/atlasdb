@@ -45,6 +45,7 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timelock.paxos.AbstractInMemoryTimelockExtension;
 import com.palantir.timestamp.TimestampManagementService;
 import java.time.Duration;
@@ -78,7 +79,8 @@ public final class SweepTestUtils {
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         Cleaner cleaner = new NoOpCleaner();
         SettableFuture<MultiTableSweepQueueWriter> initialisableWriter = SettableFuture.create();
-        TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(kvs, () -> 1, initialisableWriter);
+        TargetedSweeper sweeper =
+                TargetedSweeper.createUninitializedForTest(kvs, Refreshable.only(1), initialisableWriter);
         TransactionKnowledgeComponents knowledge =
                 TransactionKnowledgeComponents.createForTests(kvs, metricsManager.getTaggedRegistry());
         TransactionManager txManager = SerializableTransactionManager.createForTest(

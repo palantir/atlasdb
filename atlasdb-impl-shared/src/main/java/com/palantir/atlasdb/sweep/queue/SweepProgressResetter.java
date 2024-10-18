@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.sweep.queue;
 
 import com.palantir.atlasdb.table.description.SweeperStrategy;
-import java.util.Set;
+import java.util.Collection;
 
 public interface SweepProgressResetter {
     /**
@@ -25,5 +25,5 @@ public interface SweepProgressResetter {
      * an HA configuration, then the reset is only guaranteed to be complete after this has executed across all nodes
      * of your service.
      */
-    void resetProgress(Set<SweeperStrategy> strategies);
+    void resetProgress(Collection<SweeperStrategy> strategies);
 }

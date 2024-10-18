@@ -1070,7 +1070,7 @@ public abstract class TransactionManagers {
             MetricsManager metricsManager,
             TargetedSweepInstallConfig install,
             Follower follower,
-            Supplier<TargetedSweepRuntimeConfig> runtime,
+            Refreshable<TargetedSweepRuntimeConfig> runtime,
             CoordinationService<InternalSchemaMetadata> coordinationService,
             SettableFuture<MultiTableSweepQueueWriter> initialisableWriter,
             PuncherStore puncherStore) {

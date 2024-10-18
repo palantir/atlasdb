@@ -82,6 +82,8 @@ import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.refreshable.Refreshable;
+import com.palantir.refreshable.SettableRefreshable;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -90,7 +92,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.awaitility.Awaitility;
@@ -125,8 +126,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     private TimelockService timelockService;
     private PuncherStore puncherStore;
     private SingleBatchSweeper sweeper;
-    private final AtomicReference<TargetedSweepRuntimeConfig> runtimeSupplier =
-            new AtomicReference<>(ImmutableTargetedSweepRuntimeConfig.builder()
+    private final SettableRefreshable<TargetedSweepRuntimeConfig> runtimeConfig =
+            Refreshable.create(ImmutableTargetedSweepRuntimeConfig.builder()
                     .enabled(true)
                     .enableAutoTuning(false)
                     .shards(DEFAULT_SHARDS)
@@ -162,7 +163,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         MetricsManager secondQueueManager = MetricsManagers.createForTests();
         TargetedSweeper secondQueue = TargetedSweeper.createUninitialized(
                 secondQueueManager,
-                runtimeSupplier::get,
+                runtimeConfig,
                 installConfig,
                 ImmutableList.of(),
                 _unused -> {},
@@ -192,15 +193,15 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         sweepNextBatchForShards(CONSERVATIVE, DEFAULT_SHARDS);
         await(() -> assertThat(metricsManager).hasLastSweptTimestampConservativeEqualTo(maxTsForFinePartition(0)));
 
-        runtimeSupplier.set(ImmutableTargetedSweepRuntimeConfig.builder()
-                .from(runtimeSupplier.get())
+        runtimeConfig.update(ImmutableTargetedSweepRuntimeConfig.builder()
+                .from(runtimeConfig.get())
                 .shards(DEFAULT_SHARDS + 1)
                 .build());
 
         // Shard count is memoized, creating a second queue bypasses waiting for expiration
         TargetedSweeper secondQueue = TargetedSweeper.createUninitialized(
                 metricsManager,
-                runtimeSupplier::get,
+                runtimeConfig,
                 installConfig,
                 ImmutableList.of(),
                 _unused -> {},
@@ -224,7 +225,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         KeyValueService uninitializedKvs = mock(KeyValueService.class);
         when(uninitializedKvs.isInitialized()).thenReturn(false);
         TargetedSweeper sweeper =
-                TargetedSweeper.createUninitializedForTest(spiedKvs, () -> 1, SettableFuture.create());
+                TargetedSweeper.createUninitializedForTest(spiedKvs, Refreshable.only(1), SettableFuture.create());
         assertThatThrownBy(() -> sweeper.initializeWithoutRunning(
                         null,
                         mock(TimelockService.class),
@@ -529,8 +530,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @MethodSource("readBatchSizes")
     public void enableAutoTuningOverridesEffectivelySetsLargeReadBatchSize(int readBatchSize) {
         setup(readBatchSize);
-        runtimeSupplier.set(ImmutableTargetedSweepRuntimeConfig.builder()
-                .from(runtimeSupplier.get())
+        runtimeConfig.update(ImmutableTargetedSweepRuntimeConfig.builder()
+                .from(runtimeConfig.get())
                 .enableAutoTuning(true)
                 .build());
 
@@ -1264,8 +1265,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     @MethodSource("readBatchSizes")
     public void enableAutoTuningSweepsMultipleFinePartitions(int readBatchSize) {
         setup(readBatchSize);
-        runtimeSupplier.set(ImmutableTargetedSweepRuntimeConfig.builder()
-                .from(runtimeSupplier.get())
+        runtimeConfig.update(ImmutableTargetedSweepRuntimeConfig.builder()
+                .from(runtimeConfig.get())
                 .enableAutoTuning(true)
                 .build());
 
@@ -1286,15 +1287,15 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     public void setup(int readBatchSize) {
         super.setup();
 
-        runtimeSupplier.set(ImmutableTargetedSweepRuntimeConfig.builder()
-                .from(runtimeSupplier.get())
+        runtimeConfig.update(ImmutableTargetedSweepRuntimeConfig.builder()
+                .from(runtimeConfig.get())
                 .maximumPartitionsToBatchInSingleRead(readBatchSize)
                 .build());
 
         SettableFuture<MultiTableSweepQueueWriter> initialisableWriter = SettableFuture.create();
         targetedSweeper = TargetedSweeper.createUninitialized(
                 metricsManager,
-                runtimeSupplier::get,
+                runtimeConfig,
                 installConfig,
                 ImmutableList.of(),
                 _unused -> {},
@@ -1493,7 +1494,8 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
     }
 
     private SingleBatchSweeper getSingleShardSweeper(SettableFuture<MultiTableSweepQueueWriter> initialisableWriter) {
-        TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(spiedKvs, () -> 1, initialisableWriter);
+        TargetedSweeper sweeper =
+                TargetedSweeper.createUninitializedForTest(spiedKvs, Refreshable.only(1), initialisableWriter);
         sweeper.initializeWithoutRunning(
                 timestampsSupplier,
                 mock(TimelockService.class),
@@ -1545,7 +1547,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
         for (int i = 0; i < sweepers; i++) {
             TargetedSweeper sweeperInstance = TargetedSweeper.createUninitialized(
                     metricsManager,
-                    () -> runtime,
+                    Refreshable.only(runtime),
                     install,
                     ImmutableList.of(),
                     _unused -> {},

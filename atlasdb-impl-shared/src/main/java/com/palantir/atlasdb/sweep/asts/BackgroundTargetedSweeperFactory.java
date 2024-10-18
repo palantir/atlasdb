@@ -36,7 +36,7 @@ import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepProgressMetrics;
 import com.palantir.atlasdb.sweep.queue.AbandonedTransactionConsumer;
 import com.palantir.atlasdb.sweep.queue.DefaultSingleBatchSweeper;
-import com.palantir.atlasdb.sweep.queue.NumberOfShardsProvider;
+import com.palantir.atlasdb.sweep.queue.NumberOfShardsProvider.MismatchBehaviour;
 import com.palantir.atlasdb.sweep.queue.ShardedBackgroundSweepScheduler;
 import com.palantir.atlasdb.sweep.queue.SingleBatchSweeper;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
@@ -70,7 +70,6 @@ public final class BackgroundTargetedSweeperFactory {
             SweepQueueComponents components,
             SpecialTimestampsSupplier specialTimestampsSupplier,
             List<SweeperStrategy> strategies,
-            NumberOfShardsProvider numberOfShardsProvider,
             TargetedSweepInstallConfig installConfig,
             Refreshable<TargetedSweepRuntimeConfig> runtimeConfig,
             AbandonedTransactionConsumer abandonedTransactionConsumer,
@@ -84,7 +83,6 @@ public final class BackgroundTargetedSweeperFactory {
                     components,
                     specialTimestampsSupplier,
                     strategies,
-                    numberOfShardsProvider,
                     installConfig,
                     runtimeConfig,
                     progressMetrics,
@@ -94,7 +92,6 @@ public final class BackgroundTargetedSweeperFactory {
                     components,
                     installConfig,
                     timelockService,
-                    numberOfShardsProvider,
                     specialTimestampsSupplier,
                     metrics,
                     runtimeConfig,
@@ -102,11 +99,19 @@ public final class BackgroundTargetedSweeperFactory {
         }
     }
 
+    // TODO(mdaudali): There'll be a better place for this later.
+    public static MismatchBehaviour getMismatchBehaviour(TargetedSweepInstallConfig config) {
+        if (config.enableBucketBasedSweep()) {
+            return MismatchBehaviour.IGNORE_UPDATES;
+        } else {
+            return MismatchBehaviour.UPDATE;
+        }
+    }
+
     private static BackgroundSweeper createLegacyQueueBasedSweeper(
             SweepQueueComponents components,
             TargetedSweepInstallConfig installConfig,
             TimelockService timelockService,
-            NumberOfShardsProvider numberOfShardsProvider,
             SpecialTimestampsSupplier specialTimestampsSupplier,
             TargetedSweepMetrics metrics,
             Refreshable<TargetedSweepRuntimeConfig> runtimeConfig,
@@ -122,7 +127,7 @@ public final class BackgroundTargetedSweeperFactory {
                 installConfig.conservativeThreads(),
                 installConfig.thoroughThreads(),
                 timelockService,
-                numberOfShardsProvider,
+                components.numberOfShardsProvider(),
                 singleBatchSweeper,
                 specialTimestampsSupplier,
                 metrics,
@@ -137,7 +142,6 @@ public final class BackgroundTargetedSweeperFactory {
             SweepQueueComponents components,
             SpecialTimestampsSupplier specialTimestampsSupplier,
             List<SweeperStrategy> strategies,
-            NumberOfShardsProvider numberOfShardsProvider,
             TargetedSweepInstallConfig installConfig,
             Refreshable<TargetedSweepRuntimeConfig> runtimeConfig,
             TargetedSweepProgressMetrics progressMetrics,
@@ -167,7 +171,7 @@ public final class BackgroundTargetedSweeperFactory {
                 components,
                 specialTimestampsSupplier,
                 strategies,
-                numberOfShardsProvider.getNumberOfShards(),
+                components.numberOfShardsProvider().getNumberOfShards(),
                 installConfig.bucketBasedSweepThreads(),
                 runtimeConfig.map(TargetedSweepRuntimeConfig::autoScalingConfig),
                 runtimeConfig.map(TargetedSweepRuntimeConfig::enabled),
