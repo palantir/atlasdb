@@ -17,4 +17,4 @@ if [ -z "$PROJECTS_CHANGED" ]; then
     exit 0        
 fi        
         
-echo_and_run ./gradlew --continue -x test -x integTest -x jepsenTest $(echo "$PROJECTS_CHANGED" | sed "s#\(.*\)#:\1:check#" | tr "\n" " ")
+echo_and_run ./gradlew --continue -x test -x integTest $(echo "$PROJECTS_CHANGED" | sed "s#\(.*\)#:\1:check#" | tr "\n" " ")
