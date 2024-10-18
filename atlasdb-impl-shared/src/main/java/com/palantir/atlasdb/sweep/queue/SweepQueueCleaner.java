@@ -96,7 +96,7 @@ public class SweepQueueCleaner {
         return coarsePartitions;
     }
 
-    private void progressTo(ShardAndStrategy shardStrategy, long lastTs) {
+    void progressTo(ShardAndStrategy shardStrategy, long lastTs) {
         if (lastTs < 0) {
             log.warn(
                     "Wasn't able to progress targeted sweep for {} since last swept timestamp {} is negative.",
