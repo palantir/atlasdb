@@ -29,4 +29,13 @@ public interface TimestampLeaseResult {
 
     @Value.Parameter
     LongSupplier freshTimestampsSupplier();
+
+    static TimestampLeaseResult fromPartialResult(
+            PartialTimestampLeaseResult partialResult, LongSupplier freshTimestampsSupplier) {
+        return of(partialResult.minLeasedTimestamp(), partialResult.lock(), freshTimestampsSupplier);
+    }
+
+    static TimestampLeaseResult of(long minLeasedTimestamp, LockToken lock, LongSupplier freshTimestampsSupplier) {
+        return ImmutableTimestampLeaseResult.of(minLeasedTimestamp, lock, freshTimestampsSupplier);
+    }
 }
