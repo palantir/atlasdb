@@ -44,7 +44,7 @@ public final class DefaultReadSnapshotValidator implements ReadSnapshotValidator
     public ValidationState throwIfPreCommitRequirementsNotMetOnRead(
             TableReference tableRef, long timestamp, boolean allPossibleCellsReadAndPresent) {
         if (isValidationNecessaryOnReads(tableRef, allPossibleCellsReadAndPresent)) {
-            preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(null, timestamp);
+            preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(timestamp);
             return ValidationState.COMPLETELY_VALIDATED;
         }
 
