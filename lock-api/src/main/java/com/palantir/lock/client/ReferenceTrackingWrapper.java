@@ -20,7 +20,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class ReferenceTrackingWrapper<T extends AutoCloseable> implements AutoCloseable {
+public class ReferenceTrackingWrapper<T extends AutoCloseable> implements CloseableSupplier<T> {
     private static final SafeLogger log = SafeLoggerFactory.get(ReferenceTrackingWrapper.class);
 
     private final AtomicInteger referenceCount;
@@ -36,6 +36,7 @@ public class ReferenceTrackingWrapper<T extends AutoCloseable> implements AutoCl
         referenceCount.incrementAndGet();
     }
 
+    @Override
     public T getDelegate() {
         return delegate;
     }
