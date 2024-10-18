@@ -20,6 +20,7 @@ import com.palantir.atlasdb.factory.AtlasDbDialogueServiceProvider;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.lock.client.InternalMultiClientConjureTimelockService;
 import com.palantir.lock.client.NamespacedConjureTimelockService;
 import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
@@ -33,22 +34,30 @@ import com.palantir.lock.watch.LockWatchCacheImpl;
 import com.palantir.logsafe.Preconditions;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 
 public final class AsyncLockClient implements JepsenLockClient<LockToken> {
     private static final String NAMESPACE = "test";
     private final TimelockService timelockService;
 
     private AsyncLockClient(
-            NamespacedTimelockRpcClient timelockService, NamespacedConjureTimelockService conjureTimelockService) {
+            NamespacedTimelockRpcClient timelockService,
+            NamespacedConjureTimelockService conjureTimelockService,
+            Supplier<InternalMultiClientConjureTimelockService> multiClientConjureTimelockServiceSupplier) {
         this.timelockService = RemoteTimelockServiceAdapter.create(
-                Namespace.of(NAMESPACE), timelockService, conjureTimelockService, LockWatchCacheImpl.noOp());
+                Namespace.of(NAMESPACE),
+                timelockService,
+                conjureTimelockService,
+                LockWatchCacheImpl.noOp(),
+                multiClientConjureTimelockServiceSupplier);
     }
 
     public static AsyncLockClient create(MetricsManager metricsManager, List<String> hosts) {
         AtlasDbDialogueServiceProvider provider = TimelockUtils.createServiceProvider(metricsManager, hosts);
         return new AsyncLockClient(
                 new DefaultNamespacedTimelockRpcClient(provider.getTimelockRpcClient(), NAMESPACE),
-                new NamespacedConjureTimelockServiceImpl(provider.getConjureTimelockService(), NAMESPACE));
+                new NamespacedConjureTimelockServiceImpl(provider.getConjureTimelockService(), NAMESPACE),
+                provider.getMultiClientConjureTimelockServiceSupplier());
     }
 
     @Override

@@ -35,6 +35,7 @@ public final class TimestampClient {
                 Namespace.of(TimelockUtils.NAMESPACE),
                 new DefaultNamespacedTimelockRpcClient(provider.getTimelockRpcClient(), TimelockUtils.NAMESPACE),
                 new NamespacedConjureTimelockServiceImpl(provider.getConjureTimelockService(), TimelockUtils.NAMESPACE),
-                LockWatchCacheImpl.noOp()));
+                LockWatchCacheImpl.noOp(),
+                provider.getMultiClientConjureTimelockServiceSupplier()));
     }
 }

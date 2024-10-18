@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.factory;
 
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.config.AuxiliaryRemotingParameters;
 import com.palantir.atlasdb.config.ServerListConfig;
@@ -46,9 +47,11 @@ import com.palantir.dialogue.clients.DialogueClients;
 import com.palantir.dialogue.clients.DialogueClients.ReloadingFactory;
 import com.palantir.lock.ConjureLockV1ServiceBlocking;
 import com.palantir.lock.LockRpcClient;
+import com.palantir.lock.client.AuthenticatedInternalMultiClientConjureTimelockService;
 import com.palantir.lock.client.ConjureTimelockServiceBlockingMetrics;
 import com.palantir.lock.client.DialogueAdaptingConjureTimelockService;
 import com.palantir.lock.client.DialogueComposingLockRpcClient;
+import com.palantir.lock.client.InternalMultiClientConjureTimelockService;
 import com.palantir.lock.v2.TimelockRpcClient;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.refreshable.Refreshable;
@@ -56,6 +59,7 @@ import com.palantir.timestamp.TimestampManagementRpcClient;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * Provides a mechanism for accessing services that use Dialogue for communication. A service is defined as a cluster of
@@ -123,7 +127,12 @@ public final class AtlasDbDialogueServiceProvider {
         return new TimeoutSensitiveConjureTimelockService(shortAndLongTimeoutServices);
     }
 
-    MultiClientConjureTimelockServiceBlocking getMultiClientConjureTimelockService() {
+    public Supplier<InternalMultiClientConjureTimelockService> getMultiClientConjureTimelockServiceSupplier() {
+        return Suppliers.memoize(() ->
+                new AuthenticatedInternalMultiClientConjureTimelockService(getMultiClientConjureTimelockService()));
+    }
+
+    private MultiClientConjureTimelockServiceBlocking getMultiClientConjureTimelockService() {
         MultiClientConjureTimelockServiceBlocking blockingService =
                 dialogueClientFactory.get(MultiClientConjureTimelockServiceBlocking.class, TIMELOCK_SHORT_TIMEOUT);
         return AtlasDbMetrics.instrumentWithTaggedMetrics(

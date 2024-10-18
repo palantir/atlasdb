@@ -22,6 +22,10 @@ import com.palantir.atlasdb.timelock.api.ConjureTimestampRange;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
 import com.palantir.lock.annotations.ReviewedRestrictedApiUsage;
+import com.palantir.lock.client.timestampleases.MinLeasedTimestampGetter;
+import com.palantir.lock.client.timestampleases.MinLeasedTimestampGetterImpl;
+import com.palantir.lock.client.timestampleases.TimestampLeaseAcquirer;
+import com.palantir.lock.client.timestampleases.TimestampLeaseAcquirerImpl;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
@@ -42,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 
 public final class RemoteTimelockServiceAdapter implements TimelockService, AutoCloseable {
     private static final SafeLogger log = SafeLoggerFactory.get(RemoteTimelockServiceAdapter.class);
@@ -51,44 +56,57 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     private final LockLeaseService lockLeaseService;
     private final TransactionStarter transactionStarter;
     private final CommitTimestampGetter commitTimestampGetter;
-
-    public RemoteTimelockServiceAdapter(
-            NamespacedTimelockRpcClient rpcClient,
-            NamespacedConjureTimelockService conjureTimelockService,
-            LockLeaseService lockLeaseService,
-            TransactionStarter transactionStarter,
-            CommitTimestampGetter commitTimestampGetter) {
-        this.rpcClient = rpcClient;
-        this.conjureTimelockService = conjureTimelockService;
-        this.lockLeaseService = lockLeaseService;
-        this.transactionStarter = transactionStarter;
-        this.commitTimestampGetter = commitTimestampGetter;
-    }
+    private final TimestampLeaseAcquirer timestampLeaseAcquirer;
+    private final MinLeasedTimestampGetter minLeasedTimestampGetter;
 
     private RemoteTimelockServiceAdapter(
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureTimelockService,
             LeaderTimeGetter leaderTimeGetter,
             RequestBatchersFactory batcherFactory,
-            LockTokenUnlocker unlocker) {
+            LockTokenUnlocker unlocker,
+            TimestampLeaseAcquirer timestampLeaseAcquirer,
+            MinLeasedTimestampGetter minLeasedTimestampGetter) {
         this.rpcClient = rpcClient;
         this.lockLeaseService = LockLeaseService.create(conjureTimelockService, leaderTimeGetter, unlocker);
         this.transactionStarter = TransactionStarter.create(lockLeaseService, batcherFactory);
         this.commitTimestampGetter = batcherFactory.createBatchingCommitTimestampGetter(lockLeaseService);
         this.conjureTimelockService = conjureTimelockService;
+        this.timestampLeaseAcquirer = timestampLeaseAcquirer;
+        this.minLeasedTimestampGetter = minLeasedTimestampGetter;
+    }
+
+    public RemoteTimelockServiceAdapter(
+            NamespacedTimelockRpcClient rpcClient,
+            NamespacedConjureTimelockService conjureTimelockService,
+            LockLeaseService lockLeaseService,
+            TransactionStarter transactionStarter,
+            CommitTimestampGetter commitTimestampGetter,
+            TimestampLeaseAcquirer timestampLeaseAcquirer,
+            MinLeasedTimestampGetter minLeasedTimestampGetter) {
+        this.rpcClient = rpcClient;
+        this.conjureTimelockService = conjureTimelockService;
+        this.lockLeaseService = lockLeaseService;
+        this.transactionStarter = transactionStarter;
+        this.commitTimestampGetter = commitTimestampGetter;
+        this.timestampLeaseAcquirer = timestampLeaseAcquirer;
+        this.minLeasedTimestampGetter = minLeasedTimestampGetter;
     }
 
     public static RemoteTimelockServiceAdapter create(
             Namespace namespace,
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
-            LockWatchCache lockWatchCache) {
+            LockWatchCache lockWatchCache,
+            Supplier<InternalMultiClientConjureTimelockService> multiClientConjureTimelockServiceSupplier) {
         return create(
                 rpcClient,
                 conjureClient,
                 new LegacyLeaderTimeGetter(conjureClient),
                 RequestBatchersFactory.create(lockWatchCache, namespace, Optional.empty()),
-                new LegacyLockTokenUnlocker(conjureClient));
+                new LegacyLockTokenUnlocker(conjureClient),
+                TimestampLeaseAcquirerImpl.create(namespace, multiClientConjureTimelockServiceSupplier, conjureClient),
+                MinLeasedTimestampGetterImpl.create(namespace.get(), multiClientConjureTimelockServiceSupplier));
     }
 
     public static RemoteTimelockServiceAdapter create(
@@ -96,8 +114,17 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
             NamespacedConjureTimelockService conjureClient,
             LeaderTimeGetter leaderTimeGetter,
             RequestBatchersFactory batcherFactory,
-            LockTokenUnlocker unlocker) {
-        return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, leaderTimeGetter, batcherFactory, unlocker);
+            LockTokenUnlocker unlocker,
+            TimestampLeaseAcquirer timestampLeaseAcquirer,
+            MinLeasedTimestampGetter minLeasedTimestampGetter) {
+        return new RemoteTimelockServiceAdapter(
+                rpcClient,
+                conjureClient,
+                leaderTimeGetter,
+                batcherFactory,
+                unlocker,
+                timestampLeaseAcquirer,
+                minLeasedTimestampGetter);
     }
 
     @Override
@@ -176,15 +203,13 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     @Override
     public Map<TimestampLeaseName, TimestampLeaseResult> acquireTimestampLeases(
             Map<TimestampLeaseName, Integer> requests) {
-        // TODO(aalouane): implement!
-        throw new UnsupportedOperationException("Not implemented yet!");
+        return timestampLeaseAcquirer.acquireNamedTimestampLeases(requests);
     }
 
     @ReviewedRestrictedApiUsage
     @Override
     public Map<TimestampLeaseName, Long> getMinLeasedTimestamps(Set<TimestampLeaseName> timestampNames) {
-        // TODO(aalouane): implement!
-        throw new UnsupportedOperationException("Not implemented yet!");
+        return minLeasedTimestampGetter.getMinLeasedTimestamps(timestampNames);
     }
 
     @Override

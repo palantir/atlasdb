@@ -18,11 +18,14 @@ package com.palantir.atlasdb.timelock;
 
 import com.google.common.collect.ImmutableSet;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockServiceBlocking;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.timelock.util.TestProxies.ProxyMode;
 import com.palantir.lock.ConjureLockV1Service;
 import com.palantir.lock.LockRpcClient;
 import com.palantir.lock.LockService;
+import com.palantir.lock.client.AuthenticatedInternalMultiClientConjureTimelockService;
+import com.palantir.lock.client.InternalMultiClientConjureTimelockService;
 import com.palantir.lock.client.NamespacedConjureTimelockService;
 import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
 import com.palantir.lock.client.RemoteLockServiceAdapter;
@@ -75,7 +78,8 @@ public interface NamespacedClients {
                 Namespace.of(namespace()),
                 namespacedTimelockRpcClient(),
                 namespacedConjureTimelockService(),
-                lockWatchEventCache());
+                lockWatchEventCache(),
+                this::internalMultiClientConjureTimelockService);
     }
 
     @Value.Default
@@ -118,6 +122,16 @@ public interface NamespacedClients {
     default TimestampManagementService timestampManagementService() {
         return new RemoteTimestampManagementAdapter(
                 proxyFactory().createProxy(TimestampManagementRpcClient.class, proxyMode()), namespace());
+    }
+
+    @Value.Derived
+    default InternalMultiClientConjureTimelockService internalMultiClientConjureTimelockService() {
+        return new AuthenticatedInternalMultiClientConjureTimelockService(multiClientConjureTimelockService());
+    }
+
+    @Value.Derived
+    default MultiClientConjureTimelockServiceBlocking multiClientConjureTimelockService() {
+        return proxyFactory().createProxy(MultiClientConjureTimelockServiceBlocking.class, proxyMode());
     }
 
     default long getFreshTimestamp() {
