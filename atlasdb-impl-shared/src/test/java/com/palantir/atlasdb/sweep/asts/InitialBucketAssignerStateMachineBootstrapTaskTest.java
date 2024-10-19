@@ -35,7 +35,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -45,7 +44,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-@Disabled // TODO(mdaudali): Re-enabled in another PR that fixes the bugs caught by the tests
 public final class InitialBucketAssignerStateMachineBootstrapTaskTest {
     @Mock
     private ShardProgress progress;
@@ -73,8 +71,9 @@ public final class InitialBucketAssignerStateMachineBootstrapTaskTest {
 
     @ParameterizedTest
     @ValueSource(longs = {SweepQueueUtils.RESET_TIMESTAMP, SweepQueueUtils.INITIAL_TIMESTAMP})
-    public void allInitialOrResetLastSweptTimestampAutoClosesInitialBucketFromZeroToFreshTimestampAndBumpsShardsTo128(
-            long lastSweptTimestamp) {
+    public void
+            allInitialOrResetLastSweptTimestampAutoClosesInitialBucketFromZeroToClampedFreshTimestampAndBumpsShardsTo128(
+                    long lastSweptTimestamp) {
         // Set to less than 128 to trigger the shard bump
         when(progress.getNumberOfShards()).thenReturn(123);
         when(progress.getLastSweptTimestamps(allShardsAndStrategies(123)))
@@ -87,44 +86,62 @@ public final class InitialBucketAssignerStateMachineBootstrapTaskTest {
         // flipping this ordering would be bad.
         InOrder inOrder = inOrder(stateMachineTable, progress);
         inOrder.verify(stateMachineTable)
-                .setInitialStateForBucketAssigner(
-                        BucketAssignerState.immediatelyClosing(0, freshTimestampSupplier.get()));
+                .setInitialStateForBucketAssigner(BucketAssignerState.immediatelyClosing(
+                        0, clampToCoarsePartition(freshTimestampSupplier.get())));
+        inOrder.verify(progress).updateNumberOfShards(128);
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = {SweepQueueUtils.RESET_TIMESTAMP, SweepQueueUtils.INITIAL_TIMESTAMP})
+    public void allInitialOrResetLastSweptTimestampStartsBucketFromZeroAndBumpsShardsTo128IfClampedFreshTimestampIsZero(
+            long lastSweptTimestamp) {
+        when(progress.getNumberOfShards()).thenReturn(123);
+        when(progress.getLastSweptTimestamps(allShardsAndStrategies(123)))
+                .thenReturn(allShardsAndStrategiesToSameTimestamp(123, lastSweptTimestamp));
+        freshTimestampSupplier.set(1212);
+
+        task.run();
+
+        InOrder inOrder = inOrder(stateMachineTable, progress);
+        inOrder.verify(stateMachineTable).setInitialStateForBucketAssigner(BucketAssignerState.start(0));
         inOrder.verify(progress).updateNumberOfShards(128);
     }
 
     @Test
     public void
-            allSameLastSweptTimestampNotInitialOrResetCreatesOpenInitialBucketFromThatTimestampAndBumpsShardsTo128() {
+            allSameLastSweptTimestampNotInitialOrResetCreatesOpenInitialBucketFromClampedTimestampAndBumpsShardsTo128() {
         when(progress.getNumberOfShards()).thenReturn(62);
         when(progress.getLastSweptTimestamps(allShardsAndStrategies(62)))
-                .thenReturn(allShardsAndStrategiesToSameTimestamp(62, 12));
+                .thenReturn(allShardsAndStrategiesToSameTimestamp(62, 1248465154));
 
         task.run();
         InOrder inOrder = inOrder(stateMachineTable, progress);
 
-        inOrder.verify(stateMachineTable).setInitialStateForBucketAssigner(BucketAssignerState.start(12));
+        inOrder.verify(stateMachineTable)
+                .setInitialStateForBucketAssigner(BucketAssignerState.start(clampToCoarsePartition(1248465154)));
         inOrder.verify(progress).updateNumberOfShards(128);
     }
 
     @Test
-    public void differentLastSweptTimestampsCreatesOpenInitialBucketFromEarliestTimestampAndBumpsShardsTo128() {
+    public void differentLastSweptTimestampsCreatesOpenInitialBucketFromClampedEarliestTimestampAndBumpsShardsTo128() {
         when(progress.getNumberOfShards()).thenReturn(1);
         when(progress.getLastSweptTimestamps(allShardsAndStrategies(1)))
                 .thenReturn(Map.of(
-                        ShardAndStrategy.of(0, SweeperStrategy.CONSERVATIVE), 123L,
-                        ShardAndStrategy.of(0, SweeperStrategy.THOROUGH), 456L));
-        freshTimestampSupplier.set(123456789L);
+                        ShardAndStrategy.of(0, SweeperStrategy.CONSERVATIVE), 4554654655L,
+                        ShardAndStrategy.of(0, SweeperStrategy.THOROUGH), 5464654665L));
+        freshTimestampSupplier.set(6547464687L);
 
         task.run();
         InOrder inOrder = inOrder(stateMachineTable, progress);
 
-        inOrder.verify(stateMachineTable).setInitialStateForBucketAssigner(BucketAssignerState.start(123L));
+        inOrder.verify(stateMachineTable)
+                .setInitialStateForBucketAssigner(BucketAssignerState.start(clampToCoarsePartition(4554654655L)));
         inOrder.verify(progress).updateNumberOfShards(128);
     }
 
     @Test
     public void
-            anyShardWithInitialLastSweptTimestampCausesAutoClosedBucketFromZeroToFreshTimestampAndBumpsShardsTo128() {
+            anyShardWithInitialLastSweptTimestampCausesAutoClosedBucketFromZeroToClampedFreshTimestampAndBumpsShardsTo128() {
         when(progress.getNumberOfShards()).thenReturn(1);
         when(progress.getLastSweptTimestamps(allShardsAndStrategies(1)))
                 .thenReturn(Map.of(
@@ -132,14 +149,33 @@ public final class InitialBucketAssignerStateMachineBootstrapTaskTest {
                         SweepQueueUtils.INITIAL_TIMESTAMP,
                         ShardAndStrategy.of(0, SweeperStrategy.THOROUGH),
                         456L));
-        freshTimestampSupplier.set(6542141L);
+        freshTimestampSupplier.set(65421401L);
 
         task.run();
 
         InOrder inOrder = inOrder(stateMachineTable, progress);
         inOrder.verify(stateMachineTable)
-                .setInitialStateForBucketAssigner(
-                        BucketAssignerState.immediatelyClosing(0, freshTimestampSupplier.get()));
+                .setInitialStateForBucketAssigner(BucketAssignerState.immediatelyClosing(
+                        0, clampToCoarsePartition(freshTimestampSupplier.get())));
+        inOrder.verify(progress).updateNumberOfShards(128);
+    }
+
+    @Test
+    public void
+            anyShardWithInitialLastSweptTimestampStartsBucketFromZeroAndBumpsShardsTo128IfClampedFreshTimestampIsZero() {
+        when(progress.getNumberOfShards()).thenReturn(1);
+        when(progress.getLastSweptTimestamps(allShardsAndStrategies(1)))
+                .thenReturn(Map.of(
+                        ShardAndStrategy.of(0, SweeperStrategy.CONSERVATIVE),
+                        SweepQueueUtils.INITIAL_TIMESTAMP,
+                        ShardAndStrategy.of(0, SweeperStrategy.THOROUGH),
+                        456L));
+        freshTimestampSupplier.set(4556);
+
+        task.run();
+
+        InOrder inOrder = inOrder(stateMachineTable, progress);
+        inOrder.verify(stateMachineTable).setInitialStateForBucketAssigner(BucketAssignerState.start(0));
         inOrder.verify(progress).updateNumberOfShards(128);
     }
 
@@ -148,11 +184,12 @@ public final class InitialBucketAssignerStateMachineBootstrapTaskTest {
     public void doesNotIncreaseShardsIfAlreadyEqualToOrGreaterThan128(int numShards) {
         when(progress.getNumberOfShards()).thenReturn(numShards);
         when(progress.getLastSweptTimestamps(allShardsAndStrategies(numShards)))
-                .thenReturn(allShardsAndStrategiesToSameTimestamp(numShards, 123L));
+                .thenReturn(allShardsAndStrategiesToSameTimestamp(numShards, 541564654L));
 
         task.run();
         // We still must set the initial state.
-        verify(stateMachineTable).setInitialStateForBucketAssigner(BucketAssignerState.start(123L));
+        verify(stateMachineTable)
+                .setInitialStateForBucketAssigner(BucketAssignerState.start(clampToCoarsePartition(541564654L)));
         verifyNoMoreInteractions(progress);
     }
 
@@ -167,5 +204,9 @@ public final class InitialBucketAssignerStateMachineBootstrapTaskTest {
     private Map<ShardAndStrategy, Long> allShardsAndStrategiesToSameTimestamp(int numShards, long timestamp) {
         return allShardsAndStrategies(numShards).stream()
                 .collect(Collectors.toMap(Function.identity(), _unused -> timestamp));
+    }
+
+    private long clampToCoarsePartition(long timestamp) {
+        return SweepQueueUtils.minTsForCoarsePartition(SweepQueueUtils.tsPartitionCoarse(timestamp));
     }
 }

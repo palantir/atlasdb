@@ -87,17 +87,30 @@ public final class InitialBucketAssignerStateMachineBootstrapTask {
 
     private void bootstrapFreshInstallOrResetOrAmbiguousStartTime() {
         long freshTimestamp = freshTimestampSupplier.getAsLong();
-        log.info(
-                "Bootstrapping bucket assigner with initial bucket closing from 0 to {}",
-                SafeArg.of("freshTimestamp", freshTimestamp));
-        stateMachineTable.setInitialStateForBucketAssigner(BucketAssignerState.immediatelyClosing(0, freshTimestamp));
+        long clampedToCoarsePartition = clampToCoarsePartition(freshTimestamp);
+
+        if (clampedToCoarsePartition == 0) {
+            log.info("Bootstrapping bucket assigner with initial bucket starting from 0");
+            stateMachineTable.setInitialStateForBucketAssigner(BucketAssignerState.start(0));
+        } else {
+            log.info(
+                    "Bootstrapping bucket assigner with initial bucket closing from 0 to {}",
+                    SafeArg.of("clampedTimestamp", clampedToCoarsePartition));
+            stateMachineTable.setInitialStateForBucketAssigner(
+                    BucketAssignerState.immediatelyClosing(0, clampedToCoarsePartition));
+        }
     }
 
     private void bootstrapExistingInstall(long minLastSweptTimestamp) {
+        long clampedToCoarsePartition = clampToCoarsePartition(minLastSweptTimestamp);
         log.info(
                 "Bootstrapping bucket assigner with initial bucket starting from {}",
-                SafeArg.of("minLastSweptTimestamp", minLastSweptTimestamp));
-        stateMachineTable.setInitialStateForBucketAssigner(BucketAssignerState.start(minLastSweptTimestamp));
+                SafeArg.of("clampedToCoarsePartition", clampedToCoarsePartition));
+        stateMachineTable.setInitialStateForBucketAssigner(BucketAssignerState.start(clampedToCoarsePartition));
+    }
+
+    private long clampToCoarsePartition(long timestamp) {
+        return SweepQueueUtils.minTsForCoarsePartition(SweepQueueUtils.tsPartitionCoarse(timestamp));
     }
 
     private Set<ShardAndStrategy> allShardsAndStrategies(int numShards) {
