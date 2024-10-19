@@ -20,6 +20,9 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
+import com.palantir.logsafe.Preconditions;
+import com.palantir.logsafe.SafeArg;
 import org.immutables.value.Value;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
@@ -70,6 +73,14 @@ public interface BucketAssignerState {
         default <T> T accept(BucketAssignerState.Visitor<T> visitor) {
             return visitor.visit(this);
         }
+
+        @Value.Check
+        default void check() {
+            Preconditions.checkState(
+                    timestampIsOnCoarsePartitionBoundary(startTimestampInclusive()),
+                    "Start timestamp must be on a coarse partition boundary",
+                    SafeArg.of("startTimestampInclusive", startTimestampInclusive()));
+        }
     }
 
     @Value.Immutable
@@ -85,6 +96,14 @@ public interface BucketAssignerState {
         default <T> T accept(BucketAssignerState.Visitor<T> visitor) {
             return visitor.visit(this);
         }
+
+        @Value.Check
+        default void check() {
+            Preconditions.checkState(
+                    timestampIsOnCoarsePartitionBoundary(startTimestampInclusive()),
+                    "Start timestamp must be on a coarse partition boundary",
+                    SafeArg.of("startTimestampInclusive", startTimestampInclusive()));
+        }
     }
 
     @Value.Immutable
@@ -99,6 +118,14 @@ public interface BucketAssignerState {
         @Override
         default <T> T accept(BucketAssignerState.Visitor<T> visitor) {
             return visitor.visit(this);
+        }
+
+        @Value.Check
+        default void check() {
+            Preconditions.checkState(
+                    timestampIsOnCoarsePartitionBoundary(startTimestampInclusive()),
+                    "Start timestamp must be on a coarse partition boundary",
+                    SafeArg.of("startTimestampInclusive", startTimestampInclusive()));
         }
     }
 
@@ -118,6 +145,16 @@ public interface BucketAssignerState {
         default <T> T accept(BucketAssignerState.Visitor<T> visitor) {
             return visitor.visit(this);
         }
+
+        @Value.Check
+        default void check() {
+            Preconditions.checkState(
+                    timestampIsOnCoarsePartitionBoundary(startTimestampInclusive())
+                            && timestampIsOnCoarsePartitionBoundary(endTimestampExclusive()),
+                    "Start and end timestamp must be on a coarse partition boundary",
+                    SafeArg.of("startTimestampInclusive", startTimestampInclusive()),
+                    SafeArg.of("endTimestampExclusive", endTimestampExclusive()));
+        }
     }
 
     @Value.Immutable
@@ -136,6 +173,16 @@ public interface BucketAssignerState {
         default <T> T accept(BucketAssignerState.Visitor<T> visitor) {
             return visitor.visit(this);
         }
+
+        @Value.Check
+        default void check() {
+            Preconditions.checkState(
+                    timestampIsOnCoarsePartitionBoundary(startTimestampInclusive())
+                            && timestampIsOnCoarsePartitionBoundary(endTimestampExclusive()),
+                    "Start and end timestamp must be on a coarse partition boundary",
+                    SafeArg.of("startTimestampInclusive", startTimestampInclusive()),
+                    SafeArg.of("endTimestampExclusive", endTimestampExclusive()));
+        }
     }
 
     interface Visitor<T> {
@@ -148,5 +195,9 @@ public interface BucketAssignerState {
         T visit(BucketAssignerState.ClosingFromOpen closingFromOpen);
 
         T visit(BucketAssignerState.ImmediatelyClosing immediatelyClosing);
+    }
+
+    private static boolean timestampIsOnCoarsePartitionBoundary(long timestamp) {
+        return timestamp % SweepQueueUtils.TS_COARSE_GRANULARITY == 0;
     }
 }

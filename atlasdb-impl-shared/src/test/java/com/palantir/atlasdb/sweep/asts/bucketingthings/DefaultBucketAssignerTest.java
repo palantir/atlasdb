@@ -32,6 +32,7 @@ import com.palantir.atlasdb.sweep.asts.TimestampRange;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.BucketWriter.WriteState;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.DefaultBucketAssigner.BucketAssignerEventHandler;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.DefaultBucketAssigner.IterationResult.OperationResult;
+import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -76,35 +77,37 @@ public final class DefaultBucketAssignerTest {
 
     @Test // A single call to run - i.e., we don't do one step per call where possible
     public void startStateTransitionsThroughToWaitingUntilCloseableIfBucketCannotBeClosedImmediately() {
-        stateTable.setInitialState(1, BucketAssignerState.start(1));
-        when(closeTimestampCalculator.apply(1L)).thenReturn(OptionalLong.empty());
+        stateTable.setInitialState(1, BucketAssignerState.start(coarsePartitionTimestamp(1)));
+        when(closeTimestampCalculator.apply(coarsePartitionTimestamp(1))).thenReturn(OptionalLong.empty());
         bucketAssigner.run();
 
         assertOperationResult(OperationResult.INCOMPLETE);
-        verify(bucketWriter).writeToAllBuckets(1, Optional.empty(), TimestampRange.openBucket(1));
+        verify(bucketWriter)
+                .writeToAllBuckets(1, Optional.empty(), TimestampRange.openBucket(coarsePartitionTimestamp(1)));
         verifyNoInteractions(sweepBucketRecordsTable);
         verify(eventHandler).progressedToBucketIdentifier(1);
         stateTable.assertThatStateMachineTransitionedThroughTo(
-                BucketStateAndIdentifier.of(1, BucketAssignerState.opening(1)),
-                BucketStateAndIdentifier.of(1, BucketAssignerState.waitingUntilCloseable(1)));
+                BucketStateAndIdentifier.of(1, BucketAssignerState.opening(coarsePartitionTimestamp(1))),
+                BucketStateAndIdentifier.of(1, BucketAssignerState.waitingUntilCloseable(coarsePartitionTimestamp(1))));
     }
 
     @Test
     public void openingStateWritesToAllBucketsFromNoOriginalTimestampAndTransitionsToWaitingUntilCloseable() {
-        stateTable.setInitialState(1, BucketAssignerState.opening(1));
+        stateTable.setInitialState(1, BucketAssignerState.opening(coarsePartitionTimestamp(2)));
         bucketAssigner.run();
 
         assertOperationResult(OperationResult.INCOMPLETE);
-        verify(bucketWriter).writeToAllBuckets(1, Optional.empty(), TimestampRange.openBucket(1));
+        verify(bucketWriter)
+                .writeToAllBuckets(1, Optional.empty(), TimestampRange.openBucket(coarsePartitionTimestamp(2)));
         verifyNoInteractions(sweepBucketRecordsTable);
         stateTable.assertThatStateMachineTransitionedThroughTo(
-                BucketStateAndIdentifier.of(1, BucketAssignerState.waitingUntilCloseable(1)));
+                BucketStateAndIdentifier.of(1, BucketAssignerState.waitingUntilCloseable(coarsePartitionTimestamp(2))));
     }
 
     @Test
     public void waitingForCloseDoesNoTransitionIfBucketCannotBeClosed() {
-        stateTable.setInitialState(1, BucketAssignerState.waitingUntilCloseable(1));
-        when(closeTimestampCalculator.apply(1L)).thenReturn(OptionalLong.empty());
+        stateTable.setInitialState(1, BucketAssignerState.waitingUntilCloseable(coarsePartitionTimestamp(3)));
+        when(closeTimestampCalculator.apply(coarsePartitionTimestamp(3))).thenReturn(OptionalLong.empty());
         bucketAssigner.run();
 
         assertOperationResult(OperationResult.INCOMPLETE);
@@ -115,110 +118,167 @@ public final class DefaultBucketAssignerTest {
 
     @Test
     public void waitingForCloseTransitionsThroughClosingFromOpenToStartIfBucketCanBeClosedAndWritesRecord() {
-        stateTable.setInitialState(1, BucketAssignerState.waitingUntilCloseable(1));
-        when(closeTimestampCalculator.apply(1L)).thenReturn(OptionalLong.of(10));
-        when(closeTimestampCalculator.apply(10L)).thenReturn(OptionalLong.empty());
+        stateTable.setInitialState(1, BucketAssignerState.waitingUntilCloseable(coarsePartitionTimestamp(1)));
+        when(closeTimestampCalculator.apply(coarsePartitionTimestamp(1)))
+                .thenReturn(OptionalLong.of(coarsePartitionTimestamp(10)));
+        when(closeTimestampCalculator.apply(coarsePartitionTimestamp(10))).thenReturn(OptionalLong.empty());
         bucketAssigner.run();
 
         assertOperationResult(OperationResult.CLOSED, OperationResult.INCOMPLETE);
-        verify(bucketWriter).writeToAllBuckets(1, Optional.of(TimestampRange.openBucket(1)), TimestampRange.of(1, 10));
-        verify(sweepBucketRecordsTable).putTimestampRangeRecord(1, TimestampRange.of(1, 10));
+        verify(bucketWriter)
+                .writeToAllBuckets(
+                        1,
+                        Optional.of(TimestampRange.openBucket(coarsePartitionTimestamp(1))),
+                        TimestampRange.of(coarsePartitionTimestamp(1), coarsePartitionTimestamp(10)));
+        verify(sweepBucketRecordsTable)
+                .putTimestampRangeRecord(
+                        1, TimestampRange.of(coarsePartitionTimestamp(1), coarsePartitionTimestamp(10)));
         stateTable.assertThatStateMachineTransitionedThroughTo(
-                BucketStateAndIdentifier.of(1, BucketAssignerState.closingFromOpen(1, 10)),
+                BucketStateAndIdentifier.of(
+                        1,
+                        BucketAssignerState.closingFromOpen(coarsePartitionTimestamp(1), coarsePartitionTimestamp(10))),
                 // 10 was chosen as the end timestamp to show that we correctly use that as the start, and not something
                 // silly like start + 1.
-                BucketStateAndIdentifier.of(2, BucketAssignerState.start(10)),
+                BucketStateAndIdentifier.of(2, BucketAssignerState.start(coarsePartitionTimestamp(10))),
                 // We successfully closed a bucket, so we'll run another iteration eagerly.
-                BucketStateAndIdentifier.of(2, BucketAssignerState.opening(10)),
-                BucketStateAndIdentifier.of(2, BucketAssignerState.waitingUntilCloseable(10)));
+                BucketStateAndIdentifier.of(2, BucketAssignerState.opening(coarsePartitionTimestamp(10))),
+                BucketStateAndIdentifier.of(
+                        2, BucketAssignerState.waitingUntilCloseable(coarsePartitionTimestamp(10))));
     }
 
     @Test
     public void
             closingFromOpenStateUsesOriginalStartAndEndTimestampsInsteadOfRecalculatingAndClosesBucketAndWritesRecord() {
-        stateTable.setInitialState(1, BucketAssignerState.closingFromOpen(1, 2));
+        stateTable.setInitialState(
+                1, BucketAssignerState.closingFromOpen(coarsePartitionTimestamp(3), coarsePartitionTimestamp(4)));
         // This mock is for the _next_ bucket.
-        when(closeTimestampCalculator.apply(2L)).thenReturn(OptionalLong.empty());
+        when(closeTimestampCalculator.apply(coarsePartitionTimestamp(4))).thenReturn(OptionalLong.empty());
         bucketAssigner.run();
 
         assertOperationResult(OperationResult.CLOSED, OperationResult.INCOMPLETE);
-        verify(bucketWriter).writeToAllBuckets(1, Optional.of(TimestampRange.openBucket(1)), TimestampRange.of(1, 2));
-        verify(sweepBucketRecordsTable).putTimestampRangeRecord(1, TimestampRange.of(1, 2));
+        verify(bucketWriter)
+                .writeToAllBuckets(
+                        1,
+                        Optional.of(TimestampRange.openBucket(coarsePartitionTimestamp(3))),
+                        TimestampRange.of(coarsePartitionTimestamp(3), coarsePartitionTimestamp(4)));
+        verify(sweepBucketRecordsTable)
+                .putTimestampRangeRecord(
+                        1, TimestampRange.of(coarsePartitionTimestamp(3), coarsePartitionTimestamp(4)));
         // We'll start the next iteration of buckets, but stop because we can't close it.
         stateTable.assertThatStateMachineTransitionedThroughTo(
-                BucketStateAndIdentifier.of(2, BucketAssignerState.start(2)),
-                BucketStateAndIdentifier.of(2, BucketAssignerState.opening(2)),
-                BucketStateAndIdentifier.of(2, BucketAssignerState.waitingUntilCloseable(2)));
+                BucketStateAndIdentifier.of(2, BucketAssignerState.start(coarsePartitionTimestamp(4))),
+                BucketStateAndIdentifier.of(2, BucketAssignerState.opening(coarsePartitionTimestamp(4))),
+                BucketStateAndIdentifier.of(2, BucketAssignerState.waitingUntilCloseable(coarsePartitionTimestamp(4))));
         verifyNoMoreInteractions(closeTimestampCalculator);
     }
 
     @Test
     public void startTransitionsThroughImmediatelyClosingToStartIfBucketCanBeImmediatelyClosedAndWritesRecord() {
-        stateTable.setInitialState(1, BucketAssignerState.start(1));
-        when(closeTimestampCalculator.apply(1L)).thenReturn(OptionalLong.of(15));
-        when(closeTimestampCalculator.apply(15L)).thenReturn(OptionalLong.empty());
+        stateTable.setInitialState(1, BucketAssignerState.start(coarsePartitionTimestamp(1)));
+        when(closeTimestampCalculator.apply(coarsePartitionTimestamp(1)))
+                .thenReturn(OptionalLong.of(coarsePartitionTimestamp(15)));
+        when(closeTimestampCalculator.apply(coarsePartitionTimestamp(15))).thenReturn(OptionalLong.empty());
         bucketAssigner.run();
 
         assertOperationResult(OperationResult.CLOSED, OperationResult.INCOMPLETE);
-        verify(bucketWriter).writeToAllBuckets(1, Optional.empty(), TimestampRange.of(1, 15));
-        verify(sweepBucketRecordsTable).putTimestampRangeRecord(1, TimestampRange.of(1, 15));
+        verify(bucketWriter)
+                .writeToAllBuckets(
+                        1,
+                        Optional.empty(),
+                        TimestampRange.of(coarsePartitionTimestamp(1), coarsePartitionTimestamp(15)));
+        verify(sweepBucketRecordsTable)
+                .putTimestampRangeRecord(
+                        1, TimestampRange.of(coarsePartitionTimestamp(1), coarsePartitionTimestamp(15)));
         stateTable.assertThatStateMachineTransitionedThroughTo(
-                BucketStateAndIdentifier.of(1, BucketAssignerState.immediatelyClosing(1, 15)),
-                BucketStateAndIdentifier.of(2, BucketAssignerState.start(15)),
-                BucketStateAndIdentifier.of(2, BucketAssignerState.opening(15)),
-                BucketStateAndIdentifier.of(2, BucketAssignerState.waitingUntilCloseable(15)));
+                BucketStateAndIdentifier.of(
+                        1,
+                        BucketAssignerState.immediatelyClosing(
+                                coarsePartitionTimestamp(1), coarsePartitionTimestamp(15))),
+                BucketStateAndIdentifier.of(2, BucketAssignerState.start(coarsePartitionTimestamp(15))),
+                BucketStateAndIdentifier.of(2, BucketAssignerState.opening(coarsePartitionTimestamp(15))),
+                BucketStateAndIdentifier.of(
+                        2, BucketAssignerState.waitingUntilCloseable(coarsePartitionTimestamp(15))));
     }
 
     @Test
     public void immediatelyClosingUsesOriginalTimestampsInsteadOfRecalculatingAndClosesBucketAndWritesRecord() {
-        stateTable.setInitialState(1, BucketAssignerState.immediatelyClosing(1, 15));
+        stateTable.setInitialState(
+                1, BucketAssignerState.immediatelyClosing(coarsePartitionTimestamp(1), coarsePartitionTimestamp(15)));
         // This mock is for the _next_ bucket.
-        when(closeTimestampCalculator.apply(15L)).thenReturn(OptionalLong.empty());
+        when(closeTimestampCalculator.apply(coarsePartitionTimestamp(15))).thenReturn(OptionalLong.empty());
         bucketAssigner.run();
 
         assertOperationResult(OperationResult.CLOSED, OperationResult.INCOMPLETE);
-        verify(bucketWriter).writeToAllBuckets(1, Optional.empty(), TimestampRange.of(1, 15));
-        verify(sweepBucketRecordsTable).putTimestampRangeRecord(1, TimestampRange.of(1, 15));
+        verify(bucketWriter)
+                .writeToAllBuckets(
+                        1,
+                        Optional.empty(),
+                        TimestampRange.of(coarsePartitionTimestamp(1), coarsePartitionTimestamp(15)));
+        verify(sweepBucketRecordsTable)
+                .putTimestampRangeRecord(
+                        1, TimestampRange.of(coarsePartitionTimestamp(1), coarsePartitionTimestamp(15)));
         stateTable.assertThatStateMachineTransitionedThroughTo(
-                BucketStateAndIdentifier.of(2, BucketAssignerState.start(15)),
-                BucketStateAndIdentifier.of(2, BucketAssignerState.opening(15)),
-                BucketStateAndIdentifier.of(2, BucketAssignerState.waitingUntilCloseable(15)));
+                BucketStateAndIdentifier.of(2, BucketAssignerState.start(coarsePartitionTimestamp(15))),
+                BucketStateAndIdentifier.of(2, BucketAssignerState.opening(coarsePartitionTimestamp(15))),
+                BucketStateAndIdentifier.of(
+                        2, BucketAssignerState.waitingUntilCloseable(coarsePartitionTimestamp(15))));
         verifyNoMoreInteractions(closeTimestampCalculator);
     }
 
     @Test
     public void createsBucketsUpToMaxIterationsInOneRunIfAllCloseable() {
-        stateTable.setInitialState(1, BucketAssignerState.start(1));
-        when(closeTimestampCalculator.apply(1L)).thenReturn(OptionalLong.of(3));
-        when(closeTimestampCalculator.apply(3L)).thenReturn(OptionalLong.of(25));
-        when(closeTimestampCalculator.apply(25L)).thenReturn(OptionalLong.of(41));
-        when(closeTimestampCalculator.apply(41L)).thenReturn(OptionalLong.of(114));
-        when(closeTimestampCalculator.apply(114L)).thenReturn(OptionalLong.of(221));
+        stateTable.setInitialState(1, BucketAssignerState.start(coarsePartitionTimestamp(1)));
+        when(closeTimestampCalculator.apply(coarsePartitionTimestamp(1)))
+                .thenReturn(OptionalLong.of(coarsePartitionTimestamp(3)));
+        when(closeTimestampCalculator.apply(coarsePartitionTimestamp(3)))
+                .thenReturn(OptionalLong.of(coarsePartitionTimestamp(25)));
+        when(closeTimestampCalculator.apply(coarsePartitionTimestamp(25)))
+                .thenReturn(OptionalLong.of(coarsePartitionTimestamp(41)));
+        when(closeTimestampCalculator.apply(coarsePartitionTimestamp(41)))
+                .thenReturn(OptionalLong.of(coarsePartitionTimestamp(114)));
+        when(closeTimestampCalculator.apply(coarsePartitionTimestamp(114)))
+                .thenReturn(OptionalLong.of(coarsePartitionTimestamp(221)));
 
         bucketAssigner.run();
         stateTable.assertThatStateMachineTransitionedThroughTo(
-                BucketStateAndIdentifier.of(1, BucketAssignerState.immediatelyClosing(1, 3)),
-                BucketStateAndIdentifier.of(2, BucketAssignerState.start(3)),
-                BucketStateAndIdentifier.of(2, BucketAssignerState.immediatelyClosing(3, 25)),
-                BucketStateAndIdentifier.of(3, BucketAssignerState.start(25)),
-                BucketStateAndIdentifier.of(3, BucketAssignerState.immediatelyClosing(25, 41)),
-                BucketStateAndIdentifier.of(4, BucketAssignerState.start(41)),
-                BucketStateAndIdentifier.of(4, BucketAssignerState.immediatelyClosing(41, 114)),
-                BucketStateAndIdentifier.of(5, BucketAssignerState.start(114)),
-                BucketStateAndIdentifier.of(5, BucketAssignerState.immediatelyClosing(114, 221)),
-                BucketStateAndIdentifier.of(6, BucketAssignerState.start(221)));
+                BucketStateAndIdentifier.of(
+                        1,
+                        BucketAssignerState.immediatelyClosing(
+                                coarsePartitionTimestamp(1), coarsePartitionTimestamp(3))),
+                BucketStateAndIdentifier.of(2, BucketAssignerState.start(coarsePartitionTimestamp(3))),
+                BucketStateAndIdentifier.of(
+                        2,
+                        BucketAssignerState.immediatelyClosing(
+                                coarsePartitionTimestamp(3), coarsePartitionTimestamp(25))),
+                BucketStateAndIdentifier.of(3, BucketAssignerState.start(coarsePartitionTimestamp(25))),
+                BucketStateAndIdentifier.of(
+                        3,
+                        BucketAssignerState.immediatelyClosing(
+                                coarsePartitionTimestamp(25), coarsePartitionTimestamp(41))),
+                BucketStateAndIdentifier.of(4, BucketAssignerState.start(coarsePartitionTimestamp(41))),
+                BucketStateAndIdentifier.of(
+                        4,
+                        BucketAssignerState.immediatelyClosing(
+                                coarsePartitionTimestamp(41), coarsePartitionTimestamp(114))),
+                BucketStateAndIdentifier.of(5, BucketAssignerState.start(coarsePartitionTimestamp(114))),
+                BucketStateAndIdentifier.of(
+                        5,
+                        BucketAssignerState.immediatelyClosing(
+                                coarsePartitionTimestamp(114), coarsePartitionTimestamp(221))),
+                BucketStateAndIdentifier.of(6, BucketAssignerState.start(coarsePartitionTimestamp(221))));
         verify(eventHandler).progressedToBucketIdentifier(5); // We haven't entered 6 yet.
 
         // We should not even be trying to transition to the next state after max iterations.
         verifyNoMoreInteractions(closeTimestampCalculator);
 
-        when(closeTimestampCalculator.apply(221L)).thenReturn(OptionalLong.empty());
-        stateTable.resetInitialState(6, BucketAssignerState.start(221));
+        when(closeTimestampCalculator.apply(coarsePartitionTimestamp(221))).thenReturn(OptionalLong.empty());
+        stateTable.resetInitialState(6, BucketAssignerState.start(coarsePartitionTimestamp(221)));
         bucketAssigner.run();
         verify(eventHandler).progressedToBucketIdentifier(6);
         stateTable.assertThatStateMachineTransitionedThroughTo(
-                BucketStateAndIdentifier.of(6, BucketAssignerState.opening(221)),
-                BucketStateAndIdentifier.of(6, BucketAssignerState.waitingUntilCloseable(221)));
+                BucketStateAndIdentifier.of(6, BucketAssignerState.opening(coarsePartitionTimestamp(221))),
+                BucketStateAndIdentifier.of(
+                        6, BucketAssignerState.waitingUntilCloseable(coarsePartitionTimestamp(221))));
     }
 
     @ParameterizedTest(name = "State: {0}")
@@ -257,7 +317,7 @@ public final class DefaultBucketAssignerTest {
             OptionalLong closeTimestamp,
             BucketAssignerState expectedNewState) {
         stateTable.setInitialState(1, state);
-        when(closeTimestampCalculator.apply(1L)).thenReturn(closeTimestamp);
+        when(closeTimestampCalculator.apply(coarsePartitionTimestamp(1))).thenReturn(closeTimestamp);
         when(bucketWriter.writeToAllBuckets(1, expectedOldRange, expectedNewRange))
                 .thenReturn(WriteState.FAILED_CAS);
 
@@ -276,7 +336,7 @@ public final class DefaultBucketAssignerTest {
             OptionalLong closeTimestamp,
             BucketAssignerState expectedNewState) {
         stateTable.setInitialState(1, state);
-        when(closeTimestampCalculator.apply(1L)).thenReturn(closeTimestamp);
+        when(closeTimestampCalculator.apply(coarsePartitionTimestamp(1))).thenReturn(closeTimestamp);
         when(bucketWriter.writeToAllBuckets(1, expectedOldRange, expectedNewRange))
                 .thenThrow(RUNTIME_EXCEPTION);
 
@@ -306,41 +366,53 @@ public final class DefaultBucketAssignerTest {
 
     private static Stream<Arguments> writingStates() {
         return Stream.of(
-                Arguments.of(BucketAssignerState.opening(1), Optional.empty(), TimestampRange.openBucket(1)),
                 Arguments.of(
-                        BucketAssignerState.closingFromOpen(1, 2),
-                        Optional.of(TimestampRange.openBucket(1)),
-                        TimestampRange.of(1, 2)),
+                        BucketAssignerState.opening(coarsePartitionTimestamp(1)),
+                        Optional.empty(),
+                        TimestampRange.openBucket(coarsePartitionTimestamp(1))),
                 Arguments.of(
-                        BucketAssignerState.immediatelyClosing(1, 15), Optional.empty(), TimestampRange.of(1, 15)));
+                        BucketAssignerState.closingFromOpen(coarsePartitionTimestamp(1), coarsePartitionTimestamp(2)),
+                        Optional.of(TimestampRange.openBucket(coarsePartitionTimestamp(1))),
+                        TimestampRange.of(coarsePartitionTimestamp(1), coarsePartitionTimestamp(2))),
+                Arguments.of(
+                        BucketAssignerState.immediatelyClosing(
+                                coarsePartitionTimestamp(1), coarsePartitionTimestamp(15)),
+                        Optional.empty(),
+                        TimestampRange.of(coarsePartitionTimestamp(1), coarsePartitionTimestamp(15))));
     }
 
     private static Stream<Arguments> transitionToWritingStates() {
         return Stream.of(
                 Arguments.of(
-                        BucketAssignerState.start(1),
+                        BucketAssignerState.start(coarsePartitionTimestamp(1)),
                         Optional.empty(),
-                        TimestampRange.openBucket(1),
+                        TimestampRange.openBucket(coarsePartitionTimestamp(1)),
                         OptionalLong.empty(),
-                        BucketAssignerState.opening(1)),
+                        BucketAssignerState.opening(coarsePartitionTimestamp(1))),
                 Arguments.of(
-                        BucketAssignerState.start(1),
+                        BucketAssignerState.start(coarsePartitionTimestamp(1)),
                         Optional.empty(),
-                        TimestampRange.of(1, 2),
-                        OptionalLong.of(2),
-                        BucketAssignerState.immediatelyClosing(1, 2)),
+                        TimestampRange.of(coarsePartitionTimestamp(1), coarsePartitionTimestamp(2)),
+                        OptionalLong.of(coarsePartitionTimestamp(2)),
+                        BucketAssignerState.immediatelyClosing(
+                                coarsePartitionTimestamp(1), coarsePartitionTimestamp(2))),
                 Arguments.of(
-                        BucketAssignerState.waitingUntilCloseable(1),
-                        Optional.of(TimestampRange.openBucket(1)),
-                        TimestampRange.of(1, 3),
-                        OptionalLong.of(3),
-                        BucketAssignerState.closingFromOpen(1, 3)));
+                        BucketAssignerState.waitingUntilCloseable(coarsePartitionTimestamp(1)),
+                        Optional.of(TimestampRange.openBucket(coarsePartitionTimestamp(1))),
+                        TimestampRange.of(coarsePartitionTimestamp(1), coarsePartitionTimestamp(3)),
+                        OptionalLong.of(coarsePartitionTimestamp(3)),
+                        BucketAssignerState.closingFromOpen(coarsePartitionTimestamp(1), coarsePartitionTimestamp(3))));
     }
 
     private static Stream<Arguments> closingStates() {
         return Stream.of(
-                Arguments.of(BucketAssignerState.closingFromOpen(1, 2), TimestampRange.of(1, 2)),
-                Arguments.of(BucketAssignerState.immediatelyClosing(32, 150), TimestampRange.of(32, 150)));
+                Arguments.of(
+                        BucketAssignerState.closingFromOpen(coarsePartitionTimestamp(1), coarsePartitionTimestamp(2)),
+                        TimestampRange.of(coarsePartitionTimestamp(1), coarsePartitionTimestamp(2))),
+                Arguments.of(
+                        BucketAssignerState.immediatelyClosing(
+                                coarsePartitionTimestamp(32), coarsePartitionTimestamp(150)),
+                        TimestampRange.of(coarsePartitionTimestamp(32), coarsePartitionTimestamp(150))));
     }
 
     private void assertOperationResult(OperationResult... results) {
@@ -352,6 +424,10 @@ public final class DefaultBucketAssignerTest {
         // We can't use verifyNoMoreInteractions, because that would require verifying no other interactions on the
         // whole metrics object, which is not what we want.
         verify(eventHandler, times(results.length)).operationResultForIteration(any());
+    }
+
+    private static long coarsePartitionTimestamp(long coarsePartition) {
+        return SweepQueueUtils.minTsForCoarsePartition(coarsePartition);
     }
 
     private static final class TestSweepBucketAssignerStateMachineTable
