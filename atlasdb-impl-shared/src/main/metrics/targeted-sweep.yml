@@ -36,6 +36,14 @@ namespaces:
             2. WAITING_UNTIL_CLOSEABLE
             3. CLOSING_FROM_OPEN
             4. IMMEDIATELY_CLOSING
+      estimatedPendingNumberOfBucketsToBeSwept:
+        type: gauge
+        docs: |
+          The estimated number of buckets that have been loaded by the coordinator but not yet swept. It is possible
+          for this to go below 0 due if there is a temporary mismatch in state, but this is not a problem and will 
+          likely be corrected in the next iteration. This number does represent the total number of buckets to be swept,
+          nor the amount of work left to be completed - it is simply an indicator that the coordinator is collecting
+          work to be completed and that sweepers are performing work.
       enqueuedWrites:
         type: gauge
         tags:

@@ -222,14 +222,6 @@ public class TargetedSweeper implements BackgroundSweeper, CallbackInitializable
                 table -> runtime.get().tablesToTrackDeletions().apply(table),
                 follower,
                 mismatchBehaviour);
-
-        SingleBatchSweeper singleBatchSweeper = new DefaultSingleBatchSweeper(
-                metrics,
-                components.shardProgress(),
-                abandonedTransactionConsumer,
-                components.reader(),
-                components.deleter(),
-                components.cleaner());
         sweeper = BackgroundTargetedSweeperFactory.create(
                 keyValueService,
                 timelockService,
