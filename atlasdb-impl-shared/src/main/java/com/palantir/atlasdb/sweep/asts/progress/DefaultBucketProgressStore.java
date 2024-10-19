@@ -72,7 +72,7 @@ public final class DefaultBucketProgressStore implements BucketProgressStore {
                             CheckAndSetRequest.newCell(TABLE_REF, bucketCell, serializedBucketProgress));
                     if (log.isDebugEnabled()) {
                         log.debug(
-                                "Persisted new sweep bucket progress",
+                                "Persisted new sweep bucket {} progress to {}",
                                 SafeArg.of("bucket", bucket),
                                 SafeArg.of("minimumProgress", minimum));
                     }
@@ -88,26 +88,26 @@ public final class DefaultBucketProgressStore implements BucketProgressStore {
                                 bucketProgressPersister.serializeProgress(minimum)));
                         if (log.isDebugEnabled()) {
                             log.debug(
-                                    "Updated sweep bucket progress",
+                                    "Updated sweep bucket {} progress from {} to {}",
                                     SafeArg.of("bucket", bucket),
-                                    SafeArg.of("minimumProgress", minimum),
-                                    SafeArg.of("previousPersistedProgress", extantCurrentProgress));
+                                    SafeArg.of("previousPersistedProgress", extantCurrentProgress),
+                                    SafeArg.of("minimumProgress", minimum));
                         }
                     } else {
                         log.info(
-                                "Attempted to update sweep bucket progress, but the existing progress in the database"
-                                        + " was already ahead of us (possible timelock lost lock?)",
+                                "Attempted to update sweep bucket {} progress, but the existing progress {}"
+                                        + " in the database was already ahead of us {} (possible timelock lost lock?)",
                                 SafeArg.of("bucket", bucket),
-                                SafeArg.of("minimumProgress", minimum),
-                                SafeArg.of("persistedProgress", extantCurrentProgress));
+                                SafeArg.of("persistedProgress", extantCurrentProgress),
+                                SafeArg.of("minimumProgress", minimum));
                     }
                 }
                 return;
             } catch (RuntimeException e) {
                 if (attempt == CAS_ATTEMPT_LIMIT - 1) {
                     log.warn(
-                            "Repeatedly failed to update bucket progress as part of sweep; throwing, some work may"
-                                    + " need to be re-done.",
+                            "Repeatedly failed to update bucket {} progress to {} as part of sweep; throwing"
+                                    + " after {} attempts, some work may need to be re-done",
                             SafeArg.of("bucket", bucket),
                             SafeArg.of("minimumProgress", minimum),
                             SafeArg.of("numAttempts", CAS_ATTEMPT_LIMIT),
@@ -115,7 +115,8 @@ public final class DefaultBucketProgressStore implements BucketProgressStore {
                     throw e;
                 } else {
                     log.info(
-                            "Failed to read or update bucket progress as part of sweep. Retrying",
+                            "Failed to read or update bucket {} progress {} as part of sweep after attempt {}."
+                                    + " Retrying",
                             SafeArg.of("bucket", bucket),
                             SafeArg.of("minimumProgress", minimum),
                             SafeArg.of("attemptNumber", attempt + 1),
