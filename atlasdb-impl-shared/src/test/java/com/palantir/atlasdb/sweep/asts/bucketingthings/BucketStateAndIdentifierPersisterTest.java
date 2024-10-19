@@ -20,6 +20,7 @@ import static com.palantir.logsafe.testing.Assertions.assertThat;
 
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.ObjectPersister.LogSafety;
+import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import java.util.stream.Stream;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -33,22 +34,24 @@ public final class BucketStateAndIdentifierPersisterTest {
     private static final BucketStateAndIdentifier BUCKET_STATE_AND_IDENTIFIER_ONE =
             ImmutableBucketStateAndIdentifier.builder()
                     .bucketIdentifier(123L)
-                    .state(BucketAssignerState.start(1))
+                    .state(BucketAssignerState.start(SweepQueueUtils.TS_COARSE_GRANULARITY * 3))
                     .build();
 
     private static final BucketStateAndIdentifier BUCKET_STATE_AND_IDENTIFIER_TWO =
             ImmutableBucketStateAndIdentifier.builder()
                     .bucketIdentifier(456L)
-                    .state(BucketAssignerState.immediatelyClosing(123, 541))
+                    .state(BucketAssignerState.immediatelyClosing(
+                            SweepQueueUtils.TS_COARSE_GRANULARITY * 5, SweepQueueUtils.TS_COARSE_GRANULARITY * 8))
                     .build();
 
     // Be very careful about changing these without a migration.
     private static final byte[] SERIALIZED_BUCKET_STATE_AND_IDENTIFIER_ONE = BaseEncoding.base64()
-            .decode("OikKBfqPYnVja2V0SWRlbnRpZmllciQDtoRzdGF0ZfqDdHlwZURzdGFydJZzdGFydFRpbWVzdGFtcEluY2x1c2l2ZcL7+w==");
+            .decode(
+                    "OikKBfqPYnVja2V0SWRlbnRpZmllciQDtoRzdGF0ZfqDdHlwZURzdGFydJZzdGFydFRpbWVzdGFtcEluY2x1c2l2ZSQ5HByA+/s=");
 
     private static final byte[] SERIALIZED_BUCKET_STATE_AND_IDENTIFIER_TWO = BaseEncoding.base64()
             .decode(
-                    "OikKBfqPYnVja2V0SWRlbnRpZmllciQOkIRzdGF0ZfqDdHlwZVFpbW1lZGlhdGVseUNsb3NpbmeUZW5kVGltZXN0YW1wRXhjbHVzaXZlJBC6lnN0YXJ0VGltZXN0YW1wSW5jbHVzaXZlJAO2+/s=");
+                    "OikKBfqPYnVja2V0SWRlbnRpZmllciQOkIRzdGF0ZfqDdHlwZVFpbW1lZGlhdGVseUNsb3NpbmeUZW5kVGltZXN0YW1wRXhjbHVzaXZlJAEYSyCAlnN0YXJ0VGltZXN0YW1wSW5jbHVzaXZlJF8vBID7+w==");
 
     @ParameterizedTest
     @MethodSource("bucketStateAndIdentifiers")

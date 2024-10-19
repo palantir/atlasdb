@@ -32,6 +32,7 @@ import com.palantir.atlasdb.sweep.asts.Bucket;
 import com.palantir.atlasdb.sweep.asts.SweepableBucket;
 import com.palantir.atlasdb.sweep.asts.TimestampRange;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
+import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -80,7 +81,8 @@ public abstract class AbstractDefaultSweepAssignedBucketStoreTest {
 
     @Test
     public void setInitialStateCreatesStartingState() {
-        BucketAssignerState initialState = BucketAssignerState.closingFromOpen(421, 912);
+        BucketAssignerState initialState = BucketAssignerState.closingFromOpen(
+                SweepQueueUtils.TS_COARSE_GRANULARITY, SweepQueueUtils.TS_COARSE_GRANULARITY * 2);
         store.setInitialStateForBucketAssigner(initialState);
         BucketStateAndIdentifier expectedState = BucketStateAndIdentifier.of(0, initialState);
         assertThat(store.getBucketStateAndIdentifier()).isEqualTo(expectedState);
@@ -90,35 +92,41 @@ public abstract class AbstractDefaultSweepAssignedBucketStoreTest {
     @Test
     public void cannotSetInitialStateWhenStateAlreadyExists() {
         store.setInitialStateForBucketAssigner(BucketAssignerState.start(0));
-        assertThatThrownBy(() -> store.setInitialStateForBucketAssigner(BucketAssignerState.start(12)))
+        assertThatThrownBy(() -> store.setInitialStateForBucketAssigner(
+                        BucketAssignerState.start(SweepQueueUtils.TS_COARSE_GRANULARITY)))
                 .isInstanceOf(CheckAndSetException.class);
     }
 
     @Test
     public void updateStateMachineForBucketAssignerFailsIfInitialDoesNotMatchExisting() {
-        store.setInitialStateForBucketAssigner(BucketAssignerState.start(12));
+        store.setInitialStateForBucketAssigner(BucketAssignerState.start(SweepQueueUtils.TS_COARSE_GRANULARITY));
         BucketStateAndIdentifier incorrectInitialState =
-                BucketStateAndIdentifier.of(123, BucketAssignerState.start(789));
-        BucketStateAndIdentifier newState = BucketStateAndIdentifier.of(123, BucketAssignerState.start(101112));
+                BucketStateAndIdentifier.of(123, BucketAssignerState.start(SweepQueueUtils.TS_COARSE_GRANULARITY * 2));
+        BucketStateAndIdentifier newState =
+                BucketStateAndIdentifier.of(123, BucketAssignerState.start(SweepQueueUtils.TS_COARSE_GRANULARITY * 3));
         assertThatThrownBy(() -> store.updateStateMachineForBucketAssigner(incorrectInitialState, newState))
                 .isInstanceOf(CheckAndSetException.class);
     }
 
     @Test
     public void updateStateMachineForBucketAssignerFailsIfNoExistingValuePresent() {
-        BucketStateAndIdentifier unsetInitialState = BucketStateAndIdentifier.of(123, BucketAssignerState.start(456));
-        BucketStateAndIdentifier newState = BucketStateAndIdentifier.of(123, BucketAssignerState.start(101112));
+        BucketStateAndIdentifier unsetInitialState =
+                BucketStateAndIdentifier.of(123, BucketAssignerState.start(SweepQueueUtils.TS_COARSE_GRANULARITY));
+        BucketStateAndIdentifier newState =
+                BucketStateAndIdentifier.of(123, BucketAssignerState.start(SweepQueueUtils.TS_COARSE_GRANULARITY * 2));
         assertThatThrownBy(() -> store.updateStateMachineForBucketAssigner(unsetInitialState, newState))
                 .isInstanceOf(CheckAndSetException.class);
     }
 
     @Test
     public void updateStateMachineForBucketAssignerModifiesStateToNewIfOriginalMatchesExisting() {
-        store.setInitialStateForBucketAssigner(BucketAssignerState.start(1341));
-        BucketStateAndIdentifier initialState = BucketStateAndIdentifier.of(0, BucketAssignerState.start(1341));
-        BucketStateAndIdentifier newState = BucketStateAndIdentifier.of(123, BucketAssignerState.start(101112));
-        store.updateStateMachineForBucketAssigner(initialState, newState);
-        assertThat(store.getBucketStateAndIdentifier()).isEqualTo(newState);
+        BucketAssignerState initialState = BucketAssignerState.start(SweepQueueUtils.TS_COARSE_GRANULARITY * 2);
+        store.setInitialStateForBucketAssigner(initialState);
+        BucketStateAndIdentifier initialStateAndIdentifier = BucketStateAndIdentifier.of(0, initialState);
+        BucketStateAndIdentifier newStateAndIdentifier =
+                BucketStateAndIdentifier.of(123, BucketAssignerState.start(SweepQueueUtils.TS_COARSE_GRANULARITY * 3));
+        store.updateStateMachineForBucketAssigner(initialStateAndIdentifier, newStateAndIdentifier);
+        assertThat(store.getBucketStateAndIdentifier()).isEqualTo(newStateAndIdentifier);
     }
 
     @Test
@@ -183,7 +191,7 @@ public abstract class AbstractDefaultSweepAssignedBucketStoreTest {
     }
 
     @Test
-    public void getSweepableBucketsReturnsTimestampRangesforPresentBucketsForEachShardUpToTwoHundredBuckets() {
+    public void getSweepableBucketsReturnsTimestampRangesForPresentBucketsForEachShardUpToTwoHundredBuckets() {
         ShardAndStrategy shardAndStrategy = ShardAndStrategy.of(12, SweeperStrategy.THOROUGH);
         List<SweepableBucket> buckets = IntStream.range(0, 400)
                 .mapToObj(i -> SweepableBucket.of(Bucket.of(shardAndStrategy, i), TimestampRange.of(i, i + 1)))
