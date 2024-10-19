@@ -16,11 +16,13 @@
 
 package com.palantir.atlasdb.sweep.asts;
 
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.sweep.Sweeper;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.BucketCompletionListener;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.CompletelyClosedSweepBucketBoundRetriever;
 import com.palantir.atlasdb.sweep.asts.progress.BucketProgress;
 import com.palantir.atlasdb.sweep.asts.progress.BucketProgressStore;
+import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
@@ -69,9 +71,14 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
         long sweepTimestampForIteration =
                 Sweeper.of(sweepableBucket.bucket().shardAndStrategy()).getSweepTimestamp(specialTimestampsSupplier);
         long bucketStartTimestamp = sweepableBucket.timestampRange().startInclusive();
+
+        // TODO(mdaudali): we do need a way to report back to the coordinator about what happened when we tried to
+        //  sweep, so that the autoscaler can adjust as necessary and we can centralise metric reporting.
         if (sweepTimestampForIteration <= bucketStartTimestamp) {
             // This means that the sweep timestamp has not entered this partition yet, so we do not need to process
             // anything. Note that sweep timestamps are exclusive, so <= is correct.
+            targetedSweepMetrics.registerOccurrenceOf(
+                    sweepableBucket.bucket().shardAndStrategy(), SweepOutcome.NOTHING_TO_SWEEP);
             return 0L;
         }
 
@@ -85,14 +92,40 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
             // The bucket is fully swept; it might still be returned here if we thought it was a candidate, or if
             // the bucket state machine is still doing things
             markBucketCompleteIfEligible(sweepableBucket);
+            targetedSweepMetrics.registerOccurrenceOf(
+                    sweepableBucket.bucket().shardAndStrategy(), SweepOutcome.NOTHING_TO_SWEEP);
             return 0L;
         }
 
         if (sweepTimestampForIteration <= lastSweptTimestampInBucket) {
             // The sweep timestamp has made progress in this partition, but we've swept everything up to it.
+            targetedSweepMetrics.registerOccurrenceOf(
+                    sweepableBucket.bucket().shardAndStrategy(), SweepOutcome.NOTHING_TO_SWEEP);
             return 0L;
         }
 
+        try {
+            return sweepBucket(sweepableBucket, lastSweptTimestampInBucket, sweepTimestampForIteration);
+        } catch (InsufficientConsistencyException e) {
+            targetedSweepMetrics.registerOccurrenceOf(
+                    sweepableBucket.bucket().shardAndStrategy(), SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE);
+            log.warn(
+                    "Targeted sweep for {} failed and will be retried later.",
+                    SafeArg.of("bucket", sweepableBucket),
+                    e);
+            return 0L;
+        } catch (Throwable e) {
+            targetedSweepMetrics.registerOccurrenceOf(sweepableBucket.bucket().shardAndStrategy(), SweepOutcome.ERROR);
+            log.warn(
+                    "Targeted sweep for {} failed and will be retried later.",
+                    SafeArg.of("bucket", sweepableBucket),
+                    e);
+            return 0L;
+        }
+    }
+
+    private long sweepBucket(
+            SweepableBucket sweepableBucket, long lastSweptTimestampInBucket, long sweepTimestampForIteration) {
         // TODO (jkong): Make use of the partial progress within a timestamp.
         SweepBatchWithPartitionInfo sweepBatchWithPartitionInfo = sweepQueueReader.getNextBatchToSweep(
                 sweepableBucket.bucket().shardAndStrategy(),
@@ -135,6 +168,12 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
 
         targetedSweepMetrics.updateNumberOfTombstones(
                 shardAndStrategy, sweepBatch.writes().size());
+
+        if (sweepBatch.isEmpty()) {
+            targetedSweepMetrics.registerOccurrenceOf(shardAndStrategy, SweepOutcome.NOTHING_TO_SWEEP);
+        } else {
+            targetedSweepMetrics.registerOccurrenceOf(shardAndStrategy, SweepOutcome.SUCCESS);
+        }
 
         // No updating of overall progress; that's a responsibility of the background updating task
         return sweepBatch.entriesRead();
