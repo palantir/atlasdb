@@ -9,9 +9,9 @@ dependencies {
     api project(':timestamp-api')
     testImplementation project(path: ':flake-extension')
 
+    runtimeOnly 'ch.qos.logback:logback-classic'
     compileOnly 'com.google.dagger:dagger'
     implementation 'io.airlift:airline'
-
     implementation 'com.google.errorprone:error_prone_annotations'
     implementation 'com.google.guava:guava'
     implementation 'com.palantir.safe-logging:preconditions'
