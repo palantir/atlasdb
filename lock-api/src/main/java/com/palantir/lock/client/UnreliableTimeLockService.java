@@ -19,8 +19,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.buggify.api.BuggifyFactory;
 import com.palantir.atlasdb.buggify.impl.DefaultBuggifyFactory;
+import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
 import com.palantir.lock.annotations.ReviewedRestrictedApiUsage;
-import com.palantir.lock.v2.AcquireNamedMinTimestampLeaseResult;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
@@ -28,6 +28,7 @@ import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.TimestampLeaseResults;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.SafeArg;
@@ -35,6 +36,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampRange;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -159,15 +161,14 @@ public final class UnreliableTimeLockService implements TimelockService {
 
     @ReviewedRestrictedApiUsage
     @Override
-    public AcquireNamedMinTimestampLeaseResult acquireNamedMinTimestampLease(
-            String timestampName, int numFreshTimestamps) {
-        return delegate.acquireNamedMinTimestampLease(timestampName, numFreshTimestamps);
+    public TimestampLeaseResults acquireTimestampLeases(Map<TimestampLeaseName, Integer> requests) {
+        return delegate.acquireTimestampLeases(requests);
     }
 
     @ReviewedRestrictedApiUsage
     @Override
-    public long getMinLeasedTimestampForName(String timestampName) {
-        return delegate.getMinLeasedTimestampForName(timestampName);
+    public Map<TimestampLeaseName, Long> getMinLeasedTimestamps(Set<TimestampLeaseName> timestampNames) {
+        return delegate.getMinLeasedTimestamps(timestampNames);
     }
 
     private void maybeRandomlyIncreaseTimestamp() {
