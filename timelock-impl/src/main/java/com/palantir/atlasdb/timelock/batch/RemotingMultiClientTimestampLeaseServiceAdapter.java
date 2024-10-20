@@ -27,7 +27,7 @@ import com.palantir.atlasdb.timelock.api.MultiClientGetMinLeasedTimestampRespons
 import com.palantir.atlasdb.timelock.api.MultiClientTimestampLeaseRequest;
 import com.palantir.atlasdb.timelock.api.MultiClientTimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
-import com.palantir.atlasdb.timelock.api.TimestampLeaseResponses;
+import com.palantir.atlasdb.timelock.api.TimestampLeasesResponse;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.undertow.lib.RequestContext;
 import java.util.Map;
@@ -46,7 +46,7 @@ final class RemotingMultiClientTimestampLeaseServiceAdapter {
 
     ListenableFuture<MultiClientTimestampLeaseResponse> acquireTimestampLeases(
             MultiClientTimestampLeaseRequest requests, @Nullable RequestContext context) {
-        Map<Namespace, ListenableFuture<TimestampLeaseResponses>> futures = KeyedStream.stream(requests.get())
+        Map<Namespace, ListenableFuture<TimestampLeasesResponse>> futures = KeyedStream.stream(requests.get())
                 .map((namespace, request) -> delegate.acquireTimestampLeases(namespace, request, context))
                 .collectToMap();
 

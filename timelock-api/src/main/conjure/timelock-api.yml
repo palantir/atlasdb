@@ -228,27 +228,30 @@ types:
       LeaderTimes:
         fields:
           leaderTimes: map<Namespace, LeaderTime>
-      TimestampLeaseRequest:
-         fields:
-           requestId:
-             type: uuid
-             safety: safe
-           numFreshTimestamps:
-             type: integer
-             safety: safe
+      RequestId:
+        alias: uuid
+        safety: safe
       TimestampLeaseRequests:
-         alias: map<TimestampLeaseName, TimestampLeaseRequest>
+          fields:
+            requestsId: RequestId
+            numFreshTimestamps: map<TimestampLeaseName, integer>
+      TimestampLeasesRequest:
+          alias: list<TimestampLeaseRequests>
       MultiClientTimestampLeaseRequest:
-         alias: map<Namespace, TimestampLeaseRequests>
+         alias: map<Namespace, TimestampLeasesRequest>
       TimestampLeaseResponse:
          fields:
            minLeased: Long
-           leaseGuarantee: LeaseGuarantee
            freshTimestamps: ConjureTimestampRange
       TimestampLeaseResponses:
-         alias: map<TimestampLeaseName, TimestampLeaseResponse>
+         fields:
+           leaseGuarantee: LeaseGuarantee
+           timestampLeaseResponses: map<TimestampLeaseName, TimestampLeaseResponse>
+      TimestampLeasesResponse:
+         fields:
+           alias: list<TimestampLeaseResponses>
       MultiClientTimestampLeaseResponse:
-         alias: map<Namespace, TimestampLeaseResponses>
+         alias: map<Namespace, TimestampLeasesResponse>
       GetMinLeasedTimestampRequests:
          alias: list<TimestampLeaseName>
       MultiClientGetMinLeasedTimestampRequest:
