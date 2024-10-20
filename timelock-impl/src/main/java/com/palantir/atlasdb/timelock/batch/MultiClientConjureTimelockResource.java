@@ -161,7 +161,7 @@ public final class MultiClientConjureTimelockResource implements UndertowMultiCl
     @Override
     public ListenableFuture<MultiClientTimestampLeaseResponse> acquireTimestampLease(
             AuthHeader authHeader, MultiClientTimestampLeaseRequest requests, @Nullable RequestContext context) {
-        return handleExceptions(() -> timestampLeaseService.acquireTimestampLeases(requests, context));
+        throw new UnsupportedOperationException("Unsupported");
     }
 
     @Override
