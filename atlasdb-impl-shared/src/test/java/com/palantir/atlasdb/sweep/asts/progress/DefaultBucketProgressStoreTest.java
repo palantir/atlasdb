@@ -35,6 +35,7 @@ import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.Value;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.sweep.asts.Bucket;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.conjure.java.serialization.ObjectMappers;
@@ -169,8 +170,8 @@ public class DefaultBucketProgressStoreTest {
             BucketProgress expectedProgress, BucketProgress progressInDatabase) {
         return new CheckAndSetException(
                 DEFAULT_BUCKET_CELL,
-                DefaultBucketProgressStore.TABLE_REF,
                 BUCKET_PROGRESS_PERSISTER.serializeProgress(expectedProgress),
-                ImmutableList.of(BUCKET_PROGRESS_PERSISTER.serializeProgress(progressInDatabase)));
+                ImmutableList.of(BUCKET_PROGRESS_PERSISTER.serializeProgress(progressInDatabase)),
+                LoggingArgs.tableRef(DefaultBucketProgressStore.TABLE_REF));
     }
 }
