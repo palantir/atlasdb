@@ -16,17 +16,14 @@
 
 package com.palantir.lock.v2;
 
-import java.util.List;
+import java.util.function.LongSupplier;
 import org.immutables.value.Value;
 
 @Value.Immutable
-public interface AcquireNamedMinTimestampLeaseResult {
+public interface TimestampLeaseResult {
     @Value.Parameter
     long minLeasedTimestamp();
 
     @Value.Parameter
-    LockToken lock();
-
-    @Value.Parameter
-    List<Long> freshTimestamps();
+    LongSupplier freshTimestampsSupplier();
 }

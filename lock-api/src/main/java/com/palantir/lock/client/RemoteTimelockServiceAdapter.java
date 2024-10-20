@@ -20,8 +20,7 @@ import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureTimestampRange;
 import com.palantir.atlasdb.timelock.api.Namespace;
-import com.palantir.lock.annotations.ReviewedRestrictedApiUsage;
-import com.palantir.lock.v2.AcquireNamedMinTimestampLeaseResult;
+import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
@@ -30,6 +29,7 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.TimestampLeaseResults;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchCache;
@@ -38,6 +38,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampRange;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -170,17 +171,14 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
         return rpcClient.currentTimeMillis();
     }
 
-    @ReviewedRestrictedApiUsage
     @Override
-    public AcquireNamedMinTimestampLeaseResult acquireNamedMinTimestampLease(
-            String timestampName, int numFreshTimestamps) {
+    public TimestampLeaseResults acquireTimestampLeases(Map<TimestampLeaseName, Integer> requests) {
         // TODO(aalouane): implement!
         throw new UnsupportedOperationException("Not implemented yet!");
     }
 
-    @ReviewedRestrictedApiUsage
     @Override
-    public long getMinLeasedTimestampForName(String timestampName) {
+    public Map<TimestampLeaseName, Long> getMinLeasedTimestamps(Set<TimestampLeaseName> timestampNames) {
         // TODO(aalouane): implement!
         throw new UnsupportedOperationException("Not implemented yet!");
     }
