@@ -34,6 +34,9 @@ public final class CassandraTExceptions {
         if (throwable instanceof UnavailableException) {
             return new InsufficientConsistencyException(logMessage, throwable);
         }
+        if (throwable instanceof InsufficientConsistencyException) {
+            return new InsufficientConsistencyException(logMessage, throwable);
+        }
         return new AtlasDbDependencyException(throwable);
     }
 
