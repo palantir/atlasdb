@@ -48,6 +48,7 @@ import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProvider;
 import com.palantir.atlasdb.cassandra.CassandraMutationTimestampProviders;
 import com.palantir.atlasdb.cassandra.CassandraServersConfigs.CassandraServersConfig;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.AllowedRangeRequest;
 import com.palantir.atlasdb.keyvalue.api.AsyncKeyValueService;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.CandidateCellForSweeping;
@@ -1691,6 +1692,7 @@ public class CassandraKeyValueServiceImpl extends AbstractKeyValueService implem
     }
 
     @Override
+    @AllowedRangeRequest(justification = "RangeRequest.all only invoked for equality check")
     public void deleteRange(final TableReference tableRef, final RangeRequest range) {
         if (range.equals(RangeRequest.all())) {
             try {

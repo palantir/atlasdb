@@ -35,6 +35,7 @@ import com.google.common.collect.Streams;
 import com.google.common.primitives.UnsignedBytes;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.AllowedRangeRequest;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
@@ -87,6 +88,7 @@ import org.junit.jupiter.api.Test;
 import org.xnio.ByteString;
 
 @SuppressWarnings("MustBeClosedChecker")
+@AllowedRangeRequest(justification = "test!")
 public abstract class AbstractKeyValueServiceTest {
     private final KvsManager kvsManager;
 

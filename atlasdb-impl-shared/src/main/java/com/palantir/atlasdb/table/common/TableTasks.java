@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.UnsignedBytes;
+import com.palantir.atlasdb.keyvalue.api.AllowedRangeRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
@@ -163,6 +164,7 @@ public final class TableTasks {
         return stats;
     }
 
+    @AllowedRangeRequest(justification = "???")
     public static long estimateSize(
             Transaction transaction, TableReference table, int batchSize, Function<byte[], byte[]> uniformizer) {
         final AtomicLong estimate = new AtomicLong();

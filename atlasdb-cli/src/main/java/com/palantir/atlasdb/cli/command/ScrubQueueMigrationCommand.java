@@ -22,6 +22,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
+import com.palantir.atlasdb.keyvalue.api.AllowedRangeRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.KeyAlreadyExistsException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -76,6 +77,7 @@ public class ScrubQueueMigrationCommand extends SingleBackendCommand {
         return 0;
     }
 
+    @AllowedRangeRequest(justification = "this is a cli and so should only ever be invoked manually")
     public static void run(KeyValueService kvs, PrintWriter output, int batchSize) {
         Context context = new Context(kvs, output, batchSize);
 

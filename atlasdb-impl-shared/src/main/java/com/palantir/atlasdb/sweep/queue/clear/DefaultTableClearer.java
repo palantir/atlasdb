@@ -20,6 +20,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
+import com.palantir.atlasdb.keyvalue.api.AllowedRangeRequest;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
@@ -89,6 +90,7 @@ public final class DefaultTableClearer implements TableClearer, TargetedSweepFil
     }
 
     @Override
+    @AllowedRangeRequest(justification = "deleting a range is cheaper than reading one")
     public void deleteAllRowsInTables(Set<TableReference> tables) {
         execute(tables, filtered -> filtered.forEach(table -> kvs.deleteRange(table, RangeRequest.all())));
     }
