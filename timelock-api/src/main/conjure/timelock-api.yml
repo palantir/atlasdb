@@ -233,12 +233,12 @@ types:
         safety: safe
       TimestampLeaseRequests:
           fields:
-            requestsId: RequestId
+            requestId: RequestId
             numFreshTimestamps: map<TimestampLeaseName, integer>
-      TimestampLeasesRequest:
+      NamespaceTimestampLeaseRequest:
           alias: list<TimestampLeaseRequests>
       MultiClientTimestampLeaseRequest:
-         alias: map<Namespace, TimestampLeasesRequest>
+         alias: map<Namespace, NamespaceTimestampLeaseRequest>
       TimestampLeaseResponse:
          fields:
            minLeased: Long
@@ -247,11 +247,11 @@ types:
          fields:
            leaseGuarantee: LeaseGuarantee
            timestampLeaseResponses: map<TimestampLeaseName, TimestampLeaseResponse>
-      TimestampLeasesResponse:
+      NamespaceTimestampLeaseResponse:
          fields:
            alias: list<TimestampLeaseResponses>
       MultiClientTimestampLeaseResponse:
-         alias: map<Namespace, TimestampLeasesResponse>
+         alias: map<Namespace, NamespaceTimestampLeaseResponse>
       GetMinLeasedTimestampRequests:
          alias: list<TimestampLeaseName>
       MultiClientGetMinLeasedTimestampRequest:

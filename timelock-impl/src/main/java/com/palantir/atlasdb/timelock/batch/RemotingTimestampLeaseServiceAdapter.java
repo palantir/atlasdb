@@ -26,11 +26,11 @@ import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.api.GetMinLeasedTimestampRequests;
 import com.palantir.atlasdb.timelock.api.GetMinLeasedTimestampResponses;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.timelock.api.NamespaceTimestampLeaseRequest;
+import com.palantir.atlasdb.timelock.api.NamespaceTimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.api.RequestId;
 import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
 import com.palantir.atlasdb.timelock.api.TimestampLeaseResponses;
-import com.palantir.atlasdb.timelock.api.TimestampLeasesRequest;
-import com.palantir.atlasdb.timelock.api.TimestampLeasesResponse;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.undertow.lib.RequestContext;
 import java.util.List;
@@ -45,18 +45,17 @@ final class RemotingTimestampLeaseServiceAdapter {
         this.timelockServices = timelockServices;
     }
 
-    ListenableFuture<TimestampLeasesResponse> acquireTimestampLeases(
-            Namespace namespace, TimestampLeasesRequest requests, @Nullable RequestContext context) {
+    ListenableFuture<NamespaceTimestampLeaseResponse> acquireTimestampLeases(
+            Namespace namespace, NamespaceTimestampLeaseRequest requests, @Nullable RequestContext context) {
         AsyncTimelockService service = getServiceForNamespace(namespace, context);
 
         List<ListenableFuture<TimestampLeaseResponses>> futures = requests.get().stream()
-                .map(request ->
-                        acquireTimestampLease(service, request.getRequestsId(), request.getNumFreshTimestamps()))
+                .map(request -> acquireTimestampLease(service, request.getRequestId(), request.getNumFreshTimestamps()))
                 .collect(Collectors.toList());
 
         // TODO(aalouane): clean up lease resources in cases of partial failures
         return Futures.transform(
-                Futures.allAsList(futures), TimestampLeasesResponse::of, MoreExecutors.directExecutor());
+                Futures.allAsList(futures), NamespaceTimestampLeaseResponse::of, MoreExecutors.directExecutor());
     }
 
     ListenableFuture<GetMinLeasedTimestampResponses> getMinLeasedTimestamps(
