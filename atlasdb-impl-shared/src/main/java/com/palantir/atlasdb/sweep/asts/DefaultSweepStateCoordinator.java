@@ -21,6 +21,10 @@ import com.google.common.collect.Streams;
 import com.palantir.atlasdb.sweep.asts.locks.Lockable;
 import com.palantir.atlasdb.sweep.asts.locks.Lockable.LockedItem;
 import com.palantir.atlasdb.sweep.asts.locks.LockableFactory;
+import com.palantir.atlasdb.sweep.metrics.TargetedSweepProgressMetrics;
+import com.palantir.logsafe.SafeArg;
+import com.palantir.logsafe.logger.SafeLogger;
+import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -34,32 +38,46 @@ import java.util.stream.Stream;
 import org.immutables.value.Value;
 
 public final class DefaultSweepStateCoordinator implements SweepStateCoordinator {
+    private static final SafeLogger log = SafeLoggerFactory.get(DefaultSweepStateCoordinator.class);
     private final LockableFactory<SweepableBucket> lockableFactory;
     private final CandidateSweepableBucketRetriever candidateSweepableBucketRetriever;
 
     // Exists to facilitate testing, and to make switching out the shuffle strategy easier.
     private final Function<List<Lockable<SweepableBucket>>, Stream<Lockable<SweepableBucket>>> iterationOrderGenerator;
 
-    private volatile Set<Lockable<SweepableBucket>> seenBuckets;
-    private volatile BucketsLists bucketsLists;
+    private volatile Set<Lockable<SweepableBucket>> seenBuckets = ConcurrentHashMap.newKeySet();
+    private volatile BucketsLists bucketsLists = ImmutableBucketsLists.builder()
+            .firstBucketsOfEachShard(List.of())
+            .remainingBuckets(List.of())
+            .build();
 
     @VisibleForTesting
     DefaultSweepStateCoordinator(
             CandidateSweepableBucketRetriever candidateSweepableBucketRetriever,
             LockableFactory<SweepableBucket> lockableFactory,
+            TargetedSweepProgressMetrics progressMetrics,
             Function<List<Lockable<SweepableBucket>>, Stream<Lockable<SweepableBucket>>> iterationOrderGenerator) {
         this.candidateSweepableBucketRetriever = candidateSweepableBucketRetriever;
         this.lockableFactory = lockableFactory;
         this.iterationOrderGenerator = iterationOrderGenerator;
+
         candidateSweepableBucketRetriever.subscribeToChanges(this::updateBuckets);
+        progressMetrics.estimatedPendingNumberOfBucketsToBeSwept(() -> {
+            BucketsLists currentBucketsLists = bucketsLists;
+            return currentBucketsLists.firstBucketsOfEachShard().size()
+                    + currentBucketsLists.remainingBuckets().size()
+                    - seenBuckets.size();
+        });
     }
 
     public static DefaultSweepStateCoordinator create(
             CandidateSweepableBucketRetriever candidateSweepableBucketRetriever,
-            LockableFactory<SweepableBucket> lockableFactory) {
+            LockableFactory<SweepableBucket> lockableFactory,
+            TargetedSweepProgressMetrics progressMetrics) {
         return new DefaultSweepStateCoordinator(
                 candidateSweepableBucketRetriever,
                 lockableFactory,
+                progressMetrics,
                 buckets -> Streams.stream(new ProbingRandomIterator<>(buckets)));
     }
 
@@ -140,6 +158,10 @@ public final class DefaultSweepStateCoordinator implements SweepStateCoordinator
                 .remainingBuckets(remainingBuckets)
                 .build();
         seenBuckets = ConcurrentHashMap.newKeySet();
+        log.info(
+                "Updated sweepable buckets (first buckets per shard: {}, remaining buckets: {}).",
+                SafeArg.of("firstBucketsOfEachShard", firstBucketsOfEachShard),
+                SafeArg.of("remainingBuckets", remainingBuckets));
     }
 
     private enum SweepableBucketComparator implements Comparator<SweepableBucket> {

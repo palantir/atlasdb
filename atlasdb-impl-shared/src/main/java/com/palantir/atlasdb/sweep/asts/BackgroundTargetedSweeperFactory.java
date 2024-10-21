@@ -175,7 +175,8 @@ public final class BackgroundTargetedSweeperFactory {
                 installConfig.bucketBasedSweepThreads(),
                 runtimeConfig.map(TargetedSweepRuntimeConfig::autoScalingConfig),
                 runtimeConfig.map(TargetedSweepRuntimeConfig::enabled),
-                metrics);
+                metrics,
+                progressMetrics);
     }
 
     // TOOD(mdaudali): This will also be used in the autoscaling work, so will be refactored out at that point.

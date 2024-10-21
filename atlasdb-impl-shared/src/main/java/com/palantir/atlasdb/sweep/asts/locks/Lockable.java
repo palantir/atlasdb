@@ -115,6 +115,11 @@ public final class Lockable<T> {
         }
     }
 
+    @Override
+    public String toString() {
+        return "Lockable{inner=" + inner + ", isLocked=" + isLocked + "}";
+    }
+
     // Expected to be used in a try closeable.
     public static final class LockedItem<T> implements AutoCloseable {
         private final T item;

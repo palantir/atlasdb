@@ -28,6 +28,7 @@ import com.palantir.atlasdb.sweep.asts.bucketingthings.DefaultSweepAssignedBucke
 import com.palantir.atlasdb.sweep.asts.locks.LockableFactory;
 import com.palantir.atlasdb.sweep.asts.progress.BucketProgressStore;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
+import com.palantir.atlasdb.sweep.metrics.TargetedSweepProgressMetrics;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
 import com.palantir.atlasdb.sweep.queue.SweepQueueCleaner;
@@ -77,7 +78,8 @@ public final class BucketBasedTargetedSweeper implements BackgroundSweeper {
             int numThreads,
             Refreshable<AutoScalingTargetedSweepRuntimeConfig> runtimeConfig,
             Refreshable<Boolean> isSweepingEnabled,
-            TargetedSweepMetrics metrics) {
+            TargetedSweepMetrics metrics,
+            TargetedSweepProgressMetrics progressMetrics) {
         ScheduledExecutorService sweeperTaskExecutor = PTExecutors.newScheduledThreadPoolExecutor(numThreads);
         // Enough threads for each of the background tasks to run concurrently. This is possibly overkill given the
         // cadence of those background tasks.
@@ -95,7 +97,7 @@ public final class BucketBasedTargetedSweeper implements BackgroundSweeper {
                 runtimeConfig.map(AutoScalingTargetedSweepRuntimeConfig::minWaitBetweenWorkRefresh),
                 Refreshable.only(Duration.ofSeconds(2)));
 
-        SweepStateCoordinator coordinator = createCoordinator(retriever, bucketLockableFactory);
+        SweepStateCoordinator coordinator = createCoordinator(retriever, bucketLockableFactory, progressMetrics);
         DefaultBucketAssigner assigner = createBucketAssigner(
                 sweepAssignedBucketStore,
                 strategies,
@@ -176,8 +178,10 @@ public final class BucketBasedTargetedSweeper implements BackgroundSweeper {
     }
 
     private static SweepStateCoordinator createCoordinator(
-            CandidateSweepableBucketRetriever retriever, LockableFactory<SweepableBucket> bucketLockableFactory) {
-        return DefaultSweepStateCoordinator.create(retriever, bucketLockableFactory);
+            CandidateSweepableBucketRetriever retriever,
+            LockableFactory<SweepableBucket> bucketLockableFactory,
+            TargetedSweepProgressMetrics progressMetrics) {
+        return DefaultSweepStateCoordinator.create(retriever, bucketLockableFactory, progressMetrics);
     }
 
     private static SingleBucketSweepTask createSweepTask(

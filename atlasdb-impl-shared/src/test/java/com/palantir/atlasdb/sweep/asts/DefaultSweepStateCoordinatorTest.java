@@ -31,6 +31,7 @@ import com.palantir.atlasdb.sweep.asts.SweepStateCoordinator.SweepOutcome;
 import com.palantir.atlasdb.sweep.asts.locks.Lockable;
 import com.palantir.atlasdb.sweep.asts.locks.Lockable.LockedItem;
 import com.palantir.atlasdb.sweep.asts.locks.LockableFactory;
+import com.palantir.atlasdb.sweep.metrics.TargetedSweepProgressMetrics;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.lock.LockDescriptor;
@@ -81,6 +82,9 @@ public class DefaultSweepStateCoordinatorTest {
     @Mock
     private TimelockService timelockService;
 
+    @Mock
+    private TargetedSweepProgressMetrics progressMetrics;
+
     private SweepStateCoordinator coordinator;
 
     @BeforeEach
@@ -91,9 +95,10 @@ public class DefaultSweepStateCoordinatorTest {
                 .thenReturn(LockResponse.successful(LockToken.of(UUID.randomUUID())));
         lockableFactory = LockableFactory.create(
                 timelockService, Refreshable.create(Duration.ZERO), sweepableBucket -> descriptor);
-        coordinator = new DefaultSweepStateCoordinator(retriever, lockableFactory, buckets -> iterationOrderGenerator
-                .get()
-                .apply(buckets));
+        coordinator = new DefaultSweepStateCoordinator(
+                retriever, lockableFactory, progressMetrics, buckets -> iterationOrderGenerator
+                        .get()
+                        .apply(buckets));
     }
 
     @Test
