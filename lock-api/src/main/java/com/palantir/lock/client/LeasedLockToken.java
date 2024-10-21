@@ -39,7 +39,7 @@ public final class LeasedLockToken implements LockToken {
     @GuardedBy("this")
     private boolean invalidated = false;
 
-    static LeasedLockToken of(ConjureLockToken serverToken, Lease lease) {
+    public static LeasedLockToken of(ConjureLockToken serverToken, Lease lease) {
         return new LeasedLockToken(serverToken, UniqueIds.pseudoRandomUuidV4(), lease);
     }
 
