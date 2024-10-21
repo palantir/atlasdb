@@ -31,12 +31,13 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator;
-import com.palantir.atlasdb.transaction.impl.ImmutableTimestampLockManager;
-import com.palantir.atlasdb.transaction.impl.ImmutableTimestampLockManager.ExpiredLocks;
+import com.palantir.atlasdb.transaction.impl.TransactionLocksManager;
+import com.palantir.atlasdb.transaction.impl.TransactionLocksManager.ExpiredLocks;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
 import com.palantir.lock.v2.LockToken;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,7 +58,7 @@ public final class DefaultPreCommitRequirementValidatorTest {
                     PtBytes.toBytes("two"),
                     Cell.create(PtBytes.toBytes("suggestion"), PtBytes.toBytes("moot")),
                     PtBytes.toBytes("three")));
-    private static final LockToken LOCK_TOKEN = LockToken.of(UUID.randomUUID());
+    private static final Set<LockToken> LOCK_TOKEN = Set.of(LockToken.of(UUID.randomUUID()));
 
     @Mock
     private PreCommitCondition userPreCommitCondition;
@@ -66,14 +67,14 @@ public final class DefaultPreCommitRequirementValidatorTest {
     private TransactionOutcomeMetrics metrics;
 
     @Mock
-    private ImmutableTimestampLockManager immutableTimestampLockManager;
+    private TransactionLocksManager transactionLocksManager;
 
     private PreCommitRequirementValidator validator;
 
     @BeforeEach
     public void setUp() {
-        this.validator = new DefaultPreCommitRequirementValidator(
-                userPreCommitCondition, metrics, immutableTimestampLockManager);
+        this.validator =
+                new DefaultPreCommitRequirementValidator(userPreCommitCondition, metrics, transactionLocksManager);
     }
 
     @Test
@@ -105,51 +106,43 @@ public final class DefaultPreCommitRequirementValidatorTest {
 
     @Test
     public void throwIfImmutableTsOrCommitLocksExpiredDelegatesEmptyRequestToLockManager() {
-        when(immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(any()))
+        when(transactionLocksManager.getExpiredImmutableTimestampAndCommitLocks())
                 .thenReturn(Optional.empty());
-        validator.throwIfImmutableTsOrCommitLocksExpired(null);
-        verify(immutableTimestampLockManager).getExpiredImmutableTimestampAndCommitLocks(Optional.empty());
-    }
-
-    @Test
-    public void throwIfImmutableTsOrCommitLocksExpiredDelegatesRequestWithLockTokenToLockManager() {
-        when(immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(any()))
-                .thenReturn(Optional.empty());
-        validator.throwIfImmutableTsOrCommitLocksExpired(LOCK_TOKEN);
-        verify(immutableTimestampLockManager).getExpiredImmutableTimestampAndCommitLocks(Optional.of(LOCK_TOKEN));
+        validator.throwIfImmutableTsOrCommitLocksExpired();
+        verify(transactionLocksManager).getExpiredImmutableTimestampAndCommitLocks();
     }
 
     @Test
     public void throwIfImmutableTsOrCommitLocksExpiredThrowsIfLocksExpired() {
-        when(immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(any()))
+        when(transactionLocksManager.getExpiredImmutableTimestampAndCommitLocks())
                 .thenReturn(Optional.of(ExpiredLocks.of("boo")));
-        assertThatThrownBy(() -> validator.throwIfImmutableTsOrCommitLocksExpired(LOCK_TOKEN))
+        assertThatThrownBy(() -> validator.throwIfImmutableTsOrCommitLocksExpired())
                 .isInstanceOf(TransactionFailedException.class);
     }
 
     @Test
     public void throwIfPreCommitRequirementsNotMetThrowsIfLocksExpired() {
-        when(immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(any()))
+        when(transactionLocksManager.getExpiredImmutableTimestampAndCommitLocks())
                 .thenReturn(Optional.of(ExpiredLocks.of("boo")));
-        assertThatThrownBy(() -> validator.throwIfPreCommitRequirementsNotMet(LOCK_TOKEN, TIMESTAMP))
+        assertThatThrownBy(() -> validator.throwIfPreCommitRequirementsNotMet(TIMESTAMP))
                 .isInstanceOf(TransactionFailedException.class);
     }
 
     @Test
     public void throwIfPreCommitRequirementsNotMetThrowsIfPreCommitConditionThrows() {
         doThrow(RUNTIME_EXCEPTION).when(userPreCommitCondition).throwIfConditionInvalid(anyLong());
-        assertThatThrownBy(() -> validator.throwIfPreCommitRequirementsNotMet(LOCK_TOKEN, TIMESTAMP))
+        assertThatThrownBy(() -> validator.throwIfPreCommitRequirementsNotMet(TIMESTAMP))
                 .isEqualTo(RUNTIME_EXCEPTION);
     }
 
     @Test
     public void throwIfPreCommitRequirementsNotMetDoesNotThrowIfNoLocksExpiredAndPreCommitConditionValid() {
-        when(immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(any()))
+        when(transactionLocksManager.getExpiredImmutableTimestampAndCommitLocks())
                 .thenReturn(Optional.empty());
 
-        assertThatCode(() -> validator.throwIfPreCommitRequirementsNotMet(LOCK_TOKEN, TIMESTAMP))
+        assertThatCode(() -> validator.throwIfPreCommitRequirementsNotMet(TIMESTAMP))
                 .doesNotThrowAnyException();
         verify(userPreCommitCondition).throwIfConditionInvalid(TIMESTAMP);
-        verify(immutableTimestampLockManager).getExpiredImmutableTimestampAndCommitLocks(Optional.of(LOCK_TOKEN));
+        verify(transactionLocksManager).getExpiredImmutableTimestampAndCommitLocks();
     }
 }
