@@ -116,7 +116,7 @@ public interface TimelockService {
     long currentTimeMillis();
 
     /**
-     * Acquires a lease on a named timestamp. The lease is taken out with a new fresh timestamp.
+     * Acquires a lease on named timestamps. The lease is taken out with a new fresh timestamp.
      * The timestamps supplied are fresh timestamps obtained strictly after the lease is taken out.
      * The supplier returns exactly the number of timestamps requested and throws on any additional
      * interactions.
@@ -130,7 +130,7 @@ public interface TimelockService {
     TimestampLeaseResults acquireTimestampLeases(Map<TimestampLeaseName, Integer> requests);
 
     /**
-     * Returns the smallest leased timestamp in the associated named collection at the time of the call.
+     * Returns the smallest leased timestamp for each of the associated named collections at the time of the call.
      * If there are no active leases, a fresh timestamp is obtained and returned.
      */
     @RestrictedApi(

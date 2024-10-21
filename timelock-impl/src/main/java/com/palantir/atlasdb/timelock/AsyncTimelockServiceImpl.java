@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.timelock;
 
 import com.codahale.metrics.Histogram;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -65,6 +66,7 @@ import com.palantir.timestamp.TimestampRange;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -264,10 +266,13 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
             UUID requestId, Map<TimestampLeaseName, Integer> numFreshTimestamps) {
         long timestamp = timestampService.getFreshTimestamp();
 
+        SortedSet<TimestampLeaseName> timestampNames =
+                ImmutableSortedSet.copyOf(TimestampLeaseName.COMPARATOR, numFreshTimestamps.keySet());
         Leased<LockToken> leasedLock = lockService
-                .acquireTimestampLease(requestId, numFreshTimestamps.keySet(), timestamp)
+                .acquireTimestampLease(requestId, timestampNames, timestamp)
                 .get();
 
+        // it is crucial that the timestamps acquired are AFTER the timestamp used for locking
         Map<TimestampLeaseName, TimestampLeaseResponse> responses = KeyedStream.stream(numFreshTimestamps)
                 .map((timestampName, numFreshTimestampsForName) ->
                         getMinLeasedAndFreshTimestamps(timestampName, numFreshTimestampsForName, timestamp))
