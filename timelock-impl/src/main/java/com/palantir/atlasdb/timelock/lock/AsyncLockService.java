@@ -144,7 +144,7 @@ public class AsyncLockService implements Closeable {
     public AsyncResult<Leased<LockToken>> acquireTimestampLease(
             UUID requestId, Set<TimestampLeaseName> timestampNames, long timestamp) {
         return heldLocks.getExistingOrAcquire(
-                requestId, () -> acquireNamedTimestampLockInternal(requestId, timestampNames, timestamp));
+                requestId, () -> acquireNamedTimestampLocksInternal(requestId, timestampNames, timestamp));
     }
 
     public AsyncResult<Void> waitForLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
@@ -178,7 +178,7 @@ public class AsyncLockService implements Closeable {
         return lockAcquirer.acquireLocks(requestId, OrderedLocks.fromSingleLock(immutableTsLock), TimeLimit.zero());
     }
 
-    private AsyncResult<HeldLocks> acquireNamedTimestampLockInternal(
+    private AsyncResult<HeldLocks> acquireNamedTimestampLocksInternal(
             UUID requestId, Set<TimestampLeaseName> timestampNames, long timestamp) {
         List<AsyncLock> locks = timestampNames.stream()
                 .map(name -> lockManager.getNamedTimestampLock(name, timestamp))
