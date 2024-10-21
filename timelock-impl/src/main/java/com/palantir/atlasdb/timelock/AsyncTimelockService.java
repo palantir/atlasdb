@@ -22,7 +22,7 @@ import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsRequest;
 import com.palantir.atlasdb.timelock.api.ConjureStartTransactionsResponse;
 import com.palantir.atlasdb.timelock.api.GetCommitTimestampsResponse;
 import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
-import com.palantir.atlasdb.timelock.api.TimestampLeaseResponse;
+import com.palantir.atlasdb.timelock.api.TimestampLeaseResponses;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
@@ -44,6 +44,7 @@ import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
 import com.palantir.tritium.annotations.Instrument;
 import java.io.Closeable;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -76,8 +77,8 @@ public interface AsyncTimelockService
 
     ListenableFuture<TimestampRange> getFreshTimestampsAsync(int timestampsToRequest);
 
-    ListenableFuture<TimestampLeaseResponse> acquireTimestampLease(
-            TimestampLeaseName timestampName, UUID requestId, int numFreshTimestamps);
+    ListenableFuture<TimestampLeaseResponses> acquireTimestampLease(
+            UUID requestId, Map<TimestampLeaseName, Integer> numFreshTimestamps);
 
     ListenableFuture<Long> getMinLeasedTimestamp(TimestampLeaseName timestampName);
 
