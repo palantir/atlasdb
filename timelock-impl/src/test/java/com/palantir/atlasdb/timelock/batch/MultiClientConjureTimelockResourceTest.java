@@ -46,13 +46,13 @@ import com.palantir.atlasdb.timelock.api.MultiClientGetMinLeasedTimestampRespons
 import com.palantir.atlasdb.timelock.api.MultiClientTimestampLeaseRequest;
 import com.palantir.atlasdb.timelock.api.MultiClientTimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.timelock.api.NamespaceTimestampLeaseRequest;
+import com.palantir.atlasdb.timelock.api.NamespaceTimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.api.RequestId;
 import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
 import com.palantir.atlasdb.timelock.api.TimestampLeaseRequests;
 import com.palantir.atlasdb.timelock.api.TimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.api.TimestampLeaseResponses;
-import com.palantir.atlasdb.timelock.api.TimestampLeasesRequest;
-import com.palantir.atlasdb.timelock.api.TimestampLeasesResponse;
 import com.palantir.atlasdb.util.TimelockTestUtils;
 import com.palantir.common.streams.KeyedStream;
 import com.palantir.common.time.NanoTime;
@@ -219,11 +219,11 @@ public class MultiClientConjureTimelockResourceTest {
         stubAcquireNamedMinTimestampLeaseInResource(serviceForClient2, requestForClient2, responseForClient2);
 
         MultiClientTimestampLeaseRequest request = MultiClientTimestampLeaseRequest.of(Map.of(
-                client1, TimestampLeasesRequest.of(List.of(request1ForClient1, request2ForClient1)),
-                client2, TimestampLeasesRequest.of(List.of(requestForClient2))));
+                client1, NamespaceTimestampLeaseRequest.of(List.of(request1ForClient1, request2ForClient1)),
+                client2, NamespaceTimestampLeaseRequest.of(List.of(requestForClient2))));
         MultiClientTimestampLeaseResponse response = MultiClientTimestampLeaseResponse.of(Map.of(
-                client1, TimestampLeasesResponse.of(List.of(response1ForClient1, response2ForClient1)),
-                client2, TimestampLeasesResponse.of(List.of(responseForClient2))));
+                client1, NamespaceTimestampLeaseResponse.of(List.of(response1ForClient1, response2ForClient1)),
+                client2, NamespaceTimestampLeaseResponse.of(List.of(responseForClient2))));
         assertThat(Futures.getUnchecked(resource.acquireTimestampLease(AUTH_HEADER, request, REQUEST_CONTEXT)))
                 .isEqualTo(response);
     }
@@ -330,7 +330,7 @@ public class MultiClientConjureTimelockResourceTest {
 
     private static void stubAcquireNamedMinTimestampLeaseInResource(
             AsyncTimelockService service, TimestampLeaseRequests request, TimestampLeaseResponses response) {
-        when(service.acquireTimestampLease(request.getRequestsId().get(), request.getNumFreshTimestamps()))
+        when(service.acquireTimestampLease(request.getRequestId().get(), request.getNumFreshTimestamps()))
                 .thenReturn(Futures.immediateFuture(response));
     }
 
@@ -341,7 +341,7 @@ public class MultiClientConjureTimelockResourceTest {
 
     private static TimestampLeaseRequests createTimestampLeasesRequest(TimestampLeaseName... names) {
         TimestampLeaseRequests.Builder builder =
-                TimestampLeaseRequests.builder().requestsId(RequestId.of(UUID.randomUUID()));
+                TimestampLeaseRequests.builder().requestId(RequestId.of(UUID.randomUUID()));
 
         Map<TimestampLeaseName, Integer> numFreshTimestamps = KeyedStream.of(Arrays.stream(names))
                 .map(_name -> createRandomPositiveInteger())
@@ -352,7 +352,7 @@ public class MultiClientConjureTimelockResourceTest {
 
     private static TimestampLeaseResponses createTimestampLeasesResponseFor(TimestampLeaseRequests request1ForClient1) {
         return TimestampLeaseResponses.builder()
-                .leaseGuarantee(createRandomLeaseGuarantee(request1ForClient1.getRequestsId()))
+                .leaseGuarantee(createRandomLeaseGuarantee(request1ForClient1.getRequestId()))
                 .timestampLeaseResponses(KeyedStream.stream(request1ForClient1.getNumFreshTimestamps())
                         .map(_name -> createTimestampLeaseResponse())
                         .collectToMap())
