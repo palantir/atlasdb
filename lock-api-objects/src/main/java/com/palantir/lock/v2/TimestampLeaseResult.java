@@ -26,4 +26,8 @@ public interface TimestampLeaseResult {
 
     @Value.Parameter
     LongSupplier freshTimestampsSupplier();
+
+    static ImmutableTimestampLeaseResult.Builder builder() {
+        return ImmutableTimestampLeaseResult.builder();
+    }
 }

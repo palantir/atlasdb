@@ -248,8 +248,7 @@ types:
            leaseGuarantee: LeaseGuarantee
            timestampLeaseResponses: map<TimestampLeaseName, TimestampLeaseResponse>
       NamespaceTimestampLeaseResponse:
-         fields:
-           alias: list<TimestampLeaseResponses>
+         alias: list<TimestampLeaseResponses>
       MultiClientTimestampLeaseResponse:
          alias: map<Namespace, NamespaceTimestampLeaseResponse>
       GetMinLeasedTimestampRequests:
