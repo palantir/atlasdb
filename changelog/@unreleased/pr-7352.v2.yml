@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Refactor LockManager.
+  links:
+  - https://github.com/palantir/atlasdb/pull/7352
