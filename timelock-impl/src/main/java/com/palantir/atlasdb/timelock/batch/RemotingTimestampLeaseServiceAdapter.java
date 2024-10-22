@@ -35,6 +35,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.undertow.lib.RequestContext;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
@@ -62,7 +63,7 @@ final class RemotingTimestampLeaseServiceAdapter {
             Namespace namespace, GetMinLeasedTimestampRequests request, RequestContext context) {
         AsyncTimelockService service = getServiceForNamespace(namespace, context);
 
-        Map<TimestampLeaseName, ListenableFuture<Long>> futures = KeyedStream.of(request.get())
+        Map<TimestampLeaseName, ListenableFuture<Long>> futures = KeyedStream.of(Set.copyOf(request.get()))
                 .map(service::getMinLeasedTimestamp)
                 .collectToMap();
 
