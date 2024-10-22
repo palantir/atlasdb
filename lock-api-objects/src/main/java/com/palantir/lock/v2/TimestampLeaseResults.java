@@ -27,4 +27,8 @@ public interface TimestampLeaseResults {
 
     @Value.Parameter
     Map<TimestampLeaseName, TimestampLeaseResult> results();
+
+    static ImmutableTimestampLeaseResults.Builder builder() {
+        return ImmutableTimestampLeaseResults.builder();
+    }
 }
