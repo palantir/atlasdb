@@ -22,6 +22,7 @@ import com.github.rholder.retry.Retryer;
 import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
+import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
 import com.palantir.atlasdb.timelock.api.LeaseGuarantee;
 import com.palantir.atlasdb.timelock.api.LeaseIdentifier;
 import com.palantir.atlasdb.timelock.api.NamespaceTimestampLeaseRequest;
@@ -35,6 +36,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.ConjureTimestampRangeTimestampSupplier;
 import com.palantir.lock.LimitingLongSupplier;
 import com.palantir.lock.client.LeasedLockToken;
+import com.palantir.lock.client.LockTokenUnlocker;
 import com.palantir.lock.v2.TimestampLeaseResult;
 import com.palantir.lock.v2.TimestampLeaseResults;
 import com.palantir.logsafe.SafeArg;
@@ -45,6 +47,7 @@ import com.palantir.tritium.ids.UniqueIds;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.function.LongSupplier;
@@ -52,7 +55,7 @@ import java.util.function.Supplier;
 import org.immutables.value.Value;
 import org.jetbrains.annotations.VisibleForTesting;
 
-final class TimestampLeaseAcquirerImpl implements TimestampLeaseAcquirer {
+public final class TimestampLeaseAcquirerImpl implements TimestampLeaseAcquirer {
     private static final SafeLogger log = SafeLoggerFactory.get(TimestampLeaseAcquirerImpl.class);
 
     private final NamespacedTimestampLeaseService delegate;
@@ -73,8 +76,9 @@ final class TimestampLeaseAcquirerImpl implements TimestampLeaseAcquirer {
         this.uuidSupplier = uuidSupplier;
     }
 
-    public TimestampLeaseAcquirerImpl(NamespacedTimestampLeaseService delegate, Unlocker unlocker) {
-        this(delegate, unlocker, UniqueIds::pseudoRandomUuidV4);
+    public static TimestampLeaseAcquirer create(NamespacedTimestampLeaseService delegate, LockTokenUnlocker unlocker) {
+        return new TimestampLeaseAcquirerImpl(
+                delegate, identifier -> unlock(unlocker, identifier), UniqueIds::pseudoRandomUuidV4);
     }
 
     @Override
@@ -94,7 +98,7 @@ final class TimestampLeaseAcquirerImpl implements TimestampLeaseAcquirer {
 
     @Override
     public void close() {
-        // TODO(aalouane): decide whether or not to close the unlocker depending on ownership
+        // we do not own the unlocker
     }
 
     private RequestAndResponse acquireLeasesWithRetry(Map<TimestampLeaseName, Integer> requests) {
@@ -210,6 +214,10 @@ final class TimestampLeaseAcquirerImpl implements TimestampLeaseAcquirer {
         static RequestAndResponse of(TimestampLeaseRequests requests, TimestampLeaseResponses response) {
             return ImmutableRequestAndResponse.of(requests, response);
         }
+    }
+
+    private static void unlock(LockTokenUnlocker unlocker, LeaseIdentifier leaseIdentifier) {
+        unlocker.unlock(Set.of(ConjureLockTokenV2.of(leaseIdentifier.get())));
     }
 
     interface Unlocker {
