@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.common.api.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -28,7 +29,6 @@ import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.common.base.BatchingVisitable;
-import com.palantir.lock.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
