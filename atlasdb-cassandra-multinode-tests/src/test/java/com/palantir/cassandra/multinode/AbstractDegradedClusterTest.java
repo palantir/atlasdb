@@ -24,6 +24,7 @@ import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.Value;
@@ -106,7 +107,7 @@ public abstract class AbstractDegradedClusterTest {
     }
 
     void assertThrowsInsufficientConsistencyExceptionAndDoesNotChangeCassandraSchema(RunnableCheckedException<?> task) {
-        assertThatThrownBy(task::run).isInstanceOf(AtlasDbDependencyException.class);
+        assertThatThrownBy(task::run).isInstanceOf(InsufficientConsistencyException.class);
         assertCassandraSchemaUnchanged();
     }
 
