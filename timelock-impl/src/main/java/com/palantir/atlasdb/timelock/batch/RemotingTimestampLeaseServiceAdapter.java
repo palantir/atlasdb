@@ -63,7 +63,7 @@ final class RemotingTimestampLeaseServiceAdapter {
         AsyncTimelockService service = getServiceForNamespace(namespace, context);
 
         Map<TimestampLeaseName, ListenableFuture<Long>> futures = new HashMap<>();
-        for (TimestampLeaseName timestampName: request.get()) {
+        for (TimestampLeaseName timestampName : request.get()) {
             if (futures.containsKey(timestampName)) {
                 continue;
             }
