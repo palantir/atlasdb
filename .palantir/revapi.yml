@@ -434,6 +434,11 @@ acceptedBreaks:
         \ long)"
       new: "method void com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator::throwIfPreCommitRequirementsNotMet(long)"
       justification: "Internal APIs"
+  "0.1173.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.annotation.noLongerPresent"
+      old: "@interface com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage"
+      justification: "just moving annotation to another package"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"
