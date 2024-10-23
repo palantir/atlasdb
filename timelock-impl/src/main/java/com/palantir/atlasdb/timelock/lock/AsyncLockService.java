@@ -29,11 +29,13 @@ import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.Closeable;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class AsyncLockService implements Closeable {
 
@@ -140,9 +142,9 @@ public class AsyncLockService implements Closeable {
     }
 
     public AsyncResult<Leased<LockToken>> acquireTimestampLease(
-            TimestampLeaseName timestampName, UUID requestId, long timestamp) {
+            UUID requestId, Set<TimestampLeaseName> timestampNames, long timestamp) {
         return heldLocks.getExistingOrAcquire(
-                requestId, () -> acquireNamedTimestampLockInternal(timestampName, requestId, timestamp));
+                requestId, () -> acquireNamedTimestampLocksInternal(requestId, timestampNames, timestamp));
     }
 
     public AsyncResult<Void> waitForLocks(UUID requestId, Set<LockDescriptor> lockDescriptors, TimeLimit timeout) {
@@ -176,10 +178,12 @@ public class AsyncLockService implements Closeable {
         return lockAcquirer.acquireLocks(requestId, OrderedLocks.fromSingleLock(immutableTsLock), TimeLimit.zero());
     }
 
-    private AsyncResult<HeldLocks> acquireNamedTimestampLockInternal(
-            TimestampLeaseName timestampName, UUID requestId, long timestamp) {
-        AsyncLock lock = lockManager.getNamedTimestampLock(timestampName, timestamp);
-        return lockAcquirer.acquireLocks(requestId, OrderedLocks.fromSingleLock(lock), TimeLimit.zero());
+    private AsyncResult<HeldLocks> acquireNamedTimestampLocksInternal(
+            UUID requestId, Set<TimestampLeaseName> timestampNames, long timestamp) {
+        List<AsyncLock> locks = timestampNames.stream()
+                .map(name -> lockManager.getNamedTimestampLock(name, timestamp))
+                .collect(Collectors.toList());
+        return lockAcquirer.acquireLocks(requestId, OrderedLocks.fromOrderedList(locks), TimeLimit.zero());
     }
 
     public boolean unlock(LockToken token) {

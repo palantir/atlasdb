@@ -38,6 +38,7 @@ public class DefaultCleanerBuilder {
     private final List<Follower> followerList;
     private final TransactionService transactionService;
     private final MetricsManager metricsManager;
+    private final PuncherStore puncherStore;
 
     private long transactionReadTimeout = AtlasDbConstants.DEFAULT_TRANSACTION_READ_TIMEOUT;
     private long punchIntervalMillis = AtlasDbConstants.DEFAULT_PUNCH_INTERVAL_MILLIS;
@@ -53,12 +54,14 @@ public class DefaultCleanerBuilder {
             TimelockService timelockService,
             List<? extends Follower> followerList,
             TransactionService transactionService,
-            MetricsManager metricsManager) {
+            MetricsManager metricsManager,
+            PuncherStore puncherStore) {
         this.keyValueService = keyValueService;
         this.timelockService = timelockService;
         this.followerList = ImmutableList.copyOf(followerList);
         this.transactionService = transactionService;
         this.metricsManager = metricsManager;
+        this.puncherStore = puncherStore;
     }
 
     public DefaultCleanerBuilder setTransactionReadTimeout(long transactionReadTimeout) {

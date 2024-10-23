@@ -22,6 +22,7 @@ import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import java.util.Collection;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -47,7 +48,7 @@ public class DefaultSweepProgressResetter implements SweepProgressResetter {
     }
 
     @Override
-    public void resetProgress(Set<SweeperStrategy> strategies) {
+    public void resetProgress(Collection<SweeperStrategy> strategies) {
         log.info("Truncating bucket progress and sweep bucket assigned tables as part of resetting sweep progress");
         keyValueService.truncateTables(Set.of(bucketProgressTable, sweepBucketAssignedTable));
         int shards = numberOfShardsSupplier.get();

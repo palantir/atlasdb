@@ -5,9 +5,9 @@ namespaces:
   targetedSweepProgress:
     docs: Metrics for tracking the progress of Targeted Sweep.
     metrics:
-      closedBucketIdentifier:
+      openBucketIdentifier:
         type: gauge
-        docs: The bucket identifier that was associated with the last closed bucket.
+        docs: The bucket identifier that was associated with the last opened bucket.
       bucketAssignerStatus:
         type: gauge
         docs: | 

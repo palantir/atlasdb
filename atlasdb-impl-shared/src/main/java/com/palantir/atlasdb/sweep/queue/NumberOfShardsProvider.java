@@ -43,16 +43,10 @@ public interface NumberOfShardsProvider {
     private static int getNumberOfShards(
             ShardProgress progress, Supplier<Integer> shards, MismatchBehaviour mismatchBehaviour) {
         switch (mismatchBehaviour) {
-            case THROW:
-                int shardsFromSupplier = shards.get();
-                int shardsFromProgress = progress.getNumberOfShards();
-                if (shardsFromSupplier != shardsFromProgress) {
-                    throw new SafeIllegalStateException(
-                            "Number of shards from supplier and progress do not match",
-                            SafeArg.of("shardsFromSupplier", shardsFromSupplier),
-                            SafeArg.of("shardsFromProgress", shardsFromProgress));
-                }
-                return shardsFromSupplier;
+            case IGNORE_UPDATES:
+                // Here, we will never update the number of shards from config. This is because the ASTS work requires
+                // knowing the number of shards at all time from the beginning of install, and changing is quite painful
+                return progress.getNumberOfShards();
             case UPDATE:
                 return progress.updateNumberOfShards(shards.get());
             default:
@@ -83,7 +77,7 @@ public interface NumberOfShardsProvider {
     }
 
     enum MismatchBehaviour {
-        THROW,
+        IGNORE_UPDATES,
         UPDATE,
     }
 }

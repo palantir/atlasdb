@@ -16,6 +16,7 @@
 package com.palantir.atlasdb.timelock;
 
 import com.codahale.metrics.Histogram;
+import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
@@ -29,6 +30,7 @@ import com.palantir.atlasdb.timelock.api.LeaseIdentifier;
 import com.palantir.atlasdb.timelock.api.LockWatchRequest;
 import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
 import com.palantir.atlasdb.timelock.api.TimestampLeaseResponse;
+import com.palantir.atlasdb.timelock.api.TimestampLeaseResponses;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.AsyncResult;
 import com.palantir.atlasdb.timelock.lock.Leased;
@@ -38,6 +40,7 @@ import com.palantir.atlasdb.timelock.lock.watch.ValueAndLockWatchStateUpdate;
 import com.palantir.atlasdb.timelock.lockwatches.RequestMetrics;
 import com.palantir.atlasdb.timelock.transaction.timestamp.DelegatingClientAwareManagedTimestampService;
 import com.palantir.atlasdb.timelock.transaction.timestamp.LeadershipGuardedClientAwareManagedTimestampService;
+import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.client.IdentifiedLockRequest;
 import com.palantir.lock.v2.IdentifiedTimeLockRequest;
@@ -60,8 +63,10 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.timestamp.TimestampRange;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -257,24 +262,25 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     }
 
     @Override
-    public ListenableFuture<TimestampLeaseResponse> acquireTimestampLease(
-            TimestampLeaseName timestampName, UUID requestId, int numFreshTimestamps) {
+    public ListenableFuture<TimestampLeaseResponses> acquireTimestampLease(
+            UUID requestId, Map<TimestampLeaseName, Integer> numFreshTimestamps) {
         long timestamp = timestampService.getFreshTimestamp();
 
+        SortedSet<TimestampLeaseName> timestampNames =
+                ImmutableSortedSet.copyOf(TimestampLeaseName.COMPARATOR, numFreshTimestamps.keySet());
         Leased<LockToken> leasedLock = lockService
-                .acquireTimestampLease(timestampName, requestId, timestamp)
+                .acquireTimestampLease(requestId, timestampNames, timestamp)
                 .get();
-        long minLeased = lockService.getMinLeasedTimestamp(timestampName).orElse(timestamp);
 
-        TimestampRange timestampRange = timestampService.getFreshTimestamps(numFreshTimestamps);
+        // it is crucial that the timestamps acquired are AFTER the timestamp used for locking
+        Map<TimestampLeaseName, TimestampLeaseResponse> responses = KeyedStream.stream(numFreshTimestamps)
+                .map((timestampName, numFreshTimestampsForName) ->
+                        getMinLeasedAndFreshTimestamps(timestampName, numFreshTimestampsForName, timestamp))
+                .collectToMap();
 
-        ConjureTimestampRange freshTimestamps =
-                ConjureTimestampRange.of(timestampRange.getLowerBound(), timestampRange.size());
-
-        return Futures.immediateFuture(TimestampLeaseResponse.builder()
-                .minLeased(minLeased)
+        return Futures.immediateFuture(TimestampLeaseResponses.builder()
+                .timestampLeaseResponses(responses)
                 .leaseGuarantee(toConjure(leasedLock))
-                .freshTimestamps(freshTimestamps)
                 .build());
     }
 
@@ -335,6 +341,17 @@ public class AsyncTimelockServiceImpl implements AsyncTimelockService {
     @Override
     public void logState() {
         lockService.getLockWatchingService().logState();
+    }
+
+    private TimestampLeaseResponse getMinLeasedAndFreshTimestamps(
+            TimestampLeaseName timestampName, int numFreshTimestamps, long lockedTimestamp) {
+        long minLeased = lockService.getMinLeasedTimestamp(timestampName).orElse(lockedTimestamp);
+
+        TimestampRange timestampRange = timestampService.getFreshTimestamps(numFreshTimestamps);
+        ConjureTimestampRange freshTimestamps =
+                ConjureTimestampRange.of(timestampRange.getLowerBound(), timestampRange.size());
+
+        return TimestampLeaseResponse.of(minLeased, freshTimestamps);
     }
 
     private static LockWatchVersion fromConjure(ConjureIdentifiedVersion conjure) {

@@ -288,7 +288,7 @@ public class TargetedSweepTest extends AtlasDbTestCase {
     }
 
     private void useOneSweepQueueShard() {
-        sweepQueueShards = 1;
+        sweepQueueShards.update(1);
     }
 
     private void assertOnlySentinelBeforeTs(TableReference tableRef, Cell cell, long ts) {
@@ -314,7 +314,7 @@ public class TargetedSweepTest extends AtlasDbTestCase {
     }
 
     private void sweepNextBatch(ShardAndStrategy shardStrategy) {
-        sweepQueue.sweepNextBatch(shardStrategy, Sweeper.of(shardStrategy).getSweepTimestamp(sweepTimestampSupplier));
+        sweeper.sweepNextBatch(shardStrategy, Sweeper.of(shardStrategy).getSweepTimestamp(sweepTimestampSupplier));
     }
 
     /**

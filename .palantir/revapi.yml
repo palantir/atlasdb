@@ -439,6 +439,17 @@ acceptedBreaks:
         \ ===com.palantir.logsafe.Arg<?>[]===)"
       justification: "Not a break as I have handle the implementation in the same\
         \ PR"
+  "0.1168.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.numberOfParametersChanged"
+      old: "method void com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator::throwIfImmutableTsOrCommitLocksExpired(com.palantir.lock.v2.LockToken)"
+      new: "method void com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator::throwIfImmutableTsOrCommitLocksExpired()"
+      justification: "Internal APIs"
+    - code: "java.method.numberOfParametersChanged"
+      old: "method void com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator::throwIfPreCommitRequirementsNotMet(com.palantir.lock.v2.LockToken,\
+        \ long)"
+      new: "method void com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator::throwIfPreCommitRequirementsNotMet(long)"
+      justification: "Internal APIs"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"

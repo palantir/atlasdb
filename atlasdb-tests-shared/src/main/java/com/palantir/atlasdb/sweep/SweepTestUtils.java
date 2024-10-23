@@ -15,6 +15,7 @@
  */
 package com.palantir.atlasdb.sweep;
 
+import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -22,6 +23,7 @@ import com.palantir.atlasdb.keyvalue.api.watch.NoOpLockWatchManager;
 import com.palantir.atlasdb.keyvalue.impl.DelegatingDataKeyValueServiceManager;
 import com.palantir.atlasdb.schema.SweepSchema;
 import com.palantir.atlasdb.schema.TargetedSweepSchema;
+import com.palantir.atlasdb.sweep.queue.DelegatingMultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schemas;
@@ -43,6 +45,7 @@ import com.palantir.lock.LockServerOptions;
 import com.palantir.lock.LockService;
 import com.palantir.lock.impl.LockServiceImpl;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.timelock.paxos.AbstractInMemoryTimelockExtension;
 import com.palantir.timestamp.TimestampManagementService;
 import java.time.Duration;
@@ -75,7 +78,9 @@ public final class SweepTestUtils {
                 () -> AtlasDbConstraintCheckingMode.NO_CONSTRAINT_CHECKING;
         ConflictDetectionManager cdm = ConflictDetectionManagers.createWithoutWarmingCache(kvs);
         Cleaner cleaner = new NoOpCleaner();
-        MultiTableSweepQueueWriter writer = TargetedSweeper.createUninitializedForTest(kvs, () -> 1);
+        SettableFuture<MultiTableSweepQueueWriter> initialisableWriter = SettableFuture.create();
+        TargetedSweeper sweeper =
+                TargetedSweeper.createUninitializedForTest(kvs, Refreshable.only(1), initialisableWriter);
         TransactionKnowledgeComponents knowledge =
                 TransactionKnowledgeComponents.createForTests(kvs, metricsManager.getTaggedRegistry());
         TransactionManager txManager = SerializableTransactionManager.createForTest(
@@ -92,10 +97,10 @@ public final class SweepTestUtils {
                 cleaner,
                 AbstractTransactionTest.GET_RANGES_THREAD_POOL_SIZE,
                 AbstractTransactionTest.DEFAULT_GET_RANGES_CONCURRENCY,
-                writer,
+                new DelegatingMultiTableSweepQueueWriter(initialisableWriter),
                 knowledge);
         setupTables(kvs);
-        writer.initialize(txManager);
+        sweeper.initialize(txManager);
         return txManager;
     }
 

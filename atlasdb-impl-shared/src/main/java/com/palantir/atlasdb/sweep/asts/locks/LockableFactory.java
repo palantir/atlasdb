@@ -45,18 +45,19 @@ public final class LockableFactory<T> {
 
     private LockableFactory(
             TimelockService timelockService,
-            Refreshable<Duration> lockTimeout,
+            Refreshable<Duration> lockAcquisitionTimeout,
             Function<T, LockDescriptor> lockDescriptorFunction) {
         this.memoizedLocks = Caffeine.newBuilder()
                 .weakValues()
-                .build(key -> Lockable.create(key, lockDescriptorFunction.apply(key), timelockService, lockTimeout));
+                .build(key -> Lockable.create(
+                        key, lockDescriptorFunction.apply(key), timelockService, lockAcquisitionTimeout));
     }
 
     public static <T> LockableFactory<T> create(
             TimelockService timelockService,
-            Refreshable<Duration> lockTimeout,
+            Refreshable<Duration> lockAcquisitionTimeout,
             Function<T, LockDescriptor> lockDescriptorFunction) {
-        return new LockableFactory<>(timelockService, lockTimeout, lockDescriptorFunction);
+        return new LockableFactory<>(timelockService, lockAcquisitionTimeout, lockDescriptorFunction);
     }
 
     public Lockable<T> createLockable(T lockable) {

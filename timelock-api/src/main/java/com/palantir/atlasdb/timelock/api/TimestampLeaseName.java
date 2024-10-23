@@ -21,12 +21,15 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
+import java.util.Comparator;
 import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutableTimestampLeaseName.class)
 @JsonSerialize(as = ImmutableTimestampLeaseName.class)
 @Value.Immutable
 public interface TimestampLeaseName {
+    Comparator<TimestampLeaseName> COMPARATOR = Comparator.comparing(TimestampLeaseName::name);
+
     String RESERVED_NAME_FOR_IMMUTABLE_TIMESTAMP = "ImmutableTimestamp";
 
     @JsonValue

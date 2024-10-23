@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.SweepResults;
@@ -28,8 +29,14 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.impl.KvsManager;
 import com.palantir.atlasdb.keyvalue.impl.TransactionManagerManager;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence;
+import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
+import com.palantir.atlasdb.sweep.queue.DefaultSingleBatchSweeper;
+import com.palantir.atlasdb.sweep.queue.DelegatingMultiTableSweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
+import com.palantir.atlasdb.sweep.queue.SingleBatchSweeper;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
+import com.palantir.atlasdb.sweep.queue.SweepQueueComponents;
 import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.sweep.queue.config.ImmutableTargetedSweepRuntimeConfig;
@@ -37,6 +44,7 @@ import com.palantir.atlasdb.table.description.TableMetadata;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.refreshable.Refreshable;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,7 +55,9 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
     protected static final String OLD_VALUE = "old_value";
     protected static final String NEW_VALUE = "new_value";
     private final SpecialTimestampsSupplier timestampsSupplier = mock(SpecialTimestampsSupplier.class);
-    protected TargetedSweeper sweepQueue;
+    protected TargetedSweeper targetedSweeper;
+    protected MultiTableSweepQueueWriter sweepQueueWriter;
+    protected SingleBatchSweeper sweeper;
 
     protected AbstractTargetedSweepTest(KvsManager kvsManager, TransactionManagerManager tmManager) {
         super(kvsManager, tmManager);
@@ -59,26 +69,39 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
         super.setup();
 
         MetricsManager metricsManager = MetricsManagers.createForTests();
-        sweepQueue = TargetedSweeper.createUninitializedForTest(
-                kvs, metricsManager, () -> ImmutableTargetedSweepRuntimeConfig.builder()
+        SettableFuture<MultiTableSweepQueueWriter> initialisableWriter = SettableFuture.create();
+        targetedSweeper = TargetedSweeper.createUninitializedForTest(
+                kvs,
+                metricsManager,
+                Refreshable.create(ImmutableTargetedSweepRuntimeConfig.builder()
                         .shards(1)
                         .maximumPartitionsToBatchInSingleRead(8)
-                        .build());
-        sweepQueue.initializeWithoutRunning(
+                        .build()),
+                initialisableWriter);
+        targetedSweeper.initializeWithoutRunning(
                 timestampsSupplier, mock(TimelockService.class), kvs, txService, mock(TargetedSweepFollower.class));
+        sweepQueueWriter = new DelegatingMultiTableSweepQueueWriter(initialisableWriter);
+        SweepQueueComponents components = targetedSweeper.components();
+        sweeper = new DefaultSingleBatchSweeper(
+                mock(TargetedSweepMetrics.class),
+                components.shardProgress(),
+                _unused -> {},
+                components.reader(),
+                components.deleter(),
+                components.cleaner());
     }
 
     @Override
     protected Optional<SweepResults> completeSweep(TableReference ignored, long ts) {
-        sweepQueue.sweepNextBatch(ShardAndStrategy.conservative(0), ts);
-        sweepQueue.sweepNextBatch(ShardAndStrategy.thorough(0), ts);
+        sweeper.sweepNextBatch(ShardAndStrategy.conservative(0), ts);
+        sweeper.sweepNextBatch(ShardAndStrategy.thorough(0), ts);
         return Optional.empty();
     }
 
     @Override
     protected void put(final TableReference tableRef, Cell cell, final String val, final long ts) {
         super.put(tableRef, cell, val, ts);
-        sweepQueue.enqueue(ImmutableMap.of(tableRef, ImmutableMap.of(cell, PtBytes.toBytes(val))), ts);
+        sweepQueueWriter.enqueue(ImmutableMap.of(tableRef, ImmutableMap.of(cell, PtBytes.toBytes(val))), ts);
     }
 
     @Test
@@ -106,7 +129,7 @@ public class AbstractTargetedSweepTest extends AbstractSweepTest {
         createTable(TableMetadataPersistence.SweepStrategy.CONSERVATIVE);
         kvs.createTable(TABLE_TO_BE_DROPPED, TableMetadata.allDefault().persistToBytes());
 
-        sweepQueue.enqueue(
+        sweepQueueWriter.enqueue(
                 ImmutableMap.of(TABLE_TO_BE_DROPPED, ImmutableMap.of(TEST_CELL, PtBytes.toBytes(OLD_VALUE))), 100);
 
         kvs.dropTable(TABLE_TO_BE_DROPPED);

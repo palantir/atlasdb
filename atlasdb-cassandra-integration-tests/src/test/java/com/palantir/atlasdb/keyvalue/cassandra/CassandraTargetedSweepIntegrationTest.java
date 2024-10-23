@@ -49,7 +49,7 @@ public class CassandraTargetedSweepIntegrationTest extends AbstractTargetedSweep
         // uncommitted write to table to be dropped
         Cell uncommitted = Cell.create(PtBytes.toBytes("uncommitted"), PtBytes.toBytes("cell"));
         kvs.put(TABLE_TO_BE_DROPPED, ImmutableMap.of(uncommitted, PtBytes.toBytes(1L)), 120);
-        sweepQueue.enqueue(
+        sweepQueueWriter.enqueue(
                 ImmutableMap.of(TABLE_TO_BE_DROPPED, ImmutableMap.of(uncommitted, PtBytes.toBytes(1L))), 120);
 
         // this simulates failure to delete metadata after table was dropped in Cassandra

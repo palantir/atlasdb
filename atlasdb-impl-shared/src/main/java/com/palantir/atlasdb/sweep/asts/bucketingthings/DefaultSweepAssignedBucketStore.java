@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetRequest;
 import com.palantir.atlasdb.keyvalue.api.ColumnSelection;
@@ -38,13 +37,14 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-final class DefaultSweepAssignedBucketStore
+public final class DefaultSweepAssignedBucketStore
         implements SweepBucketAssignerStateMachineTable,
                 SweepBucketPointerTable,
                 SweepBucketsTable,
@@ -52,8 +52,7 @@ final class DefaultSweepAssignedBucketStore
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultSweepAssignedBucketStore.class);
     private static final int CAS_ATTEMPT_LIMIT = 5;
 
-    @VisibleForTesting
-    static final TableReference TABLE_REF =
+    public static final TableReference TABLE_REF =
             TargetedSweepTableFactory.of().getSweepAssignedBucketsTable(null).getTableRef();
 
     private final KeyValueService keyValueService;
@@ -72,7 +71,7 @@ final class DefaultSweepAssignedBucketStore
         this.bucketIdentifierPersister = bucketIdentifierPersister;
     }
 
-    static DefaultSweepAssignedBucketStore create(KeyValueService keyValueService) {
+    public static DefaultSweepAssignedBucketStore create(KeyValueService keyValueService) {
         return new DefaultSweepAssignedBucketStore(
                 keyValueService,
                 ObjectPersister.of(TimestampRange.class, LogSafety.SAFE),
@@ -81,11 +80,17 @@ final class DefaultSweepAssignedBucketStore
     }
 
     @Override
-    public void setInitialStateForBucketAssigner(long bucketIdentifier, long startTimestamp) {
-        BucketStateAndIdentifier initialState =
-                BucketStateAndIdentifier.of(bucketIdentifier, BucketAssignerState.start(startTimestamp));
+    public void setInitialStateForBucketAssigner(BucketAssignerState initialState) {
         Cell cell = SweepAssignedBucketStoreKeyPersister.INSTANCE.sweepBucketAssignerStateMachineCell();
-        casCell(cell, Optional.empty(), bucketStateAndIdentifierPersister.trySerialize(initialState));
+        casCell(
+                cell,
+                Optional.empty(),
+                bucketStateAndIdentifierPersister.trySerialize(BucketStateAndIdentifier.of(0, initialState)));
+    }
+
+    @Override
+    public boolean doesStateMachineStateExist() {
+        return maybeGetBucketStateAndIdentifier().isPresent();
     }
 
     @Override
@@ -100,11 +105,15 @@ final class DefaultSweepAssignedBucketStore
 
     @Override
     public BucketStateAndIdentifier getBucketStateAndIdentifier() {
-        Cell cell = SweepAssignedBucketStoreKeyPersister.INSTANCE.sweepBucketAssignerStateMachineCell();
-        Optional<BucketStateAndIdentifier> value = readCell(cell, bucketStateAndIdentifierPersister::tryDeserialize);
+        Optional<BucketStateAndIdentifier> value = maybeGetBucketStateAndIdentifier();
         return value.orElseThrow(() -> new SafeIllegalStateException(
                 "No bucket state and identifier found. This should have been bootstrapped during"
                         + " initialisation, and as such, is an invalid state."));
+    }
+
+    private Optional<BucketStateAndIdentifier> maybeGetBucketStateAndIdentifier() {
+        Cell cell = SweepAssignedBucketStoreKeyPersister.INSTANCE.sweepBucketAssignerStateMachineCell();
+        return readCell(cell, bucketStateAndIdentifierPersister::tryDeserialize);
     }
 
     @Override
@@ -222,16 +231,15 @@ final class DefaultSweepAssignedBucketStore
 
     @Override
     public void deleteBucketEntry(Bucket bucket) {
-        throw new UnsupportedOperationException("deleteBucketEntry is not implemented yet.");
+        Cell cell = SweepAssignedBucketStoreKeyPersister.INSTANCE.sweepBucketsCell(bucket);
+        deleteCell(cell);
     }
 
     @Override
     public TimestampRange getTimestampRangeRecord(long bucketIdentifier) {
         Cell cell = SweepAssignedBucketStoreKeyPersister.INSTANCE.sweepBucketRecordsCell(bucketIdentifier);
         return readCell(cell, timestampRangePersister::tryDeserialize)
-                .orElseThrow(() -> new SafeIllegalStateException(
-                        "No timestamp range record found for bucket identifier",
-                        SafeArg.of("bucketIdentifier", bucketIdentifier)));
+                .orElseThrow(() -> new NoSuchElementException("No timestamp range record found for bucket identifier"));
     }
 
     @Override
@@ -242,7 +250,12 @@ final class DefaultSweepAssignedBucketStore
 
     @Override
     public void deleteTimestampRangeRecord(long bucketIdentifier) {
-        throw new UnsupportedOperationException("deleteTimestampRangeRecord is not implemented yet.");
+        Cell cell = SweepAssignedBucketStoreKeyPersister.INSTANCE.sweepBucketRecordsCell(bucketIdentifier);
+        deleteCell(cell);
+    }
+
+    private void deleteCell(Cell cell) {
+        keyValueService.deleteFromAtomicTable(TABLE_REF, Set.of(cell));
     }
 
     private void casCell(Cell cell, Optional<byte[]> existingValue, byte[] newValue) {
