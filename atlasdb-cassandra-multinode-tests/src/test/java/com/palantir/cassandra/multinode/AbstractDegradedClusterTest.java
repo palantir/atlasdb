@@ -30,7 +30,6 @@ import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraClient;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueService;
 import com.palantir.atlasdb.keyvalue.cassandra.CassandraKeyValueServices;
-import com.palantir.atlasdb.keyvalue.cassandra.CassandraTExceptions;
 import com.palantir.common.base.RunnableCheckedException;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import java.util.HashMap;
@@ -107,7 +106,7 @@ public abstract class AbstractDegradedClusterTest {
     }
 
     void assertThrowsInsufficientConsistencyExceptionAndDoesNotChangeCassandraSchema(RunnableCheckedException<?> task) {
-        assertThatThrownBy(task::run).isInstanceOf(CassandraTExceptions.class);
+        assertThatThrownBy(task::run).isInstanceOf(AtlasDbDependencyException.class);
         assertCassandraSchemaUnchanged();
     }
 
