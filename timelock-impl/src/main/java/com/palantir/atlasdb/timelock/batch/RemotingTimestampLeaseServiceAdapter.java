@@ -31,8 +31,8 @@ import com.palantir.atlasdb.timelock.api.NamespaceTimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.api.RequestId;
 import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
 import com.palantir.atlasdb.timelock.api.TimestampLeaseResponses;
-import com.palantir.common.streams.KeyedStream;
 import com.palantir.conjure.java.undertow.lib.RequestContext;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -62,9 +62,13 @@ final class RemotingTimestampLeaseServiceAdapter {
             Namespace namespace, GetMinLeasedTimestampRequests request, RequestContext context) {
         AsyncTimelockService service = getServiceForNamespace(namespace, context);
 
-        Map<TimestampLeaseName, ListenableFuture<Long>> futures = KeyedStream.of(request.get())
-                .map(service::getMinLeasedTimestamp)
-                .collectToMap();
+        Map<TimestampLeaseName, ListenableFuture<Long>> futures = new HashMap<>();
+        for (TimestampLeaseName timestampName : request.get()) {
+            if (futures.containsKey(timestampName)) {
+                continue;
+            }
+            futures.put(timestampName, service.getMinLeasedTimestamp(timestampName));
+        }
 
         return Futures.transform(
                 AtlasFutures.allAsMap(futures, MoreExecutors.directExecutor()),
