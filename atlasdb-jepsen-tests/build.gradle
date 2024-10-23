@@ -13,12 +13,17 @@ buildscript {
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'docker-compose'
 
-task ensureDateUtilPresent(type: Exec) {
-    commandLine 'sh', 'scripts/ensure-date-util-present.sh'
+task setupPythonDependencies(type: Exec) {
+    commandLine 'sh', 'scripts/setup_python.sh'
 }
 
+//task ensureDateUtilPresent(type: Exec) {
+//    commandLine 'sh', 'scripts/ensure-date-util-present.sh'
+//}
+
 task runUnitTestsForPrintLogsInChronologicalOrderScript(type: Exec) {
-    dependsOn ensureDateUtilPresent
+    dependsOn setupPythonDependencies
+//    dependsOn ensureDateUtilPresent
     commandLine 'python', 'scripts/print_logs_in_chronological_order.py', '--tests-only'
 }
 
