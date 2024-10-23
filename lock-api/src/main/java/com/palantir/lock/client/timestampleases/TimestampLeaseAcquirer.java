@@ -20,7 +20,7 @@ import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
 import com.palantir.lock.v2.TimestampLeaseResults;
 import java.util.Map;
 
-interface TimestampLeaseAcquirer extends AutoCloseable {
+public interface TimestampLeaseAcquirer extends AutoCloseable {
     TimestampLeaseResults acquireNamedTimestampLeases(Map<TimestampLeaseName, Integer> requests);
 
     @Override
