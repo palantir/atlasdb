@@ -94,7 +94,6 @@ import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutExc
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
-import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.atlasdb.transaction.api.exceptions.SafeTransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsData;
@@ -145,6 +144,7 @@ import com.palantir.common.streams.MoreStreams;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
 import com.palantir.lock.LockDescriptor;
+import com.palantir.lock.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
