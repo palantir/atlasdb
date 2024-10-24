@@ -1,0 +1,17 @@
+options:
+  javaPackage: 'com.palantir.atlasdb.timelock.timestampleases'
+
+namespaces:
+  timestampLease:
+    docs: Metrics tracking TimeLock's implementation of timestamp leases
+    metrics:
+      locksHeld:
+        docs: Number of locks held in timestamp trackers
+        type: gauge
+        tags:
+          - name
+      approximateSmallestLeased:
+        docs: Approximation of the smallest leased timestamp, notably this is updated when a request for it is made
+        type: gauge
+        tags:
+          - name

@@ -19,11 +19,21 @@ package com.palantir.atlasdb.timelock.lock;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
+import com.palantir.atlasdb.timelock.timestampleases.TimestampLeaseMetrics;
 import java.util.Optional;
 
 final class NamedMinTimestampLockCollection {
-    private final LoadingCache<String, NamedMinTimestampTracker> namedMinTimestampTrackers =
-            Caffeine.newBuilder().build(NamedMinTimestampTrackerImpl::new);
+    private final LoadingCache<String, NamedMinTimestampTracker> namedMinTimestampTrackers;
+
+    private NamedMinTimestampLockCollection(LoadingCache<String, NamedMinTimestampTracker> namedMinTimestampTrackers) {
+        this.namedMinTimestampTrackers = namedMinTimestampTrackers;
+    }
+
+    static NamedMinTimestampLockCollection create(TimestampLeaseMetrics metrics) {
+        LoadingCache<String, NamedMinTimestampTracker> namedMinTimestampTrackers =
+                Caffeine.newBuilder().build(name -> NamedMinTimestampTrackerImpl.create(name, metrics));
+        return new NamedMinTimestampLockCollection(namedMinTimestampTrackers);
+    }
 
     AsyncLock getImmutableTimestampLock(long timestamp) {
         return getNamedTimestampLockInternal(TimestampLeaseName.RESERVED_NAME_FOR_IMMUTABLE_TIMESTAMP, timestamp);

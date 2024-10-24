@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock.lock;
 
+import com.palantir.atlasdb.timelock.timestampleases.TimestampLeaseMetrics;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.logsafe.SafeArg;
@@ -24,16 +25,33 @@ import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import javax.annotation.concurrent.GuardedBy;
 
 final class NamedMinTimestampTrackerImpl implements NamedMinTimestampTracker {
     private final String timestampName;
+    private final AtomicInteger numLocksHeld;
+    private final AtomicLong approximateMinLocked;
 
     @GuardedBy("this")
     private final SortedMap<Long, UUID> holdersByTimestamp = new TreeMap<>();
 
-    NamedMinTimestampTrackerImpl(String timestampName) {
+    private NamedMinTimestampTrackerImpl(
+            String timestampName, AtomicInteger numLocksHeld, AtomicLong approximateMinLocked) {
         this.timestampName = timestampName;
+        this.numLocksHeld = numLocksHeld;
+        this.approximateMinLocked = approximateMinLocked;
+    }
+
+    static NamedMinTimestampTracker create(String timestampName, TimestampLeaseMetrics metrics) {
+        AtomicInteger numLocksHeld = new AtomicInteger();
+        metrics.locksHeld().name(timestampName).build(numLocksHeld::get);
+
+        AtomicLong approximateMinLeased = new AtomicLong();
+        metrics.approximateSmallestLeased().name(timestampName).build(approximateMinLeased::get);
+
+        return new NamedMinTimestampTrackerImpl(timestampName, numLocksHeld, approximateMinLeased);
     }
 
     @Override
@@ -46,6 +64,7 @@ final class NamedMinTimestampTrackerImpl implements NamedMinTimestampTracker {
                     SafeArg.of("requestId", requestId),
                     SafeArg.of("currentHolder", holdersByTimestamp.get(timestamp)));
         }
+        numLocksHeld.incrementAndGet();
     }
 
     @Override
@@ -58,6 +77,7 @@ final class NamedMinTimestampTrackerImpl implements NamedMinTimestampTracker {
                     SafeArg.of("requestId", requestId),
                     SafeArg.of("currentHolder", holdersByTimestamp.get(timestamp)));
         }
+        numLocksHeld.decrementAndGet();
     }
 
     @Override
@@ -65,7 +85,9 @@ final class NamedMinTimestampTrackerImpl implements NamedMinTimestampTracker {
         if (holdersByTimestamp.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(holdersByTimestamp.firstKey());
+        Long minimum = holdersByTimestamp.firstKey();
+        approximateMinLocked.set(minimum);
+        return Optional.of(minimum);
     }
 
     @Override

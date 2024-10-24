@@ -29,6 +29,7 @@ import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lockwatches.BufferMetrics;
 import com.palantir.atlasdb.timelock.lockwatches.RequestMetrics;
+import com.palantir.atlasdb.timelock.timestampleases.TimestampLeaseMetrics;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -261,7 +262,8 @@ public final class AsyncTimelockServiceImplTest {
                 new LockLog(new MetricRegistry(), () -> 100L),
                 executor,
                 executor,
-                BufferMetrics.of(new DefaultTaggedMetricRegistry()));
+                BufferMetrics.of(new DefaultTaggedMetricRegistry()),
+                TimestampLeaseMetrics.of(new DefaultTaggedMetricRegistry()));
     }
 
     private static AsyncTimelockService createAsyncTimelockService(
