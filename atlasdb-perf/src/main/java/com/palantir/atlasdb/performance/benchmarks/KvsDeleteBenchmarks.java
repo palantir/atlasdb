@@ -18,6 +18,7 @@ package com.palantir.atlasdb.performance.benchmarks;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Multimap;
+import com.palantir.atlasdb.keyvalue.api.AllowedRangeRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.RangeRequest;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
@@ -39,6 +40,7 @@ public class KvsDeleteBenchmarks {
         return table.getTableCells();
     }
 
+    @AllowedRangeRequest(justification = "just a benchmark")
     private Object doDeleteRange(ConsecutiveNarrowTable table, int numBatches) {
         Iterable<RangeRequest> rangeRequests = numBatches == 1
                 ? ImmutableList.of(RangeRequest.all())
