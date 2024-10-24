@@ -53,7 +53,7 @@ public class TracingQueryRunner {
                 return action.run();
             } catch (TException e) {
                 logFailedCall(tableRefs);
-                throw e;
+                throw CassandraTExceptions.mapToUncheckedException(e);
             }
         }
     }
@@ -71,7 +71,7 @@ public class TracingQueryRunner {
         } catch (TException e) {
             failed = true;
             logFailedCall(tableRefs);
-            throw e;
+            throw CassandraTExceptions.mapToUncheckedException(e);
         } finally {
             long duration = stopwatch.elapsed(TimeUnit.MILLISECONDS);
             logTraceResults(duration, tableRefs, traceId, failed);

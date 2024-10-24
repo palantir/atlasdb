@@ -33,4 +33,8 @@ public class InsufficientConsistencyException extends AtlasDbDependencyException
     public InsufficientConsistencyException(@CompileTimeConstant String msg, Throwable ex, Arg<?>... args) {
         super(msg, ex, args);
     }
+
+    public InsufficientConsistencyException(Throwable ex, Arg<?>... args) {
+        super(ex, args);
+    }
 }

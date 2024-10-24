@@ -97,6 +97,8 @@ class CellRangeDeleter {
             });
         } catch (RetryLimitReachedException e) {
             throw CassandraUtils.wrapInIceForDeleteOrRethrow(e);
+        } catch (TException e) {
+            throw CassandraTExceptions.mapToUncheckedException(e);
         } catch (Exception e) {
             throw Throwables.unwrapAndThrowAtlasDbDependencyException(e);
         }

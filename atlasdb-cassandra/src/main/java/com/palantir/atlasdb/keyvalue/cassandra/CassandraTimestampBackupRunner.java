@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableMap;
 import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.common.annotation.Idempotent;
-import com.palantir.common.base.Throwables;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
@@ -185,7 +184,7 @@ public class CassandraTimestampBackupRunner {
                             AtlasDbConstants.TIMESTAMP_TABLE,
                             () -> client.execute_cql3_query(query, Compression.NONE, ConsistencyLevel.QUORUM));
         } catch (TException e) {
-            throw Throwables.rewrapAndThrowUncheckedException(e);
+            throw CassandraTExceptions.mapToUncheckedException(e);
         }
     }
 
