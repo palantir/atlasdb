@@ -51,6 +51,7 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cell.api.DataKeyValueService;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.common.api.annotations.ReviewedRestrictedApiUsage;
+import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.futures.AtlasFutures;
@@ -75,7 +76,6 @@ import com.palantir.atlasdb.keyvalue.impl.RowResults;
 import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.table.description.exceptions.AtlasDbConstraintException;
-import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
 import com.palantir.atlasdb.tracing.TraceStatistics;
 import com.palantir.atlasdb.transaction.TransactionConfig;
 import com.palantir.atlasdb.transaction.api.AtlasDbConstraintCheckingMode;
@@ -1885,7 +1885,7 @@ public class SnapshotTransaction extends AbstractTransaction
         preCommitActions.addPreCommitAction(leaseName, numLeasedTimestamps, preCommitAction);
     }
 
-    @com.palantir.lock.annotations.ReviewedRestrictedApiUsage
+    @ReviewedRestrictedApiUsage
     private void runPreCommitCallbacks() {
         Map<TimestampLeaseName, PerLeaseActions> actions = preCommitActions.getActions();
         if (actions.isEmpty()) {

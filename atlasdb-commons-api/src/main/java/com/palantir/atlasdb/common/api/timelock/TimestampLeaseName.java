@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.api;
+package com.palantir.atlasdb.common.api.timelock;
 
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;

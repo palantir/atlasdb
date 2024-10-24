@@ -17,13 +17,13 @@
 package com.palantir.atlasdb.transaction.api;
 
 import com.google.common.annotations.Beta;
-import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
+import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import com.palantir.lock.v2.TimelockService;
 import java.util.function.Consumer;
 
 public interface TimestampLeaseAwareTransactionManager {
     /**
-     * Returns the timestamp that is before leased timestamps returned by the consumer on {@link TimestampLeaseAwareTransaction#preCommit(com.palantir.atlasdb.timelock.api.TimestampLeaseName, int, Consumer)}
+     * Returns the timestamp that is before leased timestamps returned by the consumer on {@link TimestampLeaseAwareTransaction#preCommit(TimestampLeaseName, int, Consumer)}
      * for a {@code timestampLeaseName} in open transactions.
      * <p>
      * This is similar to {@link TransactionManager#getImmutableTimestamp()} as it returns a timestamp before timestamps
@@ -39,7 +39,7 @@ public interface TimestampLeaseAwareTransactionManager {
      * meaning the transaction cannot read all data up to leased timestamp.
      *
      * @param leaseName the name of the lease the timestamps are bound to
-     * @return the timestamp that is before any timestamp returned by the consumer of {@link TimestampLeaseAwareTransaction#preCommit(com.palantir.atlasdb.timelock.api.TimestampLeaseName, int, Consumer)}
+     * @return the timestamp that is before any timestamp returned by the consumer of {@link TimestampLeaseAwareTransaction#preCommit(TimestampLeaseName, int, Consumer)}
      * for open transactions.
      */
     @Beta

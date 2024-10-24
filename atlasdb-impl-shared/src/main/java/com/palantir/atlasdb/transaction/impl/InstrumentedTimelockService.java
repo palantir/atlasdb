@@ -18,7 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 import com.codahale.metrics.Meter;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.common.api.annotations.ReviewedRestrictedApiUsage;
-import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
+import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;

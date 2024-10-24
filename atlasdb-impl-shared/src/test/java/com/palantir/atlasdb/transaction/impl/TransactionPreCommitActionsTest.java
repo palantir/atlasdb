@@ -18,7 +18,7 @@ package com.palantir.atlasdb.transaction.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
+import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import com.palantir.atlasdb.transaction.impl.TransactionPreCommitActions.PerLeaseActions;
 import java.util.List;
 import java.util.Map;

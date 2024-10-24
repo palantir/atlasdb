@@ -17,7 +17,7 @@
 package com.palantir.atlasdb.transaction.api;
 
 import com.google.common.annotations.Beta;
-import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
+import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 

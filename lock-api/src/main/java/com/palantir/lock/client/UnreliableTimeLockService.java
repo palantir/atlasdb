@@ -20,7 +20,7 @@ import com.google.common.collect.Sets;
 import com.palantir.atlasdb.buggify.api.BuggifyFactory;
 import com.palantir.atlasdb.buggify.impl.DefaultBuggifyFactory;
 import com.palantir.atlasdb.common.api.annotations.ReviewedRestrictedApiUsage;
-import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
+import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;

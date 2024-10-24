@@ -16,7 +16,7 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
-import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
+import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;

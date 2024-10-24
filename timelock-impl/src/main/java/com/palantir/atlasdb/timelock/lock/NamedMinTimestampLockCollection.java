@@ -18,7 +18,7 @@ package com.palantir.atlasdb.timelock.lock;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
+import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import java.util.Optional;
 
 final class NamedMinTimestampLockCollection {

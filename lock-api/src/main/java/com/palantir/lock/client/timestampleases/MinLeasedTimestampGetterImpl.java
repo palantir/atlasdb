@@ -16,8 +16,8 @@
 
 package com.palantir.lock.client.timestampleases;
 
+import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import com.palantir.atlasdb.timelock.api.GetMinLeasedTimestampRequests;
-import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;

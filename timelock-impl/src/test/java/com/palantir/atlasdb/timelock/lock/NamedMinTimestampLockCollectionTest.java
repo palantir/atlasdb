@@ -18,7 +18,7 @@ package com.palantir.atlasdb.timelock.lock;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
+import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.Set;
