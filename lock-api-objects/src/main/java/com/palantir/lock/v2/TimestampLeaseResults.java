@@ -27,4 +27,8 @@ public interface TimestampLeaseResults {
 
     @Value.Parameter
     Map<TimestampLeaseName, TimestampLeaseResult> results();
+
+    static TimestampLeaseResults of(LockToken lock, Map<TimestampLeaseName, TimestampLeaseResult> results) {
+        return ImmutableTimestampLeaseResults.of(lock, results);
+    }
 }

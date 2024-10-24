@@ -26,4 +26,8 @@ public interface TimestampLeaseResult {
 
     @Value.Parameter
     LongSupplier freshTimestampsSupplier();
+
+    static TimestampLeaseResult of(long minLeasedTimestamp, LongSupplier freshTimestampsSupplier) {
+        return ImmutableTimestampLeaseResult.of(minLeasedTimestamp, freshTimestampsSupplier);
+    }
 }

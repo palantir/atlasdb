@@ -13,6 +13,7 @@ dependencies {
   implementation 'com.palantir.refreshable:refreshable'
   implementation 'com.palantir.safe-logging:preconditions'
   implementation 'com.palantir.safe-logging:safe-logging'
+  implementation 'one.util:streamex'
   implementation 'org.eclipse.collections:eclipse-collections'
   implementation 'org.eclipse.collections:eclipse-collections-api'
   implementation 'org.slf4j:slf4j-api'
@@ -21,6 +22,7 @@ dependencies {
   implementation project(':lock-api-objects')
   implementation project(':timelock-api')
   implementation project(':timestamp-api')
+  implementation project(':timelock-api:timelock-api-objects')
 
   testImplementation 'com.fasterxml.jackson.core:jackson-databind'
   testImplementation 'com.google.guava:guava'
