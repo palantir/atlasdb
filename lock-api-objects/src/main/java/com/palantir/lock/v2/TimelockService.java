@@ -124,8 +124,8 @@ public interface TimelockService {
     @RestrictedApi(
             explanation =
                     "This method is for internal Atlas and internal library use only. Clients MUST NOT use it unless"
-                            + " given explicit approval. Mis-use can result in SEVERE DATA CORRUPTION and the API contract"
-                            + " is subject to change at any time.",
+                        + " given explicit approval. Mis-use can result in SEVERE DATA CORRUPTION and the API contract"
+                        + " is subject to change at any time.",
             allowlistAnnotations = ReviewedRestrictedApiUsage.class)
     TimestampLeaseResults acquireTimestampLeases(Map<TimestampLeaseName, Integer> requests);
 
@@ -136,8 +136,8 @@ public interface TimelockService {
     @RestrictedApi(
             explanation =
                     "This method is for internal Atlas and internal library use only. Clients MUST NOT use it unless"
-                            + " given explicit approval. Mis-use can result in SEVERE DATA CORRUPTION and the API contract"
-                            + " is subject to change at any time.",
+                        + " given explicit approval. Mis-use can result in SEVERE DATA CORRUPTION and the API contract"
+                        + " is subject to change at any time.",
             allowlistAnnotations = ReviewedRestrictedApiUsage.class)
     Map<TimestampLeaseName, Long> getMinLeasedTimestamps(Set<TimestampLeaseName> timestampNames);
 }
