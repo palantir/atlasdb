@@ -10,6 +10,7 @@ license {
 libsDirName = file('build/artifacts')
 
 dependencies {
+    api project(":atlasdb-commons-api")
     api project(':lock-conjure-api:lock-conjure-api-dialogue')
     api project(':lock-api-objects')
     api project(':timelock-api')

@@ -17,6 +17,7 @@ license {
 }
 
 dependencies {
+  api project(":atlasdb-commons-api")
   api project(":timestamp-api")
   api project(":timestamp-client")
 

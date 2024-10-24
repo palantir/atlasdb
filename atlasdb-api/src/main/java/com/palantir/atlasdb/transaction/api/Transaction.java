@@ -17,6 +17,7 @@ package com.palantir.atlasdb.transaction.api;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.errorprone.annotations.RestrictedApi;
+import com.palantir.atlasdb.common.api.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -29,7 +30,6 @@ import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpec
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.annotation.Idempotent;
 import com.palantir.common.base.BatchingVisitable;
-import com.palantir.lock.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.util.result.Result;
 import java.util.Iterator;

@@ -2,6 +2,7 @@ apply from: "../gradle/shared.gradle"
 apply plugin: 'com.palantir.revapi'
 
 dependencies {
+  api project(":atlasdb-commons-api")
   api project(":lock-api")
   api project(":timestamp-api")
   api 'com.palantir.dialogue:dialogue-clients'

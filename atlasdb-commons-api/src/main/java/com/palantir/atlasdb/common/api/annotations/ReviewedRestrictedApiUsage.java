@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.palantir.lock.annotations;
+package com.palantir.atlasdb.common.api.annotations;
 
 /**
  * Annotation to be used to indicate that usage of a restricted method is intentional and all the nuances about it
