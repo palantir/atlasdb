@@ -18,8 +18,10 @@ package com.palantir.atlasdb.timelock.lock;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableSet;
+import com.palantir.atlasdb.timelock.timestampleases.TimestampLeaseMetrics;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -30,7 +32,8 @@ import org.junit.jupiter.api.Test;
 
 public class LockCollectionTest {
 
-    private final LockManager lockManager = new LockManager();
+    private final LockManager lockManager =
+            LockManager.create(TimestampLeaseMetrics.of(new DefaultTaggedMetricRegistry()));
 
     @Test
     public void createsLocksOnDemand() {

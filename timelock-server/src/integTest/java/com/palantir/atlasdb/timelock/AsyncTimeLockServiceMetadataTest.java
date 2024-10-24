@@ -34,6 +34,7 @@ import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lockwatches.BufferMetrics;
 import com.palantir.atlasdb.timelock.lockwatches.RequestMetrics;
+import com.palantir.atlasdb.timelock.timestampleases.TimestampLeaseMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.lock.AtlasRowLockDescriptor;
@@ -78,7 +79,8 @@ public class AsyncTimeLockServiceMetadataTest {
             lockLog,
             scheduledExecutorService,
             scheduledExecutorService,
-            BufferMetrics.of(metricsManager.getTaggedRegistry()));
+            BufferMetrics.of(metricsManager.getTaggedRegistry()),
+            TimestampLeaseMetrics.of(metricsManager.getTaggedRegistry()));
     private final AsyncTimelockServiceImpl timeLockService =
             new AsyncTimelockServiceImpl(asyncLockService, new InMemoryTimestampService(), lockLog, requestMetrics);
     private final ConjureStartTransactionsRequest startTransactionsRequestWithInitialVersion =

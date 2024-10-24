@@ -19,8 +19,10 @@ package com.palantir.atlasdb.timelock.lock;
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.palantir.atlasdb.timelock.timestampleases.TimestampLeaseMetrics;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -31,7 +33,8 @@ public final class NamedMinTimestampTrackerTest {
 
     private static final long TIMESTAMP_1 = 5L;
 
-    private final NamedMinTimestampTracker tracker = new NamedMinTimestampTrackerImpl("ts");
+    private final NamedMinTimestampTracker tracker =
+            NamedMinTimestampTrackerImpl.create("ts", TimestampLeaseMetrics.of(new DefaultTaggedMetricRegistry()));
 
     @Test
     public void registersTimestampWhenLocked() {

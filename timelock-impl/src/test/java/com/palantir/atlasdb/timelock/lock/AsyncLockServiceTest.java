@@ -19,6 +19,7 @@ package com.palantir.atlasdb.timelock.lock;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.palantir.atlasdb.timelock.lockwatches.BufferMetrics;
+import com.palantir.atlasdb.timelock.timestampleases.TimestampLeaseMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.common.concurrent.PTExecutors;
@@ -36,7 +37,8 @@ public class AsyncLockServiceTest {
                 new LockLog(metricsManager.getRegistry(), () -> 1L),
                 reaperExecutor,
                 timeoutExecutor,
-                BufferMetrics.of(metricsManager.getTaggedRegistry()));
+                BufferMetrics.of(metricsManager.getTaggedRegistry()),
+                TimestampLeaseMetrics.of(metricsManager.getTaggedRegistry()));
 
         asyncLockService.close();
         assertThat(reaperExecutor.isShutdown()).isTrue();

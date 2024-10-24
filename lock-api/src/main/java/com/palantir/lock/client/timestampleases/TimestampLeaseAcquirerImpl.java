@@ -16,6 +16,7 @@
 
 package com.palantir.lock.client.timestampleases;
 
+import com.codahale.metrics.Counter;
 import com.github.rholder.retry.Attempt;
 import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.Retryer;
@@ -39,6 +40,7 @@ import com.palantir.lock.ConjureTimestampRangeTimestampSupplier;
 import com.palantir.lock.LimitingLongSupplier;
 import com.palantir.lock.client.LeasedLockToken;
 import com.palantir.lock.client.LockTokenUnlocker;
+import com.palantir.lock.client.TimestampLeaseMetrics;
 import com.palantir.lock.v2.TimestampLeaseResult;
 import com.palantir.lock.v2.TimestampLeaseResults;
 import com.palantir.logsafe.Preconditions;
@@ -62,6 +64,7 @@ public final class TimestampLeaseAcquirerImpl implements TimestampLeaseAcquirer 
     private final NamespacedTimestampLeaseService delegate;
     private final Unlocker unlocker;
     private final Supplier<UUID> uuidSupplier;
+    private final Counter notEnoughFreshTimestampsCounter;
 
     private final Retryer<Optional<TimestampLeaseResponses>> retryer =
             RetryerBuilder.<Optional<TimestampLeaseResponses>>newBuilder()
@@ -69,21 +72,30 @@ public final class TimestampLeaseAcquirerImpl implements TimestampLeaseAcquirer 
                     .withStopStrategy(StopStrategies.stopAfterAttempt(3))
                     .build();
 
-    @VisibleForTesting
-    TimestampLeaseAcquirerImpl(
-            NamespacedTimestampLeaseService delegate, Unlocker unlocker, Supplier<UUID> uuidSupplier) {
+    private TimestampLeaseAcquirerImpl(
+            NamespacedTimestampLeaseService delegate,
+            Unlocker unlocker,
+            Supplier<UUID> uuidSupplier,
+            Counter notEnoughFreshTimestampsCounter) {
         this.delegate = delegate;
         this.unlocker = unlocker;
         this.uuidSupplier = uuidSupplier;
+        this.notEnoughFreshTimestampsCounter = notEnoughFreshTimestampsCounter;
     }
 
-    private TimestampLeaseAcquirerImpl(NamespacedTimestampLeaseService delegate, Unlocker unlocker) {
-        this(delegate, unlocker, UniqueIds::pseudoRandomUuidV4);
+    @VisibleForTesting
+    TimestampLeaseAcquirerImpl(
+            NamespacedTimestampLeaseService delegate, Unlocker unlocker, Supplier<UUID> uuidSupplier) {
+        this(delegate, unlocker, uuidSupplier, new Counter());
     }
 
     public static TimestampLeaseAcquirer create(
-            NamespacedTimestampLeaseService timestampLeaseService, LockTokenUnlocker unlocker) {
-        return new TimestampLeaseAcquirerImpl(timestampLeaseService, identifier -> unlock(unlocker, identifier));
+            NamespacedTimestampLeaseService delegate, LockTokenUnlocker unlocker, TimestampLeaseMetrics metrics) {
+        return new TimestampLeaseAcquirerImpl(
+                delegate,
+                identifier -> unlock(unlocker, identifier),
+                UniqueIds::pseudoRandomUuidV4,
+                metrics.notEnoughFreshTimestamps());
     }
 
     @Override
@@ -146,23 +158,27 @@ public final class TimestampLeaseAcquirerImpl implements TimestampLeaseAcquirer 
                 requestedFreshTimestamps.keySet().equals(responseMap.keySet()),
                 "Response lease timestamps need to match request timestamp names exactly");
 
-        boolean wasFullyFulfilled = requestedFreshTimestamps.keySet().stream().allMatch(timestampName -> {
-            int requestedTimestamps = requestedFreshTimestamps.get(timestampName);
-            long returnedTimestamps =
-                    responseMap.get(timestampName).getFreshTimestamps().getCount();
-            return returnedTimestamps >= requestedTimestamps;
-        });
+        long wereNotFullyFulfilled = requestedFreshTimestamps.keySet().stream()
+                .filter(timestampName -> {
+                    int requestedTimestamps = requestedFreshTimestamps.get(timestampName);
+                    long returnedTimestamps =
+                            responseMap.get(timestampName).getFreshTimestamps().getCount();
+                    return returnedTimestamps < requestedTimestamps;
+                })
+                .count();
 
-        if (!wasFullyFulfilled) {
+        if (wereNotFullyFulfilled > 0) {
+            notEnoughFreshTimestampsCounter.inc(wereNotFullyFulfilled);
+
             unlock(response);
             log.info(
                     "Timestamp lease request was not fully fulfilled. This should happen infrequently.",
-                    SafeArg.of("requests", requests),
+                    SafeArg.of("requests", request),
                     SafeArg.of("responses", response));
             return Optional.empty();
+        } else {
+            return Optional.of(response);
         }
-
-        return Optional.of(response);
     }
 
     private void unlock(TimestampLeaseResponses responses) {
