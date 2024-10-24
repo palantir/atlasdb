@@ -30,7 +30,7 @@ import static org.mockito.Mockito.when;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.sweep.asts.TimestampRange;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.BucketWriter.WriteState;
-import com.palantir.atlasdb.sweep.asts.bucketingthings.DefaultBucketAssigner.BucketAssignerMetrics;
+import com.palantir.atlasdb.sweep.asts.bucketingthings.DefaultBucketAssigner.BucketAssignerEventHandler;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.DefaultBucketAssigner.IterationResult.OperationResult;
 import java.util.ArrayList;
 import java.util.List;
@@ -59,7 +59,7 @@ public final class DefaultBucketAssignerTest {
     private SweepBucketRecordsTable sweepBucketRecordsTable;
 
     @Mock
-    private BucketAssignerMetrics metrics;
+    private BucketAssignerEventHandler eventHandler;
 
     @Mock
     private Function<Long, OptionalLong> closeTimestampCalculator;
@@ -69,9 +69,9 @@ public final class DefaultBucketAssignerTest {
 
     @BeforeEach
     public void before() {
-        stateTable = new TestSweepBucketAssignerStateMachineTable(metrics);
+        stateTable = new TestSweepBucketAssignerStateMachineTable(eventHandler);
         bucketAssigner = new DefaultBucketAssigner(
-                stateTable, bucketWriter, sweepBucketRecordsTable, metrics, closeTimestampCalculator);
+                stateTable, bucketWriter, sweepBucketRecordsTable, eventHandler, closeTimestampCalculator);
     }
 
     @Test // A single call to run - i.e., we don't do one step per call where possible
@@ -83,7 +83,7 @@ public final class DefaultBucketAssignerTest {
         assertOperationResult(OperationResult.INCOMPLETE);
         verify(bucketWriter).writeToAllBuckets(1, Optional.empty(), TimestampRange.openBucket(1));
         verifyNoInteractions(sweepBucketRecordsTable);
-        verify(metrics).progressedToBucketIdentifier(1);
+        verify(eventHandler).progressedToBucketIdentifier(1);
         stateTable.assertThatStateMachineTransitionedThroughTo(
                 BucketStateAndIdentifier.of(1, BucketAssignerState.opening(1)),
                 BucketStateAndIdentifier.of(1, BucketAssignerState.waitingUntilCloseable(1)));
@@ -207,7 +207,7 @@ public final class DefaultBucketAssignerTest {
                 BucketStateAndIdentifier.of(5, BucketAssignerState.start(114)),
                 BucketStateAndIdentifier.of(5, BucketAssignerState.immediatelyClosing(114, 221)),
                 BucketStateAndIdentifier.of(6, BucketAssignerState.start(221)));
-        verify(metrics).progressedToBucketIdentifier(5); // We haven't entered 6 yet.
+        verify(eventHandler).progressedToBucketIdentifier(5); // We haven't entered 6 yet.
 
         // We should not even be trying to transition to the next state after max iterations.
         verifyNoMoreInteractions(closeTimestampCalculator);
@@ -215,7 +215,7 @@ public final class DefaultBucketAssignerTest {
         when(closeTimestampCalculator.apply(221L)).thenReturn(OptionalLong.empty());
         stateTable.resetInitialState(6, BucketAssignerState.start(221));
         bucketAssigner.run();
-        verify(metrics).progressedToBucketIdentifier(6);
+        verify(eventHandler).progressedToBucketIdentifier(6);
         stateTable.assertThatStateMachineTransitionedThroughTo(
                 BucketStateAndIdentifier.of(6, BucketAssignerState.opening(221)),
                 BucketStateAndIdentifier.of(6, BucketAssignerState.waitingUntilCloseable(221)));
@@ -344,27 +344,32 @@ public final class DefaultBucketAssignerTest {
     }
 
     private void assertOperationResult(OperationResult... results) {
-        InOrder inOrder = inOrder(metrics);
+        InOrder inOrder = inOrder(eventHandler);
         for (OperationResult result : results) {
-            inOrder.verify(metrics).operationResultForIteration(result);
+            inOrder.verify(eventHandler).operationResultForIteration(result);
         }
         // Not called any more times.
         // We can't use verifyNoMoreInteractions, because that would require verifying no other interactions on the
         // whole metrics object, which is not what we want.
-        verify(metrics, times(results.length)).operationResultForIteration(any());
+        verify(eventHandler, times(results.length)).operationResultForIteration(any());
     }
 
     private static final class TestSweepBucketAssignerStateMachineTable
             implements SweepBucketAssignerStateMachineTable {
         private final List<BucketStateAndIdentifier> stateTransitions = new ArrayList<>();
-        private final BucketAssignerMetrics metrics;
+        private final BucketAssignerEventHandler metrics;
 
-        TestSweepBucketAssignerStateMachineTable(BucketAssignerMetrics metrics) {
+        TestSweepBucketAssignerStateMachineTable(BucketAssignerEventHandler metrics) {
             this.metrics = metrics;
         }
 
         @Override
-        public void setInitialStateForBucketAssigner(long bucketIdentifier, long startTimestamp) {
+        public void setInitialStateForBucketAssigner(BucketAssignerState initialState) {
+            throw new UnsupportedOperationException("This should not be called");
+        }
+
+        @Override
+        public boolean doesStateMachineStateExist() {
             throw new UnsupportedOperationException("This should not be called");
         }
 

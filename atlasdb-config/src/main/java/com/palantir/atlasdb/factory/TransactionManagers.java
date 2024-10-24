@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.async.initializer.AsyncInitializer;
 import com.palantir.async.initializer.Callback;
 import com.palantir.async.initializer.LambdaCallback;
@@ -28,11 +29,13 @@ import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.cache.DefaultTimestampCache;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cell.api.DataKeyValueServiceManager;
+import com.palantir.atlasdb.cleaner.CachingPuncherStore;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.DefaultCleanerBuilder;
 import com.palantir.atlasdb.cleaner.Follower;
 import com.palantir.atlasdb.cleaner.GlobalClock;
 import com.palantir.atlasdb.cleaner.KeyValueServicePuncherStore;
+import com.palantir.atlasdb.cleaner.PuncherStore;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.compact.BackgroundCompactor;
 import com.palantir.atlasdb.compact.CompactorConfig;
@@ -85,6 +88,7 @@ import com.palantir.atlasdb.sweep.SpecificTableSweeper;
 import com.palantir.atlasdb.sweep.SweepBatchConfig;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
 import com.palantir.atlasdb.sweep.metrics.LegacySweepMetrics;
+import com.palantir.atlasdb.sweep.queue.DelegatingMultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.sweep.queue.clear.SafeTableClearerKeyValueService;
@@ -480,13 +484,22 @@ public abstract class TransactionManagers {
         CoordinationService<InternalSchemaMetadata> coordinationService =
                 getSchemaMetadataCoordinationService(metricsManager, lockAndTimestampServices, internalKeyValueService);
 
+        SettableFuture<MultiTableSweepQueueWriter> initialisableWriter = SettableFuture.create();
+
+        PuncherStore keyValuePuncherStore =
+                KeyValueServicePuncherStore.create(internalKeyValueService, config().initializeAsync());
+        PuncherStore cachingPuncherStore =
+                CachingPuncherStore.create(keyValuePuncherStore, config().getPunchIntervalMillis() * 3);
+
         TargetedSweeper targetedSweeper = uninitializedTargetedSweeper(
                 internalKeyValueService,
                 metricsManager,
                 config().targetedSweep(),
                 follower,
                 runtime.map(AtlasDbRuntimeConfig::targetedSweep),
-                coordinationService);
+                coordinationService,
+                initialisableWriter,
+                cachingPuncherStore);
 
         TransactionSchemaManager transactionSchemaManager = new TransactionSchemaManager(coordinationService);
 
@@ -509,18 +522,18 @@ public abstract class TransactionManagers {
                                 lockAndTimestampServices.timelock(),
                                 ImmutableList.of(follower),
                                 transactionService,
-                                metricsManager)
+                                metricsManager,
+                                cachingPuncherStore)
                         .setBackgroundScrubAggressively(config().backgroundScrubAggressively())
                         .setBackgroundScrubBatchSize(config().getBackgroundScrubBatchSize())
                         .setBackgroundScrubFrequencyMillis(config().getBackgroundScrubFrequencyMillis())
                         .setBackgroundScrubThreads(config().getBackgroundScrubThreads())
-                        .setPunchIntervalMillis(config().getPunchIntervalMillis())
                         .setTransactionReadTimeout(config().getTransactionReadTimeoutMillis())
                         .setInitializeAsync(config().initializeAsync())
                         .buildCleaner(),
                 closeables);
 
-        MultiTableSweepQueueWriter targetedSweep = initializeCloseable(() -> targetedSweeper, closeables);
+        TargetedSweeper targetedSweep = initializeCloseable(() -> targetedSweeper, closeables);
 
         Supplier<TransactionConfig> transactionConfigSupplier =
                 runtime.map(AtlasDbRuntimeConfig::transaction).map(this::withConsolidatedGrabImmutableTsLockFlag);
@@ -564,7 +577,7 @@ public abstract class TransactionManagers {
                         derivedSnapshotConfig.defaultGetRangesConcurrency(),
                         config().initializeAsync(),
                         timestampCache,
-                        targetedSweep,
+                        new DelegatingMultiTableSweepQueueWriter(initialisableWriter),
                         callbacks,
                         validateLocksOnReads(),
                         transactionConfigSupplier,
@@ -1057,8 +1070,10 @@ public abstract class TransactionManagers {
             MetricsManager metricsManager,
             TargetedSweepInstallConfig install,
             Follower follower,
-            Supplier<TargetedSweepRuntimeConfig> runtime,
-            CoordinationService<InternalSchemaMetadata> coordinationService) {
+            Refreshable<TargetedSweepRuntimeConfig> runtime,
+            CoordinationService<InternalSchemaMetadata> coordinationService,
+            SettableFuture<MultiTableSweepQueueWriter> initialisableWriter,
+            PuncherStore puncherStore) {
         CoordinationAwareKnownAbandonedTransactionsStore abandonedTxnStore =
                 new CoordinationAwareKnownAbandonedTransactionsStore(
                         coordinationService, new AbandonedTimestampStoreImpl(kvs));
@@ -1068,7 +1083,9 @@ public abstract class TransactionManagers {
                 install,
                 ImmutableList.of(follower),
                 abandonedTxnStore::addAbandonedTimestamps,
-                kvs);
+                kvs,
+                initialisableWriter,
+                puncherStore);
     }
 
     @Value.Immutable

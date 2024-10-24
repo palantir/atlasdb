@@ -80,15 +80,18 @@ public final class DefaultCandidateSweepableBucketRetriever implements Candidate
     public static CandidateSweepableBucketRetriever create(
             SweepableBucketRetriever sweepableBucketRetriever,
             Refreshable<Duration> debouncerDuration,
-            Refreshable<Duration> maxJitter,
-            Clock clock) {
-        return new DefaultCandidateSweepableBucketRetriever(sweepableBucketRetriever, debouncerDuration, clock, () -> {
-            // This is not full jitter. I chose to require a minimum delay, because we simply _do not need_ to refresh
-            // buckets that quickly, and the scans over the database aren't precisely free.
-            // This jitter only really matters for things calling requestUpdate frequently (as opposed to the background
-            // task, which should have its own jitter)
-            return ThreadLocalRandom.current().nextLong(0, maxJitter.get().toMillis());
-        });
+            Refreshable<Duration> maxJitter) {
+        return new DefaultCandidateSweepableBucketRetriever(
+                sweepableBucketRetriever, debouncerDuration, Clock.systemUTC(), () -> {
+                    // This is not full jitter. I chose to require a minimum delay, because we simply _do not need_ to
+                    // refresh
+                    // buckets that quickly, and the scans over the database aren't precisely free.
+                    // This jitter only really matters for things calling requestUpdate frequently (as opposed to the
+                    // background
+                    // task, which should have its own jitter)
+                    return ThreadLocalRandom.current()
+                            .nextLong(0, maxJitter.get().toMillis());
+                });
     }
 
     @Override

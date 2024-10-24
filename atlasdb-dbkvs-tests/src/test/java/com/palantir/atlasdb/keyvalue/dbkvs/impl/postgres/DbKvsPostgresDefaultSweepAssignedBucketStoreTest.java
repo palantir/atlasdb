@@ -17,12 +17,12 @@
 package com.palantir.atlasdb.keyvalue.dbkvs.impl.postgres;
 
 import com.palantir.atlasdb.keyvalue.impl.TestResourceManager;
-import com.palantir.atlasdb.sweep.asts.progress.AbstractDefaultBucketProgressStoreTest;
+import com.palantir.atlasdb.sweep.asts.bucketingthings.AbstractDefaultSweepAssignedBucketStoreTest;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
 @ExtendWith(DbKvsPostgresExtension.class)
-public class DbKvsPostgresDefaultSweepAssignedBucketStoreTest extends AbstractDefaultBucketProgressStoreTest {
+public class DbKvsPostgresDefaultSweepAssignedBucketStoreTest extends AbstractDefaultSweepAssignedBucketStoreTest {
     @RegisterExtension
     public static final TestResourceManager TRM = new TestResourceManager(DbKvsPostgresExtension::createKvs);
 

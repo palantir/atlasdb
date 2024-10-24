@@ -47,7 +47,7 @@ public final class Lockable<T> {
     private final LockDescriptor lockDescriptor;
     private final T inner;
     private final TimelockService timelockService;
-    private final Refreshable<Duration> lockTimeout;
+    private final Refreshable<Duration> lockAcquisitionTimeout;
 
     // Consider whether this should be a lock. It's simply an optimisation to avoid a check for timelock
     // each time you want to test if it's locked by something locally, but we must make sure there are no false
@@ -61,16 +61,19 @@ public final class Lockable<T> {
             T inner,
             LockDescriptor lockDescriptor,
             TimelockService timelockService,
-            Refreshable<Duration> lockTimeout) {
+            Refreshable<Duration> lockAcquisitionTimeout) {
         this.timelockService = timelockService;
         this.inner = inner;
-        this.lockTimeout = lockTimeout;
+        this.lockAcquisitionTimeout = lockAcquisitionTimeout;
         this.lockDescriptor = lockDescriptor;
     }
 
     public static <T> Lockable<T> create(
-            T inner, LockDescriptor lockDescriptor, TimelockService timeLock, Refreshable<Duration> lockTimeout) {
-        return new Lockable<>(inner, lockDescriptor, timeLock, lockTimeout);
+            T inner,
+            LockDescriptor lockDescriptor,
+            TimelockService timeLock,
+            Refreshable<Duration> lockAcquisitionTimeout) {
+        return new Lockable<>(inner, lockDescriptor, timeLock, lockAcquisitionTimeout);
     }
 
     // For code owners:
@@ -85,7 +88,8 @@ public final class Lockable<T> {
         if (isLocked.compareAndSet(false, true)) {
             // We do not want the timeout to be too low to avoid a race condition where we give up too soon
             LockRequest request = LockRequest.of(
-                    ImmutableSet.of(lockDescriptor), lockTimeout.get().toMillis());
+                    ImmutableSet.of(lockDescriptor),
+                    lockAcquisitionTimeout.get().toMillis());
 
             try {
                 return timelockService

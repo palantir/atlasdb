@@ -27,6 +27,7 @@ dependencies {
     implementation 'org.apache.commons:commons-text'
     implementation 'io.dropwizard:dropwizard-jackson'
     implementation 'com.palantir.conjure.java.runtime:conjure-java-jackson-serialization'
+    implementation 'com.palantir.refreshable:refreshable'
 
     implementation project(':atlasdb-api')
     implementation project(':atlasdb-client')
@@ -207,4 +208,3 @@ distribution {
     args 'server', 'var/conf/atlasdb-ete.yml'
     defaultJvmOpts '-Xmx768M'
 }
-

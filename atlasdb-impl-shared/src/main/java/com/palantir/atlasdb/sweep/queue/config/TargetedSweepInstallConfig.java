@@ -68,6 +68,21 @@ public class TargetedSweepInstallConfig {
         return AtlasDbConstants.DEFAULT_TARGETED_SWEEP_THREADS;
     }
 
+    @Value.Default
+    // This is temporary until the autoscaling work is complete.
+    public int bucketBasedSweepThreads() {
+        return thoroughThreads() + conservativeThreads();
+    }
+
+    // To temporarily disable sweep, rather than turn off the bucket based sweep, see the runtime config enabled method.
+    // If this is true, then the bucket based system will be enabled and buckets will be created.
+    // If this and the runtime config enabled method are both true, then we will also sweep those buckets.
+    // If this is false, then the old behaviour applies
+    @Value.Default
+    public boolean enableBucketBasedSweep() {
+        return false; // Will eventually be removed and inlined into the existing TargetedSweep config
+    }
+
     @Value.Check
     void checkThoroughThreads() {
         Preconditions.checkArgument(

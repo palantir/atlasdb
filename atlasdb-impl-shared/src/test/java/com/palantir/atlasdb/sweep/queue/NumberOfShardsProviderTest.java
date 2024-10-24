@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.sweep.queue;
 
-import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
@@ -28,8 +27,6 @@ import com.palantir.atlasdb.AtlasDbConstants;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.impl.InMemoryKeyValueService;
 import com.palantir.atlasdb.sweep.queue.NumberOfShardsProvider.MismatchBehaviour;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.time.Duration;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
@@ -120,28 +117,14 @@ public class NumberOfShardsProviderTest {
     }
 
     @Test
-    public void throwsIfMismatchBetweenProgressAndConfigAndThrowBehaviourSet() {
+    public void doesNotUpdateIfMismatchBetweenProgressAndConfigAndIgnoreBehaviourSet() {
         numShardSupplier = NumberOfShardsProvider.createMemoizingProvider(
                 progress,
                 runtimeConfigSupplier,
-                MismatchBehaviour.THROW,
+                MismatchBehaviour.IGNORE_UPDATES,
                 Duration.ofMillis(SweepQueueUtils.REFRESH_TIME))::getNumberOfShards;
         progress.updateNumberOfShards(75);
-        assertThatLoggableExceptionThrownBy(() -> setRuntimeAndGetNumberOfShards(50))
-                .isInstanceOf(SafeIllegalStateException.class)
-                .hasLogMessage("Number of shards from supplier and progress do not match")
-                .hasExactlyArgs(SafeArg.of("shardsFromSupplier", 50), SafeArg.of("shardsFromProgress", 75));
-    }
-
-    @Test
-    public void doesNotThrowIfNoMismatchBetweenProgressAndConfigAndThrowBehaviourSet() {
-        numShardSupplier = NumberOfShardsProvider.createMemoizingProvider(
-                progress,
-                runtimeConfigSupplier,
-                MismatchBehaviour.THROW,
-                Duration.ofMillis(SweepQueueUtils.REFRESH_TIME))::getNumberOfShards;
-        progress.updateNumberOfShards(50);
-        assertThat(setRuntimeAndGetNumberOfShards(50)).isEqualTo(50);
+        assertThat(setRuntimeAndGetNumberOfShards(100)).isEqualTo(75);
     }
 
     private int setRuntimeAndGetNumberOfShards(int runtime) {

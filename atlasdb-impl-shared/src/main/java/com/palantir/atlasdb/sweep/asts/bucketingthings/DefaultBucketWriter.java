@@ -27,7 +27,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.List;
 import java.util.Optional;
 
-final class DefaultBucketWriter implements BucketWriter {
+public final class DefaultBucketWriter implements BucketWriter {
     private static final SafeLogger log = SafeLoggerFactory.get(DefaultBucketWriter.class);
     private final SweepBucketsTable sweepBucketsTable;
     private final List<SweeperStrategy> sweeperStrategies;
@@ -43,7 +43,7 @@ final class DefaultBucketWriter implements BucketWriter {
     }
 
     // A static number of shards, since it will not be configurable anymore.
-    static BucketWriter create(
+    public static BucketWriter create(
             SweepBucketsTable sweepBucketsTable, List<SweeperStrategy> sweeperStrategies, int numberOfShards) {
         return new DefaultBucketWriter(sweepBucketsTable, sweeperStrategies, numberOfShards);
     }

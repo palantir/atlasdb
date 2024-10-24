@@ -20,7 +20,8 @@ import com.palantir.atlasdb.sweep.asts.TimestampRange;
 
 public interface SweepBucketRecordsTable {
     /**
-     * Returns the {@link TimestampRange} for the given bucket identifier, throwing if one is not present.
+     * Returns the {@link TimestampRange} for the given bucket identifier, throwing a
+     * {@link java.util.NoSuchElementException} if one is not present.
      */
     TimestampRange getTimestampRangeRecord(long bucketIdentifier);
 

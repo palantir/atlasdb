@@ -19,9 +19,7 @@ package com.palantir.atlasdb.transaction.api.precommit;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
-import com.palantir.lock.v2.LockToken;
 import java.util.Map;
-import javax.annotation.Nullable;
 
 public interface PreCommitRequirementValidator {
     /**
@@ -41,10 +39,10 @@ public interface PreCommitRequirementValidator {
      * user pre-commit condition is no longer valid, or possibly because of other internal state such as commit
      * locks having expired.
      */
-    void throwIfPreCommitRequirementsNotMet(@Nullable LockToken commitLocksToken, long timestamp);
+    void throwIfPreCommitRequirementsNotMet(long timestamp);
 
     /**
      * Throws a {@link TransactionFailedException} if the immutable timestamp lock or commit locks have expired.
      */
-    void throwIfImmutableTsOrCommitLocksExpired(@Nullable LockToken commitLocksToken);
+    void throwIfImmutableTsOrCommitLocksExpired();
 }

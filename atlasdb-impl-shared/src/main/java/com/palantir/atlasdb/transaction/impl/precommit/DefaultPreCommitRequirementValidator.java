@@ -22,10 +22,9 @@ import com.palantir.atlasdb.transaction.api.PreCommitCondition;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator;
-import com.palantir.atlasdb.transaction.impl.ImmutableTimestampLockManager;
-import com.palantir.atlasdb.transaction.impl.ImmutableTimestampLockManager.ExpiredLocks;
+import com.palantir.atlasdb.transaction.impl.TransactionLocksManager;
+import com.palantir.atlasdb.transaction.impl.TransactionLocksManager.ExpiredLocks;
 import com.palantir.atlasdb.transaction.impl.metrics.TransactionOutcomeMetrics;
-import com.palantir.lock.v2.LockToken;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -37,15 +36,15 @@ public final class DefaultPreCommitRequirementValidator implements PreCommitRequ
 
     private final PreCommitCondition userPreCommitCondition;
     private final TransactionOutcomeMetrics metrics;
-    private final ImmutableTimestampLockManager immutableTimestampLockManager;
+    private final TransactionLocksManager transactionLocksManager;
 
     public DefaultPreCommitRequirementValidator(
             PreCommitCondition userPreCommitCondition,
             TransactionOutcomeMetrics metrics,
-            ImmutableTimestampLockManager immutableTimestampLockManager) {
+            TransactionLocksManager transactionLocksManager) {
         this.userPreCommitCondition = userPreCommitCondition;
         this.metrics = metrics;
-        this.immutableTimestampLockManager = immutableTimestampLockManager;
+        this.transactionLocksManager = transactionLocksManager;
     }
 
     @Override
@@ -70,15 +69,14 @@ public final class DefaultPreCommitRequirementValidator implements PreCommitRequ
     }
 
     @Override
-    public void throwIfPreCommitRequirementsNotMet(LockToken commitLocksToken, long timestamp) {
-        throwIfImmutableTsOrCommitLocksExpired(commitLocksToken);
+    public void throwIfPreCommitRequirementsNotMet(long timestamp) {
+        throwIfImmutableTsOrCommitLocksExpired();
         throwIfPreCommitConditionInvalid(timestamp);
     }
 
     @Override
-    public void throwIfImmutableTsOrCommitLocksExpired(LockToken commitLocksToken) {
-        Optional<ExpiredLocks> expiredLocks = immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocks(
-                Optional.ofNullable(commitLocksToken));
+    public void throwIfImmutableTsOrCommitLocksExpired() {
+        Optional<ExpiredLocks> expiredLocks = transactionLocksManager.getExpiredImmutableTimestampAndCommitLocks();
         if (expiredLocks.isPresent()) {
             throw createDefaultTransactionLockTimeoutException(expiredLocks.get());
         }

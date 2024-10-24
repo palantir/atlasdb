@@ -24,6 +24,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.palantir.atlasdb.futures.AtlasFutures;
 import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
 import com.palantir.atlasdb.timelock.api.TimestampLeaseResponse;
+import com.palantir.atlasdb.timelock.api.TimestampLeaseResponses;
 import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lockwatches.BufferMetrics;
@@ -32,14 +33,18 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.timestamp.ManagedTimestampService;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.jmock.lib.concurrent.DeterministicScheduler;
 import org.junit.jupiter.api.Test;
 
 public final class AsyncTimelockServiceImplTest {
-    private static final TimestampLeaseName TIMESTAMP_NAME = TimestampLeaseName.of("ToyTimestamp");
+    private static final TimestampLeaseName TIMESTAMP_NAME_1 = TimestampLeaseName.of("ToyTimestamp_1");
+    private static final TimestampLeaseName TIMESTAMP_NAME_2 = TimestampLeaseName.of("ToyTimestamp_2");
 
     private final DeterministicScheduler executor = new DeterministicScheduler();
     private final ManagedTimestampService timestampService = new InMemoryTimestampService();
@@ -58,100 +63,170 @@ public final class AsyncTimelockServiceImplTest {
     }
 
     @Test
+    public void unlockingWithRequestIdFromAcquireTimestampLeaseResponseUnlocksForAllRelevantTimestampNames() {
+        TimestampedInvocation<Long> timestamp1MinLeased1 = getMinLeasedTimestampTimestamped(TIMESTAMP_NAME_1);
+        assertThatTimestampIsStrictlyWithinInvocationInterval(timestamp1MinLeased1.result, timestamp1MinLeased1);
+        TimestampedInvocation<Long> timestamp2MinLeased1 = getMinLeasedTimestampTimestamped(TIMESTAMP_NAME_2);
+        assertThatTimestampIsStrictlyWithinInvocationInterval(timestamp2MinLeased1.result, timestamp2MinLeased1);
+
+        TimestampedInvocation<TimestampLeaseResponses> responses =
+                acquireTimestampLeaseTimestamped(TIMESTAMP_NAME_1, 10, TIMESTAMP_NAME_2, 20);
+        assertThatTimestampsIsStrictlyWithinInvocationInterval(getMinLeasedTimestampsFrom(responses.result), responses);
+
+        unlockForResponse(responses.result);
+        assertThatTimestampIsStrictlyWithinInvocationInterval(timestamp1MinLeased1.result, timestamp1MinLeased1);
+        assertThatTimestampIsStrictlyWithinInvocationInterval(timestamp2MinLeased1.result, timestamp2MinLeased1);
+    }
+
+    @Test
     public void acquireTimestampLeaseReturnsLeaseGuaranteeIdentifierWithGivenRequestId() {
         UUID requestId = UUID.randomUUID();
-        TimestampLeaseResponse acquireResponse = acquireTimestampLease(requestId, 10);
+        TimestampLeaseResponses acquireResponse =
+                acquireTimestampLease(requestId, TIMESTAMP_NAME_1, 10, TIMESTAMP_NAME_2, 20);
         assertThat(acquireResponse.getLeaseGuarantee().getIdentifier().get()).isEqualTo(requestId);
     }
 
     @Test
     public void acquireTimestampLeaseReturnsMinLeasedAllThroughout() {
-        TimestampedInvocation<TimestampLeaseResponse> response1 = acquireTimestampLeaseTimestamped(10);
-        assertThatTimestampIsStrictlyWithinInvocationInterval(response1.result.getMinLeased(), response1);
+        TimestampedInvocation<TimestampLeaseResponses> response1 =
+                acquireTimestampLeaseTimestamped(TIMESTAMP_NAME_1, 15);
+        assertThatTimestampsIsStrictlyWithinInvocationInterval(getMinLeasedTimestampsFrom(response1.result), response1);
 
-        TimestampedInvocation<TimestampLeaseResponse> response2 = acquireTimestampLeaseTimestamped(5);
-        assertThatTimestampIsStrictlyWithinInvocationInterval(response2.result.getMinLeased(), response1);
+        TimestampedInvocation<TimestampLeaseResponses> response2 =
+                acquireTimestampLeaseTimestamped(TIMESTAMP_NAME_1, 5);
+        assertThatTimestampsIsStrictlyWithinInvocationInterval(getMinLeasedTimestampsFrom(response2.result), response1);
+
+        TimestampedInvocation<TimestampLeaseResponses> response3 =
+                acquireTimestampLeaseTimestamped(TIMESTAMP_NAME_1, 7);
+        assertThatTimestampsIsStrictlyWithinInvocationInterval(getMinLeasedTimestampsFrom(response3.result), response1);
 
         unlockForResponse(response1.result);
-        TimestampedInvocation<TimestampLeaseResponse> response3 = acquireTimestampLeaseTimestamped(7);
-        assertThatTimestampIsStrictlyWithinInvocationInterval(response3.result.getMinLeased(), response2);
-
-        unlockForResponse(response2.result);
-        TimestampedInvocation<TimestampLeaseResponse> response4 = acquireTimestampLeaseTimestamped(19);
-        assertThatTimestampIsStrictlyWithinInvocationInterval(response4.result.getMinLeased(), response3);
+        unlockForResponse(response3.result);
+        TimestampedInvocation<TimestampLeaseResponses> response4 =
+                acquireTimestampLeaseTimestamped(TIMESTAMP_NAME_1, 19);
+        assertThatTimestampsIsStrictlyWithinInvocationInterval(getMinLeasedTimestampsFrom(response4.result), response2);
     }
 
     @Test
     public void acquireTimestampLeaseReturnsFreshTimestampsGreaterThanReturnedMinLeased() {
-        TimestampLeaseResponse response = acquireTimestampLease(10);
-        assertThat(response.getFreshTimestamps().getStart()).isGreaterThan(response.getMinLeased());
+        TimestampLeaseResponses response = acquireTimestampLease(TIMESTAMP_NAME_1, 199, TIMESTAMP_NAME_2, 87);
+
+        TimestampLeaseResponse timestampName1Response =
+                response.getTimestampLeaseResponses().get(TIMESTAMP_NAME_1);
+        TimestampLeaseResponse timestampName2Response =
+                response.getTimestampLeaseResponses().get(TIMESTAMP_NAME_2);
+
+        assertThat(timestampName1Response.getFreshTimestamps().getStart())
+                .isGreaterThan(timestampName1Response.getMinLeased());
+        assertThat(timestampName2Response.getFreshTimestamps().getStart())
+                .isGreaterThan(timestampName2Response.getMinLeased());
     }
 
     @Test
     public void acquireTimestampLeaseReturnedFreshTimestampsAreFreshTimestamps() {
-        TimestampedInvocation<TimestampLeaseResponse> response = acquireTimestampLeaseTimestamped(10);
-        long firstTimestamp = response.result.getFreshTimestamps().getStart();
-        long lastTimestamp =
-                firstTimestamp + response.result.getFreshTimestamps().getCount() - 1;
-        assertThatTimestampIsStrictlyWithinInvocationInterval(firstTimestamp, response);
-        assertThatTimestampIsStrictlyWithinInvocationInterval(lastTimestamp, response);
+        TimestampedInvocation<TimestampLeaseResponses> responses =
+                acquireTimestampLeaseTimestamped(TIMESTAMP_NAME_1, 10);
+        TimestampLeaseResponse response =
+                responses.result.getTimestampLeaseResponses().get(TIMESTAMP_NAME_1);
+
+        long firstTimestamp = response.getFreshTimestamps().getStart();
+        long lastTimestamp = firstTimestamp + response.getFreshTimestamps().getCount() - 1;
+
+        assertThatTimestampIsStrictlyWithinInvocationInterval(firstTimestamp, responses);
+        assertThatTimestampIsStrictlyWithinInvocationInterval(lastTimestamp, responses);
     }
 
     @Test
     public void acquireTimestampLeaseLocksWithAFreshTimestamp() {
-        TimestampedInvocation<TimestampLeaseResponse> response = acquireTimestampLeaseTimestamped(10);
-        assertThatTimestampIsStrictlyWithinInvocationInterval(response.result.getMinLeased(), response);
+        TimestampedInvocation<TimestampLeaseResponses> responses =
+                acquireTimestampLeaseTimestamped(TIMESTAMP_NAME_1, 10);
+        TimestampLeaseResponse response =
+                responses.result.getTimestampLeaseResponses().get(TIMESTAMP_NAME_1);
+
+        assertThatTimestampIsStrictlyWithinInvocationInterval(response.getMinLeased(), responses);
     }
 
     @Test
     public void getMinLeasedTimestampReturnsFreshTimestampWhenNoLeaseIsHeld() {
-        TimestampedInvocation<Long> response = getMinLeasedTimestampTimestamped();
+        TimestampedInvocation<Long> response = getMinLeasedTimestampTimestamped(TIMESTAMP_NAME_1);
         assertThatTimestampIsStrictlyWithinInvocationInterval(response.result, response);
     }
 
     @Test
     public void getMinLeasedTimestampReturnsMinLeasedWhenLeaseIsHeld() {
-        TimestampedInvocation<TimestampLeaseResponse> response1 = acquireTimestampLeaseTimestamped(10);
-        assertThatTimestampIsStrictlyWithinInvocationInterval(getMinLeasedTimestamp(), response1);
+        TimestampedInvocation<TimestampLeaseResponses> response1 =
+                acquireTimestampLeaseTimestamped(TIMESTAMP_NAME_1, 10);
+        assertThatTimestampIsStrictlyWithinInvocationInterval(getMinLeasedTimestamp(TIMESTAMP_NAME_1), response1);
 
-        TimestampedInvocation<TimestampLeaseResponse> response2 = acquireTimestampLeaseTimestamped(5);
-        assertThatTimestampIsStrictlyWithinInvocationInterval(getMinLeasedTimestamp(), response1);
+        TimestampedInvocation<TimestampLeaseResponses> response2 =
+                acquireTimestampLeaseTimestamped(TIMESTAMP_NAME_1, 5);
+        assertThatTimestampIsStrictlyWithinInvocationInterval(getMinLeasedTimestamp(TIMESTAMP_NAME_1), response1);
 
         assertThat(unlockForResponse(response1.result)).isTrue();
-        TimestampedInvocation<TimestampLeaseResponse> response3 = acquireTimestampLeaseTimestamped(7);
-        assertThatTimestampIsStrictlyWithinInvocationInterval(getMinLeasedTimestamp(), response2);
+        TimestampedInvocation<TimestampLeaseResponses> response3 =
+                acquireTimestampLeaseTimestamped(TIMESTAMP_NAME_1, 7);
+        assertThatTimestampIsStrictlyWithinInvocationInterval(getMinLeasedTimestamp(TIMESTAMP_NAME_1), response2);
 
-        TimestampedInvocation<TimestampLeaseResponse> response4 = acquireTimestampLeaseTimestamped(12);
-        assertThatTimestampIsStrictlyWithinInvocationInterval(getMinLeasedTimestamp(), response2);
+        TimestampedInvocation<TimestampLeaseResponses> response4 =
+                acquireTimestampLeaseTimestamped(TIMESTAMP_NAME_1, 12);
+        assertThatTimestampIsStrictlyWithinInvocationInterval(getMinLeasedTimestamp(TIMESTAMP_NAME_1), response2);
 
         assertThat(unlockForResponse(response2.result)).isTrue();
-        assertThatTimestampIsStrictlyWithinInvocationInterval(getMinLeasedTimestamp(), response3);
+        assertThatTimestampIsStrictlyWithinInvocationInterval(getMinLeasedTimestamp(TIMESTAMP_NAME_1), response3);
 
         assertThat(unlockForResponse(response3.result)).isTrue();
-        assertThatTimestampIsStrictlyWithinInvocationInterval(getMinLeasedTimestamp(), response4);
+        assertThatTimestampIsStrictlyWithinInvocationInterval(getMinLeasedTimestamp(TIMESTAMP_NAME_1), response4);
     }
 
-    private TimestampedInvocation<TimestampLeaseResponse> acquireTimestampLeaseTimestamped(int requested) {
-        return new TimestampedInvocation<>(() -> acquireTimestampLease(requested));
+    private TimestampedInvocation<TimestampLeaseResponses> acquireTimestampLeaseTimestamped(
+            TimestampLeaseName timestampName1, int requested1, TimestampLeaseName timestampName2, int requested2) {
+        return new TimestampedInvocation<>(
+                () -> acquireTimestampLease(timestampName1, requested1, timestampName2, requested2));
     }
 
-    private TimestampLeaseResponse acquireTimestampLease(int numFreshTimestamps) {
-        return acquireTimestampLease(UUID.randomUUID(), numFreshTimestamps);
+    private TimestampedInvocation<TimestampLeaseResponses> acquireTimestampLeaseTimestamped(
+            TimestampLeaseName timestampName, int requested) {
+        return new TimestampedInvocation<>(() -> acquireTimestampLease(timestampName, requested));
     }
 
-    private TimestampLeaseResponse acquireTimestampLease(UUID requestId, int numFreshTimestamps) {
-        return unwrap(service.acquireTimestampLease(TIMESTAMP_NAME, requestId, numFreshTimestamps));
+    private TimestampLeaseResponses acquireTimestampLease(
+            TimestampLeaseName timestampLeaseName, int numFreshTimestamps) {
+        return acquireTimestampLease(UUID.randomUUID(), timestampLeaseName, numFreshTimestamps);
     }
 
-    private TimestampedInvocation<Long> getMinLeasedTimestampTimestamped() {
-        return new TimestampedInvocation<>(this::getMinLeasedTimestamp);
+    private TimestampLeaseResponses acquireTimestampLease(
+            UUID requestId, TimestampLeaseName timestampName, int numFreshTimestamps) {
+        return unwrap(service.acquireTimestampLease(requestId, Map.of(timestampName, numFreshTimestamps)));
     }
 
-    private long getMinLeasedTimestamp() {
-        return unwrap(service.getMinLeasedTimestamp(TIMESTAMP_NAME));
+    private TimestampLeaseResponses acquireTimestampLease(
+            TimestampLeaseName timestampName1,
+            int numFreshTimestamps1,
+            TimestampLeaseName timestampLeaseName2,
+            int numFreshTimestamps2) {
+        return acquireTimestampLease(
+                UUID.randomUUID(), timestampName1, numFreshTimestamps1, timestampLeaseName2, numFreshTimestamps2);
     }
 
-    private boolean unlockForResponse(TimestampLeaseResponse response) {
+    private TimestampLeaseResponses acquireTimestampLease(
+            UUID requestId,
+            TimestampLeaseName timestampName1,
+            int numFreshTimestamps1,
+            TimestampLeaseName timestampLeaseName2,
+            int numFreshTimestamps2) {
+        return unwrap(service.acquireTimestampLease(
+                requestId, Map.of(timestampName1, numFreshTimestamps1, timestampLeaseName2, numFreshTimestamps2)));
+    }
+
+    private TimestampedInvocation<Long> getMinLeasedTimestampTimestamped(TimestampLeaseName name) {
+        return new TimestampedInvocation<>(() -> getMinLeasedTimestamp(name));
+    }
+
+    private long getMinLeasedTimestamp(TimestampLeaseName timestampName) {
+        return unwrap(service.getMinLeasedTimestamp(timestampName));
+    }
+
+    private boolean unlockForResponse(TimestampLeaseResponses response) {
         return lockService.unlock(createLockTokenFromResponse(response));
     }
 
@@ -160,12 +235,24 @@ public final class AsyncTimelockServiceImplTest {
         return AtlasFutures.getUnchecked(future);
     }
 
+    private static List<Long> getMinLeasedTimestampsFrom(TimestampLeaseResponses response) {
+        return response.getTimestampLeaseResponses().values().stream()
+                .map(TimestampLeaseResponse::getMinLeased)
+                .collect(Collectors.toList());
+    }
+
+    private static void assertThatTimestampsIsStrictlyWithinInvocationInterval(
+            List<Long> timestamps, TimestampedInvocation<?> invocation) {
+        assertThat(timestamps)
+                .allSatisfy(timestamp -> assertThatTimestampIsStrictlyWithinInvocationInterval(timestamp, invocation));
+    }
+
     private static void assertThatTimestampIsStrictlyWithinInvocationInterval(
             long timestamp, TimestampedInvocation<?> invocation) {
         assertThat(timestamp).isStrictlyBetween(invocation.timestampBefore, invocation.timestampAfter);
     }
 
-    private static LockToken createLockTokenFromResponse(TimestampLeaseResponse response) {
+    private static LockToken createLockTokenFromResponse(TimestampLeaseResponses response) {
         return LockToken.of(response.getLeaseGuarantee().getIdentifier().get());
     }
 

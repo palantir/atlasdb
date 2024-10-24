@@ -20,6 +20,7 @@ import com.google.common.base.Stopwatch;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.util.concurrent.SettableFuture;
 import com.palantir.atlasdb.blob.BlobSchema;
 import com.palantir.atlasdb.cleaner.CleanupFollower;
 import com.palantir.atlasdb.cleaner.Follower;
@@ -36,7 +37,13 @@ import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.lock.SimpleLockResource;
 import com.palantir.atlasdb.sweep.CellsSweeper;
 import com.palantir.atlasdb.sweep.SweepTaskRunner;
+import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
+import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics.MetricsConfiguration;
+import com.palantir.atlasdb.sweep.queue.DefaultSingleBatchSweeper;
+import com.palantir.atlasdb.sweep.queue.MultiTableSweepQueueWriter;
+import com.palantir.atlasdb.sweep.queue.SingleBatchSweeper;
 import com.palantir.atlasdb.sweep.queue.SpecialTimestampsSupplier;
+import com.palantir.atlasdb.sweep.queue.SweepQueueComponents;
 import com.palantir.atlasdb.sweep.queue.TargetedSweepFollower;
 import com.palantir.atlasdb.sweep.queue.TargetedSweeper;
 import com.palantir.atlasdb.table.description.Schema;
@@ -55,6 +62,7 @@ import com.palantir.conjure.java.server.jersey.ConjureJerseyFeature;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.refreshable.Refreshable;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import io.dropwizard.Application;
@@ -97,13 +105,31 @@ public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
         TaggedMetricRegistry taggedMetrics = SharedTaggedMetricRegistries.getSingleton();
         TransactionManager txManager = tryToCreateTransactionManager(config, environment, taggedMetrics);
         Supplier<SweepTaskRunner> sweepTaskRunner = Suppliers.memoize(() -> getSweepTaskRunner(txManager));
-        TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(txManager.getKeyValueService(), () -> 1);
+        SettableFuture<MultiTableSweepQueueWriter> initialisableWriter = SettableFuture.create();
+        TargetedSweeper sweeper = TargetedSweeper.createUninitializedForTest(
+                txManager.getKeyValueService(), Refreshable.only(1), initialisableWriter);
         Supplier<TargetedSweeper> sweeperSupplier = Suppliers.memoize(() -> initializeAndGet(sweeper, txManager));
+        Supplier<SingleBatchSweeper> singleBatchSweeper = Suppliers.memoize(() -> {
+            SweepQueueComponents components = sweeperSupplier.get().components();
+            return new DefaultSingleBatchSweeper(
+                    TargetedSweepMetrics.create(
+                            MetricsManagers.createForTests(),
+                            txManager.getTimelockService(),
+                            txManager.getKeyValueService(),
+                            MetricsConfiguration.builder().build(),
+                            1),
+                    components.shardProgress(),
+                    _unused -> {},
+                    components.reader(),
+                    components.deleter(),
+                    components.cleaner());
+        });
         ensureTransactionSchemaVersionInstalled(config.getAtlasDbConfig(), config.getAtlasDbRuntimeConfig(), txManager);
 
         environment
                 .jersey()
-                .register(new SimpleTodoResource(new TodoClient(txManager, sweepTaskRunner, sweeperSupplier)));
+                .register(new SimpleTodoResource(
+                        new TodoClient(txManager, sweepTaskRunner, sweeperSupplier, singleBatchSweeper)));
         environment.jersey().register(SimpleCoordinationResource.create(txManager));
         environment.jersey().register(ConjureJerseyFeature.INSTANCE);
         environment.jersey().register(new NotInitializedExceptionMapper());

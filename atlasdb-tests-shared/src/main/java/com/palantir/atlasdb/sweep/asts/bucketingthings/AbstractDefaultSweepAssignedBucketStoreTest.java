@@ -34,17 +34,16 @@ import com.palantir.atlasdb.sweep.asts.TimestampRange;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.table.description.Schemas;
 import com.palantir.atlasdb.table.description.SweeperStrategy;
-import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -75,25 +74,29 @@ public abstract class AbstractDefaultSweepAssignedBucketStoreTest {
     }
 
     @Test
+    public void doesStateMachineStateExistReturnsFalseWhenStateMachineStateDoesNotExist() {
+        assertThat(store.doesStateMachineStateExist()).isFalse();
+    }
+
+    @Test
     public void setInitialStateCreatesStartingState() {
-        long bucketIdentifier = 123;
-        long startTimestamp = 456;
-        store.setInitialStateForBucketAssigner(bucketIdentifier, startTimestamp);
-        BucketStateAndIdentifier initialState =
-                BucketStateAndIdentifier.of(bucketIdentifier, BucketAssignerState.start(startTimestamp));
-        assertThat(store.getBucketStateAndIdentifier()).isEqualTo(initialState);
+        BucketAssignerState initialState = BucketAssignerState.closingFromOpen(421, 912);
+        store.setInitialStateForBucketAssigner(initialState);
+        BucketStateAndIdentifier expectedState = BucketStateAndIdentifier.of(0, initialState);
+        assertThat(store.getBucketStateAndIdentifier()).isEqualTo(expectedState);
+        assertThat(store.doesStateMachineStateExist()).isTrue();
     }
 
     @Test
     public void cannotSetInitialStateWhenStateAlreadyExists() {
-        store.setInitialStateForBucketAssigner(123, 456);
-        assertThatThrownBy(() -> store.setInitialStateForBucketAssigner(789, 101112))
+        store.setInitialStateForBucketAssigner(BucketAssignerState.start(0));
+        assertThatThrownBy(() -> store.setInitialStateForBucketAssigner(BucketAssignerState.start(12)))
                 .isInstanceOf(CheckAndSetException.class);
     }
 
     @Test
     public void updateStateMachineForBucketAssignerFailsIfInitialDoesNotMatchExisting() {
-        store.setInitialStateForBucketAssigner(123, 456);
+        store.setInitialStateForBucketAssigner(BucketAssignerState.start(12));
         BucketStateAndIdentifier incorrectInitialState =
                 BucketStateAndIdentifier.of(123, BucketAssignerState.start(789));
         BucketStateAndIdentifier newState = BucketStateAndIdentifier.of(123, BucketAssignerState.start(101112));
@@ -111,8 +114,8 @@ public abstract class AbstractDefaultSweepAssignedBucketStoreTest {
 
     @Test
     public void updateStateMachineForBucketAssignerModifiesStateToNewIfOriginalMatchesExisting() {
-        store.setInitialStateForBucketAssigner(123, 456);
-        BucketStateAndIdentifier initialState = BucketStateAndIdentifier.of(123, BucketAssignerState.start(456));
+        store.setInitialStateForBucketAssigner(BucketAssignerState.start(1341));
+        BucketStateAndIdentifier initialState = BucketStateAndIdentifier.of(0, BucketAssignerState.start(1341));
         BucketStateAndIdentifier newState = BucketStateAndIdentifier.of(123, BucketAssignerState.start(101112));
         store.updateStateMachineForBucketAssigner(initialState, newState);
         assertThat(store.getBucketStateAndIdentifier()).isEqualTo(newState);
@@ -267,14 +270,12 @@ public abstract class AbstractDefaultSweepAssignedBucketStoreTest {
     }
 
     @Test
-    @Disabled // TODO(mdaudali): Deletion is not implemented yet
     public void deleteBucketEntryDoesNotThrowIfBucketNotPresent() {
         Bucket bucket = Bucket.of(ShardAndStrategy.of(12, SweeperStrategy.THOROUGH), 512);
         assertThatCode(() -> store.deleteBucketEntry(bucket)).doesNotThrowAnyException();
     }
 
     @Test
-    @Disabled // TODO(mdaudali): Deletion is not implemented yet
     public void deleteBucketEntryDeletesBucket() {
         Bucket bucket = Bucket.of(ShardAndStrategy.of(12, SweeperStrategy.THOROUGH), 512);
         TimestampRange timestampRange = TimestampRange.of(1, 2);
@@ -285,10 +286,9 @@ public abstract class AbstractDefaultSweepAssignedBucketStoreTest {
 
     @Test
     public void getTimestampRangeRecordThrowsIfRecordNotPresent() {
-        assertThatLoggableExceptionThrownBy(() -> store.getTimestampRangeRecord(1))
-                .isInstanceOf(SafeIllegalStateException.class)
-                .hasLogMessage("No timestamp range record found for bucket identifier")
-                .hasExactlyArgs(SafeArg.of("bucketIdentifier", 1L));
+        assertThatThrownBy(() -> store.getTimestampRangeRecord(1))
+                .isInstanceOf(NoSuchElementException.class)
+                .hasMessage("No timestamp range record found for bucket identifier");
     }
 
     @Test
@@ -307,22 +307,19 @@ public abstract class AbstractDefaultSweepAssignedBucketStoreTest {
     }
 
     @Test
-    @Disabled // TODO(mdaudali): Deletion is not implemented yet
     public void deleteTimestampRangeRecordDoesNotThrowIfRecordNotPresent() {
         assertThatCode(() -> store.deleteTimestampRangeRecord(1)).doesNotThrowAnyException();
     }
 
     @Test
-    @Disabled // TODO(mdaudali): Deletion is not implemented yet
     public void deleteTimestampRangeRecordDeletesRecord() {
         TimestampRange timestampRange = TimestampRange.of(1, 2);
         store.putTimestampRangeRecord(1, timestampRange);
         assertThat(store.getTimestampRangeRecord(1)).isEqualTo(timestampRange);
 
         store.deleteTimestampRangeRecord(1);
-        assertThatLoggableExceptionThrownBy(() -> store.getTimestampRangeRecord(1))
-                .isInstanceOf(SafeIllegalStateException.class)
-                .hasLogMessage("No timestamp range record found for bucket identifier")
-                .hasExactlyArgs(SafeArg.of("bucketIdentifier", 1L));
+        assertThatThrownBy(() -> store.getTimestampRangeRecord(1))
+                .isInstanceOf(NoSuchElementException.class)
+                .hasMessage("No timestamp range record found for bucket identifier");
     }
 }

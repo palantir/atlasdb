@@ -36,6 +36,12 @@ import org.immutables.value.Value.Default;
 @JsonIgnoreProperties("batchShardIterations")
 @Value.Immutable
 public abstract class TargetedSweepRuntimeConfig {
+    // Only used in a controlled rollout. This will change over time.
+    @Value.Default
+    public AutoScalingTargetedSweepRuntimeConfig autoScalingConfig() {
+        return AutoScalingTargetedSweepRuntimeConfig.defaultConfig();
+    }
+
     /**
      * If true, targeted sweep will be performed in the background. Setting this to false will cause the background
      * threads to skip running sweeps, effectively pausing targeted sweep.
