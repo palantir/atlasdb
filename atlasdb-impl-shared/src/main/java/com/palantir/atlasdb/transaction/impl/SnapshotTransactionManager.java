@@ -27,6 +27,8 @@ import com.palantir.atlasdb.cell.api.DataKeyValueServiceManager;
 import com.palantir.atlasdb.cell.api.DdlManager;
 import com.palantir.atlasdb.cleaner.NoOpCleaner;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
+import com.palantir.atlasdb.common.api.annotations.ReviewedRestrictedApiUsage;
+import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -42,6 +44,7 @@ import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.KeyValueServiceStatus;
 import com.palantir.atlasdb.transaction.api.OpenTransaction;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.TimestampLeaseAwareTransactionManager;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.Transaction.TransactionType;
 import com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException;
@@ -72,6 +75,7 @@ import com.palantir.util.SafeShutdownRunner;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
@@ -82,7 +86,8 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-/* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager {
+/* package */ class SnapshotTransactionManager extends AbstractLockAwareTransactionManager
+        implements TimestampLeaseAwareTransactionManager {
     private static final SafeLogger log = SafeLoggerFactory.get(SnapshotTransactionManager.class);
 
     private static final int NUM_RETRIES = 10;
@@ -518,6 +523,12 @@ import java.util.stream.Collectors;
     @Override
     public long getUnreadableTimestamp() {
         return cleaner.getUnreadableTimestamp();
+    }
+
+    @Override
+    @ReviewedRestrictedApiUsage
+    public long getLeasedTimestamp(TimestampLeaseName leaseName) {
+        return timelockService.getMinLeasedTimestamps(Set.of(leaseName)).get(leaseName);
     }
 
     @Override

@@ -51,6 +51,7 @@ import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cell.api.DataKeyValueService;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
 import com.palantir.atlasdb.common.api.annotations.ReviewedRestrictedApiUsage;
+import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.futures.AtlasFutures;
@@ -86,6 +87,7 @@ import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.TimestampLeaseAwareTransaction;
 import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict;
@@ -113,6 +115,7 @@ import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
 import com.palantir.atlasdb.transaction.impl.TransactionLocksManager.SummarizedLockCheckResult;
+import com.palantir.atlasdb.transaction.impl.TransactionPreCommitActions.PerLeaseActions;
 import com.palantir.atlasdb.transaction.impl.expectations.CellCountValidator;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingDataKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingDataKeyValueServiceImpl;
@@ -144,12 +147,15 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.common.streams.MoreStreams;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
+import com.palantir.lock.LimitingLongSupplier;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.TimestampLeaseResult;
+import com.palantir.lock.v2.TimestampLeaseResults;
 import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.logsafe.Preconditions;
@@ -195,6 +201,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
@@ -223,7 +230,7 @@ import org.eclipse.collections.impl.factory.primitive.LongSets;
  * different rows and using range scans.
  */
 public class SnapshotTransaction extends AbstractTransaction
-        implements ConstraintCheckingTransaction, CallbackAwareTransaction {
+        implements ConstraintCheckingTransaction, CallbackAwareTransaction, TimestampLeaseAwareTransaction {
     private static final SafeLogger log = SafeLoggerFactory.get(SnapshotTransaction.class);
     private static final SafeLogger perfLogger = SafeLoggerFactory.get("dualschema.perf");
     private static final SafeLogger transactionLengthLogger = SafeLoggerFactory.get("txn.length");
@@ -306,6 +313,7 @@ public class SnapshotTransaction extends AbstractTransaction
 
     protected final TransactionKnowledgeComponents knowledge;
     private final TransactionLocksManager transactionLocksManager;
+    private final TransactionPreCommitActions preCommitActions;
     private final PreCommitRequirementValidator preCommitRequirementValidator;
     private final ReadSnapshotValidator readSnapshotValidator;
     private final ThreadSafeCloser closer = new ThreadSafeCloser();
@@ -391,6 +399,7 @@ public class SnapshotTransaction extends AbstractTransaction
         this.transactionOutcomeMetrics =
                 TransactionOutcomeMetrics.create(transactionMetrics, metricsManager.getTaggedRegistry());
         this.expectationsDataCollectionMetrics = ExpectationsMetrics.of(metricsManager.getTaggedRegistry());
+        this.preCommitActions = new TransactionPreCommitActions();
         this.transactionLocksManager = new TransactionLocksManager(
                 immutableTimestampLock, new DefaultLockValidityChecker(timelockService), timelockService::tryUnlock);
         closer.register(transactionLocksManager);
@@ -1862,10 +1871,49 @@ public class SnapshotTransaction extends AbstractTransaction
     @Override
     public void commit(TransactionService transactionService) {
         try {
+            runPreCommitCallbacks();
             commitWithoutCallbacks(transactionService);
         } finally {
             close();
         }
+    }
+
+    @Override
+    public void preCommit(
+            TimestampLeaseName leaseName, int numLeasedTimestamps, Consumer<LongSupplier> preCommitAction) {
+        Preconditions.checkArgument(numLeasedTimestamps > 0, "Need to request a non-empty number of timestamp leases");
+        preCommitActions.addPreCommitAction(leaseName, numLeasedTimestamps, preCommitAction);
+    }
+
+    @ReviewedRestrictedApiUsage
+    private void runPreCommitCallbacks() {
+        Map<TimestampLeaseName, PerLeaseActions> actions = preCommitActions.getActions();
+        if (actions.isEmpty()) {
+            return;
+        }
+
+        TimestampLeaseResults timestampLeaseResults =
+                timelockService.acquireTimestampLeases(Maps.transformValues(actions, action -> action.timestampCount));
+        transactionLocksManager.registerLock(timestampLeaseResults.lock());
+
+        actions.forEach((timestampLeaseName, perLeaseActions) -> {
+            perLeaseActions.preCommitActions.forEach(preCommitAction -> {
+                LongSupplier leasedTimestamps;
+                if (preCommitAction.timestampCount == 0) {
+                    leasedTimestamps = () -> {
+                        throw new SafeRuntimeException(
+                                "Cannot fetch leased timestamps since pre-commit action requested 0 leased timestamps",
+                                SafeArg.of("leaseName", timestampLeaseName));
+                    };
+                } else {
+                    TimestampLeaseResult leaseResult =
+                            timestampLeaseResults.results().get(timestampLeaseName);
+                    leasedTimestamps = new LimitingLongSupplier(
+                            leaseResult.freshTimestampsSupplier(), preCommitAction.timestampCount);
+                }
+                preCommitAction.action.accept(leasedTimestamps);
+            });
+        });
     }
 
     private void commitWithoutCallbacks(TransactionService transactionService) {

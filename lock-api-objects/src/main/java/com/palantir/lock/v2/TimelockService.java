@@ -17,7 +17,7 @@ package com.palantir.lock.v2;
 
 import com.google.errorprone.annotations.RestrictedApi;
 import com.palantir.atlasdb.common.api.annotations.ReviewedRestrictedApiUsage;
-import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
+import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import com.palantir.logsafe.Safe;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.processors.DoNotDelegate;
@@ -124,8 +124,8 @@ public interface TimelockService {
     @RestrictedApi(
             explanation =
                     "This method is for internal Atlas and internal library use only. Clients MUST NOT use it unless"
-                        + " given explicit approval. Mis-use can result in SEVERE DATA CORRUPTION and the API contract"
-                        + " is subject to change at any time.",
+                            + " given explicit approval. Mis-use can result in SEVERE DATA CORRUPTION and the API contract"
+                            + " is subject to change at any time.",
             allowlistAnnotations = ReviewedRestrictedApiUsage.class)
     TimestampLeaseResults acquireTimestampLeases(Map<TimestampLeaseName, Integer> requests);
 
@@ -136,8 +136,8 @@ public interface TimelockService {
     @RestrictedApi(
             explanation =
                     "This method is for internal Atlas and internal library use only. Clients MUST NOT use it unless"
-                        + " given explicit approval. Mis-use can result in SEVERE DATA CORRUPTION and the API contract"
-                        + " is subject to change at any time.",
+                            + " given explicit approval. Mis-use can result in SEVERE DATA CORRUPTION and the API contract"
+                            + " is subject to change at any time.",
             allowlistAnnotations = ReviewedRestrictedApiUsage.class)
     Map<TimestampLeaseName, Long> getMinLeasedTimestamps(Set<TimestampLeaseName> timestampNames);
 }

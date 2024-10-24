@@ -16,7 +16,7 @@
 
 package com.palantir.lock.v2;
 
-import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
+import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import java.util.Map;
 import org.immutables.value.Value;
 
