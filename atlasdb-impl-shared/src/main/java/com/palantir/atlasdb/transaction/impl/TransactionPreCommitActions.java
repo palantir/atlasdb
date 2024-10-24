@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.transaction.impl;
 
+import com.google.common.collect.Maps;
 import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,8 +41,22 @@ final class TransactionPreCommitActions {
     }
 
     static class PerLeaseActions {
-        final List<PreCommitAction> preCommitActions = new ArrayList<>();
+        final List<PreCommitAction> preCommitActions;
         int timestampCount = 0;
+
+        PerLeaseActions() {
+            preCommitActions = new ArrayList<>();
+            timestampCount = 0;
+        }
+
+        private PerLeaseActions(List<PreCommitAction> actions, int timestampCount) {
+            preCommitActions = actions;
+            this.timestampCount = timestampCount;
+        }
+
+        PerLeaseActions copy() {
+            return new PerLeaseActions(preCommitActions, timestampCount);
+        }
     }
 
     @GuardedBy("this")
@@ -55,6 +70,6 @@ final class TransactionPreCommitActions {
     }
 
     synchronized Map<TimestampLeaseName, PerLeaseActions> getActions() {
-        return new HashMap<>(actions);
+        return new HashMap<>(Maps.transformValues(actions, PerLeaseActions::copy));
     }
 }
