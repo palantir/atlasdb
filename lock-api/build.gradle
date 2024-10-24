@@ -25,6 +25,7 @@ dependencies {
     implementation 'javax.ws.rs:javax.ws.rs-api'
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.github.rholder:guava-retrying'
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.refreshable:refreshable'
