@@ -24,6 +24,7 @@ import com.github.rholder.retry.StopStrategies;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
+import com.palantir.atlasdb.timelock.api.ConjureLockTokenV2;
 import com.palantir.atlasdb.timelock.api.LeaseGuarantee;
 import com.palantir.atlasdb.timelock.api.LeaseIdentifier;
 import com.palantir.atlasdb.timelock.api.NamespaceTimestampLeaseRequest;
@@ -37,6 +38,7 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.lock.ConjureTimestampRangeTimestampSupplier;
 import com.palantir.lock.LimitingLongSupplier;
 import com.palantir.lock.client.LeasedLockToken;
+import com.palantir.lock.client.LockTokenUnlocker;
 import com.palantir.lock.v2.TimestampLeaseResult;
 import com.palantir.lock.v2.TimestampLeaseResults;
 import com.palantir.logsafe.Preconditions;
@@ -48,12 +50,13 @@ import com.palantir.tritium.ids.UniqueIds;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
-final class TimestampLeaseAcquirerImpl implements TimestampLeaseAcquirer {
+public final class TimestampLeaseAcquirerImpl implements TimestampLeaseAcquirer {
     private static final SafeLogger log = SafeLoggerFactory.get(TimestampLeaseAcquirerImpl.class);
 
     private final NamespacedTimestampLeaseService delegate;
@@ -74,8 +77,13 @@ final class TimestampLeaseAcquirerImpl implements TimestampLeaseAcquirer {
         this.uuidSupplier = uuidSupplier;
     }
 
-    public TimestampLeaseAcquirerImpl(NamespacedTimestampLeaseService delegate, Unlocker unlocker) {
+    private TimestampLeaseAcquirerImpl(NamespacedTimestampLeaseService delegate, Unlocker unlocker) {
         this(delegate, unlocker, UniqueIds::pseudoRandomUuidV4);
+    }
+
+    public static TimestampLeaseAcquirer create(
+            NamespacedTimestampLeaseService timestampLeaseService, LockTokenUnlocker unlocker) {
+        return new TimestampLeaseAcquirerImpl(timestampLeaseService, identifier -> unlock(unlocker, identifier));
     }
 
     @Override
@@ -159,6 +167,10 @@ final class TimestampLeaseAcquirerImpl implements TimestampLeaseAcquirer {
 
     private void unlock(TimestampLeaseResponses responses) {
         unlocker.unlock(responses.getLeaseGuarantee().getIdentifier());
+    }
+
+    private static void unlock(LockTokenUnlocker unlocker, LeaseIdentifier leaseGuarantee) {
+        unlocker.unlock(Set.of(ConjureLockTokenV2.of(leaseGuarantee.get())));
     }
 
     private static Map<TimestampLeaseName, TimestampLeaseResult> createTimestampLeaseResult(
