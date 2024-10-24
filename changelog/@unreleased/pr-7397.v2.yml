@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Timestamp leases in LegacyTimelockService.
+  links:
+  - https://github.com/palantir/atlasdb/pull/7397
