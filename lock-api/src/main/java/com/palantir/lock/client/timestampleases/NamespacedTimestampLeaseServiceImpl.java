@@ -26,11 +26,12 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.util.Map;
 
-final class NamespacedTimestampLeaseServiceImpl implements NamespacedTimestampLeaseService {
+public final class NamespacedTimestampLeaseServiceImpl implements NamespacedTimestampLeaseService {
     private final Namespace namespace;
     private final InternalMultiClientConjureTimelockService delegate;
 
-    NamespacedTimestampLeaseServiceImpl(Namespace namespace, InternalMultiClientConjureTimelockService delegate) {
+    public NamespacedTimestampLeaseServiceImpl(
+            Namespace namespace, InternalMultiClientConjureTimelockService delegate) {
         this.namespace = namespace;
         this.delegate = delegate;
     }

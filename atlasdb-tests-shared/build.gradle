@@ -24,6 +24,7 @@ dependencies {
   implementation 'com.palantir.refreshable:refreshable'
   implementation 'com.palantir.safe-logging:safe-logging'
   implementation 'com.palantir.sls.versions:sls-versions'
+  implementation 'com.palantir.tokens:auth-tokens'
   implementation 'com.palantir.tritium:tritium-registry'
   implementation 'io.dropwizard.metrics:metrics-core'
   implementation 'org.apache.commons:commons-lang3'
@@ -31,7 +32,6 @@ dependencies {
   implementation 'org.jboss.xnio:xnio-api'
   implementation 'org.rocksdb:rocksdbjni'
   implementation 'com.palantir.safe-logging:preconditions-assertj'
-
 
   implementation project(':atlasdb-api')
   implementation project(':atlasdb-client')
@@ -45,7 +45,9 @@ dependencies {
   implementation project(':lock-api-objects')
   implementation project(':lock-impl')
   implementation project(':timelock-agent')
+  implementation project(':timelock-api')
   implementation project(':timelock-api:timelock-api-jersey')
+  implementation project(':timelock-api:timelock-api-objects')
   implementation project(":timelock-impl")
   implementation project(':timestamp-api')
 

@@ -20,7 +20,7 @@ import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import java.util.Map;
 import java.util.Set;
 
-interface MinLeasedTimestampGetter extends AutoCloseable {
+public interface MinLeasedTimestampGetter extends AutoCloseable {
     Map<TimestampLeaseName, Long> getMinLeasedTimestamps(Set<TimestampLeaseName> timestampNames);
 
     @Override
