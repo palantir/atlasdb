@@ -20,9 +20,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.Iterables;
+import com.palantir.atlasdb.common.api.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
 import com.palantir.lock.LockClient;
-import com.palantir.lock.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimestampLeaseResult;
 import com.palantir.lock.v2.TimestampLeaseResults;
