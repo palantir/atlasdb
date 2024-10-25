@@ -21,8 +21,9 @@ import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.keyvalue.api.TimestampRangeDelete;
 import com.palantir.atlasdb.keyvalue.api.WriteReference;
 import com.palantir.atlasdb.sweep.Sweeper;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -43,19 +44,23 @@ public interface WriteInfo {
                 .build();
     }
 
-    default int toShard(int numShards) {
-        return IntMath.mod(dayRotatingHash(), numShards);
+    default int toShard(int numShards, int shardRotationIntervalMinutes) {
+        return IntMath.mod(rotatingHash(shardRotationIntervalMinutes), numShards);
     }
 
     /**
-     * The purpose of the rotating hash calculation is to redistribute shards every day to alleviate issues caused by
-     * imbalanced write patterns overloading few shards.
+     * The purpose of the rotating hash calculation is to redistribute shards every given minutes to alleviate issues
+     * caused by imbalanced write patterns overloading few shards.
      */
-    default int dayRotatingHash() {
+    default int rotatingHash(int shardRotationIntervalMinutes) {
         int hash = 5381;
         hash = hash * 1439
                 + writeRef().orElse(SweepQueueUtils.DUMMY).cellReference().goodHash();
-        hash = hash * 1439 + LocalDate.now(ZoneOffset.UTC).hashCode();
+
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+        LocalDateTime epoch = LocalDateTime.ofEpochSecond(0, 0, ZoneOffset.UTC);
+        long diff = ChronoUnit.MINUTES.between(epoch, now) / shardRotationIntervalMinutes;
+        hash = hash * 1439 + Long.hashCode(diff);
         return hash;
     }
 

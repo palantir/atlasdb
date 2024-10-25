@@ -221,7 +221,8 @@ public class TargetedSweeper implements BackgroundSweeper, CallbackInitializable
                         .build(),
                 table -> runtime.get().tablesToTrackDeletions().apply(table),
                 follower,
-                mismatchBehaviour);
+                mismatchBehaviour,
+                () -> runtime.get().shardRotationIntervalMinutes());
 
         SingleBatchSweeper singleBatchSweeper = new DefaultSingleBatchSweeper(
                 metrics,

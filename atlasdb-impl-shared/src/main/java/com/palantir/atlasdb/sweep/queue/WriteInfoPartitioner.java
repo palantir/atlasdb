@@ -42,13 +42,16 @@ public class WriteInfoPartitioner {
 
     private final KeyValueService kvs;
     private final Supplier<Integer> numShards;
+    private final Supplier<Integer> shardRotationIntervalMinutes;
 
     private final LoadingCache<TableReference, SweeperStrategy> cache =
             Caffeine.newBuilder().build(this::getStrategyFromKvs);
 
-    public WriteInfoPartitioner(KeyValueService kvs, Supplier<Integer> numShards) {
+    public WriteInfoPartitioner(
+            KeyValueService kvs, Supplier<Integer> numShards, Supplier<Integer> shardRotationIntervalMinutes) {
         this.kvs = kvs;
         this.numShards = numShards;
+        this.shardRotationIntervalMinutes = shardRotationIntervalMinutes;
     }
 
     /**
@@ -81,6 +84,7 @@ public class WriteInfoPartitioner {
         }
 
         int shards = numShards.get();
+        int rotationIntervalMinutes = shardRotationIntervalMinutes.get();
 
         // Note that we do a single pass over writes to determine their sweep strategy, and only add sweepable write to
         // sweepablePartitionedWrites map, so when it is empty we consider all writes for that timestamp non-sweepable.
@@ -88,7 +92,8 @@ public class WriteInfoPartitioner {
         for (WriteInfo writeInfo : writes) {
             SweeperStrategy strategy = getStrategy(writeInfo);
             if (strategy != SweeperStrategy.NON_SWEEPABLE) {
-                PartitionInfo partition = PartitionInfo.of(writeInfo.toShard(shards), strategy, writeInfo.timestamp());
+                PartitionInfo partition = PartitionInfo.of(
+                        writeInfo.toShard(shards, rotationIntervalMinutes), strategy, writeInfo.timestamp());
                 sweepablePartitionedWrites
                         .computeIfAbsent(partition, _k -> new ArrayList<>())
                         .add(writeInfo);
