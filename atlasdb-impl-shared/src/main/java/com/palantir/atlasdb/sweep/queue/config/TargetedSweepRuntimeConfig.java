@@ -100,7 +100,7 @@ public abstract class TargetedSweepRuntimeConfig {
     void checkRotationIntervalMinutes() {
         Preconditions.checkArgument(
                 shardRotationIntervalMinutes() >= 10 && shardRotationIntervalMinutes() <= 1440,
-                "Rotation interval must be between 10 and 1440 minutes inclusive.",
+                "Shard rotation interval minutes must be between 10 and 1440 minutes inclusive.",
                 SafeArg.of("rotationIntervalMinutes", shardRotationIntervalMinutes()));
     }
 

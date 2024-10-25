@@ -70,7 +70,7 @@ public abstract class AbstractSweepQueueTest {
             .toShard(DEFAULT_SHARDS, DEFAULT_SHARD_ROTATION_INTERVAL_MINUTES);
 
     int numShards;
-    int rotationIntervalMinutes;
+    int shardRotationIntervalMinutes;
     long immutableTs;
     long unreadableTs;
     int shardCons;
@@ -86,7 +86,7 @@ public abstract class AbstractSweepQueueTest {
     @BeforeEach
     public void setup() {
         numShards = DEFAULT_SHARDS;
-        rotationIntervalMinutes = DEFAULT_SHARD_ROTATION_INTERVAL_MINUTES;
+        shardRotationIntervalMinutes = DEFAULT_SHARD_ROTATION_INTERVAL_MINUTES;
 
         unreadableTs = SweepQueueUtils.TS_COARSE_GRANULARITY * 5;
         immutableTs = SweepQueueUtils.TS_COARSE_GRANULARITY * 5;
@@ -99,7 +99,7 @@ public abstract class AbstractSweepQueueTest {
         spiedKvs.createTable(TABLE_THOR, metadataBytes(SweepStrategy.THOROUGH));
         spiedKvs.createTable(TABLE_THOR_MIGRATION, metadataBytes(SweepStrategy.THOROUGH_MIGRATION));
         spiedKvs.createTable(TABLE_NOTH, metadataBytes(SweepStrategy.NOTHING));
-        partitioner = new WriteInfoPartitioner(spiedKvs, () -> numShards, () -> rotationIntervalMinutes);
+        partitioner = new WriteInfoPartitioner(spiedKvs, () -> numShards, () -> shardRotationIntervalMinutes);
         txnService = TransactionServices.createV1TransactionService(spiedKvs);
     }
 
@@ -145,7 +145,7 @@ public abstract class AbstractSweepQueueTest {
     private int write(SweepQueueTable writer, long ts, Cell cell, boolean isTombstone, TableReference tableRef) {
         WriteInfo write = WriteInfo.of(WriteReference.of(tableRef, cell, isTombstone), ts);
         writer.enqueue(ImmutableList.of(write));
-        return write.toShard(numShards, rotationIntervalMinutes);
+        return write.toShard(numShards, shardRotationIntervalMinutes);
     }
 
     void putTimestampIntoTransactionTable(long ts, long commitTs) {

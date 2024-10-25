@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
+import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
@@ -98,9 +99,11 @@ public interface SweepQueueComponents {
                 shardsConfig,
                 mismatchBehaviourForShards,
                 Duration.ofMillis(SweepQueueUtils.REFRESH_TIME));
+        Supplier<Integer> rotationIntervalMinutesProvider = Suppliers.memoizeWithExpiration(
+                rotationIntervalMinutesConfig::get, Duration.ofMillis(SweepQueueUtils.REFRESH_TIME));
 
-        WriteInfoPartitioner partitioner =
-                new WriteInfoPartitioner(kvs, numberOfShardsProvider::getNumberOfShards, rotationIntervalMinutesConfig);
+        WriteInfoPartitioner partitioner = new WriteInfoPartitioner(
+                kvs, numberOfShardsProvider::getNumberOfShards, rotationIntervalMinutesProvider);
         SweepableCells cells = new SweepableCells(kvs, partitioner, metrics, transaction);
         SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);
 
