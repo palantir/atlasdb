@@ -23,6 +23,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import com.palantir.atlasdb.timelock.api.ConjureLockToken;
 import com.palantir.atlasdb.timelock.api.ConjureTimestampRange;
 import com.palantir.atlasdb.timelock.api.LeaseGuarantee;
@@ -30,7 +31,6 @@ import com.palantir.atlasdb.timelock.api.LeaseIdentifier;
 import com.palantir.atlasdb.timelock.api.NamespaceTimestampLeaseRequest;
 import com.palantir.atlasdb.timelock.api.NamespaceTimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.api.RequestId;
-import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
 import com.palantir.atlasdb.timelock.api.TimestampLeaseRequests;
 import com.palantir.atlasdb.timelock.api.TimestampLeaseResponse;
 import com.palantir.atlasdb.timelock.api.TimestampLeaseResponses;
