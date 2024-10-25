@@ -22,6 +22,7 @@ import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureTimestampRange;
 import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.lock.client.timestampleases.MinLeasedTimestampGetter;
+import com.palantir.lock.client.timestampleases.TimestampLeaseAcquirer;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
