@@ -14,14 +14,11 @@
  * limitations under the License.
  */
 
-package com.palantir.atlasdb.timelock.api;
+package com.palantir.atlasdb.common.api.timelock;
 
-import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
-import static org.assertj.core.api.Assertions.assertThatCode;
-
-import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
+import com.palantir.logsafe.testing.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -29,7 +26,7 @@ public final class TimestampLeaseNameTest {
     @ValueSource(strings = {"ImmutableTimestamp", "ImmutableTimestampTest", "ImmutableTimestampX"})
     @ParameterizedTest
     public void throwsWhenProvidedNameStartsWithImmutableTimestamp(String name) {
-        assertThatLoggableExceptionThrownBy(() -> TimestampLeaseName.of(name))
+        Assertions.assertThatLoggableExceptionThrownBy(() -> TimestampLeaseName.of(name))
                 .isInstanceOf(SafeIllegalArgumentException.class)
                 .hasLogMessage("Name must not be a reserved name")
                 .hasExactlyArgs(SafeArg.of("name", name));
@@ -38,6 +35,6 @@ public final class TimestampLeaseNameTest {
     @ValueSource(strings = {"NotImmutableTimestamp", "CommitImmutableTimestamp", "Unrelated"})
     @ParameterizedTest
     public void doesNotThrowWhenProvidedNameDoesNotStartWithImmutableTimestamp(String name) {
-        assertThatCode(() -> TimestampLeaseName.of(name)).doesNotThrowAnyException();
+        Assertions.assertThatCode(() -> TimestampLeaseName.of(name)).doesNotThrowAnyException();
     }
 }

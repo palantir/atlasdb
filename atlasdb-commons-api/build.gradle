@@ -8,4 +8,8 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'com.google.errorprone:error_prone_annotations'
     implementation 'com.palantir.safe-logging:preconditions'
+
+    testImplementation 'org.assertj:assertj-core'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation 'com.palantir.safe-logging:preconditions-assertj'
 }
