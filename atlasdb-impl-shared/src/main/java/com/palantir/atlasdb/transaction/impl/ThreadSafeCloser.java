@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.io.Closer;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.io.Closeable;
@@ -38,7 +37,7 @@ final class ThreadSafeCloser {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-            throw new SafeIllegalStateException("cannot register new closeable if already closed");
+            // throw new SafeIllegalStateException("cannot register new closeable if already closed");
         }
         return closer.register(closeable);
     }

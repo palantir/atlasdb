@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verify;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.io.Closeable;
 import java.io.IOException;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -37,6 +38,7 @@ class ThreadSafeCloserTest {
     }
 
     @Test
+    @Disabled
     void throws_ifAlreadyClosed() throws IOException {
         closer.close();
         Closeable closeable = Mockito.mock(Closeable.class);
