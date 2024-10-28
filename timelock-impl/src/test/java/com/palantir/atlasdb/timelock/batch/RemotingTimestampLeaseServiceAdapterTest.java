@@ -30,6 +30,7 @@ import com.palantir.atlasdb.timelock.lock.AsyncLockService;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.timelock.lockwatches.BufferMetrics;
 import com.palantir.atlasdb.timelock.lockwatches.RequestMetrics;
+import com.palantir.atlasdb.timelock.timestampleases.TimestampLeaseMetrics;
 import com.palantir.timestamp.InMemoryTimestampService;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.List;
@@ -60,7 +61,8 @@ public final class RemotingTimestampLeaseServiceAdapterTest {
                 new LockLog(new MetricRegistry(), () -> 100L),
                 executor,
                 executor,
-                BufferMetrics.of(new DefaultTaggedMetricRegistry()));
+                BufferMetrics.of(new DefaultTaggedMetricRegistry()),
+                TimestampLeaseMetrics.of(new DefaultTaggedMetricRegistry()));
 
         return new AsyncTimelockServiceImpl(
                 lockService,

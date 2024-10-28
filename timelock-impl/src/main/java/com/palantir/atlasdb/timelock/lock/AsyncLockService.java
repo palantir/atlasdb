@@ -21,6 +21,7 @@ import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
 import com.palantir.atlasdb.timelock.lockwatches.BufferMetrics;
+import com.palantir.atlasdb.timelock.timestampleases.TimestampLeaseMetrics;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.LeaderTime;
 import com.palantir.lock.v2.LockToken;
@@ -64,7 +65,8 @@ public class AsyncLockService implements Closeable {
             LockLog lockLog,
             ScheduledExecutorService reaperExecutor,
             ScheduledExecutorService timeoutExecutor,
-            BufferMetrics bufferMetrics) {
+            BufferMetrics bufferMetrics,
+            TimestampLeaseMetrics timestampLeaseMetrics) {
 
         LeaderClock clock = LeaderClock.create();
 
@@ -73,7 +75,7 @@ public class AsyncLockService implements Closeable {
         LockAcquirer lockAcquirer = new LockAcquirer(lockLog, timeoutExecutor, clock, lockWatchingService);
 
         return new AsyncLockService(
-                new LockManager(),
+                LockManager.create(timestampLeaseMetrics),
                 lockAcquirer,
                 heldLocks,
                 new AwaitedLocksCollection(),

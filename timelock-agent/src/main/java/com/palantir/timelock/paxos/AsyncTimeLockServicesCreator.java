@@ -28,6 +28,7 @@ import com.palantir.atlasdb.timelock.lockwatches.BufferMetrics;
 import com.palantir.atlasdb.timelock.lockwatches.RequestMetrics;
 import com.palantir.atlasdb.timelock.paxos.LeadershipComponents;
 import com.palantir.atlasdb.timelock.paxos.LeadershipComponents.LeadershipProxies;
+import com.palantir.atlasdb.timelock.timestampleases.TimestampLeaseMetrics;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.common.concurrent.NamedThreadFactory;
 import com.palantir.common.concurrent.PTExecutors;
@@ -96,7 +97,8 @@ public class AsyncTimeLockServicesCreator implements TimeLockServicesCreator {
                         maybeEnhancedLockLog,
                         reaperExecutor,
                         timeoutExecutor,
-                        BufferMetrics.of(metricsManager.getTaggedRegistry())),
+                        BufferMetrics.of(metricsManager.getTaggedRegistry()),
+                        TimestampLeaseMetrics.of(metricsManager.getTaggedRegistry())),
                 timestampServiceSupplier.get(),
                 maybeEnhancedLockLog,
                 RequestMetrics.of(metricsManager.getTaggedRegistry()));

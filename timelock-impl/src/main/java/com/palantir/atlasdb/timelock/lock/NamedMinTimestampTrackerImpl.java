@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.timelock.lock;
 
+import com.palantir.atlasdb.timelock.timestampleases.TimestampLeaseMetrics;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
 import com.palantir.logsafe.SafeArg;
@@ -24,16 +25,26 @@ import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.concurrent.GuardedBy;
 
 final class NamedMinTimestampTrackerImpl implements NamedMinTimestampTracker {
     private final String timestampName;
+    private final AtomicInteger numLocksHeld;
 
     @GuardedBy("this")
     private final SortedMap<Long, UUID> holdersByTimestamp = new TreeMap<>();
 
-    NamedMinTimestampTrackerImpl(String timestampName) {
+    private NamedMinTimestampTrackerImpl(String timestampName, AtomicInteger numLocksHeld) {
         this.timestampName = timestampName;
+        this.numLocksHeld = numLocksHeld;
+    }
+
+    static NamedMinTimestampTracker create(String timestampName, TimestampLeaseMetrics metrics) {
+        AtomicInteger numLocksHeld = new AtomicInteger();
+        metrics.locksHeld().name(timestampName).build(numLocksHeld::get);
+
+        return new NamedMinTimestampTrackerImpl(timestampName, numLocksHeld);
     }
 
     @Override
@@ -46,6 +57,7 @@ final class NamedMinTimestampTrackerImpl implements NamedMinTimestampTracker {
                     SafeArg.of("requestId", requestId),
                     SafeArg.of("currentHolder", holdersByTimestamp.get(timestamp)));
         }
+        numLocksHeld.incrementAndGet();
     }
 
     @Override
@@ -58,6 +70,7 @@ final class NamedMinTimestampTrackerImpl implements NamedMinTimestampTracker {
                     SafeArg.of("requestId", requestId),
                     SafeArg.of("currentHolder", holdersByTimestamp.get(timestamp)));
         }
+        numLocksHeld.decrementAndGet();
     }
 
     @Override

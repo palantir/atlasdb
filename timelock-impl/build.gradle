@@ -113,4 +113,5 @@ dependencies {
 license {
     exclude '**/RequestMetrics.java'
     exclude '**/BufferMetrics.java'
+    exclude '**/TimestampLeaseMetrics.java'
 }

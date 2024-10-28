@@ -19,6 +19,8 @@ package com.palantir.atlasdb.timelock.lock;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
+import com.palantir.atlasdb.timelock.timestampleases.TimestampLeaseMetrics;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.Set;
@@ -32,7 +34,8 @@ public final class NamedMinTimestampLockCollectionTest {
     private static final UUID REQUEST_ID_2 = UUID.randomUUID();
     private static final UUID REQUEST_ID_3 = UUID.randomUUID();
 
-    private final NamedMinTimestampLockCollection locks = new NamedMinTimestampLockCollection();
+    private final NamedMinTimestampLockCollection locks =
+            NamedMinTimestampLockCollection.create(TimestampLeaseMetrics.of(new DefaultTaggedMetricRegistry()));
 
     @MethodSource("getTimestampLeaseNames")
     @ParameterizedTest

@@ -23,6 +23,8 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingService;
 import com.palantir.atlasdb.timelock.lock.watch.LockWatchingServiceImpl;
 import com.palantir.atlasdb.timelock.lockwatches.BufferMetrics;
+import com.palantir.atlasdb.timelock.timestampleases.TimestampLeaseMetrics;
+import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.flake.FlakeRetryTest;
 import com.palantir.leader.NotCurrentLeaderException;
@@ -62,12 +64,11 @@ public class AsyncLockServiceEteTest {
 
     private final LockLog lockLog = new LockLog(new MetricRegistry(), () -> 2L);
     private final HeldLocksCollection heldLocks = HeldLocksCollection.create(clock);
-    private final LockWatchingService lockWatchingService = new LockWatchingServiceImpl(
-            heldLocks,
-            clock.id(),
-            BufferMetrics.of(MetricsManagers.createForTests().getTaggedRegistry()));
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
+    private final LockWatchingService lockWatchingService =
+            new LockWatchingServiceImpl(heldLocks, clock.id(), BufferMetrics.of(metricsManager.getTaggedRegistry()));
     private final AsyncLockService service = new AsyncLockService(
-            new LockManager(),
+            LockManager.create(TimestampLeaseMetrics.of(metricsManager.getTaggedRegistry())),
             new LockAcquirer(
                     new LockLog(new MetricRegistry(), () -> 2L),
                     Executors.newSingleThreadScheduledExecutor(),
