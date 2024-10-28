@@ -250,7 +250,7 @@ public class DefaultSingleBucketSweepTaskTest {
 
     @ParameterizedTest
     @MethodSource("closedSweepBuckets")
-    public void recordsNotEnoughDbNodesOnlineWhenFailingToSweepBucketDueToInconsistentConsistency(
+    public void recordsNotEnoughDbNodesOnlineWhenFailingToSweepBucketDueToInsufficientConsistency(
             SweepBucketTestContext context) {
         setRelevantTimestampForStrategy(context.shardAndStrategy().strategy(), context.endTimestampExclusive());
         when(sweepQueueReader.getNextBatchToSweep(
