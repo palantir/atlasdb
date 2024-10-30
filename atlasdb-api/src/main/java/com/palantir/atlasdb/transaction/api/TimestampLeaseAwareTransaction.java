@@ -26,7 +26,8 @@ import java.util.function.LongSupplier;
 @Beta
 public interface TimestampLeaseAwareTransaction {
     /**
-     * Register pre-commit lambdas that are run on commit() just before the transaction is closed.
+     * Register {@link PreCommitAction} lambdas that are run on {@link Transaction#commit()} just before the transaction
+     * is closed.
      * <p>
      * In the pre-commit lambdas, consumers can perform any actions they would inside a transaction.
      * It is valid, for example, to read to or write from a table.
@@ -40,7 +41,7 @@ public interface TimestampLeaseAwareTransaction {
      *
      * @param leaseName the name of the lease the timestamps are bound to
      * @param numLeasedTimestamps the number of timestamps that should be fetched and used in the pre-commit lambda
-     * @param preCommitAction the lambda executed just before commit. Note the consumer throws {@code RuntimeException}
+     * @param action the lambda executed just before commit. Note the consumer throws {@code RuntimeException}
      * if a client requests more than specified in {@code numLeasedTimestamps}.
      */
     @RestrictedApi(
@@ -50,5 +51,11 @@ public interface TimestampLeaseAwareTransaction {
             link = "https://github.com/palantir/atlasdb/pull/7305",
             allowedOnPath = ".*/src/test/.*", // Unsafe behavior in tests is ok.
             allowlistAnnotations = {ReviewedRestrictedApiUsage.class})
-    void preCommit(TimestampLeaseName leaseName, int numLeasedTimestamps, Consumer<LongSupplier> preCommitAction);
+    void preCommit(TimestampLeaseName leaseName, int numLeasedTimestamps, PreCommitAction action);
+
+    /**
+     * The lambda to execute on commit().
+     * A client can fetch atlas timestamps from the provided {@code LongSupplier}.
+     */
+    interface PreCommitAction extends Consumer<LongSupplier> {}
 }

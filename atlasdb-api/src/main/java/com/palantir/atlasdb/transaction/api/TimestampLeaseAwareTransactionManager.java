@@ -16,15 +16,17 @@
 
 package com.palantir.atlasdb.transaction.api;
 
+import com.google.common.annotations.Beta;
 import com.google.errorprone.annotations.RestrictedApi;
 import com.palantir.atlasdb.common.api.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
+import com.palantir.atlasdb.transaction.api.TimestampLeaseAwareTransaction.PreCommitAction;
 import com.palantir.lock.v2.TimelockService;
-import java.util.function.Consumer;
 
+@Beta
 public interface TimestampLeaseAwareTransactionManager {
     /**
-     * Returns the timestamp that is before leased timestamps returned by the consumer on {@link TimestampLeaseAwareTransaction#preCommit(TimestampLeaseName, int, Consumer)}
+     * Returns a timestamp that is before any leased timestamps returned by the consumer on {@link TimestampLeaseAwareTransaction#preCommit(TimestampLeaseName, int, PreCommitAction)}
      * for a {@code timestampLeaseName} in open transactions.
      * <p>
      * This is similar to {@link TransactionManager#getImmutableTimestamp()} as it returns a timestamp before timestamps
@@ -35,17 +37,17 @@ public interface TimestampLeaseAwareTransactionManager {
      * If no transactions with a {@code timestampLeaseName} lock are open, this method returns a new fresh timestamp
      * (i.e. equivalent to {@link TimelockService#getFreshTimestamp()}).
      * <p>
-     * Consumers should to fetch the leased timestamp outside of transactions that potentially use it - if fetching the
+     * Consumers should fetch the leased timestamp outside of transactions that potentially use it - if fetching the
      * leased timestamp inside a transaction, it's possible for the transaction's start timestamp < leased timestamp,
      * meaning the transaction cannot read all data up to leased timestamp.
      *
      * @param leaseName the name of the lease the timestamps are bound to
-     * @return the timestamp that is before any timestamp returned by the consumer of {@link TimestampLeaseAwareTransaction#preCommit(TimestampLeaseName, int, Consumer)}
+     * @return the timestamp that is before any timestamp returned by the consumer of {@link TimestampLeaseAwareTransaction#preCommit(TimestampLeaseName, int, PreCommitAction)}
      * for open transactions.
      */
     @RestrictedApi(
             explanation = "This API is only meant to be used by AtlasDb proxies that want to make use of the"
-                    + " performance improvements by tracking leased timestamps timestamps of open transactions."
+                    + " performance improvements by tracking leased timestamps of open transactions."
                     + " Misuse of this feature can cause correctness issues.",
             link = "https://github.com/palantir/atlasdb/pull/7305",
             allowedOnPath = ".*/src/test/.*", // Unsafe behavior in tests is ok.

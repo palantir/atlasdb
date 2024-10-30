@@ -18,68 +18,81 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.collect.Maps;
 import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
+import com.palantir.atlasdb.transaction.api.TimestampLeaseAwareTransaction;
+import com.palantir.atlasdb.transaction.api.TimestampLeaseAwareTransaction.PreCommitAction;
+import com.palantir.atlasdb.transaction.api.Transaction;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
-import java.util.function.LongSupplier;
+import java.util.Objects;
 import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.ThreadSafe;
 
+/**
+ * Keeps track of preCommit actions added through the course of a {@link Transaction}.
+ * Such actions are then run on {@link Transaction#commit()}.
+ * See {@link TimestampLeaseAwareTransaction#preCommit(TimestampLeaseName, int, PreCommitAction)} for more information.
+ */
 @ThreadSafe
 final class TransactionPreCommitActions {
 
-    static class PreCommitAction {
-        final Consumer<LongSupplier> action;
-        final int timestampCount;
+    static class PreCommitActionWrapper {
+        final PreCommitAction action;
+        final int numLeasedTimestamps;
 
-        PreCommitAction(Consumer<LongSupplier> action, int timestampCount) {
+        PreCommitActionWrapper(PreCommitAction action, int numLeasedTimestamps) {
             this.action = action;
-            this.timestampCount = timestampCount;
+            this.numLeasedTimestamps = numLeasedTimestamps;
         }
 
         @Override
         public boolean equals(Object obj) {
-            return obj instanceof PreCommitAction
-                    && timestampCount == ((PreCommitAction) obj).timestampCount
-                    && action.equals(((PreCommitAction) obj).action);
+            return obj instanceof PreCommitActionWrapper
+                    && numLeasedTimestamps == ((PreCommitActionWrapper) obj).numLeasedTimestamps
+                    && action.equals(((PreCommitActionWrapper) obj).action);
         }
 
         @Override
         public int hashCode() {
-            return action.hashCode();
+            int hash = 5381;
+            hash += (hash << 5) + action.hashCode();
+            hash += (hash << 5) + Objects.hashCode(numLeasedTimestamps);
+            return hash;
         }
     }
 
     static class PerLeaseActions {
-        final List<PreCommitAction> preCommitActions;
-        int timestampCount;
+        final List<PreCommitActionWrapper> preCommitActions;
+        int numLeasedTimestamps;
 
         PerLeaseActions() {
             preCommitActions = new ArrayList<>();
-            timestampCount = 0;
+            numLeasedTimestamps = 0;
         }
 
-        private PerLeaseActions(List<PreCommitAction> actions, int timestampCount) {
+        private PerLeaseActions(List<PreCommitActionWrapper> actions, int numLeasedTimestamps) {
             preCommitActions = actions;
-            this.timestampCount = timestampCount;
+            this.numLeasedTimestamps = numLeasedTimestamps;
         }
 
         PerLeaseActions copy() {
-            return new PerLeaseActions(new ArrayList<>(preCommitActions), timestampCount);
+            return new PerLeaseActions(new ArrayList<>(preCommitActions), numLeasedTimestamps);
         }
 
         @Override
         public boolean equals(Object obj) {
             return obj instanceof PerLeaseActions
-                    && timestampCount == ((PerLeaseActions) obj).timestampCount
+                    && numLeasedTimestamps == ((PerLeaseActions) obj).numLeasedTimestamps
                     && preCommitActions.equals(((PerLeaseActions) obj).preCommitActions);
         }
 
         @Override
         public int hashCode() {
-            return preCommitActions.hashCode();
+            int hash = 5381;
+            hash += (hash << 5) + preCommitActions.hashCode();
+            hash += (hash << 5) + Objects.hashCode(numLeasedTimestamps);
+            return hash;
         }
     }
 
@@ -87,12 +100,15 @@ final class TransactionPreCommitActions {
     private final Map<TimestampLeaseName, PerLeaseActions> actions = new HashMap<>();
 
     synchronized void addPreCommitAction(
-            TimestampLeaseName timestampLeaseName, int numLeasedTimestamps, Consumer<LongSupplier> action) {
+            TimestampLeaseName timestampLeaseName, int numLeasedTimestamps, PreCommitAction action) {
         PerLeaseActions perLeaseActions = actions.computeIfAbsent(timestampLeaseName, _unused -> new PerLeaseActions());
-        perLeaseActions.timestampCount += numLeasedTimestamps;
-        perLeaseActions.preCommitActions.add(new PreCommitAction(action, numLeasedTimestamps));
+        perLeaseActions.numLeasedTimestamps += numLeasedTimestamps;
+        perLeaseActions.preCommitActions.add(new PreCommitActionWrapper(action, numLeasedTimestamps));
     }
 
+    /**
+     * A copy of all preCommit actions added through the course of the transaction.
+     */
     synchronized Map<TimestampLeaseName, PerLeaseActions> getActions() {
         return new HashMap<>(Maps.transformValues(actions, PerLeaseActions::copy));
     }

@@ -201,7 +201,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
@@ -1879,10 +1878,9 @@ public class SnapshotTransaction extends AbstractTransaction
     }
 
     @Override
-    public void preCommit(
-            TimestampLeaseName leaseName, int numLeasedTimestamps, Consumer<LongSupplier> preCommitAction) {
-        Preconditions.checkArgument(numLeasedTimestamps > 0, "Need to request a non-empty number of timestamp leases");
-        preCommitActions.addPreCommitAction(leaseName, numLeasedTimestamps, preCommitAction);
+    public void preCommit(TimestampLeaseName leaseName, int numLeasedTimestamps, PreCommitAction action) {
+        Preconditions.checkArgument(numLeasedTimestamps > 0, "Need to request a positive number of timestamp leases");
+        preCommitActions.addPreCommitAction(leaseName, numLeasedTimestamps, action);
     }
 
     @ReviewedRestrictedApiUsage
@@ -1892,14 +1890,14 @@ public class SnapshotTransaction extends AbstractTransaction
             return;
         }
 
-        TimestampLeaseResults timestampLeaseResults =
-                timelockService.acquireTimestampLeases(Maps.transformValues(actions, action -> action.timestampCount));
+        TimestampLeaseResults timestampLeaseResults = timelockService.acquireTimestampLeases(
+                Maps.transformValues(actions, action -> action.numLeasedTimestamps));
         transactionLocksManager.registerLock(timestampLeaseResults.lock());
 
         actions.forEach((timestampLeaseName, perLeaseActions) -> {
             perLeaseActions.preCommitActions.forEach(preCommitAction -> {
                 LongSupplier leasedTimestamps;
-                if (preCommitAction.timestampCount == 0) {
+                if (preCommitAction.numLeasedTimestamps == 0) {
                     leasedTimestamps = () -> {
                         throw new SafeRuntimeException(
                                 "Cannot fetch leased timestamps since pre-commit action requested 0 leased timestamps",
@@ -1909,7 +1907,7 @@ public class SnapshotTransaction extends AbstractTransaction
                     TimestampLeaseResult leaseResult =
                             timestampLeaseResults.results().get(timestampLeaseName);
                     leasedTimestamps = new LimitingLongSupplier(
-                            leaseResult.freshTimestampsSupplier(), preCommitAction.timestampCount);
+                            leaseResult.freshTimestampsSupplier(), preCommitAction.numLeasedTimestamps);
                 }
                 preCommitAction.action.accept(leasedTimestamps);
             });
