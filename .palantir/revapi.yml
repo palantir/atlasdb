@@ -439,6 +439,14 @@ acceptedBreaks:
     - code: "java.annotation.noLongerPresent"
       old: "@interface com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage"
       justification: "just moving annotation to another package"
+  "0.1181.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter void com.palantir.atlasdb.transaction.api.TimestampLeaseAwareTransaction::preCommit(com.palantir.atlasdb.common.api.timelock.TimestampLeaseName,\
+        \ int, ===java.util.function.Consumer<java.util.function.LongSupplier>===)"
+      new: "parameter void com.palantir.atlasdb.transaction.api.TimestampLeaseAwareTransaction::preCommit(com.palantir.atlasdb.common.api.timelock.TimestampLeaseName,\
+        \ int, ===com.palantir.atlasdb.transaction.api.TimestampLeaseAwareTransaction.PreCommitAction===)"
+      justification: "breaks on internal APIs only"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"
