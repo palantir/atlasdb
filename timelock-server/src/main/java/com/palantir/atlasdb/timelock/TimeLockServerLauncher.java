@@ -35,12 +35,12 @@ import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
-import io.dropwizard.Application;
+import io.dropwizard.core.Application;
+import io.dropwizard.core.setup.Bootstrap;
+import io.dropwizard.core.setup.Environment;
 import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 import io.dropwizard.jersey.optional.EmptyOptionalException;
 import io.dropwizard.lifecycle.Managed;
-import io.dropwizard.setup.Bootstrap;
-import io.dropwizard.setup.Environment;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
@@ -113,7 +113,7 @@ public class TimeLockServerLauncher extends Application<CombinedTimeLockServerCo
             @Override
             public void stop() {}
         });
-        environment.lifecycle().addLifeCycleListener(new LifeCycle.Listener() {
+        environment.lifecycle().addEventListener(new LifeCycle.Listener() {
             @Override
             public void lifeCycleStarting(LifeCycle event) {}
 

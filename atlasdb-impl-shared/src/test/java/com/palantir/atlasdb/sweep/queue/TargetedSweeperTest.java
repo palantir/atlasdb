@@ -91,12 +91,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.awaitility.Awaitility;
 import org.awaitility.core.ThrowingRunnable;
-import org.eclipse.jetty.util.ConcurrentHashSet;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -1518,7 +1518,7 @@ public class TargetedSweeperTest extends AbstractSweepQueueTest {
      */
     private TimelockService createStickyLockService() {
         AtomicLong lockToken = new AtomicLong(0);
-        Set<LockDescriptor> requestedLocks = new ConcurrentHashSet<>();
+        Set<LockDescriptor> requestedLocks = ConcurrentHashMap.newKeySet();
         TimelockService stickyLockService = mock(TimelockService.class);
         doAnswer(invocation -> {
                     LockRequest request = invocation.getArgument(0);

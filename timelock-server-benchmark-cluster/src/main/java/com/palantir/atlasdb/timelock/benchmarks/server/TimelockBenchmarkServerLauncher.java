@@ -26,9 +26,9 @@ import com.palantir.sls.versions.OrderableSlsVersion;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timelock.paxos.TimeLockAgent;
 import com.palantir.tritium.metrics.registry.SharedTaggedMetricRegistries;
-import io.dropwizard.Application;
-import io.dropwizard.setup.Bootstrap;
-import io.dropwizard.setup.Environment;
+import io.dropwizard.core.Application;
+import io.dropwizard.core.setup.Bootstrap;
+import io.dropwizard.core.setup.Environment;
 import java.util.Optional;
 
 public class TimelockBenchmarkServerLauncher extends Application<CombinedTimeLockServerConfiguration> {

@@ -20,10 +20,10 @@ import com.google.auto.service.AutoService;
 import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import io.dropwizard.jackson.Discoverable;
-import io.dropwizard.logging.FileAppenderFactory;
-import io.dropwizard.logging.async.AsyncAppenderFactory;
-import io.dropwizard.logging.filter.LevelFilterFactory;
-import io.dropwizard.logging.layout.LayoutFactory;
+import io.dropwizard.logging.common.FileAppenderFactory;
+import io.dropwizard.logging.common.async.AsyncAppenderFactory;
+import io.dropwizard.logging.common.filter.LevelFilterFactory;
+import io.dropwizard.logging.common.layout.LayoutFactory;
 
 /**
  * A wrapper around the default Dropwizard file appender factory, which sets the neverBlock property to true on the

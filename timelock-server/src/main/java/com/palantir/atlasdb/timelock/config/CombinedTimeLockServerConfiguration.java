@@ -19,7 +19,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.palantir.conjure.java.api.config.service.HumanReadableDuration;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
-import io.dropwizard.Configuration;
+import io.dropwizard.core.Configuration;
 
 public class CombinedTimeLockServerConfiguration extends Configuration {
     private final TimeLockInstallConfiguration install;
