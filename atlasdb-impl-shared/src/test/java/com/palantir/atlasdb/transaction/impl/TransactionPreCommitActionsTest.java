@@ -46,8 +46,8 @@ class TransactionPreCommitActionsTest {
         assertThat(actions.get(LEASE_1).numLeasedTimestamps).isEqualTo(15);
         assertThat(actions.get(LEASE_1).preCommitActions)
                 .containsExactlyInAnyOrder(
-                        new PreCommitActionWrapper(action2, 10), new PreCommitActionWrapper(action1, 5));
+                        PreCommitActionWrapper.of(action2, 10), PreCommitActionWrapper.of(action1, 5));
         assertThat(actions.get(LEASE_2).numLeasedTimestamps).isEqualTo(10);
-        assertThat(actions.get(LEASE_2).preCommitActions).containsExactly(new PreCommitActionWrapper(action3, 10));
+        assertThat(actions.get(LEASE_2).preCommitActions).containsExactly(PreCommitActionWrapper.of(action3, 10));
     }
 }

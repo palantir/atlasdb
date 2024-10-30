@@ -1897,7 +1897,7 @@ public class SnapshotTransaction extends AbstractTransaction
         actions.forEach((timestampLeaseName, perLeaseActions) -> {
             perLeaseActions.preCommitActions.forEach(preCommitAction -> {
                 LongSupplier leasedTimestamps;
-                if (preCommitAction.numLeasedTimestamps == 0) {
+                if (preCommitAction.numLeasedTimestamps() == 0) {
                     leasedTimestamps = () -> {
                         throw new SafeRuntimeException(
                                 "Cannot fetch leased timestamps since pre-commit action requested 0 leased timestamps",
@@ -1907,9 +1907,9 @@ public class SnapshotTransaction extends AbstractTransaction
                     TimestampLeaseResult leaseResult =
                             timestampLeaseResults.results().get(timestampLeaseName);
                     leasedTimestamps = new LimitingLongSupplier(
-                            leaseResult.freshTimestampsSupplier(), preCommitAction.numLeasedTimestamps);
+                            leaseResult.freshTimestampsSupplier(), preCommitAction.numLeasedTimestamps());
                 }
-                preCommitAction.action.accept(leasedTimestamps);
+                preCommitAction.action().accept(leasedTimestamps);
             });
         });
     }

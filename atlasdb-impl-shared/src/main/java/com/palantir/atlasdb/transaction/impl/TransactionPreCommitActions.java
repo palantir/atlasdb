@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.ThreadSafe;
+import org.immutables.value.Value;
 
 /**
  * Keeps track of preCommit actions added through the course of a {@link Transaction}.
@@ -36,28 +37,16 @@ import javax.annotation.concurrent.ThreadSafe;
 @ThreadSafe
 final class TransactionPreCommitActions {
 
-    static class PreCommitActionWrapper {
-        final PreCommitAction action;
-        final int numLeasedTimestamps;
+    @Value.Immutable
+    interface PreCommitActionWrapper {
+        @Value.Parameter
+        PreCommitAction action();
 
-        PreCommitActionWrapper(PreCommitAction action, int numLeasedTimestamps) {
-            this.action = action;
-            this.numLeasedTimestamps = numLeasedTimestamps;
-        }
+        @Value.Parameter
+        int numLeasedTimestamps();
 
-        @Override
-        public boolean equals(Object obj) {
-            return obj instanceof PreCommitActionWrapper
-                    && numLeasedTimestamps == ((PreCommitActionWrapper) obj).numLeasedTimestamps
-                    && action.equals(((PreCommitActionWrapper) obj).action);
-        }
-
-        @Override
-        public int hashCode() {
-            int hash = 5381;
-            hash += (hash << 5) + action.hashCode();
-            hash += (hash << 5) + Integer.hashCode(numLeasedTimestamps);
-            return hash;
+        static PreCommitActionWrapper of(PreCommitAction action, int numLeasedTimestamps) {
+            return ImmutablePreCommitActionWrapper.of(action, numLeasedTimestamps);
         }
     }
 
@@ -78,21 +67,6 @@ final class TransactionPreCommitActions {
         PerLeaseActions copy() {
             return new PerLeaseActions(new ArrayList<>(preCommitActions), numLeasedTimestamps);
         }
-
-        @Override
-        public boolean equals(Object obj) {
-            return obj instanceof PerLeaseActions
-                    && numLeasedTimestamps == ((PerLeaseActions) obj).numLeasedTimestamps
-                    && preCommitActions.equals(((PerLeaseActions) obj).preCommitActions);
-        }
-
-        @Override
-        public int hashCode() {
-            int hash = 5381;
-            hash += (hash << 5) + preCommitActions.hashCode();
-            hash += (hash << 5) + Integer.hashCode(numLeasedTimestamps);
-            return hash;
-        }
     }
 
     @GuardedBy("this")
@@ -102,7 +76,7 @@ final class TransactionPreCommitActions {
             TimestampLeaseName timestampLeaseName, int numLeasedTimestamps, PreCommitAction action) {
         PerLeaseActions perLeaseActions = actions.computeIfAbsent(timestampLeaseName, _unused -> new PerLeaseActions());
         perLeaseActions.numLeasedTimestamps += numLeasedTimestamps;
-        perLeaseActions.preCommitActions.add(new PreCommitActionWrapper(action, numLeasedTimestamps));
+        perLeaseActions.preCommitActions.add(PreCommitActionWrapper.of(action, numLeasedTimestamps));
     }
 
     /**
