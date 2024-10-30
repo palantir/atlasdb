@@ -17,8 +17,8 @@
 package com.palantir.atlasdb.timelock.lock;
 
 import com.palantir.lock.LockDescriptor;
+import jakarta.ws.rs.NotSupportedException;
 import java.util.UUID;
-import javax.ws.rs.NotSupportedException;
 
 final class NamedMinTimestampLock implements AsyncLock {
     private final NamedMinTimestampTracker tracker;

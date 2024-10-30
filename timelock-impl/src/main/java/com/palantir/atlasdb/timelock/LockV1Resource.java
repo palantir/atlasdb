@@ -33,17 +33,17 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.LockState;
 import com.palantir.lock.SimpleHeldLocksToken;
 import com.palantir.logsafe.Safe;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.HeaderParam;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
 import java.math.BigInteger;
 import java.util.Optional;
 import java.util.Set;
 import javax.annotation.Nullable;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.HeaderParam;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
 
 @Path("/{namespace: (?!(tl|lw)/)[a-zA-Z0-9_-]+}") // Only read by Jersey, not by Undertow
 public class LockV1Resource {

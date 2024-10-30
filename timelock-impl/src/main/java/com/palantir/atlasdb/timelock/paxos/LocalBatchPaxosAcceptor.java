@@ -26,10 +26,10 @@ import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosPromise;
 import com.palantir.paxos.PaxosProposal;
 import com.palantir.paxos.PaxosProposalId;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.HttpHeaders;
 import java.util.Optional;
 import java.util.Set;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.HttpHeaders;
 
 public class LocalBatchPaxosAcceptor implements BatchPaxosAcceptor {
 

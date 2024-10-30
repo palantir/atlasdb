@@ -11,7 +11,7 @@ dependencies {
   implementation 'com.palantir.conjure.java:conjure-undertow-lib'
   implementation 'org.apache.commons:commons-lang3'
   implementation 'io.undertow:undertow-core'
-  implementation 'javax.ws.rs:javax.ws.rs-api'
+  implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
 
   implementation 'com.palantir.sls.versions:sls-versions'
   implementation 'com.fasterxml.jackson.core:jackson-databind'

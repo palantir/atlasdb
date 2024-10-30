@@ -17,8 +17,8 @@ package com.palantir.atlasdb.http;
 
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.exception.NotInitializedException;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 
 /**
  * Converts {@link NotInitializedException}s into appropriate status responses, depending on the user's

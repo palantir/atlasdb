@@ -64,7 +64,7 @@ public enum PaxosUseCase {
 
     /**
      * Although this has no compile time usages, this is used for serialisation/deserialisation via Jersey
-     * {@link javax.ws.rs.QueryParam}.
+     * {@link jakarta.ws.rs.QueryParam}.
      */
     public static PaxosUseCase fromString(String string) {
         switch (string) {

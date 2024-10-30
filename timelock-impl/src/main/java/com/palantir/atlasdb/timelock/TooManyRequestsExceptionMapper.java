@@ -16,9 +16,9 @@
 package com.palantir.atlasdb.timelock;
 
 import com.palantir.lock.impl.TooManyRequestsException;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.ext.ExceptionMapper;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
+import jakarta.ws.rs.ext.ExceptionMapper;
 
 public class TooManyRequestsExceptionMapper implements ExceptionMapper<TooManyRequestsException> {
 

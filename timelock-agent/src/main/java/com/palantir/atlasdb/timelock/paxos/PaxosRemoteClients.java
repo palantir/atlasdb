@@ -32,11 +32,11 @@ import com.palantir.timelock.corruption.TimeLockCorruptionNotifier;
 import com.palantir.timelock.history.TimeLockPaxosHistoryProvider;
 import com.palantir.timelock.paxos.TimelockPaxosAcceptorRpcClient;
 import com.palantir.timelock.paxos.TimelockPaxosLearnerRpcClient;
+import jakarta.ws.rs.Path;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import javax.ws.rs.Path;
 import org.immutables.value.Value;
 
 @Value.Immutable

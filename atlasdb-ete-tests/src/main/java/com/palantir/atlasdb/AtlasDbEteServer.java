@@ -72,12 +72,12 @@ import io.dropwizard.jackson.DiscoverableSubtypeResolver;
 import io.dropwizard.jersey.optional.EmptyOptionalException;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.ext.ExceptionMapper;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
 
 public class AtlasDbEteServer extends Application<AtlasDbEteConfiguration> {
     public static final long CREATE_TRANSACTION_MANAGER_MAX_WAIT_TIME_SECS = 300;

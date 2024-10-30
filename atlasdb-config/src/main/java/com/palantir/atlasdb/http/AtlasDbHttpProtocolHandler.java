@@ -17,8 +17,8 @@
 package com.palantir.atlasdb.http;
 
 import com.palantir.conjure.java.api.errors.QosException;
+import jakarta.ws.rs.core.Response;
 import java.util.function.Function;
-import javax.ws.rs.core.Response;
 import org.immutables.value.Value;
 
 interface AtlasDbHttpProtocolHandler<E extends Exception> {

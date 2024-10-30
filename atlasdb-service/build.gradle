@@ -12,7 +12,7 @@ dependencies {
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'com.palantir.tritium:tritium-ids'
-    implementation 'javax.ws.rs:javax.ws.rs-api'
+    implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
     implementation project(':atlasdb-api')
     implementation project(':atlasdb-client')
     implementation project(':atlasdb-client-protobufs')

@@ -17,9 +17,9 @@ package com.palantir.atlasdb.http;
 
 import com.palantir.conjure.java.api.errors.QosException;
 import com.palantir.leader.NotCurrentLeaderException;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 import java.util.Optional;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 
 /**
  * Converts {@link NotCurrentLeaderException} into appropriate status responses depending on the user's

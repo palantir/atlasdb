@@ -41,12 +41,12 @@ import io.dropwizard.jersey.optional.EmptyOptionalException;
 import io.dropwizard.lifecycle.Managed;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.ext.ExceptionMapper;
+import jakarta.ws.rs.ext.Provider;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.ext.ExceptionMapper;
-import javax.ws.rs.ext.Provider;
 import org.eclipse.jetty.util.component.LifeCycle;
 
 /**

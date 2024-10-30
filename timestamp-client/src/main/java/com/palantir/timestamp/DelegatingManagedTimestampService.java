@@ -16,7 +16,7 @@
 package com.palantir.timestamp;
 
 import com.palantir.logsafe.Preconditions;
-import javax.ws.rs.QueryParam;
+import jakarta.ws.rs.QueryParam;
 
 public class DelegatingManagedTimestampService implements ManagedTimestampService {
     private final TimestampService timestampService;

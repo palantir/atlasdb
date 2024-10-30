@@ -20,7 +20,7 @@ import com.palantir.lock.SimplifyingLockService;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import javax.ws.rs.BadRequestException;
+import jakarta.ws.rs.BadRequestException;
 
 /**
  * This lock service may be used as a LockService, for the purposes of advisory locking as well as for

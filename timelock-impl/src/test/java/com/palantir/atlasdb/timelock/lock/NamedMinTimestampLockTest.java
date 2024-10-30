@@ -24,8 +24,8 @@ import static org.mockito.Mockito.when;
 
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.StringLockDescriptor;
+import jakarta.ws.rs.NotSupportedException;
 import java.util.UUID;
-import javax.ws.rs.NotSupportedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

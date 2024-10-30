@@ -46,7 +46,7 @@ dependencies {
   implementation 'com.palantir.tracing:tracing'
   implementation 'com.palantir.tritium:tritium-registry'
   implementation 'io.dropwizard.metrics:metrics-core'
-  implementation 'javax.ws.rs:javax.ws.rs-api'
+  implementation 'jakarta.ws.rs:jakarta.ws.rs-api'
   implementation 'org.apache.commons:commons-lang3'
   implementation 'org.eclipse.collections:eclipse-collections'
   implementation 'org.eclipse.collections:eclipse-collections-api'
@@ -80,7 +80,7 @@ dependencies {
   testImplementation 'io.dropwizard:dropwizard-core'
   testImplementation 'io.dropwizard:dropwizard-jersey'
   testImplementation 'io.dropwizard:dropwizard-jetty'
-  testImplementation 'javax.ws.rs:javax.ws.rs-api'
+  testImplementation 'jakarta.ws.rs:jakarta.ws.rs-api'
   testImplementation 'org.eclipse.jetty:jetty-util'
   testImplementation 'org.slf4j:slf4j-api'
   testImplementation project(':atlasdb-api')

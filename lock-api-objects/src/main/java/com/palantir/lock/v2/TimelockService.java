@@ -22,13 +22,13 @@ import com.palantir.logsafe.Safe;
 import com.palantir.processors.AutoDelegate;
 import com.palantir.processors.DoNotDelegate;
 import com.palantir.timestamp.TimestampRange;
+import jakarta.ws.rs.QueryParam;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import javax.ws.rs.QueryParam;
 
 @AutoDelegate
 public interface TimelockService {

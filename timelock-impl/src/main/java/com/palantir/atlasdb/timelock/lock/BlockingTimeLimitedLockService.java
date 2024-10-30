@@ -38,6 +38,7 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.UnsafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import jakarta.ws.rs.PathParam;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Set;
@@ -47,7 +48,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
-import javax.ws.rs.PathParam;
 import org.immutables.value.Value;
 
 public class BlockingTimeLimitedLockService implements CloseableLockService {

@@ -17,15 +17,15 @@
 package com.palantir.timestamp;
 
 import com.palantir.logsafe.Safe;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.MediaType;
 import javax.annotation.CheckReturnValue;
 import javax.annotation.meta.When;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
 
 @Path("{namespace}/timestamp-management")
 public interface TimestampManagementRpcClient {

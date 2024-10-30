@@ -38,10 +38,10 @@ import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.logsafe.Safe;
 import com.palantir.timestamp.TimestampRange;
+import jakarta.ws.rs.HeaderParam;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import javax.ws.rs.HeaderParam;
 
 public final class UndertowAsyncTimelockResource {
     private final TimelockNamespaces namespaces;

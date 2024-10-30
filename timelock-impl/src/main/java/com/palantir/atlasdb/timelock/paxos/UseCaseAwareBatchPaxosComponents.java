@@ -16,9 +16,9 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
+import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.PathParam;
 import java.util.EnumMap;
-import javax.ws.rs.NotFoundException;
-import javax.ws.rs.PathParam;
 
 public class UseCaseAwareBatchPaxosComponents {
 
