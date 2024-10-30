@@ -88,8 +88,8 @@ allprojects {
 
     configurations.all {
         resolutionStrategy.dependencySubstitution {
-            it.substitute it.module('org.glassfish.hk2.external:javax.inject') using it.module('javax.inject:javax.inject:1')
-            it.substitute it.module('org.glassfish.hk2.external:jakarta.inject') using it.module('javax.inject:javax.inject:1')
+            it.substitute it.module('org.glassfish.hk2.external:javax.inject') using it.module('jakarta.inject:jakarta.inject-api:1')
+            it.substitute it.module('org.glassfish.hk2.external:jakarta.inject') using it.module('jakarta.inject:jakarta.inject-api:1')
 
             // See internal migration plugin PR 26: this direction is intentional.
             it.substitute it.module('javax.el:javax.el-api') using it.module('org.glassfish:jakarta.el:3.0.4')

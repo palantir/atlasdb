@@ -135,11 +135,11 @@ public class AtlasConsoleMain {
 
     protected void usage() {
         String prependMessage = "\n"
-            + "AtlasConsole is a command line utility to view and modify an instance of AtlasDB.\n"
-            + "In addition to the arguments listed below, the utility accepts a filepath to a Groovy script to"
-            + " runprior to startup. Finally, the utility also accepts all arguments that the Groovysh utility takes."
-            + " \n"
-            + "See http://docs.groovy-lang.org/latest/html/documentation/#_groovysh_the_groovy_shell for details.";
+                + "AtlasConsole is a command line utility to view and modify an instance of AtlasDB.\n"
+                + "In addition to the arguments listed below, the utility accepts a filepath to a Groovy script to"
+                + " runprior to startup. Finally, the utility also accepts all arguments that the Groovysh utility takes."
+                + " \n"
+                + "See http://docs.groovy-lang.org/latest/html/documentation/#_groovysh_the_groovy_shell for details.";
         System.out.println(prependMessage); // (authorized)
     }
 

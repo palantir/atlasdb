@@ -21,7 +21,7 @@ import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import dagger.Module;
 import dagger.Provides;
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 
 @Module
 public class MetricsModule {

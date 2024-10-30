@@ -54,13 +54,13 @@ import com.palantir.lock.LockClient;
 import com.palantir.lock.v2.TimelockService;
 import dagger.Module;
 import dagger.Provides;
+import jakarta.inject.Singleton;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import javax.inject.Named;
 import javax.inject.Qualifier;
-import javax.inject.Singleton;
 
 @Module
 public class TransactionManagerModule {

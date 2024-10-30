@@ -20,9 +20,9 @@ import com.palantir.atlasdb.config.AtlasDbConfigs;
 import com.palantir.atlasdb.config.AtlasDbRuntimeConfig;
 import dagger.Module;
 import dagger.Provides;
+import jakarta.inject.Singleton;
 import java.io.File;
 import java.io.IOException;
-import javax.inject.Singleton;
 
 @Module
 public class ServicesConfigModule {

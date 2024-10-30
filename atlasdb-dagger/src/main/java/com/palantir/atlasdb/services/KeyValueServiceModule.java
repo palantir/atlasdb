@@ -45,8 +45,8 @@ import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.timestamp.TimestampService;
 import dagger.Module;
 import dagger.Provides;
+import jakarta.inject.Singleton;
 import javax.inject.Named;
-import javax.inject.Singleton;
 
 @Module
 public class KeyValueServiceModule {

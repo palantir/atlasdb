@@ -25,7 +25,7 @@ import com.palantir.atlasdb.api.TableRowResult;
 import com.palantir.atlasdb.api.TableRowSelection;
 import com.palantir.atlasdb.impl.TableMetadataCache;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 
 public class AtlasJacksonModule {
     private final TableMetadataCache cache;

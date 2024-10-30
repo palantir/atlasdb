@@ -28,8 +28,8 @@ import com.palantir.timestamp.TimestampService;
 import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
+import jakarta.inject.Singleton;
 import java.util.function.Supplier;
-import javax.inject.Singleton;
 
 @Module(includes = LockAndTimestampModule.Bindings.class)
 public class LockAndTimestampModule {

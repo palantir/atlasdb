@@ -23,7 +23,7 @@ import com.palantir.atlasdb.services.RawKeyValueServiceModule;
 import com.palantir.atlasdb.services.ServicesConfigModule;
 import com.palantir.lock.LockClient;
 import dagger.Component;
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 
 @Singleton
 @Component(

@@ -20,9 +20,9 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.table.description.TableMetadata;
+import jakarta.inject.Inject;
 import java.time.Duration;
 import javax.annotation.CheckForNull;
-import javax.inject.Inject;
 
 public class TableMetadataCache {
     private final LoadingCache<String, TableMetadata> cache;
