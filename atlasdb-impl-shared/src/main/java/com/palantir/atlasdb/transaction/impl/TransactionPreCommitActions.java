@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import javax.annotation.concurrent.GuardedBy;
 import javax.annotation.concurrent.ThreadSafe;
 
@@ -57,7 +56,7 @@ final class TransactionPreCommitActions {
         public int hashCode() {
             int hash = 5381;
             hash += (hash << 5) + action.hashCode();
-            hash += (hash << 5) + Objects.hashCode(numLeasedTimestamps);
+            hash += (hash << 5) + Integer.hashCode(numLeasedTimestamps);
             return hash;
         }
     }
@@ -91,7 +90,7 @@ final class TransactionPreCommitActions {
         public int hashCode() {
             int hash = 5381;
             hash += (hash << 5) + preCommitActions.hashCode();
-            hash += (hash << 5) + Objects.hashCode(numLeasedTimestamps);
+            hash += (hash << 5) + Integer.hashCode(numLeasedTimestamps);
             return hash;
         }
     }
