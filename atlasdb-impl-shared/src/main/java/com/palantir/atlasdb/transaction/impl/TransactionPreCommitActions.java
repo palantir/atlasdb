@@ -30,7 +30,7 @@ import javax.annotation.concurrent.ThreadSafe;
 
 /**
  * Keeps track of preCommit actions added through the course of a {@link Transaction}.
- * Such actions are then run on {@link Transaction#commit()}.
+ * Such actions are fetched via {@link #getActions()} and executed on {@link Transaction#commit()}.
  * See {@link TimestampLeaseAwareTransaction#preCommit(TimestampLeaseName, int, PreCommitAction)} for more information.
  */
 @ThreadSafe
