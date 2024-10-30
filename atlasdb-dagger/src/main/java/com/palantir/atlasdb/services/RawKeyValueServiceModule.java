@@ -22,12 +22,12 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import dagger.Module;
 import dagger.Provides;
+import jakarta.inject.Named;
 import jakarta.inject.Singleton;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import javax.inject.Named;
 
 @Module
 public class RawKeyValueServiceModule {

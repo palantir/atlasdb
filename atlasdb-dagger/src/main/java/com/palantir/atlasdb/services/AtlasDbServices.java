@@ -26,8 +26,8 @@ import com.palantir.lock.LockService;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.timestamp.ManagedTimestampService;
 import dagger.Component;
+import jakarta.inject.Named;
 import jakarta.inject.Singleton;
-import javax.inject.Named;
 
 @Singleton
 @Component(

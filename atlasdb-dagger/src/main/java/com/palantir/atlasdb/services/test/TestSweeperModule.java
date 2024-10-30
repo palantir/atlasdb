@@ -26,10 +26,10 @@ import com.palantir.atlasdb.transaction.impl.SweepStrategyManager;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import dagger.Module;
 import dagger.Provides;
+import jakarta.inject.Named;
 import jakarta.inject.Singleton;
 import java.util.Optional;
 import java.util.function.LongSupplier;
-import javax.inject.Named;
 
 @Module
 public class TestSweeperModule {
