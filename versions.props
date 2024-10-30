@@ -44,6 +44,7 @@ io.dropwizard.metrics:* = 4.2.28
 io.netty:* = 4.1.114.Final
 io.undertow:* = 2.2.37.Final
 io.vavr:* = 0.10.4
+jakarta.el:jakarta.el-api = 4.0.0
 jakarta.inject:jakarta.inject-api = 2.0.1
 jakarta.ws.rs:jakarta.ws.rs-api = 3.1.0
 joda-time:joda-time = 2.13.0
