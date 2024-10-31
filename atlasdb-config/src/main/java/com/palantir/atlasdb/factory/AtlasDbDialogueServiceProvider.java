@@ -123,7 +123,7 @@ public final class AtlasDbDialogueServiceProvider {
         return new TimeoutSensitiveConjureTimelockService(shortAndLongTimeoutServices);
     }
 
-    MultiClientConjureTimelockServiceBlocking getMultiClientConjureTimelockService() {
+    public MultiClientConjureTimelockServiceBlocking getMultiClientConjureTimelockService() {
         MultiClientConjureTimelockServiceBlocking blockingService =
                 dialogueClientFactory.get(MultiClientConjureTimelockServiceBlocking.class, TIMELOCK_SHORT_TIMEOUT);
         return AtlasDbMetrics.instrumentWithTaggedMetrics(
