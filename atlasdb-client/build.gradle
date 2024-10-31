@@ -41,6 +41,7 @@ dependencies {
   api 'org.slf4j:slf4j-api'
   api project(':atlasdb-api')
   api project(':atlasdb-client-protobufs')
+  api project(":atlasdb-commons-api")
   api project(':atlasdb-commons')
 
   implementation 'com.fasterxml.jackson.core:jackson-annotations'

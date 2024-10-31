@@ -87,6 +87,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 public class SingleBucketSweepTaskIntegrationTest {
     private static final int SHARDS = 1; // Used to avoid complications of the hash function
+    private static final int SHARD_ROTATION_INTERVAL_MINUTES = 1440;
     private static final int SHARD_ZERO = 0;
 
     private static final TableReference CONSERVATIVE_TABLE = TableReference.createFromFullyQualifiedName("terri.tory");
@@ -107,7 +108,8 @@ public class SingleBucketSweepTaskIntegrationTest {
     private static final byte[] THIRD_VALUE = PtBytes.toBytes("drittel");
 
     private final KeyValueService keyValueService = new InMemoryKeyValueService(true);
-    private final WriteInfoPartitioner writeInfoPartitioner = new WriteInfoPartitioner(keyValueService, () -> SHARDS);
+    private final WriteInfoPartitioner writeInfoPartitioner =
+            new WriteInfoPartitioner(keyValueService, () -> SHARDS, () -> SHARD_ROTATION_INTERVAL_MINUTES);
     private final MetricsManager metricsManager = MetricsManagers.createForTests();
     private final TransactionService transactionService =
             SimpleTransactionService.createV3(keyValueService, metricsManager.getTaggedRegistry(), () -> false);

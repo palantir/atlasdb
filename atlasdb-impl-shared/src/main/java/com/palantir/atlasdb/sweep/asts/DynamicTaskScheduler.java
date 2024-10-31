@@ -81,18 +81,18 @@ public final class DynamicTaskScheduler {
         if (isStarted.compareAndSet(false, true)) {
             scheduleNextIteration(automaticSweepRefreshDelay.get());
         } else {
-            log.warn("Attempted to start an already started task", SafeArg.of("task", safeLoggableTaskName));
+            log.warn("Attempted to start an already started task: {}", SafeArg.of("task", safeLoggableTaskName));
         }
     }
 
     private void runOneIteration() {
         Duration delay = automaticSweepRefreshDelay.get();
         try {
-            log.info("Running task", SafeArg.of("task", safeLoggableTaskName));
+            log.info("Running task: {}", SafeArg.of("task", safeLoggableTaskName));
             task.run();
         } catch (Exception e) {
             log.warn(
-                    "Failed to run task. Will retry in the next interval",
+                    "Failed to run task {}. Will retry after delay {}",
                     SafeArg.of("task", safeLoggableTaskName),
                     SafeArg.of("delay", delay),
                     e);
@@ -101,7 +101,10 @@ public final class DynamicTaskScheduler {
     }
 
     private void scheduleNextIteration(Duration delay) {
-        log.info("Scheduling next iteration", SafeArg.of("task", safeLoggableTaskName), SafeArg.of("delay", delay));
+        log.info(
+                "Scheduling next iteration for {} with delay {}",
+                SafeArg.of("task", safeLoggableTaskName),
+                SafeArg.of("delay", delay));
         scheduledExecutorService.schedule(this::runOneIteration, delay.toMillis(), TimeUnit.MILLISECONDS);
     }
 }

@@ -50,6 +50,8 @@ import com.palantir.atlasdb.AtlasDbPerformanceConstants;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cell.api.DataKeyValueService;
 import com.palantir.atlasdb.cleaner.api.Cleaner;
+import com.palantir.atlasdb.common.api.annotations.ReviewedRestrictedApiUsage;
+import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import com.palantir.atlasdb.debug.ConflictTracer;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.futures.AtlasFutures;
@@ -85,6 +87,7 @@ import com.palantir.atlasdb.transaction.api.DeleteExecutor;
 import com.palantir.atlasdb.transaction.api.GetRangesQuery;
 import com.palantir.atlasdb.transaction.api.ImmutableGetRangesQuery;
 import com.palantir.atlasdb.transaction.api.PreCommitCondition;
+import com.palantir.atlasdb.transaction.api.TimestampLeaseAwareTransaction;
 import com.palantir.atlasdb.transaction.api.TransactionCommitFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException;
 import com.palantir.atlasdb.transaction.api.TransactionConflictException.CellConflict;
@@ -94,7 +97,6 @@ import com.palantir.atlasdb.transaction.api.TransactionLockAcquisitionTimeoutExc
 import com.palantir.atlasdb.transaction.api.TransactionLockTimeoutException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
-import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.atlasdb.transaction.api.exceptions.SafeTransactionFailedRetriableException;
 import com.palantir.atlasdb.transaction.api.expectations.ExpectationsData;
@@ -112,7 +114,8 @@ import com.palantir.atlasdb.transaction.api.snapshot.ImmutableTransactionContext
 import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReader;
 import com.palantir.atlasdb.transaction.api.snapshot.KeyValueSnapshotReaderManager;
 import com.palantir.atlasdb.transaction.expectations.ExpectationsMetrics;
-import com.palantir.atlasdb.transaction.impl.ImmutableTimestampLockManager.SummarizedLockCheckResult;
+import com.palantir.atlasdb.transaction.impl.TransactionLocksManager.SummarizedLockCheckResult;
+import com.palantir.atlasdb.transaction.impl.TransactionPreCommitActions.PerLeaseActions;
 import com.palantir.atlasdb.transaction.impl.expectations.CellCountValidator;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingDataKeyValueService;
 import com.palantir.atlasdb.transaction.impl.expectations.TrackingDataKeyValueServiceImpl;
@@ -144,12 +147,15 @@ import com.palantir.common.streams.KeyedStream;
 import com.palantir.common.streams.MoreStreams;
 import com.palantir.lock.AtlasCellLockDescriptor;
 import com.palantir.lock.AtlasRowLockDescriptor;
+import com.palantir.lock.LimitingLongSupplier;
 import com.palantir.lock.LockDescriptor;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockRequest;
 import com.palantir.lock.v2.LockResponse;
 import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.TimestampLeaseResult;
+import com.palantir.lock.v2.TimestampLeaseResults;
 import com.palantir.lock.watch.ChangeMetadata;
 import com.palantir.lock.watch.LockRequestMetadata;
 import com.palantir.logsafe.Preconditions;
@@ -163,7 +169,6 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.tracing.CloseableTracer;
 import com.palantir.util.AssertUtils;
-import com.palantir.util.RateLimitedLogger;
 import com.palantir.util.paging.TokenBackedBasicResultsPage;
 import com.palantir.util.result.Result;
 import java.nio.ByteBuffer;
@@ -199,6 +204,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nullable;
@@ -223,12 +229,11 @@ import org.eclipse.collections.impl.factory.primitive.LongSets;
  * different rows and using range scans.
  */
 public class SnapshotTransaction extends AbstractTransaction
-        implements ConstraintCheckingTransaction, CallbackAwareTransaction {
+        implements ConstraintCheckingTransaction, CallbackAwareTransaction, TimestampLeaseAwareTransaction {
     private static final SafeLogger log = SafeLoggerFactory.get(SnapshotTransaction.class);
     private static final SafeLogger perfLogger = SafeLoggerFactory.get("dualschema.perf");
     private static final SafeLogger transactionLengthLogger = SafeLoggerFactory.get("txn.length");
     private static final SafeLogger constraintLogger = SafeLoggerFactory.get("dualschema.constraints");
-    private static final RateLimitedLogger deleteExecutorRateLimitedLogger = new RateLimitedLogger(log, 1.0);
 
     private static final int BATCH_SIZE_GET_FIRST_PAGE = 1000;
     private static final long TXN_LENGTH_THRESHOLD = Duration.ofMinutes(30).toMillis();
@@ -306,7 +311,8 @@ public class SnapshotTransaction extends AbstractTransaction
     protected final TimestampCache timestampCache;
 
     protected final TransactionKnowledgeComponents knowledge;
-    private final ImmutableTimestampLockManager immutableTimestampLockManager;
+    private final TransactionLocksManager transactionLocksManager;
+    private final TransactionPreCommitActions preCommitActions;
     private final PreCommitRequirementValidator preCommitRequirementValidator;
     private final ReadSnapshotValidator readSnapshotValidator;
     private final ThreadSafeCloser closer = new ThreadSafeCloser();
@@ -392,10 +398,12 @@ public class SnapshotTransaction extends AbstractTransaction
         this.transactionOutcomeMetrics =
                 TransactionOutcomeMetrics.create(transactionMetrics, metricsManager.getTaggedRegistry());
         this.expectationsDataCollectionMetrics = ExpectationsMetrics.of(metricsManager.getTaggedRegistry());
-        this.immutableTimestampLockManager = new ImmutableTimestampLockManager(
-                immutableTimestampLock, new DefaultLockValidityChecker(timelockService));
+        this.preCommitActions = new TransactionPreCommitActions();
+        this.transactionLocksManager = new TransactionLocksManager(
+                immutableTimestampLock, new DefaultLockValidityChecker(timelockService), timelockService::tryUnlock);
+        closer.register(transactionLocksManager);
         this.preCommitRequirementValidator = new DefaultPreCommitRequirementValidator(
-                preCommitCondition, transactionOutcomeMetrics, immutableTimestampLockManager);
+                preCommitCondition, transactionOutcomeMetrics, transactionLocksManager);
         this.readSnapshotValidator = new DefaultReadSnapshotValidator(
                 preCommitRequirementValidator, validateLocksOnReads, sweepStrategyManager, transactionConfig);
         this.commitTimestampLoader = commitTimestampLoader;
@@ -1791,7 +1799,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 ensureUncommitted();
                 if (state.compareAndSet(State.UNCOMMITTED, State.ABORTED)) {
                     if (hasWrites()) {
-                        preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(null, getStartTimestamp());
+                        preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(getStartTimestamp());
                     }
                     transactionOutcomeMetrics.markAbort();
                     if (transactionLengthLogger.isDebugEnabled()) {
@@ -1862,10 +1870,48 @@ public class SnapshotTransaction extends AbstractTransaction
     @Override
     public void commit(TransactionService transactionService) {
         try {
+            runPreCommitCallbacks();
             commitWithoutCallbacks(transactionService);
         } finally {
             close();
         }
+    }
+
+    @Override
+    public void preCommit(TimestampLeaseName leaseName, int numLeasedTimestamps, PreCommitAction action) {
+        Preconditions.checkArgument(numLeasedTimestamps > 0, "Need to request a positive number of timestamp leases");
+        preCommitActions.addPreCommitAction(leaseName, numLeasedTimestamps, action);
+    }
+
+    @ReviewedRestrictedApiUsage
+    private void runPreCommitCallbacks() {
+        Map<TimestampLeaseName, PerLeaseActions> actions = preCommitActions.getActions();
+        if (actions.isEmpty()) {
+            return;
+        }
+
+        TimestampLeaseResults timestampLeaseResults = timelockService.acquireTimestampLeases(
+                Maps.transformValues(actions, action -> action.numLeasedTimestamps));
+        transactionLocksManager.registerLock(timestampLeaseResults.lock());
+
+        actions.forEach((timestampLeaseName, perLeaseActions) -> {
+            perLeaseActions.preCommitActions.forEach(preCommitAction -> {
+                LongSupplier leasedTimestamps;
+                if (preCommitAction.numLeasedTimestamps() == 0) {
+                    leasedTimestamps = () -> {
+                        throw new SafeRuntimeException(
+                                "Cannot fetch leased timestamps since pre-commit action requested 0 leased timestamps",
+                                SafeArg.of("leaseName", timestampLeaseName));
+                    };
+                } else {
+                    TimestampLeaseResult leaseResult =
+                            timestampLeaseResults.results().get(timestampLeaseName);
+                    leasedTimestamps = new LimitingLongSupplier(
+                            leaseResult.freshTimestampsSupplier(), preCommitAction.numLeasedTimestamps());
+                }
+                preCommitAction.action().accept(leasedTimestamps);
+            });
+        });
     }
 
     private void commitWithoutCallbacks(TransactionService transactionService) {
@@ -1955,7 +2001,7 @@ public class SnapshotTransaction extends AbstractTransaction
                 // if there are no writes, we must still make sure the immutable timestamp lock is still valid,
                 // to ensure that sweep hasn't thoroughly deleted cells we tried to read
                 if (validationNecessaryForInvolvedTablesOnCommit()) {
-                    preCommitRequirementValidator.throwIfImmutableTsOrCommitLocksExpired(null);
+                    preCommitRequirementValidator.throwIfImmutableTsOrCommitLocksExpired();
                 }
             }
             snapshotTransactionMetricFactory
@@ -1969,16 +2015,12 @@ public class SnapshotTransaction extends AbstractTransaction
             // This must happen before conflict checking, otherwise we could complete the checks and then have someone
             // else write underneath us before we proceed (thus missing a write/write conflict).
             // Timing still useful to distinguish bad lock percentiles from user-generated lock requests.
-            LockToken commitLocksToken = timedAndTraced("commitAcquireLocks", this::acquireLocksForCommit);
-            closer.register(() -> {
-                // Not timed because tryUnlock() is an asynchronous operation.
-                traced("postCommitUnlock", () -> timelockService.tryUnlock(ImmutableSet.of(commitLocksToken)));
-            });
+            LockToken commitLocksToken = transactionLocksManager.registerCommitLockOnly(
+                    timedAndTraced("commitAcquireLocks", this::acquireLocksForCommit));
 
             // Conflict checking. We can actually do this later without compromising correctness, but there is no
             // reason to postpone this check - we waste resources writing unnecessarily if these are going to fail.
-            timedAndTraced(
-                    "commitCheckingForConflicts", () -> throwIfConflictOnCommit(commitLocksToken, transactionService));
+            timedAndTraced("commitCheckingForConflicts", () -> throwIfConflictOnCommit(transactionService));
 
             // Before doing any remote writes, we mark that the transaction is in progress. Until this point, all
             // writes are buffered in memory.
@@ -1999,9 +2041,7 @@ public class SnapshotTransaction extends AbstractTransaction
             // Introduced for txn4 - Prevents sweep from making progress beyond immutableTs before entries were
             // put into the sweep queue. This ensures that sweep must process writes to the sweep queue done by
             // this transaction before making progress.
-            traced(
-                    "postSweepEnqueueLockCheck",
-                    () -> preCommitRequirementValidator.throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
+            traced("postSweepEnqueueLockCheck", preCommitRequirementValidator::throwIfImmutableTsOrCommitLocksExpired);
 
             // Write to the key value service. We must do this before getting the commit timestamp - otherwise
             // we risk another transaction starting at a timestamp after our commit timestamp not seeing our writes.
@@ -2048,14 +2088,10 @@ public class SnapshotTransaction extends AbstractTransaction
 
             // Not timed, because this just calls ConjureTimelockServiceBlocking.refreshLockLeases, and that is
             // timed.
-            traced(
-                    "preCommitLockCheck",
-                    () -> preCommitRequirementValidator.throwIfImmutableTsOrCommitLocksExpired(commitLocksToken));
+            traced("preCommitLockCheck", preCommitRequirementValidator::throwIfImmutableTsOrCommitLocksExpired);
 
             // Not timed, because this just calls TransactionService.putUnlessExists, and that is timed.
-            traced(
-                    "commitPutCommitTs",
-                    () -> putCommitTimestamp(commitTimestamp, commitLocksToken, transactionService));
+            traced("commitPutCommitTs", () -> putCommitTimestamp(commitTimestamp, transactionService));
 
             long microsSinceCreation = TimeUnit.MILLISECONDS.toMicros(System.currentTimeMillis() - timeCreated);
             snapshotTransactionMetricFactory
@@ -2123,13 +2159,11 @@ public class SnapshotTransaction extends AbstractTransaction
     /**
      * Make sure we have all the rows we are checking already locked before calling this.
      */
-    protected void throwIfConflictOnCommit(LockToken commitLocksToken, TransactionService transactionService)
-            throws TransactionConflictException {
+    protected void throwIfConflictOnCommit(TransactionService transactionService) throws TransactionConflictException {
         for (Map.Entry<TableReference, ConcurrentNavigableMap<Cell, byte[]>> write :
                 localWriteBuffer.getLocalWrites().entrySet()) {
             ConflictHandler conflictHandler = getConflictHandlerForTable(write.getKey());
-            throwIfWriteAlreadyCommitted(
-                    write.getKey(), write.getValue(), conflictHandler, commitLocksToken, transactionService);
+            throwIfWriteAlreadyCommitted(write.getKey(), write.getValue(), conflictHandler, transactionService);
         }
     }
 
@@ -2137,7 +2171,6 @@ public class SnapshotTransaction extends AbstractTransaction
             TableReference tableRef,
             Map<Cell, byte[]> writes,
             ConflictHandler conflictHandler,
-            LockToken commitLocksToken,
             TransactionService transactionService)
             throws TransactionConflictException {
         if (writes.isEmpty() || !conflictHandler.checkWriteWriteConflicts()) {
@@ -2152,7 +2185,7 @@ public class SnapshotTransaction extends AbstractTransaction
         }
 
         if (conflictHandler == ConflictHandler.RETRY_ON_VALUE_CHANGED) {
-            throwIfValueChangedConflict(tableRef, writes, spanningWrites, dominatingWrites, commitLocksToken);
+            throwIfValueChangedConflict(tableRef, writes, spanningWrites, dominatingWrites);
         } else {
             if (!spanningWrites.isEmpty() || !dominatingWrites.isEmpty()) {
                 transactionOutcomeMetrics.markWriteWriteConflict(tableRef);
@@ -2176,8 +2209,7 @@ public class SnapshotTransaction extends AbstractTransaction
             TableReference tableRef,
             Map<Cell, byte[]> writes,
             Set<CellConflict> spanningWrites,
-            Set<CellConflict> dominatingWrites,
-            LockToken commitLocksToken) {
+            Set<CellConflict> dominatingWrites) {
         Map<Cell, CellConflict> cellToConflict = new HashMap<>();
         Map<Cell, Long> cellToTs = new HashMap<>();
         for (CellConflict c : Sets.union(spanningWrites, dominatingWrites)) {
@@ -2197,7 +2229,7 @@ public class SnapshotTransaction extends AbstractTransaction
             }
             if (!conflictingValues.containsKey(cell)) {
                 // This error case could happen if our locks expired.
-                preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(commitLocksToken, getStartTimestamp());
+                preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(getStartTimestamp());
                 Validate.isTrue(
                         false,
                         "Missing conflicting value for cell: %s for table %s",
@@ -2206,7 +2238,7 @@ public class SnapshotTransaction extends AbstractTransaction
             }
             if (conflictingValues.get(cell).getTimestamp() != (cellEntry.getValue() - 1)) {
                 // This error case could happen if our locks expired.
-                preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(commitLocksToken, getStartTimestamp());
+                preCommitRequirementValidator.throwIfPreCommitRequirementsNotMet(getStartTimestamp());
                 Validate.isTrue(
                         false,
                         "Wrong timestamp for cell in table %s Expected: %s Actual: %s",
@@ -2538,13 +2570,13 @@ public class SnapshotTransaction extends AbstractTransaction
      * @throws TransactionLockTimeoutException If our locks timed out while trying to commit.
      * @throws TransactionCommitFailedException failed when committing in a way that isn't retriable
      */
-    private void putCommitTimestamp(long commitTimestamp, LockToken locksToken, TransactionService transactionService)
+    private void putCommitTimestamp(long commitTimestamp, TransactionService transactionService)
             throws TransactionFailedException {
         Preconditions.checkArgument(commitTimestamp > getStartTimestamp(), "commitTs must be greater than startTs");
         try {
             transactionService.putUnlessExists(getStartTimestamp(), commitTimestamp);
         } catch (KeyAlreadyExistsException e) {
-            handleKeyAlreadyExistsException(commitTimestamp, e, locksToken);
+            handleKeyAlreadyExistsException(commitTimestamp, e);
         } catch (Exception e) {
             TransactionCommitFailedException commitFailedEx = new TransactionCommitFailedException(
                     "This transaction failed writing the commit timestamp. "
@@ -2556,8 +2588,7 @@ public class SnapshotTransaction extends AbstractTransaction
         }
     }
 
-    private void handleKeyAlreadyExistsException(
-            long commitTs, KeyAlreadyExistsException ex, LockToken commitLocksToken) {
+    private void handleKeyAlreadyExistsException(long commitTs, KeyAlreadyExistsException ex) {
         try {
             if (wasCommitSuccessful(commitTs)) {
                 // We did actually commit successfully.  This case could happen if the impl
@@ -2566,8 +2597,7 @@ public class SnapshotTransaction extends AbstractTransaction
             }
 
             SummarizedLockCheckResult lockCheckResult =
-                    immutableTimestampLockManager.getExpiredImmutableTimestampAndCommitLocksWithFullSummary(
-                            commitLocksToken);
+                    transactionLocksManager.getExpiredImmutableTimestampAndCommitLocksWithFullSummary();
             if (lockCheckResult.expiredLocks().isPresent()) {
                 transactionOutcomeMetrics.markLocksExpired();
                 throw new TransactionLockTimeoutException(
@@ -2583,7 +2613,11 @@ public class SnapshotTransaction extends AbstractTransaction
                                 .immutableTimestampLock()
                                 .map(token -> token.toSafeArg("immutableTimestampLock"))
                                 .orElseGet(() -> SafeArg.of("immutableTimestampLock", null)),
-                        lockCheckResult.userProvidedLock().toSafeArg("commitLocksToken"));
+                        SafeArg.of(
+                                "allLockTokens",
+                                lockCheckResult.allLockTokens().stream()
+                                        .map(LockToken::getRequestId)
+                                        .collect(Collectors.toSet())));
             }
         } catch (TransactionFailedException e1) {
             throw e1;

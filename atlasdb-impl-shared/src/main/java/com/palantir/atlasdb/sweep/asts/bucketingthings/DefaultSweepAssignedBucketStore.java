@@ -150,7 +150,8 @@ public final class DefaultSweepAssignedBucketStore
                 if (currentStartingBucket.isEmpty()) {
                     keyValueService.checkAndSet(CheckAndSetRequest.newCell(TABLE_REF, cell, serializedBucketProgress));
                     if (log.isDebugEnabled()) {
-                        log.debug("Persisted new starting bucket", SafeArg.of("newStartingBucket", newStartingBucket));
+                        log.debug(
+                                "Persisted new starting bucket {}", SafeArg.of("newStartingBucket", newStartingBucket));
                     }
                 } else {
                     if (newStartingBucket.bucketIdentifier() > currentStartingBucket.get()) {
@@ -161,14 +162,15 @@ public final class DefaultSweepAssignedBucketStore
                                 bucketIdentifierPersister.trySerialize(newStartingBucket.bucketIdentifier())));
                         if (log.isDebugEnabled()) {
                             log.debug(
-                                    "Updated sweep bucket progress",
+                                    "Updated sweep bucket progress from {} to {}",
                                     SafeArg.of("previousStartingBucket", currentStartingBucket),
                                     SafeArg.of("newStartingBucket", newStartingBucket));
                         }
                     } else {
                         log.info(
-                                "Attempted to update starting bucket, but the existing starting bucket in the database"
-                                        + " was already ahead of us (possible timelock lost lock?)",
+                                "Attempted to update starting bucket from {} to {}, but the existing starting"
+                                        + " bucket in the database was already ahead of us"
+                                        + " (possible timelock lost lock?)",
                                 SafeArg.of("previousStartingBucket", currentStartingBucket),
                                 SafeArg.of("newStartingBucket", newStartingBucket));
                     }
@@ -177,15 +179,16 @@ public final class DefaultSweepAssignedBucketStore
             } catch (RuntimeException e) {
                 if (attempt == CAS_ATTEMPT_LIMIT) {
                     log.warn(
-                            "Repeatedly failed to update starting bucket as part of sweep; throwing, some work may"
-                                    + " need to be re-done.",
+                            "Repeatedly failed to update starting bucket to {} as part of sweep; throwing"
+                                    + " after {} attempts, some work may need to be re-done",
                             SafeArg.of("attemptedNewStartingBucket", newStartingBucket),
                             SafeArg.of("numAttempts", CAS_ATTEMPT_LIMIT),
                             e);
                     throw e;
                 } else {
                     log.info(
-                            "Failed to read or update starting bucket as part of sweep. Retrying",
+                            "Failed to read or update starting bucket to {} as part of sweep after attempt {}."
+                                    + " Retrying",
                             SafeArg.of("newStartingBucket", newStartingBucket),
                             SafeArg.of("attemptNumber", attempt),
                             e);

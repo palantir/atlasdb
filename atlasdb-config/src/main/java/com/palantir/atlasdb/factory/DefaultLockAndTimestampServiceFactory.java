@@ -30,6 +30,7 @@ import com.palantir.atlasdb.keyvalue.api.LockWatchCachingConfig;
 import com.palantir.atlasdb.keyvalue.api.watch.LockWatchManagerInternal;
 import com.palantir.atlasdb.table.description.Schema;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.Namespace;
 import com.palantir.atlasdb.transaction.impl.InstrumentedTimelockService;
 import com.palantir.atlasdb.transaction.impl.TimelockTimestampServiceAdapter;
 import com.palantir.atlasdb.util.MetricsManager;
@@ -45,6 +46,7 @@ import com.palantir.lock.client.LeaderTimeCoalescingBatcher;
 import com.palantir.lock.client.LeaderTimeGetter;
 import com.palantir.lock.client.LegacyLeaderTimeGetter;
 import com.palantir.lock.client.LegacyLockTokenUnlocker;
+import com.palantir.lock.client.LockLeaseService;
 import com.palantir.lock.client.LockTokenUnlocker;
 import com.palantir.lock.client.MultiClientTimeLockUnlocker;
 import com.palantir.lock.client.NamespacedCoalescingLeaderTimeGetter;
@@ -60,6 +62,12 @@ import com.palantir.lock.client.RequestBatchersFactory;
 import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.client.TimestampCorroboratingTimelockService;
 import com.palantir.lock.client.metrics.TimeLockFeedbackBackgroundTask;
+import com.palantir.lock.client.timestampleases.MinLeasedTimestampGetter;
+import com.palantir.lock.client.timestampleases.MinLeasedTimestampGetterImpl;
+import com.palantir.lock.client.timestampleases.NamespacedTimestampLeaseService;
+import com.palantir.lock.client.timestampleases.NamespacedTimestampLeaseServiceImpl;
+import com.palantir.lock.client.timestampleases.TimestampLeaseAcquirer;
+import com.palantir.lock.client.timestampleases.TimestampLeaseAcquirerImpl;
 import com.palantir.lock.impl.LegacyTimelockService;
 import com.palantir.lock.v2.DefaultNamespacedTimelockRpcClient;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
@@ -355,20 +363,14 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 lockWatchDiagnosticsService);
         LockWatchManagerInternal lockWatchManager = timeLockHelperServices.lockWatchManager();
 
-        RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = RemoteTimelockServiceAdapter.create(
-                namespacedTimelockRpcClient,
+        RemoteTimelockServiceAdapter remoteTimelockServiceAdapter = createRemoteTimelockServiceAdapter(
+                timelockNamespace,
+                timelockRequestBatcherProviders,
                 namespacedConjureTimelockService,
-                getLeaderTimeGetter(
-                        timelockNamespace,
-                        timelockRequestBatcherProviders,
-                        namespacedConjureTimelockService,
-                        multiClientTimelockServiceSupplier),
-                timeLockHelperServices.requestBatchersFactory(),
-                getTimeLockUnlocker(
-                        timelockNamespace,
-                        timelockRequestBatcherProviders,
-                        namespacedConjureTimelockService,
-                        multiClientTimelockServiceSupplier));
+                multiClientTimelockServiceSupplier,
+                namespacedTimelockRpcClient,
+                timeLockHelperServices.requestBatchersFactory());
+
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
                 serviceProvider.getTimestampManagementRpcClient(), timelockNamespace);
 
@@ -381,6 +383,45 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 .addResources(remoteTimelockServiceAdapter::close)
                 .addResources(lockWatchManager::close)
                 .build();
+    }
+
+    private static RemoteTimelockServiceAdapter createRemoteTimelockServiceAdapter(
+            String timelockNamespace,
+            Optional<TimeLockRequestBatcherProviders> timelockRequestBatcherProviders,
+            NamespacedConjureTimelockService namespacedConjureTimelockService,
+            Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier,
+            NamespacedTimelockRpcClient namespacedTimelockRpcClient,
+            RequestBatchersFactory batchersFactory) {
+        LockTokenUnlocker unlocker = getTimeLockUnlocker(
+                timelockNamespace,
+                timelockRequestBatcherProviders,
+                namespacedConjureTimelockService,
+                multiClientTimelockServiceSupplier);
+
+        NamespacedTimestampLeaseService timestampLeaseService = new NamespacedTimestampLeaseServiceImpl(
+                Namespace.of(timelockNamespace), multiClientTimelockServiceSupplier.get());
+
+        TimestampLeaseAcquirer timestampLeaseAcquirer =
+                TimestampLeaseAcquirerImpl.create(timestampLeaseService, unlocker);
+
+        MinLeasedTimestampGetter minLeasedTimestampGetter = new MinLeasedTimestampGetterImpl(timestampLeaseService);
+
+        LockLeaseService lockLeaseService = LockLeaseService.create(
+                namespacedConjureTimelockService,
+                getLeaderTimeGetter(
+                        timelockNamespace,
+                        timelockRequestBatcherProviders,
+                        namespacedConjureTimelockService,
+                        multiClientTimelockServiceSupplier),
+                unlocker);
+
+        return RemoteTimelockServiceAdapter.create(
+                namespacedTimelockRpcClient,
+                namespacedConjureTimelockService,
+                batchersFactory,
+                lockLeaseService,
+                timestampLeaseAcquirer,
+                minLeasedTimestampGetter);
     }
 
     // Note: There is some duplication in the following two methods, but extracting a common method requires a fairly

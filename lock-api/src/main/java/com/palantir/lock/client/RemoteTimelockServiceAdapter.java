@@ -16,12 +16,13 @@
 
 package com.palantir.lock.client;
 
+import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsRequestV2;
 import com.palantir.atlasdb.timelock.api.ConjureGetFreshTimestampsResponseV2;
 import com.palantir.atlasdb.timelock.api.ConjureTimestampRange;
 import com.palantir.atlasdb.timelock.api.Namespace;
-import com.palantir.lock.annotations.ReviewedRestrictedApiUsage;
-import com.palantir.lock.v2.AcquireNamedMinTimestampLeaseResult;
+import com.palantir.lock.client.timestampleases.MinLeasedTimestampGetter;
+import com.palantir.lock.client.timestampleases.TimestampLeaseAcquirer;
 import com.palantir.lock.v2.ClientLockingOptions;
 import com.palantir.lock.v2.LockImmutableTimestampResponse;
 import com.palantir.lock.v2.LockRequest;
@@ -30,6 +31,7 @@ import com.palantir.lock.v2.LockToken;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.StartIdentifiedAtlasDbTransactionResponse;
 import com.palantir.lock.v2.TimelockService;
+import com.palantir.lock.v2.TimestampLeaseResults;
 import com.palantir.lock.v2.WaitForLocksRequest;
 import com.palantir.lock.v2.WaitForLocksResponse;
 import com.palantir.lock.watch.LockWatchCache;
@@ -38,6 +40,7 @@ import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampRange;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -49,53 +52,73 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
     private final LockLeaseService lockLeaseService;
     private final TransactionStarter transactionStarter;
     private final CommitTimestampGetter commitTimestampGetter;
+    private final TimestampLeaseAcquirer timestampLeaseAcquirer;
+    private final MinLeasedTimestampGetter minLeasedTimestampGetter;
+
+    private RemoteTimelockServiceAdapter(
+            NamespacedTimelockRpcClient rpcClient,
+            NamespacedConjureTimelockService conjureClient,
+            LockLeaseService lockLeaseService,
+            RequestBatchersFactory batcherFactory,
+            TimestampLeaseAcquirer timestampLeaseAcquirer,
+            MinLeasedTimestampGetter minLeasedTimestampGetter) {
+        this.rpcClient = rpcClient;
+        this.conjureTimelockService = conjureClient;
+        this.lockLeaseService = lockLeaseService;
+        this.transactionStarter = TransactionStarter.create(lockLeaseService, batcherFactory);
+        this.commitTimestampGetter = batcherFactory.createBatchingCommitTimestampGetter(lockLeaseService);
+        this.timestampLeaseAcquirer = timestampLeaseAcquirer;
+        this.minLeasedTimestampGetter = minLeasedTimestampGetter;
+    }
 
     public RemoteTimelockServiceAdapter(
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureTimelockService,
             LockLeaseService lockLeaseService,
             TransactionStarter transactionStarter,
-            CommitTimestampGetter commitTimestampGetter) {
+            CommitTimestampGetter commitTimestampGetter,
+            TimestampLeaseAcquirer timestampLeaseAcquirer,
+            MinLeasedTimestampGetter minLeasedTimestampGetter) {
         this.rpcClient = rpcClient;
         this.conjureTimelockService = conjureTimelockService;
         this.lockLeaseService = lockLeaseService;
         this.transactionStarter = transactionStarter;
         this.commitTimestampGetter = commitTimestampGetter;
+        this.timestampLeaseAcquirer = timestampLeaseAcquirer;
+        this.minLeasedTimestampGetter = minLeasedTimestampGetter;
     }
 
-    private RemoteTimelockServiceAdapter(
-            NamespacedTimelockRpcClient rpcClient,
-            NamespacedConjureTimelockService conjureTimelockService,
-            LeaderTimeGetter leaderTimeGetter,
-            RequestBatchersFactory batcherFactory,
-            LockTokenUnlocker unlocker) {
-        this.rpcClient = rpcClient;
-        this.lockLeaseService = LockLeaseService.create(conjureTimelockService, leaderTimeGetter, unlocker);
-        this.transactionStarter = TransactionStarter.create(lockLeaseService, batcherFactory);
-        this.commitTimestampGetter = batcherFactory.createBatchingCommitTimestampGetter(lockLeaseService);
-        this.conjureTimelockService = conjureTimelockService;
-    }
-
-    public static RemoteTimelockServiceAdapter create(
+    public static TimelockService create(
             Namespace namespace,
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
-            LockWatchCache lockWatchCache) {
-        return create(
+            LockWatchCache lockWatchCache,
+            LockLeaseService lockLeaseService,
+            TimestampLeaseAcquirer timestampLeaseAcquirer,
+            MinLeasedTimestampGetter minLeasedTimestampGetter) {
+        return new RemoteTimelockServiceAdapter(
                 rpcClient,
                 conjureClient,
-                new LegacyLeaderTimeGetter(conjureClient),
+                lockLeaseService,
                 RequestBatchersFactory.create(lockWatchCache, namespace, Optional.empty()),
-                new LegacyLockTokenUnlocker(conjureClient));
+                timestampLeaseAcquirer,
+                minLeasedTimestampGetter);
     }
 
     public static RemoteTimelockServiceAdapter create(
             NamespacedTimelockRpcClient rpcClient,
             NamespacedConjureTimelockService conjureClient,
-            LeaderTimeGetter leaderTimeGetter,
             RequestBatchersFactory batcherFactory,
-            LockTokenUnlocker unlocker) {
-        return new RemoteTimelockServiceAdapter(rpcClient, conjureClient, leaderTimeGetter, batcherFactory, unlocker);
+            LockLeaseService lockLeaseService,
+            TimestampLeaseAcquirer timestampLeaseAcquirer,
+            MinLeasedTimestampGetter minLeasedTimestampGetter) {
+        return new RemoteTimelockServiceAdapter(
+                rpcClient,
+                conjureClient,
+                lockLeaseService,
+                batcherFactory,
+                timestampLeaseAcquirer,
+                minLeasedTimestampGetter);
     }
 
     @Override
@@ -170,19 +193,14 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
         return rpcClient.currentTimeMillis();
     }
 
-    @ReviewedRestrictedApiUsage
     @Override
-    public AcquireNamedMinTimestampLeaseResult acquireNamedMinTimestampLease(
-            String timestampName, int numFreshTimestamps) {
-        // TODO(aalouane): implement!
-        throw new UnsupportedOperationException("Not implemented yet!");
+    public TimestampLeaseResults acquireTimestampLeases(Map<TimestampLeaseName, Integer> requests) {
+        return timestampLeaseAcquirer.acquireNamedTimestampLeases(requests);
     }
 
-    @ReviewedRestrictedApiUsage
     @Override
-    public long getMinLeasedTimestampForName(String timestampName) {
-        // TODO(aalouane): implement!
-        throw new UnsupportedOperationException("Not implemented yet!");
+    public Map<TimestampLeaseName, Long> getMinLeasedTimestamps(Set<TimestampLeaseName> timestampNames) {
+        return minLeasedTimestampGetter.getMinLeasedTimestamps(timestampNames);
     }
 
     @Override
@@ -190,5 +208,7 @@ public final class RemoteTimelockServiceAdapter implements TimelockService, Auto
         transactionStarter.close();
         commitTimestampGetter.close();
         lockLeaseService.close();
+        timestampLeaseAcquirer.close();
+        minLeasedTimestampGetter.close();
     }
 }

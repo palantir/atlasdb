@@ -1,7 +1,0 @@
-/.lein-failures
-/.lein-repl-history
-/.nrepl-port
-/resources/atlasdb/atlasdb-jepsen-tests-all.jar
-/resources/atlasdb/timelock-server.tgz
-/store
-/target/

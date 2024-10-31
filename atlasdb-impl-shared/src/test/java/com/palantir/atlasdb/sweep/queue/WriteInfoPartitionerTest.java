@@ -60,10 +60,11 @@ public class WriteInfoPartitionerTest {
     private KeyValueService mockKvs = mock(KeyValueService.class);
     private WriteInfoPartitioner partitioner;
     private int numShards = 128;
+    private int shardRotationIntervalMinutes = 1440;
 
     @BeforeEach
     public void setup() {
-        partitioner = new WriteInfoPartitioner(mockKvs, () -> numShards);
+        partitioner = new WriteInfoPartitioner(mockKvs, () -> numShards, () -> shardRotationIntervalMinutes);
         when(mockKvs.getMetadataForTable(any(TableReference.class))).thenAnswer(args -> {
             TableReference tableRef = args.getArgument(0);
             return METADATA_MAP.getOrDefault(tableRef, AtlasDbConstants.EMPTY_TABLE_METADATA);
@@ -156,7 +157,10 @@ public class WriteInfoPartitionerTest {
         }
         Map<PartitionInfo, List<WriteInfo>> partitions = partitioner.filterAndPartition(writes);
         assertThat(partitions.keySet())
-                .containsExactly(PartitionInfo.of(writes.get(0).toShard(numShards), SweeperStrategy.CONSERVATIVE, 1L));
+                .containsExactly(PartitionInfo.of(
+                        writes.get(0).toShard(numShards, shardRotationIntervalMinutes),
+                        SweeperStrategy.CONSERVATIVE,
+                        1L));
         assertThat(Iterables.getOnlyElement(partitions.values())).containsExactlyElementsOf(writes);
     }
 
@@ -181,7 +185,7 @@ public class WriteInfoPartitionerTest {
         int writes = 100_000;
         Map<Integer, Long> result = IntStream.range(0, writes)
                 .mapToObj(index -> getWriteInfo(TABLE_CONS, index, index, 1L))
-                .map(writeInfo -> writeInfo.toShard(numShards))
+                .map(writeInfo -> writeInfo.toShard(numShards, shardRotationIntervalMinutes))
                 .collect(Collectors.groupingBy(shard -> shard, Collectors.counting()));
 
         assertThat(result).hasSize(numShards);
@@ -196,7 +200,7 @@ public class WriteInfoPartitionerTest {
     private WriteInfo getWriteInfoWithFixedShard(TableReference tableRef, int cellIndex, int numShards) {
         return IntStream.iterate(0, i -> i + 1)
                 .mapToObj(index -> getWriteInfo(tableRef, cellIndex, index, 1L))
-                .filter(writeInfo -> writeInfo.toShard(numShards) == 0)
+                .filter(writeInfo -> writeInfo.toShard(numShards, shardRotationIntervalMinutes) == 0)
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Infinite stream had no cell possibilities :("));
     }

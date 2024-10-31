@@ -29,6 +29,7 @@ public class WriteInfoTest {
     private static final long ONE = 1L;
     private static final long TWO = 2L;
     private static final int SHARDS = 128;
+    private static final int SHARD_ROTATION_INTERVAL_MINUTES = 1440;
 
     @Test
     public void cellReferenceIgnoresTombstoneStatus() {
@@ -40,8 +41,8 @@ public class WriteInfoTest {
     @Test
     public void tombstoneStatusIsIgnoredForSharding() {
         assertThat(getWriteAt(ONE)).isNotEqualTo(getTombstoneAt(ONE));
-        assertThat(getWriteAt(ONE).toShard(SHARDS))
-                .isEqualTo(getTombstoneAt(ONE).toShard(SHARDS));
+        assertThat(getWriteAt(ONE).toShard(SHARDS, SHARD_ROTATION_INTERVAL_MINUTES))
+                .isEqualTo(getTombstoneAt(ONE).toShard(SHARDS, SHARD_ROTATION_INTERVAL_MINUTES));
     }
 
     @Test
@@ -49,9 +50,10 @@ public class WriteInfoTest {
         assertThat(getWriteAt(ONE)).isNotEqualTo(getWriteAt(TWO));
         assertThat(getTombstoneAt(ONE)).isNotEqualTo(getTombstoneAt(TWO));
 
-        assertThat(getWriteAt(ONE).toShard(SHARDS)).isEqualTo(getWriteAt(TWO).toShard(SHARDS));
-        assertThat(getTombstoneAt(ONE).toShard(SHARDS))
-                .isEqualTo(getTombstoneAt(TWO).toShard(SHARDS));
+        assertThat(getWriteAt(ONE).toShard(SHARDS, SHARD_ROTATION_INTERVAL_MINUTES))
+                .isEqualTo(getWriteAt(TWO).toShard(SHARDS, SHARD_ROTATION_INTERVAL_MINUTES));
+        assertThat(getTombstoneAt(ONE).toShard(SHARDS, SHARD_ROTATION_INTERVAL_MINUTES))
+                .isEqualTo(getTombstoneAt(TWO).toShard(SHARDS, SHARD_ROTATION_INTERVAL_MINUTES));
     }
 
     @Test

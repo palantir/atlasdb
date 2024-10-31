@@ -69,7 +69,8 @@ public abstract class AbstractCassandraKvsSerializableTransactionTest extends Ab
                         () -> 128,
                         SweepQueueReader.DEFAULT_READ_BATCHING_RUNTIME_CONTEXT,
                         new TargetedSweepFollower(List.of(), mock(TransactionManager.class)),
-                        MismatchBehaviour.UPDATE)
+                        MismatchBehaviour.UPDATE,
+                        () -> 1440)
                 .writer();
     }
 

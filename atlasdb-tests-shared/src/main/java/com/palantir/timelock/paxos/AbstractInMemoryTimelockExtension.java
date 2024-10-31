@@ -25,6 +25,9 @@ import com.palantir.atlasdb.timelock.AsyncTimelockService;
 import com.palantir.atlasdb.timelock.ConjureTimelockResource;
 import com.palantir.atlasdb.timelock.TimeLockServices;
 import com.palantir.atlasdb.timelock.api.ConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
+import com.palantir.atlasdb.timelock.api.Namespace;
+import com.palantir.atlasdb.timelock.batch.MultiClientConjureTimelockResource;
 import com.palantir.atlasdb.timelock.lock.LockLog;
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
@@ -36,10 +39,15 @@ import com.palantir.lock.client.CommitTimestampGetter;
 import com.palantir.lock.client.LegacyLeaderTimeGetter;
 import com.palantir.lock.client.LegacyLockTokenUnlocker;
 import com.palantir.lock.client.LockLeaseService;
+import com.palantir.lock.client.LockTokenUnlocker;
 import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.client.RequestBatchersFactory;
 import com.palantir.lock.client.TransactionStarter;
+import com.palantir.lock.client.timestampleases.MinLeasedTimestampGetterImpl;
+import com.palantir.lock.client.timestampleases.NamespacedTimestampLeaseService;
+import com.palantir.lock.client.timestampleases.NamespacedTimestampLeaseServiceImpl;
+import com.palantir.lock.client.timestampleases.TimestampLeaseAcquirerImpl;
 import com.palantir.lock.v2.NamespacedTimelockRpcClient;
 import com.palantir.lock.v2.TimelockService;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
@@ -80,6 +88,8 @@ public abstract class AbstractInMemoryTimelockExtension implements TimeLockServi
 
     private LockLeaseService lockLeaseService;
     private NamespacedConjureTimelockServiceImpl namespacedConjureTimelockService;
+    private NamespacedTimestampLeaseService timestampLeaseService;
+    private LockTokenUnlocker unlocker;
 
     public AbstractInMemoryTimelockExtension() {
         this("client");
@@ -159,11 +169,19 @@ public abstract class AbstractInMemoryTimelockExtension implements TimeLockServi
         RedirectRetryTargeter redirectRetryTargeter = timeLockAgent.redirectRetryTargeter();
         ConjureTimelockService conjureTimelockService = ConjureTimelockResource.jersey(
                 redirectRetryTargeter, (_namespace, _context) -> delegate.getTimelockService());
+        MultiClientConjureTimelockService multiClientConjureTimelockService = MultiClientConjureTimelockResource.jersey(
+                redirectRetryTargeter, (_namespace, _context) -> delegate.getTimelockService());
+
         namespacedConjureTimelockService = new NamespacedConjureTimelockServiceImpl(conjureTimelockService, client);
+        timestampLeaseService = new NamespacedTimestampLeaseServiceImpl(
+                Namespace.of(client),
+                new InMemoryInternalMultiClientConjureTimelockService(multiClientConjureTimelockService));
+
+        unlocker = new LegacyLockTokenUnlocker(namespacedConjureTimelockService);
         lockLeaseService = LockLeaseService.create(
                 namespacedConjureTimelockService,
                 new LegacyLeaderTimeGetter(namespacedConjureTimelockService),
-                new LegacyLockTokenUnlocker(namespacedConjureTimelockService));
+                unlocker);
     }
 
     public void tearDown() {
@@ -229,7 +247,9 @@ public abstract class AbstractInMemoryTimelockExtension implements TimeLockServi
                 namespacedConjureTimelockService,
                 lockLeaseService,
                 transactionStarter,
-                commitTimestampGetter);
+                commitTimestampGetter,
+                TimestampLeaseAcquirerImpl.create(timestampLeaseService, unlocker),
+                new MinLeasedTimestampGetterImpl(timestampLeaseService));
     }
 
     public LockLeaseService getLockLeaseService() {

@@ -16,6 +16,7 @@
 
 package com.palantir.atlasdb.sweep.queue;
 
+import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.protos.generated.TableMetadataPersistence.LogSafety;
@@ -60,7 +61,8 @@ public interface SweepQueueComponents {
             Supplier<Integer> shardsConfig,
             ReadBatchingRuntimeContext readBatchingRuntimeContext,
             TargetedSweepFollower follower,
-            MismatchBehaviour mismatchBehaviourForShards) {
+            MismatchBehaviour mismatchBehaviourForShards,
+            Supplier<Integer> rotationIntervalMinutesConfig) {
         // It is OK that the transaction service is different from the one used by the transaction manager,
         // as transaction services must not hold any local state in them that would affect correctness.
         TransactionService transaction =
@@ -74,7 +76,8 @@ public interface SweepQueueComponents {
                 readBatchingRuntimeContext,
                 _unused -> Optional.empty(),
                 follower,
-                mismatchBehaviourForShards);
+                mismatchBehaviourForShards,
+                rotationIntervalMinutesConfig);
     }
 
     static SweepQueueComponents create(
@@ -86,7 +89,8 @@ public interface SweepQueueComponents {
             ReadBatchingRuntimeContext readBatchingRuntimeContext,
             Function<TableReference, Optional<LogSafety>> tablesToTrackDeletions,
             TargetedSweepFollower follower,
-            MismatchBehaviour mismatchBehaviourForShards) {
+            MismatchBehaviour mismatchBehaviourForShards,
+            Supplier<Integer> rotationIntervalMinutesConfig) {
         Schemas.createTablesAndIndexes(TargetedSweepSchema.INSTANCE.getLatestSchema(), kvs);
         ShardProgress shardProgress = new ShardProgress(kvs);
 
@@ -95,8 +99,11 @@ public interface SweepQueueComponents {
                 shardsConfig,
                 mismatchBehaviourForShards,
                 Duration.ofMillis(SweepQueueUtils.REFRESH_TIME));
+        Supplier<Integer> rotationIntervalMinutesProvider = Suppliers.memoizeWithExpiration(
+                rotationIntervalMinutesConfig::get, Duration.ofMillis(SweepQueueUtils.REFRESH_TIME));
 
-        WriteInfoPartitioner partitioner = new WriteInfoPartitioner(kvs, numberOfShardsProvider::getNumberOfShards);
+        WriteInfoPartitioner partitioner = new WriteInfoPartitioner(
+                kvs, numberOfShardsProvider::getNumberOfShards, rotationIntervalMinutesProvider);
         SweepableCells cells = new SweepableCells(kvs, partitioner, metrics, transaction);
         SweepableTimestamps timestamps = new SweepableTimestamps(kvs, partitioner);
 

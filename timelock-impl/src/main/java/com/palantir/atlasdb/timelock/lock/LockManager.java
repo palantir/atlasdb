@@ -15,7 +15,7 @@
  */
 package com.palantir.atlasdb.timelock.lock;
 
-import com.palantir.atlasdb.timelock.api.TimestampLeaseName;
+import com.palantir.atlasdb.common.api.timelock.TimestampLeaseName;
 import com.palantir.lock.LockDescriptor;
 import java.util.Optional;
 import java.util.Set;

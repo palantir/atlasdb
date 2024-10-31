@@ -10,6 +10,7 @@ license {
 libsDirName = file('build/artifacts')
 
 dependencies {
+    api project(":atlasdb-commons-api")
     api project(':lock-conjure-api:lock-conjure-api-dialogue')
     api project(':lock-api-objects')
     api project(':timelock-api')
@@ -24,6 +25,7 @@ dependencies {
     implementation 'javax.ws.rs:javax.ws.rs-api'
     implementation 'com.fasterxml.jackson.core:jackson-annotations'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.github.rholder:guava-retrying'
     implementation 'com.palantir.safe-logging:safe-logging'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.refreshable:refreshable'

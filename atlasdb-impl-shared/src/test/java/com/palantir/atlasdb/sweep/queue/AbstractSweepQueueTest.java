@@ -56,19 +56,21 @@ public abstract class AbstractSweepQueueTest {
     static final long TS_FINE_PARTITION = SweepQueueUtils.tsPartitionFine(TS);
     static final long TS2_FINE_PARTITION = SweepQueueUtils.tsPartitionFine(TS2);
     static final int DEFAULT_SHARDS = 8;
+    static final int DEFAULT_SHARD_ROTATION_INTERVAL_MINUTES = 1440;
     static final int FIXED_SHARD = WriteInfo.write(
                     TABLE_CONS,
                     getCellRefWithFixedShard(0, TABLE_CONS, DEFAULT_SHARDS).cell(),
                     0L)
-            .toShard(DEFAULT_SHARDS);
-    static final int CONS_SHARD =
-            WriteInfo.tombstone(TABLE_CONS, DEFAULT_CELL, 0).toShard(DEFAULT_SHARDS);
-    static final int THOR_SHARD =
-            WriteInfo.tombstone(TABLE_THOR, DEFAULT_CELL, 0).toShard(DEFAULT_SHARDS);
-    static final int THOR_MIGRATION_SHARD =
-            WriteInfo.tombstone(TABLE_THOR_MIGRATION, DEFAULT_CELL, 0).toShard(DEFAULT_SHARDS);
+            .toShard(DEFAULT_SHARDS, DEFAULT_SHARD_ROTATION_INTERVAL_MINUTES);
+    static final int CONS_SHARD = WriteInfo.tombstone(TABLE_CONS, DEFAULT_CELL, 0)
+            .toShard(DEFAULT_SHARDS, DEFAULT_SHARD_ROTATION_INTERVAL_MINUTES);
+    static final int THOR_SHARD = WriteInfo.tombstone(TABLE_THOR, DEFAULT_CELL, 0)
+            .toShard(DEFAULT_SHARDS, DEFAULT_SHARD_ROTATION_INTERVAL_MINUTES);
+    static final int THOR_MIGRATION_SHARD = WriteInfo.tombstone(TABLE_THOR_MIGRATION, DEFAULT_CELL, 0)
+            .toShard(DEFAULT_SHARDS, DEFAULT_SHARD_ROTATION_INTERVAL_MINUTES);
 
     int numShards;
+    int shardRotationIntervalMinutes;
     long immutableTs;
     long unreadableTs;
     int shardCons;
@@ -84,6 +86,8 @@ public abstract class AbstractSweepQueueTest {
     @BeforeEach
     public void setup() {
         numShards = DEFAULT_SHARDS;
+        shardRotationIntervalMinutes = DEFAULT_SHARD_ROTATION_INTERVAL_MINUTES;
+
         unreadableTs = SweepQueueUtils.TS_COARSE_GRANULARITY * 5;
         immutableTs = SweepQueueUtils.TS_COARSE_GRANULARITY * 5;
 
@@ -95,7 +99,7 @@ public abstract class AbstractSweepQueueTest {
         spiedKvs.createTable(TABLE_THOR, metadataBytes(SweepStrategy.THOROUGH));
         spiedKvs.createTable(TABLE_THOR_MIGRATION, metadataBytes(SweepStrategy.THOROUGH_MIGRATION));
         spiedKvs.createTable(TABLE_NOTH, metadataBytes(SweepStrategy.NOTHING));
-        partitioner = new WriteInfoPartitioner(spiedKvs, () -> numShards);
+        partitioner = new WriteInfoPartitioner(spiedKvs, () -> numShards, () -> shardRotationIntervalMinutes);
         txnService = TransactionServices.createV1TransactionService(spiedKvs);
     }
 
@@ -141,7 +145,7 @@ public abstract class AbstractSweepQueueTest {
     private int write(SweepQueueTable writer, long ts, Cell cell, boolean isTombstone, TableReference tableRef) {
         WriteInfo write = WriteInfo.of(WriteReference.of(tableRef, cell, isTombstone), ts);
         writer.enqueue(ImmutableList.of(write));
-        return write.toShard(numShards);
+        return write.toShard(numShards, shardRotationIntervalMinutes);
     }
 
     void putTimestampIntoTransactionTable(long ts, long commitTs) {

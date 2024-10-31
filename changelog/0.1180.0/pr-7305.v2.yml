@@ -1,0 +1,6 @@
+type: feature
+feature:
+  description: Add leased timestamps to `TimestampLeaseAwareTransaction` and `TimestampLeaseAwareTransactionManager`
+    APIs.
+  links:
+  - https://github.com/palantir/atlasdb/pull/7305

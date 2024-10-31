@@ -61,6 +61,11 @@ public abstract class TargetedSweepRuntimeConfig {
         return AtlasDbConstants.DEFAULT_TARGETED_SWEEP_SHARDS;
     }
 
+    @Value.Default
+    public int shardRotationIntervalMinutes() {
+        return AtlasDbConstants.DEFAULT_SHARD_ROTATION_INTERVAL_MINUTES;
+    }
+
     /**
      * Specifies the maximum number of (fine) partitions over which targeted sweep attempts to read sweep queue
      * information before executing deletes. Only partitions which actually contain information about writes will count
@@ -89,6 +94,14 @@ public abstract class TargetedSweepRuntimeConfig {
                 shards() >= 1 && shards() <= 256,
                 "Shard number must be between 1 and 256 inclusive.",
                 SafeArg.of("shards", shards()));
+    }
+
+    @Value.Check
+    void checkRotationIntervalMinutes() {
+        Preconditions.checkArgument(
+                shardRotationIntervalMinutes() >= 10 && shardRotationIntervalMinutes() <= 1440,
+                "Shard rotation interval minutes must be between 10 and 1440 minutes inclusive.",
+                SafeArg.of("rotationIntervalMinutes", shardRotationIntervalMinutes()));
     }
 
     /**

@@ -17,7 +17,10 @@
 package com.palantir.atlasdb.sweep.asts;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -27,6 +30,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Streams;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.keyvalue.api.Cell;
+import com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
 import com.palantir.atlasdb.schema.generated.SweepableCellsTable.SweepableCellsRow;
 import com.palantir.atlasdb.sweep.Sweeper;
@@ -34,6 +38,7 @@ import com.palantir.atlasdb.sweep.asts.bucketingthings.BucketCompletionListener;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.CompletelyClosedSweepBucketBoundRetriever;
 import com.palantir.atlasdb.sweep.asts.progress.BucketProgress;
 import com.palantir.atlasdb.sweep.asts.progress.BucketProgressStore;
+import com.palantir.atlasdb.sweep.metrics.SweepOutcome;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepMetrics;
 import com.palantir.atlasdb.sweep.queue.DedicatedRows;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
@@ -119,7 +124,7 @@ public class DefaultSingleBucketSweepTaskTest {
         setRelevantTimestampForStrategy(context.shardAndStrategy().strategy(), context.startTimestampInclusive() - 1L);
         assertThat(defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket()))
                 .isEqualTo(0);
-
+        verify(targetedSweepMetrics).registerOccurrenceOf(context.shardAndStrategy(), SweepOutcome.NOTHING_TO_SWEEP);
         verifyNoInteractions(
                 bucketProgressStore, sweepQueueReader, sweepQueueDeleter, sweepQueueCleaner, completionListener);
     }
@@ -135,6 +140,7 @@ public class DefaultSingleBucketSweepTaskTest {
         assertThat(defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket()))
                 .isEqualTo(0);
         verify(completionListener).markBucketCompleteAndRemoveFromScheduling(context.bucket());
+        verify(targetedSweepMetrics).registerOccurrenceOf(context.shardAndStrategy(), SweepOutcome.NOTHING_TO_SWEEP);
         verifyNoInteractions(sweepQueueReader, sweepQueueDeleter, sweepQueueCleaner);
     }
 
@@ -148,6 +154,7 @@ public class DefaultSingleBucketSweepTaskTest {
 
         assertThat(defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket()))
                 .isEqualTo(0);
+        verify(targetedSweepMetrics).registerOccurrenceOf(context.shardAndStrategy(), SweepOutcome.NOTHING_TO_SWEEP);
         verifyNoInteractions(completionListener, sweepQueueReader, sweepQueueDeleter, sweepQueueCleaner);
     }
 
@@ -160,6 +167,7 @@ public class DefaultSingleBucketSweepTaskTest {
 
         assertThat(defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket()))
                 .isEqualTo(0);
+        verify(targetedSweepMetrics).registerOccurrenceOf(context.shardAndStrategy(), SweepOutcome.NOTHING_TO_SWEEP);
         verifyNoInteractions(completionListener, sweepQueueReader, sweepQueueDeleter, sweepQueueCleaner);
     }
 
@@ -172,6 +180,7 @@ public class DefaultSingleBucketSweepTaskTest {
 
         assertThat(defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket()))
                 .isEqualTo(0);
+        verify(targetedSweepMetrics).registerOccurrenceOf(context.shardAndStrategy(), SweepOutcome.NOTHING_TO_SWEEP);
         verifyNoInteractions(completionListener, sweepQueueReader, sweepQueueDeleter, sweepQueueCleaner);
     }
 
@@ -204,6 +213,7 @@ public class DefaultSingleBucketSweepTaskTest {
                 .updateBucketProgressToAtLeast(
                         context.bucket(), context.completeProgressForBucket().orElseThrow());
         verify(completionListener).markBucketCompleteAndRemoveFromScheduling(context.bucket());
+        verify(targetedSweepMetrics).registerOccurrenceOf(context.shardAndStrategy(), SweepOutcome.NOTHING_TO_SWEEP);
     }
 
     @ParameterizedTest
@@ -234,7 +244,60 @@ public class DefaultSingleBucketSweepTaskTest {
         verify(bucketProgressStore)
                 .updateBucketProgressToAtLeast(
                         context.bucket(), context.completeProgressForBucket().orElseThrow());
+        verify(targetedSweepMetrics).registerOccurrenceOf(context.shardAndStrategy(), SweepOutcome.NOTHING_TO_SWEEP);
         verifyNoInteractions(completionListener);
+    }
+
+    @ParameterizedTest
+    @MethodSource("closedSweepBuckets")
+    public void recordsNotEnoughDbNodesOnlineWhenFailingToSweepBucketDueToInsufficientConsistency(
+            SweepBucketTestContext context) {
+        setRelevantTimestampForStrategy(context.shardAndStrategy().strategy(), context.endTimestampExclusive());
+        when(sweepQueueReader.getNextBatchToSweep(
+                        context.shardAndStrategy(),
+                        context.startTimestampInclusive() - 1,
+                        context.endTimestampExclusive(),
+                        context.endTimestampExclusive()))
+                .thenReturn(SweepBatchWithPartitionInfo.of(
+                        SweepBatch.of(
+                                ImmutableSet.of(),
+                                DedicatedRows.of(ImmutableList.of()),
+                                context.endTimestampExclusive() - 1),
+                        ImmutableSet.of()));
+        doThrow(new InsufficientConsistencyException("test"))
+                .when(sweepQueueDeleter)
+                .sweep(ImmutableList.of(), Sweeper.of(context.shardAndStrategy()));
+
+        defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket());
+        verify(targetedSweepMetrics)
+                .registerOccurrenceOf(context.shardAndStrategy(), SweepOutcome.NOT_ENOUGH_DB_NODES_ONLINE);
+        verify(bucketProgressStore, never()).updateBucketProgressToAtLeast(eq(context.bucket()), any());
+        verifyNoInteractions(completionListener, sweepQueueCleaner);
+    }
+
+    @ParameterizedTest
+    @MethodSource("closedSweepBuckets")
+    public void recordsErrorWhenFailingToSweepBucketDueToOtherException(SweepBucketTestContext context) {
+        setRelevantTimestampForStrategy(context.shardAndStrategy().strategy(), context.endTimestampExclusive());
+        when(sweepQueueReader.getNextBatchToSweep(
+                        context.shardAndStrategy(),
+                        context.startTimestampInclusive() - 1,
+                        context.endTimestampExclusive(),
+                        context.endTimestampExclusive()))
+                .thenReturn(SweepBatchWithPartitionInfo.of(
+                        SweepBatch.of(
+                                ImmutableSet.of(),
+                                DedicatedRows.of(ImmutableList.of()),
+                                context.endTimestampExclusive() - 1),
+                        ImmutableSet.of()));
+        doThrow(new RuntimeException("test"))
+                .when(sweepQueueDeleter)
+                .sweep(ImmutableList.of(), Sweeper.of(context.shardAndStrategy()));
+
+        defaultSingleBucketSweepTask.runOneIteration(context.sweepableBucket());
+        verify(targetedSweepMetrics).registerOccurrenceOf(context.shardAndStrategy(), SweepOutcome.ERROR);
+        verify(bucketProgressStore, never()).updateBucketProgressToAtLeast(eq(context.bucket()), any());
+        verifyNoInteractions(completionListener, sweepQueueCleaner);
     }
 
     @ParameterizedTest
@@ -265,6 +328,7 @@ public class DefaultSingleBucketSweepTaskTest {
                         context.bucket(),
                         BucketProgress.createForTimestampProgress(
                                 sweepTimestamp - 1 - context.startTimestampInclusive()));
+        verify(targetedSweepMetrics).registerOccurrenceOf(context.shardAndStrategy(), SweepOutcome.NOTHING_TO_SWEEP);
         verifyNoInteractions(completionListener);
     }
 
@@ -385,7 +449,7 @@ public class DefaultSingleBucketSweepTaskTest {
         ArgumentCaptor<Collection<WriteInfo>> writeInfoCaptor = ArgumentCaptor.forClass(Collection.class);
         verify(sweepQueueDeleter).sweep(writeInfoCaptor.capture(), eq(Sweeper.of(context.shardAndStrategy())));
         assertThat(writeInfoCaptor.getValue()).containsExactlyInAnyOrderElementsOf(writeInfoSet);
-
+        verify(targetedSweepMetrics).registerOccurrenceOf(context.shardAndStrategy(), SweepOutcome.SUCCESS);
         verify(sweepQueueCleaner)
                 .clean(
                         context.shardAndStrategy(),

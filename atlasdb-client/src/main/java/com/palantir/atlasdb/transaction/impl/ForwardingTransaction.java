@@ -17,6 +17,7 @@ package com.palantir.atlasdb.transaction.impl;
 
 import com.google.common.collect.ForwardingObject;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.palantir.atlasdb.common.api.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.atlasdb.keyvalue.api.BatchColumnRangeSelection;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ColumnRangeSelection;
@@ -30,7 +31,6 @@ import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.atlasdb.transaction.api.TransactionFailedException;
 import com.palantir.atlasdb.transaction.api.TransactionReadSentinelBehavior;
 import com.palantir.atlasdb.transaction.api.ValueAndChangeMetadata;
-import com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage;
 import com.palantir.atlasdb.transaction.api.exceptions.MoreCellsPresentThanExpectedException;
 import com.palantir.atlasdb.transaction.service.TransactionService;
 import com.palantir.common.base.BatchingVisitable;

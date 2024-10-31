@@ -423,6 +423,30 @@ acceptedBreaks:
       new: "method void com.palantir.atlasdb.keyvalue.api.InsufficientConsistencyException::<init>(java.lang.String,\
         \ java.lang.Throwable, com.palantir.logsafe.Arg<?>[])"
       justification: "I have fixed all the implementations and it is not used externally"
+  "0.1168.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.numberOfParametersChanged"
+      old: "method void com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator::throwIfImmutableTsOrCommitLocksExpired(com.palantir.lock.v2.LockToken)"
+      new: "method void com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator::throwIfImmutableTsOrCommitLocksExpired()"
+      justification: "Internal APIs"
+    - code: "java.method.numberOfParametersChanged"
+      old: "method void com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator::throwIfPreCommitRequirementsNotMet(com.palantir.lock.v2.LockToken,\
+        \ long)"
+      new: "method void com.palantir.atlasdb.transaction.api.precommit.PreCommitRequirementValidator::throwIfPreCommitRequirementsNotMet(long)"
+      justification: "Internal APIs"
+  "0.1173.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.annotation.noLongerPresent"
+      old: "@interface com.palantir.atlasdb.transaction.api.annotations.ReviewedRestrictedApiUsage"
+      justification: "just moving annotation to another package"
+  "0.1181.0":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.parameterTypeChanged"
+      old: "parameter void com.palantir.atlasdb.transaction.api.TimestampLeaseAwareTransaction::preCommit(com.palantir.atlasdb.common.api.timelock.TimestampLeaseName,\
+        \ int, ===java.util.function.Consumer<java.util.function.LongSupplier>===)"
+      new: "parameter void com.palantir.atlasdb.transaction.api.TimestampLeaseAwareTransaction::preCommit(com.palantir.atlasdb.common.api.timelock.TimestampLeaseName,\
+        \ int, ===com.palantir.atlasdb.transaction.api.TimestampLeaseAwareTransaction.PreCommitAction===)"
+      justification: "breaks on internal APIs only"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"
