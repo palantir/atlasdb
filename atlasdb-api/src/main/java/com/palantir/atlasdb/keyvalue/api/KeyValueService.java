@@ -428,7 +428,6 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * be a complicated topic for distributed databases.
      *
      * @param tableRef the name of the table to truncate.
-     *
      * @throws InsufficientConsistencyException if not all hosts respond successfully
      * @throws RuntimeException or a subclass of RuntimeException if the table does not exist
      */
@@ -441,7 +440,6 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * This can be slightly faster than repeatedly truncating individual tables.
      *
      * @param tableRefs the name of the tables to truncate.
-     *
      * @throws InsufficientConsistencyException if not all hosts respond successfully
      * @throws RuntimeException or a subclass of RuntimeException if the table does not exist
      */
@@ -475,7 +473,6 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * @param tableRef the name of the table to read from.
      * @param rangeRequest the range to load.
      * @param timestamp the maximum timestamp to load.
-     *
      * @throws InsufficientConsistencyException if not all hosts respond successfully
      *
      * @deprecated use {@link #getCandidateCellsForSweeping}
