@@ -20,7 +20,6 @@ import com.google.errorprone.annotations.MustBeClosed;
 import com.palantir.atlasdb.metrics.Timed;
 import com.palantir.atlasdb.transaction.api.TransactionManager;
 import com.palantir.common.annotation.Idempotent;
-import com.palantir.common.annotation.NonIdempotent;
 import com.palantir.common.base.ClosableIterator;
 import com.palantir.common.exception.AtlasDbDependencyException;
 import com.palantir.processors.AutoDelegate;
@@ -44,7 +43,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     void close();
 
     /**
-     * Gets all key value services this key value service delegates to directly.
+     * Gets all key-value services to which this key-value service directly delegates.
      * <p>
      * This can be used to decompose a complex key value service using table splits, tiers,
      * or other delegating operations into its subcomponents.
@@ -59,7 +58,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * @param rows set containing the rows to retrieve values for.
      * @param columnSelection specifies the set of columns to fetch.
      * @param timestamp specifies the maximum timestamp (exclusive) at which to
-     *        retrieve each rows's value.
+     *        retrieve each row's value.
      * @return map of retrieved values. Values which do not exist (either
      *         because they were deleted or never created in the first place)
      *         are simply not returned.
@@ -80,7 +79,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * @param rows set containing the rows to retrieve values for. Behavior is undefined if {@code rows}
      *        contains duplicates (as defined by {@link java.util.Arrays#equals(byte[], byte[])}).
      * @param batchColumnRangeSelection specifies the column range and the per-row batchSize to fetch.
-     * @param timestamp specifies the maximum timestamp (exclusive) at which to retrieve each rows's value.
+     * @param timestamp specifies the maximum timestamp (exclusive) at which to retrieve each row's value.
      * @return map of row names to {@link RowColumnRangeIterator}. Each {@link RowColumnRangeIterator} can iterate over
      *         the values that are spanned by the {@code batchColumnRangeSelection} in increasing order by column name.
      * @throws IllegalArgumentException if {@code rows} contains duplicates.
@@ -106,7 +105,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * @param columnRangeSelection specifies the column range to fetch.
      * @param cellBatchHint specifies the batch size for fetching the values.
      * @param timestamp specifies the maximum timestamp (exclusive) at which to
-     *        retrieve each rows's value.
+     *        retrieve each row's value.
      * @return a {@link RowColumnRangeIterator} that can iterate over all the retrieved values. Results for different
      *         rows are in the same order as they are provided in {@code rows}. All columns for a given row are adjacent
      *         and sorted by increasing column name.
@@ -126,7 +125,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      *
      * @param tableRef the name of the table to retrieve values from.
      * @param timestampByCell specifies, for each row, the maximum timestamp (exclusive) at which to
-     *        retrieve that rows's value.
+     *        retrieve that row's value.
      * @return map of retrieved values. Values which do not exist (either
      *         because they were deleted or never created in the first place)
      *         are simply not returned.
@@ -170,7 +169,8 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * but this is not guaranteed even if the key exists - see {@link #putUnlessExists}}.
      * <p>
      * Must not throw KeyAlreadyExistsException when overwriting a cell with the original value (idempotent).
-     *  @param tableRef the name of the table to put values into.
+     *
+     * @param tableRef the name of the table to put values into.
      * @param values map containing the key-value entries to put.
      * @param timestamp must be non-negative and not equal to {@link Long#MAX_VALUE}
      */
@@ -194,7 +194,8 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * but this is not guaranteed even if the key exists - see {@link #putUnlessExists}.
      * <p>
      * Must not throw KeyAlreadyExistsException when overwriting a cell with the original value (idempotent).
-     *  @param valuesByTable map containing the key-value entries to put by table.
+     *
+     * @param valuesByTable map containing the key-value entries to put by table.
      * @param timestamp must be non-negative and not equal to {@link Long#MAX_VALUE}
      */
     @Idempotent
@@ -211,9 +212,6 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * If the key-value store supports durability, this call guarantees that the
      * requests have successfully been written to disk before returning.
      * <p>
-     * This method may be non-idempotent. On some write-once implementations retrying this
-     * call may result in failure. The way around this is to delete and retry.
-     * <p>
      * Putting a null value is the same as putting the empty byte[].  If you want to delete a value
      * try {@link #delete(TableReference, Multimap)}.
      * <p>
@@ -221,11 +219,11 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * but this is not guaranteed even if the key exists - see {@link #putUnlessExists}.
      * <p>
      * Must not throw KeyAlreadyExistsException when overwriting a cell with the original value (idempotent).
+     *
      * @param tableRef the name of the table to put values into.
      * @param cellValues map containing the key-value entries to put with
      *               non-negative timestamps less than {@link Long#MAX_VALUE}.
      */
-    @NonIdempotent
     @Idempotent
     @Timed
     void putWithTimestamps(TableReference tableRef, Multimap<Cell, Value> cellValues) throws KeyAlreadyExistsException;
@@ -263,15 +261,15 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * <p>
      * WARNING
      * Use this method if and only if you wish to set a value in an atomic table. Otherwise, use
-     *{@link #put(TableReference, Map, long)}.
-     * <p>
+     * {@link #put(TableReference, Map, long)}.
+     *
      * @param tableRef the name of the table to put values into.
      * @param values map containing the key-value entries to put.
      */
     void setOnce(TableReference tableRef, Map<Cell, byte[]> values);
 
     /**
-     * Performs a delete from an atomic table - that is, a table written to by
+     * Performs a deletion from an atomic table - that is, a table written to by
      * {@link #putUnlessExists(TableReference, Map)} or {@link #checkAndSet(CheckAndSetRequest)}. If applied to a
      * table that is read to and written from using AtlasDB timestamps, behaviour is undefined.
      *
@@ -292,7 +290,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
 
     /**
      * Get the {@link CheckAndSetCompatibility} that this {@link KeyValueService} exhibits.
-     *
+     * <p>
      * This method must be consistent with {@link KeyValueService#supportsCheckAndSet()}.
      *
      * @return check and set compatibility
@@ -325,14 +323,14 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     /**
      * Performs a check-and-set for multiple cells in a row into the key-value store.
      * Please see {@link MultiCheckAndSetRequest} for information about how to create this request.
-     *
+     * <p>
      * If the call completes successfully, then you know that the old cells initially had the values you expected.
      * In this case, you can be sure that all your cells have been updated to their new values.
      * In case of failure, there are no guarantees that the operation was not partially applied but the
      * implementations may offer such a guarantee.
      * Reads concurrent with this operation may see a partially applied update that later succeeds, though
      * implementations may offer stronger guarantees.
-     *
+     * <p>
      * If a {@link MultiCheckAndSetException} is thrown, it is likely that the values stored in the cells were not as
      * you expected.
      * In this case, you may want to check the stored values and determine why it was different from the expected value.
@@ -346,7 +344,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     /**
      * Deletes values from the key-value store.
      * <p>
-     * This call <i>does not</i> guarantee atomicity for deletes across (Cell, ts) pairs. However it
+     * This call <i>does not</i> guarantee atomicity for deletes across (Cell, ts) pairs. However, it
      * MUST be implemented where timestamps are deleted in increasing order for each Cell. This
      * means that if there is a request to delete (c, 1) and (c, 2) then the system will never be in
      * a state where (c, 2) was successfully deleted but (c, 1) still remains. It is possible that
@@ -357,12 +355,13 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * successfully been written to disk before returning.
      * <p>
      * If a key value store supports garbage collection, then a call to delete should mean the value
-     * will not be read in the future. If GC isn't supported, then delete can be written to have a
+     * will not be read in the future. If GC isn't supported, then delete can be written to have the
      * best effort attempt to delete the values.
      * <p>
-     * Some systems may require more nodes to be up to ensure that a delete is successful. If this
-     * is the case then this method may throw if the delete can't be completed on all nodes.
-     *  @param tableRef the name of the table to delete values from.
+     * Some systems may require more nodes to be up to ensure that a deletion is successful. If this
+     * is the case then this method may throw if the deletion can't be completed on all nodes.
+     *
+     * @param tableRef the name of the table to delete values from.
      * @param keys map containing the keys to delete values for; the map should specify, for each
      */
     @Idempotent
@@ -371,13 +370,13 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
 
     /**
      * Deletes values in a range from the key-value store.
-     *
+     * <p>
      * Does not guarantee an atomic delete throughout the entire range.
-     *
-     * Currently does not allow a column selection to mean only delete certain columns in a range.
-     *
-     * Some systems may require more nodes to be up to ensure that a delete is successful. If this
-     * is the case then this method may throw if the delete can't be completed on all nodes.
+     * <p>
+     * Currently, does not allow a column selection to mean only delete certain columns in a range.
+     * <p>
+     * Some systems may require more nodes to be up to ensure that a deletion is successful. If this
+     * is the case then this method may throw if the deletion can't be completed on all nodes.
      *
      * @param tableRef the name of the table to delete values from.
      * @param range the range to delete
@@ -388,15 +387,15 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
 
     /**
      * Deletes multiple complete rows from the key-value store.
-     *
+     * <p>
      * Does not guarantee atomicity in any way (deletes may be partial within *any* of the rows provided, and
      * there is no guarantee of any correlation or lack thereof between success of the deletes for each of the rows
      * provided).
-     *
-     * Some systems may require more nodes to be up to ensure that a delete is successful. If this is the case then
-     * this method may throw if the delete can't be completed on all nodes. Please be aware that if it does throw,
+     * <p>
+     * Some systems may require more nodes to be up to ensure that a deletion is successful. If this is the case then
+     * this method may throw if the deletion can't be completed on all nodes. Please be aware that if it does throw,
      * some deletes may have been applied on some nodes.
-     *
+     * <p>
      * This method MAY require linearly many calls to the database in the number of rows, so should be used with
      * caution.
      *
@@ -452,10 +451,11 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     /**
      * For each row in the specified range, returns the most recent version strictly before
      * timestamp.
-     *
+     * <p>
      * Remember to close any {@link ClosableIterator}s you get in a finally block.
+     *
      * @param rangeRequest the range to load.
-     * @param timestamp specifies the maximum timestamp (exclusive) at which to retrieve each rows's
+     * @param timestamp specifies the maximum timestamp (exclusive) at which to retrieve each row's
      */
     @Idempotent
     @Timed
@@ -469,7 +469,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * This method has stronger consistency guarantees than regular read requests. This must return
      * all timestamps stored anywhere in the system. An example of where this could happen is if we
      * use a system with QUORUM reads and writes. Under normal operations reads only need to talk to
-     * a Quorum of hosts. However this call MUST be implemented by talking to ALL the nodes where a
+     * a Quorum of hosts. However, this call MUST be implemented by talking to ALL the nodes where a
      * value could be stored.
      *
      * @param tableRef the name of the table to read from.
@@ -534,7 +534,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
 
     /**
      * Drop the table, and also delete its table metadata.
-     *
+     * <p>
      * Do not fall into the trap of performing drop & immediate re-create of tables;
      * instead use 'truncate' for this task.
      */
@@ -545,7 +545,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * Drops many tables in idempotent fashion. If you are dropping many tables at once,
      * use this call as the implementation can be much faster/less error-prone on some KVSs.
      * Also deletes corresponding table metadata.
-     *
+     * <p>
      * Do not fall into the trap of performing drop & immediate re-create of tables;
      * instead use 'truncate' for this task.
      */
@@ -568,7 +568,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
 
     /**
      * Return the list of tables stored in this key value service.
-     *
+     * <p>
      * This will contain system tables (such as the _transaction table), but will not contain
      * the names of any tables used internally by the key value service (a common example is
      * a _metadata table for storing table metadata).
@@ -620,7 +620,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * This method has stronger consistency guarantees than regular read requests. This must return
      * all timestamps stored anywhere in the system. An example of where this could happen is if we
      * use a system with QUORUM reads and writes. Under normal operations reads only need to talk to
-     * a Quorum of hosts. However this call MUST be implemented by talking to ALL the nodes where a
+     * a Quorum of hosts. However, this call MUST be implemented by talking to ALL the nodes where a
      * value could be stored.
      *
      * @param tableRef the name of the table to retrieve timestamps from.
@@ -636,7 +636,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     /**
      * Does whatever can be done to compact or cleanup a table. Intended to be called after many
      * deletions are performed.
-     *
+     * <p>
      * This call must be implemented so that it completes synchronously.
      */
     @Timed
@@ -683,7 +683,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
     }
 
     /**
-     * Whether or not read performance degrades significantly when many deleted cells are in the requested range.
+     * Whether read performance degrades significantly when many deleted cells are in the requested range.
      * This is used by sweep to determine if it should wait a while between runs after deleting a large number of cells.
      */
     @DoDelegate
@@ -701,7 +701,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
 
     /**
      * Returns a sorted list of row keys in the specified range.
-     *
+     * <p>
      * This method is not guaranteed to be implemented for all implementations of {@link KeyValueService}. It may be
      * changed or removed at any time without warning.
      *
@@ -724,8 +724,8 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
 
     @DoDelegate
     default boolean sweepsEntriesInStrictlyNonDecreasingFashion() {
-        // This is in general True, but we're setting to false to start rollout only for C* of stopping to check for
-        // immutable timestamp lock on non empty reads on thoroughly swept tables.
+        // This is generally true, but we're setting it to false to start the rollout only for C*, to stop checking for
+        // the immutable timestamp lock on non-empty reads on thoroughly swept tables.
         return false;
     }
 }
