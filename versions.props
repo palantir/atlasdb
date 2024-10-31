@@ -10,13 +10,11 @@ com.google.auto.service:auto-service-annotations = 1.0
 com.google.auto:auto-common = 1.2.2
 com.google.code.findbugs:findbugs-annotations = 3.0.1
 com.google.code.findbugs:jsr305 = 3.0.2
-com.google.dagger:* = 2.51.1
 # Ksp version is temporary, can be removed once Maven calms down.
 com.google.devtools.ksp:symbol-processing-api = 1.5.21-1.0.0-beta07
 com.google.errorprone:* = 2.10.0 # upgrading to 2.11.0 is blocked by a google bug
 com.google.errorprone:error_prone_annotations = 2.10.0
 com.google.guava:guava = 33.3.1-jre
-com.google.protobuf:* = 4.28.2
 com.lmax:disruptor = 3.4.2
 com.palantir.common:streams = 2.4.0
 com.palantir.config.crypto:* = 6.0.0
@@ -26,6 +24,7 @@ com.palantir.conjure.java:* = 8.28.0
 com.palantir.conjure:conjure = 4.49.0
 com.palantir.dialogue:* = 4.1.0
 com.palantir.docker.proxy:* = 1.6.0
+com.palantir.goethe:* = 0.12.0
 com.palantir.nylon:* = 0.4.0
 com.palantir.refreshable:refreshable = 2.5.0
 com.palantir.safe-logging:* = 3.7.0
@@ -55,6 +54,7 @@ org.apache.commons:commons-text = 1.12.0
 org.apache.httpcomponents.client5:httpclient5 = 5.3.1
 org.assertj:* = 3.26.3
 org.awaitility:awaitility = 4.2.2
+org.codehaus.groovy:* = 3.0.9
 org.derive4j:* = 1.1.1
 org.eclipse.collections:* = 11.1.0
 org.freemarker:freemarker = 2.3.33
@@ -65,10 +65,7 @@ org.jboss.marshalling:jboss-marshalling = 2.2.1.Final
 org.jboss.threads:jboss-threads = 3.8.0.Final
 org.jdbi:* = 3.30.0
 org.jmock:jmock* = 2.13.1
-org.junit.jupiter:* = 5.10.2
-org.junit.platform:* = 1.10.2
 org.mindrot:jbcrypt = 0.4
-org.mockito:* = 5.12.0
 org.openjdk.jmh:* = 1.37
 org.reflections:reflections = 0.10.2
 org.rocksdb:rocksdbjni = 9.6.1
@@ -94,6 +91,19 @@ io.dropwizard:* = 2.1.7
 # Thus we cannot upgrade logback until dropwizard supports jakarta servlet 5.x.x
 ch.qos.logback:* = 1.2.11
 
+# Dropwizard 2.1.x DropwizardExtensionsSupport relies on junit 5.10.x and below
+# All the below bump junit to an incompatible version. Bump this after bumping Dropwizard to 3.x
+org.junit.jupiter:* = 5.10.2
+org.junit.platform:* = 1.10.2
+org.mockito:* = 5.12.0
+
+# Dagger 2.52.0+ adds a dependency on jakarta. Bump this with the javax -> jakarta migration.
+com.google.dagger:* = 2.51.1
+
+# Large internal consumer still relies on protobuf 3.x.
+# We need to bump this in coordination with them.
+com.google.protobuf:* = 3.25.4
+
 # Database drivers can have unexpected breaking changes and should be upgraded with caution
 com.datastax.cassandra:cassandra-driver-core = 3.8.0
 com.oracle.database.jdbc:ojdbc11 = 23.4.0.24.05
@@ -102,9 +112,3 @@ org.postgresql:postgresql = 42.7.3
 
 # transitive dep with API breaks in 0.14.0
 org.apache.thrift:libthrift = 0.17.0
-
-# Large internal product uses 2.x
-org.codehaus.groovy:* = 3.0.9
-
-# Subsequent versions use Java 17, which we don't use right now.
-com.palantir.goethe:* = 0.12.0
