@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Upgrade AtlasDB to target compile 17
+  links:
+  - https://github.com/palantir/atlasdb/pull/7413
