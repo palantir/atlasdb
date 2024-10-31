@@ -27,6 +27,8 @@ import com.palantir.atlasdb.buggify.impl.DefaultNativeSamplingSecureRandomFactor
 import com.palantir.atlasdb.util.MetricsManager;
 import com.palantir.atlasdb.util.MetricsManagers;
 import com.palantir.atlasdb.workload.background.BackgroundCassandraJob;
+import com.palantir.atlasdb.workload.config.ConfigBuggifier;
+import com.palantir.atlasdb.workload.config.ConfigBuggifier.Configs;
 import com.palantir.atlasdb.workload.config.WorkloadServerConfiguration;
 import com.palantir.atlasdb.workload.logging.LoggingUtils;
 import com.palantir.atlasdb.workload.resource.AntithesisCassandraSidecarResource;
@@ -119,23 +121,28 @@ public class WorkloadServerLauncher extends Application<WorkloadServerConfigurat
                 .build();
 
         MetricsManager metricsManager = MetricsManagers.of(environment.metrics(), taggedMetricRegistry);
-        AtlasDbTransactionStoreFactory transactionStoreFactory = AtlasDbTransactionStoreFactory.createFromConfig(
-                configuration.install().atlas(),
-                Refreshable.only(configuration.runtime().atlas()),
-                USER_AGENT,
-                metricsManager);
 
         WorkflowFactory workflowFactory =
                 new WorkflowFactory(taggedMetricRegistry, new DefaultWorkflowExecutorFactory(environment.lifecycle()));
 
         AntithesisWorkflowValidatorRunner.create(new DefaultWorkflowRunner(
                         MoreExecutors.listeningDecorator(antithesisWorkflowRunnerExecutorService)))
-                .run(() -> selectWorkflowsToRun(
-                        configuration,
-                        // We intentionally add randomness when creating the workflows (e.g., the executor pool size)
-                        // and so we must create the workflows under the fuzzer
-                        workflowFactory.createAllWorkflowsAndInvariants(
-                                configuration.install(), transactionStoreFactory)));
+                .run(() -> {
+                    // Constructing within this block so that faults are enabled - this allows us to buggify configs.
+                    Configs newConfigs = ConfigBuggifier.buggifyConfigs(
+                            configuration.install().atlas(),
+                            Refreshable.only(configuration.runtime().atlas()));
+                    AtlasDbTransactionStoreFactory transactionStoreFactory =
+                            AtlasDbTransactionStoreFactory.createFromConfig(
+                                    newConfigs.install(), newConfigs.runtime(), USER_AGENT, metricsManager);
+                    return selectWorkflowsToRun(
+                            configuration,
+                            // We intentionally add randomness when creating the workflows (e.g., the executor pool
+                            // size)
+                            // and so we must create the workflows under the fuzzer
+                            workflowFactory.createAllWorkflowsAndInvariants(
+                                    configuration.install(), transactionStoreFactory));
+                });
 
         log.info("Finished running desired workflows successfully");
         log.info("antithesis: terminate");
