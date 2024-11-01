@@ -1,6 +1,7 @@
 type: fix
 fix:
-  description: Add explicit hints, have seen Oracle incorrectly using FAST_FULL_SCAN
-    on very large tables.
+  description: |-
+    Add explicit hints, have seen Oracle incorrectly using FAST_FULL_SCAN on very large tables.
+    Possibly unexpected side effect from https://github.com/palantir/atlasdb/pull/7338 - even though the cardinality hints removed were misleading, they may have made Oracle behave.
   links:
   - https://github.com/palantir/atlasdb/pull/7418
