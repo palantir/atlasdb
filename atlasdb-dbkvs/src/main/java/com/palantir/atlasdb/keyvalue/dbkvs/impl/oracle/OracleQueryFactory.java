@@ -69,7 +69,7 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
     @Override
     public FullQuery getLatestRowsQuery(Iterable<byte[]> rows, long ts, ColumnSelection columns, boolean includeValue) {
         String query = "SELECT"
-                + "   /*+ USE_NL(t m) LEADING(t m) */ "
+                + "   /*+ USE_NL(t m) LEADING(t m) NO_INDEX_FFS(m) */ "
                 + "   m.row_name, m.col_name, max(m.ts) as ts "
                 + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
                 + " WHERE m.row_name = t.row_name "
@@ -115,7 +115,7 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
     public FullQuery getAllRowsQuery(Iterable<byte[]> rows, long ts, ColumnSelection columns, boolean includeValue) {
         String query = " /* GET_ALL_ROWS_SINGLE_BOUND (" + tableName + ") */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t m) LEADING(t m) */"
+                + "   /*+ USE_NL(t m) LEADING(t m) NO_INDEX_FFS(m) */"
                 + "   m.row_name, m.col_name, m.ts" + getValueSubselect("m", includeValue)
                 + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
                 + " WHERE m.row_name = t.row_name "
@@ -149,7 +149,7 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
     @Override
     public FullQuery getLatestCellsQuery(Collection<Map.Entry<Cell, Long>> cells, boolean includeValue) {
         String query = "SELECT"
-                + "   /*+ USE_NL(t m) LEADING(t m) */ "
+                + "   /*+ USE_NL(t m) LEADING(t m) NO_INDEX_FFS(m) */ "
                 + "   m.row_name, m.col_name, max(m.ts) as ts "
                 + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
                 + " WHERE m.row_name = t.row_name "
@@ -176,7 +176,7 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
     public FullQuery getAllCellsQuery(Iterable<Cell> cells, long ts, boolean includeValue) {
         String query = " /* GET_ALL_CELLS_SINGLE_BOUND (" + tableName + ") */ "
                 + " SELECT"
-                + "   /*+ USE_NL(t m) LEADING(t m) */ "
+                + "   /*+ USE_NL(t m) LEADING(t m) NO_INDEX_FFS(m) */ "
                 + "   m.row_name, m.col_name, m.ts" + getValueSubselect("m", includeValue)
                 + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
                 + " WHERE m.row_name = t.row_name "
@@ -277,7 +277,7 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
     protected FullQuery getRowsColumnRangeFullyLoadedRowsSubQuery(
             List<byte[]> rows, long ts, ColumnRangeSelection columnRangeSelection) {
         String query = "SELECT"
-                + " /*+ USE_NL(t m) LEADING(t m) */"
+                + " /*+ USE_NL(t m) LEADING(t m) NO_INDEX_FFS(m) */"
                 + " m.row_name, m.col_name, max(m.ts) as ts"
                 + " FROM " + tableName + " m, TABLE(CAST(? AS " + structArrayPrefix() + "CELL_TS_TABLE)) t "
                 + " WHERE m.row_name = t.row_name "
@@ -297,15 +297,15 @@ public class OracleQueryFactory extends AbstractDbQueryFactory {
         return fullQuery;
     }
 
-    private String wrapQueryWithIncludeValue(String wrappedName, String query, boolean includeValue) {
+    private String wrapQueryWithIncludeValue(String name, String query, boolean includeValue) {
         if (!includeValue) {
-            return query;
+            return "/* " + name + " (" + tableName + ") */ " + query;
         }
-        return " /* " + wrappedName + " (" + tableName + ") */ "
+        return "/* " + name + "_VALUE (" + tableName + ") */ "
                 + " SELECT"
                 + "   /*+ USE_NL(i wrap) LEADING(i wrap) NO_MERGE(i) NO_PUSH_PRED(i)"
                 + "       INDEX(wrap " + PrimaryKeyConstraintNames.get(tableName) + ") */ "
-                + "   wrap.row_name, wrap.col_name, wrap.ts" + getValueSubselect("wrap", includeValue)
+                + "   wrap.row_name, wrap.col_name, wrap.ts" + getValueSubselect("wrap", true)
                 + " FROM " + tableName + " wrap, ( " + query + " ) i "
                 + " WHERE wrap.row_name = i.row_name "
                 + "   AND wrap.col_name = i.col_name "
