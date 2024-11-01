@@ -355,7 +355,7 @@ public interface KeyValueService extends AutoCloseable, AsyncKeyValueService {
      * successfully been written to disk before returning.
      * <p>
      * If a key value store supports garbage collection, then a call to delete should mean the value
-     * will not be read in the future. If GC isn't supported, then delete can be written to have the
+     * will not be read in the future. If GC isn't supported, then delete can be written to have a
      * best effort attempt to delete the values.
      * <p>
      * Some systems may require more nodes to be up to ensure that a deletion is successful. If this
