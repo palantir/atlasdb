@@ -242,7 +242,7 @@ public abstract class AbstractInMemoryTimelockExtension implements TimeLockServi
         NamespacedTimelockRpcClient namespacedTimelockRpcClient =
                 new InMemoryNamespacedTimelockRpcClient(getTimelockService());
 
-        return new RemoteTimelockServiceAdapter(
+        return RemoteTimelockServiceAdapter.create(
                 namespacedTimelockRpcClient,
                 namespacedConjureTimelockService,
                 lockLeaseService,
