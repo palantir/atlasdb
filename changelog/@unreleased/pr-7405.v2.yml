@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Reduce the default limit for concurrent range scans to 100
+  links:
+  - https://github.com/palantir/atlasdb/pull/7405
