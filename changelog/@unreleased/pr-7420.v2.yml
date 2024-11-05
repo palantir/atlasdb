@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Migrate squareup javapoet to Palantir javapoet
+  links:
+  - https://github.com/palantir/atlasdb/pull/7420
