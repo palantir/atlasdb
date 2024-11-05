@@ -88,7 +88,9 @@ public final class DynamicTaskScheduler {
     private void runOneIteration() {
         Duration delay = automaticSweepRefreshDelay.get();
         try {
-            log.info("Running task: {}", SafeArg.of("task", safeLoggableTaskName));
+            if (log.isDebugEnabled()) {
+                log.debug("Running task: {}", SafeArg.of("task", safeLoggableTaskName));
+            }
             task.run();
         } catch (Exception e) {
             log.warn(
@@ -101,10 +103,12 @@ public final class DynamicTaskScheduler {
     }
 
     private void scheduleNextIteration(Duration delay) {
-        log.info(
-                "Scheduling next iteration for {} with delay {}",
-                SafeArg.of("task", safeLoggableTaskName),
-                SafeArg.of("delay", delay));
+        if (log.isDebugEnabled()) {
+            log.debug(
+                    "Scheduling next iteration for {} with delay {}",
+                    SafeArg.of("task", safeLoggableTaskName),
+                    SafeArg.of("delay", delay));
+        }
         scheduledExecutorService.schedule(this::runOneIteration, delay.toMillis(), TimeUnit.MILLISECONDS);
     }
 }
