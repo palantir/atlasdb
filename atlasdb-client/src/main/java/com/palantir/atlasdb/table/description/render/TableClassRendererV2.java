@@ -679,7 +679,7 @@ public class TableClassRendererV2 {
         SortedSet<NamedColumnDescription> namedColumns = ColumnRenderers.namedColumns(tableMetadata);
         deleteRowBuilder
                 .addStatement("$T row = $T.of($L)", rowType, rowType, getArgumentsFromRowComponents(tableMetadata))
-                .addStatement("byte[] rowBytes = row.persistToBytes()", Persistables.class)
+                .addStatement("byte[] rowBytes = row.persistToBytes()")
                 .addStatement(
                         "$T<$T> cells = $T.newHashSetWithExpectedSize($L)",
                         Set.class,
@@ -707,7 +707,7 @@ public class TableClassRendererV2 {
 
         return deleteColumnBuilder
                 .addStatement("$T row = $T.of($L)", rowType, rowType, getArgumentsFromRowComponents(tableMetadata))
-                .addStatement("byte[] rowBytes = row.persistToBytes()", Persistables.class)
+                .addStatement("byte[] rowBytes = row.persistToBytes()")
                 .addStatement(
                         "$T<$T> cells = $T.of($T.create(rowBytes, $T.toCachedBytes($L)))",
                         Set.class,
