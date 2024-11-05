@@ -22,6 +22,7 @@ import com.palantir.atlasdb.sweep.asts.locks.Lockable;
 import com.palantir.atlasdb.sweep.asts.locks.Lockable.LockedItem;
 import com.palantir.atlasdb.sweep.asts.locks.LockableFactory;
 import com.palantir.atlasdb.sweep.metrics.TargetedSweepProgressMetrics;
+import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
@@ -47,7 +48,7 @@ public final class DefaultSweepStateCoordinator implements SweepStateCoordinator
 
     private volatile Set<Lockable<SweepableBucket>> seenBuckets = ConcurrentHashMap.newKeySet();
     private volatile BucketsLists bucketsLists = ImmutableBucketsLists.builder()
-            .firstBucketsOfEachShard(List.of())
+            .firstBucketsOfEachShardAndStrategy(List.of())
             .remainingBuckets(List.of())
             .build();
 
@@ -64,7 +65,7 @@ public final class DefaultSweepStateCoordinator implements SweepStateCoordinator
         candidateSweepableBucketRetriever.subscribeToChanges(this::updateBuckets);
         progressMetrics.estimatedPendingNumberOfBucketsToBeSwept(() -> {
             BucketsLists currentBucketsLists = bucketsLists;
-            return currentBucketsLists.firstBucketsOfEachShard().size()
+            return currentBucketsLists.firstBucketsOfEachShardAndStrategy().size()
                     + currentBucketsLists.remainingBuckets().size()
                     - seenBuckets.size();
         });
@@ -92,7 +93,7 @@ public final class DefaultSweepStateCoordinator implements SweepStateCoordinator
         // candidates from the _latest_ seen bucket set.
         BucketsLists currentBucketsLists = bucketsLists;
         if (seenBuckets.size()
-                >= (currentBucketsLists.firstBucketsOfEachShard().size()
+                >= (currentBucketsLists.firstBucketsOfEachShardAndStrategy().size()
                         + currentBucketsLists.remainingBuckets().size())) {
             candidateSweepableBucketRetriever.requestUpdate();
             return SweepOutcome.NOTHING_TO_SWEEP;
@@ -109,7 +110,7 @@ public final class DefaultSweepStateCoordinator implements SweepStateCoordinator
     }
 
     private Optional<LockedItem<SweepableBucket>> chooseBucket(BucketsLists currentBucketsLists) {
-        return getFirstUnlockedBucket(currentBucketsLists.firstBucketsOfEachShard().stream())
+        return getFirstUnlockedBucket(currentBucketsLists.firstBucketsOfEachShardAndStrategy().stream())
                 .or(() -> randomUnlockedBucket(currentBucketsLists));
     }
 
@@ -134,34 +135,34 @@ public final class DefaultSweepStateCoordinator implements SweepStateCoordinator
     }
 
     private void updateBuckets(Set<SweepableBucket> newBuckets) {
-        Map<Integer, List<SweepableBucket>> partition = newBuckets.stream()
+        Map<ShardAndStrategy, List<SweepableBucket>> partition = newBuckets.stream()
                 .sorted(SweepableBucketComparator.INSTANCE)
-                .collect(Collectors.groupingBy(
-                        bucket -> bucket.bucket().shardAndStrategy().shard()));
+                .collect(Collectors.groupingBy(bucket -> bucket.bucket().shardAndStrategy()));
 
-        List<Lockable<SweepableBucket>> firstBucketsOfEachShard = partition.values().stream()
+        List<Lockable<SweepableBucket>> firstBucketsOfEachShardAndStrategy = partition.values().stream()
                 .filter(list -> !list.isEmpty())
                 .map(list -> list.get(0))
                 .map(lockableFactory::createLockable)
-                .collect(Collectors.toUnmodifiableList());
+                .toList();
 
         List<Lockable<SweepableBucket>> remainingBuckets = partition.values().stream()
                 .flatMap(list -> list.stream().skip(1))
                 .map(lockableFactory::createLockable)
-                .collect(Collectors.toUnmodifiableList());
+                .toList();
 
         // There's a delay between setting each variable, but we do not require (for correctness) that these two
         // variables are updated atomically.
 
         bucketsLists = ImmutableBucketsLists.builder()
-                .firstBucketsOfEachShard(firstBucketsOfEachShard)
+                .firstBucketsOfEachShardAndStrategy(firstBucketsOfEachShardAndStrategy)
                 .remainingBuckets(remainingBuckets)
                 .build();
         seenBuckets = ConcurrentHashMap.newKeySet();
         log.info(
-                "Updated sweepable buckets (first buckets per shard: {}, remaining buckets: {}).",
-                SafeArg.of("firstBucketsOfEachShard", firstBucketsOfEachShard),
-                SafeArg.of("remainingBuckets", remainingBuckets));
+                "Updated sweepable buckets (number of first buckets per shard and strategy: {},"
+                        + " number of remaining buckets: {}).",
+                SafeArg.of("firstBucketsOfEachShardAndStrategySize", firstBucketsOfEachShardAndStrategy.size()),
+                SafeArg.of("remainingBucketsSize", remainingBuckets.size()));
     }
 
     private enum SweepableBucketComparator implements Comparator<SweepableBucket> {
@@ -184,7 +185,7 @@ public final class DefaultSweepStateCoordinator implements SweepStateCoordinator
 
     @Value.Immutable
     interface BucketsLists {
-        List<Lockable<SweepableBucket>> firstBucketsOfEachShard();
+        List<Lockable<SweepableBucket>> firstBucketsOfEachShardAndStrategy();
 
         List<Lockable<SweepableBucket>> remainingBuckets();
     }

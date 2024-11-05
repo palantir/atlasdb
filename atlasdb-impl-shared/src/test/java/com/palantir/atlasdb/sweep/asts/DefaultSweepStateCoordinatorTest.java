@@ -102,17 +102,31 @@ public class DefaultSweepStateCoordinatorTest {
     }
 
     @Test
-    public void selectsHeadOfShardsDeterminedAtRefresh() {
+    public void selectsHeadOfShardsAndStrategyDeterminedAtRefresh() {
         int shards = 10;
-        Set<SweepableBucket> firstBucketPerShard =
+        Set<SweepableBucket> firstBucketPerShardConservative =
                 // i, i to show that it's not just counting 0 as the head.
-                IntStream.range(0, shards).mapToObj(i -> bucket(i, i)).collect(Collectors.toSet());
-        Set<SweepableBucket> remainingBuckets =
-                IntStream.range(0, shards).mapToObj(i -> bucket(i, i + 1)).collect(Collectors.toSet());
+                IntStream.range(0, shards)
+                        .mapToObj(i -> bucket(i, i, SweeperStrategy.CONSERVATIVE))
+                        .collect(Collectors.toSet());
+
+        // Same shards as conservative, but a later bucket. Should still appear as we should be factoring in strategy
+        // into the head bucket heuristic
+        Set<SweepableBucket> firstBucketPerShardThorough = IntStream.range(0, shards)
+                .mapToObj(i -> bucket(i, i + 1, SweeperStrategy.THOROUGH))
+                .collect(Collectors.toSet());
+
+        Set<SweepableBucket> firstBucketPerShard =
+                Sets.union(firstBucketPerShardConservative, firstBucketPerShardThorough);
+        Set<SweepableBucket> remainingBuckets = IntStream.range(0, shards)
+                .boxed()
+                .flatMap(i -> Stream.of(
+                        bucket(i, i + 1, SweeperStrategy.CONSERVATIVE), bucket(i, i + 2, SweeperStrategy.THOROUGH)))
+                .collect(Collectors.toSet());
 
         Set<SweepableBucket> chosenBuckets = new HashSet<>();
         buckets.update(Sets.union(firstBucketPerShard, remainingBuckets));
-        for (int i = 0; i < shards; i++) {
+        for (int i = 0; i < shards * 2; i++) {
             coordinator.tryRunTaskWithBucket(chosenBuckets::add);
         }
         assertThat(chosenBuckets).containsExactlyInAnyOrderElementsOf(firstBucketPerShard);
@@ -271,9 +285,11 @@ public class DefaultSweepStateCoordinatorTest {
     }
 
     private static SweepableBucket bucket(int shard, int identifier) {
-        return SweepableBucket.of(
-                Bucket.of(ShardAndStrategy.of(shard, SweeperStrategy.CONSERVATIVE), identifier),
-                TimestampRange.of(1, 3));
+        return bucket(shard, identifier, SweeperStrategy.CONSERVATIVE);
+    }
+
+    private static SweepableBucket bucket(int shard, int identifier, SweeperStrategy strategy) {
+        return SweepableBucket.of(Bucket.of(ShardAndStrategy.of(shard, strategy), identifier), TimestampRange.of(1, 3));
     }
 
     // When we have assertions _inside_ tryRunTaskWithBucket, it's possible for those tests to spuriously pass if
