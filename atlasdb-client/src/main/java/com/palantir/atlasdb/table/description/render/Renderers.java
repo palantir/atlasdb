@@ -21,7 +21,7 @@ import com.palantir.atlasdb.table.description.NameMetadataDescription;
 import com.palantir.atlasdb.table.description.NamedColumnDescription;
 import com.palantir.atlasdb.table.description.TableDefinition;
 import com.palantir.atlasdb.table.description.TableMetadata;
-import com.squareup.javapoet.MethodSpec;
+import com.palantir.javapoet.MethodSpec;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;

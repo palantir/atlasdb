@@ -15,7 +15,7 @@
  */
 package com.palantir.processors;
 
-import com.squareup.javapoet.ParameterSpec;
+import com.palantir.javapoet.ParameterSpec;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.lang.model.element.ExecutableElement;

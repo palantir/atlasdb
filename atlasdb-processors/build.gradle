@@ -7,8 +7,8 @@ dependencies {
 
     // these three dependencies should be implementation, but that breaks IntelliJ currently
     api 'com.google.guava:guava'
-    api 'com.squareup:javapoet'
     api 'com.palantir.goethe:goethe'
+    api 'com.palantir.javapoet:javapoet'
 
     implementation 'com.google.errorprone:error_prone_annotations'
 }
