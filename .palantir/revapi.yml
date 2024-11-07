@@ -450,8 +450,44 @@ acceptedBreaks:
   "0.1184.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.method.addedToInterface"
+      new: "method boolean com.palantir.atlasdb.transaction.api.Transaction::isDefinitivelyCommitted()"
+      justification: "adding a new method to confirm if a transaction successfully\
+        \ committed from the atlas perspective"
+    - code: "java.method.addedToInterface"
+      new: "method void com.palantir.atlasdb.transaction.api.OpenTransaction::close()"
+      justification: "OpenTransaction has a single internal consumer, and it's current\
+        \ interface caused confusion in recent refactors"
+    - code: "java.method.addedToInterface"
       new: "method void com.palantir.atlasdb.transaction.api.Transaction::onCommitOrAbort(java.lang.Runnable)"
       justification: "similar to onSuccess, already used in other prod codepaths"
+    - code: "java.method.removed"
+      old: "method <T, E extends java.lang.Exception> T com.palantir.atlasdb.transaction.api.OpenTransaction::finish(com.palantir.atlasdb.transaction.api.TransactionTask<T,\
+        \ E>) throws E, com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException"
+      justification: "OpenTransaction has a single internal consumer, and it's current\
+        \ interface caused confusion in recent refactors"
+    - code: "java.method.removed"
+      old: "method <T, E extends java.lang.Exception> T com.palantir.atlasdb.transaction.api.OpenTransaction::finishWithCallback(com.palantir.atlasdb.transaction.api.TransactionTask<T,\
+        \ E>, java.lang.Runnable) throws E, com.palantir.atlasdb.transaction.api.TransactionFailedRetriableException"
+      justification: "OpenTransaction has a single internal consumer, and it's current\
+        \ interface caused confusion in recent refactors"
+    - code: "java.method.returnTypeTypeParametersChanged"
+      old: "method java.util.List<com.palantir.atlasdb.transaction.api.OpenTransaction>\
+        \ com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionManager::startTransactions(java.util.List<?\
+        \ extends com.palantir.atlasdb.transaction.api.PreCommitCondition>)"
+      new: "method java.util.List<? extends com.palantir.atlasdb.transaction.api.OpenTransaction>\
+        \ com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionManager::startTransactions(java.util.List<?\
+        \ extends com.palantir.atlasdb.transaction.api.PreCommitCondition>)"
+      justification: "OpenTransaction has a single internal consumer, and it's current\
+        \ interface caused confusion in recent refactors"
+    - code: "java.method.returnTypeTypeParametersChanged"
+      old: "method java.util.List<com.palantir.atlasdb.transaction.api.OpenTransaction>\
+        \ com.palantir.atlasdb.transaction.api.TransactionManager::startTransactions(java.util.List<?\
+        \ extends com.palantir.atlasdb.transaction.api.PreCommitCondition>)"
+      new: "method java.util.List<? extends com.palantir.atlasdb.transaction.api.OpenTransaction>\
+        \ com.palantir.atlasdb.transaction.api.TransactionManager::startTransactions(java.util.List<?\
+        \ extends com.palantir.atlasdb.transaction.api.PreCommitCondition>)"
+      justification: "OpenTransaction has a single internal consumer, and it's current\
+        \ interface caused confusion in recent refactors"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"

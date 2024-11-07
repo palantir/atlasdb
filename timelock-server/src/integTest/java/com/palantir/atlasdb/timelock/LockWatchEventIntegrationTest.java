@@ -189,8 +189,8 @@ public final class LockWatchEventIntegrationTest {
         assertThat(unlockedDescriptors(update.events())).containsExactlyInAnyOrderElementsOf(getDescriptors(CELL_3));
         assertThat(watchDescriptors(update.events())).isEmpty();
 
-        secondTxn.finish(_unused -> null);
-        fifthTxn.finish(_unused -> null);
+        secondTxn.close();
+        fifthTxn.close();
         cleanup.run();
     }
 

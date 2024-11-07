@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
+import com.google.common.io.Closer;
 import com.palantir.atlasdb.cache.TimestampCache;
 import com.palantir.atlasdb.cell.api.DataKeyValueServiceManager;
 import com.palantir.atlasdb.cell.api.DdlManager;
@@ -72,6 +73,7 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampService;
 import com.palantir.util.SafeShutdownRunner;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -190,20 +192,30 @@ import java.util.stream.Collectors;
     public <T, C extends PreCommitCondition, E extends Exception> T runTaskWithConditionThrowOnConflict(
             C condition, ConditionAwareTransactionTask<T, C, E> task) throws E, TransactionFailedRetriableException {
         checkOpen();
-        OpenTransaction openTransaction;
-        try {
-            openTransaction = runTimed(
-                    () -> Iterables.getOnlyElement(startTransactions(ImmutableList.of(condition))), "setupTask");
-        } catch (Exception e) {
-            condition.cleanup();
-            throw e;
+        try (OpenTransactionImpl openTransaction =
+                runTimed(() -> Iterables.getOnlyElement(startTransactions(ImmutableList.of(condition))), "setupTask")) {
+            return openTransaction.execute(txn -> task.execute(txn, condition));
         }
-        return openTransaction.finishWithCallback(
-                transaction -> task.execute(transaction, condition), condition::cleanup);
     }
 
     @Override
-    public List<OpenTransaction> startTransactions(List<? extends PreCommitCondition> conditions) {
+    public List<OpenTransactionImpl> startTransactions(List<? extends PreCommitCondition> conditions) {
+        try {
+            return startTransactionsInternal(conditions);
+        } catch (Exception e) {
+            Closer closer = Closer.create(); // N.B. using closer to run all cleanup tasks even if one cleanup throws
+            conditions.forEach(condition -> closer.register(condition::cleanup));
+            try {
+                closer.close();
+            } catch (IOException ex) {
+                e.addSuppressed(ex);
+                log.info("Failed to cleanup pre-commit conditions on startTransaction failure", ex);
+            }
+            throw e;
+        }
+    }
+
+    private List<OpenTransactionImpl> startTransactionsInternal(List<? extends PreCommitCondition> conditions) {
         if (conditions.isEmpty()) {
             return ImmutableList.of();
         }
@@ -224,7 +236,7 @@ import java.util.stream.Collectors;
             recordImmutableTimestamp(immutableTs);
             cleaner.punch(responses.get(0).startTimestampAndPartition().timestamp());
 
-            List<OpenTransaction> transactions = Streams.zip(
+            List<OpenTransactionImpl> transactions = Streams.zip(
                             responses.stream(), conditions.stream(), (response, condition) -> {
                                 LockToken immutableTsLock =
                                         response.immutableTimestamp().getLock();
@@ -232,27 +244,55 @@ import java.util.stream.Collectors;
 
                                 ExpectationsAwareTransaction transaction = createTransaction(
                                         immutableTs, startTimestampSupplier, immutableTsLock, condition);
-                                transaction.onSuccess(
-                                        () -> lockWatchManager.onTransactionCommit(transaction.getTimestamp()));
+
+                                transaction.onCommitOrAbort(transaction::reportExpectationsCollectedData);
+                                transaction.onCommitOrAbort(condition::cleanup);
+                                transaction.onCommitOrAbort(
+                                        () -> lockWatchManager.requestTransactionStateRemovalFromCache(
+                                                response.startTimestampAndPartition()
+                                                        .timestamp()));
+                                // N.B. register `onTransactionCommit` after `requestTransactionStateRemovalFromCache`
+                                // `onCommitOrAbort` is FILO, and we need to run `onTransactionCommit` before
+                                // `requestTransactionStateRemovalFromCache`
+                                transaction.onCommitOrAbort(() -> {
+                                    if (transaction.isDefinitivelyCommitted()) {
+                                        lockWatchManager.onTransactionCommit(transaction.getTimestamp());
+                                    }
+                                });
                                 return new OpenTransactionImpl(transaction, immutableTsLock);
                             })
                     .collect(Collectors.toList());
             openTransactionCounter.inc(transactions.size());
             return transactions;
         } catch (Throwable t) {
-            responses.forEach(response -> lockWatchManager.requestTransactionStateRemovalFromCache(
-                    response.startTimestampAndPartition().timestamp()));
-            timelockService.tryUnlock(responses.stream()
+            // In case of failure, we need to remove the transaction from our local lock-watch cache and unlocking
+            // immutable timestamp.
+            // Note that in case we don't throw, the immutable timestamp is registered to be unlocked in the
+            // SnapshotTransaction constructor. But in case of failure, we need to manually unlock it here.
+
+            Closer closer = Closer.create(); // N.B. using closer to run all cleanup tasks even if one cleanup throws
+            responses.forEach(
+                    response -> closer.register(() -> lockWatchManager.requestTransactionStateRemovalFromCache(
+                            response.startTimestampAndPartition().timestamp())));
+            closer.register(() -> timelockService.tryUnlock(responses.stream()
                     .map(response -> response.immutableTimestamp().getLock())
-                    .collect(Collectors.toSet()));
+                    .collect(Collectors.toSet())));
+
+            try {
+                closer.close();
+            } catch (IOException e) {
+                t.addSuppressed(e);
+                log.info("Failed to cleanup startTransaction resources on startTransaction failure", t);
+            }
             throw Throwables.rewrapAndThrowUncheckedException(t);
         }
     }
 
-    private final class OpenTransactionImpl extends ForwardingTransaction implements OpenTransaction {
+    final class OpenTransactionImpl extends ForwardingTransaction implements OpenTransaction {
 
         private final ExpectationsAwareTransaction delegate;
         private final LockToken immutableTsLock;
+        private boolean hasClosed = false;
 
         private OpenTransactionImpl(ExpectationsAwareTransaction delegate, LockToken immutableTsLock) {
             this.delegate = delegate;
@@ -265,33 +305,29 @@ import java.util.stream.Collectors;
         }
 
         @Override
-        public <T, E extends Exception> T finish(TransactionTask<T, E> task)
-                throws E, TransactionFailedRetriableException {
-            return finishWithCallback(task, () -> {});
-        }
-
-        @Override
-        public <T, E extends Exception> T finishWithCallback(TransactionTask<T, E> task, Runnable callback)
-                throws E, TransactionFailedRetriableException {
-            Timer postTaskTimer = getTimer("finishTask");
-            Timer.Context postTaskContext;
-
-            TransactionTask<T, E> wrappedTask = wrapTaskIfNecessary(task, immutableTsLock);
+        public synchronized void close() {
+            if (hasClosed) {
+                // Some operations in close are not idempotent, e.g. openTransactionCounter.dec().
+                // Let's guarantee we run close() only once, and no-op in following runs to respect Closeable interface.
+                return;
+            }
 
             ExpectationsAwareTransaction txn = delegate;
-            T result;
             try {
-                txn.onCommitOrAbort(txn::reportExpectationsCollectedData);
-                txn.onCommitOrAbort(callback);
-                result = runTaskThrowOnConflict(wrappedTask, txn);
+                if (txn.isUncommitted()) {
+                    txn.abort();
+                }
             } finally {
-                lockWatchManager.requestTransactionStateRemovalFromCache(getTimestamp());
-                postTaskContext = postTaskTimer.time();
                 openTransactionCounter.dec();
             }
             scrubForAggressiveHardDelete(extractSnapshotTransaction(txn));
-            postTaskContext.stop();
-            return result;
+
+            hasClosed = true;
+        }
+
+        <T, E extends Exception> T execute(TransactionTask<T, E> task) {
+            TransactionTask<T, E> wrappedTask = wrapTaskIfNecessary(task, immutableTsLock);
+            return runTimed(() -> runTaskThrowOnConflict(wrappedTask, delegate), "runTaskThrowOnConflict");
         }
     }
 

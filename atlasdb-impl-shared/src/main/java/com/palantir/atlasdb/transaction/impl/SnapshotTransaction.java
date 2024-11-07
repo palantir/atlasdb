@@ -1831,6 +1831,11 @@ public class SnapshotTransaction extends AbstractTransaction
         return state.get() == State.UNCOMMITTED;
     }
 
+    @Override
+    public boolean isDefinitivelyCommitted() {
+        return state.get() == State.COMMITTED;
+    }
+
     private void ensureUncommitted() {
         if (!isUncommitted()) {
             throw new CommittedTransactionException();
@@ -1846,16 +1851,6 @@ public class SnapshotTransaction extends AbstractTransaction
     private boolean isStillRunning() {
         State stateNow = state.get();
         return stateNow == State.UNCOMMITTED || stateNow == State.COMMITTING;
-    }
-
-    /**
-     * Returns true iff the transaction is known to have successfully committed.
-     * <p>
-     * Be careful when using this method! A transaction that the client thinks has failed could actually have
-     * committed as far as the key-value service is concerned.
-     */
-    private boolean isDefinitivelyCommitted() {
-        return state.get() == State.COMMITTED;
     }
 
     ///////////////////////////////////////////////////////////////////////////

@@ -16,27 +16,14 @@
 
 package com.palantir.atlasdb.transaction.api;
 
-import com.palantir.atlasdb.metrics.Timed;
+import java.io.Closeable;
 
-public interface OpenTransaction extends Transaction {
-
+public interface OpenTransaction extends Transaction, Closeable {
     /**
-     * Runs a provided task, commits the transaction, and performs cleanup. If no further work needs to be done with the
-     * transaction, a no-op task can be passed in.
-     *
-     * @return value returned by the task
+     * Aborts the transaction if uncommitted and cleanups transaction state.
+     * All open transactions <b>must be closed</b>.
+     * Not closing transactions after they're no longer in use may lead to arbitrary delays elsewhere in the system.
      */
-    @Timed
-    <T, E extends Exception> T finish(TransactionTask<T, E> task) throws E, TransactionFailedRetriableException;
-
-    /**
-     * Like {@link #finish(TransactionTask)}, except runs a callback after the task has finished. This callback will
-     * not run while the transaction remains in an uncommitted state, but may run afterwards, regardless of whether
-     * the commit was successful, finished, or aborted.
-     *
-     * If the callback is run, it will run before any {@link Transaction#onSuccess(Runnable)} callbacks.
-     */
-    @Timed
-    <T, E extends Exception> T finishWithCallback(TransactionTask<T, E> task, Runnable callback)
-            throws E, TransactionFailedRetriableException;
+    @Override
+    void close();
 }

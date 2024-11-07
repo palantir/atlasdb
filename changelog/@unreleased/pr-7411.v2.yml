@@ -1,0 +1,9 @@
+type: improvement
+improvement:
+  description: |-
+    Refactor `OpenTransaction` interface.
+
+    We now put the burden of committing or aborting the transaction explicitly in the hands of the consumer, and modify the contract to require only the consumer to call `close()`.
+    We then abort the transaction on `close()` if uncommitted.
+  links:
+  - https://github.com/palantir/atlasdb/pull/7411

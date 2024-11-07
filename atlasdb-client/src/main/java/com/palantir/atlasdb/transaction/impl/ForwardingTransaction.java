@@ -180,6 +180,11 @@ public abstract class ForwardingTransaction extends ForwardingObject implements 
     }
 
     @Override
+    public boolean isDefinitivelyCommitted() {
+        return delegate().isDefinitivelyCommitted();
+    }
+
+    @Override
     public long getTimestamp() {
         return delegate().getTimestamp();
     }

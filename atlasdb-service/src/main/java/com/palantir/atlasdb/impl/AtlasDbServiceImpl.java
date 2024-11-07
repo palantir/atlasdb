@@ -192,7 +192,9 @@ public class AtlasDbServiceImpl implements AtlasDbService {
     public void commit(TransactionToken token) {
         OpenTransaction openTxn = transactions.getIfPresent(token);
         if (openTxn != null) {
-            openTxn.finish((TxTask) transaction -> null);
+            try (openTxn) {
+                openTxn.commit();
+            }
             transactions.invalidate(token);
         }
     }
@@ -201,10 +203,9 @@ public class AtlasDbServiceImpl implements AtlasDbService {
     public void abort(TransactionToken token) {
         OpenTransaction openTxn = transactions.getIfPresent(token);
         if (openTxn != null) {
-            openTxn.finish((TxTask) transaction -> {
-                transaction.abort();
-                return null;
-            });
+            try (openTxn) {
+                openTxn.abort();
+            }
             transactions.invalidate(token);
         }
     }
