@@ -420,7 +420,8 @@ public interface TransactionManager extends AutoCloseable {
     long getUnreadableTimestamp();
 
     /**
-     * Returns a timestamp that is before any leased timestamps returned by the consumer on {@link TimestampLeaseAwareTransaction#preCommit(TimestampLeaseName, int, PreCommitAction)}
+     * Returns a timestamp that is before any leased timestamps returned by the consumer on
+     * {@link TimestampLeaseAwareTransaction#preCommit(TimestampLeaseName, int, PreCommitAction)}
      * for a {@code timestampLeaseName} in open transactions.
      * <p>
      * This is similar to {@link TransactionManager#getImmutableTimestamp()} as it returns a timestamp before timestamps
@@ -436,7 +437,8 @@ public interface TransactionManager extends AutoCloseable {
      * meaning the transaction cannot read all data up to leased timestamp.
      *
      * @param leaseName the name of the lease the timestamps are bound to
-     * @return the timestamp that is before any timestamp returned by the consumer of {@link TimestampLeaseAwareTransaction#preCommit(TimestampLeaseName, int, PreCommitAction)}
+     * @return the timestamp that is before any timestamp returned by the consumer of
+     * {@link TimestampLeaseAwareTransaction#preCommit(TimestampLeaseName, int, PreCommitAction)}
      * for open transactions.
      */
     @RestrictedApi(
@@ -446,7 +448,7 @@ public interface TransactionManager extends AutoCloseable {
             link = "https://github.com/palantir/atlasdb/pull/7305",
             allowedOnPath = ".*/src/test/.*", // Unsafe behavior in tests is ok.
             allowlistAnnotations = {ReviewedRestrictedApiUsage.class})
-    long getLeasedTimestamp(TimestampLeaseName leaseName);
+    long getMinLeasedTimestamp(TimestampLeaseName leaseName);
 
     /**
      * Clear the timestamp cache. This is mostly useful for tests that perform operations that would invalidate

@@ -525,7 +525,7 @@ import java.util.stream.Collectors;
 
     @Override
     @ReviewedRestrictedApiUsage
-    public long getLeasedTimestamp(TimestampLeaseName leaseName) {
+    public long getMinLeasedTimestamp(TimestampLeaseName leaseName) {
         return timelockService.getMinLeasedTimestamps(Set.of(leaseName)).get(leaseName);
     }
 
