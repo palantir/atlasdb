@@ -456,10 +456,26 @@ acceptedBreaks:
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"
       old: "interface com.palantir.atlasdb.transaction.api.TimestampLeaseAwareTransactionManager"
-      justification: "Discussed: break is intended, see Compatibility section here https://github.com/palantir/atlasdb/pull/7427#issue-2638127226"
+      justification: "Discussed: break is intended, see Compatibility section here\
+        \ https://github.com/palantir/atlasdb/pull/7427#issue-2638127226"
     - code: "java.method.addedToInterface"
       new: "method long com.palantir.atlasdb.transaction.api.TransactionManager::getLeasedTimestamp(com.palantir.atlasdb.common.api.timelock.TimestampLeaseName)"
-      justification: "Discussed: break is intended, see Compatibility section here https://github.com/palantir/atlasdb/pull/7427#issue-2638127226"
+      justification: "Discussed: break is intended, see Compatibility section here\
+        \ https://github.com/palantir/atlasdb/pull/7427#issue-2638127226"
+  "0.1188.0-rc1":
+    com.palantir.atlasdb:atlasdb-api:
+    - code: "java.method.addedToInterface"
+      new: "method long com.palantir.atlasdb.transaction.api.TransactionManager::getMinLeasedTimestamp(com.palantir.atlasdb.common.api.timelock.TimestampLeaseName)"
+      justification: "Discussed: break is intended, see Compatibility section here\
+        \ https://github.com/palantir/atlasdb/pull/7427\\#issue-2638127226"
+    - code: "java.method.removed"
+      old: "method long com.palantir.atlasdb.transaction.api.AutoDelegate_TransactionManager::getLeasedTimestamp(com.palantir.atlasdb.common.api.timelock.TimestampLeaseName)"
+      justification: "Discussed: break is intended, see Compatibility section here\
+        \ https://github.com/palantir/atlasdb/pull/7427\\#issue-2638127226"
+    - code: "java.method.removed"
+      old: "method long com.palantir.atlasdb.transaction.api.TransactionManager::getLeasedTimestamp(com.palantir.atlasdb.common.api.timelock.TimestampLeaseName)"
+      justification: "Discussed: break is intended, see Compatibility section here\
+        \ https://github.com/palantir/atlasdb/pull/7427\\#issue-2638127226"
   "0.770.0":
     com.palantir.atlasdb:atlasdb-api:
     - code: "java.class.removed"
