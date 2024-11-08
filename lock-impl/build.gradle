@@ -29,10 +29,7 @@ dependencies {
   testImplementation 'com.palantir.safe-logging:preconditions'
   testImplementation 'org.assertj:assertj-core'
   testImplementation 'org.mockito:mockito-core'
-  testImplementation 'uk.org.lidalia:lidalia-slf4j-ext'
-  testImplementation 'uk.org.lidalia:slf4j-test'
   testImplementation 'org.junit.jupiter:junit-jupiter'
-  testImplementation 'org.mockito:mockito-junit-jupiter'
   testImplementation project(":flake-extension")
   testImplementation project(':commons-executors')
   testImplementation project(':lock-api-objects')

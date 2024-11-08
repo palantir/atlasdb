@@ -77,7 +77,6 @@ org.wildfly.common:wildfly-common = 2.0.1
 org.xerial.snappy:snappy-java = 1.1.10.4
 org.xerial:sqlite-jdbc = 3.42.0.0
 org.yaml:snakeyaml = 2.3
-uk.org.lidalia:slf4j-test = 1.2.0
 
 # Manually upgraded versions
 # dependency-upgrader:OFF
