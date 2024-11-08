@@ -36,9 +36,8 @@ import org.junit.jupiter.api.Test;
 public final class LockServiceImplTest {
     @Test
     public void verifySerializedBatchOfLockRequestsSmallerThan45MB() throws InterruptedException, IOException {
-        LockService lockService = LockServiceImpl.create(LockServerOptions.builder()
-                .isStandaloneServer(false)
-                .build());
+        LockService lockService = LockServiceImpl.create(
+                LockServerOptions.builder().isStandaloneServer(false).build());
 
         Set<LockRefreshToken> tokens = new HashSet<>();
 
