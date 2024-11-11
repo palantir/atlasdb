@@ -1,0 +1,5 @@
+type: improvement
+improvement:
+  description: Bump jdbc driver for oracle+postgres/oracle image for testing
+  links:
+  - https://github.com/palantir/atlasdb/pull/7433
