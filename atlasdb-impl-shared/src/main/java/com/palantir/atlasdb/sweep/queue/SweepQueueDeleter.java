@@ -94,6 +94,7 @@ public class SweepQueueDeleter {
                                         entry.getKey(),
                                         maxTimestampByCellPartition,
                                         failure);
+                                throw failure;
                             }
 
                             maybeLogOperationOnCells(
