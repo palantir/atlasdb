@@ -102,9 +102,9 @@ com.google.protobuf:* = 3.25.4
 
 # Database drivers can have unexpected breaking changes and should be upgraded with caution
 com.datastax.cassandra:cassandra-driver-core = 3.8.0
-com.oracle.database.jdbc:ojdbc11 = 23.4.0.24.05
+com.oracle.database.jdbc:ojdbc11 = 23.6.0.24.10
 com.palantir.cassandra:* = 2.2.18-1.108.0
-org.postgresql:postgresql = 42.7.3
+org.postgresql:postgresql = 42.7.4
 
 # transitive dep with API breaks in 0.14.0
 org.apache.thrift:libthrift = 0.17.0

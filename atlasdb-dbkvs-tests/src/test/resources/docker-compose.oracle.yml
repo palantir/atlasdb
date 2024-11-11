@@ -1,6 +1,6 @@
 services:
   oracle:
-    image: palantirtechnologies/oracle-atlasdb:19.24.0.0
+    image: palantirtechnologies/oracle-atlasdb:19.25.0.0
     volumes:
       - ./docker-startup:/opt/oracle/scripts/startup
     ports:
