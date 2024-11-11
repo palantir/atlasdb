@@ -283,7 +283,8 @@ public class CassandraServiceTest {
             CassandraService cassandra, Set<CassandraServer> hosts) {
         return IntStream.range(0, 1_000)
                 .mapToObj(attempt -> cassandra.getRandomGoodHostForPredicate(address -> true, hosts))
-                .flatMap(Optional::stream)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .map(CassandraClientPoolingContainer::getCassandraServer)
                 .collect(Collectors.toSet());
     }

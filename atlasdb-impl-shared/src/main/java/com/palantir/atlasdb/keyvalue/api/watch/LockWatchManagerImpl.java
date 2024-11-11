@@ -96,7 +96,8 @@ public final class LockWatchManagerImpl extends LockWatchManagerInternal {
                 .collect(Collectors.toSet());
         Set<TableReference> watchedTablesFromSchema = referencesFromSchema.stream()
                 .map(schema -> schema.accept(LockWatchReferenceTableExtractor.INSTANCE))
-                .flatMap(Optional::stream)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .collect(Collectors.toSet());
         CacheMetrics metrics = CacheMetrics.create(metricsManager);
         LockWatchEventCache eventCache = LockWatchEventCacheImpl.create(metrics, config.maxEvents());

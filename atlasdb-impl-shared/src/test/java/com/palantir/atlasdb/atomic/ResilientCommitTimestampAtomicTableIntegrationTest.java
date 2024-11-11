@@ -131,7 +131,8 @@ public class ResilientCommitTimestampAtomicTableIntegrationTest {
         Set<Long> concreteValuesAgreedByReaders = readers.stream()
                 .map(TimestampReader::getTimestampReads)
                 .flatMap(List::stream)
-                .flatMap(Optional::stream)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .collect(Collectors.toSet());
         assertThat(concreteValuesAgreedByReaders)
                 .as("cannot have readers individually diverge on concretely observed values")

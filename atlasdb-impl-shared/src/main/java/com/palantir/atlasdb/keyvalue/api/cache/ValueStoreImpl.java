@@ -161,7 +161,8 @@ final class ValueStoreImpl implements ValueStore {
     private Stream<CellReference> getCandidateCells(Set<LockDescriptor> lockDescriptors) {
         return lockDescriptors.stream()
                 .map(AtlasLockDescriptorUtils::tryParseTableRef)
-                .flatMap(Optional::stream)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 // Explicitly exclude descriptors corresponding to watched rows from non-watched tables
                 .filter(this::isTableWatched)
                 .flatMap(this::extractCandidateCells);
@@ -192,7 +193,8 @@ final class ValueStoreImpl implements ValueStore {
         public Void visit(LockWatchCreatedEvent lockWatchCreatedEvent) {
             lockWatchCreatedEvent.references().stream()
                     .map(reference -> reference.accept(LockWatchReferenceTableExtractor.INSTANCE))
-                    .flatMap(Optional::stream)
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
                     .forEach(tableReference -> watchedTables.with(tables -> tables.add(tableReference)));
 
             applyLockedDescriptors(lockWatchCreatedEvent.lockDescriptors());

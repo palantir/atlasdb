@@ -154,8 +154,10 @@ abstract class CassandraImitatingConsensusForgettingStore implements ConsensusFo
         Set<Optional<BytesAndTimestamp>> reads = quorumNodes.stream()
                 .map(node -> Optional.ofNullable(node.get(cell)))
                 .collect(Collectors.toSet());
-        Optional<BytesAndTimestamp> result =
-                reads.stream().flatMap(Optional::stream).max(Comparator.comparing(BytesAndTimestamp::timestamp));
+        Optional<BytesAndTimestamp> result = reads.stream()
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .max(Comparator.comparing(BytesAndTimestamp::timestamp));
         if (reads.size() > 1) {
             runStateMutatingTaskOnNodes(cell, quorumNodes, node -> node.tryUpdateTo(cell, result.get()));
         }

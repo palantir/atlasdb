@@ -38,7 +38,8 @@ public final class OptionalResolver {
     public static <T> T resolve(Optional<T> optional1, Optional<T> optional2) {
         Set<T> values = Stream.of(optional1, optional2)
                 .filter(Objects::nonNull)
-                .flatMap(Optional::stream)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .collect(Collectors.toSet());
 
         if (values.size() == 1) {

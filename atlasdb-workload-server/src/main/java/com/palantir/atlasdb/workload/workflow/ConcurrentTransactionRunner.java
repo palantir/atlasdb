@@ -51,7 +51,10 @@ public final class ConcurrentTransactionRunner<T extends TransactionStore> {
                 .collect(Collectors.toList());
         return Futures.transform(
                 Futures.allAsList(taskFutures),
-                outcome -> outcome.stream().flatMap(Optional::stream).collect(Collectors.toList()),
+                outcome -> outcome.stream()
+                        .filter(Optional::isPresent)
+                        .map(Optional::get)
+                        .collect(Collectors.toList()),
                 MoreExecutors.directExecutor());
     }
 }

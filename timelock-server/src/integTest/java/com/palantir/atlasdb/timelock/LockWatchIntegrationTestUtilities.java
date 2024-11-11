@@ -110,7 +110,8 @@ public final class LockWatchIntegrationTestUtilities {
     public static List<Optional<LockRequestMetadata>> extractMetadata(List<LockWatchEvent> lockWatchEvents) {
         return lockWatchEvents.stream()
                 .map(event -> event.accept(LockEventVisitor.INSTANCE))
-                .flatMap(Optional::stream)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .map(LockEvent::metadata)
                 .collect(Collectors.toList());
     }

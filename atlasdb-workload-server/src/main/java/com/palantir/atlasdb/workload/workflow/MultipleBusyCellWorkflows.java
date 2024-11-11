@@ -95,7 +95,8 @@ public final class MultipleBusyCellWorkflows {
                     Futures.allAsList(
                             Stream.of(reads, writes).flatMap(Collection::stream).collect(Collectors.toList())),
                     maybeWitnessedTransactions -> maybeWitnessedTransactions.stream()
-                            .flatMap(Optional::stream)
+                            .filter(Optional::isPresent)
+                            .map(Optional::get)
                             .collect(Collectors.toList()),
                     MoreExecutors.directExecutor());
             ReadOnlyTransactionStore readOnlyTransactionStore = new ReadOnlyTransactionStore(store);

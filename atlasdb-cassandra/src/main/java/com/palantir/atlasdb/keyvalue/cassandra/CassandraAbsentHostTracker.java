@@ -65,7 +65,8 @@ public final class CassandraAbsentHostTracker {
         absentServersSnapshot.forEach(this::incrementAbsenceCountIfPresent);
         return absentServersSnapshot.stream()
                 .map(this::removeIfAbsenceThresholdReached)
-                .flatMap(Optional::stream)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .collect(ImmutableSet.toImmutableSet());
     }
 
