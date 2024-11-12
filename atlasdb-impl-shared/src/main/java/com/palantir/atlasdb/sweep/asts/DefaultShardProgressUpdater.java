@@ -21,12 +21,14 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketPointerTable;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketRecordsTable;
+import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketsTable;
 import com.palantir.atlasdb.sweep.asts.progress.BucketProgress;
 import com.palantir.atlasdb.sweep.asts.progress.BucketProgressStore;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SweepQueueProgressUpdater;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
+import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Optional;
@@ -42,16 +44,19 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
     private final BucketProgressStore bucketProgressStore;
     private final SweepQueueProgressUpdater sweepQueueProgressUpdater;
     private final SweepBucketRecordsTable recordsTable;
+    private final SweepBucketsTable sweepBucketsTable;
     private final SweepBucketPointerTable sweepBucketPointerTable;
 
     public DefaultShardProgressUpdater(
             BucketProgressStore bucketProgressStore,
             SweepQueueProgressUpdater sweepQueueProgressUpdater,
             SweepBucketRecordsTable recordsTable,
+            SweepBucketsTable sweepBucketsTable,
             SweepBucketPointerTable sweepBucketPointerTable) {
         this.bucketProgressStore = bucketProgressStore;
         this.sweepQueueProgressUpdater = sweepQueueProgressUpdater;
         this.recordsTable = recordsTable;
+        this.sweepBucketsTable = sweepBucketsTable;
         this.sweepBucketPointerTable = sweepBucketPointerTable;
     }
 
@@ -61,16 +66,9 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
         BucketProbeResult bucketProbeResult = findCompletedBuckets(shardAndStrategy, bucketPointer);
 
         // This order of clearing the metadata is intentional:
-        // (1) if bucket progress is deleted but the pointer is not updated, we might sweep the relevant buckets
-        //     again, but that is acceptable because sweepable cells and timestamps were already cleared, and
-        //     these tables are not accessed via row range scans, so the number of tombstones we read will be
-        //     reasonably bounded.
-        // (2) if the pointer is updated but progress is not, we will update progress to the right value on the
-        //     next iteration (notice that we only use the pointer, and not the existing progress, to track where
-        //     we are in the timeline).
-        for (long bucket = bucketPointer; bucket < bucketProbeResult.endExclusive(); bucket++) {
-            bucketProgressStore.deleteBucketProgress(Bucket.of(shardAndStrategy, bucket));
-        }
+        // if the pointer is updated but progress is not, we will update progress to the right value on the
+        // next iteration (notice that we only use the pointer, and not the existing progress, to track where
+        // we are in the timeline).
         sweepBucketPointerTable.updateStartingBucketForShardAndStrategy(
                 Bucket.of(shardAndStrategy, bucketProbeResult.endExclusive()));
         sweepQueueProgressUpdater.progressTo(shardAndStrategy, bucketProbeResult.knownSweepProgress());
@@ -82,53 +80,115 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
      * if this is not the case, behaviour is undefined.
      */
     private BucketProbeResult findCompletedBuckets(ShardAndStrategy shardAndStrategy, long searchStart) {
+        long lastEndExclusiveForCompleteBucket = -1;
         for (long offset = 0; offset < MAX_BUCKETS_TO_CHECK_PER_ITERATION; offset++) {
             long currentBucket = searchStart + offset;
             Optional<BucketProgress> bucketProgress =
                     bucketProgressStore.getBucketProgress(Bucket.of(shardAndStrategy, currentBucket));
-            if (bucketProgress.isPresent()) {
-                BucketProgress presentBucketProgress = bucketProgress.get();
-                TimestampRange requiredRange = getTimestampRangeRecord(currentBucket);
-                if (presentBucketProgress.timestampProgress()
-                        != requiredRange.endExclusive() - requiredRange.startInclusive() - 1) {
-                    // Bucket still has progress to go, so we can stop here.
-                    return BucketProbeResult.builder()
-                            .endExclusive(currentBucket)
-                            .knownSweepProgress(
-                                    requiredRange.startInclusive() + presentBucketProgress.timestampProgress())
-                            .build();
+            Optional<TimestampRange> record = recordsTable.getTimestampRangeRecord(currentBucket);
+            Optional<SweepableBucket> writtenSweepableBucket =
+                    sweepBucketsTable.getSweepableBucket(Bucket.of(shardAndStrategy, currentBucket));
+
+            if (record.isPresent()) { // bucket has to have been closed
+                Optional<BucketProbeResult> definitiveProbeResult =
+                        getProbeResultForPotentiallyPartiallyCompleteClosedBucket(
+                                record.orElseThrow(), bucketProgress, writtenSweepableBucket, currentBucket);
+                if (definitiveProbeResult.isPresent()) {
+                    return definitiveProbeResult.get();
                 } else {
-                    // Bucket fully processed, keep going.
-                    if (offset == MAX_BUCKETS_TO_CHECK_PER_ITERATION - 1) {
-                        // We finished the maximum number of buckets to check, and all were completed.
-                        return BucketProbeResult.builder()
-                                .endExclusive(currentBucket + 1)
-                                .knownSweepProgress(requiredRange.endExclusive() + 1)
-                                .build();
-                    }
+                    lastEndExclusiveForCompleteBucket = record.get().endExclusive();
                 }
             } else {
-                // No progress; we're ahead of the read pointer, so interpret as unstarted.
-                return BucketProbeResult.builder()
-                        .endExclusive(currentBucket)
-                        .knownSweepProgress(
-                                getTimestampRangeRecord(currentBucket).startInclusive() - 1L)
-                        .build();
+                // No record; we're possibly in an open bucket, or not created yet.
+
+                if (writtenSweepableBucket.isEmpty()) {
+                    // there's no open bucket. This should be rare - it'll happen if the bucket assigner failed to open
+                    // the next bucket after closing the last, of it the bucket assigner is behind and hit the cap
+                    // creating closed buckets.
+
+                    if (lastEndExclusiveForCompleteBucket == -1) {
+                        throw new SafeRuntimeException(
+                                "Failed to update shard progress as there are no buckets to"
+                                        + " check sweep's progress. This should be rare and transient. If this error"
+                                        + " occurs for more than 15 minutes and there are no new buckets being created,"
+                                        + " it is likely that there is something preventing the bucket assigner"
+                                        + " from progressing.",
+                                SafeArg.of("shardAndStrategy", shardAndStrategy),
+                                SafeArg.of("currentBucket", currentBucket));
+                    }
+
+                    return BucketProbeResult.builder()
+                            .endExclusive(currentBucket)
+                            .knownSweepProgress(lastEndExclusiveForCompleteBucket - 1)
+                            .build();
+                }
+                SweepableBucket bucket = writtenSweepableBucket.orElseThrow();
+                return getProbeResultForOpenBucket(bucketProgress, bucket, currentBucket);
             }
         }
-        throw new SafeIllegalStateException("Didn't expect to get here");
+
+        if (lastEndExclusiveForCompleteBucket == -1) {
+            throw new SafeIllegalStateException("Didn't expect to get here");
+        }
+        return BucketProbeResult.builder()
+                .endExclusive(searchStart + MAX_BUCKETS_TO_CHECK_PER_ITERATION)
+                .knownSweepProgress(lastEndExclusiveForCompleteBucket - 1)
+                .build();
     }
 
-    // TODO(mdaudali): This method is still incorrect (a record does not exist for an open bucket, not just pre-init
-    //  bucket 0). A follow up PR will address this.
-    private TimestampRange getTimestampRangeRecord(long queriedBucket) {
-        return recordsTable
-                .getTimestampRangeRecord(queriedBucket)
-                .orElseThrow(() -> new SafeIllegalStateException(
-                        "Timestamp range record not found. If this has happened for bucket 0, this is possible when"
-                            + " autoscaling sweep is initializing itself. Otherwise, this is potentially indicative of"
-                            + " a bug in auto-scaling sweep. In either case, we will retry.",
-                        SafeArg.of("queriedBucket", queriedBucket)));
+    private Optional<BucketProbeResult> getProbeResultForPotentiallyPartiallyCompleteClosedBucket(
+            TimestampRange presentRecord,
+            Optional<BucketProgress> bucketProgress,
+            Optional<SweepableBucket> writtenSweepableBucket,
+            long currentBucket) {
+        // If there's progress, and it's not at the end, then it's incomplete.
+        // If there's progress, and it's at the end, it's finished
+        // If there's no progress and the sweepable bucket is present, then it's not started
+        // If there's no progress and the sweepable bucket is not present, then it's finished
+        // (all assuming the record is present, since the record is written at the end)
+        if (bucketProgress.isPresent()) {
+            BucketProgress presentBucketProgress = bucketProgress.get();
+            if (presentBucketProgress.timestampProgress()
+                    != presentRecord.endExclusive() - presentRecord.startInclusive() - 1) {
+                // Progress, but not at the end
+                return Optional.of(BucketProbeResult.builder()
+                        .endExclusive(currentBucket)
+                        .knownSweepProgress(presentRecord.startInclusive() + presentBucketProgress.timestampProgress())
+                        .build());
+            } else {
+                // progress and it's at the end (perhaps we caught the foreground task between updating
+                /// progress, and updating the record)
+                return Optional.empty();
+            }
+        } else if (writtenSweepableBucket.isPresent()) {
+            // no progress, record present _and_ sweepable bucket entry present implies we're unstarted
+            return Optional.of(BucketProbeResult.builder()
+                    .endExclusive(currentBucket)
+                    .knownSweepProgress(presentRecord.startInclusive() - 1L)
+                    .build());
+        } else {
+            // no progress and the sweepable bucket is not present, so it's finished.
+            return Optional.empty();
+        }
+    }
+
+    private BucketProbeResult getProbeResultForOpenBucket(
+            Optional<BucketProgress> bucketProgress, SweepableBucket bucket, long currentBucket) {
+        // No progress, then we haven't started yet.
+        if (bucketProgress.isEmpty()) {
+            return BucketProbeResult.builder()
+                    .endExclusive(currentBucket)
+                    .knownSweepProgress(bucket.timestampRange().startInclusive() - 1L)
+                    .build();
+        } else {
+            // Progress in the open bucket!
+            BucketProgress presentBucketProgress = bucketProgress.get();
+            return BucketProbeResult.builder()
+                    .endExclusive(currentBucket)
+                    .knownSweepProgress(
+                            bucket.timestampRange().startInclusive() + presentBucketProgress.timestampProgress())
+                    .build();
+        }
     }
 
     private long getStrictUpperBoundForSweptBuckets(ShardAndStrategy shardAndStrategy) {

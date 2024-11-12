@@ -149,6 +149,7 @@ public final class BucketBasedTargetedSweeper implements BackgroundSweeper {
                 bucketProgressStore,
                 new SweepQueueProgressUpdater(cleaner),
                 sweepAssignedBucketStore,
+                sweepAssignedBucketStore,
                 sweepAssignedBucketStore);
     }
 
