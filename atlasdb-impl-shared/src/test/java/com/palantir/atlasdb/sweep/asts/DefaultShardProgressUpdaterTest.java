@@ -16,10 +16,8 @@
 
 package com.palantir.atlasdb.sweep.asts;
 
-import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -28,13 +26,12 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketPointerTable;
 import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketRecordsTable;
+import com.palantir.atlasdb.sweep.asts.bucketingthings.SweepBucketsTable;
 import com.palantir.atlasdb.sweep.asts.progress.BucketProgress;
 import com.palantir.atlasdb.sweep.asts.progress.BucketProgressStore;
 import com.palantir.atlasdb.sweep.queue.ShardAndStrategy;
 import com.palantir.atlasdb.sweep.queue.SweepQueueProgressUpdater;
 import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -62,6 +59,9 @@ public class DefaultShardProgressUpdaterTest {
     private SweepBucketRecordsTable recordsTable;
 
     @Mock
+    private SweepBucketsTable sweepBucketsTable;
+
+    @Mock
     private SweepBucketPointerTable sweepBucketPointerTable;
 
     private DefaultShardProgressUpdater shardProgressUpdater;
@@ -69,39 +69,24 @@ public class DefaultShardProgressUpdaterTest {
     @BeforeEach
     public void setUp() {
         shardProgressUpdater = new DefaultShardProgressUpdater(
-                bucketProgressStore, sweepQueueProgressUpdater, recordsTable, sweepBucketPointerTable);
+                bucketProgressStore,
+                sweepQueueProgressUpdater,
+                recordsTable,
+                sweepBucketsTable,
+                sweepBucketPointerTable);
     }
 
     @ParameterizedTest
     @MethodSource("buckets")
-    public void wrapsAndRethrowsExceptionOnAbsenceOfTimestampRangeRecords(Bucket bucket) {
-        when(sweepBucketPointerTable.getStartingBucketsForShards(ImmutableSet.of(bucket.shardAndStrategy())))
-                .thenReturn(ImmutableSet.of(bucket));
-        NoSuchElementException underlyingException = new NoSuchElementException();
-        when(recordsTable.getTimestampRangeRecord(bucket.bucketIdentifier())).thenThrow(underlyingException);
-
-        assertThatLoggableExceptionThrownBy(() -> shardProgressUpdater.updateProgress(bucket.shardAndStrategy()))
-                .isInstanceOf(SafeIllegalStateException.class)
-                .hasLogMessage("Timestamp range record not found. If this has happened for bucket 0, this is possible"
-                        + " when autoscaling sweep is initializing itself. Otherwise, this is potentially indicative of"
-                        + " a bug in auto-scaling sweep. In either case, we will retry.")
-                .hasExactlyArgs(SafeArg.of("queriedBucket", bucket.bucketIdentifier()))
-                .hasCause(underlyingException);
-
-        verify(sweepBucketPointerTable, never()).updateStartingBucketForShardAndStrategy(bucket);
-        verify(sweepQueueProgressUpdater, never()).progressTo(eq(bucket.shardAndStrategy()), anyLong());
-        verify(bucketProgressStore, never()).deleteBucketProgress(any());
-    }
-
-    @ParameterizedTest
-    @MethodSource("buckets")
-    public void doesNotUpdateProgressOnUnstartedBucket(Bucket bucket) {
+    public void doesNotUpdateProgressOnUnstartedOpenBucket(Bucket bucket) {
         when(sweepBucketPointerTable.getStartingBucketsForShards(ImmutableSet.of(bucket.shardAndStrategy())))
                 .thenReturn(ImmutableSet.of(bucket));
         when(bucketProgressStore.getBucketProgress(bucket)).thenReturn(Optional.empty());
-        when(recordsTable.getTimestampRangeRecord(bucket.bucketIdentifier()))
-                .thenReturn(TimestampRange.of(
-                        SweepQueueUtils.minTsForCoarsePartition(3), SweepQueueUtils.minTsForCoarsePartition(8)));
+        when(recordsTable.getTimestampRangeRecord(bucket.bucketIdentifier())).thenThrow(new NoSuchElementException());
+
+        TimestampRange timestampRange = TimestampRange.openBucket(SweepQueueUtils.minTsForCoarsePartition(3));
+        when(sweepBucketsTable.getSweepableBucket(bucket))
+                .thenReturn(Optional.of(SweepableBucket.of(bucket, timestampRange)));
 
         shardProgressUpdater.updateProgress(bucket.shardAndStrategy());
 
@@ -112,8 +97,67 @@ public class DefaultShardProgressUpdaterTest {
     }
 
     @ParameterizedTest
+    @MethodSource("buckets")
+    public void doesNotUpdateProgressOnUnstartedClosedBucket(Bucket bucket) {
+        when(sweepBucketPointerTable.getStartingBucketsForShards(ImmutableSet.of(bucket.shardAndStrategy())))
+                .thenReturn(ImmutableSet.of(bucket));
+        when(bucketProgressStore.getBucketProgress(bucket)).thenReturn(Optional.empty());
+        TimestampRange timestampRange = TimestampRange.of(
+                SweepQueueUtils.minTsForCoarsePartition(3), SweepQueueUtils.minTsForCoarsePartition(8));
+        when(recordsTable.getTimestampRangeRecord(bucket.bucketIdentifier())).thenReturn(timestampRange);
+
+        when(sweepBucketsTable.getSweepableBucket(bucket))
+                .thenReturn(Optional.of(SweepableBucket.of(bucket, timestampRange)));
+
+        shardProgressUpdater.updateProgress(bucket.shardAndStrategy());
+
+        verify(sweepBucketPointerTable).updateStartingBucketForShardAndStrategy(bucket);
+        verify(sweepQueueProgressUpdater)
+                .progressTo(bucket.shardAndStrategy(), SweepQueueUtils.minTsForCoarsePartition(3) - 1L);
+        verify(bucketProgressStore, never()).deleteBucketProgress(any());
+    }
+
+    @ParameterizedTest
+    @MethodSource("buckets")
+    public void throwsIfOpenBucketHasNoBucketEntry(Bucket bucket) {
+        when(sweepBucketPointerTable.getStartingBucketsForShards(ImmutableSet.of(bucket.shardAndStrategy())))
+                .thenReturn(ImmutableSet.of(bucket));
+        when(bucketProgressStore.getBucketProgress(bucket)).thenReturn(Optional.empty());
+        when(recordsTable.getTimestampRangeRecord(bucket.bucketIdentifier())).thenThrow(new NoSuchElementException());
+
+        when(sweepBucketsTable.getSweepableBucket(bucket)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> shardProgressUpdater.updateProgress(bucket.shardAndStrategy()));
+    }
+
+    @ParameterizedTest
     @MethodSource("sweepableBuckets")
-    public void updatesProgressOnStartedButNotCompletedBucket(SweepableBucket sweepableBucket) {
+    public void updatesProgressOnStartedButNotCompletedOpenBucket(SweepableBucket sweepableBucket) {
+        Bucket bucket = sweepableBucket.bucket();
+        when(sweepBucketPointerTable.getStartingBucketsForShards(ImmutableSet.of(bucket.shardAndStrategy())))
+                .thenReturn(ImmutableSet.of(bucket));
+        when(bucketProgressStore.getBucketProgress(bucket))
+                .thenReturn(Optional.of(BucketProgress.createForTimestampProgress(1_234_567L)));
+        when(recordsTable.getTimestampRangeRecord(bucket.bucketIdentifier())).thenThrow(new NoSuchElementException());
+        when(sweepBucketsTable.getSweepableBucket(bucket))
+                .thenReturn(Optional.of(SweepableBucket.of(
+                        bucket,
+                        TimestampRange.openBucket(
+                                sweepableBucket.timestampRange().startInclusive()))));
+
+        shardProgressUpdater.updateProgress(bucket.shardAndStrategy());
+
+        verify(sweepBucketPointerTable).updateStartingBucketForShardAndStrategy(bucket);
+        verify(sweepQueueProgressUpdater)
+                .progressTo(
+                        bucket.shardAndStrategy(),
+                        sweepableBucket.timestampRange().startInclusive() + 1_234_567L);
+        verify(bucketProgressStore, never()).deleteBucketProgress(any());
+    }
+
+    @ParameterizedTest
+    @MethodSource("sweepableBuckets")
+    public void updatesProgressOnStartedButNotCompletedClosedBucket(SweepableBucket sweepableBucket) {
         Bucket bucket = sweepableBucket.bucket();
         when(sweepBucketPointerTable.getStartingBucketsForShards(ImmutableSet.of(bucket.shardAndStrategy())))
                 .thenReturn(ImmutableSet.of(bucket));
@@ -121,6 +165,7 @@ public class DefaultShardProgressUpdaterTest {
                 .thenReturn(Optional.of(BucketProgress.createForTimestampProgress(1_234_567L)));
         when(recordsTable.getTimestampRangeRecord(bucket.bucketIdentifier()))
                 .thenReturn(sweepableBucket.timestampRange());
+        when(sweepBucketsTable.getSweepableBucket(bucket)).thenReturn(Optional.of(sweepableBucket));
 
         shardProgressUpdater.updateProgress(bucket.shardAndStrategy());
 
@@ -155,7 +200,10 @@ public class DefaultShardProgressUpdaterTest {
                 lastCompleteBucketTimestampRange.endExclusive(),
                 lastCompleteBucketTimestampRange.endExclusive() + SweepQueueUtils.TS_COARSE_GRANULARITY);
         when(recordsTable.getTimestampRangeRecord(finalBucketIdentifier)).thenReturn(finalBucketTimestampRange);
-
+        when(sweepBucketsTable.getSweepableBucket(Bucket.of(firstRawBucket.shardAndStrategy(), finalBucketIdentifier)))
+                .thenReturn(Optional.of(SweepableBucket.of(
+                        Bucket.of(firstRawBucket.shardAndStrategy(), finalBucketIdentifier),
+                        finalBucketTimestampRange)));
         shardProgressUpdater.updateProgress(firstRawBucket.shardAndStrategy());
 
         verify(sweepBucketPointerTable)
@@ -184,6 +232,7 @@ public class DefaultShardProgressUpdaterTest {
                         sweepableBucket.timestampRange().endExclusive()
                                 - sweepableBucket.timestampRange().startInclusive()
                                 - 1L)));
+        when(sweepBucketsTable.getSweepableBucket(sweepableBucket.bucket())).thenReturn(Optional.of(sweepableBucket));
     }
 
     // Creates a list of sweepable buckets following the provided bucket, each with a range of TS_COARSE_GRANULARITY

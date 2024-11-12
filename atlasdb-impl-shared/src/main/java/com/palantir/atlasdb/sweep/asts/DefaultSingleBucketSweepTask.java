@@ -84,6 +84,10 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
 
         BucketProgress existingBucketProgress =
                 bucketProgressStore.getBucketProgress(sweepableBucket.bucket()).orElse(BucketProgress.INITIAL_PROGRESS);
+        log.info(
+                "Existing bucket progress",
+                SafeArg.of("bucket", sweepableBucket.bucket()),
+                SafeArg.of("progress", existingBucketProgress));
 
         // This is inclusive.
         long lastSweptTimestampInBucket =
@@ -159,8 +163,13 @@ public class DefaultSingleBucketSweepTask implements SingleBucketSweepTask {
 
         long lastTsOffset = lastTs - sweepableBucket.timestampRange().startInclusive();
 
+        log.info(
+                "Updating bucket progress",
+                SafeArg.of("bucket", sweepableBucket.bucket()),
+                SafeArg.of("progress", lastTsOffset));
         bucketProgressStore.updateBucketProgressToAtLeast(
                 sweepableBucket.bucket(), BucketProgress.createForTimestampProgress(lastTsOffset));
+
         if (isCompletelySwept(sweepableBucket.timestampRange().endExclusive(), lastTs)) {
             // we've finished the bucket!
             markBucketCompleteIfEligible(sweepableBucket);

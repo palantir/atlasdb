@@ -223,6 +223,15 @@ public final class DefaultSweepAssignedBucketStore
     }
 
     @Override
+    public Optional<SweepableBucket> getSweepableBucket(Bucket bucket) {
+        Cell cell = SweepAssignedBucketStoreKeyPersister.INSTANCE.sweepBucketsCell(bucket);
+        return readCell(
+                cell,
+                (byte[] bytes) -> SweepAssignedBucketStoreKeyPersister.INSTANCE.fromSweepBucketCellAndValue(
+                        cell, Value.create(bytes, -1), timestampRangePersister));
+    }
+
+    @Override
     public void putTimestampRangeForBucket(
             Bucket bucket, Optional<TimestampRange> oldTimestampRange, TimestampRange newTimestampRange) {
         Cell cell = SweepAssignedBucketStoreKeyPersister.INSTANCE.sweepBucketsCell(bucket);

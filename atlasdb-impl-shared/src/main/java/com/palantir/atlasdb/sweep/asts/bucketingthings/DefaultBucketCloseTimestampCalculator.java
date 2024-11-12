@@ -91,9 +91,16 @@ public final class DefaultBucketCloseTimestampCalculator {
         }
 
         long finalLogicalTimestamp = puncherStore.get(closeWallClockTimeMillis);
+        long clampedTimestamp = clampTimestampToCoarsePartitionBoundary(finalLogicalTimestamp);
 
-        // if this case happens, it's possibly clockdrift or a delayed write.
-        if (finalLogicalTimestamp <= startTimestamp) {
+        // if this case happens, it's possibly clockdrift or a delayed write, or we just make too slow progress
+        // TODO(mdaudali): Re-evaluate if the lower bound of 10_000_000 timestamps per 10 mins makes sense.
+        // This has the following interesting case: Suppose that the assigner stopped for a day. Then, suppose that the
+        // within the following 10 minute period from where the assigner currently is looking at, there is _not_ 10 mil
+        // timestamps. Then, instead of choosing a 10 million sized block, we have a giant block up to the fresh Ts.
+        // This is capped at 5 billion, and we were okay with this case when there's clock drift, but we should
+        // evaluate.
+        if (clampedTimestamp - startTimestamp < MIN_BUCKET_SIZE) {
             long freshClampedTimestamp = clampTimestampToCoarsePartitionBoundary(freshTimestampSupplier.get());
             if (freshClampedTimestamp - startTimestamp < MIN_BUCKET_SIZE) {
                 logNonPuncherClose(
@@ -127,16 +134,6 @@ public final class DefaultBucketCloseTimestampCalculator {
             }
             return OptionalLong.of(cappedTimestamp);
         } else {
-            long clampedTimestamp = clampTimestampToCoarsePartitionBoundary(finalLogicalTimestamp);
-            if (clampedTimestamp - startTimestamp < MIN_BUCKET_SIZE) {
-                log.info(
-                        "The proposed final timestamp {} is not sufficiently far from start timestamp {} (minimum"
-                                + " size: {}) to close the bucket",
-                        SafeArg.of("proposedClampedTimestamp", clampedTimestamp),
-                        SafeArg.of("startTimestamp", startTimestamp),
-                        SafeArg.of("minimumSize", MIN_BUCKET_SIZE));
-                return OptionalLong.empty();
-            }
             return OptionalLong.of(clampedTimestamp);
         }
     }
@@ -162,10 +159,10 @@ public final class DefaultBucketCloseTimestampCalculator {
                 .addAll(Arrays.asList(additionalArgs))
                 .build();
         log.info(
-                "Read a logical timestamp {} from the puncher store that's less than or equal to the start timestamp"
-                        + " {}, despite requesting a time {} after the start timestamp's associated wall clock time {}."
-                        + " This is likely due to some form of clock drift, but should not be happening repeatedly.  We"
-                        + " read a fresh timestamp that has been clamped down to the nearest coarse"
+                "Read a logical timestamp {} from the puncher store that's not sufficiently far from the start"
+                        + " timestamp {}, despite requesting a time {} after the start timestamp's associated wall"
+                        + " clock time {}. This is likely due to some form of clock drift, but should not be happening"
+                        + " repeatedly.  We  read a fresh timestamp that has been clamped down to the nearest coarse"
                         + " partition boundary {}, " + logMessageSuffix,
                 args);
     }
