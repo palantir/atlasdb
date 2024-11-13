@@ -54,6 +54,13 @@ public interface AutoScalingTargetedSweepRuntimeConfig {
         return Duration.ofMinutes(1);
     }
 
+    // Modify the below config if you expect your service to churn through far more than 100_000_000 timestamps in a 10
+    // minute window.
+    @Value.Default
+    default long maxCoarsePartitionsPerBucketForNonPuncherClose() {
+        return 10; // 100_000_000L timestamps.
+    }
+
     static AutoScalingTargetedSweepRuntimeConfig defaultConfig() {
         return ImmutableAutoScalingTargetedSweepRuntimeConfig.builder().build();
     }

@@ -27,6 +27,7 @@ import com.palantir.logsafe.Preconditions;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
+import com.palantir.refreshable.Refreshable;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -44,25 +45,33 @@ public final class DefaultBucketCloseTimestampCalculator {
     @VisibleForTesting
     static final long MIN_BUCKET_SIZE = SweepQueueUtils.TS_COARSE_GRANULARITY;
 
-    @VisibleForTesting
-    static final long MAX_BUCKET_SIZE_FOR_NON_PUNCHER_CLOSE = 500 * MIN_BUCKET_SIZE; // 5 billion
-
     private final PuncherStore puncherStore;
     private final Supplier<Long> freshTimestampSupplier;
+    private final Refreshable<Long> maxNumberOfCoarsePartitionsPerBucketForNonPuncherClose;
     private final Clock clock;
 
     @VisibleForTesting
     DefaultBucketCloseTimestampCalculator(
-            PuncherStore puncherStore, Supplier<Long> freshTimestampSupplier, Clock clock) {
+            PuncherStore puncherStore,
+            Supplier<Long> freshTimestampSupplier,
+            Refreshable<Long> maxNumberOfCoarsePartitionsPerBucketForNonPuncherClose,
+            Clock clock) {
         this.puncherStore = puncherStore;
         this.freshTimestampSupplier = freshTimestampSupplier;
+        this.maxNumberOfCoarsePartitionsPerBucketForNonPuncherClose =
+                maxNumberOfCoarsePartitionsPerBucketForNonPuncherClose;
         this.clock = clock;
     }
 
     public static DefaultBucketCloseTimestampCalculator create(
-            PuncherStore puncherStore, TimelockService timelockService) {
+            PuncherStore puncherStore,
+            TimelockService timelockService,
+            Refreshable<Long> maxNumberOfCoarsePartitionsPerBucket) {
         return new DefaultBucketCloseTimestampCalculator(
-                puncherStore, timelockService::getFreshTimestamp, Clock.systemUTC());
+                puncherStore,
+                timelockService::getFreshTimestamp,
+                maxNumberOfCoarsePartitionsPerBucket,
+                Clock.systemUTC());
     }
 
     // A second possible algorithm, rather than the fixed bounds above, is to (assuming the start timestamp is X):
@@ -98,8 +107,8 @@ public final class DefaultBucketCloseTimestampCalculator {
         // This has the following interesting case: Suppose that the assigner stopped for a day. Then, suppose that the
         // within the following 10 minute period from where the assigner currently is looking at, there is _not_ 10 mil
         // timestamps. Then, instead of choosing a 10 million sized block, we have a giant block up to the fresh Ts.
-        // This is capped at 5 billion, and we were okay with this case when there's clock drift, but we should
-        // evaluate.
+        // This is capped at the configurable amount, and we were okay with this case when there's clock drift, but we
+        // should evaluate.
         if (clampedTimestamp - startTimestamp < MIN_BUCKET_SIZE) {
             long freshClampedTimestamp = clampTimestampToCoarsePartitionBoundary(freshTimestampSupplier.get());
             if (freshClampedTimestamp - startTimestamp < MIN_BUCKET_SIZE) {
@@ -112,10 +121,16 @@ public final class DefaultBucketCloseTimestampCalculator {
                 return OptionalLong.empty();
             }
             // start timestamp is aligned on a coarse partition
-            // MAX_BUCKET_SIZE is also a multiple of a coarse partition
+            // currentMaxBucketSize is also a multiple of a coarse partition
             // so excluding overflow, start + MAX will also be aligned with a coarse partition.
-            long cappedTimestamp =
-                    Math.min(startTimestamp + MAX_BUCKET_SIZE_FOR_NON_PUNCHER_CLOSE, freshClampedTimestamp);
+            long currentMaxCoarsePartitions = maxNumberOfCoarsePartitionsPerBucketForNonPuncherClose.get();
+            Preconditions.checkState(
+                    currentMaxCoarsePartitions > 0,
+                    "max coarse partitions must be positive",
+                    SafeArg.of("maxCoarsePartitions", currentMaxCoarsePartitions));
+
+            long currentMaxBucketSize = currentMaxCoarsePartitions * SweepQueueUtils.TS_COARSE_GRANULARITY;
+            long cappedTimestamp = Math.min(startTimestamp + currentMaxBucketSize, freshClampedTimestamp);
             if (cappedTimestamp != freshClampedTimestamp) {
                 logNonPuncherClose(
                         "but this is too far from the start timestamp. Proposing a capped timestamp {} instead.",

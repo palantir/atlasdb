@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
-import static com.palantir.atlasdb.sweep.asts.bucketingthings.DefaultBucketCloseTimestampCalculator.MAX_BUCKET_SIZE_FOR_NON_PUNCHER_CLOSE;
 import static com.palantir.atlasdb.sweep.asts.bucketingthings.DefaultBucketCloseTimestampCalculator.MIN_BUCKET_SIZE;
 import static com.palantir.atlasdb.sweep.asts.bucketingthings.DefaultBucketCloseTimestampCalculator.TIME_GAP_BETWEEN_BUCKET_START_AND_END;
 import static com.palantir.logsafe.testing.Assertions.assertThatLoggableExceptionThrownBy;
@@ -26,17 +25,24 @@ import static org.mockito.Mockito.when;
 import com.palantir.atlasdb.cleaner.PuncherStore;
 import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import com.palantir.logsafe.SafeArg;
+import com.palantir.refreshable.Refreshable;
+import com.palantir.refreshable.SettableRefreshable;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.util.Collection;
 import java.util.OptionalLong;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import org.eclipse.collections.impl.factory.Sets;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -44,6 +50,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 public final class DefaultBucketCloseTimestampCalculatorTest {
     private final AtomicLong freshTimestamp = new AtomicLong(0);
+    private final SettableRefreshable<Long> maxNumberOfCoarsePartitionsPerBucketForNonPuncherClose =
+            Refreshable.create(500L);
     private final FakeClock clock = new FakeClock();
 
     @Mock
@@ -53,8 +61,8 @@ public final class DefaultBucketCloseTimestampCalculatorTest {
 
     @BeforeEach
     public void setup() {
-        bucketCloseTimestampCalculator =
-                new DefaultBucketCloseTimestampCalculator(puncherStore, freshTimestamp::get, clock);
+        bucketCloseTimestampCalculator = new DefaultBucketCloseTimestampCalculator(
+                puncherStore, freshTimestamp::get, maxNumberOfCoarsePartitionsPerBucketForNonPuncherClose, clock);
     }
 
     @Test
@@ -128,24 +136,66 @@ public final class DefaultBucketCloseTimestampCalculatorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(
-            longs = {
-                98 * SweepQueueUtils.TS_COARSE_GRANULARITY,
-                100 * SweepQueueUtils.TS_COARSE_GRANULARITY,
-                100 * SweepQueueUtils.TS_COARSE_GRANULARITY + 1,
-                101 * SweepQueueUtils.TS_COARSE_GRANULARITY - 1
-            })
+    @MethodSource("puncherTimestampAndMaxCoarsePartitions")
     public void returnsClampedAndCappedTimestampIfPuncherTimestampInsufficientlyFarAndLatestFreshTimestampIsTooFarAhead(
-            long puncherTimestamp) {
+            long puncherTimestamp, long maxCoarsePartitions) {
         long startTimestamp = 100 * SweepQueueUtils.TS_COARSE_GRANULARITY;
         when(puncherStore.getMillisForTimestamp(startTimestamp)).thenReturn(clock.millis());
         clock.advance(TIME_GAP_BETWEEN_BUCKET_START_AND_END);
         when(puncherStore.get(clock.millis())).thenReturn(puncherTimestamp);
-
-        freshTimestamp.set(2 * MAX_BUCKET_SIZE_FOR_NON_PUNCHER_CLOSE + startTimestamp);
+        maxNumberOfCoarsePartitionsPerBucketForNonPuncherClose.update(maxCoarsePartitions);
+        long maxBucketSize = maxCoarsePartitions * SweepQueueUtils.TS_COARSE_GRANULARITY;
+        freshTimestamp.set(2 * maxBucketSize + startTimestamp);
 
         OptionalLong maybeEndTimestamp = bucketCloseTimestampCalculator.getBucketCloseTimestamp(startTimestamp);
-        assertThat(maybeEndTimestamp).hasValue(MAX_BUCKET_SIZE_FOR_NON_PUNCHER_CLOSE + startTimestamp);
+        assertThat(maybeEndTimestamp).hasValue(maxBucketSize + startTimestamp);
+    }
+
+    @ParameterizedTest
+    @ValueSource(longs = {0, -1})
+    public void throwsIfMaxBucketSizeIsNonPositiveAndPuncherTimestampInsufficientlyFar(long maxCoarsePartitions) {
+        long startTimestamp = 0;
+        when(puncherStore.getMillisForTimestamp(startTimestamp)).thenReturn(clock.millis());
+        clock.advance(TIME_GAP_BETWEEN_BUCKET_START_AND_END);
+        when(puncherStore.get(clock.millis())).thenReturn(startTimestamp);
+
+        maxNumberOfCoarsePartitionsPerBucketForNonPuncherClose.update(maxCoarsePartitions);
+        freshTimestamp.set(SweepQueueUtils.TS_COARSE_GRANULARITY + startTimestamp);
+
+        assertThatLoggableExceptionThrownBy(
+                        () -> bucketCloseTimestampCalculator.getBucketCloseTimestamp(startTimestamp))
+                .hasLogMessage("max coarse partitions must be positive")
+                .hasExactlyArgs(SafeArg.of("maxCoarsePartitions", maxCoarsePartitions));
+    }
+
+    @Test
+    public void loadsLatestMaxCoarsePartitions() {
+        long startTimestamp = 0;
+        when(puncherStore.getMillisForTimestamp(startTimestamp)).thenReturn(clock.millis());
+        clock.advance(TIME_GAP_BETWEEN_BUCKET_START_AND_END);
+        when(puncherStore.get(clock.millis())).thenReturn(startTimestamp);
+
+        maxNumberOfCoarsePartitionsPerBucketForNonPuncherClose.update(1L);
+        freshTimestamp.set(SweepQueueUtils.TS_COARSE_GRANULARITY * 10 + startTimestamp);
+
+        OptionalLong maybeEndTimestamp = bucketCloseTimestampCalculator.getBucketCloseTimestamp(startTimestamp);
+        assertThat(maybeEndTimestamp).hasValue(SweepQueueUtils.TS_COARSE_GRANULARITY + startTimestamp);
+
+        maxNumberOfCoarsePartitionsPerBucketForNonPuncherClose.update(6L);
+        OptionalLong maybeEndTimestamp2 = bucketCloseTimestampCalculator.getBucketCloseTimestamp(startTimestamp);
+        assertThat(maybeEndTimestamp2).hasValue(6 * SweepQueueUtils.TS_COARSE_GRANULARITY + startTimestamp);
+    }
+
+    private static Collection<Arguments> puncherTimestampAndMaxCoarsePartitions() {
+        Set<Long> puncherTimestamps = Set.of(
+                98 * SweepQueueUtils.TS_COARSE_GRANULARITY,
+                100 * SweepQueueUtils.TS_COARSE_GRANULARITY,
+                100 * SweepQueueUtils.TS_COARSE_GRANULARITY + 1,
+                101 * SweepQueueUtils.TS_COARSE_GRANULARITY - 1);
+        Set<Long> maxCoarsePartitions = Set.of(1L, 2L, 500L);
+        return Sets.cartesianProduct(puncherTimestamps, maxCoarsePartitions)
+                .collect(pair -> Arguments.of(pair.getOne(), pair.getTwo()))
+                .toList();
     }
 
     // TODO(mdaudali): Extract this into its own class if we end up needing this elsewhere.

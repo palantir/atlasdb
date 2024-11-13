@@ -102,6 +102,8 @@ public final class BucketBasedTargetedSweeper implements BackgroundSweeper {
                 sweepAssignedBucketStore,
                 strategies,
                 numShards,
+                runtimeConfig.map(
+                        AutoScalingTargetedSweepRuntimeConfig::maxCoarsePartitionsPerBucketForNonPuncherClose),
                 puncherStore,
                 timelockService,
                 bucketAssignerEventHandler);
@@ -239,12 +241,13 @@ public final class BucketBasedTargetedSweeper implements BackgroundSweeper {
             DefaultSweepAssignedBucketStore sweepAssignedBucketStore,
             List<SweeperStrategy> strategies,
             int numShards,
+            Refreshable<Long> maxCoarsePartitionsPerBucketForNonPuncherClose,
             PuncherStore puncherStore,
             TimelockService timelockService,
             BucketAssignerEventHandler bucketAssignerEventHandler) {
         BucketWriter bucketWriter = DefaultBucketWriter.create(sweepAssignedBucketStore, strategies, numShards);
-        DefaultBucketCloseTimestampCalculator calculator =
-                DefaultBucketCloseTimestampCalculator.create(puncherStore, timelockService);
+        DefaultBucketCloseTimestampCalculator calculator = DefaultBucketCloseTimestampCalculator.create(
+                puncherStore, timelockService, maxCoarsePartitionsPerBucketForNonPuncherClose);
         return DefaultBucketAssigner.create(
                 sweepAssignedBucketStore,
                 bucketWriter,
