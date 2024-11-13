@@ -29,6 +29,8 @@ public interface SweepBucketsTable {
      */
     Set<SweepableBucket> getSweepableBuckets(Set<Bucket> startBuckets);
 
+    Optional<SweepableBucket> getSweepableBucket(Bucket bucket);
+
     void putTimestampRangeForBucket(
             Bucket bucket, Optional<TimestampRange> oldTimestampRange, TimestampRange newTimestampRange);
 

@@ -17,7 +17,6 @@
 package com.palantir.atlasdb.sweep.asts.bucketingthings;
 
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.SweepAssignedBucketsTable.SweepAssignedBucketsColumn;
 import com.palantir.atlasdb.schema.generated.SweepAssignedBucketsTable.SweepAssignedBucketsRow;
 import com.palantir.atlasdb.sweep.asts.Bucket;
@@ -76,11 +75,11 @@ enum SweepAssignedBucketStoreKeyPersister {
     }
 
     SweepableBucket fromSweepBucketCellAndValue(
-            Cell cell, Value value, ObjectPersister<TimestampRange> timestampRangePersister) {
+            Cell cell, byte[] value, ObjectPersister<TimestampRange> timestampRangePersister) {
         SweepAssignedBucketsRow row = SweepAssignedBucketsRow.BYTES_HYDRATOR.hydrateFromBytes(cell.getRowName());
         SweepAssignedBucketsColumn column =
                 SweepAssignedBucketsColumn.BYTES_HYDRATOR.hydrateFromBytes(cell.getColumnName());
-        TimestampRange timestampRange = timestampRangePersister.tryDeserialize(value.getContents());
+        TimestampRange timestampRange = timestampRangePersister.tryDeserialize(value);
         int shard = Math.toIntExact(row.getShard()); // throws if invalid shard
         return SweepableBucket.of(
                 Bucket.of(

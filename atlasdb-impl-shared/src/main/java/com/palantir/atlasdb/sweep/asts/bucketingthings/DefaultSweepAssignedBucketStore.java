@@ -222,6 +222,15 @@ public final class DefaultSweepAssignedBucketStore
     }
 
     @Override
+    public Optional<SweepableBucket> getSweepableBucket(Bucket bucket) {
+        Cell cell = SweepAssignedBucketStoreKeyPersister.INSTANCE.sweepBucketsCell(bucket);
+        return readCell(
+                cell,
+                value -> SweepAssignedBucketStoreKeyPersister.INSTANCE.fromSweepBucketCellAndValue(
+                        cell, value, timestampRangePersister));
+    }
+
+    @Override
     public void putTimestampRangeForBucket(
             Bucket bucket, Optional<TimestampRange> oldTimestampRange, TimestampRange newTimestampRange) {
         Cell cell = SweepAssignedBucketStoreKeyPersister.INSTANCE.sweepBucketsCell(bucket);
@@ -288,7 +297,7 @@ public final class DefaultSweepAssignedBucketStore
                 Long.MAX_VALUE);
         return reads.entrySet().stream()
                 .map(entry -> SweepAssignedBucketStoreKeyPersister.INSTANCE.fromSweepBucketCellAndValue(
-                        entry.getKey(), entry.getValue(), timestampRangePersister))
+                        entry.getKey(), entry.getValue().getContents(), timestampRangePersister))
                 .collect(Collectors.toSet());
     }
 }

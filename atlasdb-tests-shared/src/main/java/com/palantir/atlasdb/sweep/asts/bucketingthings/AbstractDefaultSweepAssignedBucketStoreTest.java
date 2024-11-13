@@ -256,6 +256,20 @@ public abstract class AbstractDefaultSweepAssignedBucketStoreTest {
     }
 
     @Test
+    public void getSweepableBucketReturnsSweepableBucketIfExists() {
+        Bucket bucket = Bucket.of(ShardAndStrategy.of(12, SweeperStrategy.THOROUGH), 21);
+        TimestampRange range = TimestampRange.of(1, 4);
+        store.putTimestampRangeForBucket(bucket, Optional.empty(), range);
+        assertThat(store.getSweepableBucket(bucket)).contains(SweepableBucket.of(bucket, range));
+    }
+
+    @Test
+    public void getSweepableBucketReturnsEmptyIfSweepableBucketDoesNotExist() {
+        Bucket bucket = Bucket.of(ShardAndStrategy.of(12, SweeperStrategy.THOROUGH), 21);
+        assertThat(store.getSweepableBucket(bucket)).isEmpty();
+    }
+
+    @Test
     public void putTimestampRangeForBucketFailsIfOldTimestampRangeDoesNotMatchCurrent() {
         Bucket bucket = Bucket.of(ShardAndStrategy.of(12, SweeperStrategy.THOROUGH), 512);
         TimestampRange oldTimestampRange = TimestampRange.of(0, 1); // Not actually set
@@ -272,8 +286,7 @@ public abstract class AbstractDefaultSweepAssignedBucketStoreTest {
         TimestampRange newTimestampRange = TimestampRange.of(1, 2);
 
         store.putTimestampRangeForBucket(bucket, Optional.empty(), newTimestampRange);
-        Set<SweepableBucket> sweepableBuckets = store.getSweepableBuckets(Set.of(bucket));
-        assertThat(sweepableBuckets).containsExactly(SweepableBucket.of(bucket, newTimestampRange));
+        assertThat(store.getSweepableBucket(bucket)).contains(SweepableBucket.of(bucket, newTimestampRange));
     }
 
     @Test
@@ -287,8 +300,10 @@ public abstract class AbstractDefaultSweepAssignedBucketStoreTest {
         Bucket bucket = Bucket.of(ShardAndStrategy.of(12, SweeperStrategy.THOROUGH), 512);
         TimestampRange timestampRange = TimestampRange.of(1, 2);
         store.putTimestampRangeForBucket(bucket, Optional.empty(), timestampRange);
+        assertThat(store.getSweepableBucket(bucket)).hasValue(SweepableBucket.of(bucket, timestampRange));
+
         store.deleteBucketEntry(bucket);
-        assertThat(store.getSweepableBuckets(Set.of(bucket))).isEmpty();
+        assertThat(store.getSweepableBucket(bucket)).isEmpty();
     }
 
     @Test

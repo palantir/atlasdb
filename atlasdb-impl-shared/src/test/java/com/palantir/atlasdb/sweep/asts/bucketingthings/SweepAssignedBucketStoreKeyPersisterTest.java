@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.io.BaseEncoding;
 import com.palantir.atlasdb.keyvalue.api.Cell;
-import com.palantir.atlasdb.keyvalue.api.Value;
 import com.palantir.atlasdb.schema.generated.SweepAssignedBucketsTable.SweepAssignedBucketsRow;
 import com.palantir.atlasdb.sweep.asts.Bucket;
 import com.palantir.atlasdb.sweep.asts.SweepableBucket;
@@ -59,14 +58,11 @@ public final class SweepAssignedBucketStoreKeyPersisterTest {
             Bucket.of(ShardAndStrategy.nonSweepable(), Long.MAX_VALUE),
             fromBase64("PpljSwhiGMuA/4FHrhR64UeuAg==", "hw=="));
 
-    private static final Map<TimestampRange, Value> GOLDEN_TIMESTAMP_RANGES = Map.of(
+    private static final Map<TimestampRange, byte[]> GOLDEN_TIMESTAMP_RANGES = Map.of(
             TimestampRange.of(912301923, Long.MAX_VALUE),
-            Value.create(
-                    BaseEncoding.base64()
-                            .decode("OikKBfqLZW5kRXhjbHVzaXZlJQN/f39/f39/f76Nc3RhcnRJbmNsdXNpdmUkDUwJe4b7"),
-                    -1),
+            BaseEncoding.base64().decode("OikKBfqLZW5kRXhjbHVzaXZlJQN/f39/f39/f76Nc3RhcnRJbmNsdXNpdmUkDUwJe4b7"),
             TimestampRange.openBucket(13123),
-            Value.create(BaseEncoding.base64().decode("OikKBfqLZW5kRXhjbHVzaXZlwY1zdGFydEluY2x1c2l2ZSQDGob7"), -1));
+            BaseEncoding.base64().decode("OikKBfqLZW5kRXhjbHVzaXZlwY1zdGFydEluY2x1c2l2ZSQDGob7"));
 
     private static final Cell GOLDEN_SWEEP_BUCKET_ASSIGNER_STATE_MACHINE_CELL = Cell.create(
             BaseEncoding.base64().decode("GTH5RX8BW6N/f/8="),
@@ -127,9 +123,7 @@ public final class SweepAssignedBucketStoreKeyPersisterTest {
     @ParameterizedTest
     @MethodSource("sweepableBuckets")
     public void canDeserializeCellsAndValuesBackToSweepableBucket(SweepableBucket sweepableBucket) {
-        Value value = Value.create(
-                TIMESTAMP_RANGE_PERSISTER.trySerialize(sweepableBucket.timestampRange()),
-                -1); // Timestamp does not matter
+        byte[] value = TIMESTAMP_RANGE_PERSISTER.trySerialize(sweepableBucket.timestampRange());
         Cell cell = SweepAssignedBucketStoreKeyPersister.INSTANCE.sweepBucketsCell(sweepableBucket.bucket());
         SweepableBucket deserialisedSweepableBucket =
                 SweepAssignedBucketStoreKeyPersister.INSTANCE.fromSweepBucketCellAndValue(
@@ -141,7 +135,7 @@ public final class SweepAssignedBucketStoreKeyPersisterTest {
     @ParameterizedTest
     @MethodSource("goldenSweepBucketCellsAndValues")
     public void canDeserializeHistoricCellsAndValuesBackToSweepableBucket(
-            SweepableBucket sweepableBucket, Cell cell, Value value) {
+            SweepableBucket sweepableBucket, Cell cell, byte[] value) {
         SweepableBucket deserialisedSweepableBucket =
                 SweepAssignedBucketStoreKeyPersister.INSTANCE.fromSweepBucketCellAndValue(
                         cell, value, TIMESTAMP_RANGE_PERSISTER);
