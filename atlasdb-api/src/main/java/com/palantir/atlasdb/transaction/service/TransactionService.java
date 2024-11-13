@@ -77,7 +77,7 @@ public interface TransactionService extends AutoCloseable, AsyncTransactionServi
     /**
      * In practice, a transaction on schema version >= 4 must call this method before any information about its start
      * timestamp is persisted into the KVS; i.e. KVS writes, writing to the sweep queue, etc. i.e.
-     * this method MUST be called for each start timestamp before {@link #putUnlessExists(long, long) is ever called}.
+     * this method MUST be called for each start timestamp before {@link #putUnlessExists(long, long)} is ever called.
      */
     void markInProgress(long startTimestamp);
 
