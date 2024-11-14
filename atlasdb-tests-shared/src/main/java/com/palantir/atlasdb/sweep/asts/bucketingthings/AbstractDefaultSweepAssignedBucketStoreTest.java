@@ -38,7 +38,6 @@ import com.palantir.atlasdb.table.description.SweeperStrategy;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.HashSet;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -293,17 +292,15 @@ public abstract class AbstractDefaultSweepAssignedBucketStoreTest {
     }
 
     @Test
-    public void getTimestampRangeRecordThrowsIfRecordNotPresent() {
-        assertThatThrownBy(() -> store.getTimestampRangeRecord(1))
-                .isInstanceOf(NoSuchElementException.class)
-                .hasMessage("No timestamp range record found for bucket identifier");
+    public void getTimestampRangeRecordReturnsEmptyIfRecordDoesNotExist() {
+        assertThat(store.getTimestampRangeRecord(1)).isEmpty();
     }
 
     @Test
     public void putTimestampRangeRecordPutsRecord() {
         TimestampRange timestampRange = TimestampRange.of(1, 2);
         store.putTimestampRangeRecord(1, timestampRange);
-        assertThat(store.getTimestampRangeRecord(1)).isEqualTo(timestampRange);
+        assertThat(store.getTimestampRangeRecord(1)).hasValue(timestampRange);
     }
 
     @Test
@@ -323,11 +320,9 @@ public abstract class AbstractDefaultSweepAssignedBucketStoreTest {
     public void deleteTimestampRangeRecordDeletesRecord() {
         TimestampRange timestampRange = TimestampRange.of(1, 2);
         store.putTimestampRangeRecord(1, timestampRange);
-        assertThat(store.getTimestampRangeRecord(1)).isEqualTo(timestampRange);
+        assertThat(store.getTimestampRangeRecord(1)).hasValue(timestampRange);
 
         store.deleteTimestampRangeRecord(1);
-        assertThatThrownBy(() -> store.getTimestampRangeRecord(1))
-                .isInstanceOf(NoSuchElementException.class)
-                .hasMessage("No timestamp range record found for bucket identifier");
+        assertThat(store.getTimestampRangeRecord(1)).isEmpty();
     }
 }

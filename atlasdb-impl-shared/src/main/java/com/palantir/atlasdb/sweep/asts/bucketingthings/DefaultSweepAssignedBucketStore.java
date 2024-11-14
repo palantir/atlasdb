@@ -37,7 +37,6 @@ import com.palantir.logsafe.logger.SafeLoggerFactory;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -239,10 +238,9 @@ public final class DefaultSweepAssignedBucketStore
     }
 
     @Override
-    public TimestampRange getTimestampRangeRecord(long bucketIdentifier) {
+    public Optional<TimestampRange> getTimestampRangeRecord(long bucketIdentifier) {
         Cell cell = SweepAssignedBucketStoreKeyPersister.INSTANCE.sweepBucketRecordsCell(bucketIdentifier);
-        return readCell(cell, timestampRangePersister::tryDeserialize)
-                .orElseThrow(() -> new NoSuchElementException("No timestamp range record found for bucket identifier"));
+        return readCell(cell, timestampRangePersister::tryDeserialize);
     }
 
     @Override

@@ -29,7 +29,6 @@ import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.logger.SafeLogger;
 import com.palantir.logsafe.logger.SafeLoggerFactory;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import org.immutables.value.Value;
@@ -120,17 +119,16 @@ public class DefaultShardProgressUpdater implements ShardProgressUpdater {
         throw new SafeIllegalStateException("Didn't expect to get here");
     }
 
+    // TODO(mdaudali): This method is still incorrect (a record does not exist for an open bucket, not just pre-init
+    //  bucket 0). A follow up PR will address this.
     private TimestampRange getTimestampRangeRecord(long queriedBucket) {
-        try {
-            return recordsTable.getTimestampRangeRecord(queriedBucket);
-        } catch (NoSuchElementException exception) {
-            throw new SafeIllegalStateException(
-                    "Timestamp range record not found. If this has happened for bucket 0, this is possible when"
-                        + " autoscaling sweep is initializing itself. Otherwise, this is potentially indicative of a"
-                        + " bug in auto-scaling sweep. In either case, we will retry.",
-                    exception,
-                    SafeArg.of("queriedBucket", queriedBucket));
-        }
+        return recordsTable
+                .getTimestampRangeRecord(queriedBucket)
+                .orElseThrow(() -> new SafeIllegalStateException(
+                        "Timestamp range record not found. If this has happened for bucket 0, this is possible when"
+                            + " autoscaling sweep is initializing itself. Otherwise, this is potentially indicative of"
+                            + " a bug in auto-scaling sweep. In either case, we will retry.",
+                        SafeArg.of("queriedBucket", queriedBucket)));
     }
 
     private long getStrictUpperBoundForSweptBuckets(ShardAndStrategy shardAndStrategy) {

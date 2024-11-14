@@ -36,7 +36,6 @@ import com.palantir.atlasdb.sweep.queue.SweepQueueUtils;
 import com.palantir.logsafe.SafeArg;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -74,19 +73,17 @@ public class DefaultShardProgressUpdaterTest {
 
     @ParameterizedTest
     @MethodSource("buckets")
-    public void wrapsAndRethrowsExceptionOnAbsenceOfTimestampRangeRecords(Bucket bucket) {
+    public void throwsExceptionOnAbsenceOfTimestampRangeRecords(Bucket bucket) {
         when(sweepBucketPointerTable.getStartingBucketsForShards(ImmutableSet.of(bucket.shardAndStrategy())))
                 .thenReturn(ImmutableSet.of(bucket));
-        NoSuchElementException underlyingException = new NoSuchElementException();
-        when(recordsTable.getTimestampRangeRecord(bucket.bucketIdentifier())).thenThrow(underlyingException);
+        when(recordsTable.getTimestampRangeRecord(bucket.bucketIdentifier())).thenReturn(Optional.empty());
 
         assertThatLoggableExceptionThrownBy(() -> shardProgressUpdater.updateProgress(bucket.shardAndStrategy()))
                 .isInstanceOf(SafeIllegalStateException.class)
                 .hasLogMessage("Timestamp range record not found. If this has happened for bucket 0, this is possible"
                         + " when autoscaling sweep is initializing itself. Otherwise, this is potentially indicative of"
                         + " a bug in auto-scaling sweep. In either case, we will retry.")
-                .hasExactlyArgs(SafeArg.of("queriedBucket", bucket.bucketIdentifier()))
-                .hasCause(underlyingException);
+                .hasExactlyArgs(SafeArg.of("queriedBucket", bucket.bucketIdentifier()));
 
         verify(sweepBucketPointerTable, never()).updateStartingBucketForShardAndStrategy(bucket);
         verify(sweepQueueProgressUpdater, never()).progressTo(eq(bucket.shardAndStrategy()), anyLong());
@@ -100,8 +97,8 @@ public class DefaultShardProgressUpdaterTest {
                 .thenReturn(ImmutableSet.of(bucket));
         when(bucketProgressStore.getBucketProgress(bucket)).thenReturn(Optional.empty());
         when(recordsTable.getTimestampRangeRecord(bucket.bucketIdentifier()))
-                .thenReturn(TimestampRange.of(
-                        SweepQueueUtils.minTsForCoarsePartition(3), SweepQueueUtils.minTsForCoarsePartition(8)));
+                .thenReturn(Optional.of(TimestampRange.of(
+                        SweepQueueUtils.minTsForCoarsePartition(3), SweepQueueUtils.minTsForCoarsePartition(8))));
 
         shardProgressUpdater.updateProgress(bucket.shardAndStrategy());
 
@@ -120,7 +117,7 @@ public class DefaultShardProgressUpdaterTest {
         when(bucketProgressStore.getBucketProgress(bucket))
                 .thenReturn(Optional.of(BucketProgress.createForTimestampProgress(1_234_567L)));
         when(recordsTable.getTimestampRangeRecord(bucket.bucketIdentifier()))
-                .thenReturn(sweepableBucket.timestampRange());
+                .thenReturn(Optional.of(sweepableBucket.timestampRange()));
 
         shardProgressUpdater.updateProgress(bucket.shardAndStrategy());
 
@@ -154,7 +151,8 @@ public class DefaultShardProgressUpdaterTest {
         TimestampRange finalBucketTimestampRange = TimestampRange.of(
                 lastCompleteBucketTimestampRange.endExclusive(),
                 lastCompleteBucketTimestampRange.endExclusive() + SweepQueueUtils.TS_COARSE_GRANULARITY);
-        when(recordsTable.getTimestampRangeRecord(finalBucketIdentifier)).thenReturn(finalBucketTimestampRange);
+        when(recordsTable.getTimestampRangeRecord(finalBucketIdentifier))
+                .thenReturn(Optional.of(finalBucketTimestampRange));
 
         shardProgressUpdater.updateProgress(firstRawBucket.shardAndStrategy());
 
@@ -204,7 +202,7 @@ public class DefaultShardProgressUpdaterTest {
 
     private void setupBucketRecord(SweepableBucket sweepableBucket) {
         when(recordsTable.getTimestampRangeRecord(sweepableBucket.bucket().bucketIdentifier()))
-                .thenReturn(sweepableBucket.timestampRange());
+                .thenReturn(Optional.of(sweepableBucket.timestampRange()));
     }
 
     static Stream<Bucket> buckets() {
