@@ -18,7 +18,6 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.CLIENT_PAXOS_NAMESPACE;
 import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.LEADER_PAXOS_NAMESPACE;
-import static com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants.MULTI_LEADER_PAXOS_NAMESPACE;
 
 import com.palantir.logsafe.exceptions.SafeIllegalArgumentException;
 import com.palantir.paxos.Client;
@@ -32,15 +31,6 @@ public enum PaxosUseCase {
         @Override
         public Client resolveClient(Client client) {
             return PSEUDO_LEADERSHIP_CLIENT;
-        }
-    },
-
-    // <data-directory>/leaderPaxos/multiLeaderPaxos/<client>/{acceptor/learner}
-    LEADER_FOR_EACH_CLIENT(
-            MULTI_LEADER_PAXOS_NAMESPACE, Paths.get(LEADER_PAXOS_NAMESPACE, MULTI_LEADER_PAXOS_NAMESPACE)) {
-        @Override
-        public Client resolveClient(Client client) {
-            return client;
         }
     },
 
@@ -67,16 +57,11 @@ public enum PaxosUseCase {
      * {@link javax.ws.rs.QueryParam}.
      */
     public static PaxosUseCase fromString(String string) {
-        switch (string) {
-            case LEADER_PAXOS_NAMESPACE:
-                return LEADER_FOR_ALL_CLIENTS;
-            case MULTI_LEADER_PAXOS_NAMESPACE:
-                return LEADER_FOR_EACH_CLIENT;
-            case CLIENT_PAXOS_NAMESPACE:
-                return TIMESTAMP;
-            default:
-                throw new SafeIllegalArgumentException("unrecognized use case");
-        }
+        return switch (string) {
+            case LEADER_PAXOS_NAMESPACE -> LEADER_FOR_ALL_CLIENTS;
+            case CLIENT_PAXOS_NAMESPACE -> TIMESTAMP;
+            default -> throw new SafeIllegalArgumentException("unrecognized use case");
+        };
     }
 
     @Override

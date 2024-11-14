@@ -16,7 +16,6 @@
 
 package com.palantir.atlasdb.timelock.paxos;
 
-import com.google.common.collect.ImmutableList;
 import com.palantir.paxos.LeaderPinger;
 import com.palantir.paxos.PaxosAcceptorNetworkClient;
 import com.palantir.paxos.PaxosConstants;
@@ -50,38 +49,12 @@ public interface Factories {
     }
 
     @Value.Immutable
-    abstract class BatchingLeaderPingerFactory implements LeaderPingerFactoryContainer, Dependencies.LeaderPinger {
-
-        @Value.Derived
-        AutobatchingPingableLeaderFactory pingableLeaderFactory() {
-            return AutobatchingPingableLeaderFactory.create(
-                    WithDedicatedExecutor.convert(remoteClients().batchPingableLeadersWithContext()),
-                    leaderPingRate(),
-                    leaderPingResponseWait(),
-                    leaderUuid());
-        }
-
-        @Override
-        public NetworkClientFactories.Factory<LeaderPinger> get() {
-            return pingableLeaderFactory()::leaderPingerFor;
-        }
-
-        @Override
-        @Value.Derived
-        public List<Closeable> closeables() {
-            return ImmutableList.of(pingableLeaderFactory());
-        }
-
-        public abstract static class Builder implements LeaderPingerFactoryContainer.Builder {}
-    }
-
-    @Value.Immutable
     abstract class SingleLeaderPingerFactory implements LeaderPingerFactoryContainer, Dependencies.LeaderPinger {
 
         @Value.Derived
         SingleLeaderPinger pinger() {
             return SingleLeaderPinger.create(
-                    WithDedicatedExecutor.convert(remoteClients().nonBatchPingableLeadersWithContext()),
+                    WithDedicatedExecutor.convert(remoteClients().pingableLeadersWithContext()),
                     dataSource(),
                     leaderPingResponseWait(),
                     greenNodeLeadershipBackoff(),

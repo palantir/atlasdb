@@ -17,7 +17,6 @@ package com.palantir.atlasdb.timelock.paxos;
 
 import com.codahale.metrics.Counter;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Suppliers;
 import com.palantir.atlasdb.AtlasDbMetricNames;
 import com.palantir.atlasdb.timelock.TimelockNamespaces;
 import com.palantir.atlasdb.timelock.management.DiskNamespaceLoader;
@@ -51,7 +50,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
-import java.util.function.Supplier;
 import javax.sql.DataSource;
 import org.immutables.value.Value;
 
@@ -66,9 +64,6 @@ public class LocalPaxosComponents {
     private final UUID leaderUuid;
     private final Map<Client, Components> componentsByClient =
             ConcurrentMaps.newWithExpectedEntries(TimelockNamespaces.estimatedClients());
-    private final Supplier<BatchPaxosAcceptor> memoizedBatchAcceptor;
-    private final Supplier<BatchPaxosLearner> memoizedBatchLearner;
-    private final Supplier<BatchPingableLeader> memoizedBatchPingableLeader;
     private final boolean canCreateNewClients;
     private final OrderableSlsVersion timeLockVersion;
     private final boolean skipConsistencyCheckAndTruncateOldPaxosLog;
@@ -87,9 +82,6 @@ public class LocalPaxosComponents {
         this.baseLogDirectory = legacyLogDirectory;
         this.sqliteDataSource = sqliteDataSource;
         this.leaderUuid = leaderUuid;
-        this.memoizedBatchAcceptor = Suppliers.memoize(this::createBatchAcceptor);
-        this.memoizedBatchLearner = Suppliers.memoize(this::createBatchLearner);
-        this.memoizedBatchPingableLeader = Suppliers.memoize(this::createBatchPingableLeader);
         this.canCreateNewClients = canCreateNewClients;
         this.timeLockVersion = timeLockVersion;
         this.skipConsistencyCheckAndTruncateOldPaxosLog = skipConsistencyCheckAndTruncateOldPaxosLog;
@@ -170,18 +162,6 @@ public class LocalPaxosComponents {
 
     public PingableLeader pingableLeader(Client client) {
         return getOrCreateComponents(client).pingableLeader();
-    }
-
-    public BatchPaxosAcceptor batchAcceptor() {
-        return memoizedBatchAcceptor.get();
-    }
-
-    public BatchPaxosLearner batchLearner() {
-        return memoizedBatchLearner.get();
-    }
-
-    public BatchPingableLeader batchPingableLeader() {
-        return memoizedBatchPingableLeader.get();
     }
 
     private Components getOrCreateComponents(Client client) {
@@ -267,19 +247,6 @@ public class LocalPaxosComponents {
 
     private boolean clientDirectoryDoesNotExist(Path clientDirectory) {
         return !clientDirectory.toFile().exists();
-    }
-
-    private BatchPaxosAcceptor createBatchAcceptor() {
-        AcceptorCache acceptorCache = metrics.instrument(AcceptorCache.class, new AcceptorCacheImpl());
-        return metrics.instrument(BatchPaxosAcceptor.class, new LocalBatchPaxosAcceptor(this, acceptorCache));
-    }
-
-    private BatchPaxosLearner createBatchLearner() {
-        return metrics.instrument(BatchPaxosLearner.class, new LocalBatchPaxosLearner(this));
-    }
-
-    private BatchPingableLeader createBatchPingableLeader() {
-        return metrics.instrument(BatchPingableLeader.class, new BatchPingableLeaderResource(leaderUuid, this));
     }
 
     @Value.Immutable

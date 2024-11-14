@@ -19,21 +19,17 @@ package com.palantir.atlasdb.timelock;
 import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeTimelockCluster;
 
 import com.palantir.atlasdb.timelock.util.TestableTimeLockClusterPorts;
-import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class NonBatchedTimestampSingleLeaderMultiNodePaxosTimeLockIntegrationTest
-        extends AbstractSingleLeaderMultiNodePaxosTimeLockIntegrationTest {
+public class TimestampSingleLeaderMultiNodePaxosTimeLockServerIntegrationTest
+        extends AbstractMultiNodePaxosTimeLockServerIntegrationTest {
     @RegisterExtension
     public static final TestableTimelockCluster NON_BATCHED_TIMESTAMP_PAXOS = new TestableTimelockCluster(
             "non-batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
-            generateThreeNodeTimelockCluster(
-                    TestableTimeLockClusterPorts.SINGLE_LEADER_PAXOS_SUITE_1, builder -> builder.clientPaxosBuilder(
-                                    builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
-                            .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
+            generateThreeNodeTimelockCluster(TestableTimeLockClusterPorts.SINGLE_LEADER_PAXOS_SUITE_1));
 
-    public NonBatchedTimestampSingleLeaderMultiNodePaxosTimeLockIntegrationTest() {
+    public TimestampSingleLeaderMultiNodePaxosTimeLockServerIntegrationTest() {
         super(NON_BATCHED_TIMESTAMP_PAXOS);
     }
 }

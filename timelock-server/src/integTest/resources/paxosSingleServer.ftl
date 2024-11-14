@@ -22,9 +22,6 @@ runtime:
       - "localhost:${localServerPort?c}"
     local-server: "localhost:${localServerPort?c}"
     enableNonstandardAndPossiblyDangerousTopology: true
-  paxos:
-    timestamp-paxos:
-      use-batch-paxos: ${clientPaxos.useBatchPaxosTimestamp?c}
 
 server:
   minThreads: 1

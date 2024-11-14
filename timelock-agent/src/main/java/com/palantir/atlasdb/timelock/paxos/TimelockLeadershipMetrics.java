@@ -80,30 +80,16 @@ public abstract class TimelockLeadershipMetrics implements Dependencies.Leadersh
 
     private static Consumer<SetMultimap<LeadershipEvent, Client>> getMetricDeregistrator(TimelockPaxosMetrics metrics) {
         PaxosUseCase paxosUseCase = metrics.paxosUseCase();
-        switch (paxosUseCase) {
-            case LEADER_FOR_ALL_CLIENTS:
-                return deregisterMetricsForSingleLeader(metrics);
-            case LEADER_FOR_EACH_CLIENT:
-                return deregisterMetricsForPartitionedLeader(metrics);
-            case TIMESTAMP:
-                throw new SafeIllegalArgumentException("Timestamp paxos not supported");
-            default:
-                throw new SafeIllegalArgumentException("Unexpected paxosUseCase", SafeArg.of("useCase", paxosUseCase));
-        }
+        return switch (paxosUseCase) {
+            case LEADER_FOR_ALL_CLIENTS -> deregisterMetricsForSingleLeader(metrics);
+            case TIMESTAMP -> throw new SafeIllegalArgumentException("Timestamp paxos not supported");
+        };
     }
 
     private static Consumer<SetMultimap<LeadershipEvent, Client>> deregisterMetricsForSingleLeader(
             TimelockPaxosMetrics metrics) {
         return eventsToDeregister -> eventsToDeregister.keySet().forEach(event -> metrics.asMetricsManager()
                 .deregisterTaggedMetrics(withTagIsCurrentSuspectedLeader(event.isCurrentSuspectedLeader())));
-    }
-
-    private static Consumer<SetMultimap<LeadershipEvent, Client>> deregisterMetricsForPartitionedLeader(
-            TimelockPaxosMetrics metrics) {
-        return eventsToDeregister -> eventsToDeregister.forEach((event, client) -> {
-            metrics.clientScopedMetrics()
-                    .deregisterMetric(client, withTagIsCurrentSuspectedLeader(event.isCurrentSuspectedLeader()));
-        });
     }
 
     private static Predicate<MetricName> withTagIsCurrentSuspectedLeader(boolean currentLeader) {

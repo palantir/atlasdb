@@ -52,7 +52,6 @@ import com.palantir.lock.watch.LockWatchStateUpdate;
 import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionUpdate;
 import com.palantir.lock.watch.UnlockEvent;
-import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -97,11 +96,7 @@ public final class LockWatchValueIntegrationTest {
     public static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
             "non-batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
-            generateThreeNodeTimelockCluster(
-                    TestableTimeLockClusterPorts.LOCK_WATCH_VALUE_INTEGRATION_TEST,
-                    builder -> builder.clientPaxosBuilder(
-                                    builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
-                            .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
+            generateThreeNodeTimelockCluster(TestableTimeLockClusterPorts.LOCK_WATCH_VALUE_INTEGRATION_TEST));
 
     private static final String NAMESPACE =
             String.valueOf(ThreadLocalRandom.current().nextLong());

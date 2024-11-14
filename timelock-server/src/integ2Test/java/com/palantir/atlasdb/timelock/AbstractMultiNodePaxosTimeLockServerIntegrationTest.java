@@ -449,8 +449,6 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void sanityCheckMultiClientLeaderTime() {
         TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
-        // Multi client batched TimeLock endpoints do not support multi-leader mode on TimeLock
-        Assumptions.assumeFalse(leader.isMultiLeader());
 
         Set<Namespace> expectedNamespaces = ImmutableSet.of(Namespace.of("client1"), Namespace.of("client2"));
         LeaderTimes leaderTimes = assertSanityAndGetLeaderTimes(leader, expectedNamespaces);
@@ -466,8 +464,6 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void sanityCheckMultiClientLeaderTimeAgainstConjureTimelockService() {
         TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
-        // Multi client batched TimeLock endpoints do not support multi-leader mode on TimeLock
-        Assumptions.assumeFalse(leader.isMultiLeader());
 
         Set<Namespace> expectedNamespaces = ImmutableSet.of(Namespace.of("alpha"), Namespace.of("beta"));
         LeaderTimes leaderTimes = assertSanityAndGetLeaderTimes(leader, expectedNamespaces);
@@ -485,8 +481,6 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void sanityCheckMultiClientStartTransactions() {
         TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
-        // Multi client batched TimeLock endpoints do not support multi-leader mode on TimeLock
-        Assumptions.assumeFalse(leader.isMultiLeader());
 
         List<String> expectedNamespaces = ImmutableList.of("alpha", "beta");
 
@@ -503,8 +497,6 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void sanityCheckMultiClientStartTransactionsAgainstConjureTimelockService() {
         TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
-        // Multi client batched TimeLock endpoints do not support multi-leader mode on TimeLock
-        Assumptions.assumeFalse(leader.isMultiLeader());
 
         MultiClientConjureTimelockService multiClientConjureTimelockService = leader.multiClientService();
 
@@ -534,8 +526,6 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void multiClientStartTransactionsReturnsCorrectStartTimestamps() {
         TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
-        // Multi client batched TimeLock endpoints do not support multi-leader mode on TimeLock
-        Assumptions.assumeFalse(leader.isMultiLeader());
 
         Namespace delta = Namespace.of("delta");
         Namespace gamma = Namespace.of("gamma");
@@ -563,8 +553,6 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
     @Test
     public void sanityCheckMultiClientGetCommitTimestamps() {
         TestableTimelockServer leader = cluster.currentLeaderFor(client.namespace());
-        // Multi client batched TimeLock endpoints do not support multi-leader mode on TimeLock
-        Assumptions.assumeFalse(leader.isMultiLeader());
 
         MultiClientConjureTimelockService service = leader.multiClientService();
 
@@ -583,9 +571,6 @@ public abstract class AbstractMultiNodePaxosTimeLockServerIntegrationTest {
 
     @Test
     public void sanityCheckMultiClientGetCommitTimestampsAgainstConjureTimelockService() {
-        // Multi client batched TimeLock endpoints do not support multi-leader mode on TimeLock
-        Assumptions.assumeFalse(cluster.currentLeaderFor(client.namespace()).isMultiLeader());
-
         MultiClientConjureTimelockService multiClientService = cluster.multiClientConjureTimelockService();
 
         Set<String> expectedNamespaces = ImmutableSet.of("alta", "mp");

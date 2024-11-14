@@ -31,7 +31,6 @@ import com.palantir.timelock.paxos.TimelockPaxosAcceptorAdapters;
 import com.palantir.timelock.paxos.TimelockPaxosLearnerAdapters;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
 
@@ -40,18 +39,13 @@ import org.immutables.value.Value;
 abstract class SingleLeaderNetworkClientFactories
         implements NetworkClientFactories, Dependencies.NetworkClientFactories {
 
-    @Value.Default
-    Supplier<Boolean> useBatchedEndpoints() {
-        return () -> false;
-    }
-
     @Value.Auxiliary
     @Value.Derived
     @Override
     public Factory<PaxosAcceptorNetworkClient> acceptor() {
         return client -> {
             List<WithDedicatedExecutor<PaxosAcceptor>> remoteAcceptors =
-                    TimelockPaxosAcceptorAdapters.create(useCase(), remoteClients(), useBatchedEndpoints(), client);
+                    TimelockPaxosAcceptorAdapters.create(useCase(), remoteClients(), client);
 
             PaxosAcceptor localAcceptor = components().acceptor(client);
             LocalAndRemotes<WithDedicatedExecutor<PaxosAcceptor>> paxosAcceptors = LocalAndRemotes.of(
@@ -80,8 +74,7 @@ abstract class SingleLeaderNetworkClientFactories
     public Factory<PaxosLearnerNetworkClient> learner() {
         return client -> {
             List<WithDedicatedExecutor<PaxosLearner>> remoteLearners =
-                    TimelockPaxosLearnerAdapters.create(useCase(), remoteClients(), useBatchedEndpoints(), client)
-                            .stream()
+                    TimelockPaxosLearnerAdapters.create(useCase(), remoteClients(), client).stream()
                             .map(withExecutor -> withExecutor.transformService(
                                     remote -> metrics().instrument(PaxosLearner.class, remote, client)))
                             .collect(Collectors.toList());

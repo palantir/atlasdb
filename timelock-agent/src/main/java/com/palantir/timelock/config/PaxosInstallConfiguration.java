@@ -15,6 +15,7 @@
  */
 package com.palantir.timelock.config;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -26,6 +27,7 @@ import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutablePaxosInstallConfiguration.class)
 @JsonSerialize(as = ImmutablePaxosInstallConfiguration.class)
+@JsonIgnoreProperties("leader-mode")
 @Value.Immutable
 public interface PaxosInstallConfiguration {
     /**
@@ -68,24 +70,6 @@ public interface PaxosInstallConfiguration {
     @JsonProperty("can-create-new-clients")
     default boolean canCreateNewClients() {
         return true;
-    }
-
-    enum PaxosLeaderMode {
-        SINGLE_LEADER,
-        LEADER_PER_CLIENT,
-        AUTO_MIGRATION_MODE
-    }
-
-    @JsonProperty("leader-mode")
-    @Value.Default
-    default PaxosLeaderMode leaderMode() {
-        return PaxosLeaderMode.SINGLE_LEADER;
-    }
-
-    @Value.Check
-    default void checkLeaderModeIsNotInAutoMigrationMode() {
-        Preconditions.checkState(
-                leaderMode() != PaxosLeaderMode.AUTO_MIGRATION_MODE, "Auto migration mode is not supported just yet");
     }
 
     @Value.Check

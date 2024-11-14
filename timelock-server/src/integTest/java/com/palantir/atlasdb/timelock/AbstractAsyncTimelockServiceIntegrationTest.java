@@ -15,15 +15,10 @@
  */
 package com.palantir.atlasdb.timelock;
 
-import com.palantir.atlasdb.timelock.ImmutableTemplateVariables.TimestampPaxos;
-import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
-
 public abstract class AbstractAsyncTimelockServiceIntegrationTest {
 
     public static final TemplateVariables DEFAULT_SINGLE_SERVER = ImmutableTemplateVariables.builder()
             .localServerPort(9050)
             .addServerPorts()
-            .clientPaxos(TimestampPaxos.builder().isUseBatchPaxosTimestamp(true).build())
-            .leaderMode(PaxosLeaderMode.SINGLE_LEADER)
             .build();
 }

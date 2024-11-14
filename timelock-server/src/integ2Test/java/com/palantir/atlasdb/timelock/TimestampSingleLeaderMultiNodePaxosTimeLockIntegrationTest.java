@@ -19,24 +19,17 @@ package com.palantir.atlasdb.timelock;
 import static com.palantir.atlasdb.timelock.TemplateVariables.generateThreeNodeTimelockCluster;
 
 import com.palantir.atlasdb.timelock.util.TestableTimeLockClusterPorts;
-import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-public class BatchedSingleLeaderMultiNodePaxosTimeLockIntegrationTest
+public class TimestampSingleLeaderMultiNodePaxosTimeLockIntegrationTest
         extends AbstractSingleLeaderMultiNodePaxosTimeLockIntegrationTest {
-
     @RegisterExtension
-    public static final TestableTimelockCluster BATCHED_PAXOS = new TestableTimelockCluster(
-            "batched single leader",
+    public static final TestableTimelockCluster NON_BATCHED_TIMESTAMP_PAXOS = new TestableTimelockCluster(
+            "non-batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
-            generateThreeNodeTimelockCluster(
-                    TestableTimeLockClusterPorts.SINGLE_LEADER_PAXOS_SUITE_3,
-                    builder -> builder.clientPaxosBuilder(builder.clientPaxosBuilder()
-                                    .isUseBatchPaxosTimestamp(false)
-                                    .isBatchSingleLeader(true))
-                            .leaderMode(PaxosLeaderMode.SINGLE_LEADER)));
+            generateThreeNodeTimelockCluster(TestableTimeLockClusterPorts.SINGLE_LEADER_PAXOS_SUITE_1));
 
-    public BatchedSingleLeaderMultiNodePaxosTimeLockIntegrationTest() {
-        super(BATCHED_PAXOS);
+    public TimestampSingleLeaderMultiNodePaxosTimeLockIntegrationTest() {
+        super(NON_BATCHED_TIMESTAMP_PAXOS);
     }
 }

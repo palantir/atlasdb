@@ -18,9 +18,7 @@ package com.palantir.atlasdb.timelock;
 
 import com.palantir.atlasdb.timelock.util.TestableTimeLockClusterPorts;
 import com.palantir.common.annotations.ImmutablesStyles.AttributeBuilderDetectionStyle;
-import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.util.List;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import javax.annotation.Nullable;
@@ -41,10 +39,6 @@ public interface TemplateVariables {
     List<Integer> getServerPorts();
 
     Integer getLocalServerPort();
-
-    TimestampPaxos getClientPaxos();
-
-    PaxosLeaderMode getLeaderMode();
 
     @Value.Default
     default Integer getLocalProxyPort() {
@@ -76,18 +70,7 @@ public interface TemplateVariables {
                 .build();
     }
 
-    @Value.Immutable
-    interface TimestampPaxos {
-        boolean isUseBatchPaxosTimestamp();
-
-        @Value.Default
-        default boolean isBatchSingleLeader() {
-            return false;
-        }
-    }
-
-    static Iterable<TemplateVariables> generateThreeNodeTimelockCluster(
-            TestableTimeLockClusterPorts ports, UnaryOperator<ImmutableTemplateVariables.Builder> customizer) {
+    static Iterable<TemplateVariables> generateThreeNodeTimelockCluster(TestableTimeLockClusterPorts ports) {
         int startingPort = ports.getStartingPort();
         List<Integer> allPorts =
                 IntStream.range(startingPort, startingPort + 3).boxed().collect(Collectors.toList());
@@ -96,7 +79,6 @@ public interface TemplateVariables {
                 .map(port -> ImmutableTemplateVariables.builder()
                         .serverPorts(allPorts)
                         .localServerPort(port))
-                .map(customizer)
                 .map(ImmutableTemplateVariables.Builder::build)
                 .collect(Collectors.toList());
     }

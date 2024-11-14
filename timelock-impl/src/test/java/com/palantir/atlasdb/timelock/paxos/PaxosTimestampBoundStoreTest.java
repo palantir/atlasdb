@@ -27,10 +27,8 @@ import static org.mockito.Mockito.verify;
 import com.google.common.collect.Maps;
 import com.google.common.io.Closer;
 import com.palantir.atlasdb.util.MetricsManagers;
-import com.palantir.common.concurrent.CheckedRejectionExecutorService;
 import com.palantir.common.concurrent.PTExecutors;
 import com.palantir.common.remoting.ServiceNotAvailableException;
-import com.palantir.common.streams.KeyedStream;
 import com.palantir.leader.SuspectedNotCurrentLeaderException;
 import com.palantir.leader.proxy.ToggleableExceptionProxy;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
@@ -58,15 +56,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nullable;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
 
 public class PaxosTimestampBoundStoreTest {
     private static final int NUM_NODES = 5;
     private static final int QUORUM_SIZE = NUM_NODES / 2 + 1;
-    private static final boolean UNBATCHED = false;
-    private static final boolean BATCHED = true;
 
     private static final Client CLIENT = Client.of("client");
     private static final long TIMESTAMP_1 = 100000;
@@ -83,10 +79,6 @@ public class PaxosTimestampBoundStoreTest {
     private final List<AtomicBoolean> failureToggles = new ArrayList<>();
     private final Closer closer = Closer.create();
 
-    public static List<Boolean> useBatches() {
-        return List.of(UNBATCHED, BATCHED);
-    }
-
     @TempDir
     public File temporaryFolder;
 
@@ -94,242 +86,9 @@ public class PaxosTimestampBoundStoreTest {
     private List<PaxosLearnerNetworkClient> learnerClientsByNode;
     private PaxosTimestampBoundStore store;
 
-    @AfterEach
-    public void tearDown() throws InterruptedException, IOException {
-        closer.close();
-        executor.shutdownNow();
-        boolean terminated = executor.awaitTermination(10, TimeUnit.SECONDS);
-        if (!terminated) {
-            throw new IllegalStateException(
-                    "Some threads are still hanging around! Can't proceed or they might corrupt future tests.");
-        }
-    }
-
-    @ParameterizedTest
-    @MethodSource("useBatches")
-    public void timestampsBeginFromZero(boolean useBatch) {
-        setup(useBatch);
-        assertThat(store.getUpperLimit()).isEqualTo(0L);
-    }
-
-    @ParameterizedTest
-    @MethodSource("useBatches")
-    public void canStoreUpperLimit(boolean useBatch) {
-        setup(useBatch);
-        store.storeUpperLimit(TIMESTAMP_1);
-        assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_1);
-    }
-
-    @ParameterizedTest
-    @MethodSource("useBatches")
-    public void throwsIfStoringLimitLessThanUpperLimit(boolean useBatch) {
-        setup(useBatch);
-        store.storeUpperLimit(TIMESTAMP_2);
-        assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_2);
-        assertThatThrownBy(() -> store.storeUpperLimit(TIMESTAMP_1)).isInstanceOf(IllegalArgumentException.class);
-    }
-
-    @ParameterizedTest
-    @MethodSource("useBatches")
-    public void canOperateWithMinorityOfNodesDown(boolean useBatch) {
-        setup(useBatch);
-        failureToggles.get(1).set(true);
-        failureToggles.get(2).set(true);
-        store.storeUpperLimit(TIMESTAMP_1);
-        assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_1);
-    }
-
-    @ParameterizedTest
-    @MethodSource("useBatches")
-    public void throwsIfCannotObtainQuorum(boolean useBatch) {
-        setup(useBatch);
-        failureToggles.get(1).set(true);
-        failureToggles.get(2).set(true);
-        failureToggles.get(3).set(true);
-        assertThatThrownBy(() -> store.getUpperLimit()).isInstanceOf(ServiceNotAvailableException.class);
-    }
-
-    @ParameterizedTest
-    @MethodSource("useBatches")
-    public void canRecoverFromNotHavingQuorum(boolean useBatch) {
-        setup(useBatch);
-        store.storeUpperLimit(TIMESTAMP_1);
-        failureToggles.get(1).set(true);
-        failureToggles.get(2).set(true);
-        failureToggles.get(3).set(true);
-        assertThatThrownBy(() -> store.getUpperLimit()).isInstanceOf(ServiceNotAvailableException.class);
-        failureToggles.get(3).set(false);
-        assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_1);
-    }
-
-    @ParameterizedTest
-    @MethodSource("useBatches")
-    public void retriesProposeUntilSuccessful(boolean useBatch) throws Exception {
-        setup(useBatch);
-        PaxosProposer wrapper = spy(new OnceFailingPaxosProposer(createPaxosProposer(0)));
-        store = createPaxosTimestampBoundStore(0, wrapper);
-        store.storeUpperLimit(TIMESTAMP_1);
-        assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_1);
-        verify(wrapper, times(2)).propose(anyLong(), any());
-    }
-
-    @ParameterizedTest
-    @MethodSource("useBatches")
-    public void throwsSuspectedNotCurrentLeaderExceptionIfBoundUnexpectedlyChangedUnderUs(boolean useBatch) {
-        setup(useBatch);
-        PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(1);
-        additionalStore.storeUpperLimit(TIMESTAMP_1);
-        assertThatThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2))
-                .isInstanceOf(SuspectedNotCurrentLeaderException.class);
-        assertThatThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2))
-                .as("no further requests should be permitted after a SuspectedNotCurrentLeaderException")
-                .isInstanceOf(SafeIllegalStateException.class)
-                .hasMessage(
-                        "Cannot store upper limit as leadership has been lost, or this store is no longer current.");
-    }
-
-    @ParameterizedTest
-    @MethodSource("useBatches")
-    public void canReadStateFromDistributedLogs(boolean useBatch) {
-        setup(useBatch);
-        PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(1);
-        additionalStore.storeUpperLimit(TIMESTAMP_1);
-        assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_1);
-        store.storeUpperLimit(TIMESTAMP_2);
-        assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_2);
-    }
-
-    @ParameterizedTest
-    @MethodSource("useBatches")
-    public void canReadConsensusProposedByOtherNodes(boolean useBatch) {
-        setup(useBatch);
-        PaxosTimestampBoundStore additionalStore1 = createPaxosTimestampBoundStore(1);
-        PaxosTimestampBoundStore additionalStore2 = createPaxosTimestampBoundStore(0);
-
-        store.storeUpperLimit(TIMESTAMP_1);
-        assertThat(additionalStore1.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_1);
-        additionalStore1.storeUpperLimit(TIMESTAMP_2 - 1);
-        additionalStore1.storeUpperLimit(TIMESTAMP_2);
-        assertThat(additionalStore2.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_2);
-        additionalStore2.storeUpperLimit(TIMESTAMP_3 - 1);
-        additionalStore2.storeUpperLimit(TIMESTAMP_3);
-        assertThat(additionalStore2.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_3);
-    }
-
-    @ParameterizedTest
-    @MethodSource("useBatches")
-    public void canGetAgreedInitialState(boolean useBatch) {
-        setup(useBatch);
-        PaxosTimestampBoundStore.SequenceAndBound sequenceAndBound = store.getAgreedState(0);
-        assertThat(sequenceAndBound.getSeqId()).isEqualTo(0);
-        assertThat(sequenceAndBound.getBound()).isEqualTo(0);
-    }
-
-    @ParameterizedTest
-    @MethodSource("useBatches")
-    public void canGetAgreedState(boolean useBatch) {
-        setup(useBatch);
-        store.storeUpperLimit(TIMESTAMP_1);
-        PaxosTimestampBoundStore.SequenceAndBound sequenceAndBound = store.getAgreedState(1);
-        assertThat(sequenceAndBound.getSeqId()).isEqualTo(1);
-        assertThat(sequenceAndBound.getBound()).isEqualTo(TIMESTAMP_1);
-    }
-
-    @ParameterizedTest
-    @MethodSource("useBatches")
-    public void canSafelyGetAgreedStateFromPrehistory(boolean useBatch) {
-        setup(useBatch);
-        assertThat(store.getAgreedState(Long.MIN_VALUE).getBound()).isEqualTo(0);
-    }
-
-    @ParameterizedTest
-    @MethodSource("useBatches")
-    public void canGetAgreedStateAfterNodeDown(boolean useBatch) {
-        setup(useBatch);
-        int nodeId = 1;
-        PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(nodeId);
-        failureToggles.get(nodeId).set(true);
-        store.storeUpperLimit(TIMESTAMP_1);
-        failureToggles.get(nodeId).set(false);
-
-        assertThat(additionalStore.getAgreedState(2).getBound()).isEqualTo(TIMESTAMP_1);
-    }
-
-    @ParameterizedTest
-    @MethodSource("useBatches")
-    public void cannotGetAgreedStateFromTheFuture(boolean useBatch) {
-        setup(useBatch);
-        assertThatThrownBy(() -> store.getAgreedState(Long.MAX_VALUE)).isInstanceOf(NullPointerException.class);
-    }
-
-    @ParameterizedTest
-    @MethodSource("useBatches")
-    public void canSafelyForceAgreedStateFromPrehistory(boolean useBatch) {
-        setup(useBatch);
-        assertThat(store.forceAgreedState(Long.MIN_VALUE, Long.MIN_VALUE).getBound())
-                .isEqualTo(0);
-    }
-
-    @ParameterizedTest
-    @MethodSource("useBatches")
-    public void canForceAgreedState(boolean useBatch) {
-        setup(useBatch);
-        assertThat(store.forceAgreedState(1, FORTY_TWO)).isEqualTo(ONE_AND_FORTY_TWO);
-        assertThat(store.getAgreedState(1)).isEqualTo(ONE_AND_FORTY_TWO);
-    }
-
-    @ParameterizedTest
-    @MethodSource("useBatches")
-    public void forceAgreedStateCanBeUsedToGainKnowledge(boolean useBatch) {
-        setup(useBatch);
-        assertThat(store.forceAgreedState(1, FORTY_TWO)).isEqualTo(ONE_AND_FORTY_TWO);
-
-        PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(1);
-        assertThat(additionalStore.forceAgreedState(1, null)).isEqualTo(ONE_AND_FORTY_TWO);
-    }
-
-    @ParameterizedTest
-    @MethodSource("useBatches")
-    public void forceAgreedStateReturnsFirstForcedValue(boolean useBatch) {
-        setup(useBatch);
-        assertThat(store.forceAgreedState(1, FORTY_TWO)).isEqualTo(ONE_AND_FORTY_TWO);
-        assertThat(store.forceAgreedState(1, 1L)).isEqualTo(ONE_AND_FORTY_TWO);
-        assertThat(store.getAgreedState(1)).isEqualTo(ONE_AND_FORTY_TWO);
-    }
-
-    @ParameterizedTest
-    @MethodSource("useBatches")
-    public void forceAgreedStateOperatesAtSequenceNumberLevel(boolean useBatch) {
-        setup(useBatch);
-        long fortyThree = FORTY_TWO + 1;
-        assertThat(store.forceAgreedState(1, FORTY_TWO)).isEqualTo(ONE_AND_FORTY_TWO);
-        assertThat(store.forceAgreedState(0, fortyThree)).isEqualTo(ImmutableSequenceAndBound.of(0, fortyThree));
-        assertThat(store.getAgreedState(0)).isEqualTo(ImmutableSequenceAndBound.of(0, fortyThree));
-        assertThat(store.getAgreedState(1)).isEqualTo(ONE_AND_FORTY_TWO);
-    }
-
-    @ParameterizedTest
-    @MethodSource("useBatches")
-    public void forceAgreedStateThrowsIfNoStateWasAgreedUpon(boolean useBatch) {
-        setup(useBatch);
-        assertThatThrownBy(() -> store.forceAgreedState(1, null)).isInstanceOf(NullPointerException.class);
-    }
-
-    @ParameterizedTest
-    @MethodSource("useBatches")
-    public void retriesForceAgreedStateUntilSuccessful(boolean useBatch) throws Exception {
-        setup(useBatch);
-        PaxosProposer wrapper = spy(new OnceFailingPaxosProposer(createPaxosProposer(0)));
-        store = createPaxosTimestampBoundStore(0, wrapper);
-        store.forceAgreedState(1, TIMESTAMP_1);
-        assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_1);
-        verify(wrapper, times(2)).propose(anyLong(), any(byte[].class));
-    }
-
-    public void setup(boolean useBatch) {
+    @BeforeEach
+    public void setup() {
         List<PaxosAcceptor> acceptors = new ArrayList<>();
-        List<BatchPaxosAcceptor> batchPaxosAcceptors = new ArrayList<>();
-        List<BatchPaxosLearner> batchPaxosLearners = new ArrayList<>();
 
         for (int i = 0; i < NUM_NODES; i++) {
             String root = temporaryFolder.getAbsolutePath();
@@ -351,54 +110,8 @@ public class PaxosTimestampBoundStoreTest {
 
             acceptors.add(ToggleableExceptionProxy.newProxyInstance(
                     PaxosAcceptor.class, components.acceptor(CLIENT), failureController, EXCEPTION));
-
-            BatchPaxosAcceptor batchAcceptor = new LocalBatchPaxosAcceptor(components, new AcceptorCacheImpl());
-            batchPaxosAcceptors.add(ToggleableExceptionProxy.newProxyInstance(
-                    BatchPaxosAcceptor.class, batchAcceptor, failureController, EXCEPTION));
-
-            BatchPaxosLearner batchLearner = new LocalBatchPaxosLearner(components);
-            batchPaxosLearners.add(ToggleableExceptionProxy.newProxyInstance(
-                    BatchPaxosLearner.class, batchLearner, failureController, EXCEPTION));
         }
 
-        if (useBatch) {
-            setupAcceptorClientAndLearnerClientsByNodeUsingBatch(batchPaxosAcceptors, batchPaxosLearners);
-        } else {
-            setupAcceptorClientAndLearnerClientsByNodeWithoutUsingBatch(acceptors);
-        }
-        store = createPaxosTimestampBoundStore(0);
-    }
-
-    public void setupAcceptorClientAndLearnerClientsByNodeUsingBatch(
-            List<BatchPaxosAcceptor> batchPaxosAcceptors, List<BatchPaxosLearner> batchPaxosLearners) {
-        AutobatchingPaxosAcceptorNetworkClientFactory acceptorNetworkClientFactory =
-                AutobatchingPaxosAcceptorNetworkClientFactory.create(
-                        batchPaxosAcceptors,
-                        KeyedStream.of(batchPaxosAcceptors.stream())
-                                .map($ -> new CheckedRejectionExecutorService(executor))
-                                .collectToMap(),
-                        QUORUM_SIZE);
-        acceptorClient = acceptorNetworkClientFactory.paxosAcceptorForClient(CLIENT);
-
-        List<AutobatchingPaxosLearnerNetworkClientFactory> learnerNetworkClientFactories = batchPaxosLearners.stream()
-                .map(localLearner -> LocalAndRemotes.of(
-                        localLearner,
-                        batchPaxosLearners.stream()
-                                .filter(remoteLearners -> remoteLearners != localLearner)
-                                .collect(toList())))
-                .map(localAndRemotes -> AutobatchingPaxosLearnerNetworkClientFactory.createForTests(
-                        localAndRemotes, executor, QUORUM_SIZE))
-                .collect(toList());
-
-        learnerClientsByNode = learnerNetworkClientFactories.stream()
-                .map(factory -> factory.paxosLearnerForClient(CLIENT))
-                .collect(toList());
-
-        closer.register(acceptorNetworkClientFactory);
-        learnerNetworkClientFactories.forEach(closer::register);
-    }
-
-    public void setupAcceptorClientAndLearnerClientsByNodeWithoutUsingBatch(List<PaxosAcceptor> acceptors) {
         acceptorClient = SingleLeaderAcceptorNetworkClient.createLegacy(
                 acceptors, QUORUM_SIZE, Maps.toMap(acceptors, $ -> executor), PaxosConstants.CANCEL_REMAINING_CALLS);
 
@@ -412,6 +125,196 @@ public class PaxosTimestampBoundStoreTest {
                         Maps.toMap(learners, $ -> executor),
                         PaxosConstants.CANCEL_REMAINING_CALLS))
                 .collect(toList());
+
+        store = createPaxosTimestampBoundStore(0);
+    }
+
+    @AfterEach
+    public void tearDown() throws InterruptedException, IOException {
+        closer.close();
+        executor.shutdownNow();
+        boolean terminated = executor.awaitTermination(10, TimeUnit.SECONDS);
+        if (!terminated) {
+            throw new IllegalStateException(
+                    "Some threads are still hanging around! Can't proceed or they might corrupt future tests.");
+        }
+    }
+
+    @Test
+    public void timestampsBeginFromZero() {
+        assertThat(store.getUpperLimit()).isEqualTo(0L);
+    }
+
+    @Test
+    public void canStoreUpperLimit() {
+        store.storeUpperLimit(TIMESTAMP_1);
+        assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_1);
+    }
+
+    @Test
+    public void throwsIfStoringLimitLessThanUpperLimit() {
+        store.storeUpperLimit(TIMESTAMP_2);
+        assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_2);
+        assertThatThrownBy(() -> store.storeUpperLimit(TIMESTAMP_1)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    public void canOperateWithMinorityOfNodesDown() {
+        failureToggles.get(1).set(true);
+        failureToggles.get(2).set(true);
+        store.storeUpperLimit(TIMESTAMP_1);
+        assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_1);
+    }
+
+    @Test
+    public void throwsIfCannotObtainQuorum() {
+        failureToggles.get(1).set(true);
+        failureToggles.get(2).set(true);
+        failureToggles.get(3).set(true);
+        assertThatThrownBy(() -> store.getUpperLimit()).isInstanceOf(ServiceNotAvailableException.class);
+    }
+
+    @Test
+    public void canRecoverFromNotHavingQuorum() {
+        store.storeUpperLimit(TIMESTAMP_1);
+        failureToggles.get(1).set(true);
+        failureToggles.get(2).set(true);
+        failureToggles.get(3).set(true);
+        assertThatThrownBy(() -> store.getUpperLimit()).isInstanceOf(ServiceNotAvailableException.class);
+        failureToggles.get(3).set(false);
+        assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_1);
+    }
+
+    @Test
+    public void retriesProposeUntilSuccessful() throws Exception {
+        PaxosProposer wrapper = spy(new OnceFailingPaxosProposer(createPaxosProposer(0)));
+        store = createPaxosTimestampBoundStore(0, wrapper);
+        store.storeUpperLimit(TIMESTAMP_1);
+        assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_1);
+        verify(wrapper, times(2)).propose(anyLong(), any());
+    }
+
+    @Test
+    public void throwsSuspectedNotCurrentLeaderExceptionIfBoundUnexpectedlyChangedUnderUs() {
+        PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(1);
+        additionalStore.storeUpperLimit(TIMESTAMP_1);
+        assertThatThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2))
+                .isInstanceOf(SuspectedNotCurrentLeaderException.class);
+        assertThatThrownBy(() -> store.storeUpperLimit(TIMESTAMP_2))
+                .as("no further requests should be permitted after a SuspectedNotCurrentLeaderException")
+                .isInstanceOf(SafeIllegalStateException.class)
+                .hasMessage(
+                        "Cannot store upper limit as leadership has been lost, or this store is no longer current.");
+    }
+
+    @Test
+    public void canReadStateFromDistributedLogs() {
+        PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(1);
+        additionalStore.storeUpperLimit(TIMESTAMP_1);
+        assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_1);
+        store.storeUpperLimit(TIMESTAMP_2);
+        assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_2);
+    }
+
+    @Test
+    public void canReadConsensusProposedByOtherNodes() {
+        PaxosTimestampBoundStore additionalStore1 = createPaxosTimestampBoundStore(1);
+        PaxosTimestampBoundStore additionalStore2 = createPaxosTimestampBoundStore(0);
+
+        store.storeUpperLimit(TIMESTAMP_1);
+        assertThat(additionalStore1.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_1);
+        additionalStore1.storeUpperLimit(TIMESTAMP_2 - 1);
+        additionalStore1.storeUpperLimit(TIMESTAMP_2);
+        assertThat(additionalStore2.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_2);
+        additionalStore2.storeUpperLimit(TIMESTAMP_3 - 1);
+        additionalStore2.storeUpperLimit(TIMESTAMP_3);
+        assertThat(additionalStore2.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_3);
+    }
+
+    @Test
+    public void canGetAgreedInitialState() {
+        PaxosTimestampBoundStore.SequenceAndBound sequenceAndBound = store.getAgreedState(0);
+        assertThat(sequenceAndBound.getSeqId()).isEqualTo(0);
+        assertThat(sequenceAndBound.getBound()).isEqualTo(0);
+    }
+
+    @Test
+    public void canGetAgreedState() {
+        store.storeUpperLimit(TIMESTAMP_1);
+        PaxosTimestampBoundStore.SequenceAndBound sequenceAndBound = store.getAgreedState(1);
+        assertThat(sequenceAndBound.getSeqId()).isEqualTo(1);
+        assertThat(sequenceAndBound.getBound()).isEqualTo(TIMESTAMP_1);
+    }
+
+    @Test
+    public void canSafelyGetAgreedStateFromPrehistory() {
+        assertThat(store.getAgreedState(Long.MIN_VALUE).getBound()).isEqualTo(0);
+    }
+
+    @Test
+    public void canGetAgreedStateAfterNodeDown() {
+        int nodeId = 1;
+        PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(nodeId);
+        failureToggles.get(nodeId).set(true);
+        store.storeUpperLimit(TIMESTAMP_1);
+        failureToggles.get(nodeId).set(false);
+
+        assertThat(additionalStore.getAgreedState(2).getBound()).isEqualTo(TIMESTAMP_1);
+    }
+
+    @Test
+    public void cannotGetAgreedStateFromTheFuture() {
+        assertThatThrownBy(() -> store.getAgreedState(Long.MAX_VALUE)).isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    public void canSafelyForceAgreedStateFromPrehistory() {
+        assertThat(store.forceAgreedState(Long.MIN_VALUE, Long.MIN_VALUE).getBound())
+                .isEqualTo(0);
+    }
+
+    @Test
+    public void canForceAgreedState() {
+        assertThat(store.forceAgreedState(1, FORTY_TWO)).isEqualTo(ONE_AND_FORTY_TWO);
+        assertThat(store.getAgreedState(1)).isEqualTo(ONE_AND_FORTY_TWO);
+    }
+
+    @Test
+    public void forceAgreedStateCanBeUsedToGainKnowledge() {
+        assertThat(store.forceAgreedState(1, FORTY_TWO)).isEqualTo(ONE_AND_FORTY_TWO);
+
+        PaxosTimestampBoundStore additionalStore = createPaxosTimestampBoundStore(1);
+        assertThat(additionalStore.forceAgreedState(1, null)).isEqualTo(ONE_AND_FORTY_TWO);
+    }
+
+    @Test
+    public void forceAgreedStateReturnsFirstForcedValue() {
+        assertThat(store.forceAgreedState(1, FORTY_TWO)).isEqualTo(ONE_AND_FORTY_TWO);
+        assertThat(store.forceAgreedState(1, 1L)).isEqualTo(ONE_AND_FORTY_TWO);
+        assertThat(store.getAgreedState(1)).isEqualTo(ONE_AND_FORTY_TWO);
+    }
+
+    @Test
+    public void forceAgreedStateOperatesAtSequenceNumberLevel() {
+        long fortyThree = FORTY_TWO + 1;
+        assertThat(store.forceAgreedState(1, FORTY_TWO)).isEqualTo(ONE_AND_FORTY_TWO);
+        assertThat(store.forceAgreedState(0, fortyThree)).isEqualTo(ImmutableSequenceAndBound.of(0, fortyThree));
+        assertThat(store.getAgreedState(0)).isEqualTo(ImmutableSequenceAndBound.of(0, fortyThree));
+        assertThat(store.getAgreedState(1)).isEqualTo(ONE_AND_FORTY_TWO);
+    }
+
+    @Test
+    public void forceAgreedStateThrowsIfNoStateWasAgreedUpon() {
+        assertThatThrownBy(() -> store.forceAgreedState(1, null)).isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    public void retriesForceAgreedStateUntilSuccessful() throws Exception {
+        PaxosProposer wrapper = spy(new OnceFailingPaxosProposer(createPaxosProposer(0)));
+        store = createPaxosTimestampBoundStore(0, wrapper);
+        store.forceAgreedState(1, TIMESTAMP_1);
+        assertThat(store.getUpperLimit()).isGreaterThanOrEqualTo(TIMESTAMP_1);
+        verify(wrapper, times(2)).propose(anyLong(), any(byte[].class));
     }
 
     private PaxosTimestampBoundStore createPaxosTimestampBoundStore(int nodeIndex) {

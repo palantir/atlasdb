@@ -269,7 +269,6 @@ public class TimeLockAgentTest {
                         .dataDirectory(shouldDirectoriesExist ? extantSqliteLogDirectory : extantPaxosLogDirectory)
                         .build())
                 .isNewService(isNewService)
-                .leaderMode(PaxosInstallConfiguration.PaxosLeaderMode.SINGLE_LEADER)
                 .ignoreNewServiceCheck(ignoreCheck)
                 .build();
     }

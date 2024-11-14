@@ -59,7 +59,6 @@ import com.palantir.timelock.config.ImmutableDefaultClusterConfiguration;
 import com.palantir.timelock.config.ImmutableSqlitePaxosPersistenceConfiguration;
 import com.palantir.timelock.config.ImmutableTimeLockRuntimeConfiguration;
 import com.palantir.timelock.config.PaxosInstallConfiguration;
-import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import com.palantir.timelock.config.TimeLockInstallConfiguration;
 import com.palantir.timelock.config.TimeLockRuntimeConfiguration;
 import com.palantir.timestamp.ManagedTimestampService;
@@ -106,7 +105,6 @@ public abstract class AbstractInMemoryTimelockExtension implements TimeLockServi
     public void setup() {
         PaxosInstallConfiguration paxos = PaxosInstallConfiguration.builder()
                 .dataDirectory(tryCreateSubFolder())
-                .leaderMode(PaxosLeaderMode.SINGLE_LEADER)
                 .sqlitePersistence(ImmutableSqlitePaxosPersistenceConfiguration.builder()
                         .dataDirectory(tryCreateSubFolder())
                         .build())

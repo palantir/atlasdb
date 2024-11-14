@@ -59,7 +59,6 @@ public class PaxosRemoteClientsTest {
                 .isNewService(false)
                 .dataDirectory(temporaryFolder)
                 .sqlitePersistence(SqlitePaxosPersistenceConfigurations.DEFAULT)
-                .leaderMode(PaxosInstallConfiguration.PaxosLeaderMode.SINGLE_LEADER)
                 .build();
         TimeLockInstallConfiguration installConfiguration = TimeLockInstallConfiguration.builder()
                 .paxos(paxosInstallConfiguration) // Normally awful, but too onerous to set up
@@ -88,14 +87,12 @@ public class PaxosRemoteClientsTest {
                 .context(context)
                 .metrics(MetricsManagers.createForTests())
                 .build();
-        Set<CheckedRejectionExecutorService> leaderPingExecutors =
-                remoteClients.batchPingableLeadersWithContext().stream()
-                        .map(WithDedicatedExecutor::executor)
-                        .collect(Collectors.toSet());
-        Set<CheckedRejectionExecutorService> paxosExecutionExecutors =
-                remoteClients.nonBatchTimestampAcceptor().stream()
-                        .map(WithDedicatedExecutor::executor)
-                        .collect(Collectors.toSet());
+        Set<CheckedRejectionExecutorService> leaderPingExecutors = remoteClients.pingableLeadersWithContext().stream()
+                .map(WithDedicatedExecutor::executor)
+                .collect(Collectors.toSet());
+        Set<CheckedRejectionExecutorService> paxosExecutionExecutors = remoteClients.timestampAcceptor().stream()
+                .map(WithDedicatedExecutor::executor)
+                .collect(Collectors.toSet());
         assertThat(leaderPingExecutors).doesNotContainAnyElementsOf(paxosExecutionExecutors);
     }
 }

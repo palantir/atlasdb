@@ -31,23 +31,17 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.palantir.atlasdb.timelock.NamespacedClients.ProxyFactory;
 import com.palantir.atlasdb.timelock.api.MultiClientConjureTimelockService;
 import com.palantir.atlasdb.timelock.api.management.TimeLockManagementService;
-import com.palantir.atlasdb.timelock.paxos.BatchPingableLeader;
 import com.palantir.atlasdb.timelock.paxos.PaxosUseCase;
 import com.palantir.atlasdb.timelock.paxos.api.NamespaceLeadershipTakeoverService;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.atlasdb.timelock.util.TestProxies.ProxyMode;
 import com.palantir.conjure.java.api.config.service.UserAgents;
 import com.palantir.leader.PingableLeader;
-import com.palantir.logsafe.SafeArg;
-import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.paxos.Client;
-import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import com.palantir.tokens.auth.AuthHeader;
 import com.palantir.tritium.metrics.registry.TaggedMetricRegistry;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class TestableTimelockServer {
@@ -59,7 +53,6 @@ public class TestableTimelockServer {
     private final ProxyFactory proxyFactory;
 
     private final Map<String, NamespacedClients> clientsByNamespace = new ConcurrentHashMap<>();
-    private volatile boolean switchToBatched = false;
 
     TestableTimelockServer(String baseUri, TimeLockServerHolder serverHolder) {
         this.serverHolder = serverHolder;
@@ -91,58 +84,15 @@ public class TestableTimelockServer {
         serverHolder.start();
     }
 
-    void startUsingBatchedSingleLeader() {
-        switchToBatched = true;
-    }
-
-    void stopUsingBatchedSingleLeader() {
-        switchToBatched = false;
-    }
-
     TestableLeaderPinger pinger() {
-        PaxosLeaderMode mode = serverHolder.installConfig().paxos().leaderMode();
-
-        if (switchToBatched) {
-            BatchPingableLeader batchPingableLeader =
-                    proxies.singleNode(serverHolder, BatchPingableLeader.class, false, ProxyMode.DIRECT);
-            return namespaces ->
-                    batchPingableLeader.ping(PSEUDO_LEADERSHIP_CLIENT_SET).isEmpty()
-                            ? ImmutableSet.of()
-                            : ImmutableSet.copyOf(namespaces);
-        }
-
-        switch (mode) {
-            case SINGLE_LEADER:
-                PingableLeader pingableLeader =
-                        proxies.singleNode(serverHolder, PingableLeader.class, false, ProxyMode.DIRECT);
-                return namespaces -> {
-                    if (pingableLeader.ping()) {
-                        return ImmutableSet.copyOf(namespaces);
-                    } else {
-                        return ImmutableSet.of();
-                    }
-                };
-            case LEADER_PER_CLIENT:
-                BatchPingableLeader batchPingableLeader =
-                        proxies.singleNode(serverHolder, BatchPingableLeader.class, false, ProxyMode.DIRECT);
-                return namespaces -> {
-                    Set<Client> typedNamespaces =
-                            Streams.stream(namespaces).map(Client::of).collect(Collectors.toSet());
-
-                    return batchPingableLeader.ping(typedNamespaces).stream()
-                            .map(Client::value)
-                            .collect(Collectors.toSet());
-                };
-            case AUTO_MIGRATION_MODE:
-                throw new UnsupportedOperationException("auto migration mode isn't supported just yet");
-        }
-
-        throw new SafeIllegalStateException("unexpected mode", SafeArg.of("mode", mode));
-    }
-
-    public boolean isMultiLeader() {
-        PaxosLeaderMode mode = serverHolder.installConfig().paxos().leaderMode();
-        return mode == PaxosLeaderMode.LEADER_PER_CLIENT;
+        PingableLeader pingableLeader = proxies.singleNode(serverHolder, PingableLeader.class, false, ProxyMode.DIRECT);
+        return namespaces -> {
+            if (pingableLeader.ping()) {
+                return ImmutableSet.copyOf(namespaces);
+            } else {
+                return ImmutableSet.of();
+            }
+        };
     }
 
     NamespacedClients client(String namespace) {

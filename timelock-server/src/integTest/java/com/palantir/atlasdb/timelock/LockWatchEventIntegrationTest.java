@@ -59,7 +59,6 @@ import com.palantir.lock.watch.LockWatchVersion;
 import com.palantir.lock.watch.TransactionsLockWatchUpdate;
 import com.palantir.lock.watch.UnlockEvent;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
-import com.palantir.timelock.config.PaxosInstallConfiguration;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
@@ -104,11 +103,7 @@ public final class LockWatchEventIntegrationTest {
     public static final TestableTimelockCluster CLUSTER = new TestableTimelockCluster(
             "non-batched timestamp paxos single leader",
             "paxosMultiServer.ftl",
-            generateThreeNodeTimelockCluster(
-                    TestableTimeLockClusterPorts.LOCK_WATCH_EVENT_INTEGRATION_TEST,
-                    builder -> builder.clientPaxosBuilder(
-                                    builder.clientPaxosBuilder().isUseBatchPaxosTimestamp(false))
-                            .leaderMode(PaxosInstallConfiguration.PaxosLeaderMode.SINGLE_LEADER)));
+            generateThreeNodeTimelockCluster(TestableTimeLockClusterPorts.LOCK_WATCH_EVENT_INTEGRATION_TEST));
 
     private TransactionManager txnManager;
 

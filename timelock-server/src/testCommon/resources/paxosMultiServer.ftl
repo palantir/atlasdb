@@ -4,15 +4,11 @@ install:
     sqlite-persistence:
       data-directory: "${sqliteDataDirectory}"
     is-new-service: false
-    leader-mode: ${leaderMode}
   timestampBoundPersistence:
 
 runtime:
   paxos:
     leader-ping-response-wait-in-ms: 1000
-    timestamp-paxos:
-      use-batch-paxos: ${clientPaxos.useBatchPaxosTimestamp?c}
-    enable-batching-for-single-leader: ${clientPaxos.batchSingleLeader?c}
   cluster-config-not-live-reloaded:
     cluster:
       security:

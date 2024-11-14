@@ -15,7 +15,6 @@
  */
 package com.palantir.atlasdb.timelock.paxos;
 
-import com.palantir.paxos.Client;
 import com.palantir.paxos.PaxosConstants;
 
 public final class PaxosTimeLockConstants {
@@ -26,12 +25,8 @@ public final class PaxosTimeLockConstants {
     public static final String LEADER_ELECTION_NAMESPACE = "leader";
 
     public static final String INTERNAL_NAMESPACE = ".internal";
-    public static final String BATCH_INTERNAL_NAMESPACE = ".batch";
     public static final String LEADER_PAXOS_NAMESPACE = "leaderPaxos";
     public static final String CLIENT_PAXOS_NAMESPACE = "clientPaxos";
-    public static final String MULTI_LEADER_PAXOS_NAMESPACE = "multiLeaderPaxos";
-
-    public static final Client LEGACY_PAXOS_AS_CLIENT = Client.of(LEADER_PAXOS_NAMESPACE);
 
     /**
      * Prefer {@link PaxosConstants#CANCEL_REMAINING_CALLS}.

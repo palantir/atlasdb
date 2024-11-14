@@ -16,6 +16,7 @@
 package com.palantir.timelock.config;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -25,6 +26,7 @@ import org.immutables.value.Value;
 
 @JsonDeserialize(as = ImmutablePaxosRuntimeConfiguration.class)
 @JsonSerialize(as = ImmutablePaxosRuntimeConfiguration.class)
+@JsonIgnoreProperties({"timestamp-paxos", "enable-batching-for-single-leader"})
 @Value.Immutable
 public interface PaxosRuntimeConfiguration {
     @JsonProperty("ping-rate-in-ms")
@@ -83,34 +85,6 @@ public interface PaxosRuntimeConfiguration {
     @Value.Default
     default boolean onlyLogOnQuorumFailure() {
         return true;
-    }
-
-    @Value.Default
-    @JsonProperty("timestamp-paxos")
-    default TimestampPaxosConfig timestampPaxos() {
-        return TimestampPaxosConfig.defaultConfig();
-    }
-
-    @Value.Default
-    @JsonProperty("enable-batching-for-single-leader")
-    default boolean enableBatchingForSingleLeader() {
-        return false;
-    }
-
-    @Value.Immutable
-    @JsonDeserialize(as = ImmutableTimestampPaxosConfig.class)
-    @JsonSerialize(as = ImmutableTimestampPaxosConfig.class)
-    interface TimestampPaxosConfig {
-
-        @Value.Default
-        @JsonProperty("use-batch-paxos")
-        default boolean useBatchPaxos() {
-            return false;
-        }
-
-        static TimestampPaxosConfig defaultConfig() {
-            return ImmutableTimestampPaxosConfig.builder().build();
-        }
     }
 
     @Value.Check

@@ -21,13 +21,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.http.AtlasDbHttpClients;
 import com.palantir.atlasdb.http.TestProxyUtils;
-import com.palantir.atlasdb.timelock.ImmutableTemplateVariables.TimestampPaxos;
 import com.palantir.atlasdb.timelock.paxos.PaxosTimeLockConstants;
 import com.palantir.atlasdb.timelock.util.ExceptionMatchers;
 import com.palantir.atlasdb.timelock.util.TestProxies;
 import com.palantir.paxos.PaxosAcceptor;
 import com.palantir.paxos.PaxosLearner;
-import com.palantir.timelock.config.PaxosInstallConfiguration.PaxosLeaderMode;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,12 +38,8 @@ import org.junit.jupiter.api.extension.RegisterExtension;
  */
 public class IsolatedPaxosTimeLockServerIntegrationTest {
 
-    private static final TemplateVariables SINGLE_NODE = ImmutableTemplateVariables.builder()
-            .localServerPort(9060)
-            .clientPaxos(
-                    TimestampPaxos.builder().isUseBatchPaxosTimestamp(false).build())
-            .leaderMode(PaxosLeaderMode.SINGLE_LEADER)
-            .build();
+    private static final TemplateVariables SINGLE_NODE =
+            ImmutableTemplateVariables.builder().localServerPort(9060).build();
 
     @RegisterExtension
     public static final TestableTimelockCluster CLUSTER =
