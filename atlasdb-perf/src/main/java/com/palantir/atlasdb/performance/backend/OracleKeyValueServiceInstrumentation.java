@@ -16,25 +16,29 @@
 package com.palantir.atlasdb.performance.backend;
 
 import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableDbKeyValueServiceConfig;
-import com.palantir.atlasdb.keyvalue.dbkvs.ImmutablePostgresDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.ImmutableOracleDdlConfig;
+import com.palantir.atlasdb.keyvalue.dbkvs.impl.OverflowMigrationState;
 import com.palantir.atlasdb.spi.KeyValueServiceConfig;
 import com.palantir.atlasdb.spi.KeyValueServiceRuntimeConfig;
 import com.palantir.nexus.db.pool.config.ImmutableMaskedValue;
-import com.palantir.nexus.db.pool.config.ImmutablePostgresConnectionConfig;
+import com.palantir.nexus.db.pool.config.ImmutableOracleConnectionConfig;
+import com.palantir.nexus.db.pool.config.OracleConnectionConfig;
 import java.net.InetSocketAddress;
 import java.util.Optional;
 
-public class PostgresKeyValueServiceInstrumentation extends KeyValueServiceInstrumentation {
+public class OracleKeyValueServiceInstrumentation extends KeyValueServiceInstrumentation {
 
-    public PostgresKeyValueServiceInstrumentation() {
-        super(5432, "postgres-docker-compose.yml");
+    public OracleKeyValueServiceInstrumentation() {
+        super(1521, "oracle-docker-compose.yml");
     }
 
     @Override
     public KeyValueServiceConfig getKeyValueServiceConfig(InetSocketAddress addr) {
         return ImmutableDbKeyValueServiceConfig.builder()
-                .ddl(ImmutablePostgresDdlConfig.builder().build())
-                .connection(getImmutablePostgresConnectionConfig(addr))
+                .ddl(ImmutableOracleDdlConfig.builder()
+                        .overflowMigrationState(OverflowMigrationState.FINISHED)
+                        .build())
+                .connection(getImmutableOracleConnectionConfig(addr))
                 .build();
     }
 
@@ -43,13 +47,13 @@ public class PostgresKeyValueServiceInstrumentation extends KeyValueServiceInstr
         return Optional.empty();
     }
 
-    private ImmutablePostgresConnectionConfig getImmutablePostgresConnectionConfig(InetSocketAddress addr) {
-        return ImmutablePostgresConnectionConfig.builder()
+    private ImmutableOracleConnectionConfig getImmutableOracleConnectionConfig(InetSocketAddress addr) {
+        return new OracleConnectionConfig.Builder()
                 .host(addr.getHostString())
                 .port(addr.getPort())
-                .dbName("atlas")
+                .sid("palantir")
                 .dbLogin("palantir")
-                .dbPassword(ImmutableMaskedValue.of("palantir"))
+                .dbPassword(ImmutableMaskedValue.of("7_SeeingStones_7"))
                 .build();
     }
 
@@ -60,6 +64,6 @@ public class PostgresKeyValueServiceInstrumentation extends KeyValueServiceInstr
 
     @Override
     public String toString() {
-        return "POSTGRES";
+        return "ORACLE";
     }
 }

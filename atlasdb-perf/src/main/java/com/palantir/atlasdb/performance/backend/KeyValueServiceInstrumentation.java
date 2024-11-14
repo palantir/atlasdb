@@ -39,6 +39,7 @@ public abstract class KeyValueServiceInstrumentation {
     static {
         addNewBackendType(new CassandraKeyValueServiceInstrumentation());
         addNewBackendType(new PostgresKeyValueServiceInstrumentation());
+        addNewBackendType(new OracleKeyValueServiceInstrumentation());
     }
 
     KeyValueServiceInstrumentation(int kvsPort, String dockerComposeFileName) {
@@ -107,7 +108,7 @@ public abstract class KeyValueServiceInstrumentation {
 
     /**
      * The --backend parameter and the [dbtype] of the --db-uri parameter must match the return value of the
-     * impementation of this method for your class.
+     * implementation of this method for your class.
      */
     @Override
     public abstract String toString();

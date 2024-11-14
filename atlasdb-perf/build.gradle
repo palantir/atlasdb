@@ -29,7 +29,6 @@ dependencies {
     implementation 'com.palantir.refreshable:refreshable'
     implementation 'com.palantir.safe-logging:preconditions'
     implementation 'com.palantir.safe-logging:safe-logging'
-    implementation 'commons-io:commons-io'
     implementation 'io.airlift:airline'
     implementation 'javax.inject:javax.inject'
     implementation 'javax.ws.rs:javax.ws.rs-api'

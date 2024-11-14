@@ -67,15 +67,20 @@ public class AtlasDbPerfCli {
 
     @Option(
             name = {"-b", "--backend"},
-            description = "Backing KVS stores to use. (e.g. POSTGRES or CASSANDRA)"
+            description = "Backing KVS stores to use (POSTGRES, ORACLE or CASSANDRA)."
                     + " Defaults to all backends if not specified.")
     private Set<String> backends;
 
     @Option(
             name = {"--db-uri"},
-            description = "Docker uri (e.g. POSTGRES@[phost:pport] or CASSANDRA@[chost:cport]).This is an alterative to"
+            description = "Docker uri (e.g. POSTGRES/ORACLE/CASSANDRA@[phost:pport]). This is an alternative to"
                     + " specifying the --backend options that starts the docker containers locally.")
     private List<String> dbUris;
+
+    @Option(
+            name = {"--forks"},
+            description = "Number of forks to run, 0 runs embedded.")
+    private int forks = 1;
 
     @Option(
             name = {"-l", "--list-tests"},
@@ -130,7 +135,7 @@ public class AtlasDbPerfCli {
     private static void runJmh(AtlasDbPerfCli cli, List<DockerizedDatabaseUri> uris)
             throws RunnerException, IOException {
         ChainedOptionsBuilder optBuilder = new OptionsBuilder()
-                .forks(1)
+                .forks(cli.forks)
                 .measurementIterations(1)
                 .timeUnit(TimeUnit.MICROSECONDS)
                 .shouldFailOnError(true)

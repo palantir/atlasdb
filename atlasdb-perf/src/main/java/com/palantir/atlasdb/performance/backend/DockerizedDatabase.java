@@ -22,12 +22,8 @@ import com.palantir.docker.compose.connection.waiting.SuccessOrFailure;
 import com.palantir.logsafe.exceptions.SafeIllegalStateException;
 import com.palantir.logsafe.exceptions.SafeRuntimeException;
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.net.URL;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.FilenameUtils;
 
 public final class DockerizedDatabase implements Closeable {
 
@@ -35,7 +31,7 @@ public final class DockerizedDatabase implements Closeable {
 
     public static DockerizedDatabase start(KeyValueServiceInstrumentation type) {
         DockerComposeExtension docker = DockerComposeExtension.builder()
-                .file(getDockerComposeFileAbsolutePath(type.getDockerComposeResourceFileName()))
+                .file(type.getDockerComposeResourceFileName())
                 .waitingForHostNetworkedPort(type.getKeyValueServicePort(), toBeOpen())
                 .saveLogsTo(DOCKER_LOGS_DIR)
                 .build();
@@ -43,35 +39,18 @@ public final class DockerizedDatabase implements Closeable {
         return new DockerizedDatabase(docker, new DockerizedDatabaseUri(type, addr));
     }
 
-    private static String getDockerComposeFileAbsolutePath(String dockerComposeResourceFileName) {
-        try {
-            return writeResourceToTempFile(DockerizedDatabase.class, dockerComposeResourceFileName)
-                    .getAbsolutePath();
-        } catch (IOException e) {
-            throw new SafeRuntimeException("Unable to write docker compose file to a temporary file.", e);
-        }
-    }
-
-    private static File writeResourceToTempFile(Class<?> clazz, String resourcePath) throws IOException {
-        URL resource = clazz.getResource("/" + resourcePath);
-        File file = File.createTempFile(
-                FilenameUtils.getBaseName(resource.getFile()), FilenameUtils.getExtension(resource.getFile()));
-        resource.openStream().transferTo(FileUtils.openOutputStream(file));
-        file.deleteOnExit();
-        return file;
-    }
-
     private static HealthCheck<DockerPort> toBeOpen() {
         return port -> SuccessOrFailure.fromBoolean(port.isListeningNow(), "" + "" + port + " was not open");
     }
 
+    @SuppressWarnings("DnsLookup")
     private static InetSocketAddress connect(DockerComposeExtension docker, int dbPort) {
         try {
             if (docker == null) {
                 throw new SafeIllegalStateException("Docker compose extension cannot be run, is null.");
             } else {
                 docker.before();
-                return InetSocketAddress.createUnresolved(
+                return new InetSocketAddress(
                         docker.containers().ip(),
                         docker.hostNetworkedPort(dbPort).getExternalPort());
             }
