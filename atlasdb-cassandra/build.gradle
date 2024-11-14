@@ -1,7 +1,7 @@
 apply from: "../gradle/shared.gradle"
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'com.palantir.metric-schema'
-apply plugin: 'com.palantir.revapi'
+apply plugin: 'org.revapi.revapi-gradle-plugin'
 
 configurations {
   explicitShadow
@@ -106,7 +106,7 @@ dependencies {
 
 shadowJar {
   mergeServiceFiles()
-  classifier ''
+  archiveClassifier = ''
 
   relocate('org.hibernate', 'shadowed')
 

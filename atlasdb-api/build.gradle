@@ -1,5 +1,5 @@
 apply from: "../gradle/shared.gradle"
-apply plugin: 'com.palantir.revapi'
+apply plugin: 'org.revapi.revapi-gradle-plugin'
 
 dependencies {
   api project(":atlasdb-commons-api")

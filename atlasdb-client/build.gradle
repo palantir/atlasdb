@@ -22,7 +22,7 @@ libsDirName = file('build/artifacts')
 
 task clientTestJar(type: Jar) {
     from sourceSets.test.output
-    classifier = 'tests'
+    archiveClassifier = 'tests'
 }
 
 configurations {
@@ -115,3 +115,4 @@ dependencies {
   compileOnly 'org.immutables:value::annotations'
   testCompileOnly 'org.immutables:value::annotations'
 }
+tasks.named('signMavenPublication').configure { dependsOn tasks.named('clientTestJar') }
