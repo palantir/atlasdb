@@ -25,6 +25,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Iterables;
 import com.google.common.primitives.UnsignedBytes;
+import com.google.errorprone.annotations.RestrictedApi;
 import com.palantir.atlasdb.encoding.PtBytes;
 import com.palantir.atlasdb.transaction.api.Transaction;
 import com.palantir.common.annotation.Immutable;
@@ -60,6 +61,11 @@ public final class RangeRequest implements Serializable {
     private final boolean reverse;
     private transient int hashCode = 0;
 
+    public static final String RANGE_REQUEST_ALLOWED_ON_PATH = ".*/schema/generated/.*"
+            + "|.*/integrationInput/.*"
+            + "|.*/atlasdb-ete-test-utils/.*"
+            + "|.*/src/test/java/.*";
+
     /**
      * Returns a {@link Builder} instance, a helper class
      * for instantiating immutable <code>RangeRequest</code>
@@ -77,6 +83,11 @@ public final class RangeRequest implements Serializable {
         return new Builder(true);
     }
 
+    @RestrictedApi(
+            explanation = "Full range requests create a lot of load on cassandra, which can hurt the overall cluster ",
+            allowlistAnnotations = AllowedRangeRequest.class,
+            allowedOnPath = RANGE_REQUEST_ALLOWED_ON_PATH)
+    @SuppressWarnings("RestrictedApi")
     public static RangeRequest all() {
         return builder().build();
     }

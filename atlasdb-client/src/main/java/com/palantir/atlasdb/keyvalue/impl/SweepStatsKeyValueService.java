@@ -27,6 +27,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multiset;
 import com.google.common.collect.Sets;
 import com.palantir.atlasdb.AtlasDbConstants;
+import com.palantir.atlasdb.keyvalue.api.AllowedRangeRequest;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.ClusterAvailabilityStatus;
 import com.palantir.atlasdb.keyvalue.api.KeyValueService;
@@ -161,6 +162,7 @@ public final class SweepStatsKeyValueService extends ForwardingKeyValueService {
     }
 
     @Override
+    @AllowedRangeRequest(justification = "a full range request is constructed only for an equality check")
     public void deleteRange(TableReference tableRef, RangeRequest range) {
         delegate().deleteRange(tableRef, range);
         if (isEnabled.get()) {
