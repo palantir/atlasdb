@@ -34,6 +34,7 @@ import com.palantir.lock.client.NamespacedConjureTimelockService;
 import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
 import com.palantir.lock.client.RemoteLockServiceAdapter;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
+import com.palantir.lock.client.TimestampLeaseMetrics;
 import com.palantir.lock.client.timestampleases.MinLeasedTimestampGetter;
 import com.palantir.lock.client.timestampleases.MinLeasedTimestampGetterImpl;
 import com.palantir.lock.client.timestampleases.NamespacedTimestampLeaseService;
@@ -55,6 +56,7 @@ import com.palantir.timestamp.RemoteTimestampManagementAdapter;
 import com.palantir.timestamp.TimestampManagementRpcClient;
 import com.palantir.timestamp.TimestampManagementService;
 import com.palantir.timestamp.TimestampRange;
+import com.palantir.tritium.metrics.registry.DefaultTaggedMetricRegistry;
 import java.util.Set;
 import org.immutables.value.Value;
 
@@ -94,8 +96,8 @@ public interface NamespacedClients {
         NamespacedTimestampLeaseService timestampLeaseService = new NamespacedTimestampLeaseServiceImpl(
                 Namespace.of(namespace()), internalMultiClientConjureTimelockService());
 
-        TimestampLeaseAcquirer timestampLeaseAcquirer =
-                TimestampLeaseAcquirerImpl.create(timestampLeaseService, unlocker);
+        TimestampLeaseAcquirer timestampLeaseAcquirer = TimestampLeaseAcquirerImpl.create(
+                timestampLeaseService, unlocker, TimestampLeaseMetrics.of(new DefaultTaggedMetricRegistry()));
 
         MinLeasedTimestampGetter minLeasedTimestampGetter = new MinLeasedTimestampGetterImpl(timestampLeaseService);
 

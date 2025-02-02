@@ -43,6 +43,7 @@ import com.palantir.lock.client.LockTokenUnlocker;
 import com.palantir.lock.client.NamespacedConjureTimelockServiceImpl;
 import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.client.RequestBatchersFactory;
+import com.palantir.lock.client.TimestampLeaseMetrics;
 import com.palantir.lock.client.TransactionStarter;
 import com.palantir.lock.client.timestampleases.MinLeasedTimestampGetterImpl;
 import com.palantir.lock.client.timestampleases.NamespacedTimestampLeaseService;
@@ -90,6 +91,7 @@ public abstract class AbstractInMemoryTimelockExtension implements TimeLockServi
     private NamespacedConjureTimelockServiceImpl namespacedConjureTimelockService;
     private NamespacedTimestampLeaseService timestampLeaseService;
     private LockTokenUnlocker unlocker;
+    private final MetricsManager metricsManager = MetricsManagers.createForTests();
 
     public AbstractInMemoryTimelockExtension() {
         this("client");
@@ -129,8 +131,6 @@ public abstract class AbstractInMemoryTimelockExtension implements TimeLockServi
                 .clusterSnapshot(clusterConfig)
                 .build();
 
-        MetricsManager metricsManager = MetricsManagers.createForTests();
-
         timeLockAgent = TimeLockAgent.create(
                 metricsManager,
                 install,
@@ -146,7 +146,7 @@ public abstract class AbstractInMemoryTimelockExtension implements TimeLockServi
                 () -> System.exit(0));
 
         delegate = timeLockAgent.createInvalidatingTimeLockServices(client);
-        createHelperServices(metricsManager);
+        createHelperServices();
 
         // Wait for leadership
         Awaitility.await()
@@ -156,7 +156,7 @@ public abstract class AbstractInMemoryTimelockExtension implements TimeLockServi
                 .until(() -> delegate.getTimestampService().getFreshTimestamp() > 0);
     }
 
-    private void createHelperServices(MetricsManager metricsManager) {
+    private void createHelperServices() {
         helperServices = TimeLockHelperServices.create(
                 client,
                 metricsManager,
@@ -248,7 +248,8 @@ public abstract class AbstractInMemoryTimelockExtension implements TimeLockServi
                 lockLeaseService,
                 transactionStarter,
                 commitTimestampGetter,
-                TimestampLeaseAcquirerImpl.create(timestampLeaseService, unlocker),
+                TimestampLeaseAcquirerImpl.create(
+                        timestampLeaseService, unlocker, TimestampLeaseMetrics.of(metricsManager.getTaggedRegistry())),
                 new MinLeasedTimestampGetterImpl(timestampLeaseService));
     }
 

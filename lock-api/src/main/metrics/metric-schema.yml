@@ -30,4 +30,10 @@ namespaces:
         type: timer
         docs: observed call duration during leader election
 
+  timestampLease:
+    docs: Timestamp lease client side telemetry
+    metrics:
+      notEnoughFreshTimestamps:
+        type: counter
+        docs: Counts instances where TimeLock returns less than the requested number of timestamps in acquire timestamp lease calls
 

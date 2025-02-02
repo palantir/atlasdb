@@ -61,6 +61,7 @@ import com.palantir.lock.client.RemoteTimelockServiceAdapter;
 import com.palantir.lock.client.RequestBatchersFactory;
 import com.palantir.lock.client.TimeLockClient;
 import com.palantir.lock.client.TimestampCorroboratingTimelockService;
+import com.palantir.lock.client.TimestampLeaseMetrics;
 import com.palantir.lock.client.metrics.TimeLockFeedbackBackgroundTask;
 import com.palantir.lock.client.timestampleases.MinLeasedTimestampGetter;
 import com.palantir.lock.client.timestampleases.MinLeasedTimestampGetterImpl;
@@ -369,7 +370,8 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
                 namespacedConjureTimelockService,
                 multiClientTimelockServiceSupplier,
                 namespacedTimelockRpcClient,
-                timeLockHelperServices.requestBatchersFactory());
+                timeLockHelperServices.requestBatchersFactory(),
+                metricsManager);
 
         TimestampManagementService timestampManagementService = new RemoteTimestampManagementAdapter(
                 serviceProvider.getTimestampManagementRpcClient(), timelockNamespace);
@@ -391,7 +393,8 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
             NamespacedConjureTimelockService namespacedConjureTimelockService,
             Supplier<InternalMultiClientConjureTimelockService> multiClientTimelockServiceSupplier,
             NamespacedTimelockRpcClient namespacedTimelockRpcClient,
-            RequestBatchersFactory batchersFactory) {
+            RequestBatchersFactory batchersFactory,
+            MetricsManager metricsManager) {
         LockTokenUnlocker unlocker = getTimeLockUnlocker(
                 timelockNamespace,
                 timelockRequestBatcherProviders,
@@ -401,8 +404,8 @@ public final class DefaultLockAndTimestampServiceFactory implements LockAndTimes
         NamespacedTimestampLeaseService timestampLeaseService = new NamespacedTimestampLeaseServiceImpl(
                 Namespace.of(timelockNamespace), multiClientTimelockServiceSupplier.get());
 
-        TimestampLeaseAcquirer timestampLeaseAcquirer =
-                TimestampLeaseAcquirerImpl.create(timestampLeaseService, unlocker);
+        TimestampLeaseAcquirer timestampLeaseAcquirer = TimestampLeaseAcquirerImpl.create(
+                timestampLeaseService, unlocker, TimestampLeaseMetrics.of(metricsManager.getTaggedRegistry()));
 
         MinLeasedTimestampGetter minLeasedTimestampGetter = new MinLeasedTimestampGetterImpl(timestampLeaseService);
 
