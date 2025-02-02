@@ -116,19 +116,25 @@ public final class AutobatcherTelemetryComponentsTest {
     }
 
     private void assertWaitTimeMetricsAreNotReported(TaggedMetricRegistry registry) {
-        assertThat(getWaitTimeHistogram(registry)).isNull();
+        assertThat(getWaitTimeHistogram(registry)).isNotNull().satisfies(histogram -> assertThat(histogram.getCount())
+                .isZero());
     }
 
     private void assertRunningTimeMetricsAreNotReported(TaggedMetricRegistry registry) {
-        assertThat(getRunningTimeHistogram(registry)).isNull();
+        assertThat(getRunningTimeHistogram(registry))
+                .isNotNull()
+                .satisfies(histogram -> assertThat(histogram.getCount()).isZero());
     }
 
     private void assertWaitTimePercentageMetricsAreNotReported(TaggedMetricRegistry registry) {
-        assertThat(getWaitTimePercentageHistogram(registry)).isNull();
+        assertThat(getWaitTimePercentageHistogram(registry))
+                .isNotNull()
+                .satisfies(histogram -> assertThat(histogram.getCount()).isZero());
     }
 
     private void assertTotalTimeMetricsAreNotReported(TaggedMetricRegistry registry) {
-        assertThat(getTotalTimeHistogram(registry)).isNull();
+        assertThat(getTotalTimeHistogram(registry)).isNotNull().satisfies(histogram -> assertThat(histogram.getCount())
+                .isZero());
     }
 
     private static Histogram getWaitTimeHistogram(TaggedMetricRegistry registry) {

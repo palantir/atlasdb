@@ -76,17 +76,24 @@ public final class DisruptorAutobatcherTest {
     }
 
     private void assertNoWaitTimeAndRunningTimeMetricsAreProduced(TaggedMetricRegistry registry) {
-        assertThat(getWaitTimeHistogram(registry)).isNull();
-        assertThat(getWaitTimePercentageHistogram(registry)).isNull();
-        assertThat(getRunningTimeHistogram(registry)).isNull();
-        assertThat(getTotalTimeHistogram(registry)).isNull();
+        assertThat(getWaitTimeHistogram(registry))
+                .satisfies(histogram -> assertThat(histogram.getCount()).isZero());
+        assertThat(getWaitTimePercentageHistogram(registry))
+                .satisfies(histogram -> assertThat(histogram.getCount()).isZero());
+        assertThat(getRunningTimeHistogram(registry))
+                .satisfies(histogram -> assertThat(histogram.getCount()).isZero());
+        assertThat(getTotalTimeHistogram(registry))
+                .satisfies(histogram -> assertThat(histogram.getCount()).isZero());
     }
 
     private void assertOnlyWaitTimeMetricsAreProduced(TaggedMetricRegistry registry, int waitTimeNanos) {
         assertThat(getWaitTimeHistogram(registry).getSnapshot().getValues()).containsExactly(waitTimeNanos);
-        assertThat(getWaitTimePercentageHistogram(registry)).isNull();
-        assertThat(getRunningTimeHistogram(registry)).isNull();
-        assertThat(getTotalTimeHistogram(registry)).isNull();
+        assertThat(getWaitTimePercentageHistogram(registry))
+                .satisfies(histogram -> assertThat(histogram.getCount()).isZero());
+        assertThat(getRunningTimeHistogram(registry))
+                .satisfies(histogram -> assertThat(histogram.getCount()).isZero());
+        assertThat(getTotalTimeHistogram(registry))
+                .satisfies(histogram -> assertThat(histogram.getCount()).isZero());
     }
 
     private static Histogram getWaitTimeHistogram(TaggedMetricRegistry registry) {
