@@ -1,0 +1,5 @@
+type: fix
+fix:
+  description: ignore AutoService warnings locally
+  links:
+  - https://github.com/palantir/atlasdb/pull/7063
