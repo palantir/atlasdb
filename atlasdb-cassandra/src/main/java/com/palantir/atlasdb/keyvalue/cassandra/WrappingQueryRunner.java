@@ -54,8 +54,9 @@ class WrappingQueryRunner {
                 return null;
             });
         } catch (UnavailableException e) {
-            throw new InsufficientConsistencyException(
-                    "This batch mutate operation requires {} Cassandra nodes to be up and available.",
+            throw CassandraTExceptions.mapToUncheckedException(
+                    "Batch mutate operation requires a sufficient number of nodes to be up. Check that the consistency"
+                            + " level of {} is adequate.",
                     e,
                     SafeArg.of("consistency", consistency));
         }
@@ -75,8 +76,9 @@ class WrappingQueryRunner {
                     tableRef,
                     () -> client.multiget_slice(kvsMethodName, tableRef, rowNames, pred, consistency));
         } catch (UnavailableException e) {
-            throw new InsufficientConsistencyException(
-                    "This get operation requires {} Cassandra nodes to be up and available.",
+            throw CassandraTExceptions.mapToUncheckedException(
+                    "This get operation requires a sufficient number of nodes to be up. Check that the consistency"
+                            + " level of {} is adequate.",
                     e,
                     SafeArg.of("consistency", consistency));
         }
@@ -93,8 +95,9 @@ class WrappingQueryRunner {
             return queryRunner.run(
                     client, tableRef, () -> client.multiget_multislice(kvsMethodName, tableRef, request, consistency));
         } catch (UnavailableException e) {
-            throw new InsufficientConsistencyException(
-                    "This get operation requires {} Cassandra nodes to be up and available.",
+            throw CassandraTExceptions.mapToUncheckedException(
+                    "This get operation requires a sufficient number of nodes to be up. Check that the consistency"
+                            + " level of {} is adequate.",
                     e,
                     SafeArg.of("consistency", consistency));
         }
