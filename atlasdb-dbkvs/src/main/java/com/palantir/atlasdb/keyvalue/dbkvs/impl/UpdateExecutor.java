@@ -19,6 +19,7 @@ import com.google.common.collect.Iterables;
 import com.palantir.atlasdb.keyvalue.api.Cell;
 import com.palantir.atlasdb.keyvalue.api.CheckAndSetException;
 import com.palantir.atlasdb.keyvalue.api.TableReference;
+import com.palantir.atlasdb.logging.LoggingArgs;
 import com.palantir.nexus.db.sql.AgnosticLightResultSet;
 import com.palantir.nexus.db.sql.PalantirSqlConnection;
 import java.util.ArrayList;
@@ -59,7 +60,7 @@ public class UpdateExecutor {
             List<byte[]> currentValue = getCurrentValue(connection, cell, ts, prefixedTableName);
             byte[] onlyValue = Iterables.getOnlyElement(currentValue, null);
             if (!Arrays.equals(onlyValue, oldValue)) {
-                throw new CheckAndSetException(cell, tableRef, oldValue, currentValue);
+                throw new CheckAndSetException(cell, oldValue, currentValue, LoggingArgs.tableRef(tableRef));
             }
         }
     }
