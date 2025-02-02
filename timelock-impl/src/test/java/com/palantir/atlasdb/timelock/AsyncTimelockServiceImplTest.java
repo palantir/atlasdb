@@ -71,7 +71,8 @@ public final class AsyncTimelockServiceImplTest {
 
         TimestampedInvocation<TimestampLeaseResponses> responses =
                 acquireTimestampLeaseTimestamped(TIMESTAMP_NAME_1, 10, TIMESTAMP_NAME_2, 20);
-        assertThatTimestampsIsStrictlyWithinInvocationInterval(getMinLeasedTimestampsFrom(responses.result), responses);
+        assertThatTimestampsAreStrictlyWithinInvocationInterval(
+                getMinLeasedTimestampsFrom(responses.result), responses);
 
         unlockForResponse(responses.result);
         assertThatTimestampIsStrictlyWithinInvocationInterval(timestamp1MinLeased1.result, timestamp1MinLeased1);
@@ -90,21 +91,25 @@ public final class AsyncTimelockServiceImplTest {
     public void acquireTimestampLeaseReturnsMinLeasedAllThroughout() {
         TimestampedInvocation<TimestampLeaseResponses> response1 =
                 acquireTimestampLeaseTimestamped(TIMESTAMP_NAME_1, 15);
-        assertThatTimestampsIsStrictlyWithinInvocationInterval(getMinLeasedTimestampsFrom(response1.result), response1);
+        assertThatTimestampsAreStrictlyWithinInvocationInterval(
+                getMinLeasedTimestampsFrom(response1.result), response1);
 
         TimestampedInvocation<TimestampLeaseResponses> response2 =
                 acquireTimestampLeaseTimestamped(TIMESTAMP_NAME_1, 5);
-        assertThatTimestampsIsStrictlyWithinInvocationInterval(getMinLeasedTimestampsFrom(response2.result), response1);
+        assertThatTimestampsAreStrictlyWithinInvocationInterval(
+                getMinLeasedTimestampsFrom(response2.result), response1);
 
         TimestampedInvocation<TimestampLeaseResponses> response3 =
                 acquireTimestampLeaseTimestamped(TIMESTAMP_NAME_1, 7);
-        assertThatTimestampsIsStrictlyWithinInvocationInterval(getMinLeasedTimestampsFrom(response3.result), response1);
+        assertThatTimestampsAreStrictlyWithinInvocationInterval(
+                getMinLeasedTimestampsFrom(response3.result), response1);
 
         unlockForResponse(response1.result);
         unlockForResponse(response3.result);
         TimestampedInvocation<TimestampLeaseResponses> response4 =
                 acquireTimestampLeaseTimestamped(TIMESTAMP_NAME_1, 19);
-        assertThatTimestampsIsStrictlyWithinInvocationInterval(getMinLeasedTimestampsFrom(response4.result), response2);
+        assertThatTimestampsAreStrictlyWithinInvocationInterval(
+                getMinLeasedTimestampsFrom(response4.result), response2);
     }
 
     @Test
@@ -241,7 +246,7 @@ public final class AsyncTimelockServiceImplTest {
                 .collect(Collectors.toList());
     }
 
-    private static void assertThatTimestampsIsStrictlyWithinInvocationInterval(
+    private static void assertThatTimestampsAreStrictlyWithinInvocationInterval(
             List<Long> timestamps, TimestampedInvocation<?> invocation) {
         assertThat(timestamps)
                 .allSatisfy(timestamp -> assertThatTimestampIsStrictlyWithinInvocationInterval(timestamp, invocation));

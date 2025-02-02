@@ -81,7 +81,7 @@ final class RemotingTimestampLeaseServiceAdapter {
     }
 
     private static ListenableFuture<TimestampLeaseResponses> acquireTimestampLease(
-            AsyncTimelockService service, RequestId requestsId, Map<TimestampLeaseName, Integer> numFreshTimestamps) {
-        return service.acquireTimestampLease(requestsId.get(), numFreshTimestamps);
+            AsyncTimelockService service, RequestId requestId, Map<TimestampLeaseName, Integer> numFreshTimestamps) {
+        return service.acquireTimestampLease(requestId.get(), numFreshTimestamps);
     }
 }

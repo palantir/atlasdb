@@ -183,6 +183,8 @@ public class AsyncLockService implements Closeable {
         List<AsyncLock> locks = timestampNames.stream()
                 .map(name -> lockManager.getNamedTimestampLock(name, timestamp))
                 .collect(Collectors.toList());
+        // for these locks, each descriptor has a unique timestamp appended to it which means
+        // the individual locks do not contend with another thus eliminating the risk of deadlock
         return lockAcquirer.acquireLocks(requestId, OrderedLocks.fromOrderedList(locks), TimeLimit.zero());
     }
 
